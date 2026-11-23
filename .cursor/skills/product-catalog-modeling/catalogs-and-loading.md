@@ -75,9 +75,10 @@ same way, by literal value.
 
 Before renaming or retiring a value, find its consumers: `git grep -nw Family -- force-app unpackaged tasks datasets ':!*.csv' ':!**/staticresources/**'`
 in the repo, and the org's decision table sources, approval criteria and flows. The
-QuantumBit plan uses Hardware, Software, Services, Bundle, 3rd Party Software, and a blank
-Family on the products that are not sold (usage-definition, billing and no-operating-system
-products). [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+QuantumBit plan uses Hardware, Software, Services, Bundle and 3rd Party Software, and leaves
+Family blank on 171 of 314 products, including the five non-sold usage, billing and
+no-operating-system products that once carried a literal `None`.
+[Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 A literal `None` is a value, not an absence: a filter for blank does not match it, so leave
 Family blank on a product that has none.
 
