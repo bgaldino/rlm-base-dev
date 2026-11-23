@@ -95,6 +95,10 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
     }
 
+    // Throws for a missing id or an account the caller cannot read: there is no account name to show
+    // then, and the modal surfaces the message as an error toast (its account-info wire handler), so
+    // the header is not left blank without a reason. An account with no billing account still returns
+    // an AccountInfo carrying the account name; the modal blocks Create until a billing account exists.
     @AuraEnabled(cacheable=true)
     public static AccountInfo getAccountBillingInfo(Id accountId) {
         if (accountId == null) {
@@ -181,6 +185,8 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<TaxTreatmentOption> getTaxTreatments() {
         List<TaxTreatmentOption> results = new List<TaxTreatmentOption>();
+        // TaxTreatment.Status is not permissionable (measured on a 264 org), so no field grant applies;
+        // object read on TaxTreatment is what gates this query.
         for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
             results.add(new TaxTreatmentOption(tt.Id, tt.Name));
         }

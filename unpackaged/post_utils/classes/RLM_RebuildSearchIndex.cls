@@ -18,20 +18,30 @@ public with sharing class RLM_RebuildSearchIndex {
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {
         List<PCMDeployResult> results = new List<PCMDeployResult>();
 
-        // One deploy per distinct buildType/activationType, not one per request: identical
-        // requests share a single callout (a batch of 100+ would otherwise exceed the callout
-        // limit), and each request gets its own result copy.
+        // One deploy per distinct buildType, not one per request: identical requests share a
+        // single callout (a batch of 100+ would otherwise exceed the callout limit), and each
+        // request gets its own result copy. The activation type is not part of the key because
+        // IMMEDIATE is the only documented value and every request uses it.
         Map<String, Map<String, Object>> parsedByKey = new Map<String, Map<String, Object>>();
         Map<String, String> failureByKey = new Map<String, String>();
 
         for (PCMDeployRequest request : requests) {
             String buildType = normalizeBuildType(request.buildType);
-            String activationType = normalizeActivationType(request.activationType);
-            String key = buildType + '|' + activationType;
+            if (buildType == null) {
+                // An unknown build type is rejected, not silently run as a FULL rebuild.
+                PCMDeployResult rejected = new PCMDeployResult();
+                rejected.isSuccess = false;
+                rejected.message = 'Unsupported buildType "' + request.buildType
+                    + '". Use FULL or INCREMENTAL.';
+                System.debug(LoggingLevel.WARN, 'RLM_RebuildSearchIndex: ' + rejected.message);
+                results.add(rejected);
+                continue;
+            }
+            String key = buildType;
 
             if (!parsedByKey.containsKey(key) && !failureByKey.containsKey(key)) {
                 try {
-                    parsedByKey.put(key, buildResultMap(callPcmDeploy(buildType, activationType)));
+                    parsedByKey.put(key, buildResultMap(callPcmDeploy(buildType, DEFAULT_ACTIVATION_TYPE)));
                 } catch (Exception e) {
                     failureByKey.put(key, e.getMessage());
                 }
@@ -60,17 +70,14 @@ public with sharing class RLM_RebuildSearchIndex {
         return results;
     }
 
-    // Documented build types are FULL and INCREMENTAL; a blank or any other value falls back to FULL.
+    // Documented build types are FULL and INCREMENTAL. A blank value means the default (FULL);
+    // any other value returns null so the caller can reject it.
     private static String normalizeBuildType(String value) {
-        String candidate = String.isBlank(value) ? '' : value.trim().toUpperCase();
-        return (candidate == 'FULL' || candidate == 'INCREMENTAL') ? candidate : DEFAULT_BUILD_TYPE;
-    }
-
-    // IMMEDIATE is the only documented activation type, so every input maps to it today. The
-    // method is kept so a second documented value is a one-line change.
-    private static String normalizeActivationType(String value) {
-        String candidate = String.isBlank(value) ? '' : value.trim().toUpperCase();
-        return candidate == 'IMMEDIATE' ? candidate : DEFAULT_ACTIVATION_TYPE;
+        if (String.isBlank(value)) {
+            return DEFAULT_BUILD_TYPE;
+        }
+        String candidate = value.trim().toUpperCase();
+        return (candidate == 'FULL' || candidate == 'INCREMENTAL') ? candidate : null;
     }
 
     private static HttpResponse callPcmDeploy(String buildType, String activationType) {
@@ -136,7 +143,7 @@ public with sharing class RLM_RebuildSearchIndex {
         @InvocableVariable(label='Build Type' description='The build type for PCM index (default: FULL)')
         public String buildType = 'FULL';
         
-        @InvocableVariable(label='Activation Type' description='The activation type for PCM index (default: IMMEDIATE)')
+        @InvocableVariable(label='Activation Type' description='Reserved. IMMEDIATE is the only documented activation type and is always used, whatever is passed.')
         public String activationType = 'IMMEDIATE';
     }
     

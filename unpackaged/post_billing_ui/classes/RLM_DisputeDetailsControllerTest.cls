@@ -76,6 +76,8 @@ private class RLM_DisputeDetailsControllerTest {
 
         Assert.isNotNull(caught, 'An unmatched item id must be reported.');
         Assert.isTrue(caught instanceof AuraHandledException, 'Caught: ' + caught.getTypeName());
+        Assert.areEqual('1 of 2 dispute items were not found or are not accessible; nothing was saved.',
+            caught.getMessage(), 'The message states how many items are the problem');
         assertAmount(20, approvedAmount(itemIds[0]), 'The known item is left unchanged (all-or-nothing).');
     }
 

@@ -125,7 +125,12 @@ public with sharing class RLM_DisputeDetailsController {
         // Report ids that did not resolve (missing, deleted or not visible) instead of
         // silently saving a subset. Nothing is updated in that case.
         if (records.size() != amountMap.size()) {
-            throw new AuraHandledException('Some dispute items were not found or are not accessible; nothing was saved.');
+            Integer missing = amountMap.size() - records.size();
+            String message = missing + ' of ' + amountMap.size()
+                + ' dispute items were not found or are not accessible; nothing was saved.';
+            AuraHandledException rejected = new AuraHandledException(message);
+            rejected.setMessage(message); // getMessage() is otherwise "Script-thrown exception"
+            throw rejected;
         }
         try {
             for (SObject rec : records) {

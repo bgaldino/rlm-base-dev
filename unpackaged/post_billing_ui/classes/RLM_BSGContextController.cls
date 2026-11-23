@@ -122,6 +122,8 @@ public with sharing class RLM_BSGContextController {
         }
 
         try {
+            // TotalBilledAmount and TotalPendingAmount are rollups that are not permissionable
+            // (measured on a 264 org): object read is the only gate, no field grant exists.
             List<BillingScheduleGroup> bsgList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id,
                        BillingType, BillingMethod, BillingTermUnit, BillingTerm,

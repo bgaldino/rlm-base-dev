@@ -5,10 +5,10 @@
  * success body is tested on the LWC path only; the invocable reports it through the same
  * catch as a transport failure, which is tested.
  *
- * The invocable sends one deploy per distinct buildType/activationType pair (not one per
- * request), so a batch of identical requests makes one callout and gets one result each. The
- * request's buildType and activationType are forwarded; a blank value falls back to
- * FULL / IMMEDIATE.
+ * The invocable sends one deploy per distinct buildType (not one per request), so a batch of
+ * identical requests makes one callout and gets one result each. The request's buildType is
+ * forwarded; a blank value falls back to FULL, and an unknown value is rejected with a failed
+ * result and no callout. The activation type is always IMMEDIATE, the only documented value.
  *
  * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
  * Test.isRunningTest() makes unreachable.
@@ -274,36 +274,37 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.areEqual('INCREMENTAL', body.get('buildType'), 'The request\'s buildType is trimmed and upper-cased before it is sent');
     }
 
-    // Values outside the documented set (buildType FULL|INCREMENTAL, activationType IMMEDIATE)
-    // are not forwarded; they fall back to FULL/IMMEDIATE.
+    // An undocumented buildType is rejected: a failed result and no callout, never a silent FULL.
     @IsTest
-    static void deployPcmIndexFallsBackForUndocumentedValues() {
+    static void deployPcmIndexRejectsAnUnknownBuildType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
-        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
-        request.buildType = 'PARTIAL';
-        request.activationType = 'DEFERRED';
+        RLM_RebuildSearchIndex.PCMDeployRequest bad = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        bad.buildType = 'PARTIAL';
 
         Test.startTest();
-        RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
+        List<RLM_RebuildSearchIndex.PCMDeployResult> results = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ bad, new RLM_RebuildSearchIndex.PCMDeployRequest() }
+        );
         Test.stopTest();
 
-        Assert.areEqual(1, mock.received.size(), 'One callout for one request');
-        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
-        Assert.areEqual('FULL', body.get('buildType'), 'An undocumented buildType falls back to FULL');
-        Assert.areEqual('IMMEDIATE', ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'An undocumented activationType falls back to IMMEDIATE');
+        Assert.areEqual(2, results.size(), 'One result per request');
+        Assert.areEqual(false, results[0].isSuccess, 'The unknown buildType is a failed result');
+        Assert.isTrue(results[0].message.contains('PARTIAL') && results[0].message.contains('FULL or INCREMENTAL'),
+            'The message names the rejected value and the allowed ones: ' + results[0].message);
+        Assert.areEqual(true, results[1].isSuccess, 'The valid request in the same batch still runs');
+        Assert.areEqual(1, mock.received.size(), 'Only the valid request makes a callout');
     }
 
     @IsTest
-    static void deployPcmIndexDefaultsBlankBuildAndActivationType() {
+    static void deployPcmIndexDefaultsBlankBuildType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
         RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
         request.buildType = null;
-        request.activationType = '  ';
+        request.activationType = 'DEFERRED';
 
         Test.startTest();
         RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
@@ -312,11 +313,11 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
         Assert.areEqual('FULL', body.get('buildType'), 'A blank buildType falls back to FULL');
         Assert.areEqual('IMMEDIATE', ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'A blank activationType falls back to IMMEDIATE');
+            'Any activationType is sent as IMMEDIATE, the only documented value');
     }
 
     @IsTest
-    static void deployPcmIndexMakesOneCalloutPerDistinctBuildAndActivationType() {
+    static void deployPcmIndexMakesOneCalloutPerDistinctBuildType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
@@ -334,7 +335,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per request');
-        Assert.areEqual(2, mock.received.size(), 'FULL/IMMEDIATE (twice) and INCREMENTAL/IMMEDIATE: two callouts');
+        Assert.areEqual(2, mock.received.size(), 'FULL (twice) and INCREMENTAL: two callouts');
     }
 
     @IsTest
