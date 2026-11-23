@@ -48,6 +48,77 @@ global class RLM_CalculateTaxService {
         return response == null ? null : response.getBody();
     }
 
+    @TestVisible private static final String INCOMPLETE_RESPONSE_PREFIX = 'The tax engine response is incomplete: ';
+
+    // Test seams for the callout result. They apply only while a test runs, where getTax parses a
+    // canned body instead of the callout response: a test can
+    // feed a specific body, or simulate the failed callout that leaves no response.
+    @TestVisible private static String testResponseBody;
+    @TestVisible private static Boolean simulateNoResponse = false;
+
+    // Names the first value getTax reads without a null check that the engine response left out, or
+    // returns null when the response can be mapped. Without it a missing total throws a raw
+    // NullPointerException out of the tax engine call.
+    @TestVisible
+    private static String missingResponseValue(RLM_JsonSuccessParser parsed) {
+        if (parsed.totalAmount == null) { return 'totalAmount'; }
+        if (parsed.totalTax == null) { return 'totalTax'; }
+        if (String.isBlank(parsed.taxDate)) { return 'taxDate'; }
+        if (String.isBlank(parsed.transactionDate)) { return 'date'; }
+        if (parsed.lines != null) {
+            for (RLM_JsonSuccessParser.Lines line : parsed.lines) {
+                if (line.lineAmount == null) { return 'lineAmount'; }
+                if (line.taxCalculated == null) { return 'taxCalculated'; }
+                if (String.isBlank(line.taxDate)) { return 'line taxDate'; }
+            }
+        }
+        return null;
+    }
+
+    @TestVisible private static final String UNREADABLE_RESPONSE_MESSAGE = 'The tax engine response could not be read.';
+    @TestVisible private static final String ERROR_WITHOUT_MESSAGE = 'The tax engine returned an error without a message.';
+
+    // The body as untyped JSON, or null when it is not valid JSON.
+    @TestVisible
+    private static Object parseBodyOrNull(String body) {
+        try {
+            return JSON.deserializeUntyped(body);
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+
+    // The message of an engine error: the error's own message, else the last detail message, else a
+    // fixed text. Handles an error that is a bare string, an object with no message and no details,
+    // or any other shape, none of which may throw.
+    @TestVisible
+    private static String errorMessageFrom(Object errorValue, String body) {
+        if (errorValue instanceof String) {
+            return String.isNotBlank((String) errorValue) ? (String) errorValue : ERROR_WITHOUT_MESSAGE;
+        }
+        if (!(errorValue instanceof Map<String, Object>)) {
+            return ERROR_WITHOUT_MESSAGE;
+        }
+        String message = null;
+        try {
+            RLM_JsonErrorParser.cls_error error = RLM_JsonErrorParser.parse(body).error;
+            if (error != null) {
+                if (String.isNotBlank(error.message)) {
+                    message = error.message;
+                } else if (error.details != null) {
+                    for (RLM_JsonErrorParser.cls_details detail : error.details) {
+                        if (detail != null && String.isNotBlank(detail.message)) {
+                            message = detail.message;
+                        }
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            // An error object shaped differently from the parser: fall through to the fixed text.
+        }
+        return String.isNotBlank(message) ? message : ERROR_WITHOUT_MESSAGE;
+    }
+
     // The parser reads money as Decimal; the platform response setters take Double.
     private static Double toDouble(Decimal value) {
         return value == null ? null : value.doubleValue();
@@ -68,7 +139,7 @@ global class RLM_CalculateTaxService {
                 //system.debug('Request '+requestBody);
                 String responseString = '';
                 if(Test.isRunningTest()){
-                    responseString = getTestResponseString();
+                    responseString = simulateNoResponse ? null : (testResponseBody != null ? testResponseBody : getTestResponseString());
                 } else{
                     responseString = bodyOrNull(sendHttpRequest.getResponse());
                 }
@@ -81,10 +152,21 @@ global class RLM_CalculateTaxService {
                 //responseString = TEST_REQUEST_BODY;
                 system.debug('Heap size used ' +Limits.getHeapSize());
                 
-                if(!responseString.contains('error'))
+                // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
+                // successful body can carry the word in a tax name or a reason.
+                Object parsedBody = parseBodyOrNull(responseString);
+                if(!(parsedBody instanceof Map<String, Object>)) {
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
+                }
+                Object errorValue = ((Map<String, Object>) parsedBody).get('error');
+                if(errorValue == null)
                 {
                     commercetax.CalculateTaxResponse response = new commercetax.CalculateTaxResponse();
                     RLM_JsonSuccessParser jsonSuccessParserClass = RLM_JsonSuccessParser.parse(responseString);
+                    String missing = missingResponseValue(jsonSuccessParserClass);
+                    if(missing != null) {
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INCOMPLETE_RESPONSE_PREFIX + missing + ' is missing.');
+                    }
                     response.setTaxTransactionType(request.taxTransactionType);
                     response.setDocumentCode(jsonSuccessParserClass.code);
                     response.setReferenceDocumentCode(jsonSuccessParserClass.referenceCode);
@@ -108,16 +190,16 @@ global class RLM_CalculateTaxService {
                     response.setTaxTransactionId(jsonSuccessParserClass.id);
                     response.setCurrencyIsoCode(request.currencyIsoCode);
                     List<commercetax.LineItemResponse> lineItemResponses = new List<commercetax.LineItemResponse>();
-                    for(RLM_JsonSuccessParser.Lines linesToProcess: jsonSuccessParserClass.lines)
+                    for(RLM_JsonSuccessParser.Lines linesToProcess: jsonSuccessParserClass.lines == null ? new List<RLM_JsonSuccessParser.Lines>() : jsonSuccessParserClass.lines)
                     {
                         commercetax.LineItemResponse lineItemResponse = new commercetax.LineItemResponse();
                         List<commercetax.TaxDetailsResponse> taxDetailsResponses = new List<commercetax.TaxDetailsResponse>();
-                        for(RLM_JsonSuccessParser.details linesDetails : linesToProcess.details)
+                        for(RLM_JsonSuccessParser.details linesDetails : linesToProcess.details == null ? new List<RLM_JsonSuccessParser.details>() : linesToProcess.details)
                         {
                             commercetax.TaxDetailsResponse taxDetailsResponse = new commercetax.TaxDetailsResponse();
-                            if(linesDetails.exemptAmount != 0){
+                            // A detail with no exempt amount (null) is not exempt, like one with 0.
+                            if(linesDetails.exemptAmount != null && linesDetails.exemptAmount != 0){
                                 taxDetailsResponse.setExemptAmount(toDouble(linesDetails.exemptAmount));
-                                taxDetailsResponse.setExemptReason('Some reason we dont know');
                             }
                                 commercetax.ImpositionResponse imposition = new commercetax.ImpositionResponse();
                                     imposition.setSubType(linesDetails.taxName);
@@ -162,24 +244,7 @@ global class RLM_CalculateTaxService {
                 }
                 else
                 {
-                    RLM_JsonErrorParser jsonErrorParserClass = RLM_JsonErrorParser.parse(responseString);
-                    String message = null;
-                    if(String.isNotBlank(jsonErrorParserClass.error.message))
-                    {
-                       message=jsonErrorParserClass.error.message;
-                    }else{
-                           String errorMessage = '';
-                            for(RLM_JsonErrorParser.cls_details messageString : jsonErrorParserClass.error.details)
-                            {
-                                if(String.isNotBlank(messageString.message) )
-                                {
-                                    errorMessage = messageString.message;
-                                }
-                            }
-                            message = errorMessage; 
-                        }
-                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', message);
-
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', errorMessageFrom(errorValue, responseString));
                 }
             }else return null;
         }
