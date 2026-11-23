@@ -315,6 +315,10 @@ The Quote Proposal generation flow (`unpackaged/post_docgen/flows/RLM_Quote_Doc_
 7. **Merge** — calls `RLM_DocumentGenerationMerge` to merge generated PDF with attachments
 8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) injects a global `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer` to force `height: 500px` (see [Preview Height Fix](#preview-height-fix))
 
+### Errors in the flow
+
+The three docgen Apex invocables run as the signed-in user (`with sharing`, `WITH USER_MODE`, `insert as user`), so a missing permission or an unreadable file surfaces as an exception. `RLM_ReturnPDFDocument` throws `PdfNotFoundException` when it was given content ids but none is a PDF the user can read. Every docgen action, the proposal delete and the three file lookups in the flow have a fault connector to the `Document_Generation_Error` screen, which shows `{!$Flow.FaultMessage}` instead of the unhandled-fault page. A response with no ids at all still returns an empty output and is not an error.
+
 ### Preview Height Fix
 
 `mulesoft_idp:configEditorPreviewPlayer` uses `height: 100%` internally but collapses to ~150px because its host element has no explicit height set by the flow screen container.

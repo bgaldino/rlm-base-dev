@@ -26,8 +26,12 @@ public with sharing class RLM_DocumentGenerationCreate {
         }
 
         List<DocumentGenerationProcess> processes = buildProcesses(requests, templateMap);
-        // As the running user: the Sales Rep and billing personas need create access to the
-        // DocumentGenerationProcess fields this class sets (see the permission sets).
+        // As the running user. The user needs create on DocumentGenerationProcess (granted by the
+        // docgen permission sets and RLM_QuantumBit_Sales_Representative). Of the fields set here,
+        // only ReferenceObject and RequestText are field-level-security controlled, and the Sales
+        // Representative set grants both; Type, DocumentTemplateId, DocGenApiVersionType,
+        // DocumentInputType, DocGenAdditionalInputType, DocGenAdditionalInput and DataRaptorInput are
+        // not permissionable, so insert as user does not check them (measured on a 264 org).
         insert as user processes;
 
         List<Response> responses = new List<Response>();

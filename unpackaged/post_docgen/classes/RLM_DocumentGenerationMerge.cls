@@ -32,7 +32,9 @@ public with sharing class RLM_DocumentGenerationMerge {
             processes.add(dgp);
         }
 
-        // One DML for the whole batch, as the running user. Every request is validated above
+        // One DML for the whole batch, as the running user. The FLS-controlled fields set above
+        // (ReferenceObject, RequestText, PdfDocIdentifiersList) are granted by the Sales
+        // Representative set; Type, Status and DocGenApiVersionType are not permissionable. Every request is validated above
         // before anything is inserted; the responses follow request order.
         insert as user processes;
         for (DocumentGenerationProcess dgp : processes) {
