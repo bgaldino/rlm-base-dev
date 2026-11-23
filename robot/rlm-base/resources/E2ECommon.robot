@@ -1820,12 +1820,8 @@ _Click Modal Footer Button
 Get Record Id From Url
     [Documentation]    Extracts a Salesforce record Id from the current page URL.
     ...    Returns the 18-character Id from a URL like /lightning/r/SObject/001.../view.
-    ${url}=    Get Location
-    ${id}=    Evaluate    __import__('re').search(r'/([a-zA-Z0-9]{15,18})/view', $url).group(1) if __import__('re').search(r'/([a-zA-Z0-9]{15,18})/view', $url) else ''
-    IF    "${id}" == ""
-        # Try alternate URL patterns (e.g. after flow completion)
-        ${id}=    Evaluate    __import__('re').search(r'/([a-zA-Z0-9]{15,18})(?:\\?|$|#)', $url).group(1) if __import__('re').search(r'/([a-zA-Z0-9]{15,18})(?:\\?|$|#)', $url) else ''
-    END
+    ...    The URL is read inside SessionUrlGuard with logging off (it can be a frontdoor URL mid-login).
+    ${id}=    Get Record Id From Current Url
     RETURN    ${id}
 
 Wait For Record Page And Get Id
@@ -1838,8 +1834,7 @@ Wait For Record Page And Get Id
 
 _Page Url Should Contain Record
     [Arguments]    ${sobject}
-    ${url}=    Get Location
-    Should Match Regexp    ${url}    /lightning/r/${sobject}/[a-zA-Z0-9]{15,18}
+    Current Url Should Be Record Page    ${sobject}
 
 # ── Async Wait Keywords ─────────────────────────────────────────────
 

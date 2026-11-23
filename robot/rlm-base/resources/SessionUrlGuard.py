@@ -10,42 +10,98 @@ Robot, never passed as a keyword argument and never logged.
 
 While the URL exists the Robot log level is ``NONE`` (the prior level is always
 restored in ``finally``), and any exception raised from that window is rewritten
-with every session-bearing URL redacted, so a failure message cannot leak it
-either. Only the org alias and the setup path (no token) are ever visible.
+with the known URL, its ``sid``/``otp`` values and every other session-bearing
+URL redacted. If the pattern still matches afterwards the whole message is
+withheld. Only the org alias and the setup path (no token) are ever visible.
 
-``SESSION_URL_PATTERN`` is the same pattern the regression test scans results
-for (``tests/test_robot_session_url_logging.py``).
+The same applies to reading the current page URL (``Get Record Id From Current
+Url``, ``Current Url Should Be Record Page``): the page URL can be a frontdoor
+URL while a login redirect is in flight, so it is read with logging off and only
+its path is ever reported.
+
+``SESSION_URL_PATTERN`` is the pattern the regression scanner uses
+(``scripts/ai/check_robot_session_urls.py``; ``tests/test_robot_session_url_logging.py``).
 """
 
+import json
 import re
+import shutil
 import subprocess
+from urllib.parse import parse_qsl, quote, unquote, urlsplit
 
 from robot.api import logger
 from robot.api.deco import keyword, library
+from robot.errors import RobotError
 from robot.libraries.BuiltIn import BuiltIn
 
-# A frontdoor path, or a sid=/otp= query parameter (also catches URL-encoded forms).
+# A frontdoor path, or a sid=/otp= parameter, plain or URL-encoded.
 SESSION_URL_PATTERN = re.compile(
-    r"secur/frontdoor\.jsp|[?&;](?:sid|otp)=|(?:^|[\s\"'(])(?:sid|otp)=[^\s&\"']{6,}",
+    r"secur(?:/|%2F)frontdoor\.jsp|(?:[?&;]|%3F|%26)(?:sid|otp)(?:=|%3D)",
     re.IGNORECASE,
 )
 _URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
-_URL_MARKER = "with the following URL:"
 REDACTED = "<session-url-redacted>"
+WITHHELD = "<message withheld: it may contain session material>"
+_SF_TIMEOUT_SECONDS = 120
+_RECORD_PATH_RE = re.compile(r"/lightning/r/{sobject}/[a-zA-Z0-9]{{15,18}}")
 
 
-def redact_session_urls(text):
-    """Replace every URL in ``text`` that carries session material."""
+def _secret_values(url):
+    """The sid/otp values (and encoded forms) carried by ``url``."""
+    values = set()
+    query = urlsplit(str(url)).query
+    for name, value in parse_qsl(query, keep_blank_values=False):
+        if name.lower() in ("sid", "otp") and value:
+            values.add(value)
+    for value in list(values):
+        values.update({quote(value, safe=""), quote(value), unquote(value)})
+    return {v for v in values if v}
+
+
+def redact_session_urls(text, known_url=None):
+    """Remove session material from ``text``; withhold the whole text if any remains."""
     text = str(text)
-    return _URL_RE.sub(
-        lambda m: REDACTED if SESSION_URL_PATTERN.search(m.group(0)) else m.group(0),
-        text,
+    secrets = set()
+    if known_url:
+        known_url = str(known_url)
+        secrets |= _secret_values(known_url)
+        text = text.replace(known_url, REDACTED).replace(quote(known_url, safe=""), REDACTED)
+    text = _URL_RE.sub(
+        lambda m: REDACTED if SESSION_URL_PATTERN.search(m.group(0)) else m.group(0), text
     )
+    # A leaked URL may have lost its scheme or been cut; look for any value we know.
+    for secret in secrets:
+        text = text.replace(secret, REDACTED)
+    if SESSION_URL_PATTERN.search(text) or any(s in text for s in secrets):
+        return WITHHELD
+    return text
 
 
-def _parse_url(stdout):
-    raw = " ".join(str(stdout).split())
-    return raw.split(_URL_MARKER)[-1].strip() if _URL_MARKER in raw else raw
+def _fetch_url(org_alias, setup_path):
+    """Return the one-time frontdoor URL for ``setup_path``. Never log the result."""
+    sf = shutil.which("sf")
+    if sf is None:
+        raise RuntimeError("the Salesforce CLI ('sf') was not found on PATH; install it or fix PATH")
+    try:
+        result = subprocess.run(
+            [sf, "org", "open", "-o", str(org_alias), "--url-only", "-p", str(setup_path), "--json"],
+            capture_output=True,
+            text=True,
+            timeout=_SF_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"sf org open timed out after {_SF_TIMEOUT_SECONDS}s") from None
+    try:
+        payload = json.loads(result.stdout)
+    except ValueError:
+        payload = {}
+    if result.returncode != 0:
+        detail = payload.get("message") or result.stderr.strip() or "no detail"
+        raise RuntimeError(f"sf org open failed (exit {result.returncode}): {detail}")
+    url = (payload.get("result") or {}).get("url")
+    if not url:
+        raise RuntimeError("sf org open --json did not return result.url")
+    return url
 
 
 @library(scope="GLOBAL", auto_keywords=False)
@@ -54,9 +110,9 @@ class SessionUrlGuard:
     def go_to_authenticated_page(self, org_alias, setup_path):
         """Opens ``setup_path`` in the current browser, logged in to ``org_alias``.
 
-        Fetches a one-time frontdoor URL with ``sf org open --url-only`` and
-        navigates to it. The URL is never visible to Robot (see the module doc).
-        Fails with a redacted message if the CLI or the navigation fails.
+        Fetches a one-time frontdoor URL with ``sf org open --url-only --json``
+        and navigates to it. The URL is never visible to Robot (see the module
+        doc). Fails with a redacted message if the CLI or the navigation fails.
         """
         if not str(org_alias).strip():
             raise AssertionError("ORG_ALIAS must be set (e.g. robot -v ORG_ALIAS:my-scratch ...)")
@@ -64,27 +120,45 @@ class SessionUrlGuard:
         builtin = BuiltIn()
         previous = builtin.set_log_level("NONE")
         failure = None
+        url = None
         try:
-            url = self._fetch_url(org_alias, setup_path)
-            driver = builtin.get_library_instance("SeleniumLibrary").driver
-            driver.get(url)
-        except Exception as exc:  # re-raised below with the level restored
-            failure = f"{type(exc).__name__}: {redact_session_urls(exc)}"
+            url = _fetch_url(org_alias, setup_path)
+            builtin.get_library_instance("SeleniumLibrary").driver.get(url)
+        except RobotError:
+            raise  # Robot's own control flow (timeouts, missing library): never rewrite or swallow
+        except Exception as exc:  # re-raised below, redacted, with the level restored
+            failure = f"{type(exc).__name__}: {redact_session_urls(exc, url)}"
         finally:
             builtin.set_log_level(previous)
         if failure is not None:
             raise AssertionError(failure)
 
-    @staticmethod
-    def _fetch_url(org_alias, setup_path):
-        result = subprocess.run(
-            ["sf", "org", "open", "-o", str(org_alias), "--url-only", "-p", str(setup_path)],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(f"sf org open failed (exit {result.returncode}): {result.stderr.strip()}")
-        url = _parse_url(result.stdout)
-        if not url:
-            raise RuntimeError("sf org open did not return a URL")
-        return url
+    def _current_url(self):
+        builtin = BuiltIn()
+        previous = builtin.set_log_level("NONE")
+        try:
+            return builtin.get_library_instance("SeleniumLibrary").driver.current_url
+        finally:
+            builtin.set_log_level(previous)
+
+    @keyword("Get Record Id From Current Url")
+    def get_record_id_from_current_url(self):
+        """Returns the 15-18 character record Id in the current page URL, or an empty string.
+
+        The URL is read and matched with logging off and is never returned or logged.
+        """
+        path = urlsplit(self._current_url()).path
+        for pattern in (r"/([a-zA-Z0-9]{15,18})/view", r"/([a-zA-Z0-9]{15,18})$"):
+            found = re.search(pattern, path)
+            if found:
+                return found.group(1)
+        return ""
+
+    @keyword("Current Url Should Be Record Page")
+    def current_url_should_be_record_page(self, sobject):
+        """Fails unless the current page is ``/lightning/r/<sobject>/<id>``. Reports the path only."""
+        path = urlsplit(self._current_url()).path
+        if not re.search(_RECORD_PATH_RE.pattern.format(sobject=re.escape(str(sobject))), path):
+            raise AssertionError(
+                f"Current page is not a {sobject} record page (path: {redact_session_urls(path)})"
+            )

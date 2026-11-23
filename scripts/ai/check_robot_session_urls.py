@@ -7,7 +7,8 @@ is a live login. Robot setup suites must never write one into ``output.xml`` or 
 Robot result trees for that material.
 
 ``log.html`` stores most strings zlib-compressed and base64-encoded, so a plain text search of it
-proves nothing; this decodes them first.
+proves nothing; this decodes them first (each embedded array with ``raw_decode``; an array
+that will not decode is itself a finding) and also reads split-log ``.js`` files.
 
 Usage:
     python scripts/ai/check_robot_session_urls.py [PATH ...]
@@ -31,39 +32,71 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 # Keep in step with SESSION_URL_PATTERN in robot/rlm-base/resources/SessionUrlGuard.py.
 SESSION_URL_PATTERN = re.compile(
-    r"secur/frontdoor\.jsp|[?&;](?:sid|otp)=|(?:^|[\s\"'(])(?:sid|otp)=[^\s&\"']{6,}",
+    r"secur(?:/|%2F)frontdoor\.jsp|(?:[?&;]|%3F|%26)(?:sid|otp)(?:=|%3D)",
     re.IGNORECASE,
 )
-_STRINGS_RE = re.compile(r'window\.output\["strings"\]\s*=\s*window\.output\["strings"\]\.concat\((\[.*?\])\);', re.S)
-_SUFFIXES = {".xml", ".html", ".htm", ".txt", ".log", ".json"}
+# log.html appends string tables with ``window.output["strings"].concat([...])`` (other
+# ``.concat(`` calls in its bundled JavaScript are not data); a split log (--splitlog) keeps each
+# fragment's strings in ``window.strings<N> = [...]`` in a separate .js file.
+_CONCAT = 'window.output["strings"].concat('
+_STRINGS_ASSIGN_RE = re.compile(r"window\.strings\d+\s*=\s*")
+_SUFFIXES = {".xml", ".html", ".htm", ".txt", ".log", ".json", ".js"}
+UNDECODABLE = "<undecodable embedded JSON>"
 
 
-def _decoded_strings(html: str):
-    """Yield the strings Robot embeds in log.html (plain ``*`` entries and compressed ones)."""
-    for match in _STRINGS_RE.finditer(html):
-        try:
-            entries = json.loads(match.group(1).replace("\\x3c", "<"))
-        except ValueError:
-            yield match.group(1)  # undecodable: still search the raw text
+def _json_text(text: str) -> str:
+    """Robot escapes ``<`` and friends as ``\\xNN``, which is not valid JSON."""
+    return re.sub(r"\\x([0-9a-fA-F]{2})", r"\\u00\1", text)
+
+
+def _decode_array(text: str, start: int):
+    """Decode the JSON array at ``text[start:]``; ``None`` when it does not decode."""
+    try:
+        value, _ = json.JSONDecoder().raw_decode(_json_text(text[start:]))
+    except ValueError:
+        return None
+    return value if isinstance(value, list) else None
+
+
+def _decode_entry(entry):
+    if not isinstance(entry, str):
+        return str(entry)
+    if entry.startswith("*"):
+        return entry[1:]
+    try:
+        return zlib.decompress(base64.b64decode(entry)).decode("utf-8", "replace")
+    except (ValueError, zlib.error):
+        return entry
+
+
+def _decoded_strings(text: str):
+    """Yield every string embedded in a log.html or split-log .js file.
+
+    An embedded array that cannot be decoded is yielded as ``UNDECODABLE`` so the caller reports
+    it: an unreadable chunk is never assumed clean.
+    """
+    starts = [m.end() for m in _STRINGS_ASSIGN_RE.finditer(text)]
+    pos = text.find(_CONCAT)
+    while pos != -1:
+        starts.append(pos + len(_CONCAT))
+        pos = text.find(_CONCAT, pos + 1)
+    for start in starts:
+        entries = _decode_array(text, start)
+        if entries is None:
+            yield UNDECODABLE
             continue
         for entry in entries:
-            if entry.startswith("*"):
-                yield entry[1:]
-                continue
-            try:
-                yield zlib.decompress(base64.b64decode(entry)).decode("utf-8", "replace")
-            except (ValueError, zlib.error):
-                yield entry
+            yield _decode_entry(entry)
 
 
 def scan_file(path: Path) -> bool:
-    """True when ``path`` holds session-URL material."""
+    """True when ``path`` holds session-URL material (or an embedded chunk that cannot be read)."""
     text = path.read_text(encoding="utf-8", errors="replace")
     if SESSION_URL_PATTERN.search(text):
         return True
-    return path.suffix in {".html", ".htm"} and any(
-        SESSION_URL_PATTERN.search(s) for s in _decoded_strings(text)
-    )
+    if path.suffix not in {".html", ".htm", ".js"}:
+        return False
+    return any(s == UNDECODABLE or SESSION_URL_PATTERN.search(s) for s in _decoded_strings(text))
 
 
 def scan_paths(paths) -> list[Path]:

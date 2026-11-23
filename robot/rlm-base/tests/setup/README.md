@@ -77,7 +77,7 @@ With `ORG_ALIAS`, the suites log in through `sf org open --url-only`, whose fron
 | Variable | Description |
 |----------|-------------|
 | `ORG_ALIAS` | **Recommended.** Org username or alias for authenticated browser session via `sf org open --url-only` (the URL is never logged). |
-| `REVENUE_SETTINGS_URL` | Full URL to Revenue Settings when not using ORG_ALIAS. |
+| `REVENUE_SETTINGS_URL` | Full plain URL to Revenue Settings when not using ORG_ALIAS (empty by default; no committed org host). |
 | `MANUAL_LOGIN_WAIT` | Wait time for manual login if no org alias (default: `90s`). |
 
 ### enable_document_builder.robot
