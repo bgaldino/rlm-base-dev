@@ -14,8 +14,8 @@ global class RLM_CalculateTaxService {
 
     @TestVisible private static final String INCOMPLETE_RESPONSE_PREFIX = 'The tax engine response is incomplete: ';
 
-    // Names the first value getTax reads without a null check whose absence throws (arithmetic on a
-    // null total, or Date.valueOf on a blank date) that the engine response left out, or returns null
+    // Names the first value getTax needs that the engine response left out (a null total, a blank date,
+    // or a line without its taxable flag, which the platform setter cannot take as null), or returns null
     // when the response can be mapped. Without it a missing value throws a raw exception out of the
     // tax engine call.
     @TestVisible
@@ -29,6 +29,10 @@ global class RLM_CalculateTaxService {
                 if (line.lineAmount == null) { return 'lineAmount'; }
                 if (line.taxCalculated == null) { return 'taxCalculated'; }
                 if (String.isBlank(line.taxDate)) { return 'line taxDate'; }
+                // The engine states per line whether the item was taxed (AvaTax isItemTaxable). The line
+                // response needs that answer and there is no documented default, so a line without it
+                // is incomplete rather than assumed taxable.
+                if (line.isItemTaxable == null) { return 'isItemTaxable'; }
             }
         }
         return null;
@@ -217,7 +221,6 @@ global class RLM_CalculateTaxService {
                         }
                             lineItemResponse.setTaxes(taxDetailsResponses);
                             lineItemResponse.setEffectiveDate(date.valueof(linesToProcess.taxDate));
-                            lineItemResponse.setIsTaxable(true);
                                 commercetax.AmountDetailsResponse amountResponse = new commercetax.AmountDetailsResponse();
                                 amountResponse.setTaxAmount(linesToProcess.taxCalculated);
                                 amountResponse.setTotalAmount(toDouble(linesToProcess.lineAmount));

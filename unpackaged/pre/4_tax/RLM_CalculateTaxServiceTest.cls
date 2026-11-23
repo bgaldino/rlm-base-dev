@@ -10,7 +10,7 @@
  * referenceDocumentCode, header exemptAmount, effectiveDate and transactionDate; imposition subType and
  * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
  * taxId and taxRegionId (set from the detail's region code); line effectiveDate, isTaxable (set
- * twice), exemptAmount, productCode and quantity. The detail-level exemptAmount is covered by
+ * from isItemTaxable), exemptAmount, productCode and quantity. The detail-level exemptAmount is covered by
  * getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped (the canned payload's are all 0). Both status
  * branches are covered: the canned payload's Temporary maps to Uncommitted, and
  * getTax_committedStatus_mapsToCommitted supplies a body with status Committed.
@@ -236,7 +236,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'date' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","lines":[]}',
             'lineAmount' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","taxCalculated":1.5,"taxDate":"2020-07-15"}]}',
             'taxCalculated' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxDate":"2020-07-15"}]}',
-            'line taxDate' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5}]}'
+            'line taxDate' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"isItemTaxable":true}]}',
+            'isItemTaxable' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15"}]}'
         };
         for (String missing : bodies.keySet()) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
@@ -253,12 +254,13 @@ private with sharing class RLM_CalculateTaxServiceTest {
         }
     }
 
-    // A response with no line list and a line with no tax details still maps to a success response.
+    // A response with no line list, or a line with no tax details, still maps to a success response. The line
+    // must still carry isItemTaxable: a line without it is the incomplete case above.
     @IsTest
     static void getTax_responseWithoutLinesOrDetails_mapsToASuccessResponse() {
         List<String> noLines = new List<String>{
             '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15"}',
-            '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15"}]}'
+            '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15","isItemTaxable":true}]}'
         };
         for (String body : noLines) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
@@ -341,7 +343,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
     @IsTest
     static void getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped() {
         String head = '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15",'
-            + '"lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15","details":[';
+            + '"lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15","isItemTaxable":true,"details":[';
         String detailFields = '"taxName":"WA STATE TAX","jurisName":"WASHINGTON","rate":0.1,"taxCalculated":1.5,"taxableAmount":10';
         String tail = ']}]}';
         List<String> bodies = new List<String>{
@@ -371,7 +373,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Map<String, String> bodies = new Map<String, String>{
             'taxDate' => head + '"taxDate":"not a date","date":"2020-07-15","lines":[]}',
             'date' => head + '"taxDate":"2020-07-15","date":"not a date","lines":[]}',
-            'line taxDate' => head + '"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"not a date"}]}'
+            'line taxDate' => head + '"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"not a date","isItemTaxable":true}]}'
         };
         for (String field : bodies.keySet()) {
             Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, bodies.get(field)));
