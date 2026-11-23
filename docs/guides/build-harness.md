@@ -57,7 +57,7 @@ target `project_root_flags` if either fails:
   project root that resolves to another checkout with different flag defaults.
 
 On `resume` the failure is `resume_blocked` (exit 30); only a `cci` timeout keeps
-resume recommended, and only for two retries (earlier transient preflight rows count). A `cci`
+resume recommended, and only for two retries (the consecutive transient preflight rows at the end of the step log count; a later step row resets them). After that the result is a deterministic `manual_fix_required` saying `cci` timed out repeatedly. A single timeout on a fresh `run` stays `rerun_full`. A `cci`
 that cannot run, any non-zero exit (its text is not pattern-matched), and a wrong setup do not, so a policy-following agent does not loop
 on exit 30. On `run` it is a failed
 scenario. For the TUI, `run_build` returns 20 and emits `run_failed`; the TUI app does not

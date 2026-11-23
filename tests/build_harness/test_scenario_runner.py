@@ -527,37 +527,60 @@ def test_a_fresh_run_never_offers_resume_after_a_preflight_failure(tmp_path, mon
     assert result["can_resume"] is False
 
 
-def test_a_persistent_transient_preflight_failure_stops_recommending_resume(tmp_path, monkeypatch) -> None:
+def _rerun_preflight(tmp_path, *, is_resume=True):
+    return scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=tmp_path / "runs" / "run-10",
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"inapp": False},
+        base_cci={},
+        skip_validate=False,
+        keep_orgs=True,
+        is_resume=is_resume,
+        resume_from_step=3 if is_resume else None,
+        existing_alias="demo-org" if is_resume else None,
+    )
+
+
+def test_a_persistent_transient_preflight_failure_becomes_a_manual_fix(tmp_path, monkeypatch) -> None:
     # Each attempt appends a preflight row; the policy's retry limit is 2.
     first = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
     assert first["retry_count"] == 0 and first["policy"]["recommended_action"] == "resume"
-    second = scenario_runner.run_single_scenario(
-        root=tmp_path,
-        scenario=_base_scenario(),
-        run_dir=tmp_path / "runs" / "run-10",
-        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
-        default_flags={"inapp": False},
-        base_cci={},
-        skip_validate=False,
-        keep_orgs=True,
-        is_resume=True,
-        resume_from_step=3,
-        existing_alias="demo-org",
-    )
+    second = _rerun_preflight(tmp_path)
     assert second["retry_count"] == 1 and second["can_resume"] is True
-    third = scenario_runner.run_single_scenario(
-        root=tmp_path,
-        scenario=_base_scenario(),
-        run_dir=tmp_path / "runs" / "run-10",
-        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
-        default_flags={"inapp": False},
-        base_cci={},
-        skip_validate=False,
-        keep_orgs=True,
-        is_resume=True,
-        resume_from_step=3,
-        existing_alias="demo-org",
-    )
+    third = _rerun_preflight(tmp_path)
     assert third["retry_count"] == 2
     assert third["can_resume"] is False
-    assert third["policy"]["recommended_action"] != "resume"
+    assert third["failure_class"] == "deterministic"
+    assert "timed out on 3 consecutive attempts" in third["failure_signature"]
+    assert third["policy"]["recommended_action"] == "manual_fix_required"
+    # The log keeps the observed class.
+    assert _read_step_results(tmp_path)[-1]["failure_class"] == "transient"
+
+
+def test_a_single_transient_preflight_failure_on_a_fresh_run_is_a_rerun(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
+    assert result["failure_class"] == "transient"
+    assert result["policy"]["recommended_action"] == "rerun_full"
+
+
+def test_a_step_row_resets_the_transient_preflight_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"phase": "prepare", "target_name": "first", "status": "success"}) + "\n")
+    third = _rerun_preflight(tmp_path)
+    assert third["retry_count"] == 0 and third["can_resume"] is True
+
+
+def test_the_preflight_count_skips_a_truncated_or_non_object_line(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write("[1, 2]\n")
+        handle.write('{"phase": "preflight", "target_na\n')
+    result = _rerun_preflight(tmp_path)
+    assert result["status"] == "resume_blocked"
+    assert result["retry_count"] == 1
