@@ -144,10 +144,13 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
   //    the base is everything before "/s/", which keeps a path-based prefix (e.g. "/customers").
   //  - A site whose login URL has no "/s/" (for example a Visualforce site) carries no prefix in
   //    that URL, so the base is scheme://host plus "/" + the Network's UrlPathPrefix.
-  //  - Decision: a blank prefix keeps scheme://host. A custom domain that maps a site to the
-  //    root while its Network still has a UrlPathPrefix would get the prefix appended here;
-  //    the login URL cannot distinguish that case, and sites without "/s/" are
-  //    served under their prefix on the default domains.
+  //  - Known limit: a Visualforce-based site (login URL without "/s/") served by a custom
+  //    domain at the domain root still has a Network UrlPathPrefix, and that prefix is appended
+  //    here even though the custom domain does not carry it. The login URL cannot tell the two
+  //    cases apart, and on the default domains such a site is served under its prefix. Sites
+  //    whose login URL contains "/s/" (Experience Cloud) are not affected: the base is the part
+  //    before "/s/", with or without a custom domain.
+  //  - A blank prefix keeps scheme://host.
   @TestVisible
   private static String siteBaseUrl(String loginUrl, String urlPathPrefix) {
     Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
@@ -163,7 +166,10 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
 
   // Network exists only with Digital Experiences, so it is queried dynamically (a static
   // reference would not compile without it). USER_MODE: a user who cannot read Network
-  // gets no prefix, the host-only URL the method returned before.
+  // gets no prefix, the host-only URL the method returned before, and a WARN debug line says so.
+  // Measured on a 264 org: Network.UrlPathPrefix is not permissionable (no field-level security)
+  // and no permission set carries an object permission for Network, so no grant is needed or
+  // possible; whether every persona can read it is inferred and checked live.
   private static String lookupNetworkPathPrefix(Id networkId) {
     try {
       List<SObject> rows = Database.query(

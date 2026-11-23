@@ -1375,13 +1375,12 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(threw, 'expected an error for a malformed network id');
   }
 
-  // A well-formed Id with no site behind it is rejected in every org. Then, for
-  // every site with a login URL (the prm flag deploys the "rlm" site; other
-  // bundles deploy more): when the login URL contains "/s/" the site URL must be
-  // exactly the part before "/s/"; otherwise it must be the login URL's
-  // scheme://host plus the Network's UrlPathPrefix when it has one. That holds
-  // whatever the custom domain or path prefix, and it catches a regression to
-  // protocol://host for a site with a path prefix.
+  // A well-formed Id with no site behind it is rejected in every org. Then, for every site with a
+  // login URL (the prm flag deploys the "rlm" site; other bundles deploy more): when the login URL
+  // contains "/s/" the site URL must be exactly the part before "/s/"; otherwise it must start with
+  // the login URL's scheme://host and carry no trailing slash. The exact shaping, including the
+  // Network path prefix, is asserted against literal URLs in
+  // siteBaseUrl_shapesTheBaseUrlFromTheLoginUrlAndPrefix, so this test does not repeat it.
   // With no site, the check is skipped visibly (a WARN debug line).
   @IsTest
   static void getSiteUrl_rejectsAMissingSite_andReturnsThePartBeforeSlashS_whenTheOrgHasASite() {
@@ -1419,25 +1418,11 @@ private class RLM_Learning_FrameworkTest {
           'the site URL is the part of the login URL before "/s/"' + context
         );
       } else {
-        // No "/s/": the site URL is scheme://host, plus "/" + the Network's UrlPathPrefix when it has one.
+        // No "/s/": the prefix is the Network's, so only the shape is asserted here.
         Url parsed = new Url(loginUrl);
         String hostUrl = parsed.getProtocol() + '://' + parsed.getHost();
-        // Read the prefix the way the helper does (USER_MODE, same query and normalisation).
-        Id nId = site.Id;
-        String expected;
-        try {
-          List<SObject> rows = Database.query(
-            'SELECT UrlPathPrefix FROM Network WHERE Id = :nId LIMIT 1',
-            AccessLevel.USER_MODE
-          );
-          String rawPrefix = rows.isEmpty() ? null : (String) rows[0].get('UrlPathPrefix');
-          String prefix = rawPrefix == null ? '' : rawPrefix.trim().replaceAll('^/+|/+$', '');
-          expected = String.isBlank(prefix) ? hostUrl : hostUrl + '/' + prefix;
-        } catch (Exception e) {
-          // The helper falls back to the host-only URL when the runner cannot read Network.
-          expected = hostUrl;
-        }
-        Assert.areEqual(expected, siteUrl, 'the site URL is the login URL host plus the path prefix' + context);
+        Assert.isTrue(siteUrl.startsWith(hostUrl), 'the site URL starts with the login URL host' + context);
+        Assert.isFalse(siteUrl.endsWith('/'), 'the site URL has no trailing slash' + context);
       }
     }
     if (sitesChecked == 0) {
