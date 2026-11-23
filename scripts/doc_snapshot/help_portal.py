@@ -24,10 +24,17 @@ import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from scripts.doc_snapshot.guard import (
+    read_prior,
+    refusal_reason,
+    report_orphans,
+    report_refusals,
+)
 from scripts.doc_snapshot._core import (
     OptionsError,
     SnapshotError,
     as_bool,
+    as_id_set,
     as_int,
     attribution_note,
     captured_table,
@@ -178,11 +185,10 @@ ARTICLE_BODY_JS = """
 """
 
 
-# The Help portal serves this exact H1 for a broken/retired article ID
-# instead of a 404 status — it renders fine (has an H1, extracts a "body")
-# so the generic "no H1 found" guard below never sees it. Caught live on
-# ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.
-NOT_FOUND_TITLE_PREFIX = "We looked high and low"
+# The portal renders a not-found page (it has an H1 and a body) for a broken or
+# retired article ID instead of a 404 status, so the "no H1 found" check in
+# `_capture_one` never sees it. `guard.refusal_reason` recognises it (and a
+# truncated stub of the prior capture) before anything is written.
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +258,9 @@ class HelpSnapshot:
         headless              default true
         concurrency           articles captured in parallel (default 4)
         wait_ms               ms between sidebar reads, and the per-article settle (default 3000)
+        accept_shrinkage      article ids (list or comma-separated) whose capture may shrink
+                              past the guard's stub threshold (default none); a not-found
+                              page is never written
         discover_timeout_ms   max ms to poll the sidebar for a stable count (default 20000)
         expect_min_articles   fail discovery below this many prefix matches
         subtree_only          keep only root_article_id's sidebar descendants (default false);
@@ -267,6 +276,14 @@ class HelpSnapshot:
         # Set by a discovery walk; recorded as the area's last_run_discovered.
         self._last_discover_kept: Optional[int] = None
         self._last_discover_total: Optional[int] = None
+        # (article_id, reason) for each capture the guard refused this run.
+        self.refused: List[Tuple[str, str]] = []
+        # ids whose shrinkage --accept-shrinkage actually let through this run.
+        self.accepted: List[str] = []
+        # Errored articles the sidebar walk no longer lists; ids the walk found
+        # (None = this run did not walk the sidebar).
+        self.orphaned: List[str] = []
+        self._walked_ids: Optional[Set[str]] = None
         self._init_options()
 
     # ------------------------------------------------------------------
@@ -278,6 +295,7 @@ class HelpSnapshot:
             self.options,
             "release_version", "release_name", "area",
             "root_article_id", "article_id_prefix",
+            list_options=("accept_shrinkage",),
         )
         # YAML reads `root_article_id: 123` or `output_dir: 266` as a number.
         for name in ("release_version", "release_name", "area", "root_article_id",
@@ -302,6 +320,7 @@ class HelpSnapshot:
             as_int(self.options.get("expect_min_articles"), None) or None
         )
         self.options["subtree_only"] = as_bool(self.options.get("subtree_only"), False)
+        self.options["accept_shrinkage"] = as_id_set(self.options.get("accept_shrinkage"))
 
     def preflight(self) -> None:
         """Nothing to check offline: every Help failure needs a discovery walk."""
@@ -577,6 +596,7 @@ class HelpSnapshot:
                 # Persist this attempt's counters before validating — a raise
                 # below must still leave `last_run_discovered` reflecting the
                 # failed walk, not a stale success from a prior run.
+                self._walked_ids = {d["id"] for d in kept}
                 self._last_discover_kept = len(kept)
                 self._last_discover_total = total_before_filter
                 self._save_manifest(manifest_path, manifest)
@@ -616,7 +636,10 @@ class HelpSnapshot:
         self._build_index(index_path, manifest)
         log_done(self.logger, manifest["stats"], manifest_path)
         self.logger.info(f"Index:    {index_path}")
-        raise_on_capture_errors(failed, len(to_capture), "articles")
+        raise_on_capture_errors(
+            failed, len(to_capture), "articles",
+            refused=self.refused, orphaned=self.orphaned,
+        )
         # The manifest's stats sum every area; a caller's summary wants this one.
         return area_stats
 
@@ -814,7 +837,13 @@ class HelpSnapshot:
         manifest: Dict[str, Any],
         manifest_path: Path,
     ) -> List[str]:
-        """Capture ``articles``; returns the ids that failed this run."""
+        """Capture ``articles``; returns the ids that failed this run.
+
+        A capture the guard refuses (not-found page, truncated stub) counts as
+        failed, keeps the prior file and manifest size, and is listed at the end.
+        """
+        self.refused = []
+        self.accepted = []
         semaphore = asyncio.Semaphore(self.options["concurrency"])
         manifest_lock = asyncio.Lock()
         saved_count = 0
@@ -847,25 +876,31 @@ class HelpSnapshot:
                     record.setdefault("area", self.options["area"])
                     record.setdefault("article_id", article_id)
                     if captured.get("error") or not captured.get("body"):
-                        # A refresh can turn a previously-captured article into
-                        # an error (e.g. it's since become a not-found shell).
-                        # Drop the stale file/metadata
-                        # from the prior successful capture rather than leaving
-                        # it on disk and in the manifest, still marked
-                        # `captured`-looking except for `status`, where a
-                        # directory scan (not filtering on `status`) would
-                        # still surface it. `title` is untouched here — it's
-                        # only ever set by a successful capture (below), so on
-                        # error it already stays whatever discovery/a prior
-                        # capture last put there.
+                        # A failed fetch (timeout, no H1, empty body) says nothing
+                        # about the article's text, so the prior capture stays on
+                        # disk with its file/body_length; only status and error
+                        # change. A not-found shell never reaches here: the guard
+                        # refuses it below.
                         error = captured.get("error") or "Empty body"
                         record["status"] = "error"
                         record["error"] = error
-                        if record.pop("file", None):
-                            (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
-                        record.pop("body_length", None)
                         failed.append(article_id)
                         self.logger.warning(f"  [skip] {article_id}: {error}")
+                    elif refusal := refusal_reason(
+                        captured.get("title") or record.get("title"),
+                        captured["body"],
+                        read_prior(articles_dir / f"{article_id}.md"),
+                        article_id,
+                        self.options["accept_shrinkage"],
+                        lambda why, a=article_id: self._note_accepted(a, why),
+                    ):
+                        # Keep the prior file and its file/body_length: the
+                        # refused text is not the article.
+                        record["status"] = "error"
+                        record["error"] = f"refused: {refusal}"
+                        failed.append(article_id)
+                        self.refused.append((article_id, refusal))
+                        self.logger.warning(f"  [refused] {article_id}: {refusal}")
                     else:
                         body = captured["body"]
                         title = captured.get("title") or record.get("title") or article_id
@@ -906,6 +941,14 @@ class HelpSnapshot:
                         self._save_manifest(manifest_path, manifest)
 
         await asyncio.gather(*[_one(a) for a in articles])
+        report_refusals(self.logger, self.refused)
+        refused_ids = {a for a, _ in self.refused}
+        self.orphaned = sorted(
+            a for a in failed
+            if self._walked_ids is not None
+            and a not in self._walked_ids and a not in refused_ids
+        )
+        report_orphans(self.logger, self.orphaned, "article")
 
         # Final sync
         manifest["articles"] = sorted(
@@ -913,6 +956,10 @@ class HelpSnapshot:
         )
         self._save_manifest(manifest_path, manifest)
         return failed
+
+    def _note_accepted(self, article_id: str, why: str) -> None:
+        self.accepted.append(article_id)
+        self.logger.warning(f"  [accepted] {article_id}: {why}")
 
     async def _capture_one(self, page, article_id: str) -> Dict[str, Any]:
         url = self._article_url(article_id)
@@ -929,9 +976,6 @@ class HelpSnapshot:
 
         if not result or not result.get("title"):
             return {"error": "no H1 found (article may be 404 or unrendered)"}
-
-        if result["title"].strip().startswith(NOT_FOUND_TITLE_PREFIX):
-            return {"error": "portal returned its generic not-found page (rendered, but no article behind this id)"}
 
         return result
 

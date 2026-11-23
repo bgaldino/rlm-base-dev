@@ -25,6 +25,8 @@ For **developer-facing** material — standard object/field reference, Business 
 
 **To refresh or extend a corpus**, use the standalone snapshot tool, `python -m scripts.doc_snapshot`. It needs no org and no CumulusCI. Install steps, modes, options, how to read a discovery result, and the add-an-area and add-a-release recipes are in [`scripts/doc_snapshot/README.md`](../../../scripts/doc_snapshot/README.md). This skill covers only what matters for grounding.
 
+**Capture guard.** A refresh refuses a capture that is the portal's not-found page or a truncated stub of the prior capture (under 50% of its characters and 60% of its words), keeps the prior file, records the page as `error` with a `refused:` reason, and lists it at the end of the run (a multi-preset summary shows the count on that preset's FAILED row). A failed fetch also keeps the prior file. Thresholds, evidence and the per-page `--accept-shrinkage ID[,ID...]` override are in the tool README, **Capture guard**. Treat a refused page as a lead, not a failure to silence: read the live page before overriding, because a real upstream cut and a bad source look the same to the tool.
+
 ## Why the snapshot exists
 
 The Salesforce Help portal renders in the browser, so `WebFetch`, `curl`, and simple scrapers get back an empty page shell. The PDF compendiums Salesforce publishes each release are huge, hard to grep, and can't be meaningfully diffed. The snapshot replaces them with one markdown file per Help article. Each file's YAML frontmatter carries the article ID, title, release, source URL, area, and fetch date. The files are small, easy to grep, diffable across releases, and precise enough for agents to cite one article at a time.
@@ -176,7 +178,7 @@ When Salesforce publishes a new release (for example 266), the snapshot tool's R
 1. `bootstrap --from <current> --to <new> --release-name "<name>"` copies the presets into a new release block; then `help --release <new> --area all --mode discover` discovers every Help area.
 2. Read each area's `Discovered N unique articles` line (see **Reading the result** in the README). Before capturing an area, compare a few of its articles with the previous release's corpus. If no article IDs are new and the shared articles' text is unchanged, the area is probably still serving the previous release, so wait.
 3. Capture the areas that are ready, and set an `expect_min_articles` floor on each one you verify. Set `doc_version` on the dev-guide presets once the new guide is published.
-4. Run `check --release <new>` and resolve any hits (see Known limitations).
+4. Run `check --release <new>` and resolve any hits (see Known limitations). Resolve every page the run listed as refused (not-found: the id moved, so find its new id by title; stub: confirm at the live source, then `--accept-shrinkage <id>` or keep the prior capture) and every errored page reported as no longer in the TOC (retire it or mark it moved).
 5. Commit the corpus and the `presets.yaml` change together. `.gitattributes` marks the corpus trees `linguist-generated`, so GitHub collapses them in PR diffs.
 
 To compare releases once both are captured, run `diff -u` on the same article ID in each (see **Cross-release diff** above).
@@ -242,6 +244,7 @@ To add an area, follow **Add an area** in the [snapshot tool README](../../../sc
 - **Image-only content is invisible.** The capture is text-only (innerText). Diagrams, screenshots, and ERDs are not captured. If a Help article relies on an image for the substantive content, the captured markdown is thin.
 - **Some articles span multiple Help "tabs"** (notes, considerations, examples). The capture reads only the main article tab, so secondary tabs may be missing. If an article seems incomplete, open it in a browser.
 - **Rare glued-link / duplicated-label text artifacts are upstream Salesforce content typos, not extraction bugs.** Confirmed by inspecting the live page: Salesforce's own source HTML sometimes omits the space before a link (`See<a>Create a Constant Resource</a>` renders as "SeeCreate a Constant Resource") or has a callout badge whose label happens to duplicate the paragraph's own leading word ("NOTE Note: ..."). `innerText`-based capture is verbatim by design, so it faithfully reproduces these. Recapturing does not fix them — verify the hit against the live DOM first, then hand-edit the affected article, and only in the active release's corpus; frozen corpora of past releases are left as they are. `python -m scripts.doc_snapshot check [--release {release}]` is a non-gating spot-check for the glued-link class — it flags a pattern, not a confirmed defect — run it after any capture/refresh. Hits are rare.
+- **`X, formerly X` in release-note `Where:` lines ("Revenue Cloud, formerly Revenue Cloud") is upstream text.** The tool does no brand substitution (inferred from its source; not re-checked against the live page), so a recapture will not change it. `check` lists every instance; do not hand-edit captured files.
 
 ## Cross-reference with related skills
 
@@ -253,6 +256,7 @@ To add an area, follow **Add an area** in the [snapshot tool README](../../../sc
 
 ## Change log
 
+- **2026-11-24** — Added the capture guard: a refresh refuses not-found pages and truncated stubs, keeps the prior file, and reports them; `--accept-shrinkage ID[,ID...]` overrides real shrinkage per page. Errored pages the TOC no longer lists are reported as orphans.
 - **2026-10-02** — The `snapshot_*` CumulusCI tasks were replaced by the standalone snapshot tool `scripts/doc_snapshot` (`help`, `dev-guide`, `run`, `check`, `bootstrap`, `list`), with presets in `scripts/doc_snapshot/presets.yaml`. Moves: `tasks/rlm_snapshot_help.py` → `scripts/doc_snapshot/help_portal.py`, `tasks/rlm_snapshot_dev_guide.py` → `scripts/doc_snapshot/dev_guide.py`, and `scripts/ai/check_help_corpus_text_artifacts.py` → `scripts/doc_snapshot/check.py`. Captured output is unchanged apart from the `capture_method` provenance string. The skill now leaves tool mechanics (install, modes, options, reading a discovery, adding areas and releases) to the tool's README, and no longer records per-release counts or readiness, which `list` and each corpus's `index.md` show.
 - **2026-09-07** — Added the glued-link/duplicated-label text-artifact known limitation and `scripts/ai/check_help_corpus_text_artifacts.py` spot-check (todo 184). Carved a narrow exception into DO NOT #2 (hand-edit prohibition) for this artifact class, since a refresh cannot fix an upstream typo (PR #412 review).
 - **2026-05-11** — Skill created. Initial 262 Billing snapshot covers 171 articles (~440 KB).

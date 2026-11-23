@@ -38,6 +38,37 @@ GLUED_LINK_RE = re.compile(
 )
 
 
+# Salesforce renamed the product, then ran the new name over the old one in
+# the release notes: "Agentforce Revenue Management, formerly Revenue Cloud"
+# became "Revenue Cloud, formerly Revenue Cloud". The snapshot tool rewrites no
+# text, so this is served that way upstream (inferred from the tool, which has
+# no brand substitution; not re-checked against the live page).
+# A word boundary before the name keeps "McDonald, formerly Donald" out; the
+# lookahead after it keeps "Sales, formerly Salesforce", "Sales, formerly
+# Sales-Cloud" and "Agentforce Sales, formerly Sales Cloud" (a longer old name
+# that merely starts like the new one) out. It misses, by design, a real artifact
+# followed by a capitalised word, a word character or "-", names of five or more words,
+# and names that are not plain Capitalised words: acronyms, digits or non-ASCII
+# letters ("Salesforce CPQ", "B2B Commerce").
+SELF_RENAME_RE = re.compile(
+    r"\b((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1(?![\w-]| [A-Z])"
+)
+ALL_CORPORA_GLOB = "docs/salesforce/{release}/*/articles/*.md"
+
+
+def find_self_renames(paths):
+    """``X, formerly X`` brand-rename artifacts: (path, line, snippet)."""
+    findings = []
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        if ", formerly " not in text:
+            continue
+        for m in SELF_RENAME_RE.finditer(text):
+            line_no = text.count("\n", 0, m.start()) + 1
+            findings.append((path, line_no, m.group(0)))
+    return findings
+
+
 def find_artifacts(paths):
     findings = []
     for path in paths:
@@ -52,6 +83,16 @@ def scan(release=None):
     """Scan one release's Help corpus (or every release's); returns 0."""
     corpus_glob = CORPUS_GLOB.format(release=release or "*")
     paths = sorted(REPO_ROOT.glob(corpus_glob))
+
+    # The rename scan covers every captured corpus (Help, release notes, dev
+    # guides), so it runs even when there is no Help corpus to lint.
+    renames = find_self_renames(sorted(REPO_ROOT.glob(ALL_CORPORA_GLOB.format(release=release or "*"))))
+    if renames:
+        print(f"{len(renames)} self-referential rename(s) ('X, formerly X'), upstream text:")
+        for path, line_no, snippet in renames:
+            print(f"  {path.relative_to(REPO_ROOT)}:{line_no}: {snippet!r}")
+        print("  Served that way by the source; a recapture will not change it.\n")
+
     if not paths:
         print(f"No corpus files matched {corpus_glob}")
         return 0

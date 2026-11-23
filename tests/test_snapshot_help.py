@@ -18,6 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from scripts.doc_snapshot.guard import refusal_reason  # noqa: E402
 from scripts.doc_snapshot.help_portal import (  # noqa: E402
     HelpSnapshot,
     OptionsError,
@@ -59,10 +60,12 @@ def _task(**options):
         "root_article_id": "ind.example_introduction.htm",
         "expect_min_articles": None,
         "wait_ms": 1,
+        "accept_shrinkage": frozenset(),
         "discover_timeout_ms": 5,
         "release_version": "264",
         **options,
     }
+    t._walked_ids = None
     t.logger = _NullLogger()
     return t
 
@@ -444,8 +447,9 @@ def main():
         "breadcrumb": None,
     })
     result11 = asyncio.run(run_capture(t11, page11))
-    check("rejects the rendered not-found shell as an error",
-          "error" in result11 and "not-found" in result11["error"])
+    check("the not-found shell comes back from _capture_one for the guard to refuse",
+          "error" not in result11
+          and refusal_reason(result11["title"], result11["body"], None) is not None)
 
     t12 = _task()
     page12 = _FakeCapturePage({
@@ -530,18 +534,20 @@ def main():
         ))
 
         refreshed = manifest["articles"][0]
-        check("refresh-to-error clears the stale file field",
-              "file" not in refreshed)
-        check("refresh-to-error clears the stale body_length field",
-              "body_length" not in refreshed)
-        check("refresh-to-error deletes the stale markdown file from disk",
-              not stale_path.exists())
-        check("refresh-to-error preserves the discovery/prior title",
+        check("refresh onto a not-found shell keeps the prior file on disk",
+              stale_path.exists() and stale_path.read_text(encoding="utf-8")
+              == "stale captured content")
+        check("refresh onto a not-found shell keeps file and body_length",
+              refreshed.get("file") == f"articles/{article_id}.md"
+              and refreshed.get("body_length") == 23)
+        check("refresh onto a not-found shell keeps the prior title",
               refreshed["title"] == "A Previously Real Title")
-        check("refresh-to-error marks status error",
-              refreshed["status"] == "error")
+        check("refresh onto a not-found shell marks status error with a refused reason",
+              refreshed["status"] == "error" and refreshed["error"].startswith("refused:"))
         check("_capture_articles returns this run's failed ids",
               failed13 == [article_id])
+        check("the refusal is recorded for the run summary",
+              [a for a, _ in t13.refused] == [article_id])
 
     # --- run-level failure reporting ------------------------------------------
     # A run whose own captures errored must exit non-zero (after saving), and a
