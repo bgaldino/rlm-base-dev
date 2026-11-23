@@ -176,7 +176,7 @@ def run_command(
     }
 
 
-ORG_PROBE_TIMEOUT_SECONDS = 120
+ORG_PROBE_TIMEOUT_SECONDS = 45
 
 _GONE_ORG_STATUSES = {"expired", "deleted"}
 
@@ -184,6 +184,61 @@ _GONE_ORG_STATUSES = {"expired", "deleted"}
 def sf_alias_for(project_name: str, alias: str) -> str:
     """The Salesforce CLI alias CumulusCI gives a scratch org (`<project>__<alias>`)."""
     return f"{project_name}__{alias}"
+
+
+def _utc_today() -> dt.date:
+    return dt.datetime.now(dt.timezone.utc).date()
+
+
+def _expired_detail(org: Dict[str, Any], sf_alias: str, today: dt.date) -> Optional[str]:
+    """Why an `sf` org record is no longer usable, or None when it still is.
+
+    An org that expires today is still usable; Salesforce removes it after that date.
+    """
+    status = str(org.get("status") or "")
+    if status.lower() in _GONE_ORG_STATUSES:
+        return f"Org `{sf_alias}` has status {status}."
+    if org.get("isExpired") is True:
+        return f"Org `{sf_alias}` is expired."
+    expiration = org.get("expirationDate")
+    if expiration:
+        try:
+            expires = dt.date.fromisoformat(str(expiration)[:10])
+        except ValueError:
+            return None
+        if expires < today:
+            return f"Org `{sf_alias}` expired on {expiration}."
+    return None
+
+
+def _local_org_record(root: Path, sf_alias: str, timeout: float) -> Optional[Dict[str, Any]]:
+    """Find the alias in `sf org list --all --skip-connection-status --json`.
+
+    Reads local auth files only (no network, no CumulusCI), and `--all` keeps
+    expired and deleted orgs in the list. Returns the org record, `{}` when the
+    list was read and the alias is not in it, or None when the list could not be read.
+    """
+    try:
+        result = subprocess.run(
+            ["sf", "org", "list", "--all", "--skip-connection-status", "--json"],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        payload = json.loads(result.stdout or "")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError):
+        return None
+    org_result = payload.get("result") if isinstance(payload, dict) else None
+    if result.returncode != 0 or not isinstance(org_result, dict):
+        return None
+    for group in org_result.values():
+        if not isinstance(group, list):
+            continue
+        for org in group:
+            if isinstance(org, dict) and org.get("alias") == sf_alias:
+                return org
+    return {}
 
 
 def probe_org(
@@ -197,7 +252,10 @@ def probe_org(
 
     Runs `sf org display --target-org <sf_alias> --json`. Unlike `cci org info`, it
     cannot reach CumulusCI's expired-org recreation (`check_org_expired`), and it took
-    1-3 seconds where `cci org info` took 9-27 seconds on the same org.
+    1-3 seconds where `cci org info` took 9-27 seconds on the same org. When display
+    fails for any reason other than an unknown alias (an expired org can fail on its
+    token refresh), the local org list decides: an expired, deleted or absent org is
+    `missing`; only an unreadable list leaves the state unknown.
 
     Returns {"state": ..., "detail": ...} where state is one of:
       present - the org is authenticated and not expired
@@ -205,6 +263,7 @@ def probe_org(
       timeout - the probe did not finish in time; the org's state is unknown
       error   - the probe could not run or its output was unreadable; state unknown
     """
+    today = today or _utc_today()
     try:
         result = subprocess.run(
             ["sf", "org", "display", "--target-org", sf_alias, "--json"],
@@ -224,24 +283,26 @@ def probe_org(
         payload = None
     if not isinstance(payload, dict):
         tail = (result.stderr or result.stdout or "").strip().splitlines()[-1:] or [""]
-        return {"state": "error", "detail": f"`sf org display` exited {result.returncode} without JSON output. {tail[0]}".strip()}
-
-    if result.returncode == 0:
-        org = payload.get("result") or {}
-        status = str(org.get("status") or "")
-        if status.lower() in _GONE_ORG_STATUSES:
-            return {"state": "missing", "detail": f"Org `{sf_alias}` has status {status}."}
-        expiration = org.get("expirationDate")
-        if expiration:
-            try:
-                expires = dt.date.fromisoformat(str(expiration)[:10])
-            except ValueError:
-                expires = None
-            if expires is not None and expires < (today or dt.date.today()):
-                return {"state": "missing", "detail": f"Org `{sf_alias}` expired on {expiration}."}
+        failure = f"`sf org display` exited {result.returncode} without JSON output. {tail[0]}".strip()
+    elif result.returncode == 0:
+        org = payload.get("result")
+        if not isinstance(org, dict):
+            return {"state": "error", "detail": "`sf org display` returned no org record."}
+        gone = _expired_detail(org, sf_alias, today)
+        if gone:
+            return {"state": "missing", "detail": gone}
         return {"state": "present", "detail": ""}
-
-    if payload.get("name") == "NamedOrgNotFoundError":
+    elif payload.get("name") == "NamedOrgNotFoundError":
         return {"state": "missing", "detail": f"No authorization found for `{sf_alias}`."}
-    message = str(payload.get("message") or "").strip().replace("\n", " ")
-    return {"state": "error", "detail": f"`sf org display` failed: {payload.get('name') or result.returncode}: {message}"}
+    else:
+        message = str(payload.get("message") or "").strip().replace("\n", " ")
+        failure = f"`sf org display` failed: {payload.get('name') or result.returncode}: {message}"
+
+    local = _local_org_record(root, sf_alias, timeout)
+    if local is not None:
+        if not local:
+            return {"state": "missing", "detail": f"No local authorization found for `{sf_alias}`. {failure}"}
+        gone = _expired_detail(local, sf_alias, today)
+        if gone:
+            return {"state": "missing", "detail": f"{gone} {failure}"}
+    return {"state": "error", "detail": failure}

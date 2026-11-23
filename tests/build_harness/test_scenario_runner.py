@@ -393,3 +393,45 @@ def test_resume_reports_probe_outcome_distinctly(tmp_path, monkeypatch, probe, t
     assert result["failure_class"] == failure_class
     if target != "org_missing":
         assert "does not exist" not in result["failure_signature"]
+
+
+@pytest.mark.parametrize(
+    "state,expected",
+    [("missing", False), ("timeout", True), ("error", True), ("present", True)],
+)
+def test_end_of_run_can_resume_follows_probe_state(tmp_path, monkeypatch, state, expected) -> None:
+    run_dir = tmp_path / "runs" / "run-11"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"demo": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+    monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_a, **_k: True)
+    monkeypatch.setattr(scenario_runner.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": state, "detail": ""})
+
+    def _run_command(_root, command, *_a, **_k):
+        failed = command[:3] == ["cci", "task", "run"]
+        return {
+            "duration_seconds": 0.1,
+            "exit_code": 2 if failed else 0,
+            "failure_signature": "boom" if failed else "",
+            "failure_class": "deterministic" if failed else "none",
+            "tail": [],
+        }
+
+    monkeypatch.setattr(scenario_runner, "run_command", _run_command)
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"demo": True},
+        base_cci={},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=False,
+    )
+    assert result["status"] == "failed"
+    assert result["can_resume"] is expected
