@@ -449,9 +449,14 @@ tables even when the Commerce feature is not configured.
 ## In-Org Refresh Entry Points
 
 Interactive refresh uses the **Decision Table Manager** component on the Revenue
-Cloud Home page. Refreshing from it needs Modify All Data and Customize Application,
-Salesforce's own gate on the refresh action (the Connect refresh route has a different gate:
-decision-tables skill, rule 1); other users get the freshness view only. The remaining `post_utils` refresh flows are autolaunched.
+Cloud Home page. Refreshing from it needs Modify All Data and Customize Application:
+the controller checks both before it starts the refresh flow. Without that check,
+Salesforce's own gate on the refresh action would still refuse a user with neither
+permission: a `with sharing` class starting the bulk flow the same way queued nothing
+for that user (decision-tables skill, rule 1, which also covers the paths that did
+refresh for a non-admin and the Connect route's different gate). Users without both
+permissions get the freshness view only. The remaining `post_utils` refresh flows are
+autolaunched.
 
 | Entry point | Location | Type | Use |
 |---|---|---|---|
