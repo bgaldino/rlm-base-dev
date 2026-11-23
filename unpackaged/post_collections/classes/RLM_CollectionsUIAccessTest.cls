@@ -3,12 +3,13 @@
  * (RLM_Collection_Plan_Record_Page), and that nothing else a collections user holds does.
  *
  * RLM_CollectionsUI ships with the collections flag, so it grants every permissionable field
- * the page shows, including the four RLM_BillingUI also grants (billing_ui may be off). The
- * managed Billing Collections and Recovery Specialist set gives object access but, measured on
- * a 264 org, none of these fields. System Administrator bypasses field access, so both tests
- * run as a Minimum Access user holding only the licenses and sets named below. The fields list
- * must match the page's Record.* items; tests/test_collection_plan_page_fields.py checks the
- * page against the permission set offline.
+ * the page shows, including the four RLM_BillingUI also grants (billing_ui may be off), and
+ * read on BillingAccount, which the BillingAccountId lookup needs before its field grant counts.
+ * The managed Billing Collections and Recovery Specialist set gives CollectionPlan object access
+ * but, measured on a 264 org, none of these fields and no BillingAccount access. System
+ * Administrator bypasses field access, so both tests run as a Minimum Access user holding only
+ * the licenses and sets named below. The fields list must match the page's Record.* items;
+ * tests/test_collection_plan_page_fields.py checks the page against the permission set offline.
  *
  * The user helper below is copied from RLM_BillingUITestUsers on purpose: that class lives in
  * post_billing_ui, which is not deployed when billing_ui is off, and this class must still

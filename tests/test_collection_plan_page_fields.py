@@ -59,6 +59,16 @@ class CollectionPlanPageFields(unittest.TestCase):
         both = sorted(set(ALLOWLIST) & granted_fields())
         self.assertEqual(both, [], f"granted fields on the allowlist (not permissionable): {both}")
 
+    def test_billing_account_lookup_target_is_readable(self):
+        # A field grant on the BillingAccountId lookup has no effect for a user who cannot read
+        # BillingAccount, and no managed collections set grants it (measured on a 264 org).
+        with open(OWNERS[0], encoding="utf-8") as fh:
+            xml = fh.read()
+        blocks = [b for b in re.findall(r"<objectPermissions>.*?</objectPermissions>", xml, re.S)
+                  if "<object>BillingAccount</object>" in b]
+        self.assertTrue(blocks and "<allowRead>true</allowRead>" in blocks[0],
+                        "RLM_CollectionsUI must grant read on BillingAccount")
+
 
 if __name__ == "__main__":
     unittest.main()

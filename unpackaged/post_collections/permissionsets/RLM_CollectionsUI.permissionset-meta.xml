@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Read access to the Collection Plan object and the fields its record page shows, plus read on the Billing Account the plan points to. Assign with the Billing Collections and Recovery Specialist set.</description>
     <fieldPermissions>
         <editable>false</editable>
         <field>CollectionPlan.AccountId</field>
@@ -90,6 +91,17 @@
         <field>CollectionPlan.UsageType</field>
         <readable>true</readable>
     </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Collections UI</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>BillingAccount</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
