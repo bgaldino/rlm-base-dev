@@ -181,8 +181,8 @@ general SFDMU behaviour, seen on a PCM plan):
 | # | Fact | What to do |
 |---|---|---|
 | a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the definition's values into the CSVs. |
-| b | A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] This conflicts with `sfdmu-data-plans` → *Where a plan's CSVs live*, which says a `Readonly` object never reads a source file and its CSV is optional; that skill's live-verified case is a single-field traversal. Not reconciled: see Open questions. | Keep a CSV with the same `$$` column the children's lookup columns name; shipped plans already do. |
-| c | In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] Per-pass files need that flag and `objectset_source/object-set-N/` (`sfdmu-data-plans` → *Where a plan's CSVs live*). | For fact (a)'s second pass, run the plan again: that is the measured fix. |
+| b | A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups unresolved. [Measured: 2026-11, 264] Whether the lookup shape is the cause is open. Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*, with the open check; not restated here. | Keep that CSV with the `$$` column the children's lookup columns name. |
+| c | Repeating an object across object sets does not give pass 2 its own data unless the plan sets `useSeparatedCSVFiles: true`. [Measured: 2026-11, 264] Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
 | e | A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
 
@@ -345,10 +345,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help forbids them under a *new* static bundle. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
-- **A `Readonly` anchor behind a `$$` lookup.** Fact (b) says it needs a CSV;
-  `sfdmu-data-plans` says a `Readonly` object is source-free and its CSV optional (its own
-  optional-CSV example, `inapp/RecordType.csv`, is reached through a `$$` lookup). Settling it
-  needs a load of a `$$` lookup against a CSV-less `Readonly` parent; until then, keep the CSV.
+- **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
+  `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
+  `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.
 - **Other classification-attribute fields after one pass.** Whether fields beyond
   `AttributeNameOverride` and `IsRequired` behave like fact (a). See
   [`attributes-and-classifications.md`](attributes-and-classifications.md#loading-attributes).

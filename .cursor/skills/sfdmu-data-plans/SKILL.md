@@ -218,8 +218,9 @@ pattern that reloads a built org with no deletes and no status changes (live-ver
    record (see below). Activation stays in Apex. Don't use
    `excludedFromUpdateFields: ["Status"]` instead: in 5.8.0 it strips the field from inserts too,
    and Status is required on insert.
-2. **Declare every lookup's parent in each pass**, even if only as `Readonly` with no CSV. An
-   `Update` row whose lookup target object isn't in the pass is sent with that lookup **null**:
+2. **Declare every lookup's parent in each pass**, even if only as `Readonly` with no CSV (a single-field
+   lookup resolves from the org; a parent reached through a `$$` composite column provisionally keeps
+   its CSV, see *Where a plan's CSVs live*). An `Update` row whose lookup target object isn't in the pass is sent with that lookup **null**:
    qb-rating's pass 2 blanked `UnitOfMeasureClass.BaseUnitOfMeasure` until `UnitOfMeasure` was
    added as `Readonly`.
 3. **A child that can only match on its parent's composite traversal key** fails on 5.8.0
@@ -313,7 +314,9 @@ passes. If both arrays are nonempty, SFDMU prepends top-level `objects` as a new
 first pass—it does not discard them in favor of `objectSets`. This changes pass
 numbering and override-file selection. Do not declare the same target object twice
 within one effective pass, including case variants; one intentional declaration
-must express that pass's operation and fields. Across-pass repetition is valid.
+must express that pass's operation and fields. Across-pass repetition is valid as a declaration, but
+not as a data source: without top-level `useSeparatedCSVFiles: true`, every pass reads the plan-root
+CSV of that name (see *Where a plan's CSVs live*).
 
 Some plans use multiple objectSets (passes) to handle circular dependencies or activation ordering:
 - **Pass 1**: Insert records in Draft/Inactive status
@@ -368,6 +371,13 @@ is never substituted: `Script.ts`'s `rawSourceDirectoryPath` returns the plan ro
 this repo's opt-in `sync_objectset_source_to_source` step, which copies it onto the root before SFDMU
 runs. `_objects_owing_root_csv` checks the flag before crediting a pass-2+ override as coverage.
 
+This is also the behaviour a plan sees when it repeats an object to get a second load. Seen on a PCM
+plan without the flag: pass 2 re-read the plan-root CSV of the same name, so the repeat gave pass 2 no
+data of its own. [Measured: 2026-11, 264, PCM plan load] Re-measure after a SFDMU upgrade. To run a plan
+twice for a platform reason (for example PCM's classification-attribute second pass, owned by
+`product-catalog-modeling` -> `catalogs-and-loading.md`), run the whole plan again rather than add a
+second object set.
+
 An object declared in several passes needs a file for **each** writable pass. `BillingPolicy` in
 `qb-billing` is `Upsert` in pass 1 and `Update` in pass 3 with an override for pass 3 only, so it
 needs *both* its root CSV and its per-pass one — 16 objects across 7 plans have that shape. A CSV
@@ -377,11 +387,12 @@ reports it (High) rather than loading it.
 Two shapes owe no root CSV at all:
 
 - **no live writable declaration in any pass** — `excluded: true`, plain `Delete`, and `Readonly`
-  are all source-free, for different reasons: an `excluded` declaration is skipped entirely; a
-  `Delete` one is skipped by the exact same runtime gate as `Readonly`
+  (except a `Readonly` anchor reached through a `$$` column, below) are all source-free, for
+  different reasons: an `excluded` declaration is skipped entirely; a `Delete` one is skipped by the exact same runtime gate as `Readonly`
   (`MigrationJobTask.updateRecordsAsync`'s early return for `operation === Readonly ||
   === Delete`, verified against the installed `sfdmu@5.8.0` source); and a `Readonly` one is
-  queried from the *target org* instead. None of the three ever reads a source file, and a mix
+  queried from the *target org* instead. None of the three needs a source file for a single-field
+  traversal, and a mix
   across passes counts too — an object `excluded` in pass 1 and `Delete` in pass 2 still owes
   nothing. Do not add an empty CSV to satisfy a checker. **The `Readonly` case is verified live,
   not inferred**,
@@ -392,26 +403,39 @@ Two shapes owe no root CSV at all:
   (`ExpressionSetDefinition.DeveloperName`) — and `ProcedurePlanOption.ExpressionSetDefinitionId`
   is populated with real ids in both fresh 264 orgs. The traversal resolved against the target org
   with no source rows in existence.
+
+  That verification is a single-field traversal. A `$$` composite lookup behaved the other way on a
+  PCM plan: a `Readonly` anchor that children reached through a `$$` column, with no CSV for the
+  anchor, left those lookups silently unresolved. [Measured: 2026-11, 264, PCM plan load]
+  [Open: load a `$$` lookup against a CSV-less `Readonly` parent in a plan with no other change, to
+  settle whether the two results differ by lookup shape.] The shipped `inapp` plan's `RecordType`
+  anchor is reached through a `$$` column and keeps its CSV, so it does not settle it either way.
+  Until then, keep a CSV with the `$$` column for any `Readonly` anchor reached that way. `product-catalog-modeling` links here for this fact.
   - Convention (pack 151), because the count column used to mean two different things by sight: a
     Readonly object's record count is **org records, not file rows** — it is resolved from the target
-    org, and a Readonly CSV that *does* exist (e.g. `inapp/RecordType.csv`) is maintained but not
-    required for resolution. So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
+    org, and a Readonly CSV that *does* exist is maintained (e.g. `inapp/RecordType.csv`, kept for its `$$`
+    column); one is not required for a single-field traversal, and for a `$$` lookup see the open
+    check above. So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
     it runs offline with no org access, and labeling the optional CSV's row count as an org count
     would bake in a number that is never validated and silently wrong whenever the org and the CSV
     differ. `check_plan_readme_consistency.py` never file-matches a `—` row, so deleting an optional
-    Readonly CSV stays correctly silent. When a human **does** have a real org count and wants to
+    Readonly CSV stays correctly silent. The checker cannot tell a `$$`-reached anchor's CSV (above)
+    from an optional one either, so it stays silent there too, and `generate_plan_readme.py`'s
+    *Required source CSVs* list omits it like any Readonly CSV: keep that CSV by hand. When a human **does** have a real org count and wants to
     document it, write it **`N (org)`** in the Records column: the checker reads the marker
     (`ORG_COUNT_RE`) and **skips file-count matching** for that row, and **rejects** an `(org)`
     marker (numbered or bare) on any row that matches a *live-writable* declaration, whose count
     genuinely is file rows. The generator never mints `(org)` — it is only ever hand-authored. **Keep
     the optional CSVs** (they document what the plan expects to find in the org): their presence is
-    *intent, not a load requirement*. A bare, unmarked count stays accepted for backward
+    *intent, not a load requirement* — except a `$$`-reached anchor's CSV, which is provisionally a
+    load requirement (above). A bare, unmarked count stays accepted for backward
     compatibility. The same shape is how `procedure-plans/README.md` documents
     `ExpressionSetDefinition` (`Readonly`, no file).
 - **every writable pass supplied per-pass** — the root path is an alternative location for the same
   file, not an additional requirement.
 
-`validate_sfdmu_v5_datasets.py` enforces exactly this (`_objects_owing_root_csv`), and
+`validate_sfdmu_v5_datasets.py` enforces exactly this (`_objects_owing_root_csv`), except the
+provisional CSV for a `$$`-reached `Readonly` anchor (above), which no validator or checker gates, and
 `tests/test_sfdmu_csv_expectation.py` pins both directions. Read the operation from the pass, never
 from the merged config: the validator's own `_parse_object_configs` keeps only the **first**
 declaration, so an object Readonly or `excluded` in pass 1 and `Upsert` in pass 2 looks exempt when
