@@ -127,9 +127,12 @@ PROVENANCE_LINE_RE = re.compile(
     # matches), but it was a live trap: add a service path to a line reading
     # "live-verified v67.0" and the bump rewrites the claim, turning recorded evidence
     # into a false assertion -- strictly worse than missing a bump.
-    r"live-(?:verified|tested|proven|confirmed)"
-    r"|verified (?:live|on|in|against|by|via|payload)"
-    r"|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
+    r"\blive-(?:verified|tested|proven|confirmed)"
+    r"|\bverified (?:live|on|in|against|by|via|payload)\b"
+    # Word-bounded: bare "as of" also sits inside "alias offset" and "has offered", and a bare
+    # MIN_API_VERSION anywhere on a line would spare a live pin sharing that line. Only the
+    # assignment spelling (the floor's definition) is a floor line.
+    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|\bMIN_API_VERSION\s*=",
     re.IGNORECASE,
 )
 
@@ -189,7 +192,7 @@ PROVENANCE_FORMS = (
     "live-verified", "live-tested", "live-proven", "live-confirmed",
     "verified live", "verified on", "verified in", "verified against",
     "verified by", "verified via", "verified payload",
-    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION",
+    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION =",
 )
 
 
