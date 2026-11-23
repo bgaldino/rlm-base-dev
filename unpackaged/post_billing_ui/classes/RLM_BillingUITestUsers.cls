@@ -54,4 +54,46 @@ public class RLM_BillingUITestUsers {
         }
         return u;
     }
+
+    /**
+     * A billing user that holds exactly the given object reads: the given licenses, and one
+     * custom permission set that carries the platform's Billing access user permission
+     * (RlmBillingAccess) plus read on the listed objects.
+     *
+     * The user permission is what makes the Billing objects visible. Measured on a 264 org
+     * with a Minimum Access user: read on BillingAccount, PaymentSchedule or PaymentScheduleItem
+     * granted through a custom set does nothing without it, and with it that read is all the
+     * user gets (no read on the other billing objects, none on Account). Every managed Billing
+     * role set carries the user permission and also reads the link objects, so none of them
+     * can stand for a user who reads some billing objects but not others.
+     *
+     * @param licenses permission set license developer names the user is assigned
+     * @param readObjects objects the set grants read on
+     * @param viewAllObjects objects the set grants read and view-all on
+     */
+    public static User createWithBillingAccess(
+        List<String> licenses, List<String> readObjects, List<String> viewAllObjects
+    ) {
+        User u = create(new List<String>(), licenses);
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet ps = new PermissionSet(
+                Name = 'RLM_TestBillingAccess_' + stamp,
+                Label = 'RLM Test Billing Access ' + stamp,
+                PermissionsRlmBillingAccess = true
+            );
+            insert ps;
+            List<ObjectPermissions> grants = new List<ObjectPermissions>();
+            for (String objectName : readObjects) {
+                grants.add(new ObjectPermissions(ParentId = ps.Id, SobjectType = objectName, PermissionsRead = true));
+            }
+            for (String objectName : viewAllObjects) {
+                grants.add(new ObjectPermissions(
+                    ParentId = ps.Id, SobjectType = objectName, PermissionsRead = true, PermissionsViewAllRecords = true));
+            }
+            insert grants;
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
 }
