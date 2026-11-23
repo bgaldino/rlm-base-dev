@@ -15,7 +15,7 @@
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
 > - `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
-> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror)
+> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror; 262 draft grounding)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?
@@ -186,7 +186,7 @@ In search, enter "agentforce for revenue" → select Set Up → select Turn On.
 ### Slack Approvals Setup (NEW in 262)
 For the Slack Accelerated Deal Approvals feature: Navigate to Setup → Approvals → Slack Integration → Configure.
 Pair an Approval Process with a Slack workspace channel.
-**Required for the Approvals demo flow.** Verify against 262 Help: search `docs/salesforce/262/help/articles/` for "Slack Approvals" — published article should be present.
+**Required for the Approvals demo flow.** Verify against 264 Help: search `docs/salesforce/264/help/articles/` for "Slack Approvals" — published article should be present.
 ![placeholder][img-PLACEHOLDER-slack-approvals-setup]
 :::
 ::: {.column}
