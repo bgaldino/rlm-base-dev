@@ -860,8 +860,12 @@ CHECKS = [
         # guarantee has to hold from this side too: an edit to the workflow alone must run the
         # suite that judges it. The enumeration gate below demanded this trigger the moment the
         # assertion was written, which is the intended order.
+        #
+        # robot/requirements.txt is read by the suite, which asserts the Robot Framework and
+        # SeleniumLibrary pins here equal the ones declared there, so an edit to either side
+        # has to run it.
         triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml",
-                  ".github/workflows/pr-checks.yml"],
+                  ".github/workflows/pr-checks.yml", "robot/requirements.txt"],
         deps=[], gating=True,
     ),
     dict(

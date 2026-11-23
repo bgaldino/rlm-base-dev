@@ -696,6 +696,18 @@ if os.path.exists(prepare):
 else:
     check("prepare-rlm-org.yml exists to compare pins against", False, "file missing")
 
+robot_requirements = os.path.join(REPO, "robot", "requirements.txt")
+if os.path.exists(robot_requirements):
+    with open(robot_requirements) as fh:
+        declared = {line.split(">")[0].split("=")[0].strip(): line.strip() for line in fh
+                    if line.strip() and not line.startswith("#")}
+    for package in ("robotframework", "robotframework-seleniumlibrary"):
+        check(f"the gate pins {package} exactly as robot/requirements.txt declares it",
+              pr_gate.PINS.get(package) == declared.get(package),
+              f"pr_gate={pr_gate.PINS.get(package)}, robot/requirements.txt={declared.get(package)}")
+else:
+    check("robot/requirements.txt exists to compare pins against", False, "file missing")
+
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
 # tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
 print("\nThe workflow that runs the gate cannot be quietly defanged")
@@ -6000,7 +6012,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 845
+EXPECTED = 847
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

@@ -664,11 +664,13 @@ class RobotTreeSweepTest(unittest.TestCase):
     # plain ``loglevel = X`` assignment are not arguments. The value must be TRACE or NONE.
     LOGLEVEL = re.compile(
         r"(?:(?:\s{2,}|\t)loglevel=(?!=)|[(,]\s*loglevel\s*=(?!=)|[\"']loglevel[\"']\s*:)"
-        r"\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
+        r"\s*(?![\"']?\s*(?:TRACE|NONE)\b)\S", re.IGNORECASE)
     # Positional form: the slot of ``loglevel`` in each function's installed signature.
     LOGLEVEL_SIG = selib_loglevel_signatures() or LOGLEVEL_SIG_FALLBACK  # {} (empty walk) also falls back; the comparison test then fails
     LOGLEVEL_OK = {"TRACE", "NONE"}
-    ARG_STOP = {"ELSE", "ELSE IF", "AND"}
+    # A wrapper's separators end the wrapped keyword's arguments only for that wrapper.
+    ARG_STOPS = {"runkeywords": {"AND"}, "runkeywordif": {"ELSE", "ELSE IF"}, "runkeywordunless": {"ELSE", "ELSE IF"},
+                 "if": {"ELSE", "ELSE IF"}}
 
     def slot_of(self, name):
         """(function, slot) for a Robot or Python keyword name, ignoring case, spaces, underscores and a library prefix."""
@@ -696,9 +698,12 @@ class RobotTreeSweepTest(unittest.TestCase):
                 if function is None:
                     continue
                 params = self.LOGLEVEL_SIG[function]
+                stops = set()
+                for earlier in tokens[:index]:
+                    stops |= self.ARG_STOPS.get(re.sub(r"[ _]", "", re.sub(r"^\S+?\.", "", earlier)).lower(), set())
                 args = []
                 for arg in tokens[index + 1:]:
-                    if arg in self.ARG_STOP or arg.startswith("#"):
+                    if arg in stops or arg.startswith("#"):
                         break
                     named = re.match(r"(\w+)=", arg)
                     if not (named and named.group(1) in params):
@@ -734,8 +739,9 @@ class RobotTreeSweepTest(unittest.TestCase):
             name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
             if name.lower().startswith("run_keyword"):
                 segments, current = [], []
+                stops = self.ARG_STOPS.get(name.lower().replace("_", ""), set())
                 for arg in node.args:
-                    if is_text(arg, self.ARG_STOP):
+                    if is_text(arg, stops):
                         segments.append(current)
                         current = []
                     else:
@@ -812,14 +818,15 @@ class RobotTreeSweepTest(unittest.TestCase):
                      "    Page Should Contain    x    loglevel=${LEVEL}", "    Page Should Contain    x    LogLevel=warn",
                      '        s.assert_page_contains(loc, "text field", None, loglevel="INFO")',
                      "        s.page_should_contain('x', loglevel = 'HTML')", '    opts = {"loglevel": "WARN"}',
-                     "    Page Should Contain    x    loglevel=TRACEX"]:
+                     "    Page Should Contain    x    loglevel=TRACEX", "        s.page_should_contain('x', loglevel=' WARN ')"]:
             self.assertTrue(self.LOGLEVEL.search(line), line)
         for line in ["    Page Should Contain    x", "    Page Should Contain    x    loglevel=TRACE",
                      "    Page Should Contain    x    loglevel=none", "    ...    loglevel=NONE",
                      '        s.assert_page_contains(loc, "text field", None, loglevel="TRACE")',
                      "    Page Should Contain    x    loglevel=trace", '    opts = {"loglevel": "none"}',
                      "    if loglevel==WARN:", "    Run    robot --loglevel=DEBUG suite", '    cmd = ["--loglevel=DEBUG"]',
-                     "        loglevel = logging.INFO"]:
+                     "        loglevel = logging.INFO", "        s.page_should_contain('x', loglevel=' trace ')",
+                     "        s.page_should_contain('x', loglevel=\" none\")"]:
             self.assertFalse(self.LOGLEVEL.search(line), line)
 
     def test_positional_loglevel_is_flagged_in_robot_and_python(self):
@@ -835,6 +842,8 @@ class RobotTreeSweepTest(unittest.TestCase):
             "    Run Keyword If    ${ok}    Page Should Contain    x    WARN    ELSE    Log    done",
             "    Run Keywords    Page Should Contain    x    WARN    AND    Log    y",
             "    IF    ${ok}    Page Should Contain    x    WARN    ELSE    Log    y",
+            "    Run Keyword    Page Should Contain    AND    WARN",
+            "    Run Keywords    Page Should Contain    x    ELSE    WARN",
         ]
         for text in robot_bad:
             self.assertTrue(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
@@ -850,6 +859,8 @@ class RobotTreeSweepTest(unittest.TestCase):
             "    Page Should Contain    x    # WARN", "    Run Keyword If    ${ok}    Page Should Contain    x    ELSE    Log    WARN",
             "    Run Keywords    Page Should Contain    x    AND    Log    WARN",
             "    SeleniumLibrary.Page Should Contain    x    TRACE",
+            "    Run Keywords    Page Should Contain    x    TRACE    AND    Log    WARN",
+            "    Run Keyword If    ${ok}    Page Should Contain    x    ELSE IF    ${y}    Log    WARN",
         ]
         for text in robot_ok:
             self.assertFalse(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
@@ -862,7 +873,8 @@ class RobotTreeSweepTest(unittest.TestCase):
                      'b.run_keyword_if(ok, "Page Should Contain Element", "css:x", "m", "INFO")',
                      'b.run_keyword_if(c, "Page Should Contain", "x", "TRACE", "ELSE", "Page Should Contain", "y", "WARN")',
                      'b.run_keywords("Log", "z", "AND", "Page Should Contain", "x", "WARN")',
-                     's.page_should_contain("x", " WARN ")']:
+                     's.page_should_contain("x", " WARN ")', 'b.run_keyword("Page Should Contain", "AND", "WARN")',
+                     'b.run_keyword_if(c, "Page Should Contain", "x", "AND", "WARN")']:
             self.assertTrue(self.python_positional_levels(code), code)
         for code in ['s.page_should_contain("x")', 's.page_should_contain("x", "TRACE")', 's.page_should_contain("x", "none")',
                      's.page_should_contain_element("css:x", "WARN")', 's.page_should_contain(*args)', 'log("x", "WARN")',
@@ -883,7 +895,8 @@ class RobotTreeSweepTest(unittest.TestCase):
                 self.fail(message + " (install robotframework-seleniumlibrary; the gate check declares it)")
             self.skipTest(message)
         self.assertEqual(real, LOGLEVEL_SIG_FALLBACK,
-                         "regenerate LOGLEVEL_SIG_FALLBACK from the installed SeleniumLibrary signatures")
+                         "install the pinned SeleniumLibrary (>=6.9.0,<7, see PINS in scripts/ai/pr_gate.py); "
+                         "regenerate LOGLEVEL_SIG_FALLBACK only if that version's signatures changed")
 
     def test_no_loglevel_other_than_trace_or_none_in_the_tree(self):
         files = self.files("robot", "tasks", include_guard=True)
