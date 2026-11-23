@@ -29,6 +29,7 @@ from scripts.doc_snapshot._core import (
     SnapshotError,
     as_bool,
     as_int,
+    attribution_note,
     captured_table,
     compute_stats,
     get_logger,
@@ -221,7 +222,10 @@ def render_article_markdown(
     fm_lines.append(f"fetched_at: {yaml_escape(fetched_at)}")
     fm_lines.append("---")
 
-    parts = ["\n".join(fm_lines), "", f"# {title}", "", body.strip(), ""]
+    parts = [
+        "\n".join(fm_lines), "", f"# {title}", "", body.strip(), "",
+        attribution_note(source_url, "Salesforce Help content"), "",
+    ]
     return "\n".join(parts)
 
 

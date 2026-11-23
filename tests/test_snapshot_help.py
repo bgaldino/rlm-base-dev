@@ -590,6 +590,30 @@ def main():
             else:
                 sys.modules[k] = v
 
+    # --- per-article source attribution ---------------------------------------
+    # Every rendered article ends with the attribution note naming its own
+    # source URL, after the body, so the captured text still comes first.
+    from scripts.doc_snapshot.help_portal import render_article_markdown
+
+    url = "https://help.salesforce.com/s/articleView?id=ind.example.htm&type=5&release=264"
+    md = render_article_markdown(
+        article_id="ind.example.htm", title="Example", body="Body text.\n",
+        source_url=url, release_version="264", release_name="Winter '27",
+        area="pricing", parent_article_id=None, fetched_at="2026-11-23",
+    )
+    check("article ends with the attribution note and a newline",
+          md.endswith(_core.attribution_note(url, "Salesforce Help content") + "\n"))
+    check("attribution links the article's own source URL",
+          f"([source]({url}))" in md)
+    check("body precedes the attribution note",
+          md.index("Body text.") < md.index("Source attribution"))
+    # Without the blank line, `---` under the body would turn its last
+    # paragraph into a setext H2 heading.
+    check("a blank line separates the body from the note's rule",
+          "Body text.\n\n---\n\n> **Source attribution" in md)
+    check("frontmatter still opens the file",
+          md.startswith("---\narticle_id: ind.example.htm\n"))
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 

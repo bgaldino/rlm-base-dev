@@ -47,6 +47,7 @@ from scripts.doc_snapshot._core import (
     SnapshotError,
     as_bool,
     as_int,
+    attribution_note,
     captured_table,
     compute_stats,
     get_logger,
@@ -381,7 +382,10 @@ def render_page_markdown(
     fm.append("---")
     # Body already begins with the page's own H1 (from the atlas content
     # fragment), so we don't prepend another title.
-    return "\n".join(fm) + "\n\n" + body_md.strip() + "\n"
+    return (
+        "\n".join(fm) + "\n\n" + body_md.strip() + "\n\n"
+        + attribution_note(source_url, "Salesforce developer documentation") + "\n"
+    )
 
 
 # ---------------------------------------------------------------------------
