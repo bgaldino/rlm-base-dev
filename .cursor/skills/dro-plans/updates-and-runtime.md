@@ -388,10 +388,11 @@ these conditions; rerun the amendment and cancel checks there.
     `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`, or a fault) is not measured [inferred]. An invocable
     that returns fewer results than inputs usually errors at runtime (a "number of results does
     not match the number of interviews" error), which would make the empty-list case a fault
-    rather than the Default Outcome [inferred; not run]. The class reads only the first input, so
-    it returns at most one result for a batch of several interviews, which would raise the same
-    error even when every id is valid [inferred; not run]; invoke the
-    flow with both inputs null and with an empty `recordIds` to settle it.
+    rather than the Default Outcome [inferred; not run]. Invoke the flow with both inputs null
+    and with an empty `recordIds` to settle it. The class also reads only the first interview's
+    input (`sourceInfoArray.get(0)`), so it returns at most one result for a batch of several
+    interviews, which would raise the same error even when every id is valid [inferred; not
+    run]; invoke the flow for two or more interviews in one transaction to settle that.
   - Two connector-less ends read as intended skips, not failures [inferred from the flow's
     structure]:
     `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
