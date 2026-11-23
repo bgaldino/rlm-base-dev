@@ -51,9 +51,15 @@ EXIT_USAGE = 2
 # of the same name, so these derive from the preset schema. `--area` selects
 # presets rather than overriding one; `--release-name` overrides the release
 # block's name. A flag left unset is None and never overrides the preset.
-HELP_FLAGS = sorted(presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"})
-DEV_GUIDE_FLAGS = sorted(presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"})
-RUN_FLAGS = sorted(presets_mod.SHARED_OPTIONS - {"output_dir"})
+HELP_FLAGS = sorted(
+    presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"} | presets_mod.CLI_ONLY_OPTIONS
+)
+DEV_GUIDE_FLAGS = sorted(
+    presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"} | presets_mod.CLI_ONLY_OPTIONS
+)
+RUN_FLAGS = sorted(
+    presets_mod.SHARED_OPTIONS - {"output_dir"} | presets_mod.CLI_ONLY_OPTIONS
+)
 # Flags that describe one specific target, meaningless across several presets:
 # argparse dest -> the flag as the user types it.
 SINGLE_TARGET_FLAGS = {
@@ -86,6 +92,10 @@ def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--concurrency", type=int, help="parallel fetches")
     p.add_argument("--wait-ms", dest="wait_ms", type=int,
                    help="ms to wait after each navigation")
+    p.add_argument("--accept-shrinkage", dest="accept_shrinkage",
+                   action="store_const", const=True,
+                   help="write captures that shrank to under half of the prior text "
+                        "(a real upstream cut); a not-found page is never written")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -241,7 +251,8 @@ def _print_summary(results, failed: int) -> None:
             status = "ok"
             detail = (f"discovered {stats.get('discovered', '?')}, "
                       f"captured {stats.get('captured', '?')}, "
-                      f"errored {stats.get('errored', '?')}")
+                      f"errored {stats.get('errored', '?')}, "
+                      f"refused {stats.get('refused', 0)}")
         else:
             status, detail = "FAILED", error
         print(f"  {label.ljust(width)}  {status:<6}  {detail}")

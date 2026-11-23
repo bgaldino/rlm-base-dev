@@ -42,6 +42,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from scripts.doc_snapshot.guard import refusal_reason, report_orphans, report_refusals
 from scripts.doc_snapshot._core import (
     OptionsError,
     SnapshotError,
@@ -414,13 +415,21 @@ class DevGuideSnapshot:
         follow_links     follow intra-guide links beyond the TOC (default true for a
                          whole-guide run, false when sections are given)
         max_pages        safety cap on total pages captured (default 5000)
+        accept_shrinkage write a capture the guard would refuse as a truncated stub of
+                         the prior one (default false); a not-found page is never written
     """
 
     DEFAULT_DELIVERABLE = "revenue_lifecycle_management_dev_guide"
+    _toc_ids: Optional[set] = None
 
     def __init__(self, options: Dict[str, Any], logger=None):
         self.options = dict(options)
         self.logger = logger or get_logger()
+        # (page_id, reason) for each capture the guard refused this run.
+        self.refused: List[Tuple[str, str]] = []
+        # Errored pages the TOC no longer lists; ids in the TOC walk (None = no walk).
+        self.orphaned: List[str] = []
+        self._toc_ids: Optional[set] = None
         self._init_options()
 
     # ------------------------------------------------------------------
@@ -458,6 +467,7 @@ class DevGuideSnapshot:
         )
         self.options["doc_version"] = self.options.get("doc_version") or None
         self.options["max_pages"] = as_int(self.options.get("max_pages"), 5000)
+        self.options["accept_shrinkage"] = as_bool(self.options.get("accept_shrinkage"), False)
         require_positive(self.options, "concurrency", "wait_ms", "max_pages")
         # Follow links by default for a whole-guide run; default off when specific
         # sections are requested (so a section capture stays scoped). Override with
@@ -713,6 +723,10 @@ class DevGuideSnapshot:
                            if self.options["section_filters"] else "")
                         + f" (doc_version={self.options['doc_version']})"
                     )
+                    # A section run lists only that section, so only a whole-guide
+                    # walk can say a page has left the TOC.
+                    if not self.options["section_filters"]:
+                        self._toc_ids = {d["page_id"] for d in discovered}
                     manifest = self._merge_discovered(manifest, discovered)
                     self._save_manifest(manifest_path, manifest)
                 else:
@@ -752,7 +766,7 @@ class DevGuideSnapshot:
         stats = manifest.get("stats", {})
         log_done(self.logger, stats, manifest_path)
         raise_on_capture_errors(failed, attempted, "pages")
-        return stats
+        return {**stats, "refused": len(self.refused), "orphaned": len(self.orphaned)}
 
     async def _fetch_meta(self, page) -> Dict[str, Any]:
         self.logger.info(f"  GET {self._meta_url()}")
@@ -946,15 +960,31 @@ class DevGuideSnapshot:
 
         written = 0
         empty: List[str] = []   # fetched, but converted to an empty body
+        self.refused = []
         for pid, data in fetched.items():
             body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=known_ids)
             rec = record(pid)
+            title = data["title"] or rec.get("title") or pid
+            prior_path = articles_dir / f"{pid}.md"
+            try:
+                prior = prior_path.read_text(encoding="utf-8")
+            except OSError:
+                prior = None
+            refusal = refusal_reason(
+                title, body_md, prior, self.options.get("accept_shrinkage", False)
+            ) if body_md else None
             if not body_md:
                 rec["status"] = "error"
                 rec["error"] = "empty body"
                 empty.append(pid)
+            elif refusal:
+                # Keep the prior file and its file/body_length: the refused
+                # text is not the page.
+                rec["status"] = "error"
+                rec["error"] = f"refused: {refusal}"
+                self.refused.append((pid, refusal))
+                self.logger.warning(f"  [refused] {pid}: {refusal}")
             else:
-                title = data["title"] or rec.get("title") or pid
                 (articles_dir / f"{pid}.md").write_text(
                     render_page_markdown(
                         page_id=pid, title=title, body_md=body_md,
@@ -986,8 +1016,18 @@ class DevGuideSnapshot:
 
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         self._save_manifest(manifest_path, manifest)
-        self.logger.info(f"  wrote {written} page(s); {len(errors) + len(empty)} error(s)")
-        return list(errors) + empty, len(fetched) + len(errors)
+        self.logger.info(
+            f"  wrote {written} page(s); "
+            f"{len(errors) + len(empty) + len(self.refused)} error(s)"
+        )
+        report_refusals(self.logger, self.refused)
+        self.orphaned = sorted(
+            pid for pid in list(errors) + empty
+            if self._toc_ids is not None and pid not in self._toc_ids
+        )
+        report_orphans(self.logger, self.orphaned, "page")
+        refused_ids = [pid for pid, _ in self.refused]
+        return list(errors) + empty + refused_ids, len(fetched) + len(errors)
 
     # ------------------------------------------------------------------
     # Index rendering

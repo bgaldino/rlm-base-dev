@@ -22,6 +22,9 @@ KINDS = ("help", "dev_guide")
 # preset's release identity (`release_version`, `release_name`) comes only
 # from its release block, so a copied preset can never point at another release.
 SHARED_OPTIONS = frozenset(("output_dir", "mode", "headless", "concurrency", "wait_ms"))
+# Run-time override, never a preset value: a preset that always accepted
+# shrinkage would switch the capture guard off for every refresh.
+CLI_ONLY_OPTIONS = frozenset(("accept_shrinkage",))
 PRESET_OPTIONS = {
     "help": SHARED_OPTIONS | frozenset((
         "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",

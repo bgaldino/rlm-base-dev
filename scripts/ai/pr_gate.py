@@ -968,6 +968,7 @@ STDLIB_SUITES = [
     "tests/test_sfdmu_id_lookups.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
+    "tests/test_snapshot_guard.py",
     "tests/test_snapshot_help.py",
     "tests/test_toolchain_audit.py",
     "tests/test_update_toolchain_sf.py",
