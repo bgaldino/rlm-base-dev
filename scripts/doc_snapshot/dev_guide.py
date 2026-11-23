@@ -433,6 +433,8 @@ class DevGuideSnapshot:
         self.logger = logger or get_logger()
         # (page_id, reason) for each capture the guard refused this run.
         self.refused: List[Tuple[str, str]] = []
+        # ids whose shrinkage --accept-shrinkage actually let through this run.
+        self.accepted: List[str] = []
         # Errored pages the TOC no longer lists; ids in the TOC walk (None = no walk).
         self.orphaned: List[str] = []
         self._toc_ids: Optional[set] = None
@@ -444,7 +446,7 @@ class DevGuideSnapshot:
 
     def _init_options(self) -> None:
         validate_options(
-            self.options, "release_version", "release_name", list_options=("sections",)
+            self.options, "release_version", "release_name", list_options=("sections", "accept_shrinkage")
         )
         # YAML reads `output_dir: 266` or `doc_version: 264.0` as a number.
         for name in ("release_version", "release_name", "deliverable", "output_dir",
@@ -776,6 +778,10 @@ class DevGuideSnapshot:
         )
         return stats
 
+    def _note_accepted(self, page_id: str, why: str) -> None:
+        self.accepted.append(page_id)
+        self.logger.warning(f"  [accepted] {page_id}: {why}")
+
     async def _fetch_meta(self, page) -> Dict[str, Any]:
         self.logger.info(f"  GET {self._meta_url()}")
         res = await page.evaluate(FETCH_TEXT_JS, self._meta_url())
@@ -971,13 +977,14 @@ class DevGuideSnapshot:
         accept = self.options["accept_shrinkage"]
         prior_texts = {pid: read_prior(articles_dir / f"{pid}.md") for pid in fetched}
         refusals: Dict[str, str] = {}
+        self.accepted = []
         all_ids = set(fetched)
         for pid, data in fetched.items():
             body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=all_ids)
             title = data["title"] or record(pid).get("title") or pid
             if body_md and (reason := refusal_reason(
                 title, body_md, prior_texts[pid], pid, accept,
-                lambda why, p=pid: self.logger.warning(f"  [accepted] {p}: {why}"),
+                lambda why, p=pid: self._note_accepted(p, why),
             )):
                 refusals[pid] = reason
         known_ids = all_ids - {p for p in refusals if prior_texts[p] is None}

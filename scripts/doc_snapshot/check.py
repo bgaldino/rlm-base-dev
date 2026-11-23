@@ -43,7 +43,9 @@ GLUED_LINK_RE = re.compile(
 # became "Revenue Cloud, formerly Revenue Cloud". The snapshot tool rewrites no
 # text, so this is served that way upstream (inferred from the tool, which has
 # no brand substitution; not re-checked against the live page).
-SELF_RENAME_RE = re.compile(r"((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1\b")
+# The negative lookahead keeps "Agentforce Sales, formerly Sales Cloud" (a longer
+# old name that merely starts like the new one) from matching.
+SELF_RENAME_RE = re.compile(r"((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1(?! [A-Z])")
 ALL_CORPORA_GLOB = "docs/salesforce/{release}/*/articles/*.md"
 
 
@@ -74,16 +76,19 @@ def scan(release=None):
     """Scan one release's Help corpus (or every release's); returns 0."""
     corpus_glob = CORPUS_GLOB.format(release=release or "*")
     paths = sorted(REPO_ROOT.glob(corpus_glob))
-    if not paths:
-        print(f"No corpus files matched {corpus_glob}")
-        return 0
 
+    # The rename scan covers every captured corpus (Help, release notes, dev
+    # guides), so it runs even when there is no Help corpus to lint.
     renames = find_self_renames(sorted(REPO_ROOT.glob(ALL_CORPORA_GLOB.format(release=release or "*"))))
     if renames:
         print(f"{len(renames)} self-referential rename(s) ('X, formerly X'), upstream text:")
         for path, line_no, snippet in renames:
             print(f"  {path.relative_to(REPO_ROOT)}:{line_no}: {snippet!r}")
         print("  Served that way by the source; a recapture will not change it.\n")
+
+    if not paths:
+        print(f"No corpus files matched {corpus_glob}")
+        return 0
 
     findings = find_artifacts(paths)
     if not findings:

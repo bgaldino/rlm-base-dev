@@ -37,8 +37,8 @@ class SnapshotError(Exception):
     ids of errored pages the current table of contents no longer lists.
     """
 
-    refused: List[Tuple[str, str]] = []
-    orphaned: List[str] = []
+    refused: Tuple[Tuple[str, str], ...] = ()
+    orphaned: Tuple[str, ...] = ()
 
 
 class OptionsError(SnapshotError):

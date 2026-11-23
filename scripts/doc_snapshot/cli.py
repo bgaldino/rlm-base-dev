@@ -234,23 +234,42 @@ def run_targets(
 
     # (label, error or None, stats)
     results: List[Tuple[str, Optional[str], Dict[str, Any]]] = []
-    for label, snapshot in planned:
-        logger.info(f"=== {label} ===")
-        try:
-            results.append((label, None, snapshot.run() or {}))
-        except (SnapshotError, OSError) as exc:
-            # Includes an OptionsError raised mid-run (a doc_version conflict, a
-            # renamed section): earlier targets already ran, so record it and
-            # carry on. Selector errors were raised while planning, above.
-            if not multi:
-                raise
-            logger.error(f"{label} failed: {exc}")
-            results.append((label, str(exc), {}))
+    try:
+        for label, snapshot in planned:
+            logger.info(f"=== {label} ===")
+            try:
+                results.append((label, None, snapshot.run() or {}))
+            except (SnapshotError, OSError) as exc:
+                # Includes an OptionsError raised mid-run (a doc_version conflict, a
+                # renamed section): earlier targets already ran, so record it and
+                # carry on. Selector errors were raised while planning, above.
+                if not multi:
+                    raise
+                logger.error(f"{label} failed: {exc}")
+                results.append((label, str(exc), {}))
+    finally:
+        _warn_unused_accepts(overrides.get("accept_shrinkage"),
+                             (s for _, s in planned), logger)
 
     failed = sum(1 for _, error, _ in results if error is not None)
     if multi:
         _print_summary(results, failed)
     return EXIT_FAILED if failed else 0
+
+
+def _warn_unused_accepts(requested, snapshots, logger) -> None:
+    """Warn about ``--accept-shrinkage`` ids no capture used (a typo, a moved id,
+    or a page that did not shrink). The exit code is unchanged."""
+    if not requested:
+        return
+    used = {i for s in snapshots for i in getattr(s, "accepted", ())}
+    unused = sorted(set(requested) - used)
+    if unused:
+        logger.warning(
+            "--accept-shrinkage: no capture shrank past the guard's threshold for "
+            f"{', '.join(unused)} in this run, so nothing was accepted for "
+            "them (check the id, or the run may have stopped before reaching the page)"
+        )
 
 
 def _print_summary(results, failed: int) -> None:

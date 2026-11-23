@@ -278,6 +278,8 @@ class HelpSnapshot:
         self._last_discover_total: Optional[int] = None
         # (article_id, reason) for each capture the guard refused this run.
         self.refused: List[Tuple[str, str]] = []
+        # ids whose shrinkage --accept-shrinkage actually let through this run.
+        self.accepted: List[str] = []
         # Errored articles the sidebar walk no longer lists; ids the walk found
         # (None = this run did not walk the sidebar).
         self.orphaned: List[str] = []
@@ -293,6 +295,7 @@ class HelpSnapshot:
             self.options,
             "release_version", "release_name", "area",
             "root_article_id", "article_id_prefix",
+            list_options=("accept_shrinkage",),
         )
         # YAML reads `root_article_id: 123` or `output_dir: 266` as a number.
         for name in ("release_version", "release_name", "area", "root_article_id",
@@ -840,6 +843,7 @@ class HelpSnapshot:
         failed, keeps the prior file and manifest size, and is listed at the end.
         """
         self.refused = []
+        self.accepted = []
         semaphore = asyncio.Semaphore(self.options["concurrency"])
         manifest_lock = asyncio.Lock()
         saved_count = 0
@@ -888,9 +892,7 @@ class HelpSnapshot:
                         read_prior(articles_dir / f"{article_id}.md"),
                         article_id,
                         self.options["accept_shrinkage"],
-                        lambda why, a=article_id: self.logger.warning(
-                            f"  [accepted] {a}: {why}"
-                        ),
+                        lambda why, a=article_id: self._note_accepted(a, why),
                     ):
                         # Keep the prior file and its file/body_length: the
                         # refused text is not the article.
@@ -954,6 +956,10 @@ class HelpSnapshot:
         )
         self._save_manifest(manifest_path, manifest)
         return failed
+
+    def _note_accepted(self, article_id: str, why: str) -> None:
+        self.accepted.append(article_id)
+        self.logger.warning(f"  [accepted] {article_id}: {why}")
 
     async def _capture_one(self, page, article_id: str) -> Dict[str, Any]:
         url = self._article_url(article_id)

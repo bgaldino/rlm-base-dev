@@ -10,6 +10,8 @@ Run:  python3 tests/test_snapshot_guard.py   (stdlib, plus PyYAML for presets)
 """
 
 import asyncio
+import contextlib
+import io
 import os
 import sys
 import tempfile
@@ -376,6 +378,43 @@ def main():
         res={"dg_page.htm": {"id": "dg_page.htm", "ok": False, "error": "HTTP 404"}})
     check("dev-guide: with no whole-guide TOC walk nothing is called an orphan", d6.orphaned == [])
 
+    # --- check: rename artifact lint (L2, L3) ------------------------------------
+    from scripts.doc_snapshot import check as check_mod
+    def renames(text):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "a.md"
+            f.write_text(text, encoding="utf-8")
+            return [m[2] for m in check_mod.find_self_renames([f])]
+    check("rename lint finds the real artifact",
+          renames("Where: editions of Revenue Cloud, formerly Revenue Cloud, with the license.")
+          == ["Revenue Cloud, formerly Revenue Cloud"])
+    check("rename lint still finds it after a longer brand prefix",
+          renames("editions of Agentforce Revenue Cloud, formerly Revenue Cloud, with")
+          == ["Revenue Cloud, formerly Revenue Cloud"])
+    check("rename lint does not flag a longer name that merely ends the same (L2)",
+          renames("of Agentforce Sales, formerly Sales Cloud, with") == []
+          and renames("of Agentforce Sales, formerly Sales Cloud") == [])
+    check("rename lint ignores a real rename",
+          renames("Agentforce Revenue Management, formerly Revenue Cloud, with") == [])
+    saved_root = check_mod.REPO_ROOT
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # A scratch tree standing in for the repo root, not the repo's own corpus.
+        notes = root.joinpath("docs", "salesforce", "264", "release-notes", "articles")
+        notes.mkdir(parents=True)
+        (notes / "x.md").write_text(
+            "of Revenue Cloud, formerly Revenue Cloud, with\n", encoding="utf-8")
+        check_mod.REPO_ROOT = root
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                code = check_mod.scan("264")
+        finally:
+            check_mod.REPO_ROOT = saved_root
+    check("check reports renames when there is no Help corpus (L3)",
+          code == 0 and "1 self-referential rename" in out.getvalue()
+          and "No corpus files matched" in out.getvalue())
+
     # --- CLI flag and run summary ----------------------------------------------
     from scripts.doc_snapshot import cli
     from scripts.doc_snapshot._core import SnapshotError, as_id_set, raise_on_capture_errors
@@ -388,8 +427,6 @@ def main():
           and p.parse_args(["dev-guide", "--release", "264", "--guide", "x",
                             "--accept-shrinkage", "a"]).accept_shrinkage == ["a"]
           and p.parse_args(["run", "--release", "264", "--accept-shrinkage", "a"]).accept_shrinkage == ["a"])
-    import contextlib
-    import io
     try:
         with contextlib.redirect_stderr(io.StringIO()):
             p.parse_args(["run", "--release", "264", "--accept-shrinkage"])
@@ -402,6 +439,65 @@ def main():
     check("the flag reaches the snapshotter options through every command's override list",
           all("accept_shrinkage" in flags
               for flags in (cli.HELP_FLAGS, cli.DEV_GUIDE_FLAGS, cli.RUN_FLAGS)))
+    # H1: the parsed flag must survive the real construction path (presets.resolve,
+    # then __init__ validation), not just a hand-built options dict.
+    from scripts.doc_snapshot import presets as presets_mod
+    real = presets_mod.load_presets()
+    for argv, kind, key, cls in (
+        (["help", "--release", "264", "--area", "pcm", "--accept-shrinkage", "a.htm,b.htm"],
+         "help", "pcm", HelpSnapshot),
+        (["dev-guide", "--release", "264", "--guide", "rlm", "--accept-shrinkage", "a.htm"],
+         "dev_guide", None, DevGuideSnapshot),
+    ):
+        args = p.parse_args(argv)
+        flags = cli.HELP_FLAGS if kind == "help" else cli.DEV_GUIDE_FLAGS
+        keyname = key or cli._expand(real, "264", "dev_guide", args.guide)[0]
+        opts = presets_mod.resolve(real, "264", kind, keyname, cli._pick(args, flags))
+        snap = cls(opts, logger=_Log())
+        check(f"{kind}: --accept-shrinkage survives resolve and __init__ as a frozenset",
+              snap.options["accept_shrinkage"] == frozenset(args.accept_shrinkage))
+        bare_opts = presets_mod.resolve(real, "264", kind, keyname, cli._pick(
+            p.parse_args(argv[:-2]), flags))
+        check(f"{kind}: without the flag the option is the empty set",
+              cls(bare_opts, logger=_Log()).options["accept_shrinkage"] == frozenset())
+    run_args = p.parse_args(["run", "--release", "264", "--accept-shrinkage", "x"])
+    check("run: --accept-shrinkage reaches every preset's snapshotter",
+          all(cls(presets_mod.resolve(real, "264", kind, key, cli._pick(run_args, cli.RUN_FLAGS)),
+                  logger=_Log()).options["accept_shrinkage"] == frozenset({"x"})
+              for _, kind, key, _ in presets_mod.iter_presets(real, "264")
+              for cls in [HelpSnapshot if kind == "help" else DevGuideSnapshot]))
+
+    # L5: an id that no capture consumed is named in a warning; the exit code is unchanged.
+    class QuietSnapshot:
+        def __init__(self, options, logger=None):
+            self.options = options
+            self.accepted = ["used.htm"] if options["area"] == "good" else []
+
+        def preflight(self):
+            pass
+
+        def run(self):
+            return {"discovered": 1, "captured": 1, "errored": 0}
+
+    rel2 = {"264": {"release_name": "Winter '27", "help": {
+        "good": {"root_article_id": "g.htm", "article_id_prefix": "g"}}}}
+    saved = cli._snapshot_class
+    cli._snapshot_class = lambda kind: QuietSnapshot
+    log = _Log()
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = cli.run_targets(rel2, [("264", "help", "good")],
+                                   {"accept_shrinkage": ["used.htm", "typo.htm"]}, log)
+        log2 = _Log()
+        cli.run_targets(rel2, [("264", "help", "good")], {"accept_shrinkage": ["used.htm"]}, log2)
+    finally:
+        cli._snapshot_class = saved
+    check("an --accept-shrinkage id nothing consumed is named in a warning, exit code unchanged",
+          code == 0 and any("typo.htm" in m and "used.htm" not in m for m in log.lines))
+    check("no warning when every named id was used", log2.lines == [])
+    check("a real accepted page is recorded by the snapshotter",
+          "ind.example_page.htm" in t2.accepted and "dg_page.htm" in d2.accepted)
+
     check("help text states both thresholds (L6)",
           all(x in p._subparsers._group_actions[0].choices["run"].format_help().replace("\n", " ")
               for x in ("50%", "60%")))
@@ -412,6 +508,8 @@ def main():
         err = None
     except SnapshotError as exc:
         err = exc
+    check("SnapshotError class defaults are immutable (L4)",
+          SnapshotError.refused == () and SnapshotError.orphaned == ())
     check("the error carries refused and orphaned counts and ids",
           err is not None and err.refused == d1.refused and err.orphaned == ["gone.htm"]
           and "1 refused by the capture guard" in str(err) and "1 no longer in the contents" in str(err))
