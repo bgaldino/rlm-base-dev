@@ -11,7 +11,7 @@
       "externalId": "Code"
     },
     {
-      "$comment": "Inserts a missing class as Draft (the platform creates a class only in Draft) and skips an existing one, so a reload never sends Status=Draft to a class that activate_rating_records has activated (measured on qb/ja, todo 212; todo 342). Same pattern as qb-rating's pass 1, without its correcting pass 2.",
+      "$comment": "Inserts a missing class as Draft (the platform creates a class only in Draft) and skips an existing one, so a reload never sends Status=Draft to a class that activate_rating_records has activated (measured on qb/ja). Same pattern as qb-rating's pass 1, without its correcting pass 2.",
       "query": "SELECT BaseUnitOfMeasureId, Code, DefaultUnitOfMeasureId, Description, Id, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
       "operation": "Upsert",
       "externalId": "Code",

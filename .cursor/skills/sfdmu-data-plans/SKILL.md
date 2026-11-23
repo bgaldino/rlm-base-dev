@@ -165,7 +165,7 @@ sent to an Active record:
   Objects and Child Lookups* below).
 - **`UnitOfMeasureClass` in every pcm plan** (qb en-US and ja, q3, mfg): `Upsert` +
   `skipExistingRecords: true`, so a pcm reload never sends `Status=Draft` to a class that
-  `activate_rating_records` has activated (todo 342). The class is created Draft because the
+  `activate_rating_records` has activated. The class is created Draft because the
   platform allows nothing else; a correction to an existing class's other fields lands only
   through qb-rating's or q3-rating's pass 2.
 

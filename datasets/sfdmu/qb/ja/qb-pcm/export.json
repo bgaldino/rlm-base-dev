@@ -11,7 +11,7 @@
       "externalId": "Code"
     },
     {
-      "$comment": "Inserts missing classes as Draft (the platform creates a class only in Draft) and skips existing ones, so a reload never sends Status=Draft to a class activate_rating_records has activated; without the skip, a reload reverted all five to Draft (measured on a JPY-corporate 264 org, todo 212). qb-rating's pass 1 uses the same skip; ja has no correcting pass 2. qb/en-US, q3 and mfg pcm have the same skip (todo 342).",
+      "$comment": "Inserts missing classes as Draft (the platform creates a class only in Draft) and skips existing ones, so a reload never sends Status=Draft to a class activate_rating_records has activated; without the skip, a reload reverted all five to Draft (measured on a JPY-corporate 264 org). qb-rating's pass 1 uses the same skip; ja has no correcting pass 2. qb/en-US, q3 and mfg pcm have the same skip.",
       "query": "SELECT BaseUnitOfMeasureId, Code, DefaultUnitOfMeasureId, Description, Id, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
       "operation": "Upsert",
       "externalId": "Code",
