@@ -303,6 +303,9 @@
                 onclick={handleCancel}
                 disabled={isLoading}
             ></lightning-button>
+            <template if:true={submitBlocker}>
+                <span class="slds-text-color_error slds-m-left_x-small" role="alert">{submitBlocker}</span>
+            </template>
             <lightning-button
                 variant="brand"
                 class="slds-m-left_x-small"

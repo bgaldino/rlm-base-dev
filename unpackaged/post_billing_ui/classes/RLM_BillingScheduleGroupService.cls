@@ -109,6 +109,12 @@ public with sharing class RLM_BillingScheduleGroupService {
             'RLM_BillingScheduleGroupService read of ' + what + ' refused', cause);
     }
 
+    @TestVisible
+    private static final String NO_BILLING_LINK_ACCESS_MESSAGE =
+        'You do not have access to read the links between this Account and its billing accounts '
+        + '(Account Billing Account), so the billing account cannot be resolved. '
+        + 'Ask an administrator to grant it, for example through the RLM Billing UI permission set.';
+
     // Throws for a missing id or an account the caller cannot read: there is no account name to show
     // then, and the modal surfaces the message as an error toast (its account-info wire handler), so
     // the header is not left blank without a reason. An account with no billing account still returns
@@ -158,7 +164,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         if (billingAccounts.isEmpty()) {
-            List<AccountBillingAccount> links = new List<AccountBillingAccount>();
+            List<AccountBillingAccount> links;
             try {
                 // AccountBillingAccount.IsDefaultBillingAccount is deprecated on 264: the platform
                 // refuses to set it to true ("use default field on billing account"), so a link is
@@ -173,7 +179,11 @@ public with sharing class RLM_BillingScheduleGroupService {
                     LIMIT 1
                 ];
             } catch (QueryException qe) {
-                // The caller cannot read the junction: behave as before (no link resolved).
+                // An access failure is not "no billing account": reporting it as one would send
+                // the user to create a billing account that already exists and hide the missing
+                // grant. Say which access is missing.
+                throw RLM_AuraErrors.failed(NO_BILLING_LINK_ACCESS_MESSAGE,
+                    'RLM_BillingScheduleGroupService read of AccountBillingAccount refused', qe);
             }
             if (!links.isEmpty()) {
                 // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).

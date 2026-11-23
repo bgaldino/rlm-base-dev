@@ -282,6 +282,86 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(defaultProfile.Id, info.billingAccountId, 'The default billing profile is picked over an older billing account.');
     }
 
+    // The role set that ships with the Billing UI must resolve a junction-only billing account:
+    // this needs AccountBillingAccount read and the IsDefaultBillingAccount field grant (the
+    // ORDER BY reads it under USER_MODE). Run as the role, not as an admin.
+    @isTest
+    static void getAccountBillingInfo_junctionOnlyBillingAccount_isResolvedForTheBillingRole() {
+        Account a = new Account(Name = 'BSG Role Junction Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Role Junction BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id, IsDefaultBillingAccount = true);
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+
+        RLM_BillingScheduleGroupService.AccountInfo info;
+        Test.startTest();
+        System.runAs(u) {
+            info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(ba.Id, info.billingAccountId, 'The billing role resolves the linked billing account.');
+    }
+
+    // A user who can read Account and BillingAccount but not AccountBillingAccount must get a
+    // specific access message, not an empty result that reads as "no billing account".
+    @isTest
+    static void getAccountBillingInfo_withoutAccessToTheBillingAccountLinks_reportsAnAccessFailure() {
+        Account a = new Account(Name = 'BSG No Link Access Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG No Link Access BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+
+        // Account and BillingAccount reads only: no permission set or role grants the link object.
+        User u = RLM_BillingUITestUsers.create(new List<String>(),
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet ps = new PermissionSet(Name = 'RLM_Test_NoLinkAccess', Label = 'RLM Test No Link Access');
+            insert ps;
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'BillingAccount', PermissionsRead = true)
+            };
+            insert new List<FieldPermissions>{
+                new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.BillingCity', PermissionsRead = true),
+                new FieldPermissions(ParentId = ps.Id, SobjectType = 'BillingAccount', Field = 'BillingAccount.AccountId', PermissionsRead = true)
+            };
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+
+        String message;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isFalse(userModeQueryFails('SELECT Id FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: the user can read BillingAccount (so the failure below is the link read).');
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM AccountBillingAccount LIMIT 1'),
+                'PRECONDITION: the user cannot read AccountBillingAccount.');
+            try {
+                RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+                Assert.fail('Expected an access failure, not an empty result that reads as "no billing account".');
+            } catch (AuraHandledException e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual(RLM_BillingScheduleGroupService.NO_BILLING_LINK_ACCESS_MESSAGE, message,
+            'The message names the missing access.');
+    }
+
+    private static Boolean userModeQueryFails(String soql) {
+        try {
+            Database.query(soql, AccessLevel.USER_MODE);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     // ---- option queries ----
 
     @isTest

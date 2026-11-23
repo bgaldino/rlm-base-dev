@@ -236,8 +236,28 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             !this.productId ||
             !this.startDate ||
             !this.billingDayOfMonth ||
-            !this.billingStartMonth
+            !this.billingStartMonth ||
+            this.submitBlocker !== ''
         );
+    }
+
+    // Values the API needs that the form can leave empty. TotalPrice__std is required for every
+    // new-sale selling model, and a termed charge needs an end date, which is derived from the
+    // start date and term duration: clearing either input leaves it null. A blank Billing City is
+    // rejected by the service, so it is caught here too. Returns the message
+    // for the first missing value, or '' when the form can be submitted.
+    get submitBlocker() {
+        // The service rejects a blank Billing City; the city comes from the Account.
+        if (this.billingAccountId && !this.billingCity) {
+            return 'The Account has no Billing City. Add one to the Account before creating a billing schedule group.';
+        }
+        if (!Number.isFinite(this.totalPrice)) {
+            return 'Total Price is required.';
+        }
+        if (this.isTermed && !this.endDate) {
+            return 'Start Date and Term Duration are required to calculate the End Date of a termed charge.';
+        }
+        return '';
     }
 
     get isRecurring() {
@@ -294,6 +314,11 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         this.termSetting = event.detail.value;
         // Recalculate end date when term setting changes
         this.calculateEndDate();
+        // The Total Price input is shown only for a termed charge. Leaving Termed must not keep
+        // a cleared (undefined) total behind a hidden field, so derive it from quantity and unit price.
+        if (!this.isTermed && this.quantity !== undefined && this.unitPrice !== undefined) {
+            this.totalPrice = this.quantity * this.unitPrice;
+        }
     }
 
     handleTermDurationChange(event) {
@@ -367,9 +392,19 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     recalculatePrices() {
-        if (this.isTermed && this.numberOfBillingPeriods > 0 && this.quantity && this.unitPrice !== undefined) {
+        if (this.isTermed && this.numberOfBillingPeriods > 0 && this.hasPricingInputs) {
             this.totalPrice = this.quantity * this.unitPrice * this.numberOfBillingPeriods;
         }
+    }
+
+    // Quantity 0 and unit price 0 are valid inputs, so test for a missing value, not for falsiness.
+    get hasPricingInputs() {
+        return (
+            this.quantity !== undefined &&
+            this.quantity !== null &&
+            this.unitPrice !== undefined &&
+            this.unitPrice !== null
+        );
     }
 
     handleQuantityChange(event) {
@@ -377,7 +412,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         const parsed = raw === '' || raw === null || raw === undefined ? undefined : Number(raw);
         this.quantity = Number.isFinite(parsed) ? parsed : undefined;
         // Recalculate total price when quantity changes
-        if (this.quantity && this.unitPrice !== undefined) {
+        if (this.hasPricingInputs) {
             if (this.isTermed && this.numberOfBillingPeriods > 0) {
                 this.totalPrice = this.quantity * this.unitPrice * this.numberOfBillingPeriods;
             } else {
@@ -391,7 +426,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         const parsed = raw === '' || raw === null || raw === undefined ? undefined : Number(raw);
         this.unitPrice = Number.isFinite(parsed) ? parsed : undefined;
         // Recalculate total price when unit price changes
-        if (this.quantity && this.unitPrice !== undefined) {
+        if (this.hasPricingInputs) {
             if (this.isTermed && this.numberOfBillingPeriods > 0) {
                 this.totalPrice = this.quantity * this.unitPrice * this.numberOfBillingPeriods;
             } else {
@@ -462,6 +497,18 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     async handleCreate() {
+        // Backstop for the disabled button: never send an undefined total or a missing end date.
+        const blocker = this.submitBlocker;
+        if (blocker) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Cannot create Billing Schedule Group',
+                    message: blocker,
+                    variant: 'error'
+                })
+            );
+            return;
+        }
         this.isLoading = true;
         try {
             // Invoke the standard Create Standalone Billing Schedules action natively (async).
