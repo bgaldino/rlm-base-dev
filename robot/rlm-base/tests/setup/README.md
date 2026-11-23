@@ -118,12 +118,12 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 
 ### Shadow DOM Toggles
 
-Many LWC toggles on Setup pages (Constraints Engine, Instant Pricing, Document Templates Export, Design Document Templates, etc.) are inside Lightning Web Component Shadow DOM boundaries, making them inaccessible to standard Selenium XPath locators. The `SetupToggles.robot` resource library handles this in two ways:
+Many LWC toggles on Setup pages (Constraints Engine, Instant Pricing, Document Templates Export, Design Document Templates, etc.) are inside Lightning Web Component Shadow DOM boundaries, making them inaccessible to standard Selenium XPath locators. Constraints Engine and Instant Pricing use a suite-local `findInShadows` search on the input `name` (`enable_constraints_settings.robot`, `configure_revenue_settings.robot`); Document Templates Export uses `findEl` on `data-name="MetadataPreference"` (`enable_document_builder.robot`). `Enable Toggle By Label` in `SetupToggles.robot` is used for Document Builder (dedicated keyword, below) and Design Document Templates in Salesforce; labels other than Document Builder work like this:
 
-1. **`_EnsureShadowDOMToggle`** — Uses pure JavaScript to find the label heading via a text-node tree walker, walks up to the nearest ancestor containing a `lightning-input` toggle, pierces its shadow root, reads the `checked` state, and clicks only if needed. This avoids the cross-section interference caused by XPath `following::*[@role='switch']` which cannot see into shadow roots and may match the wrong toggle.
-2. **`_VerifyToggleViaShadowDOM`** — Uses the same JS approach to verify the toggle's actual `checked` state after clicking, replacing the previous section-text ("Enabled"/"Disabled") heuristic which was unreliable when the section XPath itself couldn't scope correctly.
+1. **`_LabelToggleJS`** — Pure JavaScript finds the label heading with a text-node tree walker, walks up to the nearest ancestor containing a toggle (at each level a `lightning-input` toggle first; plain checkboxes or switches only at levels with no `lightning-input`), pierces its shadow root and reads `checked`. In `on`/`off` mode it clicks once, only if needed. If a `lightning-input` at that level has not rendered before a toggle is found it reports `toggle_not_ready` rather than widening the search to a neighbouring card.
+2. **`_EnsureToggleByLabel` / `_VerifyToggleViaShadowDOM`** — Both use `_LabelToggleJS`, so the element that is clicked is the element that is verified. An unresolved label or toggle fails the attempt and retries; there is no XPath fallback. The earlier `contains()` XPath fallbacks resolved "Design Document Templates in Salesforce" to the Word add-in card's checkbox on 264 General Settings, read it as on and skipped the click.
 
-For Document Builder specifically, a dedicated `_EnsureDocumentBuilderToggle` keyword uses `findInShadows` to locate the `input[name=documentBuilderEnabled]` element.
+For Document Builder specifically (verification only warns when it is expected ON), a dedicated `_EnsureDocumentBuilderToggle` keyword uses `findEl` to locate the `input[name=documentBuilderEnabled]` element, waits for it, lets the saved value load, then reads it and clicks only if needed.
 
 ### Combobox-Recipe Fields (Pricing, Usage Rating, Asset Context)
 
