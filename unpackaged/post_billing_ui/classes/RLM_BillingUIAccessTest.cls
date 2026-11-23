@@ -17,6 +17,9 @@
  *
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
+ * Also listed are fields that only a record page shows (CollectionPlan.InitialDueAmount, from
+ * the RLM_Collection_Plan_Record_Page flexipage): no controller selects them, but the page
+ * needs read access to render them.
  * Left out on purpose: Task (access follows the related record; no object permission
  * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
  * batch monitor's page, which the role grants), and DisputeItem (the write check covers it).

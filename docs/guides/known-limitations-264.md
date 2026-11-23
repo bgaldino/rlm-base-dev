@@ -9,15 +9,17 @@ the 264 Help snapshot it is grounded in.
 
 | Area | Not provisioned by the build | Grounding |
 |---|---|---|
-| [Approvals](#approvals-delegation-slack-and-the-approval-agent) | Delegation, Slack notifications, Approval Agent | 264 Help snapshot |
+| [Approvals](#approvals-delegation-slack-and-the-approval-agent) | Delegation, Slack notifications, the Slack connection the Approval Agent needs | 264 Help snapshot, `unpackaged/post_agents/README.md` |
 | [Tax](#revenue-standard-tax-engine) | Revenue Standard tax engine extension | `unpackaged/pre/4_tax/`, 264 Help snapshot |
 | [Payments](#payment-gateways) | Payment gateway, merchant account, payment method | `datasets/sfdmu/qb/en-US/qb-billing/README.md`, demo script |
 | [Billing Forecast and Lockbox](#billing-forecast-console-and-lockbox) | Forecast Console, Lockbox reconciliation (Data 360) | 264 Help and release-note snapshots |
 
 ## Approvals: delegation, Slack, and the Approval Agent
 
-The build ships the quote approval flows (see the `advanced-approvals` skill) but does not turn on
-the 264 add-ons:
+The build ships the quote approval flows (see the `advanced-approvals` skill) and an Approval Agent
+(`unpackaged/post_agents/aiAuthoringBundles/RLM_Approval_Agent/`, permission set `RLM_ApprovalAgent`;
+see `unpackaged/post_agents/README.md`, deployed when the `agents` flag is on). It does not turn on
+the other 264 add-ons or connect Slack:
 
 - **Delegation.** Help describes *Use Advanced Approval Delegation* in Approval Settings. Turning it
   on stops delegations configured on user records from applying; reviewers must create Approval
@@ -27,20 +29,22 @@ the 264 add-ons:
   *Notify Reviewers on Slack* and *Notify Submitters on Slack* can be turned on. The build does
   not create that connection.
   ([Help](../salesforce/264/help/articles/ind.approvals_turn_on_slack_notifs.htm.md))
-- **Approval Agent.** Help says to set up Agentforce for Revenue Cloud and connect the agent to Slack
-  first. The build does not ship an Approval Agent.
+- **Approval Agent in Slack.** Help says to set up Agentforce for Revenue Cloud and connect the agent
+  to Slack first. The agent is in the build, but the Slack connection is not, so Slack-based use of
+  the agent is not set up.
   ([Help](../salesforce/264/help/articles/ind.rev_agent_approval_agent.htm.md))
 
-The repository contains no setting, metadata or data plan for any of the three.
+The repository contains no setting, metadata or data plan for delegation or for the Slack
+notification toggles.
 
 ## Revenue Standard tax engine
 
 The build's tax engine is the Apex mock adapter (`unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls`;
-Avalara and invalid-adapter test classes sit beside it). Help describes extending the Revenue
+`RLM_AvalaraAdapter` and `RLM_InvalidAdapter` sit beside it, each with its own test class). Help describes extending the Revenue
 Standard tax engine with a custom metadata type that maps billing fields to a cloned Revenue
 Standard Tax Entries decision table
 ([Help](../salesforce/264/help/articles/ind.billing_extend_revenue_standard_tax_engine.htm.md)).
-The build ships no such custom metadata type, decision-table clone or second tax engine, so that
+The build ships no such custom metadata type, no clone of the standard tax decision table and no second tax engine, so that
 feature cannot be shown on a default build. Estimated tax on quotes and orders is also off by default
 (`quote_est_tax: false` in `cumulusci.yml`).
 
@@ -53,18 +57,26 @@ loads is the payment retry rules (`datasets/sfdmu/qb/en-US/qb-billing/README.md`
 payment methods available in the Self-Service Billing Portal depend on the gateway you configure
 ([Help](../salesforce/264/help/articles/ind.billing_supported_payment_methods_for_the_self_service_billing_portal.htm.md)).
 Flows that need a gateway (collecting a payment through a gateway, refunds issued to a gateway,
-saved wallets) are not exercised by a default build. Configure a gateway sandbox in the org yourself;
+saved wallets) are not exercised by a default build. The build does deploy `unpackaged/post_payments_ext` (`RLM_RefundController`, the `rlmRefundButton`
+component), which issues refunds through the payment's gateway, so the Issue Refund button is present
+but needs a gateway to work. Configure a gateway sandbox in the org yourself;
 never commit gateway keys to this repository.
 
 ## Billing Forecast Console and Lockbox
 
 The build turns on Billing Forecast in Billing Settings (`enableBillingForecast`, see
-`unpackaged/post_billing/settings/Billing.settings-meta.xml`), which lets the org generate forecast
-runs. It does not provision what the rest needs:
+`unpackaged/post_billing/settings/Billing.settings-meta.xml`). Help says that setting lets the org
+schedule forecast runs, and that turning it on needs the Billing Admin permission set
+([Help](../salesforce/264/help/articles/ind.billing_forecast_enable.htm.md)); the release note adds
+that creating and managing forecast schedules needs the Billing Operations User permission set
+([release note](../salesforce/264/release-notes/articles/release-notes.rn_billing_forecast.htm.md)).
+It does not provision what the rest needs:
 
-- **Billing Forecast Console.** Help says it uses Tableau Next and requires Data 360 to be enabled
-  and connected, with the Billing Forecast added to the Advanced Billing Bundle
-  ([Help](../salesforce/264/help/articles/ind.billing_forecast_data_360.htm.md)).
+- **Billing Forecast Console.** Help says it uses Tableau Next, needs the Tableau Next Consumer license
+  to view it, and requires Data 360 to be enabled and connected, with the Billing Forecast added to
+  the Advanced Billing Bundle
+  ([console](../salesforce/264/help/articles/ind.billing_forecast_console.htm.md),
+  [Data 360](../salesforce/264/help/articles/ind.billing_forecast_data_360.htm.md)).
 - **Lockbox reconciliation.** The 264 release notes say it uses Document AI and requires the Billing
   Admin and Data Cloud Architect permission sets
   ([release note](../salesforce/264/release-notes/articles/release-notes.rn_billing_lockbox_reconciliation.htm.md)).
