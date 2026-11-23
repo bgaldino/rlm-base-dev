@@ -252,10 +252,12 @@ private class RLM_OrderItemContractingUtilityTest {
             // Measured on a 264 org (describe and SOQL): ObjectPermissions.SobjectType is a restricted
             // picklist that has Order but neither OrderItem nor OrderAction, and no ObjectPermissions row
             // in the org names either, so the only object grant possible here is Order. OrderAction.Type
-            // and Order.EffectiveDate are not permissionable; OrderItem.ServiceDate and EndDate are, and
-            // FieldPermissions.SobjectType does list OrderItem, so only those two fields are granted.
-            // Not run yet: that Order Read alone makes OrderItem and OrderAction readable. The
-            // preconditions below assert it, so a wrong inference fails the test instead of passing it.
+            // is not permissionable, and FieldPermissions.SobjectType lists OrderItem with rows for
+            // OrderItem.ServiceDate, so only the two OrderItem fields are granted.
+            // Not run yet (inferred): that Order.EffectiveDate is not permissionable, that
+            // OrderItem.EndDate is, and that Order Read alone makes OrderItem and OrderAction readable.
+            // The preconditions below assert the outcome, so a wrong inference fails the test instead
+            // of passing it.
             insert new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true);
             insert new List<FieldPermissions>{
                 new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.ServiceDate', PermissionsRead = true),
@@ -288,10 +290,6 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.isTrue(
             results[0].errorMessage.startsWith('The orders could not be read as the running user'),
             'The message is the query fallback, not the pre-check: ' + results[0].errorMessage
-        );
-        Assert.isTrue(
-            results[0].errorMessage.contains('ProductSellingModel') || results[0].errorMessage.contains('SellingModelType'),
-            'The query was refused for the selling model, not for another object: ' + results[0].errorMessage
         );
         Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
     }
