@@ -52,9 +52,11 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
 - **New static bundle:** parent selling model None, and no component selling model. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   The shipped q3 plan's static bundle `CERT007` sets Term Annual as both parent and component
   selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
-  Help's rule, written for a *new* static bundle, is guidance: an insert of such rows was
-  accepted when both products had their selling model options (see
-  [Measured component rules](#measured-component-selling-model-rules)). Whether pricing and the
+  On an existing org (fresh-build check pending), an insert of rows of that shape (static
+  parent, both selling models set) was accepted when both products had their selling model
+  options, so Help's rule, written for a *new* static bundle, looks like guidance (see
+  [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows were
+  not the ones inserted. Whether pricing and the
   configurator treat them correctly is **Open — needs live verification**; do not copy the
   pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
@@ -75,12 +77,14 @@ every shape.
 
 What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId` and
 `ChildSellingModelId`, through the standard record API. Help only says not to select them
-(above); this is what the platform enforced. [Measured: 2026-11-10, 264, existing Enterprise
-build, API 68.0, Bundle to Bundle relationship type] **Existing org, fresh-build check pending**:
-the run used an org that had been built earlier, not a fresh harness build, so settings and
-schema carried over from its history may differ from a fresh build. Re-measure on a fresh build
-before relying on it. Whether a fresh build gives the same results is **Open — needs live
-verification** (repeat these inserts on a fresh harness build and record the outputs).
+(above); this is what the platform enforced on one existing org, through API 68.0, with the
+Bundle to Bundle Component Relationship type. [Measured: 2026-11-10, 264, existing org]
+**Existing org, fresh-build check pending**: the run used an org that had been built earlier,
+not a fresh harness build, so settings and schema carried over from its history may differ from
+a fresh build. The configurable-bundle refusal was also seen on a scratch load
+([`bundles-and-cardinality.md`](bundles-and-cardinality.md)); whether a fresh build gives the
+static-bundle results is **Open — needs live verification** (repeat these inserts on a fresh
+harness build and record the outputs).
 
 | Parent product | Insert | Result |
 |---|---|---|
@@ -95,8 +99,10 @@ verification** (repeat these inserts on a fresh harness build and record the out
 
 - **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
   Evergreen parent with a Term Defined child, were accepted once both options existed, as were
-  Evergreen with Evergreen and blank with blank. How pricing or the configurator treats a
-  mismatched pair was not tested.
+  Evergreen with Evergreen and blank with blank. Accepted on insert is not valid at sale: the
+  configurator rule [above](#selling-models-inside-bundles) still draws a message for a
+  mismatched pair [Platform behaviour, traced in part]. How pricing treats such a pair is
+  **Open — needs live verification**.
 - **Duplicates are allowed.** Several rows for one parent and child pair coexisted.
 - **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the
   parent listed the child once for each row, and each entry's `productRelatedComponent` carried
@@ -234,7 +240,9 @@ In this repo:
 - **Deploy the resource before the plan that points at it.** `prepare_rlm_org` deploys
   `force-app` (`deploy_full`, step 5) and the QuantumBit metadata (`prepare_quantumbit`, step 7)
   before the product plan (`prepare_product_data`, step 8), so the paths resolve when the first
-  quote opens. A new image is two changes in one PR: the resource,
+  quote opens. Both flags default on, but the `post_quantumbit` resources (all but the six in
+  `force-app`) deploy only when `quantumbit` is on, while the qb product plan loads when `qb` is on;
+  a build with `qb` on and `quantumbit` off loads paths whose resources were never deployed. A new image is two changes in one PR: the resource,
   and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
