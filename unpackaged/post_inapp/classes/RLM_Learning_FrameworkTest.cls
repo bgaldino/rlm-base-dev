@@ -1377,10 +1377,11 @@ private class RLM_Learning_FrameworkTest {
 
   // A well-formed Id with no site behind it is rejected in every org. Then, for every site with a
   // login URL (the prm flag deploys the "rlm" site; other bundles deploy more): when the login URL
-  // contains "/s/" the site URL must be exactly the part before "/s/"; otherwise it must start with
-  // the login URL's scheme://host and carry no trailing slash. The exact shaping, including the
-  // Network path prefix, is asserted against literal URLs in
-  // siteBaseUrl_shapesTheBaseUrlFromTheLoginUrlAndPrefix, so this test does not repeat it.
+  // contains "/s/" the site URL must be exactly the part before "/s/"; otherwise it must be the
+  // login URL's host plus the Network's own UrlPathPrefix (read here as an admin), with no
+  // trailing slash. The shaping rules are asserted against literal URLs in
+  // siteBaseUrl_shapesTheBaseUrlFromTheLoginUrlAndPrefix. The no-"/s/" assertion here calls that
+  // same helper, so it checks that getSiteUrl feeds it the real prefix, not the helper's own logic.
   // With no site, the check is skipped visibly (a WARN debug line).
   @IsTest
   static void getSiteUrl_rejectsAMissingSite_andReturnsThePartBeforeSlashS_whenTheOrgHasASite() {
