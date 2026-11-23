@@ -114,11 +114,12 @@ public with sharing class RLM_BillingScheduleGroupService {
         // Deterministic pick (oldest first). A billing account linked to the account only through
         // AccountBillingAccount is resolved too (default link first), as the create path does.
         // Account.BillingCity is a component of the compound BillingAddress. Measured on a 264 org:
-        // EntityParticle marks BillingCity as a component (BillingAddress as the compound), and no
-        // FieldPermissions row exists for Account.BillingCity in any permission set, while 121 exist
-        // for Account.BillingAddress, so only the compound is grantable and RLM_BillingUI grants it.
-        // That a user holding only that grant reads BillingCity here is inferred, not measured; the
-        // Account.BillingCity entry in RLM_BillingUIAccessTest READS asserts it where the set is deployed.
+        // describe reports BillingCity permissionable, yet no permission set carries a FieldPermissions
+        // row for Account.BillingCity, while 121 carry one for Account.BillingAddress. So the compound is
+        // the grant that exists and RLM_BillingUI holds it; this repo does not grant the component, and
+        // it does not insert a component row in tests. That a user holding only the compound grant reads
+        // BillingCity here is inferred, not measured; RLM_BillingUIAccessTest READS asserts it where
+        // the set is deployed.
         List<BillingAccount> billingAccounts = [
             SELECT Id, Name, Account.BillingCity
             FROM BillingAccount
