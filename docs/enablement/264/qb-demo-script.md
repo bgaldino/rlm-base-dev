@@ -1,7 +1,7 @@
 # :quantumbit: FY27 Revenue Cloud QuantumBit Script — Winter '27 (Release 264)
 
 > **Generated:** 2026-05-24 by `.cursor/skills/qb-demo-script/SKILL.md`
-> **Source canvas (260):** [F09Q04HEC8Y](https://salesforce.enterprise.slack.com/docs/T45GK97GB/F09Q04HEC8Y)
+> **Source canvas (260):** prior-release Slack canvas (not linked here)
 > **Salesforce Release:** 264 (Winter '27) · API v68.0
 > **Relabeled to 264 (2026-10-29):** 262 orgs no longer exist, so this is the current script. It was generated as
 > the 262 draft. On a fresh 264 org on 2026-10-29 these steps were clicked through and match 264: New Opportunity,
@@ -13,18 +13,19 @@
 > **Status:** DRAFT. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
-> - `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
-> - `docs/salesforce/262/feature-index.md` (262 feature inventory)
-> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror)
+> - Prior-release (260) Slack canvas, held in a private maintainer notes repo (source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on that private source)
+> - `docs/salesforce/264/help/articles/` (1,703-article Help portal mirror; current grounding for 264 checks)
+> - `docs/salesforce/262/feature-index.md` (262 feature inventory; 262 draft provenance)
+> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror; 262 draft grounding, provenance)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?
 
-Jump over to <@U03S5J7DVRD> or [Solutions Workspace](https://www.solutionswork.space/), find the Demos tab and search for **Revenue Cloud - QuantumBit (CDO).** Click the '**Spin Up**' button and fill out the information. Don't forget to run through the [Demo Setup](#demo-setup-required) steps and [Known Bugs & Areas to Avoid](#known-bugs--issues-to-avoid) before diving in!
+Jump over to your Solutions contact or [Solutions Workspace](https://www.solutionswork.space/), find the Demos tab and search for **Revenue Cloud - QuantumBit (CDO).** Click the '**Spin Up**' button and fill out the information. Don't forget to run through the [Demo Setup](#demo-setup-required) steps and [Known Bugs & Areas to Avoid](#known-bugs--issues-to-avoid) before diving in!
 
-Latest TFID (Prod) 262.x.x : **TBD** *(populate when 262 TFID is published)*
+Latest TFID (Prod): **TBD** *(264 TFID not recorded in this repo; populate when published. The 262.x.x placeholder is retired.)*
 
-**For T&P - 260 & 262 DOT files:** populate Drive folder URL once 262 deploy is staged.
+**For T&P - DOT files:** populate the Drive folder URL once the 264 deploy is staged *(260 and 262 DOT files are prior-release carry-over)*.
 
 Please provide feedback on demo errors, issues, and missing functionality in the workflow below.
 
@@ -125,7 +126,7 @@ Please provide feedback on demo errors, issues, and missing functionality in the
 
 ## Demo Setup [required]
 
-> Verified against `cumulusci.yml` `project.custom` and `docs/salesforce/262/feature-index.md` "Cross-Area: Salesforce Go (Setup Automation)" section. SME pass required to capture 262-specific Setup UI changes (Salesforce Go is heavily updated in 262).
+> Verified against `cumulusci.yml` `project.custom` and `docs/salesforce/262/feature-index.md` "Cross-Area: Salesforce Go (Setup Automation)" section. SME pass required to capture Setup UI changes; verify against a live 264 org (Salesforce Go was heavily updated in 262).
 
 ::: {.layout}
 ::: {.column}
@@ -176,7 +177,7 @@ Publish your community.
 ### Revenue Cloud Agents
 Navigate to Setup → Salesforce Go.
 In search, enter "agentforce for revenue" → select Set Up → select Turn On.
-**262 NOTE:** Salesforce Go received setup-automation enhancements in 262 — verify the exact navigation path against the live org before publishing.
+**262 NOTE:** Salesforce Go received setup-automation enhancements in 262 — verify the exact navigation path against a live 264 org before publishing.
 ![placeholder][img-PLACEHOLDER-rc-agents]
 :::
 :::
@@ -184,16 +185,15 @@ In search, enter "agentforce for revenue" → select Set Up → select Turn On.
 ::: {.layout}
 ::: {.column}
 ### Slack Approvals Setup (NEW in 262)
-For the Slack Accelerated Deal Approvals feature: Navigate to Setup → Approvals → Slack Integration → Configure.
-Pair an Approval Process with a Slack workspace channel.
-**Required for the Approvals demo flow.** Verify against 262 Help: search `docs/salesforce/262/help/articles/` for "Slack Approvals" — published article should be present.
+For the Slack Accelerated Deal Approvals feature (per the 264 Help snapshot): first connect the org to your Slack workspace, then from Setup open **Approval Settings** and turn on **Notify Reviewers on Slack** and **Notify Submitters on Slack**. To post to a shared channel (Advanced Approvals only): find and copy the Slack channel ID (channel details, About tab); if the channel is private, add the Salesforce app to it first. Then, from Setup, open Flows, open the flow that contains the approval step, open the step, set Approver Type to Group or Queue, specify the group or queue, select **Send Approval Notification to Slack Channel**, enter the channel ID in the Slack Channel ID field, and save and activate the flow. *(SME to confirm in a live 264 org; these steps come from the Help articles, not a click-through.)*
+**Required for the Approvals demo flow.** Verify against 264 Help: `docs/salesforce/264/help/articles/ind.approvals_slack.htm.md` (related: `ind.approvals_slack_considerations.htm.md`, `ind.approvals_slack_channel_notifications.htm.md`, `ind.approvals_turn_on_slack_notifs.htm.md`).
 ![placeholder][img-PLACEHOLDER-slack-approvals-setup]
 :::
 ::: {.column}
 ### Constraint Rules in Product Discovery (NEW in 262)
 Navigate to Setup → Revenue Cloud → Product Discovery → Configure Constraint Rules.
 Enable "Real-time compatibility enforcement" toggle.
-**SME pass needed:** verify exact toggle label against published 262 Setup UI.
+**SME pass needed:** verify exact toggle label against a live 264 org.
 ![placeholder][img-PLACEHOLDER-product-discovery-constraints]
 :::
 :::
@@ -265,7 +265,7 @@ Select 'Quick Quote'.
 
 ## Demo Personas
 
-> Sourced verbatim from the prior-release canvas at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (lines 199–225). Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
+> Sourced verbatim from the prior-release (260) Slack canvas, held in a private maintainer notes repo. Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
 
 ::: {.layout}
 ::: {.column}
@@ -380,7 +380,7 @@ Jean Claude manages billing processes to ensure accurate invoicing, revenue reco
 |- Notice the ability '**Preview**' on the **Approvals** tab. **NEW in 262:** the Preview UX is enhanced — multi-stakeholder serial approvals are visualized.||![placeholder][img-PLACEHOLDER-approvals-preview-ux]|
 |- Click **Preview** to understand where the approvals must route.||![placeholder][img-PLACEHOLDER-approvals-preview]|
 |- Navigate to down carrot in top right corner and select **Submit for Approval** → **Submit**|I can see the discount changes I've made have triggered a need for an approval before I can send this quote off to my customer.|![placeholder][img-PLACEHOLDER-approvals-submit]|
-|**262 NEW: Slack Approval Routing.** Switch to the connected Slack workspace channel for the Approval Process. Approve directly from the Slack message. **Required setup:** see "Slack Approvals Setup" in Demo Setup section above.|This is the **Accelerated Deal Approvals in Slack** feature new in 262. Approvers don't need to log into Salesforce to approve — the approval card is delivered to Slack with full context and inline approve/reject.|![placeholder][img-PLACEHOLDER-approvals-slack]|
+|**262 NEW: Slack Approval Routing.** Switch to the Slack channel set on the approval step (or the reviewer's Slack direct message). Approve directly from the Slack message. **Required setup:** see "Slack Approvals Setup" in Demo Setup section above.|This is the **Accelerated Deal Approvals in Slack** feature new in 262. Approvers don't need to log into Salesforce to approve — the approval card is delivered to Slack with full context and inline approve/reject.|![placeholder][img-PLACEHOLDER-approvals-slack]|
 |- Navigate to **App Manager** and search & select **Approvals** app<br><br>- Select **Review Pending Approvals**|For the in-Salesforce flow: switching hats to an admin/approver role, in the Approvals app I'm able to see a list view of all the requests that need my attention.|![placeholder][img-PLACEHOLDER-approvals-pending]|
 |- Navigate to the down carrot on the line of the approval request<br>- Select **Review**||![placeholder][img-PLACEHOLDER-approvals-review]|
 |- Select as **Approved** or **Rejected** → **Confirm** → Refresh browser||![placeholder][img-PLACEHOLDER-approvals-decision]|
@@ -665,10 +665,10 @@ img-PLACEHOLDER-contracts-advanced-approvals
 
 ## Generation Notes
 
-**Source canvas:** Slack canvas `F09Q04HEC8Y` ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0). Saved verbatim source at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (650 lines) as the structural template.
+**Source canvas:** prior-release Slack canvas ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0), used as the structural template; saved verbatim in a private maintainer notes repo (650 lines).
 
 **262 deltas applied:**
-- Updated release identifier in title and "How do I get my own copy" section (TFID placeholder pending)
+- Updated release identifier in title and "How do I get my own copy" section (264 TFID placeholder pending; see the TFID line above)
 - Added "What's New in 262" highlights section (RCA + RCB)
 - Added Slack Approvals Setup + Product Discovery Constraint Rules to Demo Setup
 - Annotated Ramp Schedule section with GA-status update (was preview in 260)
@@ -685,12 +685,12 @@ img-PLACEHOLDER-contracts-advanced-approvals
 - Annotated personas with 262-specific use cases (Shaun → Early Renewal; Beth → DRO/OMS Interop; Jeane Claude → Streaming/Batch/Refund)
 
 **262 deltas requiring SME pass before publishing:**
-- TFID identifier (pending 262 deploy)
-- DOT files Drive folder URL (pending 262 deploy)
-- Setup UI screenshots (Salesforce Go is heavily updated in 262)
+- TFID identifier (pending 264 publication; the 262 placeholder is retired)
+- DOT files Drive folder URL (pending 264 deploy)
+- Setup UI screenshots (Salesforce Go was heavily updated in 262; capture against a live 264 org)
 - Known Bugs list (carry-over verification + populate net-new from `salesforce-release-notes-summer-26-2026-05-07.pdf` p. 720+)
-- Slack Approvals exact Setup navigation (verify against published 262 Help)
-- Product Discovery Constraint Rules toggle label (verify against published 262 Setup UI)
+- Slack Approvals setup: steps now follow the 264 Help articles; live-org confirmation still pending
+- Product Discovery Constraint Rules toggle label (verify against a live 264 org)
 - DRO Templates Beta enablement (verify Beta is gated correctly in demo org)
 - DRO & OMS Interop Beta enablement (verify both apps available)
 - All `(TBD)` entries in `feature-index.md` (Approval Preview Enhancements, Responsive & Maximized Quoting UX, Increased Display Count of Attributes, Deep Clone Enhancements, Quote Extensibility Enhancements, Future-Dated/Backdated Amendments, RCB-cross-listed items)

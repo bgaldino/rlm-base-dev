@@ -47,8 +47,8 @@ sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-
 
 ## Provenance
 
-Ported from the internal eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreation`
-(the `create-revenue-asset-from-quote` skill). This repo version reuses the
+Ported from an internal eng toolkit (the `create-revenue-asset-from-quote`
+skill). This repo version reuses the
 existing `build_quote_to_asset.py` for the per-asset flow rather than shipping a
 second Quote → Order → Activation implementation, and drops the eng config-runner
 in favor of the driver above. The lifecycle-augment Apex is a faithful port with
