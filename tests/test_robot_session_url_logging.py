@@ -560,6 +560,67 @@ class ScannerTest(unittest.TestCase):
             self.assertEqual(scanner.main([os.path.join(d, "missing")]), 2)
 
 
+# Parameter names of every public SeleniumLibrary 6.x function that takes a ``loglevel`` (a failed
+# check logs the page source at that level). Regenerate from the installed library when the
+# comparison test below fails; it is the fallback when SeleniumLibrary cannot be imported.
+LOGLEVEL_SIG_FALLBACK = {
+    'assert_page_contains': ('locator', 'tag', 'message', 'loglevel'),
+    'assert_page_not_contains': ('locator', 'tag', 'message', 'loglevel'),
+    'current_frame_should_contain': ('text', 'loglevel'),
+    'current_frame_should_not_contain': ('text', 'loglevel'),
+    'frame_should_contain': ('locator', 'text', 'loglevel'),
+    'get_table_cell': ('locator', 'row', 'column', 'loglevel'),
+    'log_source': ('loglevel',),
+    'page_should_contain': ('text', 'loglevel'),
+    'page_should_contain_button': ('locator', 'message', 'loglevel'),
+    'page_should_contain_checkbox': ('locator', 'message', 'loglevel'),
+    'page_should_contain_element': ('locator', 'message', 'loglevel', 'limit'),
+    'page_should_contain_image': ('locator', 'message', 'loglevel'),
+    'page_should_contain_link': ('locator', 'message', 'loglevel'),
+    'page_should_contain_list': ('locator', 'message', 'loglevel'),
+    'page_should_contain_radio_button': ('locator', 'message', 'loglevel'),
+    'page_should_contain_textfield': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain': ('text', 'loglevel'),
+    'page_should_not_contain_button': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_checkbox': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_element': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_image': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_link': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_list': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_radio_button': ('locator', 'message', 'loglevel'),
+    'page_should_not_contain_textfield': ('locator', 'message', 'loglevel'),
+    'table_cell_should_contain': ('locator', 'row', 'column', 'expected', 'loglevel'),
+    'table_column_should_contain': ('locator', 'column', 'expected', 'loglevel'),
+    'table_footer_should_contain': ('locator', 'expected', 'loglevel'),
+    'table_header_should_contain': ('locator', 'expected', 'loglevel'),
+    'table_row_should_contain': ('locator', 'row', 'expected', 'loglevel'),
+    'table_should_contain': ('locator', 'expected', 'loglevel'),
+}
+
+
+def selib_loglevel_signatures():
+    """``{function: parameter names}`` for every public function with a ``loglevel`` parameter, or None."""
+    try:
+        import importlib
+        import inspect
+        import pkgutil
+
+        import SeleniumLibrary.keywords as keywords
+    except ImportError:
+        return None
+    found = {}
+    for info in pkgutil.iter_modules(keywords.__path__):
+        module = importlib.import_module(f"SeleniumLibrary.keywords.{info.name}")
+        for _, cls in inspect.getmembers(module, inspect.isclass):
+            if cls.__module__ != module.__name__:
+                continue
+            for name, function in inspect.getmembers(cls, inspect.isfunction):
+                params = tuple(inspect.signature(function).parameters)[1:]
+                if not name.startswith("_") and "loglevel" in params:
+                    found[name] = params
+    return found or None
+
+
 class RobotTreeSweepTest(unittest.TestCase):
     """Static guard: nothing in robot/ or tasks/ may read, log or navigate to a URL unguarded.
 
@@ -600,18 +661,18 @@ class RobotTreeSweepTest(unittest.TestCase):
     LOGLEVEL = re.compile(
         r"(?:(?:\s{2,}|\t)loglevel=(?!=)|[(,]\s*loglevel\s*=(?!=)|[\"']loglevel[\"']\s*:)"
         r"\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
-    # Positional form: 1-based position of ``loglevel`` in each keyword's installed signature.
-    LOGLEVEL_POS = {
-        "page_should_contain": 2, "page_should_not_contain": 2, "current_frame_should_contain": 2,
-        "current_frame_should_not_contain": 2, "frame_should_contain": 3, "table_cell_should_contain": 5,
-        "table_column_should_contain": 4, "table_footer_should_contain": 4, "table_header_should_contain": 4,
-        "table_row_should_contain": 4, "table_should_contain": 3, "assert_page_contains": 4,
-        "assert_page_not_contains": 4,
-        **{f"page_should_{neg}contain_{kind}": 3 for neg in ("", "not_")
-           for kind in ("element", "checkbox", "radio_button", "textfield", "button", "link", "image", "list")},
-    }
+    # Positional form: the slot of ``loglevel`` in each function's installed signature.
+    LOGLEVEL_SIG = selib_loglevel_signatures() or LOGLEVEL_SIG_FALLBACK
     LOGLEVEL_OK = {"TRACE", "NONE"}
-    ROBOT_NAMED = re.compile(r"(?:loglevel|message|text|locator|expected|row|column|index)=", re.IGNORECASE)
+    ARG_STOP = {"ELSE", "ELSE IF", "AND"}
+
+    def slot_of(self, name):
+        """(function, slot) for a Robot or Python keyword name, ignoring case, spaces, underscores and a library prefix."""
+        wanted = re.sub(r"[ _]", "", re.sub(r"^\S+?\.", "", name.strip())).lower()
+        for function, params in self.LOGLEVEL_SIG.items():
+            if function.replace("_", "") == wanted:
+                return function, params.index("loglevel") + 1
+        return None, None
 
     def robot_positional_levels(self, text):
         """Offending positional levels in Robot text (``...`` continuation lines are joined)."""
@@ -621,40 +682,63 @@ class RobotTreeSweepTest(unittest.TestCase):
                 logical[-1][1] += "    " + line.strip()[3:].strip()
             else:
                 logical.append([number, line])
-        squashed = {k.replace("_", ""): v for k, v in self.LOGLEVEL_POS.items()}
         found = []
         for number, line in logical:
             if self.DOC_LINE.match(line):
                 continue
             tokens = re.split(r"\s{2,}|\t", line.strip())
             for index, token in enumerate(tokens):
-                position = squashed.get(re.sub(r"[ _]", "", token).lower())
-                if position is None:
+                function, slot = self.slot_of(token)
+                if function is None:
                     continue
-                args = [t for t in tokens[index + 1:] if not self.ROBOT_NAMED.match(t)]
-                if len(args) >= position and args[position - 1].upper() not in self.LOGLEVEL_OK:
+                params = self.LOGLEVEL_SIG[function]
+                args = []
+                for arg in tokens[index + 1:]:
+                    if arg in self.ARG_STOP or arg.startswith("#"):
+                        break
+                    named = re.match(r"(\w+)=", arg)
+                    if not (named and named.group(1) in params):
+                        args.append(arg)
+                if len(args) >= slot and args[slot - 1].upper() not in self.LOGLEVEL_OK:
                     found.append(number)
         return found
 
     def python_positional_levels(self, text):
-        """Line numbers of calls whose positional ``loglevel`` is not the constant TRACE or NONE."""
+        """Line numbers of calls that pass ``loglevel`` as anything but the constant TRACE or NONE.
+
+        Covers the ``loglevel=`` keyword, the positional slot, and ``run_keyword*`` calls naming a
+        keyword by a string. Not seen: ``getattr(...)(...)``, ``*args`` and ``**kwargs``.
+        """
         try:
             tree = ast.parse(text)
         except SyntaxError:
             return []
-        found = []
+
+        def bad(node):
+            return not (isinstance(node, ast.Constant) and str(node.value).upper() in self.LOGLEVEL_OK)
+
+        found = set()
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
+            if any(k.arg == "loglevel" and bad(k.value) for k in node.keywords):
+                found.add(node.lineno)
             name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
-            position = self.LOGLEVEL_POS.get(name.lower())
-            if position is None or len(node.args) < position or any(
-                    isinstance(a, ast.Starred) for a in node.args[:position]):
+            args, start = node.args, 0
+            if name.lower().startswith("run_keyword"):
+                named = [i for i, a in enumerate(args) if isinstance(a, ast.Constant) and isinstance(a.value, str)
+                         and self.slot_of(a.value)[0]]
+                if not named:
+                    continue
+                start = named[0]
+                name = args[start].value
+                args = args[start + 1:]
+            function, slot = self.slot_of(name)
+            if function is None or len(args) < slot or any(isinstance(a, ast.Starred) for a in args[:slot]):
                 continue
-            arg = node.args[position - 1]
-            if not (isinstance(arg, ast.Constant) and str(arg.value).upper() in self.LOGLEVEL_OK):
-                found.append(node.lineno)
-        return found
+            if bad(args[slot - 1]):
+                found.add(node.lineno)
+        return sorted(found)
 
     ORG_OPEN = re.compile(r"org\s+open\b.*(?:--url-only|\s-r\b)|[\"']org[\"'],\s*[\"']open[\"']|\burl-only\b")
     # Python files: prose (docstrings) may name the command; only code that runs it counts.
@@ -727,6 +811,12 @@ class RobotTreeSweepTest(unittest.TestCase):
             "    Table Row Should Contain    t    1    x    INFO", "    Frame Should Contain    f    x    WARN",
             "    Current Frame Should Contain    x    DEBUG", "    Page_Should_Contain_Checkbox    c    m    HTML",
             "    Page Should Contain    x\n    ...    WARN", "    pageshouldcontain    x    WARN", "    Wait Until Keyword Succeeds    5x    1s    Page Should Contain    x    ERROR",
+            "    Table Footer Should Contain    t    x    WARN", "    Table Header Should Contain    t    x    INFO",
+            "    ${c}=    Get Table Cell    t    1    2    WARN", "    SeleniumLibrary.Page Should Contain    x    WARN",
+            "    Page Should Contain    x    WARN    # note", "    Page Should Contain    index=5    WARN",
+            "    Run Keyword If    ${ok}    Page Should Contain    x    WARN    ELSE    Log    done",
+            "    Run Keywords    Page Should Contain    x    WARN    AND    Log    y",
+            "    IF    ${ok}    Page Should Contain    x    WARN    ELSE    Log    y",
         ]
         for text in robot_bad:
             self.assertTrue(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
@@ -736,16 +826,36 @@ class RobotTreeSweepTest(unittest.TestCase):
             "    Table Cell Should Contain    t    1    1    WARN", "    Page Should Contain    x    loglevel=TRACE",
             "    Page Should Contain Element    id=x    msg    NONE", "    Log    WARN", "    Page Should Contain    x\n    ...    TRACE",
             "    [Documentation]    Page Should Contain    x    WARN",
+            "    Table Footer Should Contain    t    x", "    Table Footer Should Contain    t    x    TRACE",
+            "    ${c}=    Get Table Cell    t    1    2", "    ${c}=    Get Table Cell    t    1    2    NONE",
+            "    Page Should Contain Element    css:x    limit=2", "    Page Should Contain Element    css:x    msg    TRACE    limit=2",
+            "    Page Should Contain    x    # WARN", "    Run Keyword If    ${ok}    Page Should Contain    x    ELSE    Log    WARN",
+            "    Run Keywords    Page Should Contain    x    AND    Log    WARN",
+            "    SeleniumLibrary.Page Should Contain    x    TRACE",
         ]
         for text in robot_ok:
             self.assertFalse(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
         for code in ['s.page_should_contain("x", "WARN")', 's.page_should_not_contain("x", level)',
                      's.page_should_contain_element("css:x", "m", "INFO")', 's.table_cell_should_contain("t", 1, 1, "x", "WARN")',
-                     's.assert_page_contains("l", "button", None, "DEBUG")', 's.frame_should_contain("f", "x", "ERROR")']:
+                     's.assert_page_contains("l", "button", None, "DEBUG")', 's.frame_should_contain("f", "x", "ERROR")',
+                     's.table_footer_should_contain("t", "x", "WARN")', 's.table_header_should_contain("t", "x", "WARN")',
+                     's.get_table_cell("t", 1, 2, "WARN")', 's.page_should_contain(\n    "x",\n    loglevel = "WARN",\n)',
+                     's.page_should_contain("x", loglevel=level)', 'BuiltIn().run_keyword("Page Should Contain", "x", "WARN")',
+                     'b.run_keyword_if(ok, "Page Should Contain Element", "css:x", "m", "INFO")']:
             self.assertTrue(self.python_positional_levels(code), code)
         for code in ['s.page_should_contain("x")', 's.page_should_contain("x", "TRACE")', 's.page_should_contain("x", "none")',
-                     's.page_should_contain_element("css:x", "WARN")', 's.page_should_contain(*args)', 'log("x", "WARN")']:
+                     's.page_should_contain_element("css:x", "WARN")', 's.page_should_contain(*args)', 'log("x", "WARN")',
+                     's.table_footer_should_contain("t", "x")', 's.get_table_cell("t", 1, 2, "TRACE")',
+                     's.page_should_contain("x", loglevel="TRACE")', 'BuiltIn().run_keyword("Log", "x", "WARN")',
+                     'BuiltIn().run_keyword("Page Should Contain", "x")', 'f(a, b)', 'run(loglevel="NONE")']:
             self.assertFalse(self.python_positional_levels(code), code)
+
+    def test_loglevel_slots_match_the_installed_signatures(self):
+        real = selib_loglevel_signatures()
+        if real is None:
+            self.skipTest("SeleniumLibrary is not importable here; the fallback slot table is unchecked")
+        self.assertEqual(real, LOGLEVEL_SIG_FALLBACK,
+                         "regenerate LOGLEVEL_SIG_FALLBACK from the installed SeleniumLibrary signatures")
 
     def test_no_loglevel_other_than_trace_or_none_in_the_tree(self):
         files = self.files("robot", "tasks", include_guard=True)
