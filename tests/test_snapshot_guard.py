@@ -395,6 +395,7 @@ def main():
           renames("of Agentforce Sales, formerly Sales Cloud, with") == []
           and renames("Sales, formerly Salesforce") == [] and renames("Flow, formerly Flows") == []
           and renames("McDonald, formerly Donald") == []
+          and renames("Sales, formerly Sales-Cloud") == [] and renames("Sales, formerly Sales's") == []
           and renames("of Agentforce Sales, formerly Sales Cloud") == [])
     check("rename lint ignores a real rename",
           renames("Agentforce Revenue Management, formerly Revenue Cloud, with") == [])
@@ -474,12 +475,15 @@ def main():
     attempt("dev_guide: without the flag the option is the empty set",
             lambda: built(dg_argv, "dev_guide", DevGuideSnapshot, False) == frozenset())
     run_args = p.parse_args(["run", "--release", "264", "--accept-shrinkage", "x"])
-    attempt("run: --accept-shrinkage reaches every preset's snapshotter",
-            lambda: all(
-                (HelpSnapshot if kind == "help" else DevGuideSnapshot)(
-                    presets_mod.resolve(real, "264", kind, key, cli._pick(run_args, cli.RUN_FLAGS)),
-                    logger=_Log()).options["accept_shrinkage"] == frozenset({"x"})
-                for _, kind, key, _ in presets_mod.iter_presets(real, "264")))
+    def _every_preset_gets_flag():
+        seen = [
+            (HelpSnapshot if kind == "help" else DevGuideSnapshot)(
+                presets_mod.resolve(real, "264", kind, key, cli._pick(run_args, cli.RUN_FLAGS)),
+                logger=_Log()).options["accept_shrinkage"] == frozenset({"x"})
+            for _, kind, key, _ in presets_mod.iter_presets(real, "264")]
+        return bool(seen) and all(seen)
+    attempt("run: --accept-shrinkage reaches every preset's snapshotter (and there are presets)",
+            _every_preset_gets_flag)
 
     # L5: an id that no capture consumed is named in a warning; the exit code is unchanged.
     class QuietSnapshot:

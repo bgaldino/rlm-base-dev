@@ -43,11 +43,14 @@ GLUED_LINK_RE = re.compile(
 # became "Revenue Cloud, formerly Revenue Cloud". The snapshot tool rewrites no
 # text, so this is served that way upstream (inferred from the tool, which has
 # no brand substitution; not re-checked against the live page).
-# Word boundaries on both ends keep "Sales, formerly Salesforce" and "McDonald,
-# formerly Donald" out; the lookahead keeps "Agentforce Sales, formerly Sales
-# Cloud" (a longer old name that merely starts like the new one) out.
+# A word boundary before the name keeps "McDonald, formerly Donald" out; the
+# lookahead after it keeps "Sales, formerly Salesforce", "Sales, formerly
+# Sales-Cloud", "Sales, formerly Sales's" and "Agentforce Sales, formerly Sales
+# Cloud" (a longer old name that merely starts like the new one) out. It misses,
+# by design, a real artifact followed by a capitalised word, names of five or more
+# words, and non-ASCII names.
 SELF_RENAME_RE = re.compile(
-    r"\b((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1\b(?! [A-Z])"
+    r"\b((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1(?![\w'-]| [A-Z])"
 )
 ALL_CORPORA_GLOB = "docs/salesforce/{release}/*/articles/*.md"
 
