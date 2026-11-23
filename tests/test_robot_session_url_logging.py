@@ -414,7 +414,15 @@ class RedactionTest(unittest.TestCase):
             self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("x100D000000000000%21" + "A" * 24))
+        # No left anchor: any prefix (double-encoded, JS/JSON escapes, a word char) still matches.
+        for encoded in ["%253D00D000000000000%2521" + "A" * 24, "%2522%253A%252200D000000000000%2521" + "A" * 24,
+                        "\\x3d00D000000000000!" + "A" * 24, "x100D000000000000%21" + "A" * 24]:
+            self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
+            self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
+            self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D00000000000%21" + "A" * 24))  # id too short
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21" + "A" * 19))  # token too short
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000" + "A" * 24))  # no separator
         self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21short"))
         self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000!short"))
         self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D000000000000 is an org id"))
