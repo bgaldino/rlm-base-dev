@@ -1,7 +1,7 @@
 # Salesforce Transaction Management APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Transaction Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Transaction Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 Transaction Management covers the full quote-to-cash lifecycle: placing and managing sales transactions (quotes and orders), managing asset lifecycle events (amendments, cancellations, renewals, upgrades, downgrades, swaps), and creating and updating ramp deals. As of API v63.0, the **Place Sales Transaction** API (`/connect/rev/sales-transaction/actions/place`) supersedes the deprecated `/commerce/quotes/actions/place` and `/commerce/sales-orders/actions/place` paths. Grounded against the 264 (Winter '27) Developer Guide snapshot, the actual superseding resource lives under the `/connect/rev/sales-transaction/`, `/connect/revenue/transaction-management/`, and `/connect/revenue-management/` resource families — not under a `/commerce/sales-transactions/` path as a prior extraction of this document assumed. Path corrections below are cited per endpoint.
 
@@ -442,4 +442,4 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

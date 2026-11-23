@@ -19,7 +19,7 @@ description: >-
 
 Use the Salesforce Help portal snapshots at `docs/salesforce/{release}/help/` as the canonical source of truth for product claims about Revenue Cloud — Billing, Pricing, Quoting, Orders, Contracts, Assets, Usage, and the adjacent areas. Every Trailhead module, enablement exercise, internal doc, or SME review response that asserts something about how Revenue Cloud works should ground that assertion against an article in the snapshot before being written or accepted.
 
-For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Cloud Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
+For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Management Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
 
 **Which releases and areas are captured.** Run `python -m scripts.doc_snapshot list` to see every preset, and open the corpus's `index.md` for what has actually been captured. On the active release, a Help preset with a floor (`min N` in `list`) has been verified and captured; one without a floor hasn't been verified yet, so don't treat its text as current-release content. Pre-GA, Salesforce publishes Help one area at a time, and an area can keep serving the previous release's text after the new release's pages appear.
 
@@ -76,7 +76,7 @@ fetched_at: "2026-05-11"
 
 ## Developer Guide snapshot (atlas)
 
-The **Revenue Cloud Developer Guide** lives in a different documentation system from Help: the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. The snapshot tool's `dev-guide` subcommand captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
+The **Revenue Management Developer Guide** lives in a different documentation system from Help: the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. The snapshot tool's `dev-guide` subcommand captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
 
 | Path | Purpose |
 |---|---|
@@ -92,7 +92,7 @@ python -m scripts.doc_snapshot dev-guide --release {release} --guide rlm
 python -m scripts.doc_snapshot dev-guide --release {release} --guide rlm --section "Constraint Modeling Language"
 ```
 
-### Industries Common Resources dev guide (`dev-guide-industries`)
+### Industries Common Resources Developer Guide (`dev-guide-industries`)
 
 Revenue Cloud builds on shared **Industries platform services** that its own dev guide doesn't document: Business Rules Engine (expression sets, decision tables and matrices), Context Service, OmniStudio, Discovery Framework (guided selling), Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline. They're documented in a second atlas guide, `industries_reference`, which the `industries` preset captures into `docs/salesforce/{release}/dev-guide-industries/` (same layout).
 

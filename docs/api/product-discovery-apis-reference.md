@@ -1,7 +1,7 @@
 # Salesforce Product Discovery APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Discovery (CPQ) APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Discovery (CPQ) APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart to the PCM APIs. All operations use POST, allowing a buyer context (account, pricing model, entitlements) to be passed in the request body. This makes them the preferred choice for storefront and quoting flows where catalog content must reflect what a specific customer can see and buy. The 264 snapshot also includes a Product Recommendations endpoint (available from API v67.0 / Release 262) under a separate `/revenue/product-discovery/` base path (see below).
 
@@ -297,4 +297,4 @@ The Product Discovery APIs (`/connect/cpq/`) are the context-aware counterpart t
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

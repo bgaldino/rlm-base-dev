@@ -1,7 +1,7 @@
 # CLM Content and Migration
 
 Read current-release Help articles for authoring steps and the dedicated
-Contracts Developer Guide for CLM object/API details. For Release 264, start
+Salesforce Contracts guide for CLM object/API details. For Release 264, start
 with the [Clause Library overview](../../../docs/salesforce/264/help/articles/ind.sf_contracts_document_clause.htm.md),
 the [`clm_developer_guide` index](../../../docs/salesforce/264/dev-guide-contracts/index.md),
 and its [DocumentClause object](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_documentclause.htm.md)
@@ -9,7 +9,7 @@ and [DocumentTemplate object](../../../docs/salesforce/264/dev-guide-contracts/a
 pages.
 
 The Release 264 clause migration walkthrough and validation constraints are in
-the separate Revenue Lifecycle Management Developer Guide deliverable:
+the separate Revenue Management Developer Guide deliverable:
 [Clause Migration Considerations](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_migration.htm.md)
 and [Clause Validations and Migration Constraints](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_validation_migration_constraints.htm.md).
 Keep those corpora distinct. The 264 captures of these two pages no longer carry

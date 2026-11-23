@@ -5,7 +5,7 @@ description: >-
   in Revenue Cloud orgs and this Foundations repository. Use for contract types,
   lifecycle state models, clause libraries, document templates, Context Service,
   permissions, and CLM data migration. Read the release-matched Help and
-  Contracts Developer Guide snapshots before asserting product behavior.
+  Salesforce Contracts guide snapshots before asserting product behavior.
 ---
 
 # Salesforce Contracts — Setup and Content Workflows
@@ -96,7 +96,7 @@ in Salesforce orgs and the Revenue Cloud Foundations repository.
 Search `docs/salesforce/264/help/manifest.json` for clause topics, read the
 matching article under `help/articles/`, and compare it with the relevant page in
 `docs/salesforce/264/dev-guide-contracts/articles/`. Use the Help article for
-admin steps and the Contracts developer guide for schema, migration, or API
+admin steps and the Salesforce Contracts guide for schema, migration, or API
 details.
 
 ### Diagnose a missing clause or template

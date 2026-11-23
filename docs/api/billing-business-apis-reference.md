@@ -2,7 +2,7 @@
 ## Developer Guide v264 (API v68.0, Winter '27)
 
 **Source**: `/commerce/`, `/revenue/`, `/connect/` API resources
-**Documentation**: Revenue Lifecycle Management Developer Guide, Chapter 11: Billing
+**Documentation**: Revenue Management Developer Guide, Chapter 11: Billing
 
 ---
 
@@ -418,5 +418,5 @@ Sources: `connect_resources_refund_credit_memo.htm.md`, `connect_requests_refund
 
 ---
 
-*Grounded re-extraction from: Revenue Cloud Developer Guide v264 (Winter '27) snapshot at `docs/salesforce/264/dev-guide/articles/`, reconciled against the prior v260 (Spring '26) extraction*
+*Grounded re-extraction from: Revenue Management Developer Guide v264 (Winter '27) snapshot at `docs/salesforce/264/dev-guide/articles/`, reconciled against the prior v260 (Spring '26) extraction*
 *Last Updated: 2026-09-16*

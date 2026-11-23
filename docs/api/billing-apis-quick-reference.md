@@ -1,6 +1,6 @@
 # Revenue Cloud Billing Business APIs — Quick Reference
 
-**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 51 | **Source:** RLM Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
+**API Version:** v68.0 (Winter '27) | **Total Endpoints:** 51 | **Source:** Revenue Management Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
 
 **Provenance split**: 45 of the 51 endpoints below are grounded in the 264 (v68.0) RLM dev-guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
 
@@ -129,4 +129,4 @@ OAuth 2.0 Bearer Token over HTTPS/REST. Content-Type: `application/json`. Minimu
 
 ---
 
-*Grounded re-extraction September 16, 2026 from the RLM Developer Guide v264 (Winter '27) dev-guide snapshot at `docs/salesforce/264/dev-guide/articles/`, reconciled against the prior v260 (Spring '26) extraction*
+*Grounded re-extraction September 16, 2026 from the Revenue Management Developer Guide v264 (Winter '27) dev-guide snapshot at `docs/salesforce/264/dev-guide/articles/`, reconciled against the prior v260 (Spring '26) extraction*

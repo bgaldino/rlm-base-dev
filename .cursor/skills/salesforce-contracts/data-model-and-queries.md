@@ -106,7 +106,7 @@ dataset was not evidence that an org lacked the objects. The `qb-clm` SFDMU
 plan supplies additional field and relationship evidence for the state-model
 seed, but it is repository configuration rather than a full org schema contract.
 
-The separate 264 Contracts Developer Guide does document these CLM objects and
+The separate 264 Salesforce Contracts guide does document these CLM objects and
 their API fields. Use its object pages as release-specific candidates when
 choosing what to describe:
 

@@ -1,7 +1,7 @@
 # Salesforce Pricing Business APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Pricing Business APIs, extracted from the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Pricing Business APIs, extracted from the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 ---
 
@@ -432,7 +432,7 @@ This document provides a comprehensive reference of all REST API endpoints for t
 ---
 
 ## Document Info
-- **Source:** Revenue Cloud Developer Guide v264 (Winter '27, API v68.0)
+- **Source:** Revenue Management Developer Guide v264 (Winter '27, API v68.0)
 - **Section:** Salesforce Pricing Business APIs (pages 441-528)
 - **Total Endpoints:** 21 unique endpoints (with some supporting multiple HTTP methods)
 - **Base URL:** `https://yourInstance.salesforce.com/services/data/v68.0`
