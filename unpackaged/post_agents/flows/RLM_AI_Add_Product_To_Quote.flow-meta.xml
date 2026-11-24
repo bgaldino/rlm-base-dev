@@ -109,7 +109,7 @@
             <assignToReference>errorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>$Flow.FaultMessage</elementReference>
+                <stringValue>The product may not have been added to the quote because of an unexpected error. Check the quote before trying again.</stringValue>
             </value>
         </assignmentItems>
     </assignments>

@@ -167,7 +167,216 @@ private class RLM_AI_AddProductToQuoteServiceTest {
                 new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
 
         System.assertEquals(false, results[0].isSuccess);
-        System.assertEquals('Managed add-line said no.', results[0].errorMessage);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE, results[0].errorMessage,
+            'The action\'s own text is not shown.');
+    }
+
+    // The add-line action's errorMessage cannot be told apart by source (measured on a 264 org:
+    // validation rule text, addError text, trigger faults, DML errors and unresolved label keys all
+    // arrive the same way), so every refusal gets the fixed sentence. Measured shapes are used
+    // verbatim, plus the phrasings a review found leaking through a pattern filter.
+    @isTest
+    static void everyRefusalGetsTheFixedSentence() {
+        for (String actionMessage : new List<String>{
+            'Quantity must be at least 5 for this product.',
+            'Add this product only to quotes in USD.',
+            'Required fields are missing: [StartDate]',
+            'Required fields are missing: [PricebookEntryId]',
+            'insufficient access rights on cross-reference id: 01t000000000001',
+            'invalid cross reference id',
+            'Attempt to de-reference a null object',
+            'SomeTrigger: execution of BeforeInsert\n\ncaused by: '
+                + 'System.ListException: List index out of bounds: 3\n\nTrigger.SomeTrigger: line 3, column 1',
+            'FIELD_INTEGRITY_EXCEPTION: bad value',
+            'Apex CPU time limit exceeded',
+            '__MISSING LABEL__ PropertyFile - val SomeKey not found in section SomeSection',
+            '  ',
+            null
+        }) {
+            System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+                RLM_AI_AddProductToQuoteService.refusalMessage(actionMessage), 'Shown for: ' + actionMessage);
+        }
+    }
+
+    // The action's outputs are read without a cast that could throw after the line is committed.
+    @isTest
+    static void readingTheActionOutputsCannotThrow() {
+        RLM_AI_AddProductToQuoteService.ManagedResult ok = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => true, 'errorMessage' => 42 });
+        System.assertEquals(true, ok.isSuccess, 'A non-text errorMessage does not flip a success.');
+        System.assertEquals(false, ok.actionFailed);
+        System.assertEquals('42', ok.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult refused = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => false, 'errorMessage' => 'no' });
+        System.assertEquals(false, refused.isSuccess);
+        System.assertEquals(false, refused.actionFailed);
+        System.assertEquals('no', refused.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult textFlag = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => 'true' });
+        System.assertEquals(false, textFlag.isSuccess, 'Only a Boolean true counts as success.');
+        System.assertEquals(true, textFlag.actionFailed, 'A text flag is no outcome of the action.');
+        System.assertEquals(null, textFlag.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult none = RLM_AI_AddProductToQuoteService.resultFrom(null);
+        System.assertEquals(false, none.isSuccess);
+        System.assertEquals(true, none.actionFailed, 'No outputs: the action reported no outcome.');
+    }
+
+    private class ThrowingLineLookup implements RLM_AI_AddProductToQuoteService.NewLineLookup {
+        public String findNewLineId(Id quoteId, Id productId) {
+            throw new QueryException('lookup refused');
+        }
+    }
+
+    private class FixedLineLookup implements RLM_AI_AddProductToQuoteService.NewLineLookup {
+        public Id lastQuoteId;
+        public Id lastProductId;
+        public String findNewLineId(Id quoteId, Id productId) {
+            lastQuoteId = quoteId;
+            lastProductId = productId;
+            return 'line-id-from-lookup';
+        }
+    }
+
+    @isTest
+    static void theNewLineIdComesFromTheLookup() {
+        Fixture f = buildFixture('Quinn Found Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new FakeInvoker(true, null);
+        FixedLineLookup lookup = new FixedLineLookup();
+        RLM_AI_AddProductToQuoteService.lineLookup = lookup;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Found Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals('line-id-from-lookup', results[0].quoteLineItemId);
+        System.assertEquals(f.quoteId, lookup.lastQuoteId);
+        System.assertEquals(f.productId, lookup.lastProductId);
+    }
+
+    // Once the add-line action reports success the line exists, so a failure finding it afterwards
+    // must not report the add as failed (a retry would add it twice): success, with no line id.
+    @isTest
+    static void aFailedLineLookupAfterTheAddStaysASuccess() {
+        Fixture f = buildFixture('Quinn Lookup Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+        RLM_AI_AddProductToQuoteService.lineLookup = new ThrowingLineLookup();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Lookup Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals(1, fake.callCount);
+        System.assertEquals(null, results[0].quoteLineItemId, 'The id is left blank, not guessed.');
+        System.assertEquals(null, results[0].errorMessage);
+        System.assert(results[0].lineSummaryDisplay.contains('Quinn Lookup Product'));
+    }
+
+    // An invocation that fails without the action reporting an outcome may still have added a line,
+    // so the user is told to check the quote, not to try again.
+    @isTest
+    static void aFailedInvocationShowsTheUncertainSentence() {
+        Fixture f = buildFixture('Quinn No Outcome Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NoOutcomeInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn No Outcome Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage);
+    }
+
+    // Nothing was sent to the action (it could not be created): the sentence that nothing was
+    // added, which invites a retry.
+    @isTest
+    static void anActionThatWasNotSentShowsTheUnexpectedErrorSentence() {
+        Fixture f = buildFixture('Quinn Unsent Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NotSentInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Unsent Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE, results[0].errorMessage);
+    }
+
+    private class NotSentInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            RLM_AI_AddProductToQuoteService.ManagedResult r =
+                new RLM_AI_AddProductToQuoteService.ManagedResult(false, null);
+            r.notSent = true;
+            return r;
+        }
+    }
+
+    private class NoOutcomeInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            RLM_AI_AddProductToQuoteService.ManagedResult r =
+                new RLM_AI_AddProductToQuoteService.ManagedResult(false, null);
+            r.actionFailed = true;
+            return r;
+        }
+    }
+
+    private class ThrowingInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            throw new IllegalArgumentException('internal detail the user must not see');
+        }
+    }
+
+    @isTest
+    static void aThrowingInvocationShowsTheUncertainSentence() {
+        Fixture f = buildFixture('Quinn Throwing Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new ThrowingInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Throwing Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage,
+            'A throw from the invocation leaves the outcome unknown, so the user is told to check the quote.');
     }
 
     @isTest
@@ -197,7 +406,294 @@ private class RLM_AI_AddProductToQuoteServiceTest {
                 new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
 
         System.assertEquals(false, results[0].isSuccess);
-        System.assert(results[0].errorMessage.contains('Invalid quote Id'));
+        System.assertEquals(RLM_AI_AddProductToQuoteService.INVALID_QUOTE_MESSAGE, results[0].errorMessage,
+            'A fixed sentence that does not repeat the input.');
+    }
+
+    // A 15-character quote Id is accepted and passed on as the quote's Id.
+    @isTest
+    static void acceptsAFifteenCharacterQuoteId() {
+        Fixture f = buildFixture('Quinn Short Id Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId).left(15);
+        input.productName = 'Quinn Short Id Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals(f.quoteId, fake.lastQuoteId);
+    }
+
+    // An Id of another object (here the product's) is refused before any add is attempted.
+    @isTest
+    static void rejectsAnIdThatIsNotAQuote() {
+        Fixture f = buildFixture('Quinn Not A Quote Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.productId);
+        input.productName = 'Quinn Not A Quote Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.INVALID_QUOTE_MESSAGE, results[0].errorMessage);
+        System.assertEquals(0, fake.callCount, 'No add for an Id that is not a quote.');
+    }
+
+    // Outputs without the success flag report no outcome of the action, so whether a line was
+    // added is unknown and the user gets the uncertain sentence, not a refusal.
+    @isTest
+    static void actionOutputsWithoutTheFlagReportNoOutcome() {
+        RLM_AI_AddProductToQuoteService.ManagedResult empty =
+            RLM_AI_AddProductToQuoteService.resultFrom(new Map<String, Object>());
+        System.assertEquals(false, empty.isSuccess);
+        System.assertEquals(true, empty.actionFailed);
+        System.assertEquals(null, empty.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult errorOnly = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'errorMessage' => 'no' });
+        System.assertEquals(true, errorOnly.actionFailed, 'An error message without the flag is no outcome.');
+    }
+
+    // The action ran and returned outputs without the success flag: the uncertain sentence.
+    @isTest
+    static void outputsWithoutTheFlagShowTheUncertainSentence() {
+        Fixture f = buildFixture('Quinn Flagless Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new FlaglessInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Flagless Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage);
+    }
+
+    // An invoker result with no success value and no flag set is no outcome either: the uncertain
+    // sentence, not a refusal.
+    @isTest
+    static void aResultWithNoSuccessValueShowsTheUncertainSentence() {
+        Fixture f = buildFixture('Quinn Null Flag Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NullSuccessInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Null Flag Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage);
+    }
+
+    private class NullSuccessInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            return new RLM_AI_AddProductToQuoteService.ManagedResult(null, 'no flag');
+        }
+    }
+
+    private class FlaglessInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            return RLM_AI_AddProductToQuoteService.resultFrom(new Map<String, Object>());
+        }
+    }
+
+    private class NullInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            return null;
+        }
+    }
+
+    // An invoker that returns nothing gives no outcome, so the add may have happened.
+    @isTest
+    static void aMissingResultShowsTheUncertainSentence() {
+        Fixture f = buildFixture('Quinn Null Result Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NullInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Null Result Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage);
+    }
+
+    // The value the product-Id tests use for "an Id of no known object" really parses as an Id and
+    // really makes getSObjectType() throw, so those tests reach the catch in isProductId.
+    @isTest
+    static void theUnknownPrefixValueParsesButHasNoType() {
+        Id parsed = RLM_AI_ConfigServiceUtils.toIdOrNull('zzz000000000000');
+        System.assertNotEquals(null, parsed, 'The value parses as an Id.');
+        Boolean threw = false;
+        try {
+            parsed.getSObjectType();
+        } catch (Exception e) {
+            threw = true;
+        }
+        System.assert(threw, 'getSObjectType() throws for an unknown key prefix.');
+    }
+
+    // The agent's instructions decide whether to retry from these sentences, and the Flow's fault
+    // path returns its own copy of the uncertain one (tests/test_add_product_sentences.py checks
+    // the Flow and the agent against the class), so the exact text is pinned here.
+    @isTest
+    static void theFailureSentencesAreFixed() {
+        System.assertEquals(
+            'The product may not have been added to the quote because of an unexpected error. Check the quote before trying again.',
+            RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE);
+        System.assertEquals(
+            'Products cannot be added to quotes here yet. Ask your administrator to set up quoting for the assistant.',
+            RLM_AI_AddProductToQuoteService.ACTION_UNAVAILABLE_MESSAGE);
+        System.assertEquals(
+            'The product was not added to the quote because of an unexpected error. Try again, or contact your administrator.',
+            RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE);
+        System.assertEquals(
+            'The product was not added to the quote. Ask your administrator to check the quote and the product.',
+            RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE);
+    }
+
+    // The real invoker against an action the org does not have: invoke() returns a MISSING_RECORD
+    // error and nothing runs, so the user gets the terminal sentence, not the "may not have been
+    // added" one that invites checking and trying again.
+    @isTest
+    static void aMissingAddLineActionShowsTheUnavailableSentence() {
+        Fixture f = buildFixture('Quinn Missing Action Product', true, false);
+        RLM_AI_AddProductToQuoteService.addLineActionName = 'quotingAI__noSuchAddLineAction';
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Missing Action Product';
+
+        Test.startTest();
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        Test.stopTest();
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ACTION_UNAVAILABLE_MESSAGE, results[0].errorMessage);
+        System.assertEquals(0, [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :f.quoteId]);
+    }
+
+    // A product Id that finds no product, with no product name, gets a fixed sentence and nothing is
+    // added: a value that is not an Id, a value that parses as an Id of no known object, another
+    // record's Id, and a deleted product's Id.
+    @isTest
+    static void aProductIdThatFindsNoProductWithoutANameGetsAFixedSentence() {
+        Fixture f = buildFixture('Quinn Bad Id Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        Product2 gone = new Product2(Name = 'Quinn Deleted Product', IsActive = true);
+        insert gone;
+        Id goneId = gone.Id;
+        delete gone;
+
+        // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
+        for (String productId : new List<String>{ 'not-an-id', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId) }) {
+            RLM_AI_AddProductToQuoteService.AddInput input =
+                new RLM_AI_AddProductToQuoteService.AddInput();
+            input.quoteId = String.valueOf(f.quoteId);
+            input.productId = productId;
+
+            List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+                RLM_AI_AddProductToQuoteService.addProduct(
+                    new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+            System.assertEquals(false, results[0].isSuccess, productId);
+            System.assertEquals(RLM_AI_AddProductToQuoteService.PRODUCT_NOT_IDENTIFIED_MESSAGE, results[0].errorMessage, productId);
+        }
+        System.assertEquals(0, fake.callCount, 'Nothing is added.');
+    }
+
+    // The planner can leave a name, a value that parses as an Id of no known object, another
+    // record's Id or a deleted product's Id in the Id slot; a product name given with it still
+    // identifies the product.
+    @isTest
+    static void aProductIdThatFindsNoProductFallsBackToTheGivenName() {
+        Fixture f = buildFixture('Quinn Fallback Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        Product2 gone = new Product2(Name = 'Quinn Removed Product', IsActive = true);
+        insert gone;
+        Id goneId = gone.Id;
+        delete gone;
+
+        // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
+        List<String> staleIds = new List<String>{
+            'Quinn Fallback Product', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId)
+        };
+        for (String productId : staleIds) {
+            RLM_AI_AddProductToQuoteService.AddInput input =
+                new RLM_AI_AddProductToQuoteService.AddInput();
+            input.quoteId = String.valueOf(f.quoteId);
+            input.productId = productId;
+            input.productName = 'Quinn Fallback Product';
+
+            List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+                RLM_AI_AddProductToQuoteService.addProduct(
+                    new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+            System.assertEquals(true, results[0].isSuccess, productId + ': not added: ' + results[0].errorMessage);
+            System.assertEquals(f.productId, fake.lastProductId, productId);
+        }
+        System.assertEquals(staleIds.size(), fake.callCount);
+    }
+
+    @isTest
+    static void aValidProductIdTakesPrecedenceOverTheName() {
+        Fixture f = buildFixture('Quinn Precedence Product', true, false);
+        insertProduct('Quinn Other Named Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productId = String.valueOf(f.productId);
+        input.productName = 'Quinn Other Named Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'Not added: ' + results[0].errorMessage);
+        System.assertEquals(f.productId, fake.lastProductId, 'The Id, not the name, picks the product.');
     }
 
     @isTest

@@ -315,6 +315,12 @@ The Quote Proposal generation flow (`unpackaged/post_docgen/flows/RLM_Quote_Doc_
 7. **Merge** — calls `RLM_DocumentGenerationMerge` to merge generated PDF with attachments
 8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) injects a global `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer` to force `height: 500px` (see [Preview Height Fix](#preview-height-fix))
 
+### Errors in the flow
+
+The three docgen Apex invocables run as the signed-in user (`with sharing`, `WITH USER_MODE`, `insert as user`), so a missing permission or an unreadable file surfaces as an exception. Every exception they throw carries a fixed sentence with no class names, request indexes or field API names. That includes a query or insert the platform refuses (a missing permission, a validation rule): the platform's own message goes to the debug log only. `RLM_ReturnPDFDocument` throws `IllegalArgumentException` when the request list is empty or holds a null request, and `PdfNotFoundException` when `ResponseText` is blank or holds no valid id, and when it holds ids but none is a PDF the user can read.
+
+These elements have a fault connector to the `Document_Generation_Error` screen: the three Apex actions (`Create_PDF_File`, `Get_the_PDF_Document_Id`, `Merge_PDF_Documents`), the one ContentVersion lookup (`Get_Multi_Doc_Content_Id`) and the two DocumentGenerationProcess lookups (`Get_New_PDF_Content_Version_ID`, `Get_New_Merge_PDF_Content_Version_ID`). `Delete_Proposal_Doc` is housekeeping after the merged document exists, so its fault goes on to `View_Multi_Documents` instead. The `Get_Product_Attachments` subflow, the template choice set and the screens have no fault route. The two status checks (`Status_Check_Single` and `Merge_Doc_Status`) route their "Not Successful" outcome to the error screen too. The screen shows a fixed sentence from the formula `forT_ErrorDetail`: "The document generation process ended with status <status>." after a status check, or "A step in the document generation could not be completed." after a fault. It never shows `$Flow.FaultMessage`, which can name objects, fields and Apex classes; run the flow in debug to see it.
+
 ### Preview Height Fix
 
 `mulesoft_idp:configEditorPreviewPlayer` uses `height: 100%` internally but collapses to ~150px because its host element has no explicit height set by the flow screen container.

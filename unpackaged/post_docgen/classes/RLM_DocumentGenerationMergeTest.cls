@@ -10,16 +10,21 @@ private class RLM_DocumentGenerationMergeTest {
     @IsTest
     static void mergeCreatesOneMergeProcessPerRequest() {
         Quote quote = createQuote();
-        ContentVersion first = newPdf('Proposal.pdf');
-        ContentVersion second = newPdf('Terms.pdf');
-        insert new List<ContentVersion>{ first, second };
+        ContentVersion pdfA = newPdf('Proposal.pdf');
+        ContentVersion pdfB = newPdf('Terms.pdf');
+        insert new List<ContentVersion>{ pdfA, pdfB };
+        // A bulk insert gives no guarantee about which Id sorts first, so pick the order from the
+        // Ids themselves: the given order is the descending one, which a sorted list would reverse.
+        Boolean aSortsFirst = String.valueOf(pdfA.Id) < String.valueOf(pdfB.Id);
+        ContentVersion first = aSortsFirst ? pdfA : pdfB;
+        ContentVersion second = aSortsFirst ? pdfB : pdfA;
         Assert.isTrue(String.valueOf(first.Id) < String.valueOf(second.Id),
             'PRECONDITION: second sorts after first, so a sorted list would differ.');
 
         RLM_DocumentGenerationMerge.Request withNulls = new RLM_DocumentGenerationMerge.Request();
         withNulls.CurrentRecordId = quote.Id;
-        // Passed against Id order (second was inserted after first), so the
-        // expected list below proves the given order is kept, not sorted.
+        // Passed against Id order (second sorts after first), so the expected list
+        // below proves the given order is kept, not sorted.
         withNulls.recordIds = new List<Id>{ second.Id, null, first.Id };
         withNulls.DocTitle = 'Merged "proposal"\nfinal';
 
@@ -64,11 +69,47 @@ private class RLM_DocumentGenerationMergeTest {
         Assert.isNull(plainText.get('title'), 'An omitted title serializes as null.');
     }
 
+    // A Minimum Access user holding the Sales Representative set and the docgen runtime grant (see
+    // RLM_DocGenTestUsers) creates the merge process for a quote on their own opportunity. The
+    // runtime set overlaps some grants, so this shows the pair is enough; RLM_DocGenTestUsers checks
+    // that the Sales Representative set carries each grant itself.
+    @IsTest
+    static void mergeRunsForASalesRepresentative() {
+        // Needs RLM_QuantumBit_Sales_Representative, which only prepare_personas deploys.
+        if (!RLM_DocGenTestUsers.personaDeployed()) {
+            return;
+        }
+        User rep = RLM_DocGenTestUsers.salesRepresentative();
+        Quote quote = createQuote(rep.Id);
+
+        List<RLM_DocumentGenerationMerge.Response> responses;
+        ContentVersion pdf;
+        Test.startTest();
+        System.runAs(rep) {
+            pdf = newPdf('RepProposal.pdf');
+            insert pdf;
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ pdf.Id };
+            request.DocTitle = 'Rep merge';
+            responses = RLM_DocumentGenerationMerge.MergeDocuments(
+                new List<RLM_DocumentGenerationMerge.Request>{ request });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, responses.size(), 'One response for the one request.');
+        DocumentGenerationProcess process = [
+            SELECT PdfDocIdentifiersList, CreatedById FROM DocumentGenerationProcess WHERE Id = :responses[0].MergedRecordId
+        ];
+        Assert.areEqual(String.valueOf(pdf.Id), process.PdfDocIdentifiersList, 'The PDF id is recorded.');
+        Assert.areEqual(rep.Id, process.CreatedById, 'The process was created as the sales representative.');
+    }
+
     @IsTest
     static void mergeRejectsMissingRequests() {
-        assertRejected(null, 'at least one request is required');
+        assertRejected(null, RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>(),
-            'at least one request is required');
+            RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
     }
 
     // A request with no usable PDF ids is rejected before anything is inserted.
@@ -86,9 +127,9 @@ private class RLM_DocumentGenerationMergeTest {
 
         Test.startTest();
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ nullList },
-            'recordIds must contain at least one non-null Id');
+            RLM_DocumentGenerationMerge.NO_PDFS_MESSAGE);
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ onlyNulls },
-            'recordIds must contain at least one non-null Id');
+            RLM_DocumentGenerationMerge.NO_PDFS_MESSAGE);
         Test.stopTest();
 
         String referenceObject = String.valueOf(quote.Id);
@@ -96,6 +137,37 @@ private class RLM_DocumentGenerationMergeTest {
             [SELECT COUNT() FROM DocumentGenerationProcess
              WHERE Type = 'MergePDF' AND ReferenceObject = :referenceObject],
             'A rejected request must not create a merge process.');
+    }
+
+    // A null request in the list is rejected by name, not with a NullPointerException.
+    @IsTest
+    static void mergeRejectsANullRequest() {
+        assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ null }, RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
+    }
+
+    // The whole batch is one DML statement, however many requests it carries.
+    @IsTest
+    static void mergeUsesOneDmlStatementForTheWholeBatch() {
+        Quote quote = createQuote();
+        ContentVersion pdf = newPdf('Batch.pdf');
+        insert pdf;
+        List<RLM_DocumentGenerationMerge.Request> requests = new List<RLM_DocumentGenerationMerge.Request>();
+        for (Integer i = 0; i < 5; i++) {
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ pdf.Id };
+            requests.add(request);
+        }
+
+        Test.startTest();
+        // Limits reset on entry to the block and are restored on exit, so read them inside it.
+        Integer before = Limits.getDmlStatements();
+        List<RLM_DocumentGenerationMerge.Response> responses = RLM_DocumentGenerationMerge.MergeDocuments(requests);
+        Integer used = Limits.getDmlStatements() - before;
+        Test.stopTest();
+
+        Assert.areEqual(5, responses.size(), 'One response per request.');
+        Assert.areEqual(1, used, 'One insert for all five requests.');
     }
 
     private static ContentVersion newPdf(String pathOnClient) {
@@ -106,14 +178,46 @@ private class RLM_DocumentGenerationMergeTest {
         );
     }
 
+    // A user who cannot create the process gets the fixed sentence, not the platform's refusal
+    // (which names the object and fields the insert was refused on).
+    @IsTest
+    static void aRefusedInsertShowsAFixedSentence() {
+        User nobody = RLM_DocGenTestUsers.withNoGrants();
+        Quote quote = createQuote();
+
+        Test.startTest();
+        System.runAs(nobody) {
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ Id.valueOf('068000000000001AAA') };
+            try {
+                RLM_DocumentGenerationMerge.MergeDocuments(new List<RLM_DocumentGenerationMerge.Request>{ request });
+                Assert.fail('Expected the insert to be refused for a user with no docgen grants.');
+            } catch (Exception caught) {
+                Assert.isInstanceOfType(caught, RLM_DocumentGenerationMerge.DocumentMergeException.class,
+                    'The insert itself was refused: ' + caught.getTypeName());
+                Assert.areEqual(RLM_DocumentGenerationMerge.MERGE_FAILED_MESSAGE, caught.getMessage(),
+                    'The fixed sentence, not the platform message.');
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(0, [SELECT COUNT() FROM DocumentGenerationProcess], 'Nothing was created.');
+    }
+
     private static Quote createQuote() {
+        return createQuote(UserInfo.getUserId());
+    }
+
+    // The quote's access follows its opportunity, so a runAs test passes the user who owns the deal.
+    private static Quote createQuote(Id ownerId) {
         Account account = new Account(Name = 'DocGen Merge Test Account');
         insert account;
         Opportunity opportunity = new Opportunity(
             Name = 'DocGen Merge Test Opportunity',
             AccountId = account.Id,
             StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30)
+            CloseDate = Date.today().addDays(30),
+            OwnerId = ownerId
         );
         insert opportunity;
         Quote quote = new Quote(
@@ -132,7 +236,7 @@ private class RLM_DocumentGenerationMergeTest {
             RLM_DocumentGenerationMerge.MergeDocuments(requests);
             Assert.fail('Expected IllegalArgumentException.');
         } catch (IllegalArgumentException caught) {
-            Assert.isTrue(caught.getMessage().contains(expectedMessage), caught.getMessage());
+            Assert.areEqual(expectedMessage, caught.getMessage(), 'The exact user-facing sentence');
         }
     }
 }
