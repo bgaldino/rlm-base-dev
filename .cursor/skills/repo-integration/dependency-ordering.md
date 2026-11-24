@@ -63,7 +63,7 @@ paths are forceignored.
 ## Deletion Order
 
 Reverse dependency order (children before parents):
-1. Delete rates data (FK to PURs)
+1. Delete rates data (the usual order; `delete_qb_rating_data` does not need it first)
 2. Delete rating data (PUG → PURP → PUR)
 3. Delete billing data
 4. Delete pricing data

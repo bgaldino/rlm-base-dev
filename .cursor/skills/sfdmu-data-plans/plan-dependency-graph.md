@@ -66,10 +66,10 @@ qb-price-revision (2 objects, no lookups — independent)
 
 Deletions must run in reverse dependency order. SFDMU's `deleteOldData: true` handles per-object deletion in reverse array order within a plan, but cross-plan deletions must be sequenced manually.
 
-**Order kept, reason unverified**: run `delete_qb_rates_data` BEFORE `delete_qb_rating_data`. No foreign key explains this order: in the 264 schema no rate object has a ProductUsageResource lookup, and RateCardEntry and RateAdjustmentByTier look up UsageResource, which `deleteQbRatingData.apex` leaves in place. Keep the order until a reason is established. Neither runs in a flow any more: the qb pricing, rates and rating plans reload in place (todo 298), so these deletes are for a manual full teardown only.
+`delete_qb_rating_data` does not need `delete_qb_rates_data` first. Measured live on a 264 org (2026-11-24): `delete_qb_rating_data` succeeds with qb-rates data present and leaves every rate record in place. No foreign key forces this order: in the 264 schema no rate object has a ProductUsageResource lookup, and RateCardEntry and RateAdjustmentByTier look up UsageResource, which `deleteQbRatingData.apex` leaves in place. Neither runs in a flow any more: the qb pricing, rates and rating plans reload in place (todo 298), so these deletes are for a manual full teardown only.
 
 ```
-Delete order (for full teardown):
+Delete order (for full teardown; items 1 and 2 are the usual order, not a requirement):
 1. qb-rates (RateCardEntry, deactivated first; its RateAdjustmentByTier go with it → PriceBookRateCard → RateCard; `deleteQbRatesData.apex`)
 2. qb-rating + qb-rating-entitlements (PUG → PURP → RatingFrequencyPolicy → UsagePrdGrantBindingPolicy → PUR → grant renewal, rollover, overage and commitment policies → UsageResourceBillingPolicy; `deleteQbRatingData.apex`. UsageResource, UnitOfMeasure and UnitOfMeasureClass stay)
 3. qb-pricing (adjustments → PricebookEntry → PriceAdjustmentSchedule → Pricebook2)
