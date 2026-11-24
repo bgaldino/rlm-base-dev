@@ -76,6 +76,11 @@ public with sharing class RLM_BillingScheduleGroupService {
         @AuraEnabled public Id billingAccountId;
         @AuraEnabled public String billingAccountName;
         @AuraEnabled public String billingCity;
+        // True when a billing account may exist but this user cannot read it: the read of the
+        // account's billing account links is refused, or a billing account of the account (its own
+        // or a linked one) is hidden by sharing. Whether one exists is then unknown to the user, not
+        // "there is none".
+        @AuraEnabled public Boolean billingLinkUnreadable = false;
 
         public AccountInfo(String accountName, Id billingAccountId, String billingAccountName, String billingCity) {
             this.accountName = accountName;
@@ -109,10 +114,23 @@ public with sharing class RLM_BillingScheduleGroupService {
             'RLM_BillingScheduleGroupService read of ' + what + ' refused', cause);
     }
 
+    // The account name, flagged as "a billing account may exist but this user cannot read it".
+    private static AccountInfo billingAccountUnreadable(String accountName) {
+        AccountInfo info = new AccountInfo(accountName, null, null, null);
+        info.billingLinkUnreadable = true;
+        return info;
+    }
+
     // Throws for a missing id or an account the caller cannot read: there is no account name to show
     // then, and the modal surfaces the message as an error toast (its account-info wire handler), so
     // the header is not left blank without a reason. An account with no billing account still returns
     // an AccountInfo carrying the account name; the modal blocks Create until a billing account exists.
+    // So does a user who cannot read the account's billing account links, with billingLinkUnreadable
+    // set so the modal says the billing account could not be read rather than that there is none; the
+    // same flag is set when sharing hides the account's own billing account (even if a linked one is
+    // readable: the account's own comes first, as below) or the linked one the pick lands on. The
+    // result is cacheable, so after access is granted the modal can show the old result until the
+    // cached entry expires or the page is reloaded.
     @AuraEnabled(cacheable=true)
     public static AccountInfo getAccountBillingInfo(Id accountId) {
         if (accountId == null) {
@@ -132,7 +150,10 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         // Deterministic pick: the account's default billing profile first, then oldest first. A billing
         // account linked to the account only through AccountBillingAccount is resolved too, as the
-        // create path does.
+        // create path does. Of the account's own billing accounts, only those the user reads are
+        // ranked: a readable one is returned even if a hidden one is the default, since telling them
+        // apart would reveal more than that one exists. A linked one is picked by its link, oldest
+        // first, whether or not the user reads it (see below).
         // Account.BillingCity is a component of the compound BillingAddress. Measured on a 264 org:
         // describe reports BillingCity permissionable, yet no permission set carries a FieldPermissions
         // row for Account.BillingCity, while 121 carry one for Account.BillingAddress. So the compound is
@@ -157,8 +178,17 @@ public with sharing class RLM_BillingScheduleGroupService {
             throw readRefused('the billing accounts', qe);
         }
 
+        if (billingAccounts.isEmpty() && new HiddenBillingAccounts().existFor(accountId)) {
+            // The account has a billing account of its own that sharing hides from this user (billing
+            // accounts are private by default): not "no billing account" either. Checked before the
+            // links, so a readable linked billing account is not picked in place of the account's own,
+            // which may be its default billing profile.
+            System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService: the account\'s billing account is not visible to the user');
+            return billingAccountUnreadable(acc.Name);
+        }
+
         if (billingAccounts.isEmpty()) {
-            List<AccountBillingAccount> links = new List<AccountBillingAccount>();
+            List<AccountBillingAccount> links;
             try {
                 // AccountBillingAccount.IsDefaultBillingAccount is deprecated on 264: the platform
                 // refuses to set it to true ("use default field on billing account"), so a link is
@@ -173,7 +203,13 @@ public with sharing class RLM_BillingScheduleGroupService {
                     LIMIT 1
                 ];
             } catch (QueryException qe) {
-                // The caller cannot read the junction: behave as before (no link resolved).
+                // An access failure is not "no billing account": reporting it as one would send
+                // the user to create a billing account that already exists and hide the missing
+                // grant. The header still shows the account, flagged so the modal says the billing
+                // account could not be read; Create stays blocked without a billing account.
+                System.debug(LoggingLevel.ERROR, 'RLM_BillingScheduleGroupService read of the billing account links refused: '
+                    + qe.getTypeName() + ': ' + qe.getMessage());
+                return billingAccountUnreadable(acc.Name);
             }
             if (!links.isEmpty()) {
                 // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
@@ -187,6 +223,14 @@ public with sharing class RLM_BillingScheduleGroupService {
                     ];
                 } catch (QueryException qe) {
                     throw readRefused('the billing accounts', qe);
+                }
+                if (billingAccounts.isEmpty()) {
+                    // The link names a billing account that sharing hides from this user: one exists,
+                    // so this is not "no billing account" either. Only the oldest link is read, so a
+                    // newer link to a billing account the user can read is not tried: the account is
+                    // flagged unreadable even then. A known gap, not fixed here.
+                    System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService: the linked billing account is not visible to the user');
+                    return billingAccountUnreadable(acc.Name);
                 }
             }
         }
@@ -586,5 +630,21 @@ public with sharing class RLM_BillingScheduleGroupService {
             }
         }
         return result;
+    }
+
+    // Whether the account has a billing account of its own, checked past sharing. Runs only after the
+    // user's own read of the account's billing accounts succeeded and found none, so only for a user
+    // who can read the account and holds read access to billing accounts. It returns a yes or no and
+    // nothing of the record: no Id, name or field value reaches the user, only that a billing account
+    // exists, which tells the modal to say it could not be read rather than that there is none. A
+    // linked billing account needs no such check: the link follows the account's sharing (the tests
+    // assert the user reads it), so the hidden account is found through the link.
+    // WITH SYSTEM_MODE is needed as well as without sharing: measured on a 264 org, a query with no
+    // access mode in a without sharing class at API 68 still counted none of a billing account that
+    // sharing hides, while the same query at API 66, or with SYSTEM_MODE at API 68, counted it.
+    private without sharing class HiddenBillingAccounts {
+        Boolean existFor(Id accountId) {
+            return ![SELECT Id FROM BillingAccount WHERE AccountId = :accountId WITH SYSTEM_MODE LIMIT 1].isEmpty();
+        }
     }
 }
