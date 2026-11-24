@@ -254,9 +254,7 @@ Every step must be safe to run twice. What the proved build learned:
   `Status = Draft` to records already Active was refused on the second load; status
   objects take `skipExistingRecords: true`, as `sfdmu-data-plans` prescribes
   [Measured: 2026-11-17, 264].
-- **Catalog:** load the PCM plan once, then run `scripts/check_classification_attrs.py` and load again when it exits 1 (full rule: `catalogs-and-loading.md` step 5, including exit 2 and the recheck); when it does load again, the second pass applies
-  classification-attribute values (`product-catalog-modeling` → `catalogs-and-loading.md`, PCM load fact a). A
-  recheck that still exits 1 on a row the second pass inserted means load again and recheck; a key-field difference on a row that existed before the pass or a row still missing means stop and investigate. An unfixable exit 2 on a recheck also means stop and investigate (no extract, no reload).
+- **Catalog:** load the PCM plan, run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 for any second pass (one pass is enough for QuantumBit [Measured: 2026-11-24, 264]); a second pass applies classification-attribute values (PCM load fact a), and extract only after the check exits 0.
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
 - **CML:** on the proved second load, with the model's version Active, `import_cml` exited
