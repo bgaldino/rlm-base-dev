@@ -195,8 +195,7 @@ def flatten_toc(
         for node in nodes or []:
             if not isinstance(node, dict):
                 continue
-            slug = slug_of(node.get("name") or (node.get("link") or {}).get("href") or "", guide_path)
-            label = node.get("label") or slug or ""
+            slug, label = _node_ident(node, guide_path)
             if not slug and node.get("name"):
                 skipped += 1
             this_section = section if section is not None else label
@@ -217,6 +216,15 @@ def flatten_toc(
             nodes = _find_sections(toc, needle, guide_path)
             if not nodes:
                 raise OptionsError(f"section {needle!r} not found in the guide TOC")
+            # A page listed twice is one page (its first listing wins); only distinct pages are ambiguous.
+            distinct, seen_slugs = [], set()
+            for n_ in nodes:
+                sl = _node_ident(n_, guide_path)[0]
+                if sl and sl in seen_slugs:
+                    continue
+                seen_slugs.add(sl)
+                distinct.append(n_)
+            nodes = distinct
             if len(nodes) > 1:
                 raise OptionsError(
                     f"section {needle!r} names {len(nodes)} different TOC nodes; name one by its page id"
@@ -226,6 +234,12 @@ def flatten_toc(
     else:
         walk(toc, None, None)
     return pages, skipped
+
+
+def _node_ident(node, guide_path: str):
+    """A TOC node's slug and label, derived once for the walk, the paths and the matcher."""
+    slug = slug_of(node.get("name") or (node.get("link") or {}).get("href") or "", guide_path)
+    return slug, node.get("label") or slug or ""
 
 
 def _node_entry(label: str, slug: Optional[str]) -> str:
@@ -240,8 +254,7 @@ def _ancestor_entries(nodes, target, guide_path: str, anc=()) -> tuple:
             continue
         if node is target:
             return anc
-        slug = slug_of(node.get("name") or (node.get("link") or {}).get("href") or "", guide_path)
-        label = node.get("label") or slug or ""
+        slug, label = _node_ident(node, guide_path)
         found = _ancestor_entries(node.get("children"), target, guide_path, anc + (_node_entry(label, slug),))
         if found is not None:
             return found
@@ -250,8 +263,12 @@ def _ancestor_entries(nodes, target, guide_path: str, anc=()) -> tuple:
 
 def _entry_matches(label: str, slug_key: str, needle: str) -> bool:
     """One matcher for a section filter: the node's label or its slug key (``_``/``-``, ``.htm`` ignored)."""
-    return (label or "").strip().lower() == needle.strip().lower() or (
-        bool(slug_key) and slug_key == normalize_key(needle))
+    n = needle.strip()
+    if (label or "").strip().lower() == n.lower():
+        return True
+    # A label with spaces or a slash is never a page id (normalize_key would keep only
+    # the text after the last slash and match an unrelated page).
+    return bool(slug_key) and not re.search(r"[\s/]", n) and slug_key == normalize_key(n)
 
 
 def _find_sections(nodes, needle: str, guide_path: str) -> List[Dict[str, Any]]:
@@ -260,8 +277,8 @@ def _find_sections(nodes, needle: str, guide_path: str) -> List[Dict[str, Any]]:
     for node in nodes or []:
         if not isinstance(node, dict):
             continue
-        slug = slug_of(node.get("name") or "", guide_path) or ""
-        if _entry_matches(node.get("label") or "", normalize_key(slug) if slug else "", needle):
+        slug, label = _node_ident(node, guide_path)
+        if _entry_matches(label, normalize_key(slug) if slug else "", needle):
             found.append(node)
         else:
             found.extend(_find_sections(node.get("children"), needle, guide_path))

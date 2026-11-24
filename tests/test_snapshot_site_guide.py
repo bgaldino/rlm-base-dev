@@ -264,6 +264,7 @@ def main():
     print("codex round 1")
     with tempfile.TemporaryDirectory() as tmp:
         snap(tmp, mode="all").run()
+        anc_before = {p["page_id"]: p.get("ancestors") for p in load(tmp)["pages"]}
         calls = []
         s1 = snap(tmp, mode="refresh", sections=["deployment-considerations"], probe_page="connect-resources-get-catalogs")
         s1._fetch_once = make_fetcher(calls=calls)
@@ -279,6 +280,8 @@ def main():
               any(u.endswith("/deployment-considerations.html") for u in calls)
               and not any(u.endswith("/deployment-overview.html") for u in calls) and st["captured"] == 4)
         pages = load(tmp)["pages"]
+        check("a sectioned run keeps the paths a whole-guide discover recorded",
+              {p["page_id"]: p.get("ancestors") for p in pages} == anc_before and all(anc_before.values()))
         check("stored subtree ids follow parent links (capture mode without a TOC walk)",
               sg.SiteGuideSnapshot._stored_section_ids(pages, ["deployment-overview"])
               == {"deployment-overview", "deployment-considerations"}
@@ -320,6 +323,15 @@ def main():
     check("a page listed twice keeps its first path through a sectioned walk's setdefault",
           rec.setdefault("ancestors", secondp[1]["ancestors"]) == first[1]["ancestors"]
           and first[1]["ancestors"] != secondp[1]["ancestors"])
+    check("a page listed twice is selectable by its page id (first listing wins)",
+          [p["page_id"] for p in sg.flatten_toc(twice, G, ["x"])[0]] == ["x"]
+          and sg.flatten_toc(twice, G, ["x"])[0][0]["ancestors"][0].startswith("a\t"))
+    check("a label with a slash never matches an unrelated page id",
+          not sg._entry_matches("Pricing/Billing", "billing", "Pricing/Billing".replace("Pricing", "Other"))
+          and sg._entry_matches("pricing/billing", "", "Pricing/Billing"))
+    href = [{"label": "H", "link": {"href": G + "h.html"}, "children": []}]
+    check("an href-only node is found by id the same way the walk and stored paths see it",
+          [p["page_id"] for p in sg.flatten_toc(href, G, ["h"])[0]] == ["h"])
     dpages = sg.flatten_toc(dup, G, None)[0]
     check("capture mode refuses a label that names two TOC nodes, accepts a page id",
           raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_section_ids(dpages, ["Overview"]))
