@@ -166,6 +166,11 @@ private class RLM_BSGTimelineControllerTest {
         return (SObject) JSON.deserialize(JSON.serialize(fields), Type.forName(objectName));
     }
 
+    // True when the org has no such object, by describe or as an Apex type; row() needs both.
+    private static Boolean missing(String objectName) {
+        return Schema.getGlobalDescribe().get(objectName) == null || Type.forName(objectName) == null;
+    }
+
     // A group with no schedules, suspension or milestones: its own fields are mapped, the account
     // name comes through the relationship, and the schedule list is empty.
     @isTest
@@ -268,7 +273,7 @@ private class RLM_BSGTimelineControllerTest {
     // reference amount and the group's billed amount.
     @isTest
     static void addMilestoneChartItems_carryThePlanAndGroupAmounts() {
-        if (Schema.getGlobalDescribe().get('BillingMilestonePlanItem') == null) {
+        if (missing('BillingMilestonePlanItem')) {
             // No billing milestone objects in this org: the timeline never reads milestones here.
             return;
         }
@@ -324,14 +329,22 @@ private class RLM_BSGTimelineControllerTest {
         Date feb = Date.newInstance(2026, 2, 1);
         Date mar = Date.newInstance(2026, 3, 1);
         Date apr = Date.newInstance(2026, 4, 1);
+        // In the query's order (by start date): the fully billed BS-2 comes before the
+        // cancellation BS-3.
         List<RLM_BSGTimelineController.BillingScheduleData> schedules = new List<RLM_BSGTimelineController.BillingScheduleData>{
             schedule('BS-1', jan, mar.addDays(30), 2, 100, 'Order', 'Active'),
-            schedule('BS-3', mar, mar.addDays(30), null, null, 'Cancellation', 'Active'),
-            schedule('BS-2', feb, apr.addDays(29), 1, -30, 'Order', 'Completely Billed')
+            schedule('BS-2', feb, apr.addDays(29), 1, -30, 'Order', 'Completely Billed'),
+            schedule('BS-3', mar, mar.addDays(30), null, null, 'Cancellation', 'Active')
+        };
+        // The same span with the cancellation first.
+        List<RLM_BSGTimelineController.BillingScheduleData> cancelledFirst = new List<RLM_BSGTimelineController.BillingScheduleData>{
+            schedule('BS-4', jan, jan.addDays(30), 1, 10, 'Cancellation', 'Active'),
+            schedule('BS-5', jan, jan.addDays(30), 1, 10, 'Order', 'Completely Billed')
         };
 
         Test.startTest();
         List<RLM_BSGTimelineController.ConsolidatedSegment> segments = RLM_BSGTimelineController.consolidate(schedules);
+        List<RLM_BSGTimelineController.ConsolidatedSegment> single = RLM_BSGTimelineController.consolidate(cancelledFirst);
         Test.stopTest();
 
         Assert.areEqual(4, segments.size(), 'Boundaries Jan 1, Feb 1, Mar 1, Apr 1 and May 1 make four segments');
@@ -347,11 +360,14 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(-30, segments[1].credits, 'A negative period amount is a credit');
         Assert.areEqual('Completely Billed', segments[1].status, 'A fully billed schedule marks the segment');
 
-        Assert.areEqual(new List<String>{ 'BS-1', 'BS-3', 'BS-2' }, segments[2].activeScheduleNumbers,
+        Assert.areEqual(new List<String>{ 'BS-1', 'BS-2', 'BS-3' }, segments[2].activeScheduleNumbers,
             'All three run in March, in schedule order');
         Assert.areEqual(3, segments[2].netQuantity, 'A blank quantity adds nothing');
         Assert.areEqual('Cancelled', segments[2].status,
-            'A cancellation wins, and a fully billed schedule after it does not replace it');
+            'A cancellation replaces a fully billed schedule before it');
+        Assert.areEqual(1, single.size(), 'Two schedules over the same span make one segment');
+        Assert.areEqual('Cancelled', single[0].status,
+            'A fully billed schedule after a cancellation does not replace it');
 
         Assert.areEqual(apr, segments[3].startDate, 'The last segment starts on April 1');
         Assert.areEqual(apr.addDays(29), segments[3].endDate, 'The last segment ends on BS-2\'s end');

@@ -454,6 +454,11 @@ private class RLM_BSGContextControllerTest {
         return (SObject) JSON.deserialize(JSON.serialize(fields), Type.forName(objectName));
     }
 
+    // True when the org has no such object, by describe or as an Apex type; row() needs both.
+    private static Boolean missing(String objectName) {
+        return Schema.getGlobalDescribe().get(objectName) == null || Type.forName(objectName) == null;
+    }
+
     // A usage group with no milestone and no bundle relationships is a usage view: its own
     // fields, its anchor, no siblings found; its billing arrangement is read (lines need a fully
     // set-up billing account to insert, so addArrangementLines_keepsTheQueryOrder covers them).
@@ -599,8 +604,7 @@ private class RLM_BSGContextControllerTest {
     // blank); items keep their query order, with the accomplishment date as text.
     @isTest
     static void milestonePlanRows_fillTheHeaderAndItems() {
-        if (Schema.getGlobalDescribe().get('BillingMilestonePlanItem') == null
-            || Schema.getGlobalDescribe().get('BillingMilestonePlan') == null) {
+        if (missing('BillingMilestonePlanItem') || missing('BillingMilestonePlan')) {
             // No billing milestone objects in this org: the context never reads a plan here.
             return;
         }

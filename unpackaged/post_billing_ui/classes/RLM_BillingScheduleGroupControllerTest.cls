@@ -139,8 +139,8 @@ private class RLM_BillingScheduleGroupControllerTest {
         return ids;
     }
 
-    // For groups with no relationships, the relationship query runs once and each group gets an
-    // empty list.
+    // The billing user can run the relationship query, and it runs once for all the groups.
+    // (What the rows become is checked in buildWrappers_attachesEachGroupsMainRelationships.)
     @isTest
     static void wrappersWithRelationships_runsTheRelationshipQueryOnce() {
         User u = RLM_BillingUITestUsers.create(
@@ -163,7 +163,5 @@ private class RLM_BillingScheduleGroupControllerTest {
 
         Assert.areEqual(1, ran, 'The relationship query runs once for all the groups');
         Assert.areEqual(2, wrappers.size(), 'One wrapper per group');
-        Assert.isTrue(wrappers[0].relationships.isEmpty() && wrappers[1].relationships.isEmpty(),
-            'Groups with no relationships get empty lists');
     }
 }
