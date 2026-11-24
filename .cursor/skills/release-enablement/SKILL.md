@@ -57,7 +57,7 @@ Each release has up to four primary sources. Drop them into `docs/salesforce/{ve
 |---|---|---|
 | **Master Help compendium** | Full Help docs for the release as one PDF — definitive but huge (often 1,000+ pages). Use for detailed configuration steps. | `revenue-cloud-{release-name}-{date}.pdf` |
 | **Internal Solution Overview deck** | Per-feature Customer Need / Solution / Use Case / Impact — most digestible primary source for authoring. Marked CONFIDENTIAL. | `solution-overview-{release-name}.pdf` |
-| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. | 264+: per-article snapshot under `docs/salesforce/{version}/release-notes/`. 260/262: a hand-curated `release-notes-{area}.md` and/or `salesforce-release-notes-{release-name}-{date}.pdf` |
+| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. | 264+: per-article snapshot under `docs/salesforce/{version}/release-notes/`. 260/262: a hand-curated `release-notes-{area}.md` and/or `salesforce-release-notes-{release-name}-{date}.pdf` (neither is in the repo now) |
 | **Org access / screenshots** | For verifying configuration steps work, capturing visuals, sanity-checking what users actually see. | (live) |
 
 **Capturing release notes from Salesforce Help:**
@@ -76,7 +76,7 @@ python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spr
 python -m scripts.doc_snapshot help --release 266 --area all --mode discover
 ```
 
-Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.
+Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). Before the tool existed, release notes were captured by hand (260's `release-notes-pricing.md`, since removed).
 
 ## Workflow
 
@@ -189,9 +189,11 @@ The auto-gen uses the H2 + H3 structure literally. Section headers must match th
 
 | Release | Status | Feature Index |
 |---|---|---|
-| 260 (Spring '26) | Earlier GA reference | [`docs/salesforce/260/feature-index.md`](../../../docs/salesforce/260/feature-index.md) | <!-- staleness: allow -->
+| 260 (Spring '26) | Earlier GA; index no longer in-tree (see note below) | n/a | <!-- staleness: allow -->
 | 262 (Summer '26) | Prior GA reference | [`docs/salesforce/262/feature-index.md`](../../../docs/salesforce/262/feature-index.md) | <!-- staleness: allow -->
 | 264 (Winter '27) | Current — in development | [`docs/salesforce/264/feature-index.md`](../../../docs/salesforce/264/feature-index.md) |
+
+The repo keeps the current and previous release's corpora only, so the 260 feature index and release notes were removed; the 260 exercises under `docs/enablement/260/` stay as historical extracts. The 260 billing Help preset still exists (`python -m scripts.doc_snapshot list`).
 
 The feature index for each release is the **authoring input**. It contains a per-area table of new features with: name, tier (GA/Beta/Pilot), one-paragraph description, source page references, demo URL placeholders. **Exception — 264:** its index is built from the Help corpus only (feature, area/status, description, article links, labelled New or Expanded). It has no tier or demo-URL columns. Its Release note column and **Release-Note Cross-Reference** section map it against the captured 264 Revenue release notes (`docs/salesforce/264/release-notes/`). The notes label no feature Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier; confirm every tier on a live org at GA before authoring. Authoring an exercise means working through that area's row in the feature index and turning each row into a Feature N section in the area's `.md` file.
 

@@ -17,7 +17,6 @@ prerequisites:
 sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium § Transaction Management (pp 647–887) + § Advanced Approvals (pp 887–927)"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — Transaction Management section"
-  - "docs/salesforce/260/feature-index.md — per-area feature inventory"
   - "datasets/sfdmu/qb/en-US/qb-pcm/ — QuantumBit catalog"
   - "datasets/sfdmu/qb/en-US/qb-rating/ — QuantumBit usage rating data plan"
   - ".cursor/skills/release-enablement/authoring-patterns.md"

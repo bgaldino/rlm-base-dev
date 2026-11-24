@@ -16,7 +16,6 @@ prerequisites:
 sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium (1,460 pages)"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — internal Solution Overview deck (127 pp, CONFIDENTIAL)"
-  - "docs/salesforce/260/release-notes-pricing.md — captured release notes"
   - "https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_pricing.htm&release=260&type=5"
 ---
 

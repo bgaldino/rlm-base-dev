@@ -17,7 +17,6 @@ prerequisites:
 sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium § Usage Management (pp 996+) + § Manage Quotes and Orders → Usage selling (pp 825+)"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — Usage Management Design & Selling section"
-  - "docs/salesforce/260/feature-index.md — per-area feature inventory"
   - "datasets/sfdmu/qb/en-US/qb-rating/ — QuantumBit usage rating data plan"
   - ".cursor/skills/release-enablement/authoring-patterns.md"
   - ".cursor/skills/revenue-cloud-data-model/domains/usage.md"

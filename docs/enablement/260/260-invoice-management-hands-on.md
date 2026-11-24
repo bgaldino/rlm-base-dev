@@ -18,7 +18,6 @@ sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium § Billing"
   - "docs/salesforce/260/solution-overview-spring-26-billing.pdf — internal Solution Overview deck (Billing, CONFIDENTIAL)"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — Solution Overview deck (RCA, CONFIDENTIAL)"
-  - "docs/salesforce/260/feature-index.md — per-area feature inventory (Invoice Management & Billing section)"
   - "datasets/sfdmu/qb/en-US/qb-billing/ — QuantumBit billing data plan"
   - ".cursor/skills/release-enablement/authoring-patterns.md"
 ---
