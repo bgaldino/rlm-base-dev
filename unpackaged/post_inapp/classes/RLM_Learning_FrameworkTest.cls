@@ -18,8 +18,9 @@
  *    whatever the runner holds.
  *  - A separate least-privilege "learner" is a user on the
  *    "Minimum Access - Salesforce" profile (looked up by its English name)
- *    holding only RLM_Learning. knownGap_learnerCannotResequenceRowsItDoesNotOwn and
- *    userInformation_paths use it, and learnerProfileGrantsNoLearningObjectAccess
+ *    holding only RLM_Learning. knownGap_learnerCannotResequenceRowsItDoesNotOwn,
+ *    knownGap_learnerCannotReadTheTrialExpiry and userInformation_paths use it, and
+ *    learnerProfileGrantsNoLearningObjectAccess
  *    checks its profile. In the Apex test context user inserts are not limited
  *    by free seats (observed on a Release 264 org: 22 Minimum Access users
  *    inserted with 12 free seats). The learner is created lazily by learner(),
@@ -1574,5 +1575,51 @@ private class RLM_Learning_FrameworkTest {
         'the days left in the trial, clamped at zero: expected ' + daysLeft + ', got ' + expiryDays
       );
     }
+  }
+
+  // Known gap: getExpiryDays reads Organization in USER_MODE, and a learner (Minimum Access plus
+  // RLM_Learning) may not query Organization ("sObject type 'Organization' is not supported", seen
+  // on a Release 264 org). So for a learner the call throws and the welcome page shows no trial
+  // countdown; only users who may read Organization see one.
+  @IsTest
+  static void knownGap_learnerCannotReadTheTrialExpiry() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
+
+    Boolean threw = false;
+    Test.startTest();
+    System.runAs(learnerUser) {
+      try {
+        RLM_Learning_UserInformation.getExpiryDays();
+      } catch (AuraHandledException e) {
+        threw = true;
+      }
+    }
+    Test.stopTest();
+
+    Assert.isTrue(
+      threw,
+      'Known gap: getExpiryDays threw an AuraHandledException for a learner, who may not query ' +
+      'Organization; it now returns. Update this test.'
+    );
+  }
+
+  // An org has a trial expiry or not, so userInformation_paths reaches only one of these; the
+  // countdown takes the expiry and today's date so both, and the clamp, are checked here.
+  @IsTest
+  static void userInformation_daysRemaining() {
+    Date today = Date.newInstance(2026, 6, 30);
+
+    Test.startTest();
+    Integer noTrial = RLM_Learning_UserInformation.daysRemaining(null, today);
+    Integer ahead = RLM_Learning_UserInformation.daysRemaining(Datetime.newInstance(today.addDays(10), Time.newInstance(18, 0, 0, 0)), today);
+    Integer expired = RLM_Learning_UserInformation.daysRemaining(Datetime.newInstance(today.addDays(-3), Time.newInstance(9, 0, 0, 0)), today);
+    Test.stopTest();
+
+    Assert.isNull(noTrial, 'no trial expiry means no countdown');
+    Assert.areEqual(10, ahead, 'the days from the given date to the expiry date');
+    Assert.areEqual(0, expired, 'an expired trial shows zero days, not a negative count');
   }
 }
