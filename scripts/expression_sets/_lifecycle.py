@@ -422,9 +422,10 @@ class LifecycleEngine:
                     )
                 elif failure and not (mutate_succeeded or self.dry_run):
                     self.log(
-                        f"{verb} failed, but it is a non-corrupting (label-only) "
-                        f"mutation, so reactivating ExpressionSetVersion {esv_id} "
-                        f"rather than leaving it offline. The failure is still reported."
+                        f"{verb} failed, but it is a non-corrupting mutation (an "
+                        f"atomic Tooling Metadata PATCH, so nothing was half-written), "
+                        f"so reactivating ExpressionSetVersion {esv_id} rather than "
+                        f"leaving it offline. The failure is still reported."
                     )
                 # The version and the plans are restored independently, so a
                 # failed version reactivation can't leave the plans offline.

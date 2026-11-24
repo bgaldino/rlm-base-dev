@@ -422,6 +422,7 @@ tasks:
 | `rlm_refresh_decision_table.py` | `RefreshDecisionTable` | Decision table refresh |
 | `rlm_manage_decision_tables.py` | `ManageDecisionTables` | Comprehensive DT management |
 | `rlm_manage_expression_sets.py` | `ManageExpressionSets` | Expression set version management |
+| `rlm_deploy_expression_sets.py` | `DeployExpressionSets` | `Deploy` subclass behind `activate_and_deploy_expression_sets`: reads back that each deployed version exists under its VersionNumber and is the one that executes (`version_check` fail/warn) |
 | `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
 | `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
