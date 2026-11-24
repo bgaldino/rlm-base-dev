@@ -1134,10 +1134,12 @@ private without sharing class RLM_AccountUtilitiesTest {
             'Phase 1\'s delete of the bucket must survive the rollback');
         Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
             'Phase 1\'s delete of the entitlement must survive the rollback');
-        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
-            'The entitlement account must still exist');
-        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
-            'The bucket with no entitlement must still exist');
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id]
+                + [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'Phase 2\'s deletes of the entitlement account and its bucket must be rolled back'
+        );
         Assert.areEqual(
             entry(UsageEntitlementBucket.SObjectType, 1) + '; ' + entry(TransactionUsageEntitlement.SObjectType, 1),
             result.removedSummary,
