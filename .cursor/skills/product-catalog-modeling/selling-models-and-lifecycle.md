@@ -268,8 +268,15 @@ In this repo:
   (`securitypolicyviolation`); `images.ctfassets.net` loaded with no trusted site, a `gstatic`
   host loaded through its trusted site. The record's Details tab shows `DisplayUrl` as text, not
   as an image. [Measured: 2026-11-24, 264, fresh build; Product2 record page in Chrome] So ship
-  images as static resources rather than adding a trusted site per host. Whether the configurator
-  and catalog cards follow the same rule is **Open — needs live verification**.
+  images as static resources rather than adding a trusted site per host.
+- **Catalog cards and the configurator header follow the same rule, and fail silently.** Browse
+  Catalogs product cards and the configurator header render `DisplayUrl`; an allowed host
+  (`images.ctfassets.net` with no trusted site) and a static resource (`/resource/powerswerve`,
+  `/resource/RLM_product_placeholder`) both render. A host outside `img-src` shows no error: the
+  card falls back to Salesforce's own `/img/industriesCpq/plp-image-placeholder.svg`, the image a
+  blank `DisplayUrl` gets, and the configurator leaves the image block out.
+  [Measured: 2026-11-24, 264, fresh build] So a bad or disallowed external `DisplayUrl` goes
+  unnoticed in a demo until someone looks for the picture.
 
 In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
