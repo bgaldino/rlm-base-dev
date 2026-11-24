@@ -180,7 +180,7 @@ def flatten_toc(
 ) -> Tuple[List[Dict[str, Any]], int]:
     """Ordered, de-duplicated page records from the TOC tree, plus a skipped count.
 
-    Each record is ``{page_id, title, section, parent_page}``; ``page_id`` is the
+    Each record is ``{page_id, title, section, parent_page, ancestors}``; ``page_id`` is the
     slug and ``section`` the top-level ancestor's label. With ``section_filters``
     only those subtrees (each matched by label or slug, ``_``/``-`` and the
     ``.htm`` suffix ignored, so an atlas id works) are returned. ``skipped`` counts
@@ -190,7 +190,7 @@ def flatten_toc(
     seen = set()
     skipped = 0
 
-    def walk(nodes, section, parent):
+    def walk(nodes, section, parent, anc=()):
         nonlocal skipped
         for node in nodes or []:
             if not isinstance(node, dict):
@@ -200,13 +200,18 @@ def flatten_toc(
             if not slug and node.get("name"):
                 skipped += 1
             this_section = section if section is not None else label
+            # Every way a section filter can name this node (label, slug key), kept
+            # for the node and its ancestors so a later --mode capture can resolve
+            # label-only and nested sections without a TOC walk.
+            keys = tuple(k for k in (label.strip().lower(), normalize_key(slug) if slug else "") if k)
+            here = anc + keys
             if slug and slug not in seen:
                 seen.add(slug)
                 pages.append({
                     "page_id": slug, "title": label,
-                    "section": this_section, "parent_page": parent,
+                    "section": this_section, "parent_page": parent, "ancestors": list(here),
                 })
-            walk(node.get("children"), this_section, slug or parent)
+            walk(node.get("children"), this_section, slug or parent, here)
 
     if section_filters:
         for needle in section_filters:
@@ -487,6 +492,10 @@ class SiteGuideSnapshot:
         path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
         self._check_switch(path, self.options["mode"])
         self._check_version_change(path, self.options["mode"])
+        if self.options["mode"] == "capture" and self.options.get("section_filters") and path.exists():
+            self._stored_section_ids(
+                read_manifest(path, {"pages": []}, "pages").get("pages", []),
+                self.options["section_filters"])
 
     def run(self) -> Dict[str, Any]:
         output_dir = resolve_output_dir(self.options["output_dir"])
@@ -536,7 +545,7 @@ class SiteGuideSnapshot:
             return
         stored = raw.get("api_version")
         if not stored or str(stored) == self.options["api_version"]:
-            return
+            return  # (same normalised test as _load_or_init_manifest)
         if not any(p.get("status") == "captured" for p in raw.get("pages", []) if isinstance(p, dict)):
             return
         if mode != "refresh" or self.options.get("section_filters"):
@@ -586,11 +595,18 @@ class SiteGuideSnapshot:
                     "(listed under superseded_files in the manifest); remove them with the re-capture commit"
                 )
             return fresh
-        if manifest.get("api_version") != o["api_version"]:
+        stored = manifest.get("api_version")
+        if stored and str(stored) != o["api_version"]:
             # A full refresh follows (_check_version_change): nothing is current until
             # it is recaptured, so a capped or failed run leaves pages pending.
+            stale = [p["page_id"] for p in manifest.get("pages", []) if p.get("status") == "captured"]
             for page in manifest.get("pages", []):
                 page["status"] = "pending"
+            if stale:
+                self.logger.warning(
+                    f"  API {stored} -> {o['api_version']}: {len(stale)} captured page(s) are reset to "
+                    "pending; their old article files stay on disk until each is recaptured"
+                )
         manifest.update(
             api_version=o["api_version"], site_url=o["site_url"],
             deliverable=o["deliverable"], capture_method=CAPTURE_METHOD,
@@ -712,8 +728,14 @@ class SiteGuideSnapshot:
             rec["title"] = rec.get("title") or d["title"]
             rec.setdefault("section", d["section"])
             rec["toc_label"] = d["title"]  # the title field becomes the page's H1 once captured
-            if d["parent_page"]:
-                rec.setdefault("parent_page", d["parent_page"])
+            if o["section_filters"]:
+                if d["parent_page"]:
+                    rec.setdefault("parent_page", d["parent_page"])
+                rec.setdefault("ancestors", d["ancestors"])  # a section's path is partial
+            else:  # the whole TOC is authoritative: follow a restructure
+                rec["parent_page"] = d["parent_page"]
+                rec["section"] = d["section"]
+                rec["ancestors"] = d["ancestors"]
             rec["source_url"] = self._page_url(d["page_id"])
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         # The legacy map needs the whole guide's slugs, not just a section's.
@@ -756,35 +778,27 @@ class SiteGuideSnapshot:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
         filters = self.options.get("section_filters")
         if filters:
-            ids = self._section_ids if self._section_ids is not None else self._stored_subtree_ids(pages, filters)
+            ids = self._section_ids if self._section_ids is not None else self._stored_section_ids(pages, filters)
             pages = [p for p in pages if p["page_id"] in ids]
         return pages if mode == "refresh" else [p for p in pages if p.get("status") != "captured"]
 
     @staticmethod
-    def _stored_subtree_ids(pages, filters) -> set:
-        """Section subtrees from the manifest's parent links (``--mode capture``: no TOC walk).
+    def _stored_section_ids(pages, filters) -> set:
+        """Section pages from the manifest's recorded TOC paths (``--mode capture``: no TOC walk).
 
-        A filter names a page id (``_``/``-``, ``.htm`` ignored) or its TOC label.
+        A filter names a page id (``_``/``-``, ``.htm`` ignored) or a TOC label; it
+        selects every page whose path from the top of the TOC passes through that
+        node. A manifest written before paths were recorded needs one discover.
         """
-        children: Dict[str, List[str]] = {}
-        for p in pages:
-            if p.get("parent_page"):
-                children.setdefault(p["parent_page"], []).append(p["page_id"])
         ids: set = set()
         for f in filters:
-            key, label = normalize_key(f), f.strip().lower()
-            roots = [p["page_id"] for p in pages
-                     if normalize_key(p["page_id"]) == key or (p.get("toc_label") or p.get("title") or "").strip().lower() == label]
-            if not roots:
+            wanted = {normalize_key(f), f.strip().lower()}
+            hit = {p["page_id"] for p in pages if wanted & set(p.get("ancestors") or ())}
+            if not hit:
                 raise OptionsError(
                     f"section {f!r} is not in the manifest; run --mode discover (or all) first"
                 )
-            stack = list(roots)
-            while stack:
-                pid = stack.pop()
-                if pid not in ids:
-                    ids.add(pid)
-                    stack.extend(children.get(pid, []))
+            ids |= hit
         return ids
 
     def _verify_version(self, votes: Counter, manifest, require: bool = True,

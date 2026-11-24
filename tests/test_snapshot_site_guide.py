@@ -280,11 +280,13 @@ def main():
               and not any(u.endswith("/deployment-overview.html") for u in calls) and st["captured"] == 4)
         pages = load(tmp)["pages"]
         check("stored subtree ids follow parent links (capture mode without a TOC walk)",
-              sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["deployment-overview"])
+              sg.SiteGuideSnapshot._stored_section_ids(pages, ["deployment-overview"])
               == {"deployment-overview", "deployment-considerations"}
-              and sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["Considerations"]) == {"deployment-considerations"})
+              and sg.SiteGuideSnapshot._stored_section_ids(pages, ["Considerations"]) == {"deployment-considerations"}
+              and sg.SiteGuideSnapshot._stored_section_ids(pages, ["Deployment"])
+              == {"deployment-overview", "deployment-considerations"})
         check("a section absent from the manifest raises instead of queueing nothing",
-              raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["nope"])))
+              raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_section_ids(pages, ["nope"])))
     with tempfile.TemporaryDirectory() as tmp:
         snap(tmp, mode="all").run()
         before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
@@ -297,6 +299,42 @@ def main():
               raises(SnapshotError, lambda: snap(tmp, mode="refresh", api_version="69.0").run())
               and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
         check("the same version is unaffected", snap(tmp, mode="all").run()["captured"] == 4)
+
+    grouped = [{"label": "Group", "name": "", "children": [
+        {"label": "Kid", "name": G + "kid.html", "children": []}]}]
+    gp, _ = sg.flatten_toc(grouped, G, None)
+    check("a label-only TOC node is named in its descendants' paths",
+          gp[0]["page_id"] == "kid" and "group" in gp[0]["ancestors"])
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        m = load(tmp)
+        for p in m["pages"]:
+            if p["page_id"] == "deployment-considerations":
+                p["parent_page"] = "bogus"
+        (Path(tmp) / "manifest.json").write_text(json.dumps(m), encoding="utf-8")
+        snap(tmp, mode="all").run()
+        check("a whole-guide discover follows a TOC restructure (parent links reassigned)",
+              [p for p in load(tmp)["pages"] if p["page_id"] == "deployment-considerations"][0]["parent_page"]
+              == "deployment-overview")
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        m = load(tmp)
+        m["api_version"] = "67.0"
+        (Path(tmp) / "manifest.json").write_text(json.dumps(m), encoding="utf-8")
+        st = snap(tmp, mode="refresh", max_pages=2, probe_page="connect-resources-get-catalogs").run()
+        check("a capped version-change refresh leaves the rest pending",
+              st["captured"] == 2 and st["pending"] == 2 and load(tmp)["api_version"] == "68.0")
+        calls = []
+        s3 = snap(tmp, mode="all", probe_page="connect-resources-get-catalogs")
+        s3._fetch_once = make_fetcher(calls=calls)
+        st = s3.run()
+        done = [p["page_id"] for p in load(tmp)["pages"]]
+        check("the next all run recaptures only the pages still pending",
+              st["captured"] == 4 and not any(u.endswith("/deployment-considerations.html") for u in calls)
+              and any(u.endswith("/deployment-overview.html") for u in calls) and len(done) == 4)
+        (Path(tmp) / "manifest.json").write_text(json.dumps(dict(load(tmp), api_version="67.0")), encoding="utf-8")
+        check("capture mode resolves a missing section at preflight",
+              raises(OptionsError, snap(tmp, mode="capture", sections=["nope"]).preflight))
 
     print("API version check")
     with tempfile.TemporaryDirectory() as tmp:

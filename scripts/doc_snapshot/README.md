@@ -244,8 +244,9 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   `--mode refresh` (or uses another `output_dir`).
 - **Sections.** A `sections` filter selects the TOC subtree of the named page id
   or label, also on a later `refresh`, whatever top-level section the stored
-  records carry. `--mode capture` resolves it from the manifest's `parent_page`
-  links and `toc_label`, and refuses a section it cannot find.
+  records carry. `--mode capture` resolves it from the TOC paths (`ancestors`)
+  that a whole-guide discover recorded, and refuses a section it cannot find (a
+  manifest from before that needs one discover).
 - **Legacy ids.** The manifest's `legacy_id_map` maps old atlas page ids to
   slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
   neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.
