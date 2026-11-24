@@ -148,7 +148,8 @@ fails if counts rise; its second load replays the one-pass org state, not the CS
 not fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`]
 The QuantumBit plan needs no second load: on a fresh one-pass build all 36 classification attribute rows
 matched the CSV (0 missing, 0 differences; `scripts/check_classification_attrs.py`), because each CSV
-`AttributeNameOverride` and `IsRequired` already equals its attribute definition's value.
+`AttributeNameOverride` and `IsRequired` already equals its attribute definition's value, and
+`DefaultValue`, `Description` and `HelpText` match wherever the definition sets one.
 [Measured: 2026-11-23, fresh 264 ent-sb0 scratch org]
 
 Other load constraints: `ProrationPolicy` is create-only and platform-seeded, so its insert
