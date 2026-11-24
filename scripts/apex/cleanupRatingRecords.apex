@@ -12,9 +12,9 @@
 //   Deletes: ProductUsageGrant, ProductUsageResourcePolicy,
 //            ProductUsageResource, UsagePrdGrantBindingPolicy,
 //            RatingFrequencyPolicy, UsageOveragePolicy, UsageCommitmentPolicy
-//   Does NOT delete: UnitOfMeasure, UnitOfMeasureClass (managed by qb-pcm),
-//                    UsageResource, UsageResourceBillingPolicy (managed by qb-billing),
-//                    UsageGrantRenewalPolicy, UsageGrantRolloverPolicy (managed by qb-billing)
+//   Does NOT delete: UnitOfMeasure, UnitOfMeasureClass (loaded by qb-pcm and qb-rating),
+//                    UsageResource, UsageResourceBillingPolicy (loaded by qb-rating),
+//                    UsageGrantRenewalPolicy, UsageGrantRolloverPolicy (loaded by qb-rating)
 //
 // API 260 Notes:
 //   - PUR deactivation must follow reverse activation order:
@@ -91,7 +91,8 @@ if (!ops.isEmpty()) { delete ops; System.debug('Deleted ' + ops.size() + ' Usage
 List<UsageCommitmentPolicy> ucps = [SELECT Id FROM UsageCommitmentPolicy];
 if (!ucps.isEmpty()) { delete ucps; System.debug('Deleted ' + ucps.size() + ' UsageCommitmentPolicy.'); }
 
-// Step 8: Empty recycle bin for all deleted objects
+// Step 8: Empty the recycle bin for ProductUsageGrant, ProductUsageResourcePolicy and
+// ProductUsageResource only; the four deleted policy objects stay in the recycle bin
 Database.emptyRecycleBin([SELECT Id FROM ProductUsageGrant WHERE IsDeleted = true ALL ROWS]);
 Database.emptyRecycleBin([SELECT Id FROM ProductUsageResourcePolicy WHERE IsDeleted = true ALL ROWS]);
 Database.emptyRecycleBin([SELECT Id FROM ProductUsageResource WHERE IsDeleted = true ALL ROWS]);

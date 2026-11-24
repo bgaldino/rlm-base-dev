@@ -21,7 +21,7 @@ or verify the local toolchain itself (shell config, PATH order, corporate CA,
 2. CCI alias `beta` ≠ SF CLI alias `rlm-base__beta`. Never mix them.
 3. SFDMU load fails → check stdout for specific object error.
 4. Duplicates on re-run → missing `$$` composite key column in CSV.
-5. Rating errors → always delete rates before rating (FK constraint).
+5. Rating errors → delete and reload the rating data (`delete_qb_rating_data`); rates need not be deleted first.
 6. Deploy fails → check for missing fields or wrong deploy order.
 7. Source tracking corrupt → `rm -rf .sf/orgs/<org-id>/localSourceTracking`
 8. Active billing records → can NEVER be deleted (platform constraint).
@@ -505,15 +505,13 @@ control. Do not conclude "pricing works" from a plausible number.
 revision; the qb and q3 rating plans match existing PURs).
 
 **Fix:**
-1. Delete rates data first: `cci task run delete_qb_rates_data --org beta` (manual teardown;
+1. Delete rating data: `cci task run delete_qb_rating_data --org beta` (manual teardown;
    `prepare_rating` no longer runs it)
-2. Delete rating data: `cci task run delete_qb_rating_data --org beta` (manual teardown;
-   `prepare_rating` no longer runs it)
-3. Re-load: `cci flow run prepare_rating --org beta` (or run `insert_qb_rating_data`,
+2. Re-load: `cci flow run prepare_rating --org beta` (or run `insert_qb_rating_data`,
    `insert_qb_rating_entitlements_data`, `insert_qb_rates_data`, then
    `activate_rating_records` and `activate_rates`)
 
-**Critical:** Always delete rates before rating (FK constraint).
+`delete_qb_rating_data` does not need rates deleted first and leaves rate records in place (measured on 264, 2026-11-24).
 
 ### PUR deactivation ordering
 

@@ -18,7 +18,7 @@ capabilities to the rlm-base-dev repository.
 3. Never add `layoutAssignment` to `force-app/` profiles — use `templates/profiles/`.
 4. CCI: `--org beta`. SF CLI: `--target-org rlm-base__beta`. Never mix them.
 5. Metadata deploys before data loads. Products (PCM) before everything else.
-6. Delete rates before rating (FK constraint). Deletion = reverse dependency order.
+6. Deletion = reverse dependency order; `delete_qb_rating_data` does not need `delete_qb_rates_data` first.
 7. After `cumulusci.yml` edits: `python scripts/ai/generate_cci_reference.py`
 
 ## DO NOT

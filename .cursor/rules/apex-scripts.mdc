@@ -11,7 +11,6 @@ alwaysApply: false
 - Write SOQL inside loops (query once, iterate results)
 - Use single-record DML in loops (`update record;`) — use `update records;`
 - Delete PUR/PUG/RateCardEntry without deactivating first
-- Delete rating data before deleting rates data (FK constraint)
 - Semi-join against a **polymorphic** lookup — it silently matches nothing
 - Discard `Database.DeleteResult`s — a refused row resurfaces later as an unexplained `DELETE_FAILED` on its parent
 - Log failures at `LoggingLevel.FINE` — the default log level hides them
@@ -33,7 +32,7 @@ alwaysApply: false
 
 ## Delete Scripts
 - Delete in child → parent order (reverse of load order)
-- Rates must be deleted before rating data (FK constraints)
+- `delete_qb_rating_data` does not need `delete_qb_rates_data` first (measured on 264, 2026-11-24)
 - Use `Database.delete(records)` — `delete records;` also works in anonymous Apex
 
 ## Circular Graphs Need a Convergent Loop

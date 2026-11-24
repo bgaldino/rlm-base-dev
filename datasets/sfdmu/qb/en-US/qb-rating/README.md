@@ -555,7 +555,7 @@ The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip*
 To start the test from a known state, clean up first:
 
 ```bash
-cci task run delete_qb_rates_data   # deactivate + delete rates (runs first; reason unverified, see Dependencies)
+cci task run delete_qb_rates_data   # deactivate + delete rates (usual order, not required; see Dependencies)
 cci task run delete_qb_rating_data  # deactivate + delete PUG → PURP → PUR and the usage policies via Apex
 ```
 
@@ -564,7 +564,7 @@ cci task run delete_qb_rating_data  # deactivate + delete PUG → PURP → PUR a
 **Full reset and idempotency test (org already has qb-pcm and qb-billing loaded; uses CCI default org):**
 
 ```bash
-# 1. Delete rates first, then rating (order kept; its reason is unverified, see Dependencies)
+# 1. Delete rates, then rating (usual order; rating does not need rates deleted first, see Dependencies)
 cci task run delete_qb_rates_data
 cci task run delete_qb_rating_data
 
@@ -608,7 +608,7 @@ This plan is a prerequisite for:
 
 - **qb-rates** — RateCardEntry and RateAdjustmentByTier look up the UsageResource records created here. No rate object has a ProductUsageResource lookup in the 264 schema
 
-**Teardown order:** run `delete_qb_rates_data` before `delete_qb_rating_data`. Keep that order, but its reason is unverified: no rates record references anything `deleteQbRatingData.apex` deletes, since UsageResource stays in place.
+**Teardown order:** rates first is the usual order, but `delete_qb_rating_data` does not need it. Measured live on a 264 org (2026-11-24): `delete_qb_rating_data` succeeds with qb-rates data present and leaves every rate record in place. No rates record references anything `deleteQbRatingData.apex` deletes, since UsageResource stays in place.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 

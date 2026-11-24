@@ -55,4 +55,4 @@ Nothing is deleted (todo 298). RateCard, PriceBookRateCard, RateCardEntry and Ra
 - **Activation:** `activate_rates`.
 - **Platform locks:** an Active RateCardEntry accepts only Status changes, and a RateAdjustmentByTier under an Active entry can't be edited.
 
-**Deletion constraint** (manual full teardown only): `delete_qb_rates_data` must run before `delete_qb_rating_data` (the order `sfdmu-data-plans/plan-dependency-graph.md` documents). The reason is not a direct field reference to the PURs, as older notes claim: in the 264 schema no rate object references ProductUsageResource, and `deleteQbRatingData.apex` leaves UsageResource in place.
+**Deletion order** (manual full teardown only): `delete_qb_rating_data` does not need `delete_qb_rates_data` first (`sfdmu-data-plans/plan-dependency-graph.md` has the measurement). Older notes cite a PUR foreign key; in the 264 schema no rate object references ProductUsageResource, and `deleteQbRatingData.apex` leaves UsageResource in place.
