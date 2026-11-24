@@ -16,8 +16,14 @@ public with sharing class RLM_CollectionsDashboardController {
     public static List<Map<String, String>> getAccountOptions() {
         List<Map<String, String>> options = new List<Map<String, String>>();
         options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' });
-        for (Account a : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 500]) {
-            options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+        try {
+            for (Account a : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 500]) {
+                options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+            }
+        } catch (QueryException e) {
+            // The user cannot read Account: offer only "All Accounts" so the rest of the
+            // dashboard (currency options, worklist) still loads, as the other sections do.
+            return new List<Map<String, String>>{ options[0] };
         }
         return options;
     }

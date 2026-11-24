@@ -84,6 +84,87 @@ private class RLM_PaymentsDataControllerTest {
         System.assert(options.size() >= 2, 'Sentinel "All Accounts" plus the seeded account.');
     }
 
+    // A user who cannot read PaymentScheduleItem gets only the "All Accounts"
+    // sentinel instead of a raw QueryException.
+    @isTest
+    static void getAccountOptions_forAUserWhoCannotReadTheData_returnsOnlyTheSentinel() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+
+        List<Map<String, String>> options;
+        Test.startTest();
+        System.runAs(noAccess) {
+            // The controller's first query is the PaymentScheduleItem aggregate; the test is
+            // meaningful only if that USER_MODE read is actually refused for this user.
+            Boolean refused = false;
+            try {
+                Database.query('SELECT Id FROM PaymentScheduleItem LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                refused = true;
+            }
+            Assert.isTrue(refused, 'PRECONDITION: the user cannot read PaymentScheduleItem.');
+            options = RLM_PaymentsDataController.getAccountOptions();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, options.size(), 'Only the sentinel is offered.');
+        Assert.areEqual('', options[0].get('value'), 'The sentinel has a blank value.');
+        Assert.areEqual('All Accounts', options[0].get('label'), 'The sentinel is "All Accounts".');
+    }
+
+    // A user who can read PaymentScheduleItem but not Account gets only the sentinel, and the
+    // refusal that produces it is the first query's (the item aggregate), not the Account-name
+    // lookup's. Measured on a 264 org: PaymentScheduleItem.PaymentAccountId is not readable for a
+    // user without Account read (the field is not permissionable, and a USER_MODE query naming it
+    // throws). The Account-name lookup's own refusal is not reachable through object or field
+    // access: no setup was found that reads PaymentAccountId and still refuses Account, so no
+    // test covers it.
+    @isTest
+    static void getAccountOptions_whenTheItemAccountReferenceIsRefused_returnsOnlyTheSentinel() {
+        Account acc = new Account(Name = 'RLM Payments Refused Account Test');
+        insert acc;
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
+        insert ps;
+        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+
+        // Read on PaymentScheduleItem and its parent PaymentSchedule, nothing on Account. The
+        // user holds the Billing license and the Billing access user permission through a test-only
+        // set: measured on a 264 org, read on these objects granted through a set without that
+        // user permission is not honoured (the object is not even visible to the user), and with it
+        // Account stays unreadable. PaymentScheduleId is a master-detail, so the item is controlled by
+        // its parent; the parent grant mirrors the shipped sets, which grant both. The PRECONDITION
+        // asserts below fail loudly if the user cannot read the seeded row or can read Account.
+        User reader = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'PaymentSchedule', 'PaymentScheduleItem' });
+
+        List<Map<String, String>> options;
+        Test.startTest();
+        System.runAs(reader) {
+            List<SObject> items = Database.query('SELECT Status FROM PaymentScheduleItem', AccessLevel.USER_MODE);
+            Assert.isFalse(items.isEmpty(), 'PRECONDITION: the user reads the seeded PaymentScheduleItem.');
+            Assert.isTrue(userModeQueryFails('SELECT Id, Name FROM Account WHERE Id = \'' + acc.Id + '\''),
+                'PRECONDITION: the user cannot read Account.');
+            Assert.isTrue(userModeQueryFails('SELECT PaymentAccountId FROM PaymentScheduleItem'),
+                'PRECONDITION: the user cannot read the item\'s account reference (the controller\'s first query).');
+            options = RLM_PaymentsDataController.getAccountOptions();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, options.size(), 'Only the sentinel is offered.');
+        Assert.areEqual('', options[0].get('value'), 'The sentinel has a blank value.');
+    }
+
+    private static Boolean userModeQueryFails(String soql) {
+        try {
+            Database.query(soql, AccessLevel.USER_MODE);
+            return false;
+        } catch (QueryException e) {
+            return true;
+        }
+    }
+
     // PaymentLineInvoiceLine rows come only from the payment apply API, so the line-level merge
     // is exercised with in-memory rows. JSON builds them with the read-only invoice fields set.
     private static Id fakeId(Schema.SObjectType t, Integer n) {
