@@ -438,10 +438,19 @@ elif [ -d "$GATE_VENV" ]; then
     fail_later "Gate interpreter: a process is running from $GATE_VENV — its pr_gate.py requirements weren't reinstalled; rerun once it has exited"
   else
     log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
-    # Unquoted on purpose: one requirement per line, split into pip arguments.
-    # shellcheck disable=SC2046
-    if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
-        $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
+    # One stage at a time, CumulusCI first: its 4.10.1 metadata caps seleniumlibrary and
+    # selenium below what the Robot packages need, so one combined install cannot resolve
+    # (the same order as prepare-rlm-org.yml and the Docker image; pip's closing conflict
+    # warning is expected). Unquoted on purpose: one requirement per line, split into pip
+    # arguments.
+    gate_ok=1
+    for stage in 1 2; do
+      # shellcheck disable=SC2046
+      "$GATE_VENV/bin/python" -m pip install --upgrade \
+          $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all --stage "$stage") \
+        || gate_ok=0
+    done
+    if [ "$gate_ok" = 0 ]; then
       GATE_FAILED="pip install into $GATE_VENV failed"
     # The same probe the Stop hook and validate_setup run: every pr_gate.py
     # dependency imports, and the Python is new enough for every check.

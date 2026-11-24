@@ -45,7 +45,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (`npm install -g @salesforce/cli@latest`; `sf update` refuses npm installs) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
-| **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
+| **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
 | **Chrome for Testing** *(managed workstations only)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome crashes on Setup pages | any CfT version, browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
 | **gh, git, GCM** | `brew install gh git; brew install --cask git-credential-manager` | Source control + PR workflow | latest |
 | **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
@@ -525,7 +525,7 @@ The script handles:
    is (old patch or old base) rather than cleared (rerun once the cause is fixed); it
    is rebuilt anyway only when that Python is already gone. Both of those also end
    the run nonzero, as does a rebuilt venv whose `home` still isn't pyenv's. Then it
-   reinstalls `pr_gate.py --requirements --all`.
+   reinstalls `pr_gate.py --requirements --all`, one `--stage` at a time (CumulusCI, then the Robot packages).
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)
@@ -557,7 +557,7 @@ package, or the CumulusCI pin moves), the gate interpreter needs the new
 requirements. Rerun the script, or just the install step:
 
 ```bash
-.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done
 # prints the interpreter; exit 1 names what's missing
 python3 scripts/ai/gate_python.py
 ```
@@ -651,7 +651,7 @@ For a clean macOS workstation, in order:
    direnv allow
    # Gate interpreter (skip if you already created it in Step 6 of the installation guide)
    "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv
-   .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+   for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done
    cci task run validate_setup
    ```
 5. **Restart your terminal app** (and Claude Code, IDEs) so they regenerate
@@ -884,7 +884,7 @@ From the main checkout root, install what's missing, or rebuild the venv if its
 Python is wrong or its symlink is broken:
 
 ```bash
-.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done
 ```
 
 ```bash

@@ -1410,6 +1410,8 @@ def main(reexec=False):
     ap.add_argument("--no-reexec", action="store_true",
                     help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
+    if args.stage and not args.requirements:
+        ap.error("--stage only applies with --requirements")
 
     if args.list:
         print(f"{'check':26} {'gating':7} {'deps':34} triggers")

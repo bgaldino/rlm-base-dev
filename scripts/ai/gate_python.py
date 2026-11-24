@@ -17,7 +17,9 @@ Homebrew's bin comes first on PATH that's Homebrew's python@3.13, and the update
 rebuilds the venv on pyenv's. The commands:
 
     "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv
-    .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+    # one stage at a time: CumulusCI's declared caps on seleniumlibrary/selenium contradict the
+    # Robot pins, so a single install of both cannot resolve (pip's closing warning is expected)
+    for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done
 
 The setup guides carry the same steps: docs/guides/local-installation.md (Step 6) and
 docs/guides/dev-environment-setup.md, whose update script (scripts/bash/update-toolchain.sh)
