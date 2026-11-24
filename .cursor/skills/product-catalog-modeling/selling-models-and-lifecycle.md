@@ -254,11 +254,15 @@ In this repo:
   and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
-- **The q3 plan uses external `https` addresses.** 39 rows of
-  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at third-party image hosts (`CERT007`
-  among them), as does the dev guide's example response. Whether this repo's UI renders such an
-  address without a trusted-site entry is **Open — needs live verification** (open a q3 product
-  such as `CERT007` in the configurator and on the product page).
+- **The q3 plan uses one shipped placeholder.** The 39 rows of
+  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` that carry a `DisplayUrl` (`CERT007` among
+  them) point at `/resource/RLM_product_placeholder`, a neutral image in
+  `force-app/main/default/staticresources/`; the other 39 have none. They used to hotlink
+  third-party hosts, which break without notice and which the repo has no license to use; do not
+  reintroduce such addresses. The dev guide's example responses still show external `https`
+  addresses. Whether this repo's UI renders such an address without a trusted-site entry is
+  **Open — needs live verification**; no shipped plan exercises it any longer, so the test needs a
+  product given an external address by hand, in the configurator and on the product page.
 
 In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]

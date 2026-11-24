@@ -96,3 +96,10 @@ ProductCategoryProduct.csv               # 72 records
   source org kept both from before the rule existed (todo 319, owner decision).
 - The source org's `Unit` UnitOfMeasureClass had no `Type`, which 264 requires. Nothing references
   it, so it was dropped (todo 319).
+- **Product images use one shipped placeholder (todo 416).** The 39 products that carry a
+  `DisplayUrl` point at `/resource/RLM_product_placeholder`, a neutral 200x200 image in
+  `force-app/main/default/staticresources/` that `deploy_full` deploys on every build; the other 39
+  have none. They used to hotlink images on 18 third-party hosts, which break without notice and
+  which the repo has no license to use. To give a product its own image, ship it as a static
+  resource and point the row at `/resource/<name>`. A reload of this plan into an org loaded before this change
+  moves those 39 products to the placeholder.
