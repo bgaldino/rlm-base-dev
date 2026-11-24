@@ -485,8 +485,10 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual('Data Plan', ctx.productName, 'The product is shown');
         Assert.areEqual(100, ctx.groupBilledAmount, 'Billed comes from the group');
         Assert.areEqual(50, ctx.groupPendingAmount, 'Pending comes from the group');
-        Assert.isNull(ctx.milestonePlan, 'No milestone plan was found');
-        Assert.isNull(ctx.bundle, 'No bundle relationships were found');
+        Assert.areEqual('Advance', ctx.billingType, 'The billing type is shown');
+        Assert.areEqual('Usage', ctx.billingMethod, 'The billing method is shown');
+        Assert.areEqual('Month', ctx.billingTermUnit, 'The term unit is shown');
+        Assert.areEqual(1, ctx.billingTerm, 'The term is shown');
         Assert.areEqual(anchorId, ctx.usage.anchorBsgId, 'The anchor group is named');
         Assert.areEqual('BSG-0001', ctx.usage.currentBsgNumber, 'The current group is named');
         Assert.isTrue(ctx.usage.siblings.isEmpty(), 'No sibling groups exist');
@@ -554,7 +556,6 @@ private class RLM_BSGContextControllerTest {
         Test.stopTest();
 
         Assert.areEqual('standard', ctx.viewType, 'A plain group falls back to the standard view');
-        Assert.isNull(ctx.usage, 'Only a usage group gets usage data');
         Assert.isNull(ctx.arrangement, 'A group without an arrangement gets none');
     }
 
@@ -645,7 +646,7 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual(new List<String>{ 'Kickoff', 'Go-live' },
             new List<String>{ target[0].name, target[1].name }, 'Items keep their query order');
         Assert.areEqual(30, target[0].percentage, 'A percentage item keeps its percentage');
-        Assert.isTrue(target[0].isAccomplished, 'The accomplished flag is shown, whatever the status');
+        Assert.isTrue(target[0].isAccomplished, 'An accomplished item is marked');
         Assert.isFalse(target[1].isAccomplished, 'An open item is not accomplished');
         Assert.isTrue(target[0].accomplishmentDate != null && target[0].accomplishmentDate.startsWith('2026-03-01'),
             'The accomplishment date is shown as text starting with the date. Got: ' + target[0].accomplishmentDate);

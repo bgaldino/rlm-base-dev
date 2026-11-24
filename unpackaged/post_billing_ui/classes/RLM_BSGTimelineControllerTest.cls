@@ -291,20 +291,20 @@ private class RLM_BSGTimelineControllerTest {
         List<RLM_BSGTimelineController.MilestoneChartItem> result = new List<RLM_BSGTimelineController.MilestoneChartItem>();
 
         Test.startTest();
-        RLM_BSGTimelineController.addMilestoneChartItems(result, items, 900, 270);
+        RLM_BSGTimelineController.addMilestoneChartItems(result, items, 1000, 300);
         Test.stopTest();
 
         Assert.areEqual(new List<String>{ 'Kickoff', 'Go-live' }, new List<String>{ result[0].name, result[1].name },
             'Items keep the query order, not name order');
         Assert.areEqual(630, result[1].amount, 'The milestone amount is shown');
         Assert.areEqual(70, result[1].percentage, 'The percentage is shown');
-        Assert.isTrue(result[0].isAccomplished, 'The accomplished flag is shown, whatever the status');
+        Assert.isTrue(result[0].isAccomplished, 'An accomplished milestone is marked');
         Assert.isFalse(result[1].isAccomplished, 'An open milestone is not accomplished');
-        Assert.isNull(result[1].completionDate, 'An open milestone has no completion date');
+        Assert.isNull(result[1].completionDate, 'A blank completion date stays blank');
         Assert.areEqual(done, result[0].completionDate, 'An accomplished milestone has its date');
         for (RLM_BSGTimelineController.MilestoneChartItem item : result) {
-            Assert.areEqual(900, item.referenceAmount, 'Every item carries the plan\'s reference amount');
-            Assert.areEqual(270, item.billedAmount, 'Every item carries the group\'s billed amount');
+            Assert.areEqual(1000, item.referenceAmount, 'Every item carries the reference amount passed in');
+            Assert.areEqual(300, item.billedAmount, 'Every item carries the billed amount passed in');
         }
     }
 
@@ -339,7 +339,7 @@ private class RLM_BSGTimelineControllerTest {
             schedule('BS-2', feb, apr.addDays(29), 1, -30, 'Order', 'Completely Billed'),
             schedule('BS-3', mar, mar.addDays(30), null, null, 'Cancellation', 'Active')
         };
-        // The same span with the cancellation first.
+        // Two schedules over one span, the cancellation first.
         List<RLM_BSGTimelineController.BillingScheduleData> cancelledFirst = new List<RLM_BSGTimelineController.BillingScheduleData>{
             schedule('BS-4', jan, jan.addDays(30), 1, 10, 'Cancellation', 'Active'),
             schedule('BS-5', jan, jan.addDays(30), 1, 10, 'Order', 'Completely Billed')
