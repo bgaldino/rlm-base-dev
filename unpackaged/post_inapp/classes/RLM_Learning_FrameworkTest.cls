@@ -1586,7 +1586,8 @@ private class RLM_Learning_FrameworkTest {
   // Known gap: getExpiryDays reads Organization in USER_MODE, and for a learner (Minimum Access plus
   // RLM_Learning) that read fails (on a Release 264 org the query reported "sObject type
   // 'Organization' is not supported"). So for a learner the call throws and the welcome page shows
-  // no trial countdown. The test checks only that the call throws, not the cause.
+  // no trial countdown. The handled error hides its cause, so the same query run directly as the
+  // learner is the evidence that the Organization read, and nothing else, is what fails.
   @IsTest
   static void knownGap_learnerCannotReadTheTrialExpiry() {
     User learnerUser = learner();
@@ -1595,6 +1596,7 @@ private class RLM_Learning_FrameworkTest {
     }
 
     Boolean threw = false;
+    String directQueryError;
     Test.startTest();
     System.runAs(learnerUser) {
       try {
@@ -1602,13 +1604,24 @@ private class RLM_Learning_FrameworkTest {
       } catch (AuraHandledException e) {
         threw = true;
       }
+      try {
+        Integer found = [SELECT TrialExpirationDate FROM Organization WITH USER_MODE LIMIT 1].size();
+        directQueryError = 'no error: ' + found + ' row';
+      } catch (QueryException e) {
+        directQueryError = e.getMessage();
+      }
     }
     Test.stopTest();
 
     Assert.isTrue(
+      directQueryError != null && directQueryError.contains('Organization'),
+      'Known gap: the learner\'s user-mode Organization query failed; it now gives ' +
+      directQueryError + '. Update this test.'
+    );
+    Assert.isTrue(
       threw,
-      'Known gap: getExpiryDays threw an AuraHandledException for a learner, who may not query ' +
-      'Organization; it now returns. Update this test.'
+      'Known gap: getExpiryDays threw an AuraHandledException for a learner, whose user-mode read of ' +
+      'Organization failed; it now returns. Update this test.'
     );
   }
 
@@ -1620,8 +1633,10 @@ private class RLM_Learning_FrameworkTest {
 
     Test.startTest();
     Integer noTrial = RLM_Learning_UserInformation.daysRemaining(null, today);
-    Integer ahead = RLM_Learning_UserInformation.daysRemaining(Datetime.newInstance(today.addDays(10), Time.newInstance(18, 0, 0, 0)), today);
-    Integer expired = RLM_Learning_UserInformation.daysRemaining(Datetime.newInstance(today.addDays(-3), Time.newInstance(9, 0, 0, 0)), today);
+    Integer ahead = RLM_Learning_UserInformation.daysRemaining(
+      Datetime.newInstance(today.addDays(10), Time.newInstance(18, 0, 0, 0)), today);
+    Integer expired = RLM_Learning_UserInformation.daysRemaining(
+      Datetime.newInstance(today.addDays(-3), Time.newInstance(9, 0, 0, 0)), today);
     Test.stopTest();
 
     Assert.isNull(noTrial, 'no trial expiry means no countdown');
