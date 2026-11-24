@@ -28,7 +28,8 @@
  *    those tests. When it cannot be created (no Minimum Access profile,
  *    RLM_Learning missing, LICENSE_LIMIT_EXCEEDED on the insert, or the
  *    learner does not hold exactly the RLM_Learning permission set),
- *    knownGap_learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
+ *    knownGap_learnerCannotResequenceRowsItDoesNotOwn and
+ *    knownGap_learnerCannotReadTheTrialExpiry return early with a WARN
  *    "SKIPPED" debug line and userInformation_paths calls getName as the
  *    runner instead. The sentinel skips its assignment check only when no
  *    learner user exists; for a learner with extra permission sets it still
@@ -46,6 +47,9 @@
  *    who does not own them (for example a learner, for content an admin
  *    loaded) cannot re-sequence that section;
  *    knownGap_learnerCannotResequenceRowsItDoesNotOwn pins this.
+ *  - Trial countdown. A learner's user-mode read of Organization fails, so
+ *    getExpiryDays throws for a learner and the welcome page shows no
+ *    countdown; knownGap_learnerCannotReadTheTrialExpiry pins this.
  *
  * Not covered here:
  *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
@@ -55,7 +59,9 @@
  *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
  *    Network and Organization lookups run as the runner here. In production
  *    they run as the learner, and RLM_Learning grants no custom-metadata-type
- *    access, so the learner's access to them is not tested.
+ *    access, so the learner's access to them is not tested (except the trial
+ *    countdown's Organization read, which knownGap_learnerCannotReadTheTrialExpiry
+ *    pins).
  */
 @IsTest
 private class RLM_Learning_FrameworkTest {
@@ -1577,10 +1583,10 @@ private class RLM_Learning_FrameworkTest {
     }
   }
 
-  // Known gap: getExpiryDays reads Organization in USER_MODE, and a learner (Minimum Access plus
-  // RLM_Learning) may not query Organization ("sObject type 'Organization' is not supported", seen
-  // on a Release 264 org). So for a learner the call throws and the welcome page shows no trial
-  // countdown; only users who may read Organization see one.
+  // Known gap: getExpiryDays reads Organization in USER_MODE, and for a learner (Minimum Access plus
+  // RLM_Learning) that read fails (on a Release 264 org the query reported "sObject type
+  // 'Organization' is not supported"). So for a learner the call throws and the welcome page shows
+  // no trial countdown. The test checks only that the call throws, not the cause.
   @IsTest
   static void knownGap_learnerCannotReadTheTrialExpiry() {
     User learnerUser = learner();
