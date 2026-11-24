@@ -53,8 +53,10 @@ exist) **before** any deactivation, so a typo'd target fails while the version
 is still active.
 
 Both the CCI task (`tasks/rlm_expression_set_connect.py`) and the standalone
-toolkit's `_lifecycle.py` (`LifecycleEngine`) enforce this identically — they are
-independent implementations of the same live-verified rules. A version left
+toolkit's `_lifecycle.py` (`LifecycleEngine`) enforce this with one engine:
+`scripts/expression_sets/_engine.py` (`LifecycleCore`, stdlib-only) owns the state
+machine, and each side is a thin adapter for its transport, logging, error class
+and dry-run style. A fix to the lifecycle lands once. A version left
 DEACTIVATED by a failed apply is re-enabled with
 `activate_expression_set.py --activate` once inspected/restored.
 

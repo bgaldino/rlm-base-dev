@@ -16,15 +16,15 @@ Full guidance lives in the **expression-sets skill**:
 `metadata-vs-connect.md`), with the exhaustive object/ID/enum/error reference in
 `docs/references/expression-set-connect-api-reference.md`.
 
-## Independent of the CCI tasks
+## Independent of CumulusCI
 
-This package imports **nothing** from `tasks/`. The CCI task
-`tasks/rlm_expression_set_connect.py` (and `tasks/expression_set_schema.py`) is
-**reference-only**: the toolkit mirrors its live-verified Connect/lifecycle rules
-but runs as its own program. The validator is therefore **vendored** here as
-`_schema.py` rather than imported. The one module the CCI task imports from here is
-`_guards.py`: stdlib-only pure functions with no CumulusCI import, so both
-importers apply one multi-version rule.
+This package imports **nothing** from `tasks/`; the toolkit is its own program over
+the `sf` CLI. Two modules are shared with the CCI task
+`tasks/rlm_expression_set_connect.py`, which imports them (both are stdlib-only, no
+CumulusCI): `_engine.py`, the one deactivate → mutate → recover state machine both
+sides run, and `_guards.py`, so both importers apply one multi-version rule.
+Everything else is separate; the validator is **vendored** here as `_schema.py` (a
+mirror of `tasks/expression_set_schema.py`) rather than imported.
 
 **How these fit the lifecycle** (what to reach for, and when):
 
@@ -76,7 +76,8 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` or `updateSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
 | `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly` / `labels_from_metadata_xml` (read `{name: label}` from a `*.expressionSetDefinition-meta.xml`)) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). **Label-preservation trio:** `capture_labels` (best-effort snapshot of the readable labels a Connect PATCH will clobber), `relabel_version` (the shared deactivate→Tooling PATCH→reactivate core, used by both `relabel_expression_set.py` and auto-restore), and `restore_labels_after_clobber` (non-fatal re-apply after a Connect mutation — re-resolves the version, restores survivors, never fails the mutation). `capture_version_labels` / `restore_version_labels` run the capture and restore over **every** version of the set, since the full-graph PATCH clobbers all of them. The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
-| `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). Drives both the Connect and the Tooling-`Metadata` (relabel) mutations. |
+| `_engine.py` | `LifecycleCore`, the one deactivate → mutate → recover state machine, shared with the CCI task: the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state transitions and polling, `ResourceInitializationType` alignment, failure recovery with the health report, and delete-with-rollback. Stdlib-only; an adapter supplies I/O, logging, the error class and the dry-run style. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). |
+| `_lifecycle.py` | `LifecycleEngine`, the toolkit's adapter over `_engine.LifecycleCore`: every call on the `Transport` seam, `LifecycleError`, the transport's dry-run, plus the Connect GET/PATCH/POST/DELETE. Drives both the Connect and the Tooling-`Metadata` (relabel, `set_step_formula`) mutations. |
 
 **Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
 no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `_tooling` (incl. the
