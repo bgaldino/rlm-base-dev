@@ -201,7 +201,8 @@ private class RLM_CollectionsConsoleControllerTest {
 
     // Smoke test: for an invoice with no schedules, plan items or disputes, the related-record
     // lookups run without throwing and leave every map empty. The query count is not checked:
-    // the dispute lookup runs in user mode, so whether it runs depends on the test user's access.
+    // the dispute query runs only where the org has Dispute.InvoiceId, and in user mode it may
+    // fail and be caught, so the count varies by org.
     @isTest
     static void loadRelatedRecords_findsNothingForUnknownInvoices() {
         Set<Id> invoiceIds = new Set<Id>{ mintId(Invoice.SObjectType) };

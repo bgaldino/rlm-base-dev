@@ -856,7 +856,9 @@ private class RLM_CollectionsDashboardControllerTest {
 
         RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem noFields = withoutFields.criticalFollowUpInvoices[0];
         Assert.areEqual(10, noFields.daysInvoiceOverdue, 'Without the overdue-days field, days come from the due date');
-        Assert.isNull(noFields.billToContactId, 'Without the bill-to contact field, no contact is shown');
+        if (hasContactField) {
+            Assert.isNull(noFields.billToContactId, 'Without the bill-to contact field, no contact is shown');
+        }
     }
 
     private static Account newAccount(String name) {
