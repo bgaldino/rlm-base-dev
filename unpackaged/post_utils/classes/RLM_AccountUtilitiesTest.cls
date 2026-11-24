@@ -1206,9 +1206,8 @@ private without sharing class RLM_AccountUtilitiesTest {
         UsageEntitlementBucket assetBucket = newBucket(othersUea.Id, byAsset.Id, f);
         UsageEntitlementBucket grantBucket = newBucket(othersUea.Id, byGrant.Id, f);
         // An entitlement account of the reset account's own, which the loop cannot
-        // clear (its bucket has no entitlement). It keeps usageDrained false, so the
-        // asset step takes its retry branch; this test checks none of that branch's
-        // summary deletes, which run against empty sets.
+        // clear (its bucket has no entitlement). It must be gone after the reset;
+        // this test does not pin which step removes it.
         UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
         newBucket(ownUea.Id, null, f);
         Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement
@@ -1241,8 +1240,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reset account\'s own entitlement account must be removed');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
             'The other account\'s entitlement account must be kept');
-        // Buckets: the two entitlements' buckets (asset step) and the reset
-        // account's own bucket (phase 2's retry).
+        // Buckets: the two entitlements' buckets and the reset account's own bucket.
         for (String removed : new List<String>{
             entry(TransactionUsageEntitlement.SObjectType, 2),
             entry(UsageEntitlementBucket.SObjectType, 3),
