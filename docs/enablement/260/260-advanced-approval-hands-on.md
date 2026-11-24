@@ -16,7 +16,6 @@ prerequisites:
 sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium § Advanced Approvals (pp 887–927)"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — Approvals subsection within Transaction Management"
-  - "docs/salesforce/260/feature-index.md — Advanced Approvals section"
   - "docs/enablement/260/260-transaction-management-hands-on.md — Features 5 + 6 (primary home for 260 Approval features)"
   - ".cursor/skills/release-enablement/authoring-patterns.md"
 ---

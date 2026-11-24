@@ -787,9 +787,8 @@ def _path_like_values(node: Any, where: str):
     if isinstance(node, dict):
         # ⚠ An entry that declares itself absent used to skip its WHOLE subtree, which
         # also skipped the paths it still actively claims. The prior-GA entry is exactly
-        # that shape: status not_captured, and `partial:
-        # docs/salesforce/260/feature-index.md` — a file that does exist and is offered
-        # to consumers. Deleting or misspelling it passed --check while the audit printed
+        # that shape: status not_captured, and a `partial:` path to a file that does
+        # exist and is offered to consumers. Deleting or misspelling it passed --check while the audit printed
         # "all paths resolve".
         #
         # The skip bought nothing anyway: an entry declaring itself absent has its

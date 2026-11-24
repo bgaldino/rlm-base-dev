@@ -675,18 +675,6 @@ foundations:
       season: "Winter '27"
       api_version: v68.0
 
-    help_corpus_prior_ga:
-      # ⚠ NOT CAPTURED. This advertised docs/salesforce/260/help/{articles,manifest.json}
-      # until 2026-07-26; neither path has ever existed, on main or on release/260 or
-      # anywhere in history. A consumer resolving it got a miss, not prior-GA content.
-      # docs/salesforce/260/ holds only feature-index.md and release-notes-pricing.md.
-      # Run `python -m scripts.doc_snapshot help --release 260 --area all` (add 260
-      # presets first) to populate it, then restore the
-      # path/manifest keys.
-      status: not_captured
-      release: "260"
-      partial: docs/salesforce/260/feature-index.md
-
     erd_data:
       # ⚠ Still a 262 / v67.0 capture — deliberately NOT bumped with the branch.
       # release/apiVersion here are provenance of the source org, not a version

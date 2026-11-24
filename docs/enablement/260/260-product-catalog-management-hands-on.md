@@ -16,7 +16,6 @@ prerequisites:
 sources:
   - "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf — master Help compendium"
   - "docs/salesforce/260/solution-overview-spring-26.pdf — internal Solution Overview deck (CONFIDENTIAL)"
-  - "docs/salesforce/260/feature-index.md — per-area feature inventory"
   - "datasets/sfdmu/qb/en-US/qb-pcm/ — QuantumBit catalog data plan"
 ---
 

@@ -79,7 +79,7 @@ External dependencies (also gitignored / external):
 | `docs/salesforce/260/solution-overview-spring-26-billing.pdf` | Internal Solution Overview deck for 260 (RCB) | **CONFIDENTIAL — Internal Only**. Not in repo. |
 | `docs/salesforce/262/*.pdf` | Equivalent 262 sources (RCA + Billing SOs, release notes) | Same status — not in repo |
 
-The markdown content in [`docs/salesforce/260/feature-index.md`](../salesforce/260/feature-index.md) and [`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) summarizes what's in those sources, so you can review without needing the raw PDFs.
+The markdown content in [`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and [`docs/salesforce/264/feature-index.md`](../salesforce/264/feature-index.md) summarizes what's in those sources, so you can review without needing the raw PDFs.
 
 ---
 
@@ -108,8 +108,8 @@ You'll lead an in-person workshop using these materials. Goals: confirm the narr
 Your goal: confirm the feature descriptions, version metadata, and behavior claims are accurate.
 
 1. Skim **[`master/qb-scenario-reference.md`](master/qb-scenario-reference.md)** Section 7 (CML Constraint Models) and the Pricing-feature mapping in Section 3
-2. Review **[`docs/salesforce/260/feature-index.md`](../salesforce/260/feature-index.md)** — every 260 feature, with my interpretation of customer need / solution / use case. Flag anything I got wrong.
-3. Review **[`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md)** — same for 262 (prior GA reference).
+2. Review **[`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md)** — every 262 feature (prior GA reference), with my interpretation of customer need / solution / use case. Flag anything I got wrong.
+3. Review **[`docs/salesforce/264/feature-index.md`](../salesforce/264/feature-index.md)** — same for 264 (current).
 4. Spot-check a feature in **[`master/02-salesforce-pricing.md`](master/02-salesforce-pricing.md)** to verify the version metadata (e.g., "introduced: 256 · enhanced_in: [260]") matches your knowledge.
 
 **Feedback I want from you:**
@@ -224,7 +224,7 @@ For each release (260, 262), I worked from up to 4 sources:
 | **Public Salesforce Help portal release notes** | Captured via Chrome MCP (the Help portal is a SPA, so a recursive shadow-DOM walker is needed to extract content). From 264 on, `python -m scripts.doc_snapshot help --release {version} --area release_notes` captures them instead (see `revenue-cloud-docs/SKILL.md`) |
 | **The `rlm-base-dev` project itself** | QB scenario reference, data plans, skills — what's actually in QB orgs |
 
-For an authoring agent picking up the work later, the captured release notes (e.g., [`docs/salesforce/260/release-notes-pricing.md`](../salesforce/260/release-notes-pricing.md)) preserve what was on the public Help portal at extraction time, archived next to the captured Solution Overview content in [`docs/salesforce/{version}/feature-index.md`](../salesforce/260/feature-index.md).
+For an authoring agent picking up the work later, the captured release notes (e.g., the 264 notes under [`docs/salesforce/264/release-notes/`](../salesforce/264/release-notes/index.md)) preserve what was on the public Help portal at extraction time, archived next to the captured Solution Overview content in [`docs/salesforce/{version}/feature-index.md`](../salesforce/264/feature-index.md). The repo keeps only the current and previous release's corpora (264, 262); the 260 feature index and release notes were removed.
 
 ### 2. Skill + pattern extraction
 
@@ -362,7 +362,6 @@ Project conventions that affect this work:
 | 📊 [Coverage Matrix](coverage-matrix.md) | What's drafted across releases |
 | 🔧 [Release Enablement Skill](../../.cursor/skills/release-enablement/SKILL.md) | For authoring agents — workflow + source inventory |
 | 📐 [Authoring Patterns](../../.cursor/skills/release-enablement/authoring-patterns.md) | 11 patterns for edge cases |
-| 📋 [260 Feature Index](../salesforce/260/feature-index.md) | What's new in 260, by area |
 | 📋 [262 Feature Index](../salesforce/262/feature-index.md) | What's new in 262 (prior GA reference) |
 | 📋 [264 Feature Index](../salesforce/264/feature-index.md) | What's new in 264 (current release cycle; Help-derived, tiers pending) |
 | 🗂️ [260 Per-Release Drafts](260/) | All 10 area drafts for 260 |
