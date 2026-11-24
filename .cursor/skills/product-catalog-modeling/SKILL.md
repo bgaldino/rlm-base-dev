@@ -193,11 +193,11 @@ general SFDMU behaviour, seen on a PCM plan):
 In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 `test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
 extraction, so its second load replays the one-pass org state, not the CSVs: it is not
-fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
-one-pass QuantumBit build leaves any classification attribute at its definition's value where that differs
-from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
-`false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
-first-insert value was not recorded. Inferred from the traced copy: every QuantumBit `AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so one pass should already match the CSV; not measured. [inferred] [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] One pass is enough for QuantumBit: on a fresh one-pass build, all 36
+classification attribute rows match `ProductClassificationAttr.csv` (0 missing, 0 differences; no row modified after
+creation), run with `python scripts/check_classification_attrs.py --target-org <sf_alias>`. [Measured: 2026-11-23, 264, fresh one-pass scratch build qb850] Why: every QuantumBit
+`AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so the
+copy an insert makes already equals the CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
