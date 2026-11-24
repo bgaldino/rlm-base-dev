@@ -590,6 +590,25 @@ def main():
               and any(p["page_id"] == "rlm-get-started" and p["status"] == "error" and "refused" in p.get("error", "")
                       for p in load(tmp)["pages"]))
 
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "articles").mkdir()
+        (Path(tmp) / "articles" / "start.md").write_text("old guide text", encoding="utf-8")
+        mf = {"pages": [{"page_id": "start", "status": "error"}], "superseded_files": ["articles/start.md"]}
+        sg.SiteGuideSnapshot._settle_superseded(Path(tmp) / "manifest.json", mf)
+        check("a slug shared with the old guide whose recapture failed stays listed (the old text is not the page)",
+              mf.get("superseded_files") == ["articles/start.md"])
+        for pid in ("held.htm", "unmapped.htm"):
+            (Path(tmp) / "articles" / f"{pid}.md").write_text("atlas", encoding="utf-8")
+        (Path(tmp) / "manifest.json").write_text(json.dumps({
+            "source": "site", "site_url": START, "deliverable": "revenue_lifecycle_management_dev_guide",
+            "release": "264", "api_version": "68.0", "legacy_id_map": {"held.htm": "never-captured"},
+            "unmapped_legacy_ids": {"unmapped.htm": "x"}, "superseded_files": "not-a-list",
+            "pages": [{"page_id": "x", "status": "pending"}]}), encoding="utf-8")
+        mg = snap(tmp, mode="refresh", site_url="https://developer.salesforce.com/docs/industries/common/guide/start.html"
+                  )._load_or_init_manifest(Path(tmp) / "manifest.json")
+        check("a guide change lists every atlas file of the old corpus still on disk, and survives a hand-edited list",
+              mg.get("superseded_files") == ["articles/held.htm.md", "articles/unmapped.htm.md"])
+
     print(f"\n{_passed}/{_total} passed")
     return 0 if _passed == _total else 1
 

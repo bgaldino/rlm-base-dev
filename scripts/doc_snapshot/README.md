@@ -262,7 +262,8 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   to it) when no site article exists. An atlas article is listed under
   `superseded_files` only once its page has an article; a refused or failed replacement,
   and an id that maps to nothing (see `unmapped_legacy_ids`), leave it as the only copy
-  and it is not offered for removal. A rerun retries the ids that stayed unmapped.
+  and it is not offered for removal. A rerun retries the ids that stayed unmapped. (A
+  switch to a different guide abandons the old corpus whole and lists all its files.)
 - Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
   batches (default 500), three attempts with backoff on a failed connection, 429 or
   5xx. The capture guard (not-found and stub) applies as for atlas.

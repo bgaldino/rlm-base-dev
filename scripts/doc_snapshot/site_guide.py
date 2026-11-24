@@ -690,16 +690,18 @@ class SiteGuideSnapshot:
             )
             # Atlas files held back from the list (their page was never captured) belong to the
             # old guide too: list every one still on disk.
+            ids = [o for key in ("legacy_id_map", "unmapped_legacy_ids")
+                   for o in (manifest.get(key) if isinstance(manifest.get(key), dict) else {})]
             old_files = sorted(set(old_files) | {
-                f for f in (f"articles/{o}.md" for o in
-                            list(manifest.get("legacy_id_map") or {}) + list(manifest.get("unmapped_legacy_ids") or {}))
-                if (path.parent / f).is_file()})
+                f for f in (f"articles/{o}.md" for o in ids) if (path.parent / f).is_file()})
             self.logger.warning(
                 f"  the manifest describes a different guide ({self._describe(changes)}): "
                 f"{len(manifest.get('pages', []))} page record(s) are dropped"
             )
             fresh = dict(base)
-            superseded = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
+            prior_list = manifest.get("superseded_files")
+            superseded = sorted({f for f in (prior_list if isinstance(prior_list, list) else []) if isinstance(f, str)}
+                                | set(old_files))
             if superseded:
                 fresh["superseded_files"] = superseded
             return fresh
@@ -733,8 +735,9 @@ class SiteGuideSnapshot:
         """
         pages = [p for p in manifest.get("pages", []) if isinstance(p, dict) and p.get("page_id")]
         out = path.parent
-        have = {p["page_id"] for p in pages if p.get("status") == "captured"}
-        have |= {p["page_id"] for p in pages if (out / "articles" / f"{p['page_id']}.md").is_file()}
+        captured = {p["page_id"] for p in pages if p.get("status") == "captured"}
+        # A page has an article when its file is on disk (a refused refetch keeps the old one).
+        have = {p["page_id"] for p in pages if (out / "articles" / f"{p['page_id']}.md").is_file()}
         mapped = manifest.get("legacy_id_map")
         mapped = mapped if isinstance(mapped, dict) else {}
         unmapped = manifest.get("unmapped_legacy_ids")
@@ -744,7 +747,7 @@ class SiteGuideSnapshot:
         stored = manifest.get("superseded_files")
         stored = [f for f in stored if isinstance(f, str)] if isinstance(stored, list) else []
         keep = {f for f in stored
-                if f not in {f"articles/{pid}.md" for pid in have} and f not in held
+                if f not in {f"articles/{pid}.md" for pid in captured} and f not in held
                 and (f not in replacement or replacement[f] in have) and (out / f).is_file()}
         for f, slug in replacement.items():  # (re)list a mapped atlas file whose page has an article
             if slug in have and (out / f).is_file():
