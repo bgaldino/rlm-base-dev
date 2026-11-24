@@ -6,7 +6,7 @@ portal's not-found page written over a Help article, a developer-guide page cut
 to a stub (with the first 3.2 KB of its prior capture), and a page whose text
 really changed (blank description cells, verified at source) which must pass.
 
-Run:  python3 tests/test_snapshot_guard.py   (stdlib, plus PyYAML for presets)
+Run:  python3 tests/test_snapshot_guard.py   (needs PyYAML)
 """
 
 import asyncio
