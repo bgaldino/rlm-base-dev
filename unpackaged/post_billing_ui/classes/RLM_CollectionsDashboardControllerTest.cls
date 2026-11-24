@@ -4,8 +4,8 @@
  * Invoice is createable=false, so no unit test can insert an invoice. The code that works on
  * queried invoices (the card tally, critical follow-ups, high-value delinquents and the
  * last-resort worklist) takes rows, and the tests pass invoices built with JSON.deserialize.
- * The invoice queries themselves, the unified worklist fallback and the disputed-accounts
- * invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
+ * The invoice queries themselves, the critical follow-ups' collection-plan lookup, the unified
+ * worklist fallback and the disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
  * Records are created in admin context. Three tests then run as other users: a collections
@@ -229,8 +229,9 @@ private class RLM_CollectionsDashboardControllerTest {
         }
 
         List<String> agingKeys = new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' };
-        // Bucket and invoice amounts are not asserted: no invoice can exist in a unit test, so
-        // they are zero whatever the controller does.
+        // Bucket and invoice amounts are not asserted here: no invoice can exist in a unit test, so
+        // they are zero whatever the controller does. They are checked from invoice rows in
+        // tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement.
         Assert.areEqual(agingKeys.size(), unfiltered.agingBuckets.size(), 'Five aging buckets.');
         for (Integer i = 0; i < agingKeys.size(); i++) {
             Assert.areEqual(agingKeys[i], unfiltered.agingBuckets[i].get('key'), 'Aging bucket order, bucket ' + i);
@@ -650,8 +651,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, bucket.itemCount, 'A missing count is zero.');
     }
 
-    // ------------------------------------------------------------------ helpers
-
     // ─── Seams over queried invoices ─────────────────────────────────────────
     // Invoice cannot be inserted in Apex, so these build invoices with JSON.deserialize, read-only
     // fields included, and pass them to the methods the controller calls with the rows it queried.
@@ -697,12 +696,9 @@ private class RLM_CollectionsDashboardControllerTest {
             'Full balances, a zero total and a blank balance (even under a set total) are not settled');
         Assert.areEqual(250, data.notSettledSum, 'The not-settled balances add up');
         Map<String, Object> byKey = new Map<String, Object>();
-        List<String> keys = new List<String>();
         for (Map<String, Object> bucket : data.agingBuckets) {
             byKey.put((String) bucket.get('key'), bucket.get('amount'));
-            keys.add((String) bucket.get('key'));
         }
-        Assert.areEqual(new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' }, keys, 'The buckets come in age order');
         Assert.areEqual(140, (Decimal) byKey.get('current'), 'Due today, not yet due and no due date are current');
         Assert.areEqual(40, (Decimal) byKey.get('1-30'), 'Thirty days past due is still 1-30');
         Assert.areEqual(50, (Decimal) byKey.get('31-60'), 'Sixty days past due is still 31-60');
@@ -860,6 +856,8 @@ private class RLM_CollectionsDashboardControllerTest {
             Assert.isNull(noFields.billToContactId, 'Without the bill-to contact field, no contact is shown');
         }
     }
+
+    // ------------------------------------------------------------------ helpers
 
     private static Account newAccount(String name) {
         Account a = new Account(Name = name);
