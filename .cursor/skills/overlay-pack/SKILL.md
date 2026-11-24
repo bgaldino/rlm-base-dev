@@ -254,7 +254,7 @@ Every step must be safe to run twice. What the proved build learned:
   `Status = Draft` to records already Active was refused on the second load; status
   objects take `skipExistingRecords: true`, as `sfdmu-data-plans` prescribes
   [Measured: 2026-11-17, 264].
-- **Catalog:** run the PCM plan twice on a fresh org (or run `scripts/check_classification_attrs.py` after one pass and load again only if it reports differences); the second pass applies
+- **Catalog:** run the PCM plan twice on a fresh org (or run `scripts/check_classification_attrs.py` after one pass and load again only if it reports differences); when it does load again, the second pass applies
   classification-attribute values (`product-catalog-modeling` → `catalogs-and-loading.md`, PCM load fact a). A
   third pass is expected to change nothing.
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an

@@ -12,7 +12,7 @@ row whose value differs from the plan CSV, so you can see whether a build needs 
 
 Exit 0 when every CSV row exists in the org and `AttributeNameOverride`, `IsRequired`,
 `DefaultValue`, `Description` and `HelpText` (the fields an insert copies from the attribute
-definition and an update does not) match the CSV. Exit 1 on a missing row or a difference in
+definition, per the trace in attributes-and-classifications.md, and an update does not) match the CSV. Exit 1 on a missing row or a difference in
 those fields. Exit 2 when the comparison can't be trusted: a query or `sf` error or unexpected
 payload, an unreadable CSV or unwritable --json file, a duplicate key in the CSV, or an org key
 held by more than one row (another plan's rows would make the match ambiguous). Rows are keyed
@@ -64,16 +64,16 @@ def soql_literal(value: str) -> str:
 
 
 def norm(value, field: str = "") -> str:
-    """Normalize a CSV or org value for comparison. Blank equals null. Only NUMERIC_FIELDS compare
+    """Normalize a CSV or org value for comparison. Blank equals null (a blank Is* cell is the false default). Only NUMERIC_FIELDS compare
     numerically ("007" == "7", "1e3" == "1000"), and only Is* fields compare as true/false; every
     other field compares exactly after strip(), so text such as "1.0" and "1" differs."""
     if value is None:
-        return ""
+        return "false" if field.startswith("Is") else ""
     if isinstance(value, bool):
         return "true" if value else "false"
     text = str(value).strip()
-    if field.startswith("Is") and text.lower() in ("true", "false"):
-        return text.lower()
+    if field.startswith("Is") and text.lower() in ("", "true", "false"):
+        return text.lower() or "false"
     if field not in NUMERIC_FIELDS:
         return text
     try:
@@ -136,6 +136,8 @@ def read_org(target: str, query: str) -> list:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
         raise Untrusted((proc.stdout + proc.stderr)[:2000]) from exc
+    if not isinstance(payload, dict):
+        raise Untrusted(f"unexpected sf output: {proc.stdout[:500]}")
     if payload.get("status") != 0:
         raise Untrusted(json.dumps(payload.get("message") or payload)[:2000])
     try:

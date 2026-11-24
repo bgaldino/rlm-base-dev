@@ -132,7 +132,7 @@ cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, the
 
 | Fact | Consequence |
 |---|---|
-| **(a)** On the measured PCM plan (the QuantumBit plan does not need it; see [`SKILL.md`](SKILL.md#loading-the-model)), after the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Load twice. Never extract from an org that had one pass, or the definition's values become the plan. |
+| **(a)** On the measured PCM plan (the QuantumBit plan does not need it; see [`SKILL.md`](SKILL.md#loading-the-model)), after the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Load twice, unless `scripts/check_classification_attrs.py` shows one pass already matches the CSV (QuantumBit). Never extract from an org whose one pass differs from the CSV, or the definition's values become the plan. |
 | **(b)** A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups silently unresolved. [Measured: 2026-11, 264] Whether the lookup shape is the cause is open. Owned by [`sfdmu-data-plans`](../sfdmu-data-plans/SKILL.md) -> *Where a plan's CSVs live*, including the open check. | When a plan anchors on objects another plan loaded through `$$` lookups, keep the anchor's CSV with the `$$` columns its children reference. |
 | **(c)** Without `useSeparatedCSVFiles: true`, repeating an object across object sets gives pass 2 the plan-root CSV again. [Measured: 2026-11, 264] Owned by [`sfdmu-data-plans`](../sfdmu-data-plans/SKILL.md) -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
@@ -148,7 +148,7 @@ not fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSF
 The QuantumBit plan needs no second load: on a fresh one-pass build all 36 classification attribute rows
 matched the CSV (0 missing, 0 differences; `scripts/check_classification_attrs.py`), because each CSV
 `AttributeNameOverride` and `IsRequired` already equals its attribute definition's value.
-[Measured: 2026-11-23, 264, fresh one-pass scratch build qb850]
+[Measured: 2026-11-23, fresh 264 ent-sb0 scratch org]
 
 Other load constraints: `ProrationPolicy` is create-only and platform-seeded, so its insert
 is rejected as a duplicate and tolerated (`ignore_row_errors_for`); several PCM lookups are
