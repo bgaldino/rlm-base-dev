@@ -103,3 +103,10 @@ ProductCategoryProduct.csv               # 72 records
   which the repo has no license to use. To give a product its own image, ship it as a static
   resource and point the row at `/resource/<name>`. A reload of this plan into an org loaded before this change
   moves those 39 products to the placeholder.
+- **The image hosts' trusted sites are gone from the repo.** `unpackaged/post_quantumbit` used to
+  deploy 16 CSP trusted sites (`img-src` only) for those hosts; nothing else in the repo used them,
+  so they were removed. Metadata deploys don't delete, so an org built before this change keeps
+  the 16 records until they are deleted by hand in Setup → Trusted URLs: `amazon_media`,
+  `apjonlinecdn`, `bruneau`, `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`,
+  `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
+  `shutterstock`, `unsplash`.
