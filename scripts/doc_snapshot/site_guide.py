@@ -628,7 +628,7 @@ class SiteGuideSnapshot:
             if to_capture:
                 failed, attempted = self._capture_pages(to_capture, output_dir, manifest, manifest_path)
 
-        if not self._version_verified and self._start_votes:
+        if not self._version_verified and self._start_votes and not self._switching:
             # No capture verified (nothing queued): the start page still must not
             # let a moved site's TOC be saved.
             self._verify_version(self._start_votes, manifest, require=False, weak=True)
@@ -650,7 +650,7 @@ class SiteGuideSnapshot:
         # refusal leaves the corpus (and an atlas manifest being switched) intact.
         votes: Counter = Counter(set(api_versions(start["body"])))
         self._start_votes = votes
-        if save:
+        if save and not self._switching:
             # Discover-only: the start page decides. With a capture to follow, capture
             # settles the version over many pages before any save.
             self._verify_version(votes, manifest, require=False, weak=True)
@@ -741,8 +741,8 @@ class SiteGuideSnapshot:
             # It refuses only when the preset's version is absent or a newer one appears.
             want = tuple(int(n) for n in o["api_version"].split("."))
             newer = any(tuple(int(n) for n in v.lstrip("v").split(".")) > want for v in votes)
-            if f"v{o['api_version']}" in votes and not newer:
-                seen = o["api_version"]
+            if not newer:
+                seen = o["api_version"] if f"v{o['api_version']}" in votes else None
         if seen is None and o.get("probe_page"):
             probe = self._fetch_page(str(o["probe_page"]))
             if "error" not in probe:
@@ -792,10 +792,10 @@ class SiteGuideSnapshot:
             if start + o["concurrency"] < len(queue):
                 self._sleep(o["batch_delay_ms"] / 1000.0)
         # With nothing fetched, the start page's votes (if any) are the evidence.
-        if fetched or self._switching:
+        if votes or self._switching:
             self._verify_version(votes, manifest)  # a switch needs captured evidence
         else:
-            self._verify_version(self._start_votes, manifest, require=False, weak=True)
+            self._verify_version(self._start_votes, manifest, require=bool(fetched), weak=True)
 
         extra = Counter(t for r in fetched.values() for t in unhandled_tags(r["body"]))
         if extra:

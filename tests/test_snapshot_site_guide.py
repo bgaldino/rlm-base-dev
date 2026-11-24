@@ -253,6 +253,14 @@ def main():
         check("a start page citing an older version beside the preset's does not refuse a rerun",
               st["captured"] == 4)
 
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        old_only = make_fetcher()(START)[1].replace(
+            "</doc-content-layout>", "<p>/services/data/v62.0/a</p></doc-content-layout>")
+        st = snap(tmp, mode="all", fetcher=make_fetcher({START: (200, old_only, START)})).run()
+        check("a start page citing only an older version does not refuse an idempotent rerun",
+              st["captured"] == 4)
+
     print("API version check")
     with tempfile.TemporaryDirectory() as tmp:
         s = snap(tmp, api_version="69.0")
