@@ -12,7 +12,7 @@ global class RLM_CalculateTaxService {
         return response == null ? null : response.getBody();
     }
 
-    @TestVisible private static final String INCOMPLETE_RESPONSE_PREFIX = 'The tax engine response is incomplete: ';
+    @TestVisible private static final String INCOMPLETE_RESPONSE_MESSAGE = 'The tax engine response is incomplete.';
 
     // Names the first value getTax needs that the engine response left out (a null total, a blank date,
     // or a line without its taxable flag, which the platform setter cannot take as null), or returns null
@@ -38,7 +38,7 @@ global class RLM_CalculateTaxService {
         return null;
     }
 
-    @TestVisible private static final String INVALID_DATE_PREFIX = 'The tax engine response has an invalid date: ';
+    @TestVisible private static final String INVALID_DATE_MESSAGE = 'The tax engine response has an invalid date.';
 
     // Names the first date the response carries that Date.valueOf cannot read, or null when all parse.
     // Date.valueOf throws TypeException for text that is not a date; any other exception it raises is
@@ -65,8 +65,28 @@ global class RLM_CalculateTaxService {
     }
 
     @TestVisible private static final String UNREADABLE_RESPONSE_MESSAGE = 'The tax engine response could not be read.';
-    @TestVisible private static final String ERROR_WITHOUT_MESSAGE = 'The tax engine returned an error without a message.';
     @TestVisible private static final String HTTP_ERROR_PREFIX = 'The tax engine returned HTTP status ';
+    @TestVisible private static final String ENGINE_ERROR_MESSAGE =
+        'The tax engine could not calculate the tax. Ask your administrator to check the tax engine setup.';
+
+    @TestVisible private static final Integer DEBUG_BODY_LENGTH = 2000;
+
+    // Every message this class returns is one of the fixed sentences above. Measured on a 264 org, the
+    // message of an ErrorResponse is shown as written: the Connect calculate tax API returns it to the
+    // caller, and the tax engine interaction log stores it. So every error return logs its detail here
+    // for the administrator instead: what went wrong and, where the body is the only diagnostic (an
+    // error or unreadable response), the start of that body. A success body that fails a check is not
+    // logged: it echoes the transaction back, customer address included, and the check names the value.
+    @TestVisible private static String lastDebugDetail;
+
+    private static void debugEngineDetail(String what) {
+        lastDebugDetail = what;
+        System.debug(LoggingLevel.ERROR, 'RLM_CalculateTaxService ' + lastDebugDetail);
+    }
+
+    private static void debugEngineDetail(String what, String body) {
+        debugEngineDetail(what + '; body: ' + (String.isBlank(body) ? '(empty)' : body.abbreviate(DEBUG_BODY_LENGTH)));
+    }
 
     // The body as untyped JSON, or null when it is not valid JSON.
     @TestVisible
@@ -79,37 +99,6 @@ global class RLM_CalculateTaxService {
         } catch (JSONException e) {
             return null;
         }
-    }
-
-    // The message of an engine error: the error's own message, else the last detail message, else a
-    // fixed text. Handles an error that is a bare string, an object with no message and no details,
-    // or any other shape, none of which may throw.
-    @TestVisible
-    private static String errorMessageFrom(Object errorValue, String body) {
-        if (errorValue instanceof String) {
-            return String.isNotBlank((String) errorValue) ? (String) errorValue : ERROR_WITHOUT_MESSAGE;
-        }
-        if (!(errorValue instanceof Map<String, Object>)) {
-            return ERROR_WITHOUT_MESSAGE;
-        }
-        String message = null;
-        try {
-            RLM_JsonErrorParser.cls_error error = RLM_JsonErrorParser.parse(body).error;
-            if (error != null) {
-                if (String.isNotBlank(error.message)) {
-                    message = error.message;
-                } else if (error.details != null) {
-                    for (RLM_JsonErrorParser.cls_details detail : error.details) {
-                        if (detail != null && String.isNotBlank(detail.message)) {
-                            message = detail.message;
-                        }
-                    }
-                }
-            }
-        } catch (JSONException e) {
-            // An error object shaped differently from the parser: fall through to the fixed text.
-        }
-        return String.isNotBlank(message) ? message : ERROR_WITHOUT_MESSAGE;
     }
 
     // The parser reads money as Decimal; the platform response setters take Double.
@@ -132,7 +121,8 @@ global class RLM_CalculateTaxService {
                 //system.debug('Request '+requestBody);
                 HttpResponse httpResponse = sendHttpRequest.getResponse();
                 if(httpResponse == null) {
-                    // RLM_HttpService swallows a failed callout and leaves no response.
+                    // RLM_HttpService swallows a failed callout and leaves no response (it logs the cause).
+                    debugEngineDetail('no response');
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '503', NO_RESPONSE_MESSAGE);
                 }
                 String responseString = bodyOrNull(httpResponse);
@@ -140,26 +130,22 @@ global class RLM_CalculateTaxService {
 
                 // The HTTP status is checked before the body: a response outside 2xx is an error whose
                 // code is that status, never a success body, even when the body is empty. Its message is
-                // the engine's own error message when the body carries a top-level "error" key (the
-                // Avalara error result), else a fixed text naming the status. The "error" shape is an
-                // assumption, not measured against a live engine. The engine's message is passed on
-                // deliberately: the caller is the platform tax engine, not a page, and the message is
-                // what explains the failure to whoever configured the integration.
+                // a fixed sentence naming the status; the body, which may carry the engine's own error
+                // text, goes to the debug log.
                 Integer statusCode = httpResponse.getStatusCode();
-                Object parsedBody = parseBodyOrNull(responseString);
                 if(statusCode < 200 || statusCode > 299) {
-                    Object statusError = parsedBody instanceof Map<String, Object>
-                        ? ((Map<String, Object>) parsedBody).get('error') : null;
-                    String statusMessage = statusError == null
-                        ? HTTP_ERROR_PREFIX + statusCode + '.'
-                        : errorMessageFrom(statusError, responseString);
-                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, String.valueOf(statusCode), statusMessage);
+                    debugEngineDetail('HTTP status ' + statusCode, responseString);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, String.valueOf(statusCode), HTTP_ERROR_PREFIX + statusCode + '.');
                 }
                 // A 2xx body that is empty, not a JSON object, or whose fields do not fit the success parser
-                // (for example "totalAmount":"abc"), returns the 502 unreadable response.
+                // (for example "totalAmount":"abc"), returns the 502 unreadable response. That includes a
+                // 204 No Content on purpose: a tax calculation that returns no result has not calculated
+                // the tax, so it is a failure, not a success with nothing in it.
                 // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
                 // successful body can carry the word in a tax name or a reason.
+                Object parsedBody = parseBodyOrNull(responseString);
                 if(!(parsedBody instanceof Map<String, Object>)) {
+                    debugEngineDetail('response is not a JSON object', responseString);
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
                 }
                 Object errorValue = ((Map<String, Object>) parsedBody).get('error');
@@ -170,15 +156,18 @@ global class RLM_CalculateTaxService {
                     try {
                         jsonSuccessParserClass = RLM_JsonSuccessParser.parse(responseString);
                     } catch (JSONException e) {
+                        debugEngineDetail('response does not fit the success parser: ' + e.getMessage());
                         return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
                     }
                     String missing = missingResponseValue(jsonSuccessParserClass);
                     if(missing != null) {
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INCOMPLETE_RESPONSE_PREFIX + missing + ' is missing.');
+                        debugEngineDetail('response value missing: ' + missing);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INCOMPLETE_RESPONSE_MESSAGE);
                     }
                     String invalidDate = invalidResponseDate(jsonSuccessParserClass);
                     if(invalidDate != null) {
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INVALID_DATE_PREFIX + invalidDate + ' is not a date.');
+                        debugEngineDetail('response value not a date: ' + invalidDate);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INVALID_DATE_MESSAGE);
                     }
                     response.setTaxTransactionType(request.taxTransactionType);
                     response.setDocumentCode(jsonSuccessParserClass.code);
@@ -259,8 +248,9 @@ global class RLM_CalculateTaxService {
                 }
                 else
                 {
-                    // The engine's own message is passed on deliberately, as for a non-2xx status above.
-                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', errorMessageFrom(errorValue, responseString));
+                    // As for a non-2xx status above, the body with the engine's own text goes to the debug log.
+                    debugEngineDetail('engine error', responseString);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', ENGINE_ERROR_MESSAGE);
                 }
             }else return null;
         }

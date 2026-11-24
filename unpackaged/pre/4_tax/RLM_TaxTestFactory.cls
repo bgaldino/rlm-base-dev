@@ -341,7 +341,8 @@ public with sharing class RLM_TaxTestFactory {
 
     /**
      * Records every request and answers with a fixed status and body. Never reaches the network.
-     * A null body is never set, so the response has no body (getBody returns an empty string).
+     * A null body is never set, so the response has no body (measured on 264: getBody then returns an
+     * empty string, not null).
      */
     public class RecordingHttpMock implements HttpCalloutMock {
         public List<HttpRequest> requests = new List<HttpRequest>();

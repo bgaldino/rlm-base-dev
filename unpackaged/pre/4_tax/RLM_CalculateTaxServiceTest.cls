@@ -213,20 +213,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', RLM_CalculateTaxService.NO_RESPONSE_MESSAGE,
             'The error carries the no-response message.');
         Assert.areEqual(1, mock.requests.size(), 'The request was still sent before the response was found missing.');
-    }
-
-    @IsTest
-    static void getTax_avalaraErrorBody_returnsTheEngineMessage() {
-        commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
-            commercetax.CalculateTaxType.Estimated, 'DOC-ENGINE-ERROR', RLM_TaxTestFactory.lines(232));
-        request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{"error":{"code":"GetTaxError","message":"Address is invalid.","details":[]}}'));
-
-        commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
-
-        Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, 'An Avalara error body is an error response.');
-        RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '501', 'The error code is 501.');
-        RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', 'Address is invalid.', 'The engine message is returned.');
+        Assert.areEqual('no response', RLM_CalculateTaxService.lastDebugDetail, 'The missing response is logged.');
     }
 
     // A parsed response that lacks a total used to throw a NullPointerException out of getTax.
@@ -253,7 +240,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
             Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, missing + ': an incomplete response is an error response.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', missing + ': the error code is 502.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
-                RLM_CalculateTaxService.INCOMPLETE_RESPONSE_PREFIX + missing + ' is missing.', missing + ': the message names the missing value.');
+                RLM_CalculateTaxService.INCOMPLETE_RESPONSE_MESSAGE, missing + ': a fixed sentence.');
+            Assert.areEqual('response value missing: ' + missing,
+                RLM_CalculateTaxService.lastDebugDetail, missing + ': the missing value is logged, the body is not.');
         }
     }
 
@@ -278,7 +267,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     // Routing is on the top-level "error" key. The word "error" in a successful body (here a
-    // reason and a jurisdiction name) must not turn it into an error response.
+    // reason) must not turn it into an error response.
     @IsTest
     static void getTax_successBodyContainingTheWordError_isStillASuccess() {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
@@ -293,22 +282,21 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The word "error" in a value is not an engine error.');
     }
 
-    // Every error shape yields a 501 response and never throws: a message, details only, a bare
-    // string, an error object with neither message nor details (used to throw a
-    // NullPointerException), and an error of an unexpected type.
+    // Every error shape yields a 501 response with the fixed sentence and never throws: a message,
+    // details only, a bare string, an error object with neither message nor details, and an error of
+    // an unexpected type. The engine's text stays out of the response and goes to the debug log.
     @IsTest
-    static void getTax_errorBodies_alwaysReturnAnErrorResponseWithAMessage() {
-        Map<String, String> expectedByBody = new Map<String, String>{
-            '{"error":{"code":"E","message":"Address is invalid.","details":[]}}' => 'Address is invalid.',
-            '{"error":{"code":"E","details":[{"message":"First."},{"message":""},{"message":"Last."}]}}' => 'Last.',
-            '{"error":"Bad credentials"}' => 'Bad credentials',
-            '{"error":{"code":"E"}}' => RLM_CalculateTaxService.ERROR_WITHOUT_MESSAGE,
-            '{"error":{"code":"E","details":[{"code":"D"}]}}' => RLM_CalculateTaxService.ERROR_WITHOUT_MESSAGE,
-            '{"error":{}}' => RLM_CalculateTaxService.ERROR_WITHOUT_MESSAGE,
-            '{"error":""}' => RLM_CalculateTaxService.ERROR_WITHOUT_MESSAGE,
-            '{"error":42}' => RLM_CalculateTaxService.ERROR_WITHOUT_MESSAGE
-        };
-        for (String body : expectedByBody.keySet()) {
+    static void getTax_errorBodies_alwaysReturnTheFixedSentenceAndLogTheBody() {
+        for (String body : new List<String>{
+            '{"error":{"code":"GetTaxError","message":"Address is invalid.","details":[]}}',
+            '{"error":{"code":"E","details":[{"message":"First."},{"message":""},{"message":"Last."}]}}',
+            '{"error":"Bad credentials"}',
+            '{"error":{"code":"E"}}',
+            '{"error":{"code":"E","details":[{"code":"D"}]}}',
+            '{"error":{}}',
+            '{"error":""}',
+            '{"error":42}'
+        }) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-ERROR-SHAPE', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
@@ -318,7 +306,10 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
             Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, body + ': an error response.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '501', body + ': the error code is 501.');
-            RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', expectedByBody.get(body), body + ': the message.');
+            RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', RLM_CalculateTaxService.ENGINE_ERROR_MESSAGE,
+                body + ': the fixed sentence.');
+            Assert.areEqual('engine error; body: ' + body, RLM_CalculateTaxService.lastDebugDetail,
+                body + ': the body is logged for the administrator.');
         }
     }
 
@@ -338,7 +329,18 @@ private with sharing class RLM_CalculateTaxServiceTest {
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', body + ': the error code is 502.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
                 RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE, body + ': the message.');
+            Assert.isTrue(RLM_CalculateTaxService.lastDebugDetail.startsWith('response is not a JSON object; body: '),
+                body + ': the body is logged.');
         }
+    }
+
+    // The logged body is cut to a fixed length, so a large engine page cannot fill the debug log.
+    @IsTest
+    static void getTax_aLongErrorBody_isLoggedShortened() {
+        String body = '<html>' + 'x'.repeat(RLM_CalculateTaxService.DEBUG_BODY_LENGTH * 2) + '</html>';
+        getTaxAnswering(500, body);
+        Assert.areEqual('HTTP status 500; body: ' + body.abbreviate(RLM_CalculateTaxService.DEBUG_BODY_LENGTH),
+            RLM_CalculateTaxService.lastDebugDetail, 'The body is shortened in the log.');
     }
 
     // A detail with no exempt amount is not exempt (null is not "exempt"); a detail with one maps
@@ -389,7 +391,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
             Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, field + ': an invalid date is an error response.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', field + ': the error code is 502.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
-                RLM_CalculateTaxService.INVALID_DATE_PREFIX + field + ' is not a date.', field + ': the message names the date.');
+                RLM_CalculateTaxService.INVALID_DATE_MESSAGE, field + ': a fixed sentence.');
+            Assert.areEqual('response value not a date: ' + field,
+                RLM_CalculateTaxService.lastDebugDetail, field + ': the invalid date is logged, the body is not.');
         }
     }
 
@@ -416,8 +420,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     // A status outside 2xx is an error carrying that status, whatever the body holds: a body that
-    // would map as a success, one with no totals, or one that is not JSON. An engine error body keeps
-    // its own message.
+    // would map as a success, one that is not JSON, or an engine error body, whose text stays out of
+    // the response and goes to the debug log with the rest of the body.
     @IsTest
     static void getTax_non2xxStatus_returnsAnErrorCarryingTheStatus() {
         String successBody = '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,'
@@ -426,7 +430,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             successBody => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
             '{"message":"Internal error"}' => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
             '<html>Server error</html>' => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
-            '{"error":{"code":"E","message":"Engine down.","details":[]}}' => 'Engine down.'
+            '{"error":{"code":"E","message":"Engine down.","details":[]}}' => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.'
         };
         for (String body : expectedByBody.keySet()) {
             commercetax.TaxEngineResponse response = getTaxAnswering(500, body);
@@ -434,23 +438,39 @@ private with sharing class RLM_CalculateTaxServiceTest {
             Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, body + ': an error response.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '500', body + ': the code is the HTTP status.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', expectedByBody.get(body), body + ': the message.');
+            Assert.areEqual('HTTP status 500; body: ' + body, RLM_CalculateTaxService.lastDebugDetail,
+                body + ': the body is logged.');
         }
-        for (String emptyBody : new List<String>{ null, '' }) {
-            commercetax.TaxEngineResponse empty = getTaxAnswering(504, emptyBody);
-            Assert.isInstanceOfType(empty, commercetax.ErrorResponse.class, emptyBody + ': an error response.');
-            RLM_TaxTestFactory.assertResponseField(empty, 'errorCode', '504',
-                emptyBody + ': a status outside 2xx with no body keeps its status.');
-            RLM_TaxTestFactory.assertResponseField(empty, 'errorMessage', RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '504.',
-                emptyBody + ': the message names the status.');
-        }
+        // The mock leaves a null body unset, so getBody returns an empty string (see RecordingHttpMock).
+        commercetax.TaxEngineResponse empty = getTaxAnswering(504, null);
+        Assert.isInstanceOfType(empty, commercetax.ErrorResponse.class, 'No body: an error response.');
+        RLM_TaxTestFactory.assertResponseField(empty, 'errorCode', '504',
+            'A status outside 2xx with no body keeps its status.');
+        RLM_TaxTestFactory.assertResponseField(empty, 'errorMessage', RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '504.',
+            'No body: the message names the status.');
+        Assert.areEqual('HTTP status 504; body: (empty)', RLM_CalculateTaxService.lastDebugDetail,
+            'No body: the empty body is logged as empty.');
         commercetax.TaxEngineResponse emptySuccess = getTaxAnswering(200, null);
         Assert.isInstanceOfType(emptySuccess, commercetax.ErrorResponse.class, 'A 2xx with no body is an error response.');
         RLM_TaxTestFactory.assertResponseField(emptySuccess, 'errorCode', '502', 'A 2xx with no body is unreadable.');
         RLM_TaxTestFactory.assertResponseField(emptySuccess, 'errorMessage', RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE,
             'A 2xx with no body carries the unreadable-response message.');
+        Assert.areEqual('response is not a JSON object; body: (empty)', RLM_CalculateTaxService.lastDebugDetail,
+            'A 2xx with no body is logged as empty.');
         commercetax.TaxEngineResponse unauthorized = getTaxAnswering(401, '{"error":"Bad credentials"}');
         RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorCode', '401', 'A 401 keeps its status.');
-        RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorMessage', 'Bad credentials', 'A 401 keeps the engine message.');
+        RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorMessage', RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '401.',
+            'A 401 names its status; the engine text goes to the debug log.');
+        Assert.areEqual('HTTP status 401; body: {"error":"Bad credentials"}', RLM_CalculateTaxService.lastDebugDetail,
+            'The 401 body is logged.');
+        // A 204 No Content is a 2xx without a result: a failure on purpose, not an empty success.
+        commercetax.TaxEngineResponse noContent = getTaxAnswering(204, null);
+        Assert.isInstanceOfType(noContent, commercetax.ErrorResponse.class, 'A 204 is an error response.');
+        RLM_TaxTestFactory.assertResponseField(noContent, 'errorCode', '502', 'A 204 is unreadable.');
+        RLM_TaxTestFactory.assertResponseField(noContent, 'errorMessage', RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE,
+            'A 204 carries the unreadable-response message.');
+        Assert.areEqual('response is not a JSON object; body: (empty)', RLM_CalculateTaxService.lastDebugDetail,
+            'A 204 is logged as an empty body.');
     }
 
     // A 2xx JSON body whose field does not fit the success parser used to throw a JSONException out
@@ -464,6 +484,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', 'The error code is 502.');
         RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
             RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE, 'The unreadable message.');
+        Assert.isTrue(RLM_CalculateTaxService.lastDebugDetail.startsWith('response does not fit the success parser: '),
+            'The parser failure is logged.');
+        Assert.isFalse(RLM_CalculateTaxService.lastDebugDetail.contains('; body: '), 'A success-shaped body is not logged.');
     }
 
     // Only Temporary and Committed are mapped; any other engine status leaves the response status unset.
