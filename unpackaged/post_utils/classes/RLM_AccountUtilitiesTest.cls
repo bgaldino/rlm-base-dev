@@ -22,15 +22,22 @@
  * COVERAGE
  * --------
  * Salesforce enforces 75% across ALL Apex in the org for a production deploy,
- * not per class, so this class's figure does not by itself block a deploy. It
- * is still under-tested: the usage-graph and fulfillment teardown --
- * deleteUsageSummaryGraph's delete rounds, deleteUsageEntitlementBucketsBottomUp,
- * deleteTransactionJournal and the fulfillment helpers -- are no-ops unless the
- * matching records exist, and building them needs fixtures this class does not
- * yet have: UsageEntitlementAccount alone requires a PricebookEntry plus
- * billing-period fields, and UsageEntitlementBucket requires a UsageResource
- * and a UnitOfMeasure. Those objects ARE createable, so the coverage is
- * reachable -- it is simply a separate piece of work.
+ * not per class, so this class's figure does not by itself block a deploy.
+ * The usage tests build entitlement accounts, entitlements and buckets
+ * (newEntitlementAccount, newEntitlement and newBucket, over loadUsageFixture).
+ * Among the paths these tests do not reach, and why:
+ *  - Deletes of the other usage rows (entries, billing period items, summaries,
+ *    journals, commitment junction rows), asset rate card entries and the
+ *    fulfillment records: no fixtures, so they run against empty sets.
+ *  - The entitlement-side bottom-up retry (deleteTransactionUsageEntitlement
+ *    finding buckets). Its leaf step deletes the entitlements those buckets
+ *    hold with no account filter (heldTues), and the fixture found to reach it
+ *    gives a bucket another account's entitlement. Whether that delete is
+ *    right is a question for the production class, not one to pin here.
+ *  - The asset step's entitlement-account delete: in these fixtures phase 2's
+ *    entitlement-account retry has already removed them.
+ *  - Running out of DML statements or queries partway through phase 2, and an
+ *    unexpected exception in phase 1.
  *
  * Three objects cannot be created in a unit test at all: Invoice and
  * BillingScheduleGroup are createable=false, and a CreditMemo's required
@@ -41,10 +48,10 @@
  * debit memo, which needs a tax treatment on every line, so keeping posted and
  * void debit memos is verified live too.
  *
- * The live verification that does cover the usage graph is
- * scripts/apex/validateRatedUsage.apex plus the usage-consumption skill; the
- * DeleteAssets gating below was additionally confirmed end-to-end against a
- * real rated asset with AssetRateCardEntry rows.
+ * The live verification that covers rated usage (summaries, entries,
+ * journals) is scripts/apex/validateRatedUsage.apex plus the usage-consumption
+ * skill; the DeleteAssets gating below was additionally confirmed end-to-end
+ * against a real rated asset with AssetRateCardEntry rows.
  */
 @IsTest
 private without sharing class RLM_AccountUtilitiesTest {
@@ -207,6 +214,67 @@ private without sharing class RLM_AccountUtilitiesTest {
         return Database.countQuery('SELECT COUNT() FROM ' + objectName + ' WHERE Id = \'' + recordId + '\'');
     }
 
+    private class UsageFixture {
+        Id resourceId;
+        Id uomId;
+        Id pricebookEntryId;
+    }
+
+    private static final String USAGE_PRODUCT = 'RLM Reset Usage Product';
+    private static final String RESOURCE_CODE = 'RLM_AU_TEST_UR';
+
+    // Built once for the class, so EVERY test method starts with these rows: an
+    // active standard price book, a unit of measure, a usage resource, a product
+    // and its standard price book entry. None is linked to an account, so the
+    // reset never touches them. The usage and order tests read them back with
+    // loadUsageFixture.
+    @TestSetup
+    static void setupUsageFixture() {
+        update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+
+        UnitOfMeasureClass uomClass = new UnitOfMeasureClass(
+            Name = 'RLM Reset Volume', Code = 'RLM_AU_TEST_UOMC', Type = 'Usage', Status = 'Draft'
+        );
+        insert uomClass;
+        uomClass.Status = 'Active';
+        update uomClass;
+
+        UnitOfMeasure uom = new UnitOfMeasure(
+            Name = 'RLM Reset Unit', UnitCode = 'RLMAUTU', Type = 'Usage',
+            UnitOfMeasureClassId = uomClass.Id, Status = 'Draft'
+        );
+        insert uom;
+        uom.Status = 'Active';
+        update uom;
+
+        UsageResource resource = new UsageResource(
+            Name = 'RLM Reset Resource', Code = RESOURCE_CODE, Category = 'Usage', Status = 'Draft',
+            DefaultUnitOfMeasureId = uom.Id, UnitOfMeasureClassId = uomClass.Id
+        );
+        insert resource;
+        resource.Status = 'Active';
+        update resource;
+
+        Product2 product = new Product2(Name = USAGE_PRODUCT, IsActive = true);
+        insert product;
+        insert new PricebookEntry(
+            Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1, IsActive = true
+        );
+    }
+
+    private static UsageFixture loadUsageFixture() {
+        UsageResource resource = [SELECT Id, DefaultUnitOfMeasureId FROM UsageResource WHERE Code = :RESOURCE_CODE];
+        Id standardPricebookId = Test.getStandardPricebookId();
+        UsageFixture f = new UsageFixture();
+        f.resourceId = resource.Id;
+        f.uomId = resource.DefaultUnitOfMeasureId;
+        f.pricebookEntryId = [
+            SELECT Id FROM PricebookEntry
+            WHERE Product2.Name = :USAGE_PRODUCT AND Pricebook2Id = :standardPricebookId
+        ].Id;
+        return f;
+    }
+
     // ------------------------------------------------------------------ guards
 
     @IsTest
@@ -281,6 +349,20 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assert(
             result.reason.startsWith('Not an Account Id'),
             'The reason must say the Id is not an account. Got: ' + result.reason
+        );
+    }
+
+    @IsTest
+    static void nullAccountIdIsReportedNotThrown() {
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(null, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A null Id must not count as a completed reset');
+        Assert.areEqual(false, result.cleared, 'A null Id must not count as a cleared account');
+        Assert.isTrue(
+            result.reason.startsWith('Not an Account Id'),
+            'A null Id must be rejected with the guard\'s reason. Got: ' + result.reason
         );
     }
 
@@ -828,6 +910,417 @@ private without sharing class RLM_AccountUtilitiesTest {
             2,
             [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
             'Phase 2 rolls back as a whole, so neither opportunity may be half-deleted'
+        );
+    }
+
+    @IsTest
+    static void noQueryBudgetForATeardownRoundStopsBeforePhaseTwo() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
+
+        Test.startTest();
+        // A teardown round starts only while its own 9 queries plus the 50 phase 2
+        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
+        // loop, means the first round cannot start: the state a usage graph too
+        // large for one run reaches after several rounds.
+        Integer spend = Limits.getLimitQueries() - 55;
+        for (Integer i = 0; i < spend; i++) {
+            countOf('Account', a.Id);
+        }
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run stopped for its query budget did not complete');
+        Assert.isTrue(
+            result.reason.contains('more usage records than one run can remove')
+                && result.reason.contains('nothing else was touched')
+                && result.reason.contains('Run the reset again'),
+            'The reason must be phase 1\'s stop message. Got: ' + result.reason
+        );
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'The opportunity must survive a run that stopped in phase 1'
+        );
+    }
+
+    @IsTest
+    static void phaseOneOutOfRowsKeepsWhatItDeleted() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        // Two consecutive periods: policies for one object and resource may not overlap.
+        Datetime start = Datetime.now().addDays(-10);
+        insert new List<BindingObjUsageRsrcPlcy>{
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start, EffectiveEndDate = start.addDays(4)),
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start.addDays(5))
+        };
+        Assert.areEqual(2, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'PRECONDITION: both binding policies must exist before the reset runs');
+        // Room for one of the two policies, the first delete of the run.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run that ran out of DML rows did not complete');
+        Assert.isTrue(
+            result.reason.contains('limit on record changes')
+                && result.reason.contains('stay deleted')
+                && result.reason.contains('Run the reset again'),
+            'The reason must be phase 1\'s row-limit stop message. Got: ' + result.reason
+        );
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'One policy must be deleted and the other kept');
+        Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
+            'The policy that went must be reported');
+    }
+
+    // ------------------------------------------------------------- usage graph
+    //
+    // A usage entitlement bucket hangs off an entitlement account (ParentId) or
+    // another bucket. Under a bucket it must hold a transaction usage entitlement;
+    // directly under an entitlement account it may hold none, and must have a zero
+    // balance (platform validation, 264). The teardown loop finds buckets only
+    // through their entitlement's account, so a bucket with no entitlement is
+    // invisible to it: the entitlement account above it refuses every round, the
+    // loop ends with rows left (usageDrained stays false), and phase 2 retries
+    // the entitlement account's buckets along the hierarchy, leaves first.
+
+    // An entitlement's external order line must be unique, and test methods can run
+    // in parallel, so each method's entitlements carry their own token.
+    private static final String TOKEN = String.valueOf(Crypto.getRandomInteger()).remove('-');
+
+    private static UsageEntitlementAccount newEntitlementAccount(Id accountId, UsageFixture f) {
+        Datetime start = Datetime.now().addDays(-10);
+        UsageEntitlementAccount uea = new UsageEntitlementAccount(
+            AccountId = accountId,
+            GrantBindingTargetId = accountId,
+            PricebookEntryId = f.pricebookEntryId,
+            EffectiveStartDateTime = start,
+            BillDayOfMonth = 1,
+            BillingPeriodStartDateTime = start,
+            BillingPeriodEndDateTime = start.addMonths(1),
+            BillingPeriodUnit = 'MONTH',
+            BillingPeriodTerm = 1
+        );
+        insert uea;
+        return uea;
+    }
+
+    private static Integer entitlementCount = 0;
+
+    private static TransactionUsageEntitlement newEntitlement(Id accountId, Id bindingTargetId, Id assetId, UsageFixture f) {
+        entitlementCount++;
+        TransactionUsageEntitlement tue = new TransactionUsageEntitlement(
+            AccountId = accountId,
+            GrantBindingTargetId = bindingTargetId,
+            AssetId = assetId,
+            UsageResourceId = f.resourceId,
+            PricebookEntryId = f.pricebookEntryId,
+            EntitlementUomId = f.uomId,
+            EffectiveStartDateTime = Datetime.now().addDays(-10),
+            TransactionQuantity = 1,
+            EntitlementQuantity = 100,
+            NetQuantity = 100,
+            ValidityPeriodTerm = 1,
+            ActionType = 'New',
+            // An entitlement must name the order line that granted it, and no two may
+            // name the same one. An external line saves building an order.
+            ExternalOrderItem = 'RLM-RESET-' + TOKEN + '-' + entitlementCount
+        );
+        insert tue;
+        return tue;
+    }
+
+    private static UsageEntitlementBucket newBucket(Id parentId, Id entitlementId, UsageFixture f) {
+        UsageEntitlementBucket bucket = new UsageEntitlementBucket(
+            ParentId = parentId,
+            TransactionUsageEntitlementId = entitlementId,
+            UsageResourceId = f.resourceId,
+            BucketBalanceUomId = f.uomId,
+            // The platform requires a zero balance on a bucket directly under an
+            // entitlement account.
+            BucketBalance = parentId.getSObjectType() == UsageEntitlementAccount.SObjectType ? 0 : 100,
+            EffectiveStartDateTime = Datetime.now().addDays(-10)
+        );
+        insert bucket;
+        return bucket;
+    }
+
+    @IsTest
+    static void bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
+        TransactionUsageEntitlement childTue = newEntitlement(a.Id, a.Id, null, f);
+        // The entitlement account holds two buckets: one with an entitlement and a
+        // child bucket (with its own) below it, which the loop finds through those
+        // entitlements, and one with no entitlement, which only phase 2's retry finds.
+        UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
+        UsageEntitlementBucket child = newBucket(held.Id, childTue.Id, f);
+        UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+
+        Assert.areEqual(
+            3,
+            [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id, :loose.Id)],
+            'PRECONDITION: all three buckets must exist before the reset runs'
+        );
+        Assert.areEqual(2, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:tue.Id, :childTue.Id)],
+            'PRECONDITION: both entitlements must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'PRECONDITION: the entitlement account must exist before the reset runs');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(
+            0,
+            [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id, :loose.Id)],
+            'All three buckets must be deleted'
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:tue.Id, :childTue.Id)],
+            'Both entitlements must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'The entitlement account must be deleted');
+        Assert.areEqual(true, result.cleared,
+            'Nothing must be reported kept. Retained: ' + result.retainedSummary);
+        for (String removed : new List<String>{
+            entry(UsageEntitlementBucket.SObjectType, 3),
+            entry(TransactionUsageEntitlement.SObjectType, 2),
+            entry(UsageEntitlementAccount.SObjectType, 1)
+        }) {
+            Assert.isTrue(
+                result.removedSummary.contains(removed),
+                'Expected "' + removed + '" in the removed summary. Got: ' + result.removedSummary
+            );
+        }
+    }
+
+    @IsTest
+    static void rollbackRestoresPhaseOneRefusals() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // The loop deletes this bucket and its entitlement in phase 1. The bucket
+        // with no entitlement keeps the entitlement account refused, so phase 2's
+        // retry (usageDrained false) deletes them and the rollback restores them;
+        // bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved shows the
+        // retry deleting them.
+        TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
+        UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :loose.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
+            'PRECONDITION: the entitlement must exist before the reset runs');
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
+            'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'Phase 1\'s delete of the bucket must survive the rollback');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
+            'Phase 1\'s delete of the entitlement must survive the rollback');
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id]
+                + [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'Phase 2\'s deletes of the entitlement account and its bucket must be rolled back'
+        );
+        Assert.areEqual(
+            entry(UsageEntitlementBucket.SObjectType, 1) + '; ' + entry(TransactionUsageEntitlement.SObjectType, 1),
+            result.removedSummary,
+            'Only phase 1\'s deletes may be reported removed after the rollback'
+        );
+        String kept = entry(UsageEntitlementAccount.SObjectType, 1) + ' (could not be deleted: ';
+        Assert.isTrue(
+            result.retainedSummary != null && result.retainedSummary.contains(kept),
+            'The entitlement account must be reported kept, with the reason. Got: '
+                + result.retainedSummary
+        );
+    }
+
+    @IsTest
+    static void phaseOneDeletesAnEntitlementAccountItEmptied() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'PRECONDITION: the bucket must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'PRECONDITION: the entitlement account must exist before the reset runs');
+        // With every bucket reachable, the loop deletes the bucket, the entitlement
+        // and then the entitlement account. Failing phase 2 shows those deletes are
+        // phase 1's: a rollback would restore anything phase 2 deleted.
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
+            'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'Phase 1\'s delete of the entitlement account must survive the rollback');
+        Assert.areEqual(
+            entry(UsageEntitlementBucket.SObjectType, 1) + '; '
+                + entry(TransactionUsageEntitlement.SObjectType, 1) + '; '
+                + entry(UsageEntitlementAccount.SObjectType, 1),
+            result.removedSummary,
+            'Phase 1\'s deletes must be reported removed'
+        );
+    }
+
+    @IsTest
+    static void entitlementsBoundToTheAssetFromAnotherAccountAreDeletedWithIt() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Moved Asset', AccountId = a.Id);
+        insert asset;
+        // The entitlements still name the account the asset was granted on. The
+        // teardown loop follows the reset account, so only the asset step finds
+        // them: one through AssetId, one through GrantBindingTargetId.
+        UsageEntitlementAccount othersUea = newEntitlementAccount(previousOwner.Id, f);
+        TransactionUsageEntitlement byAsset = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
+        TransactionUsageEntitlement byGrant = newEntitlement(previousOwner.Id, asset.Id, null, f);
+        UsageEntitlementBucket assetBucket = newBucket(othersUea.Id, byAsset.Id, f);
+        UsageEntitlementBucket grantBucket = newBucket(othersUea.Id, byGrant.Id, f);
+        // An entitlement account of the reset account's own, which the loop cannot
+        // clear (its bucket has no entitlement). It must be gone after the reset;
+        // this test does not pin which step removes it.
+        UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
+        newBucket(ownUea.Id, null, f);
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement
+                WHERE Id = :byAsset.Id AND AccountId = :previousOwner.Id AND AssetId = :asset.Id
+                AND GrantBindingTargetId = :previousOwner.Id],
+            'PRECONDITION: one entitlement, on the previous owner, must name the asset only in AssetId');
+        Assert.areEqual(1,
+            [SELECT COUNT() FROM TransactionUsageEntitlement
+                WHERE Id = :byGrant.Id AND AccountId = :previousOwner.Id AND GrantBindingTargetId = :asset.Id
+                AND AssetId = null],
+            'PRECONDITION: the other, on the previous owner, must name the asset only in GrantBindingTargetId');
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:assetBucket.Id, :grantBucket.Id)],
+            'PRECONDITION: both entitlements\' buckets must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
+            'PRECONDITION: the reset account\'s entitlement account must exist before the reset runs');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'DeleteAssets=true must remove the asset');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byAsset.Id],
+            'The entitlement bound through AssetId must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byGrant.Id],
+            'The entitlement bound through GrantBindingTargetId must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:assetBucket.Id, :grantBucket.Id)],
+            'Both entitlements\' buckets must be deleted too');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
+            'The reset account\'s own entitlement account must be removed');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
+            'The other account\'s entitlement account must be kept');
+        // Buckets: the two entitlements' buckets and the reset account's own bucket.
+        for (String removed : new List<String>{
+            entry(TransactionUsageEntitlement.SObjectType, 2),
+            entry(UsageEntitlementBucket.SObjectType, 3),
+            entry(UsageEntitlementAccount.SObjectType, 1),
+            entry(Schema.Asset.SObjectType, 1)
+        }) {
+            Assert.isTrue(
+                result.removedSummary.contains(removed),
+                'Expected "' + removed + '" in the removed summary. Got: ' + result.removedSummary
+            );
+        }
+    }
+
+    @IsTest
+    static void phaseTwoFindsABucketHiddenUnderABucket() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Other Account');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // A bucket under a bucket must hold an entitlement. This one holds another
+        // account's, so the loop (which follows the reset account's entitlements)
+        // sees neither bucket, and only phase 2's walk down from the entitlement
+        // account finds the child. The test checks the end state.
+        TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
+        UsageEntitlementBucket parent = newBucket(uea.Id, null, f);
+        UsageEntitlementBucket child = newBucket(parent.Id, othersTue.Id, f);
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:parent.Id, :child.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'PRECONDITION: the entitlement account must exist before the reset runs');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:parent.Id, :child.Id)],
+            'Both buckets must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'The entitlement account must be deleted');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :othersTue.Id],
+            'Another account\'s entitlement must be kept');
+        Assert.areEqual(true, result.cleared, 'Nothing was kept. Retained: ' + result.retainedSummary);
+        Assert.isTrue(
+            result.removedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)),
+            'Both buckets must be reported. Got: ' + result.removedSummary
+        );
+    }
+
+    // ------------------------------------------------------------------ orders
+
+    @IsTest
+    static void activatedOrdersAreDeleted() {
+        Account a = newAccount();
+        // The class-wide setup's standard price book entry.
+        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
+        Order o = new Order(
+            AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+            Pricebook2Id = Test.getStandardPricebookId()
+        );
+        insert o;
+        insert new OrderItem(OrderId = o.Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        o.Status = 'Activated';
+        update o;
+
+        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status,
+            'PRECONDITION: the order must be activated');
+
+        Test.startTest();
+        // DeleteFulfillment on, so the fulfillment lookup runs against a real order
+        // and order line. This test checks only the order's removal.
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, true, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE Id = :o.Id], 'The activated order must be deleted');
+        Assert.isTrue(
+            result.removedSummary.contains(entry(Order.SObjectType, 1)),
+            'The deleted order must be reported. Got: ' + result.removedSummary
         );
     }
 
