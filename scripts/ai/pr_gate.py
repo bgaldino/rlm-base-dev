@@ -983,6 +983,7 @@ CHECKS = [
 # and fail it for a reason that has nothing to do with the change. `unlisted_suites()`
 # reports anything in tests/ that no check claims, so adding one is not silently ignored.
 STDLIB_SUITES = [
+    "tests/test_add_product_sentences.py",
     "tests/test_agent_launch_checks.py",
     "tests/test_agents_common.py",
     "tests/test_billing_flow_copies.py",

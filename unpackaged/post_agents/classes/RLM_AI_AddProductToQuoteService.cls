@@ -14,8 +14,9 @@
  * The managed invocation is isolated behind an injectable seam
  * (ManagedAddLineInvoker), and the best-effort lookup of the new line behind
  * another (NewLineLookup), so the resolver/validation logic and every outcome
- * after the add are unit-testable. The real managed call is exercised live in `sf agent preview`
- * (managed actions are not invocable/mockable in @isTest).
+ * after the add are unit-testable. A managed action cannot be run in @isTest, so a successful
+ * add through the real invoker is exercised live in `sf agent preview`; tests run the real
+ * invoker only against an action that does not exist.
  *
  * Names-only by contract: the agent surfaces `lineSummaryDisplay` /
  * `productNameAdded`, never raw Ids. Id outputs are flagged
@@ -115,6 +116,10 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         label='Add Product To Quote'
         description='Adds a product to a quote in one call: resolves the product and its default selling model, then invokes the managed add-line action. Returns a names-only confirmation, or product candidates when the name is ambiguous.'
     )
+    // Each input costs about three queries of its own and one Invocable.Action.invoke, plus whatever
+    // queries and DML the managed action runs in the same transaction, so a Flow sending many inputs
+    // at once can reach the governor limits. What a limit failure leaves behind (whether lines
+    // added earlier in that batch stay) has not been measured. The agent sends one input per call.
     public static List<AddOutput> addProduct(List<AddInput> inputs) {
         List<AddOutput> results = new List<AddOutput>();
         if (inputs == null || inputs.isEmpty()) {
@@ -127,24 +132,43 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     }
 
     // Failure sentences. What the managed add-line action leaves behind was measured on a 264 org
-    // by counting the quote's lines before and after each call: a refusal (a validation rule, a
-    // trigger's addError, an unhandled trigger exception, a missing required field) and an action
-    // that did not run (invalid input) all left no line. So a refusal or an action that did not run
-    // can say that nothing was added; only an exception thrown out of the invocation itself leaves
-    // the outcome unknown.
+    // by counting the quote's lines before and after each call: a refusal the action reports in
+    // its own output (a validation rule, a trigger's addError, an unhandled trigger exception, a
+    // missing required field) left no line, so a refusal can say that nothing was added. An
+    // invocation that fails without that report (a throw, an unsuccessful or empty result, no
+    // outputs) was measured only for invalid input; whether an action that faults after its own
+    // insert leaves a line is not known, so those all get the uncertain sentence, as do outputs
+    // without a true or false isSuccess. The sentence that nothing was added and inviting a retry
+    // is kept for failures before the action is called: preparing the add, or creating the action.
     @TestVisible
     static final String ADD_FAILED_MESSAGE =
         'The product was not added to the quote because of an unexpected error. Try again, or contact your administrator.';
     @TestVisible
     static final String ADD_REFUSED_MESSAGE =
         'The product was not added to the quote. Ask your administrator to check the quote and the product.';
-    // Also shown when the action cannot be created (createCustomAction throws): the invocation
-    // path does not tell that case apart, so the cautious sentence covers it.
+    // For any failure of the add-line invocation that the action does not report in its own
+    // output (a throw, an unsuccessful or empty result, no outputs, outputs without a true or false
+    // isSuccess, no result at all); an action that is missing is reported apart (below).
     @TestVisible
     static final String ADD_UNCERTAIN_MESSAGE =
         'The product may not have been added to the quote because of an unexpected error. Check the quote before trying again.';
+    // The add-line action is not available in this org (measured on a 264 org: invoke() on a
+    // missing action returns one unsuccessful result with the error code MISSING_RECORD, and
+    // nothing runs). Trying again cannot help, so the sentence does not invite it. The same org
+    // showed that a quote that does not exist, or was deleted, does not give that code: the action
+    // runs and reports it in its own errorMessage, which gets the refusal sentence.
+    @TestVisible
+    static final String ACTION_UNAVAILABLE_MESSAGE =
+        'Products cannot be added to quotes here yet. Ask your administrator to set up quoting for the assistant.';
     @TestVisible
     static final String INVALID_QUOTE_MESSAGE = 'That is not a valid quote. Open the quote and try again.';
+    // The planner, not the user, fills the product Id, so the sentence does not blame the user for it.
+    @TestVisible
+    static final String PRODUCT_NOT_IDENTIFIED_MESSAGE = 'The product could not be identified. Give the product name and try again.';
+
+    // The confirmation when the detailed summary cannot be built.
+    @TestVisible
+    static final String ADDED_MESSAGE = 'The product was added to the quote.';
 
     private class PreparedAdd {
         Id quoteId;
@@ -186,9 +210,19 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             out.errorMessage = ADD_UNCERTAIN_MESSAGE;
             return out;
         }
-        if (mr == null || mr.actionFailed == true) {
-            // The action did not run (or returned nothing): no line was added.
+        if (mr != null && mr.actionUnavailable == true) {
+            out.errorMessage = ACTION_UNAVAILABLE_MESSAGE;
+            return out;
+        }
+        if (mr != null && mr.notSent == true) {
+            // Nothing was sent to the action, so no line was added.
             out.errorMessage = ADD_FAILED_MESSAGE;
+            return out;
+        }
+        if (mr == null || mr.actionFailed == true || mr.isSuccess == null) {
+            // The action gave no outcome of its own (only a true or false isSuccess is one), so
+            // whether it added a line is unknown.
+            out.errorMessage = ADD_UNCERTAIN_MESSAGE;
             return out;
         }
         if (mr.isSuccess != true) {
@@ -196,14 +230,21 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             return out;
         }
 
-        // The line is committed. Nothing below can escape or flip isSuccess: a reported failure
-        // after a committed add would invite a retry that adds the line twice.
+        // The line is committed. Nothing below may escape or flip isSuccess: a reported failure
+        // after a committed add would invite a retry that adds the line twice. So the summary and
+        // the line lookup are each best effort, behind their own catch.
         out.isSuccess = true;
         out.productNameAdded = prep.product.Name;
         out.quantityAdded = prep.quantity;
         out.sellingModelName = prep.sellingModel.sellingModelName;
-        out.lineSummaryDisplay = buildLineSummary(prep.product.Name, prep.quantity, prep.sellingModel.sellingModelName);
-        // Best effort: a failed lookup leaves the id null and the add still reports success.
+        // Defensive: the summary only joins strings today, so no test reaches this catch.
+        try {
+            out.lineSummaryDisplay = buildLineSummary(prep.product.Name, prep.quantity, prep.sellingModel.sellingModelName);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService line summary failed: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            out.lineSummaryDisplay = ADDED_MESSAGE;
+        }
         try {
             out.quoteLineItemId = lineLookup.findNewLineId(prep.quoteId, prep.product.Id);
         } catch (Exception e) {
@@ -264,21 +305,42 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return ADD_REFUSED_MESSAGE;
     }
 
+    // A 15- or 18-character value with an unknown key prefix parses as an Id, but getSObjectType()
+    // then throws (measured on a 264 org), so a throw counts as no product and the name is matched.
+    private static Boolean isProductId(Id candidate) {
+        if (candidate == null) {
+            return false;
+        }
+        try {
+            return candidate.getSObjectType() == Product2.SObjectType;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Resolves the target product. Populates `out` with an error or
      * disambiguation payload and returns null when no single product is found.
      */
     private static Product2 resolveProduct(AddInput input, AddOutput out) {
-        Id productId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.productId);
-        if (productId != null) {
-            List<Product2> byId = [
-                SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1
-            ];
-            if (byId.isEmpty()) {
-                out.errorMessage = 'No product found for the supplied product Id.';
+        if (String.isNotBlank(input.productId)) {
+            // A product Id takes precedence. The planner fills it and can leave a name, a deleted
+            // product's Id or another record's Id in it; when that finds no product, a product name
+            // given with it still identifies the product, so the name is matched instead.
+            Id productId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.productId);
+            if (isProductId(productId)) {
+                List<Product2> byId = [
+                    SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1
+                ];
+                if (!byId.isEmpty()) {
+                    return byId[0];
+                }
+            }
+            if (String.isBlank(input.productName)) {
+                out.errorMessage = PRODUCT_NOT_IDENTIFIED_MESSAGE;
                 return null;
             }
-            return byId[0];
+            System.debug(LoggingLevel.WARN, 'RLM_AI_AddProductToQuoteService: the product Id finds no product; matching the product name');
         }
 
         if (String.isBlank(input.productName)) {
@@ -469,8 +531,13 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     public class ManagedResult {
         public Boolean isSuccess;
         public String errorMessage;
-        // True when the add-line action itself did not run, as opposed to running and refusing the add.
+        // True when the invocation failed without the action reporting an outcome of its own, as
+        // opposed to the action running and refusing the add. Whether a line was added is unknown.
         public Boolean actionFailed = false;
+        // True when nothing was sent to the action (it could not be created), so no line was added.
+        public Boolean notSent = false;
+        // True when the action did not run because the org does not have it.
+        public Boolean actionUnavailable = false;
         public ManagedResult(Boolean isSuccess, String errorMessage) {
             this.isSuccess = isSuccess;
             this.errorMessage = errorMessage;
@@ -482,14 +549,22 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     @TestVisible
     private static ManagedResult resultFrom(Map<String, Object> outputs) {
         if (outputs == null) {
-            // No outputs means the action did not run (measured: an invalid input returns none).
+            // No outputs: the action reported no outcome (measured for an invalid input, which adds
+            // nothing, but not for every cause), so the outcome is unknown.
             ManagedResult failed = new ManagedResult(false, null);
             failed.actionFailed = true;
             return failed;
         }
-        Boolean innerSuccess = outputs.get('isSuccess') == true;
+        Object rawSuccess = outputs.get('isSuccess');
+        if (!(rawSuccess instanceof Boolean)) {
+            // Only a true or false isSuccess is the action's own outcome; a missing or other value
+            // reports none, so whether a line was added is unknown.
+            ManagedResult failed = new ManagedResult(false, null);
+            failed.actionFailed = true;
+            return failed;
+        }
         Object rawError = outputs.get('errorMessage');
-        return new ManagedResult(innerSuccess, rawError == null ? null : String.valueOf(rawError));
+        return new ManagedResult((Boolean) rawSuccess, rawError == null ? null : String.valueOf(rawError));
     }
 
     public interface ManagedAddLineInvoker {
@@ -510,8 +585,19 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             Id quoteId, Id productId, Id sellingModelId,
             Decimal quantity, Date startDate, Date endDate
         ) {
-            Invocable.Action action =
-                Invocable.Action.createCustomAction('flow', 'quotingAI__addQuoteLineItemToQuote');
+            Invocable.Action action;
+            try {
+                action = Invocable.Action.createCustomAction('flow', addLineActionName);
+            } catch (Exception e) {
+                // Nothing was sent to the action, so nothing was added. Measured on a 264 org, a
+                // missing action is not refused here but by invoke() (below), so a refusal here has
+                // an unknown cause and gets the general failure sentence.
+                System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add-line action could not be created: '
+                    + e.getTypeName() + ': ' + e.getMessage());
+                ManagedResult failed = new ManagedResult(false, null);
+                failed.notSent = true;
+                return failed;
+            }
             action.setInvocationParameter('quoteId', String.valueOf(quoteId));
             action.setInvocationParameter('productId', String.valueOf(productId));
             action.setInvocationParameter('productSellingModelID', String.valueOf(sellingModelId));
@@ -524,14 +610,33 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             }
             List<Invocable.Action.Result> actionResults = action.invoke();
             if (actionResults.isEmpty() || !actionResults[0].isSuccess()) {
-                // The action did not run: its errors are platform detail, not text for the user.
+                // No outcome from the action. Its errors are platform detail, not text for the user,
+                // and only a missing action (MISSING_RECORD) is known to have run nothing; any other
+                // unsuccessful result leaves the outcome unknown.
                 System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add-line action failed: '
                     + (actionResults.isEmpty() ? 'no result' : summarizeErrors(actionResults[0].getErrors())));
                 ManagedResult failed = new ManagedResult(false, null);
                 failed.actionFailed = true;
+                failed.actionUnavailable = !actionResults.isEmpty() && isMissingAction(actionResults[0].getErrors());
                 return failed;
             }
             return resultFrom(actionResults[0].getOutputParameters());
+        }
+
+        // MISSING_RECORD means the action itself is missing. Measured on a 264 org by calling the
+        // action directly with a deleted product's Id, a deleted selling model's Id, and another
+        // record's Id as the product: each ran the action, which returned no errors and reported the
+        // failure in its own output. So a selling model deleted after it was resolved here gets the
+        // refusal sentence, not the unavailable one.
+        private Boolean isMissingAction(List<Invocable.Action.Error> errors) {
+            if (errors != null) {
+                for (Invocable.Action.Error e : errors) {
+                    if (e.getCode() == 'MISSING_RECORD') {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private String summarizeErrors(List<Invocable.Action.Error> errors) {
@@ -571,4 +676,8 @@ public with sharing class RLM_AI_AddProductToQuoteService {
 
     @TestVisible
     private static ManagedAddLineInvoker invoker = new DefaultManagedAddLineInvoker();
+
+    // The managed add-line action. A test points it at a missing action to drive the real invoker.
+    @TestVisible
+    private static String addLineActionName = 'quotingAI__addQuoteLineItemToQuote';
 }
