@@ -77,6 +77,8 @@ from tasks.expression_set_schema import (
     validate_overlay,
     validate_overlay_against_definition,
 )
+# Stdlib-only pure guards shared with the standalone toolkit (no CumulusCI import).
+from scripts.expression_sets._guards import import_target_refusal
 
 
 _REQUEST_TIMEOUT = 120
@@ -2067,7 +2069,14 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             es_def_id = existing[0]["Id"]
             es_id = self._get_expression_set_id(api_name)
             self.logger.info("Expression set '%s' exists, updating...", api_name)
+            versions = self._list_versions(es_id)
             esv = self._resolve_version_by_es_id(es_id)
+            # On a multi-version set, refuse a PATCH that would rebind the
+            # payload's version onto another one, before ANY write (the
+            # ResourceInitializationType alignment below is a write too).
+            refusal = import_target_refusal(api_name, versions, esv, payload)
+            if refusal:
+                raise TaskOptionsError(refusal)
 
             # Align ResourceInitializationType to the value the PATCH body will
             # carry, before touching activation state.
@@ -2102,7 +2111,7 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 cascade=cascade,
                 verb="Import",
                 # The PATCH relabels every version of the set, not just esv.
-                label_versions=self._list_versions(es_id),
+                label_versions=versions,
             )
         else:
             self.logger.info("Expression set '%s' does not exist, creating...", api_name)

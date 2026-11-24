@@ -1040,6 +1040,37 @@ def test_cli_restore_boundary():
                   restores == [("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
                                ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
                   restores)
+
+            # A version chain (ramp264: three active) is refused before ANY write
+            # (todo pack 172): no ResourceInitializationType alignment, no
+            # mutation, no restore — in preview as well as with --confirm.
+            calls = []
+
+            class _RecordingEngine(_FakeEngine):
+                def ensure_resource_initialization_type(self, *a, **k):
+                    calls.append("rit")
+
+                def run_mutation(self, *a, **k):
+                    calls.append("mutation")
+
+            def record_restore(engine, **kw):
+                calls.append("restore")
+                return {"ok": True, "changed": [], "error": None}
+
+            for confirm in (["--confirm"], []):
+                u = _patch_cli(
+                    import_mod, LifecycleEngine=_RecordingEngine,
+                    restore_labels_after_clobber=record_restore,
+                    list_versions=lambda *a, **k: [dict(v) for v in RAMP264_VERSIONS],
+                )
+                rc_multi = import_mod.main(["--target-org", "x", "--input-file",
+                                            str(import_path), *confirm])
+                u()
+                mode = "confirm" if confirm else "preview"
+                check(f"import ({mode}): multi-version set refused → exit 1",
+                      rc_multi == 1, rc_multi)
+                check(f"import ({mode}): nothing written before the refusal",
+                      calls == [], calls)
         finally:
             undo()
 
@@ -1731,6 +1762,326 @@ def test_failed_mutation_keeps_plans_online():
           not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
 
 
+# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
+# three versions active at once; the highest-numbered active one (v40) executes.
+RAMP264_VERSIONS = [
+    {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1",
+     "VersionNumber": 1, "IsActive": True},
+    {"Id": "9QM2", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Promo_Price_Proc_v20",
+     "VersionNumber": 2, "IsActive": False},
+    {"Id": "9QM3", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Partner_Price_Proc_v30",
+     "VersionNumber": 3, "IsActive": True},
+    {"Id": "9QMv", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40",
+     "VersionNumber": 4, "IsActive": True},
+]
+
+_RAMP_PARENT = "Applyupliftstorampedsubscriptionsitemsduringamendment"
+
+
+def _formula_metadata(child="CompoundUplift", formula="ItemUnitPrice * 1"):
+    """A Tooling Metadata blob shaped like v40: the ramp-uplift ListGroup with a
+    filter child (no formula) and a formula child, plus an unrelated formula step."""
+    return {
+        "steps": [
+            {"name": "Getbaseprices", "stepType": "BusinessKnowledgeModel"},
+            {"name": _RAMP_PARENT, "stepType": "ListGroup"},
+            {"name": "Filterrampedlines", "parentStep": _RAMP_PARENT,
+             "stepType": "AdvancedListFilter"},
+            {"name": child, "parentStep": _RAMP_PARENT, "stepType": "BusinessKnowledgeModel",
+             "customElement": {"parameters": [
+                 {"name": "selectedFunction", "value": "Get"},
+                 {"name": "formula-section-0-input", "value": formula, "type": "Formula"},
+                 {"name": "formula-section-1-input", "value": "S1", "type": "Formula"}]}},
+            {"name": "Calculatemargin", "stepType": "BusinessKnowledgeModel",
+             "customElement": {"parameters": [
+                 {"name": "formula-section-0-input", "value": "A - B", "type": "Formula"}]}},
+        ],
+        "urls": {"self": "x"},
+    }
+
+
+def test_import_guards():
+    """_guards: executing_version and import_target_refusal over ramp264's version
+    chain (refused) and an active+draft set (proceeds when the payload names the
+    target) — todo pack 172."""
+    print("test_import_guards")
+    from scripts.expression_sets._guards import executing_version, import_target_refusal
+
+    running = executing_version(RAMP264_VERSIONS)
+    check("highest-numbered ACTIVE version executes (v40, not v1 or v30)",
+          running and running["Id"] == "9QMv", running)
+    check("no active version → no executing version",
+          executing_version([dict(v, IsActive=False) for v in RAMP264_VERSIONS]) is None)
+
+    def payload(api):
+        return {"apiName": "RLM_DefaultPricingProcedure", "versions": [{"apiName": api}]}
+
+    v1, v40 = RAMP264_VERSIONS[0], RAMP264_VERSIONS[3]
+    # The importer's target on ramp264 was v40 (active first, then highest).
+    msg = import_target_refusal("RLM_DefaultPricingProcedure", RAMP264_VERSIONS, v40,
+                                payload(v1["ApiName"])) or ""
+    check("ramp264: three active versions are refused, naming every version and the executing one",
+          "3 active versions" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg
+          and "Only RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40 executes"
+          in msg, msg)
+    check("ramp264: refused even when the payload names the executing version",
+          import_target_refusal("X", RAMP264_VERSIONS, v40, payload(v40["ApiName"])) is not None)
+    check("the refusal points to set_step_formula.py and says nothing was written",
+          "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
+
+    single = [dict(v1)]
+    check("a single-version set is never refused here (even on a name mismatch)",
+          import_target_refusal("X", single, single[0], payload("Other")) is None)
+    check("an empty version list is not refused",
+          import_target_refusal("X", [], {}, payload("A")) is None)
+
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "IsActive": True, "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "IsActive": False, "VersionNumber": 2}]
+    check("active+draft: a payload for the targeted active version proceeds",
+          import_target_refusal("X", draft, draft[0], payload("X_V1")) is None)
+    rebind = import_target_refusal("X", draft, draft[0], payload("X_V2")) or ""
+    check("active+draft: a payload for the draft is refused as a rebind onto X_V1",
+          "payload's version is X_V2" in rebind and "X_V1 (v1)" in rebind, rebind)
+    check("a payload version without apiName is refused on a multi-version set",
+          "has no apiName" in (import_target_refusal("X", draft, draft[0],
+                                                      {"versions": [{}]}) or ""))
+    none_active = [dict(v, IsActive=False) for v in draft]
+    check("no active version: a payload for the target (highest-numbered) proceeds",
+          import_target_refusal("X", none_active, none_active[1], payload("X_V2")) is None)
+
+
+class _FormulaTransport(_PlanTransport):
+    """_PlanTransport plus the Tooling ESDV record set_step_formula edits.
+
+    The Tooling PATCH is refused while the version is active, as the platform
+    refuses it (INVALID_ID_FIELD: LatestVersionSnapshotId not found).
+    """
+
+    def __init__(self, *, metadata, versions=None, store_formula=None, patch_error=None, **kw):
+        super().__init__(**kw)
+        self.metadata = metadata
+        self.versions = [dict(v) for v in (versions or RAMP264_VERSIONS)]
+        self.store_formula = store_formula
+        self.patch_error = patch_error
+        self.events = []
+
+    def connect(self, method, path, body=None, **kw):
+        if self.dry_run and method != "GET":
+            self.events.append(("dry-run", method))
+            return {}
+        if path.startswith("tooling/query"):
+            self.events.append(("esdv-query", path))
+            return {"records": [{"Id": "9QBv", "DeveloperName": "x", "VersionNumber": 4}]}
+        if method == "GET":
+            return {"Metadata": deepcopy(self.metadata)}
+        self.events.append(("tooling-patch", self.esv_active))
+        from scripts.expression_sets._client import ExpressionSetClientError
+        if self.esv_active:
+            raise ExpressionSetClientError("INVALID_ID_FIELD: LatestVersionSnapshotId not found")
+        if self.patch_error:
+            raise ExpressionSetClientError(self.patch_error)
+        if "urls" in body["Metadata"]:
+            raise RuntimeError("urls must be stripped")
+        self.metadata = deepcopy(body["Metadata"])
+        if self.store_formula is not None:
+            for step in self.metadata["steps"]:
+                for p in (step.get("customElement") or {}).get("parameters") or []:
+                    if p["name"] == "formula-section-0-input" and step["name"] == "CompoundUplift":
+                        p["value"] = self.store_formula
+        return {}
+
+    def sobject(self, method, sobject, record_id=None, body=None, **kw):
+        if self.dry_run:
+            self.events.append(("dry-run", sobject))
+            return {}
+        return super().sobject(method, sobject, record_id, body, **kw)
+
+
+def _run_set_formula(transport, argv):
+    import scripts.expression_sets.set_step_formula as mod
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    logs = []
+
+    def make_transport(**kw):
+        transport.dry_run = kw.get("dry_run", False)
+        return transport
+
+    undo = _patch(
+        mod, Transport=make_transport, eprint=logs.append,
+        LifecycleEngine=lambda t, **k: LifecycleEngine(t, logger=logs.append,
+                                                       max_wait_seconds=0, poll_interval_seconds=1),
+        resolve_expression_set_id=lambda *a, **k: "9QLx",
+        resolve_definition_id=lambda *a, **k: "9QAx",
+        list_versions=lambda *a, **k: [dict(v) for v in transport.versions],
+    )
+    try:
+        rc = mod.main(["--target-org", "x", "--expression-set", "RLM_DefaultPricingProcedure",
+                       *argv])
+    finally:
+        undo()
+    return rc, logs
+
+
+def test_set_step_formula():
+    """set_step_formula.py: executing-version default, step selection, lifecycle,
+    read-back and plan checks (todo pack 172)."""
+    print("test_set_step_formula")
+    import scripts.expression_sets.set_step_formula as mod
+
+    # ---- pure helpers -------------------------------------------------
+    check("default target is the executing version (v40)",
+          mod.select_target_version(RAMP264_VERSIONS)["Id"] == "9QMv")
+    check("an explicit version name wins",
+          mod.select_target_version(RAMP264_VERSIONS, "RLM_DefaultPricingProcedure_V1")["Id"]
+          == "9QM1")
+    for label, args in (("an unknown version name", (RAMP264_VERSIONS, "Nope")),
+                        ("no active version and no name",
+                         ([dict(v, IsActive=False) for v in RAMP264_VERSIONS],))):
+        try:
+            mod.select_target_version(*args)
+            check(f"{label} raises", False)
+        except mod.StepFormulaError:
+            check(f"{label} raises", True)
+    table = mod.version_table(RAMP264_VERSIONS, RAMP264_VERSIONS[0])
+    check("version table marks the executing and the target version",
+          table[0].endswith("<- target") and table[3].endswith("<- executes")
+          and len(table) == 4, table)
+
+    md = _formula_metadata()
+    path, step = mod.locate_step(md, parent_step=_RAMP_PARENT)
+    check("--parent-step picks the formula child, skipping the filter child",
+          step["name"] == "CompoundUplift" and path == "Metadata.steps[3]", (path, step))
+    check("--parent-step finds a renamed child the same way",
+          mod.locate_step(_formula_metadata(child="Uplift"),
+                          parent_step=_RAMP_PARENT)[1]["name"] == "Uplift")
+    check("--step selects by name",
+          mod.locate_step(md, step="Calculatemargin")[0] == "Metadata.steps[4]")
+    check("--section selects another formula parameter",
+          mod.locate_step(md, parent_step=_RAMP_PARENT,
+                          param_name=mod.formula_parameter_name(1))[1]["name"] == "CompoundUplift")
+    nested = {"steps": [{"name": "Outer", "steps": [
+        {"name": "Inner", "customElement": {"parameters": [
+            {"name": "formula-section-0-input", "value": "1"}]}}]}]}
+    check("the step search is recursive",
+          mod.locate_step(nested, step="Inner")[0] == "Metadata.steps[0].steps[0]")
+    dup = {"steps": md["steps"] + [dict(md["steps"][3], name="Second")]}
+    for label, kwargs, metadata in (
+            ("an unknown step", {"step": "Nope"}, md),
+            ("a step without the formula parameter", {"step": "Getbaseprices"}, md),
+            ("a parent with no formula child", {"parent_step": "Getbaseprices"}, md),
+            ("a parent with two formula children", {"parent_step": _RAMP_PARENT}, dup),
+            ("both --step and --parent-step", {"step": "A", "parent_step": "B"}, md)):
+        try:
+            mod.locate_step(metadata, **kwargs)
+            check(f"{label} raises", False)
+        except mod.StepFormulaError:
+            check(f"{label} raises", True)
+    new = mod.with_formula(md, "CompoundUplift", "formula-section-0-input", "777")
+    check("with_formula sets only the target parameter",
+          mod.current_formula(new, "CompoundUplift", "formula-section-0-input") == "777"
+          and mod.current_formula(new, "CompoundUplift", "formula-section-1-input") == "S1"
+          and mod.current_formula(new, "Calculatemargin", "formula-section-0-input") == "A - B")
+    check("with_formula does not mutate its input",
+          mod.current_formula(md, "CompoundUplift", "formula-section-0-input")
+          == "ItemUnitPrice * 1")
+    check("plans active before and not confirmed active after are reported",
+          mod.plans_left_inactive({"A": True, "B": True, "C": False, "D": True},
+                                  {"A": True, "B": False, "C": False, "D": None})
+          == ["B", "D"])
+
+    parent = ["--parent-step", _RAMP_PARENT]
+
+    # ---- --show is read-only -------------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--show"])
+    check("--show exits 0 and writes nothing",
+          rc == 0 and not any(e[0] in ("tooling-patch", "dry-run") for e in t.events), t.events)
+    check("--show prints the executing version's current formula",
+          any("'ItemUnitPrice * 1'" in m for m in logs)
+          and any("Partner_Price_and_Ramp_v40" in m and "executes, target" in m for m in logs),
+          logs)
+    rc_bad, _ = _run_set_formula(t, [*parent, "--show", "--formula", "1"])
+    check("--show with --formula is a usage error", rc_bad == 2, rc_bad)
+    rc_none, _ = _run_set_formula(t, [*parent])
+    check("no --formula and no --show is a usage error", rc_none == 2, rc_none)
+
+    # ---- preview writes nothing -------------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777"])
+    check("preview exits 0", rc == 0, logs)
+    check("preview performs no write",
+          t.metadata == _formula_metadata() and t.plans == {"1Cv1": True}
+          and t.esv_active is True and not any(e[0] == "tooling-patch" for e in t.events),
+          t.events)
+    check("preview still logs the lifecycle it would run",
+          ("dry-run", "PATCH") in t.events and ("dry-run", "ProcedurePlanDefinitionVersion")
+          in t.events, t.events)
+
+    # ---- confirm: deactivate → PATCH → reactivate, read-back passes -------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True, "1Cv2": False})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("confirm exits 0 when the read-back matches", rc == 0, logs)
+    check("the formula landed on the executing version's step",
+          mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input") == "777")
+    check("the Tooling PATCH ran while the version was inactive",
+          ("tooling-patch", False) in t.events, t.events)
+    check("the version and the active plan are reactivated; the inactive plan is left as found",
+          t.esv_active is True and t.plans == {"1Cv1": True, "1Cv2": False}, (t.esv_active, t.plans))
+    check("a plan already inactive before the run is warned about",
+          any("already inactive" in m and "1Cv2" in m for m in logs), logs)
+    check("the success line reports the read-back",
+          any("live == intended: True" in m for m in logs), logs)
+
+    # ---- a formula already in place is a no-op -----------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(formula="777"), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("an unchanged formula writes nothing and exits 0",
+          rc == 0 and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True}, t.events)
+
+    # ---- read-back mismatch exits 1 -----------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          store_formula="something else")
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a read-back mismatch exits 1", rc == 1, logs)
+    check("the mismatch names the live value",
+          any("FAILED read-back" in m and "'something else'" in m for m in logs), logs)
+
+    # ---- a rejected PATCH reactivates (atomic Tooling write) and exits 1 ----
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          patch_error="FIELD_INTEGRITY_EXCEPTION")
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a rejected PATCH exits 1", rc == 1, logs)
+    check("a rejected PATCH leaves the version and the plan active",
+          t.esv_active is True and t.plans == {"1Cv1": True}, (t.esv_active, t.plans))
+    check("a rejected PATCH leaves the stored formula unchanged",
+          mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input")
+          == "ItemUnitPrice * 1")
+
+    # ---- a plan the run could not restore exits 1 with its restore command ---
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          fail_plan_reactivate=True)
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a plan left inactive fails the run", rc == 1 and t.plans["1Cv1"] is False, logs)
+    check("the plan left inactive gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs), logs)
+
+    # ---- an inactive explicit target stays inactive -------------------------
+    versions = [dict(v) for v in RAMP264_VERSIONS]
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          versions=versions, esv_active=False)
+    t.versions[3]["IsActive"] = False  # v40 is "9QMv"; make it an inactive draft
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm",
+                                    "--version-api-name", versions[3]["ApiName"]])
+    check("an inactive target is edited in place and left inactive",
+          rc == 0 and t.esv_active is False and t.plans == {"1Cv1": True}
+          and mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input")
+          == "777", (rc, logs))
+    check("editing a non-executing version warns that pricing is unaffected",
+          any("is not the executing version" in m for m in logs), logs)
+
+
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""
     import subprocess
@@ -1768,7 +2119,8 @@ def main():
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_empty_description_reads_back_null,
-               test_shipped_fixtures, test_client_auth_hint):
+               test_shipped_fixtures, test_client_auth_hint,
+               test_import_guards, test_set_step_formula):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

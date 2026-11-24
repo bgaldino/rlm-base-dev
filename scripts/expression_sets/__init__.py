@@ -7,18 +7,19 @@ create/replace/overlay/activate/delete mutators — on the ``sf`` CLI transport,
 so **no access token is ever handled or passed** (``--target-org`` is the *SF
 CLI* alias, e.g. ``rlm-base__beta``, never the CCI alias).
 
-INDEPENDENT of the CCI tasks. This package imports **nothing** from ``tasks/``
-and nothing under ``tasks/`` imports from it. The CCI task
-``tasks/rlm_expression_set_connect.py`` (and ``tasks/expression_set_schema.py``)
-is **reference-only**: this toolkit mirrors its live-verified Connect/lifecycle
-rules but runs as its own program. The validator is therefore *vendored* here as
-``_schema.py`` rather than imported (the task imports the canonical copy, and a
-CLI must not share an import with a CCI task).
+INDEPENDENT of the CCI tasks. This package imports **nothing** from ``tasks/``.
+The CCI task ``tasks/rlm_expression_set_connect.py`` (and
+``tasks/expression_set_schema.py``) is **reference-only**: this toolkit mirrors its
+live-verified Connect/lifecycle rules but runs as its own program. The validator is
+therefore *vendored* here as ``_schema.py`` rather than imported. The one module the
+CCI task imports from here is ``_guards`` (stdlib-only pure functions, no
+CumulusCI), so both importers apply one multi-version rule.
 
 Shared internals live at the package root as ``_*`` modules:
 
 - ``_client``    — the ``sf``-CLI transport (``Transport`` seam + request/SOQL fns)
 - ``_resolve``   — api-name → ExpressionSet / ExpressionSetDefinition / version ids
+- ``_guards``    — pure version guards (executing version, multi-version import rule)
 - ``_schema``    — vendored validator + enums (mirror of the task's copy)
 - ``_payload``   — verb-specific field rules + HTML-entity normalization (pure)
 - ``_overlay``   — declarative step/variable merge (pure)

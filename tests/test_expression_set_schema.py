@@ -2162,6 +2162,72 @@ def test_import_replace_restores_every_version():
           seen.get("label_versions") == versions)
 
 
+# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175): three
+# versions active at once; the highest-numbered active one (v40) executes.
+RAMP264_VERSIONS = [
+    {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1", "IsActive": True, "VersionNumber": 1},
+    {"Id": "9QM2", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Promo_Price_Proc_v20",
+     "IsActive": False, "VersionNumber": 2},
+    {"Id": "9QM3", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Partner_Price_Proc_v30",
+     "IsActive": True, "VersionNumber": 3},
+    {"Id": "9QM4", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40",
+     "IsActive": True, "VersionNumber": 4},
+]
+
+
+def test_import_replace_refuses_a_version_rebind():
+    # Todo pack 172: on ramp264 the payload's _V1 was rebound onto the executing
+    # v40 and the platform rejected it on a version-name collision after partially
+    # applying. The CCI task refuses that shape before any write and still runs
+    # the active+draft shape the overlay path proved (commit 68dccf7bd).
+    import json as _json
+    import logging
+    import tempfile as _tempfile
+    from tasks.rlm_expression_set_connect import ImportExpressionSet
+
+    def run(versions, payload_version):
+        target = sorted(versions, key=lambda v: (not v["IsActive"], -v["VersionNumber"]))[0]
+        writes = []
+        task = object.__new__(ImportExpressionSet)
+        task.logger = logging.getLogger("test_import_refusal")
+        task._preflight_validate_definition = lambda payload: None
+        task._soql_query = lambda q: [{"Id": "9QAx"}]
+        task._get_expression_set_id = lambda name: "9QLx"
+        task._resolve_version_by_es_id = lambda es_id: target
+        task._ensure_resource_initialization_type = lambda *a: writes.append("rit")
+        task._list_versions = lambda es_id: [dict(v) for v in versions]
+        task._run_connect_mutation = lambda **kw: writes.append("mutation")
+        with _tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+            _json.dump({"apiName": "RLM_DefaultPricingProcedure",
+                        "versions": [{"apiName": payload_version}]}, fh)
+        task.options = {"input_file": fh.name}
+        try:
+            task._run_task()
+            error = None
+        except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+            error = exc
+        finally:
+            os.unlink(fh.name)
+        return error, writes
+
+    error, writes = run(RAMP264_VERSIONS, "RLM_DefaultPricingProcedure_V1")
+    check("ramp264: the CCI import refuses a version chain with three active versions",
+          error is not None and "3 active versions" in str(error)
+          and "Partner_Price_and_Ramp_v40 executes" in str(error))
+    check("ramp264: the refusal points to set_step_formula.py",
+          "set_step_formula.py" in str(error))
+    check("ramp264: nothing is written before the refusal", writes == [])
+
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "IsActive": True, "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "IsActive": False, "VersionNumber": 2}]
+    error, writes = run(draft, "X_V1")
+    check("active+draft: importing the active version runs",
+          error is None and writes == ["rit", "mutation"])
+    error, writes = run(draft, "X_V2")
+    check("active+draft: a payload for the draft is refused (it would rebind onto X_V1)",
+          error is not None and "payload's version is X_V2" in str(error) and writes == [])
+
+
 def test_resolve_label_version():
     esv = {"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1}
     draft = {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}

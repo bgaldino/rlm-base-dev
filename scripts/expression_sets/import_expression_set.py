@@ -13,6 +13,13 @@ via ``_lifecycle.LifecycleEngine``:
   reactivated after — unless the PATCH fails, in which case the version is left
   DEACTIVATED (a failed PATCH is not atomic; re-enabling a half-mutated procedure
   is worse than leaving it offline).
+
+  On a set with **several versions** the replace is **refused before any write**
+  when more than one version is active, or when the payload's version ``apiName``
+  is not the version the import would replace (``_guards.import_target_refusal``):
+  the PATCH would rebind one version onto another, which the platform rejected on
+  a version-name collision after partially applying (todo pack 172). To change one
+  step's formula on such a set use ``set_step_formula.py``.
 * **create** (the set is new) → Connect **POST**. The version-level ``id`` is
   STRIPPED (a source-org id makes the server reject/mis-bind the new version);
   the created version is then activated/deactivated per ``--no-activate``.
@@ -65,6 +72,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_version_by_es_id,
     list_versions,
 )
+from scripts.expression_sets._guards import import_target_refusal  # noqa: E402
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
     capture_version_labels,
@@ -170,10 +178,19 @@ def main(argv=None) -> int:
             es_id = resolve_expression_set_id(
                 api_name, target_org=args.target_org, api_version=args.api_version
             )
+            versions = list_versions(es_id, target_org=args.target_org,
+                                     api_version=args.api_version)
             esv = resolve_version_by_es_id(
                 es_id, target_org=args.target_org, api_version=args.api_version,
                 logger=eprint,
             )
+            # On a multi-version set, refuse a PATCH that would rebind the
+            # payload's version onto another one, before ANY write (the
+            # ResourceInitializationType alignment below is a write too).
+            refusal = import_target_refusal(api_name, versions, esv, payload)
+            if refusal:
+                eprint(f"\nREFUSED: {refusal}")
+                return 1
             # Guardrail: warn if user intended CREATE but only changed version apiName
             version_api_name_live = esv.get("ApiName")
             version_api_name_incoming = payload.get("versions", [{}])[0].get("apiName")
@@ -198,8 +215,7 @@ def main(argv=None) -> int:
             # definition JSON is Connect-shaped and carries NO labels, so the
             # target-org snapshot is the only source; create/POST starts
             # label-less, so nothing to do.)
-            versions = list_versions(es_id, target_org=args.target_org,
-                                     api_version=args.api_version) or [esv]
+            versions = versions or [esv]
             restore_maps = capture_version_labels(
                 transport, versions if preserve_labels else [], eprint,
                 es_def_id=es_def_id,
