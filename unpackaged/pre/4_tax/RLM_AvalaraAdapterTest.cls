@@ -3,7 +3,7 @@ private with sharing class RLM_AvalaraAdapterTest {
 
     @IsTest
     static void processRequest_calculateTax_delegatesToCalculateTaxService() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, RLM_TaxTestFactory.cannedSuccessBody());
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-AVA-1', RLM_TaxTestFactory.lines(232));

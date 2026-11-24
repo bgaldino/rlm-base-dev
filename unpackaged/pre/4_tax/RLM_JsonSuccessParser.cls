@@ -1,5 +1,55 @@
 global with sharing class RLM_JsonSuccessParser
 {
+  // Field names are matched case-sensitively (equals, not ==, which ignores case in Apex), like the
+  // untyped map the caller checks first, so both read the same fields.
+  //
+  // A body of the wrong shape (a number where an array or object belongs, an array of numbers) is
+  // refused with a JSONException, which the caller reports as an unreadable response. Without these
+  // checks such a body sent a read loop past the end of the input, where nextToken() keeps returning
+  // null, until the CPU limit ended the transaction (measured on a 264 org). The messages name the
+  // token, never a value from the body.
+  @TestVisible
+  private static JSONToken advance(JSONParser parser) {
+    JSONToken token = parser.nextToken();
+    if (token == null) {
+      throw new JSONException('The response ended before its object or array closed.');
+    }
+    return token;
+  }
+
+  @TestVisible
+  private static void requireToken(JSONParser parser, JSONToken expected) {
+    if (parser.getCurrentToken() != expected) {
+      throw new JSONException('Expected ' + expected + ' but found ' + parser.getCurrentToken() + '.');
+    }
+  }
+
+  // Called on the array's opening token or on the end of the element just read: moves to the next
+  // element and returns true when it is an object, false on the closing token of the array.
+  @TestVisible
+  private static Boolean nextElement(JSONParser parser) {
+    JSONToken current = parser.getCurrentToken();
+    if (current != JSONToken.START_ARRAY && current != JSONToken.END_OBJECT) {
+      throw new JSONException('Expected an array of objects but found ' + current + '.');
+    }
+    if (advance(parser) == JSONToken.END_ARRAY) {
+      return false;
+    }
+    requireToken(parser, JSONToken.START_OBJECT);
+    return true;
+  }
+
+  // A text field holding an object or an array is refused: getText would return its opening token
+  // and the read would go on inside it as if its fields were the parent's.
+  @TestVisible
+  private static String text(JSONParser parser) {
+    JSONToken current = parser.getCurrentToken();
+    if (current == JSONToken.START_OBJECT || current == JSONToken.START_ARRAY) {
+      throw new JSONException('Expected a value but found ' + current + '.');
+    }
+    return parser.getText();
+  }
+
   public static void consumeObject(JSONParser parser)
   {
     Integer depth = 0;
@@ -27,27 +77,28 @@ global with sharing class RLM_JsonSuccessParser
         public Integer taxRegionId {get;set;}
 
         public Addresses(JSONParser parser) {
-            while (parser.nextToken() != JSONToken.END_OBJECT) {
+            requireToken(parser, JSONToken.START_OBJECT);
+            while (advance(parser) != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                     String text = parser.getText();
-                    if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                        if (text == 'id') {
-                            id = parser.getText();
-                        } else if (text == 'transactionId') {
-                            transactionId = parser.getText();
-                        } else if (text == 'boundaryLevel') {
-                            boundaryLevel = parser.getText();
-                        } else if (text == 'line1') {
-                            line1 = parser.getText();
-                        } else if (text == 'city') {
-                            city = parser.getText();
-                        } else if (text == 'region') {
-                            region = parser.getText();
-                        } else if (text == 'postalCode') {
-                            postalCode = parser.getText();
-                        } else if (text == 'country') {
-                            country = parser.getText();
-                        } else if (text == 'taxRegionId') {
+                    if (advance(parser) != JSONToken.VALUE_NULL) {
+                        if (text.equals('id')) {
+                            id = text(parser);
+                        } else if (text.equals('transactionId')) {
+                            transactionId = text(parser);
+                        } else if (text.equals('boundaryLevel')) {
+                            boundaryLevel = text(parser);
+                        } else if (text.equals('line1')) {
+                            line1 = text(parser);
+                        } else if (text.equals('city')) {
+                            city = text(parser);
+                        } else if (text.equals('region')) {
+                            region = text(parser);
+                        } else if (text.equals('postalCode')) {
+                            postalCode = text(parser);
+                        } else if (text.equals('country')) {
+                            country = text(parser);
+                        } else if (text.equals('taxRegionId')) {
                             taxRegionId = parser.getIntegerValue();
                         } else {
                             consumeObject(parser);
@@ -80,48 +131,49 @@ global with sharing class RLM_JsonSuccessParser
         public String rateType {get;set;}
 
         public Details(JSONParser parser) {
-            while (parser.nextToken() != JSONToken.END_OBJECT) {
+            requireToken(parser, JSONToken.START_OBJECT);
+            while (advance(parser) != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                     String text = parser.getText();
-                    if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                        if (text == 'id') {
-                            id = parser.getText();
-                        } else if (text == 'transactionLineId') {
-                            transactionLineId = parser.getText();
-                        } else if (text == 'transactionId') {
-                            transactionId = parser.getText();
-                        } else if (text == 'country') {
-                            country = parser.getText();
-                        } else if (text == 'region') {
-                            region = parser.getText();
-                        } else if (text == 'exemptAmount') {
+                    if (advance(parser) != JSONToken.VALUE_NULL) {
+                        if (text.equals('id')) {
+                            id = text(parser);
+                        } else if (text.equals('transactionLineId')) {
+                            transactionLineId = text(parser);
+                        } else if (text.equals('transactionId')) {
+                            transactionId = text(parser);
+                        } else if (text.equals('country')) {
+                            country = text(parser);
+                        } else if (text.equals('region')) {
+                            region = text(parser);
+                        } else if (text.equals('exemptAmount')) {
                             exemptAmount = parser.getDecimalValue();
-                        } else if (text == 'jurisCode') {
-                            jurisCode = parser.getText();
-                        } else if (text == 'jurisName') {
-                            jurisName = parser.getText();
-                        } else if (text == 'stateAssignedNo') {
-                            stateAssignedNo = parser.getText();
-                        } else if (text == 'jurisType') {
-                            jurisType = parser.getText();
-                        } else if (text == 'nonTaxableAmount') {
+                        } else if (text.equals('jurisCode')) {
+                            jurisCode = text(parser);
+                        } else if (text.equals('jurisName')) {
+                            jurisName = text(parser);
+                        } else if (text.equals('stateAssignedNo')) {
+                            stateAssignedNo = text(parser);
+                        } else if (text.equals('jurisType')) {
+                            jurisType = text(parser);
+                        } else if (text.equals('nonTaxableAmount')) {
                             nonTaxableAmount = parser.getDecimalValue();
-                        } else if (text == 'rate') {
+                        } else if (text.equals('rate')) {
                             rate = parser.getDoubleValue();
-                        } else if (text == 'tax') {
+                        } else if (text.equals('tax')) {
                             tax = parser.getDoubleValue();
-                        } else if (text == 'taxableAmount') {
+                        } else if (text.equals('taxableAmount')) {
                             taxableAmount = parser.getDecimalValue();
-                        } else if (text == 'taxType') {
-                            taxType = parser.getText();
-                        } else if (text == 'taxName') {
-                            taxName = parser.getText();
-                        } else if (text == 'taxAuthorityTypeId') {
+                        } else if (text.equals('taxType')) {
+                            taxType = text(parser);
+                        } else if (text.equals('taxName')) {
+                            taxName = text(parser);
+                        } else if (text.equals('taxAuthorityTypeId')) {
                             taxAuthorityTypeId = parser.getIntegerValue();
-                        } else if (text == 'taxCalculated') {
+                        } else if (text.equals('taxCalculated')) {
                             taxCalculated = parser.getDoubleValue();
-                        } else if (text == 'rateType') {
-                            rateType = parser.getText();
+                        } else if (text.equals('rateType')) {
+                            rateType = text(parser);
                         } else {
                             consumeObject(parser);
                         }
@@ -139,20 +191,21 @@ global with sharing class RLM_JsonSuccessParser
         public String source {get;set;}
 
         public Messages(JSONParser parser) {
-            while (parser.nextToken() != JSONToken.END_OBJECT) {
+            requireToken(parser, JSONToken.START_OBJECT);
+            while (advance(parser) != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                     String text = parser.getText();
-                    if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                        if (text == 'summary') {
-                            summary = parser.getText();
-                        } else if (text == 'details') {
-                            details = parser.getText();
-                        } else if (text == 'refersTo') {
-                            refersTo = parser.getText();
-                        } else if (text == 'severity') {
-                            severity = parser.getText();
-                        } else if (text == 'source') {
-                            source = parser.getText();
+                    if (advance(parser) != JSONToken.VALUE_NULL) {
+                        if (text.equals('summary')) {
+                            summary = text(parser);
+                        } else if (text.equals('details')) {
+                            details = text(parser);
+                        } else if (text.equals('refersTo')) {
+                            refersTo = text(parser);
+                        } else if (text.equals('severity')) {
+                            severity = text(parser);
+                        } else if (text.equals('source')) {
+                            source = text(parser);
                         } else {
                             consumeObject(parser);
                         }
@@ -187,66 +240,68 @@ global with sharing class RLM_JsonSuccessParser
     public List<Messages> messages {get;set;}
 
     public RLM_JsonSuccessParser(JSONParser parser) {
-        while (parser.nextToken() != JSONToken.END_OBJECT) {
+        advance(parser);
+        requireToken(parser, JSONToken.START_OBJECT);
+        while (advance(parser) != JSONToken.END_OBJECT) {
             if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                 String text = parser.getText();
-                if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                    if (text == 'id') {
-                        id = parser.getText();
-                    } else if (text == 'code') {
-                        code = parser.getText();
-                    } else if (text == 'referenceCode'){
-                        referenceCode = parser.getText();
-                    } else if (text == 'companyId') {
+                if (advance(parser) != JSONToken.VALUE_NULL) {
+                    if (text.equals('id')) {
+                        id = text(parser);
+                    } else if (text.equals('code')) {
+                        code = text(parser);
+                    } else if (text.equals('referenceCode')){
+                        referenceCode = text(parser);
+                    } else if (text.equals('companyId')) {
                         companyId = parser.getIntegerValue();
-                    } else if (text == 'taxDate') {
-                        taxDate = parser.getText();
-                    } else if (text == 'date') {
-                        transactionDate = parser.getText();
-                    } else if (text == 'status') {
-                        status = parser.getText();
-                    } else if (text == 'type') {
-                        type_Z = parser.getText();
-                    } else if (text == 'reconciled') {
+                    } else if (text.equals('taxDate')) {
+                        taxDate = text(parser);
+                    } else if (text.equals('date')) {
+                        transactionDate = text(parser);
+                    } else if (text.equals('status')) {
+                        status = text(parser);
+                    } else if (text.equals('type')) {
+                        type_Z = text(parser);
+                    } else if (text.equals('reconciled')) {
                         reconciled = parser.getBooleanValue();
-                    } else if (text == 'totalAmount') {
+                    } else if (text.equals('totalAmount')) {
                         totalAmount = parser.getDecimalValue();
-                    } else if (text == 'totalExempt') {
+                    } else if (text.equals('totalExempt')) {
                         totalExempt = parser.getDecimalValue();
-                    } else if (text == 'totalTax') {
+                    } else if (text.equals('totalTax')) {
                         totalTax = parser.getDoubleValue();
-                    } else if (text == 'totalTaxable') {
+                    } else if (text.equals('totalTaxable')) {
                         totalTaxable = parser.getDecimalValue();
-                    } else if (text == 'totalTaxCalculated') {
+                    } else if (text.equals('totalTaxCalculated')) {
                         totalTaxCalculated = parser.getDoubleValue();
-                    } else if (text == 'adjustmentReason') {
-                        adjustmentReason = parser.getText();
-                    } else if (text == 'locked') {
+                    } else if (text.equals('adjustmentReason')) {
+                        adjustmentReason = text(parser);
+                    } else if (text.equals('locked')) {
                         locked = parser.getBooleanValue();
-                    } else if (text == 'version') {
+                    } else if (text.equals('version')) {
                         version = parser.getIntegerValue();
-                    } else if (text == 'modifiedDate') {
-                        modifiedDate = parser.getText();
-                    } else if (text == 'modifiedUserId') {
+                    } else if (text.equals('modifiedDate')) {
+                        modifiedDate = text(parser);
+                    } else if (text.equals('modifiedUserId')) {
                         modifiedUserId = parser.getIntegerValue();
-                    } else if (text == 'lines') {
+                    } else if (text.equals('lines')) {
                         lines = new List<Lines>();
-                        while (parser.nextToken() != JSONToken.END_ARRAY) {
+                        while (nextElement(parser)) {
                             lines.add(new Lines(parser));
                         }
-                    } else if (text == 'addresses') {
+                    } else if (text.equals('addresses')) {
                         addresses = new List<Addresses>();
-                        while (parser.nextToken() != JSONToken.END_ARRAY) {
+                        while (nextElement(parser)) {
                             addresses.add(new Addresses(parser));
                         }
-                    } else if (text == 'summary') {
+                    } else if (text.equals('summary')) {
                         summary = new List<Summary>();
-                        while (parser.nextToken() != JSONToken.END_ARRAY) {
+                        while (nextElement(parser)) {
                             summary.add(new Summary(parser));
                         }
-                    } else if (text == 'messages') {
+                    } else if (text.equals('messages')) {
                         messages = new List<Messages>();
-                        while (parser.nextToken() != JSONToken.END_ARRAY) {
+                        while (nextElement(parser)) {
                             messages.add(new Messages(parser));
                         }
                     } else {
@@ -277,43 +332,44 @@ global with sharing class RLM_JsonSuccessParser
         public Decimal exemption {get;set;}
 
         public Summary(JSONParser parser) {
-            while (parser.nextToken() != JSONToken.END_OBJECT) {
+            requireToken(parser, JSONToken.START_OBJECT);
+            while (advance(parser) != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                     String text = parser.getText();
-                    if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                        if (text == 'country') {
-                            country = parser.getText();
-                        } else if (text == 'region') {
-                            region = parser.getText();
-                        } else if (text == 'jurisType') {
-                            jurisType = parser.getText();
-                        } else if (text == 'jurisCode') {
-                            jurisCode = parser.getText();
-                        } else if (text == 'jurisName') {
-                            jurisName = parser.getText();
-                        } else if (text == 'taxAuthorityType') {
+                    if (advance(parser) != JSONToken.VALUE_NULL) {
+                        if (text.equals('country')) {
+                            country = text(parser);
+                        } else if (text.equals('region')) {
+                            region = text(parser);
+                        } else if (text.equals('jurisType')) {
+                            jurisType = text(parser);
+                        } else if (text.equals('jurisCode')) {
+                            jurisCode = text(parser);
+                        } else if (text.equals('jurisName')) {
+                            jurisName = text(parser);
+                        } else if (text.equals('taxAuthorityType')) {
                             taxAuthorityType = parser.getIntegerValue();
-                        } else if (text == 'stateAssignedNo') {
-                            stateAssignedNo = parser.getText();
-                        } else if (text == 'taxType') {
-                            taxType = parser.getText();
-                        } else if (text == 'taxName') {
-                            taxName = parser.getText();
-                        } else if (text == 'taxGroup') {
-                            taxGroup = parser.getText();
-                        } else if (text == 'rateType') {
-                            rateType = parser.getText();
-                        } else if (text == 'taxable') {
+                        } else if (text.equals('stateAssignedNo')) {
+                            stateAssignedNo = text(parser);
+                        } else if (text.equals('taxType')) {
+                            taxType = text(parser);
+                        } else if (text.equals('taxName')) {
+                            taxName = text(parser);
+                        } else if (text.equals('taxGroup')) {
+                            taxGroup = text(parser);
+                        } else if (text.equals('rateType')) {
+                            rateType = text(parser);
+                        } else if (text.equals('taxable')) {
                             taxable = parser.getDecimalValue();
-                        } else if (text == 'rate') {
+                        } else if (text.equals('rate')) {
                             rate = parser.getDoubleValue();
-                        } else if (text == 'tax') {
+                        } else if (text.equals('tax')) {
                             tax = parser.getDoubleValue();
-                        } else if (text == 'taxCalculated') {
+                        } else if (text.equals('taxCalculated')) {
                             taxCalculated = parser.getDoubleValue();
-                        } else if (text == 'nonTaxable') {
+                        } else if (text.equals('nonTaxable')) {
                             nonTaxable = parser.getDecimalValue();
-                        } else if (text == 'exemption') {
+                        } else if (text.equals('exemption')) {
                             exemption = parser.getDecimalValue();
                         } else {
                             consumeObject(parser);
@@ -344,47 +400,48 @@ global with sharing class RLM_JsonSuccessParser
         public List<Details> details {get;set;}
         public String itemCode {get;set;}
         public Lines(JSONParser parser) {
-            while (parser.nextToken() != JSONToken.END_OBJECT) {
+            requireToken(parser, JSONToken.START_OBJECT);
+            while (advance(parser) != JSONToken.END_OBJECT) {
                 if (parser.getCurrentToken() == JSONToken.FIELD_NAME) {
                     String text = parser.getText();
-                    if (parser.nextToken() != JSONToken.VALUE_NULL) {
-                        if (text == 'id') {
-                            id = parser.getText();
-                        } else if (text == 'transactionId') {
-                            transactionId = parser.getText();
-                        }else if (text == 'itemCode') {
-                            itemCode = parser.getText();
-                        }else if (text == 'lineNumber') {
-                            lineNumber = parser.getText();
-                        } else if (text == 'discountAmount') {
+                    if (advance(parser) != JSONToken.VALUE_NULL) {
+                        if (text.equals('id')) {
+                            id = text(parser);
+                        } else if (text.equals('transactionId')) {
+                            transactionId = text(parser);
+                        }else if (text.equals('itemCode')) {
+                            itemCode = text(parser);
+                        }else if (text.equals('lineNumber')) {
+                            lineNumber = text(parser);
+                        } else if (text.equals('discountAmount')) {
                             discountAmount = parser.getDecimalValue();
-                        } else if (text == 'exemptAmount') {
+                        } else if (text.equals('exemptAmount')) {
                             exemptAmount = parser.getDecimalValue();
-                        } else if (text == 'exemptCertId') {
+                        } else if (text.equals('exemptCertId')) {
                             exemptCertId = parser.getIntegerValue();
-                        } else if (text == 'isItemTaxable') {
+                        } else if (text.equals('isItemTaxable')) {
                             isItemTaxable = parser.getBooleanValue();
-                        } else if (text == 'lineAmount') {
+                        } else if (text.equals('lineAmount')) {
                             lineAmount = parser.getDecimalValue();
-                        } else if (text == 'quantity') {
+                        } else if (text.equals('quantity')) {
                             quantity = parser.getDoubleValue();
-                        } else if (text == 'reportingDate') {
-                            reportingDate = parser.getText();
-                        } else if (text == 'tax') {
+                        } else if (text.equals('reportingDate')) {
+                            reportingDate = text(parser);
+                        } else if (text.equals('tax')) {
                             tax = parser.getDoubleValue();
-                        } else if (text == 'taxableAmount') {
+                        } else if (text.equals('taxableAmount')) {
                             taxableAmount = parser.getDecimalValue();
-                        } else if (text == 'taxCalculated') {
+                        } else if (text.equals('taxCalculated')) {
                             taxCalculated = parser.getDoubleValue();
-                        } else if (text == 'taxCode') {
-                            taxCode = parser.getText();
-                        } else if (text == 'taxDate') {
-                            taxDate = parser.getText();
-                        } else if (text == 'taxIncluded') {
+                        } else if (text.equals('taxCode')) {
+                            taxCode = text(parser);
+                        } else if (text.equals('taxDate')) {
+                            taxDate = text(parser);
+                        } else if (text.equals('taxIncluded')) {
                             taxIncluded = parser.getBooleanValue();
-                        } else if (text == 'details') {
+                        } else if (text.equals('details')) {
                             details = new List<Details>();
-                            while (parser.nextToken() != JSONToken.END_ARRAY) {
+                            while (nextElement(parser)) {
                                 details.add(new Details(parser));
                             }
                         } else {

@@ -44,11 +44,11 @@ public with sharing class RLM_TaxTestFactory {
      * tax engine address = Chicago.
      */
     public static commercetax.LineTaxAddressesRequest lineAddresses() {
-        commercetax.TaxAddressRequest shipFrom = address('1 Market St', 'San Francisco', 'CA', '94105');
-        commercetax.TaxAddressRequest shipTo = address('255 S King St', 'Seattle', 'WA', '98104');
-        commercetax.TaxAddressRequest soldTo = address('100 Congress Ave', 'Austin', 'TX', '78701');
-        commercetax.TaxAddressRequest billTo = address('1437 Bannock St', 'Denver', 'CO', '80202');
-        commercetax.TaxAddressRequest taxEngine = address('121 N LaSalle St', 'Chicago', 'IL', '60602');
+        commercetax.TaxAddressRequest shipFrom = address('100 Example St', 'San Francisco', 'CA', '94105');
+        commercetax.TaxAddressRequest shipTo = address('200 Example St', 'Seattle', 'WA', '98104');
+        commercetax.TaxAddressRequest soldTo = address('300 Example St', 'Austin', 'TX', '78701');
+        commercetax.TaxAddressRequest billTo = address('400 Example St', 'Denver', 'CO', '80202');
+        commercetax.TaxAddressRequest taxEngine = address('500 Example St', 'Chicago', 'IL', '60602');
         return new commercetax.LineTaxAddressesRequest(shipFrom, shipTo, soldTo, billTo, taxEngine);
     }
 
@@ -329,7 +329,21 @@ public with sharing class RLM_TaxTestFactory {
         Assert.isTrue(acceptErrors.isEmpty(), 'These setters accept null; these now throw: ' + acceptErrors);
     }
 
-    /** Records every request and answers with a fixed status and body. Never reaches the network. */
+    /** Fails the callout the way a network error does: RLM_HttpService swallows it and keeps no response. */
+    public class CalloutFailureHttpMock implements HttpCalloutMock {
+        public List<HttpRequest> requests = new List<HttpRequest>();
+
+        public HttpResponse respond(HttpRequest request) {
+            requests.add(request);
+            throw new CalloutException('Simulated callout failure');
+        }
+    }
+
+    /**
+     * Records every request and answers with a fixed status and body. Never reaches the network.
+     * A null body is never set, so the response has no body (measured on 264: getBody then returns an
+     * empty string, not null).
+     */
     public class RecordingHttpMock implements HttpCalloutMock {
         public List<HttpRequest> requests = new List<HttpRequest>();
         private Integer statusCode;
@@ -346,8 +360,45 @@ public with sharing class RLM_TaxTestFactory {
             response.setStatusCode(statusCode);
             response.setStatus(statusCode >= 200 && statusCode < 300 ? 'OK' : 'Error');
             response.setHeader('Content-Type', 'application/json');
-            response.setBody(body);
+            if (body != null) {
+                response.setBody(body);
+            }
             return response;
         }
     }
+
+    /** A successful Avalara create-transaction body: one line, two details, no exemption. */
+    public static String cannedSuccessBody() {
+    
+     List<String> jsonResponse = new List<String> {
+                                    '"id": 0',
+                                    '"code": "testDocCode1231245984"',
+                                    '"companyId": -1',
+                                    '"date": "2020-07-15"',
+                                    '"paymentDate": "2020-07-15"',
+                                    '"status": "Temporary"',
+                                    '"type": "SalesOrder"',
+                                    '"customerVendorCode": "testDocCode1234"',
+                                    '"customerCode": "testDocCode1234"',
+                                    '"reconciled": false',
+                                    '"totalAmount": 232',
+                                    '"totalExempt": 0',
+                                    '"totalDiscount": 0',
+                                    '"totalTax": 23.43',
+                                    '"totalTaxable": 232',
+                                    '"totalTaxCalculated": 23.43',
+                                    '"adjustmentReason": "NotAdjusted"',
+                                    '"locked": false',
+                                    '"version": 1',
+                                    '"exchangeRateEffectiveDate": "2020-07-15"',
+                                    '"exchangeRate": 1',
+                                    '"modifiedDate": "2020-08-13T11:19:20.4836636Z"',
+                                    '"modifiedUserId": 0',
+                                    '"taxDate": "2020-07-15T00:00:00"',
+                                    '"lines": [{"id": 0,"transactionId": 0,"lineNumber": "1","discountAmount": 0,"exemptAmount": 0,"exemptCertId": 0,"isItemTaxable": true,"itemCode": "","lineAmount": 232,"quantity": 1,"reportingDate": "2020-07-15","tax": 23.43,"taxableAmount": 232,"taxCalculated": 23.43,"taxCode": "P0000000","taxCodeId": 8087,"taxDate": "2020-07-15","taxOverrideType": "None","taxOverrideAmount": 0,"taxIncluded": false,"details": [{"id": 0,"transactionLineId": 0,"transactionId": 0,"country": "US","region": "WA","exemptAmount": 0,"jurisCode": "53","jurisName": "WASHINGTON","stateAssignedNo": "","jurisType": "STA","jurisdictionType": "State","nonTaxableAmount": 0,"rate": 0.065,"tax": 15.08,"taxableAmount": 232,"taxType": "Sales","taxSubTypeId": "S","taxName": "WA STATE TAX","taxAuthorityTypeId": 45,"taxCalculated": 15.08,"rateType": "General","rateTypeCode": "G","unitOfBasis": "PerCurrencyUnit","isNonPassThru": false,"isFee": false},{"id": 0,"transactionLineId": 0,"transactionId": 0,"country": "US","region": "WA","exemptAmount": 0,"jurisCode": "033","jurisName": "KING","stateAssignedNo": "1700","jurisType": "CTY","jurisdictionType": "County","nonTaxableAmount": 0,"rate": 0,"tax": 0,"taxableAmount": 232,"taxType": "Sales","taxSubTypeId": "S","taxName": "WA COUNTY TAX","taxAuthorityTypeId": 45,"taxCalculated": 0,"rateType": "General","rateTypeCode": "G","unitOfBasis": "PerCurrencyUnit","isNonPassThru": false,"isFee": false}],"nonPassthroughDetails": [],"hsCode": "","costInsuranceFreight": 0,"vatCode": "","vatNumberTypeId": 0}]',
+                                    '"addresses": [{"id": 0,"transactionId": 0,"boundaryLevel": "Address","line1": "123 Example St","line2": "","line3": "","city": "Seattle","region": "WA","postalCode": "98104","country": "US","taxRegionId": 1000}]',
+                                    '"summary": [{"country": "US","region": "WA","jurisType": "State","jurisCode": "53","jurisName": "WASHINGTON","taxAuthorityType": 45,"stateAssignedNo": "","taxType": "Sales","taxSubType": "S","taxName": "WA STATE TAX","rateType": "General","taxable": 232,"rate": 0.065,"tax": 15.08,"taxCalculated": 15.08,"nonTaxable": 0,"exemption": 0},{"country": "US","region": "WA","jurisType": "County","jurisCode": "033","jurisName": "KING","taxAuthorityType": 45,"stateAssignedNo": "1700","taxType": "Sales","taxSubType": "S","taxName": "WA COUNTY TAX","rateType": "General","taxable": 232,"rate": 0,"tax": 0,"taxCalculated": 0,"nonTaxable": 0,"exemption": 0}]'
+                                };
+            return '{' + String.join(jsonResponse, ',') + '}';
+        }
 }

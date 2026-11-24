@@ -59,7 +59,7 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
 
         Map<String, Object> addresses = asMap(line.get('addresses'));
         Map<String, Object> shipFrom = asMap(addresses.get('ShipFrom'));
-        Assert.areEqual('1 Market St', shipFrom.get('line1'), 'ShipFrom.line1 is the street.');
+        Assert.areEqual('100 Example St', shipFrom.get('line1'), 'ShipFrom.line1 is the street.');
         Assert.isFalse(shipFrom.containsKey('line2'), 'line2 is not sent: the request has one street value only.');
         Assert.areEqual('San Francisco', shipFrom.get('city'), 'ShipFrom.city');
         Assert.areEqual('CA', shipFrom.get('region'), 'ShipFrom.region is the state.');

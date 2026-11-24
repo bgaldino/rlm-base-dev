@@ -11,7 +11,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         + '"id": 123456,'
         + '"code": "DOC-PARSE-1",'
         + '"referenceCode": "REF-PARSE-1",'
-        + '"companyId": 468039,'
+        + '"companyId": -1,'
         + '"date": "2026-01-15",'
         + '"taxDate": "2026-01-16",'
         + '"status": "Committed",'
@@ -26,7 +26,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         + '"locked": false,'
         + '"version": 2,'
         + '"modifiedDate": "2026-01-16T10:00:00Z",'
-        + '"modifiedUserId": 53894,'
+        + '"modifiedUserId": 0,'
         + '"description": null,'
         + '"customerVendorCode": "ignored-scalar",'
         + '"parameters": {"nested": {"deeper": [1, 2, {"x": 1}]}, "flag": true},'
@@ -85,15 +85,15 @@ private with sharing class RLM_JsonSuccessParserTest {
         +     '"id": 21,'
         +     '"transactionId": 123456,'
         +     '"boundaryLevel": "Address",'
-        +     '"line1": "255 S. King Street",'
+        +     '"line1": "123 Example St",'
         +     '"city": "Seattle",'
         +     '"region": "WA",'
         +     '"postalCode": "98104",'
         +     '"country": "US",'
-        +     '"latitude": "47.59821",'
-        +     '"validatedAddresses": [{"line1": "255 S KING ST", "geo": {"lat": 47.6}}],'
+        +     '"latitude": "0",'
+        +     '"validatedAddresses": [{"line1": "123 EXAMPLE ST", "geo": {"lat": 0}}],'
         +     '"line2": null,'
-        +     '"taxRegionId": 2109700'
+        +     '"taxRegionId": 1000'
         + '}],'
         + '"summary": [{'
         +     '"country": "US",'
@@ -144,7 +144,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('123456', parsed.id, 'Numeric id is kept as text.');
         Assert.areEqual('DOC-PARSE-1', parsed.code, 'code');
         Assert.areEqual('REF-PARSE-1', parsed.referenceCode, 'referenceCode');
-        Assert.areEqual(468039, parsed.companyId, 'companyId');
+        Assert.areEqual(-1, parsed.companyId, 'companyId');
         Assert.areEqual('2026-01-15', parsed.transactionDate, 'The JSON "date" key maps to transactionDate.');
         Assert.areEqual('2026-01-16', parsed.taxDate, 'taxDate');
         Assert.areEqual('Committed', parsed.status, 'status');
@@ -159,7 +159,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual(false, parsed.locked, 'locked');
         Assert.areEqual(2, parsed.version, 'version');
         Assert.areEqual('2026-01-16T10:00:00Z', parsed.modifiedDate, 'modifiedDate');
-        Assert.areEqual(53894, parsed.modifiedUserId, 'modifiedUserId');
+        Assert.areEqual(0, parsed.modifiedUserId, 'modifiedUserId');
         Assert.areEqual(1, parsed.lines.size(), 'One line follows the skipped unmapped object and array.');
         Assert.areEqual(1, parsed.addresses.size(), 'addresses');
         Assert.areEqual(1, parsed.summary.size(), 'summary');
@@ -229,12 +229,12 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('21', address.id, 'address.id');
         Assert.areEqual('123456', address.transactionId, 'address.transactionId');
         Assert.areEqual('Address', address.boundaryLevel, 'address.boundaryLevel');
-        Assert.areEqual('255 S. King Street', address.line1, 'address.line1');
+        Assert.areEqual('123 Example St', address.line1, 'address.line1');
         Assert.areEqual('Seattle', address.city, 'address.city');
         Assert.areEqual('WA', address.region, 'address.region');
         Assert.areEqual('98104', address.postalCode, 'address.postalCode');
         Assert.areEqual('US', address.country, 'address.country');
-        Assert.areEqual(2109700, address.taxRegionId, 'address.taxRegionId');
+        Assert.areEqual(1000, address.taxRegionId, 'address.taxRegionId');
 
         RLM_JsonSuccessParser.Summary summary = parsed.summary[0];
         Assert.areEqual('US', summary.country, 'summary.country');
@@ -353,5 +353,54 @@ private with sharing class RLM_JsonSuccessParserTest {
             'consumeObject should stop on the closing token of the skipped value.');
         Assert.areEqual(JSONToken.FIELD_NAME, parser.nextToken(), 'The next sibling field should follow.');
         Assert.areEqual('next', parser.getText(), 'The sibling after the skipped value is intact.');
+    }
+
+    // A body of the wrong shape is refused with a JSONException. Before, each of these sent a read
+    // loop past the end of the input (nextToken() then keeps returning null) until the CPU limit
+    // ended the transaction, which no caller can catch.
+    @IsTest
+    static void parse_bodiesOfTheWrongShape_throwAJsonException() {
+        List<String> bodies = new List<String>{
+            '{"lines":5}', '{"lines":[1]}', '{"lines":{}}', '{"lines":[[]]}',
+            '{"addresses":5}', '{"addresses":["a"]}', '{"summary":5}', '{"summary":[true]}',
+            '{"messages":[1]}', '{"messages":"text"}',
+            '{"lines":[{"details":5}]}', '{"lines":[{"details":[1]}]}', '{"lines":[{"details":{}}]}',
+            '{"code":{"a":1}}', '{"code":[1]}', '{"lines":[{"taxCode":{}}]}',
+            '[]', '5', '{"code":"X"', '{"lines":[{"lineNumber":"1"}'
+        };
+        Test.startTest();
+        for (String body : bodies) {
+            Exception caught;
+            try {
+                RLM_JsonSuccessParser.parse(body);
+            } catch (Exception e) {
+                caught = e;
+            }
+            Assert.isInstanceOfType(caught, JSONException.class, body + ': refused with a JSONException, not ' + caught);
+        }
+        Test.stopTest();
+    }
+
+    // Field names are matched case-sensitively: a key spelled with other capitals is skipped as unmapped.
+    @IsTest
+    static void parse_fieldNamesAreCaseSensitive() {
+        RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse('{"Lines":5,"CODE":"X","code":"kept"}');
+
+        Assert.isNull(parsed.lines, 'A key spelled "Lines" is not the lines field.');
+        Assert.areEqual('kept', parsed.code, 'Only the key spelled "code" is read.');
+    }
+
+    // Empty and null lists still parse: the checks refuse only a value of the wrong kind.
+    @IsTest
+    static void parse_emptyAndNullLists_stillParse() {
+        RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
+            '{"lines":[{"details":[]},{"details":null}],"addresses":[],"summary":null,"messages":[]}');
+
+        Assert.areEqual(2, parsed.lines.size(), 'Both lines are read.');
+        Assert.areEqual(0, parsed.lines[0].details.size(), 'An empty detail list is read.');
+        Assert.isNull(parsed.lines[1].details, 'A null detail list stays null.');
+        Assert.areEqual(0, parsed.addresses.size(), 'An empty address list is read.');
+        Assert.isNull(parsed.summary, 'A null summary stays null.');
+        Assert.areEqual(0, parsed.messages.size(), 'An empty message list is read.');
     }
 }
