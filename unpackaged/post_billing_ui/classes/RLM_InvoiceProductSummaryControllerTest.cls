@@ -331,4 +331,360 @@ private class RLM_InvoiceProductSummaryControllerTest {
 
         Assert.isTrue(block.attributes.isEmpty(), 'A new attribute block has an empty attribute list.');
     }
+
+    // ─── buildSummary and the save helpers ───────────────────────────────────
+    // Invoice lines, billing period items and line relationships cannot be inserted in Apex, so
+    // these tests build them with JSON.deserialize and pass them to the methods the controller
+    // calls with the rows it queried.
+
+    private static Id fakeId(Schema.SObjectType objectType, Integer n) {
+        return Id.valueOf(objectType.getDescribe().getKeyPrefix() + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static InvoiceLine line(Map<String, Object> fields) {
+        return (InvoiceLine) JSON.deserialize(JSON.serialize(fields), InvoiceLine.class);
+    }
+
+    private static BillingPeriodItem periodItem(Id lineId, Date startDate, Date endDate) {
+        return (BillingPeriodItem) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'InvoiceLineId' => lineId, 'BillingPeriodStartDate' => startDate, 'BillingPeriodEndDate' => endDate
+        }), BillingPeriodItem.class);
+    }
+
+    private static InvoiceLineRelationship relationship(Id mainLineId, Id associatedLineId) {
+        return (InvoiceLineRelationship) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'MainInvoiceLineId' => mainLineId, 'AssociatedInvoiceLineId' => associatedLineId
+        }), InvoiceLineRelationship.class);
+    }
+
+    private static RLM_InvoiceProductSummaryController.AssetAttributeDetail attribute(String label, String value) {
+        RLM_InvoiceProductSummaryController.AssetAttributeDetail a =
+            new RLM_InvoiceProductSummaryController.AssetAttributeDetail();
+        a.label = label;
+        a.value = value;
+        return a;
+    }
+
+    private static RLM_InvoiceProductSummaryController.InvoiceSummaryResult summarize(
+        List<InvoiceLine> lines,
+        List<BillingPeriodItem> periodItems,
+        Map<Id, String> uomNames,
+        Map<Id, Id> bsgToAssetId,
+        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> assetToAttrs,
+        List<InvoiceLineRelationship> relationships
+    ) {
+        return RLM_InvoiceProductSummaryController.buildSummary(
+            'EUR', lines, periodItems, uomNames, bsgToAssetId, assetToAttrs, relationships);
+    }
+
+    private static RLM_InvoiceProductSummaryController.InvoiceSummaryResult summarize(List<InvoiceLine> lines) {
+        return summarize(lines, new List<BillingPeriodItem>(), new Map<Id, String>(), new Map<Id, Id>(),
+            new Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>>(),
+            new List<InvoiceLineRelationship>());
+    }
+
+    private static RLM_InvoiceProductSummaryController.ProductSummary productNamed(
+        RLM_InvoiceProductSummaryController.InvoiceSummaryResult result, String name
+    ) {
+        for (RLM_InvoiceProductSummaryController.ProductSummary ps : result.products) {
+            if (ps.productName == name) {
+                return ps;
+            }
+        }
+        Assert.fail('No product named ' + name + ' in the summary');
+        return null;
+    }
+
+    // Lines group by product, products sort by name, and each total adds the line's charge, its
+    // tax, and its line amount (charge plus tax when the line amount is blank).
+    @isTest
+    static void buildSummary_groupsLinesByProductSortsByNameAndTotals() {
+        Id beta = fakeId(Product2.SObjectType, 1);
+        Id alpha = fakeId(Product2.SObjectType, 2);
+        Id unnamed = fakeId(Product2.SObjectType, 3);
+        List<InvoiceLine> lines = new List<InvoiceLine>{
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 1), 'Name' => 'Beta 1',
+                'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
+                'ChargeAmount' => 100, 'TaxAmount' => 10 }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2), 'Name' => 'Beta 2',
+                'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
+                'RLM_Charge_Type__c' => 'Recurring', 'ChargeAmount' => 50, 'LineAmount' => 55 }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 3), 'Name' => 'Alpha 1',
+                'Product2Id' => alpha, 'Product2' => new Map<String, Object>{ 'Name' => 'Alpha' },
+                'RLM_Charge_Type__c' => 'One Time', 'ChargeAmount' => 20, 'TaxAmount' => 2, 'LineAmount' => 22 }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 4), 'Name' => 'Fee',
+                'ChargeAmount' => 5 }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 5), 'Name' => 'Orphan',
+                'Product2Id' => unnamed })
+        };
+
+        Test.startTest();
+        RLM_InvoiceProductSummaryController.InvoiceSummaryResult result = summarize(lines);
+        Test.stopTest();
+
+        List<String> names = new List<String>();
+        for (RLM_InvoiceProductSummaryController.ProductSummary ps : result.products) {
+            names.add(ps.productName);
+        }
+        Assert.areEqual(new List<String>{ 'Alpha', 'Beta', 'No Product', 'Unknown Product' }, names,
+            'Products sort by name; a line without a product is "No Product", one whose product is not loaded "Unknown Product"');
+        RLM_InvoiceProductSummaryController.ProductSummary betaSummary = productNamed(result, 'Beta');
+        Assert.areEqual(beta, betaSummary.productId, 'The product id is the group key');
+        Assert.areEqual(2, betaSummary.lineCount, 'Both Beta lines are counted');
+        Assert.areEqual(150, betaSummary.subtotal, 'The subtotal adds the charges');
+        Assert.areEqual(10, betaSummary.taxAmount, 'A blank tax counts as zero');
+        Assert.areEqual(165, betaSummary.totalWithTax, 'Charge plus tax where the line amount is blank (110), else the line amount (55)');
+        Assert.areEqual('Recurring', betaSummary.chargeType, 'The first charge type found fills a blank one');
+        Assert.areEqual('NO_PRODUCT', productNamed(result, 'No Product').productId, 'Lines without a product share one group');
+        Assert.areEqual(5, result.totalLines, 'Every line is counted');
+        Assert.areEqual(175, result.grandSubtotal, 'The grand subtotal adds every product');
+        Assert.areEqual(12, result.grandTax, 'The grand tax adds every product');
+        Assert.areEqual(192, result.grandTotal, 'The grand total adds every product');
+        Assert.areEqual('EUR', result.currencyCode, 'The currency is the invoice\'s');
+        RLM_InvoiceProductSummaryController.InvoiceLineDetail first = betaSummary.lines[0];
+        Assert.areEqual('Beta 1', first.name, 'Lines keep their query order within a product');
+        Assert.areEqual('EUR', first.currencyCode, 'Each line carries the invoice currency');
+        Assert.isFalse(first.isUsage, 'A line without a usage charge type is not usage');
+    }
+
+    // A line's period is its earliest billing period start and latest end; a line with no billing
+    // period item keeps its own dates. A usage line gets its overage, unit of measure and rate.
+    @isTest
+    static void buildSummary_periodsAndUsageLines() {
+        Id usageLine = fakeId(InvoiceLine.SObjectType, 1);
+        Id plainLine = fakeId(InvoiceLine.SObjectType, 2);
+        Id noQuantityLine = fakeId(InvoiceLine.SObjectType, 3);
+        Id uom = fakeId(UnitOfMeasure.SObjectType, 1);
+        Date d = Date.newInstance(2026, 1, 1);
+        List<InvoiceLine> lines = new List<InvoiceLine>{
+            line(new Map<String, Object>{ 'Id' => usageLine, 'Name' => 'Data', 'RLM_Charge_Type__c' => 'usage resource',
+                'Quantity' => 3, 'ChargeAmount' => 10, 'UsageOverageQuantity' => 2, 'UnitOfMeasureId' => uom,
+                'InvoiceLineStartDate' => d.addYears(1), 'InvoiceLineEndDate' => d.addYears(1) }),
+            line(new Map<String, Object>{ 'Id' => plainLine, 'Name' => 'Plain', 'Quantity' => 2, 'UnitPrice' => 4,
+                'ChargeAmount' => 8, 'Type' => 'Charge', 'Description' => 'A plain line',
+                'InvoiceLineStartDate' => d, 'InvoiceLineEndDate' => d.addDays(30) }),
+            line(new Map<String, Object>{ 'Id' => noQuantityLine, 'Name' => 'Free data',
+                'RLM_Charge_Type__c' => 'Usage Resource', 'Quantity' => 0, 'ChargeAmount' => 1 })
+        };
+        List<BillingPeriodItem> periods = new List<BillingPeriodItem>{
+            periodItem(usageLine, d.addMonths(1), d.addMonths(2)),
+            periodItem(usageLine, d, d.addMonths(1)),
+            periodItem(usageLine, d.addMonths(3), d.addMonths(4))
+        };
+
+        Test.startTest();
+        RLM_InvoiceProductSummaryController.InvoiceSummaryResult result = summarize(lines, periods,
+            new Map<Id, String>{ uom => 'GB' }, new Map<Id, Id>(),
+            new Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>>(),
+            new List<InvoiceLineRelationship>());
+        Test.stopTest();
+
+        Map<String, RLM_InvoiceProductSummaryController.InvoiceLineDetail> byName =
+            new Map<String, RLM_InvoiceProductSummaryController.InvoiceLineDetail>();
+        for (RLM_InvoiceProductSummaryController.InvoiceLineDetail ld : productNamed(result, 'No Product').lines) {
+            byName.put(ld.name, ld);
+        }
+        RLM_InvoiceProductSummaryController.InvoiceLineDetail usage = byName.get('Data');
+        Assert.areEqual(d, usage.periodStartDate, 'The earliest billing period start wins over the line\'s own date');
+        Assert.areEqual(d.addMonths(4), usage.periodEndDate, 'The latest billing period end wins');
+        Assert.isTrue(usage.isUsage, 'The usage charge type matches in any case');
+        Assert.areEqual(2, usage.overageQty, 'A usage line carries its overage');
+        Assert.areEqual('GB', usage.unitOfMeasure, 'A usage line names its unit of measure');
+        Assert.areEqual(3.3333, usage.rate, 'The rate is the charge per unit, to four places');
+        Assert.areEqual(usageLine, usage.lineId, 'The line id is kept');
+
+        RLM_InvoiceProductSummaryController.InvoiceLineDetail plain = byName.get('Plain');
+        Assert.areEqual(d, plain.periodStartDate, 'A line with no billing period keeps its start date');
+        Assert.areEqual(d.addDays(30), plain.periodEndDate, 'A line with no billing period keeps its end date');
+        Assert.areEqual(2, plain.quantity, 'The quantity is kept');
+        Assert.areEqual(4, plain.unitPrice, 'The unit price is kept');
+        Assert.areEqual(8, plain.totalWithTax, 'No tax and no line amount: the total is the charge');
+        Assert.areEqual('Charge', plain.type, 'The line type is kept');
+        Assert.areEqual('A plain line', plain.description, 'The description is kept');
+        Assert.isNull(plain.unitOfMeasure, 'Only a usage line names a unit of measure');
+
+        Assert.isNull(byName.get('Free data').rate, 'A usage line with no quantity has no rate');
+    }
+
+    // A line's schedule group leads to its asset; each product gets one block of that asset's
+    // attributes, one per label (compared without case) across the product's assets.
+    @isTest
+    static void buildSummary_mergesAssetAttributesPerProduct() {
+        Id product = fakeId(Product2.SObjectType, 1);
+        Id bsgA = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id bsgB = fakeId(BillingScheduleGroup.SObjectType, 2);
+        Id assetA = fakeId(Asset.SObjectType, 1);
+        Id assetB = fakeId(Asset.SObjectType, 2);
+        Map<String, Object> productRef = new Map<String, Object>{ 'Name' => 'Router' };
+        List<InvoiceLine> lines = new List<InvoiceLine>{
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 1), 'Name' => 'Router 1',
+                'Product2Id' => product, 'Product2' => productRef, 'BillingScheduleGroupId' => bsgA }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2), 'Name' => 'Router 2',
+                'Product2Id' => product, 'Product2' => productRef, 'BillingScheduleGroupId' => bsgA }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 3), 'Name' => 'Router 3',
+                'Product2Id' => product, 'Product2' => productRef, 'BillingScheduleGroupId' => bsgB })
+        };
+        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> attrs =
+            new Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>>{
+                assetA => new List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>{
+                    attribute('Color', 'Red'), attribute('Size', 'L') },
+                assetB => new List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>{
+                    attribute('color', 'Blue'), attribute('Ports', '8') }
+            };
+
+        Test.startTest();
+        RLM_InvoiceProductSummaryController.InvoiceSummaryResult result = summarize(lines,
+            new List<BillingPeriodItem>(), new Map<Id, String>(),
+            new Map<Id, Id>{ bsgA => assetA, bsgB => assetB }, attrs, new List<InvoiceLineRelationship>());
+        Test.stopTest();
+
+        RLM_InvoiceProductSummaryController.ProductSummary router = productNamed(result, 'Router');
+        Assert.areEqual(String.valueOf(assetA), router.lines[0].assetId, 'A line names the asset its schedule group resolves to');
+        Assert.areEqual(1, router.assetBlocks.size(), 'A product has one merged attribute block');
+        RLM_InvoiceProductSummaryController.AssetBlock block = router.assetBlocks[0];
+        Assert.areEqual('merged', block.assetId, 'The block is the merged one');
+        Assert.isNull(block.assetName, 'The merged block has no asset name');
+        List<String> merged = new List<String>();
+        for (RLM_InvoiceProductSummaryController.AssetAttributeDetail a : block.attributes) {
+            merged.add(a.label + '=' + a.value);
+        }
+        Assert.areEqual(new List<String>{ 'Color=Red', 'Size=L', 'Ports=8' }, merged,
+            'Each label appears once, compared without case; the first asset\'s value wins');
+    }
+
+    // Bundle lines: a component is nested under its parent and left out of the product list, a
+    // line can be both, and a parent named like its product is marked suppressed.
+    @isTest
+    static void buildSummary_nestsBundleComponentsUnderTheirParent() {
+        Id bundleProduct = fakeId(Product2.SObjectType, 1);
+        Id parent = fakeId(InvoiceLine.SObjectType, 1);
+        Id middle = fakeId(InvoiceLine.SObjectType, 2);
+        Id leaf = fakeId(InvoiceLine.SObjectType, 3);
+        Id sibling = fakeId(InvoiceLine.SObjectType, 4);
+        Id otherParent = fakeId(InvoiceLine.SObjectType, 5);
+        Id otherChild = fakeId(InvoiceLine.SObjectType, 6);
+        Id notOnInvoice = fakeId(InvoiceLine.SObjectType, 7);
+        Map<String, Object> bundleRef = new Map<String, Object>{ 'Name' => 'Office Bundle' };
+        List<InvoiceLine> lines = new List<InvoiceLine>{
+            line(new Map<String, Object>{ 'Id' => parent, 'Name' => 'office bundle', 'Product2Id' => bundleProduct,
+                'Product2' => bundleRef, 'ChargeAmount' => 100 }),
+            line(new Map<String, Object>{ 'Id' => middle, 'Name' => 'Suite', 'ChargeAmount' => 40 }),
+            line(new Map<String, Object>{ 'Id' => leaf, 'Name' => 'Seat', 'ChargeAmount' => 10 }),
+            line(new Map<String, Object>{ 'Id' => sibling, 'Name' => 'Support', 'ChargeAmount' => 5 }),
+            line(new Map<String, Object>{ 'Id' => otherParent, 'Name' => 'Kit', 'ChargeAmount' => 7 }),
+            line(new Map<String, Object>{ 'Id' => otherChild, 'Name' => 'Cable', 'ChargeAmount' => 1 })
+        };
+        List<InvoiceLineRelationship> relationships = new List<InvoiceLineRelationship>{
+            relationship(parent, middle),
+            relationship(middle, leaf),
+            relationship(parent, sibling),
+            relationship(otherParent, otherChild),
+            relationship(notOnInvoice, fakeId(InvoiceLine.SObjectType, 8)),
+            relationship(null, otherParent)
+        };
+
+        Test.startTest();
+        RLM_InvoiceProductSummaryController.InvoiceSummaryResult result = summarize(lines,
+            new List<BillingPeriodItem>(), new Map<Id, String>(), new Map<Id, Id>(),
+            new Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>>(), relationships);
+        Test.stopTest();
+
+        RLM_InvoiceProductSummaryController.ProductSummary bundle = productNamed(result, 'Office Bundle');
+        Assert.areEqual(1, bundle.lines.size(), 'Components are not listed as product lines');
+        Assert.areEqual(100, bundle.subtotal, 'Only top-level lines add to the product totals');
+        RLM_InvoiceProductSummaryController.InvoiceLineDetail top = bundle.lines[0];
+        Assert.isTrue(top.isParent, 'The bundle line is a parent');
+        Assert.areEqual('Bundle Parent', top.bundleRole, 'A parent that is no component is a Bundle Parent');
+        Assert.isTrue(top.isSuppressedParent, 'A parent named like its product (any case) is suppressed');
+        Assert.areEqual(2, top.components.size(), 'Both direct components are nested under the parent');
+        RLM_InvoiceProductSummaryController.InvoiceLineDetail suite;
+        for (RLM_InvoiceProductSummaryController.InvoiceLineDetail c : top.components) {
+            if (c.name == 'Suite') suite = c;
+        }
+        Assert.isTrue(suite.isParent && suite.isComponent, 'A nested bundle line is both a parent and a component');
+        Assert.areEqual('Bundle Component', suite.bundleRole, 'A line that is both is labelled a component');
+        Assert.areEqual('Seat', suite.components[0].name, 'Nesting goes more than one level deep');
+
+        RLM_InvoiceProductSummaryController.ProductSummary loose = productNamed(result, 'No Product');
+        Assert.areEqual(1, loose.lines.size(), 'Only the top-level line of the other bundle is listed');
+        Assert.isFalse(loose.lines[0].isSuppressedParent, 'A parent not named like its product is not suppressed');
+        Assert.areEqual(6, result.totalLines, 'Every line on the invoice is counted');
+    }
+
+    // The save writes attributes only to lines whose field is blank, and only for a line whose
+    // schedule group resolves to an asset that has attributes. Values are escaped.
+    @isTest
+    static void saveHelpers_writeAnEscapedTableOnlyWhereThereIsSomethingToWrite() {
+        Id written = fakeId(InvoiceLine.SObjectType, 1);
+        Id bsgWithAsset = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id bsgWithoutAsset = fakeId(BillingScheduleGroup.SObjectType, 2);
+        Id bsgEmptyAsset = fakeId(BillingScheduleGroup.SObjectType, 3);
+        Id assetWithAttrs = fakeId(Asset.SObjectType, 1);
+        Id emptyAsset = fakeId(Asset.SObjectType, 2);
+        List<InvoiceLine> queried = new List<InvoiceLine>{
+            line(new Map<String, Object>{ 'Id' => written, 'BillingScheduleGroupId' => bsgWithAsset }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2),
+                'BillingScheduleGroupId' => bsgWithAsset, 'RLM_Attributes__c' => '<p>kept</p>' }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 3),
+                'BillingScheduleGroupId' => bsgWithoutAsset }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 4),
+                'BillingScheduleGroupId' => bsgEmptyAsset })
+        };
+
+        Test.startTest();
+        List<InvoiceLine> blank = RLM_InvoiceProductSummaryController.linesWithoutAttributes(queried);
+        List<InvoiceLine> updates = RLM_InvoiceProductSummaryController.attributeUpdates(blank,
+            new Map<Id, Id>{ bsgWithAsset => assetWithAttrs, bsgEmptyAsset => emptyAsset },
+            new Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>>{
+                assetWithAttrs => new List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>{
+                    attribute('Plan <b>', 'A&B'), attribute(null, null) },
+                emptyAsset => new List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>()
+            });
+        Test.stopTest();
+
+        Assert.areEqual(3, blank.size(), 'A line that already has attributes is not rewritten');
+        Assert.areEqual(1, updates.size(), 'Only the line whose asset has attributes is written');
+        Assert.areEqual(written, updates[0].Id, 'The update targets that line');
+        String html = updates[0].RLM_Attributes__c;
+        Assert.isTrue(html.startsWith('<table'), 'The attributes are written as a table. Got: ' + html);
+        Assert.isTrue(html.contains('<td style="padding:4px 8px;">Plan &lt;b&gt;</td>'), 'Labels are escaped. Got: ' + html);
+        Assert.isTrue(html.contains('<td style="padding:4px 8px;">A&amp;B</td>'), 'Values are escaped. Got: ' + html);
+        Assert.isTrue(html.contains('<td style="padding:4px 8px;"></td><td style="padding:4px 8px;">—</td>'),
+            'A blank label is empty and a blank value is a dash. Got: ' + html);
+    }
+
+    // The attributes found are grouped under the asset whose state period they belong to, in
+    // query order; one from a state period not in the map is dropped.
+    @isTest
+    static void attributesByAsset_groupsAttributesUnderTheirAsset() {
+        Id assetA = fakeId(Asset.SObjectType, 1);
+        Id assetB = fakeId(Asset.SObjectType, 2);
+        Id periodA = fakeId(AssetStatePeriod.SObjectType, 1);
+        Id periodB = fakeId(AssetStatePeriod.SObjectType, 2);
+        Id otherPeriod = fakeId(AssetStatePeriod.SObjectType, 3);
+        List<AssetStatePeriodAttribute> rows = new List<AssetStatePeriodAttribute>();
+        for (List<Object> r : new List<List<Object>>{
+            new List<Object>{ periodA, 'Color', 'Red' },
+            new List<Object>{ periodB, 'Ports', '8' },
+            new List<Object>{ periodA, 'Size', 'L' },
+            new List<Object>{ otherPeriod, 'Color', 'Green' }
+        }) {
+            rows.add((AssetStatePeriodAttribute) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                'AssetStatePeriodId' => r[0], 'AttributeName' => r[1], 'AttributeValue' => r[2]
+            }), AssetStatePeriodAttribute.class));
+        }
+
+        Test.startTest();
+        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result =
+            RLM_InvoiceProductSummaryController.attributesByAsset(rows,
+                new Map<Id, Id>{ periodA => assetA, periodB => assetB });
+        Test.stopTest();
+
+        Assert.areEqual(new Set<Id>{ assetA, assetB }, result.keySet(), 'Only assets with a mapped period get an entry');
+        Assert.areEqual(2, result.get(assetA).size(), 'Both of asset A\'s attributes are kept');
+        Assert.areEqual('Color', result.get(assetA)[0].label, 'Attributes keep their query order');
+        Assert.areEqual('Red', result.get(assetA)[0].value, 'The value comes with its label');
+        Assert.areEqual('Size', result.get(assetA)[1].label, 'Attributes keep their query order');
+        Assert.areEqual('8', result.get(assetB)[0].value, 'Asset B gets its own attribute');
+    }
 }

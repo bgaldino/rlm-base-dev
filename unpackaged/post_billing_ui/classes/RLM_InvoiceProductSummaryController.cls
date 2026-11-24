@@ -94,15 +94,6 @@ public with sharing class RLM_InvoiceProductSummaryController {
 
     // ─── Comparators ─────────────────────────────────────────────────────────
 
-    private class AttributeLabelComparator implements Comparator<AssetAttributeDetail> {
-        public Integer compare(AssetAttributeDetail a, AssetAttributeDetail b) {
-            if (a.label == null && b.label == null) return 0;
-            if (a.label == null) return 1;
-            if (b.label == null) return -1;
-            return a.label.compareTo(b.label);
-        }
-    }
-
     private class ProductSummaryComparator implements Comparator<ProductSummary> {
         public Integer compare(ProductSummary a, ProductSummary b) {
             if (a.productName == null && b.productName == null) return 0;
@@ -163,22 +154,12 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 statePeriodToAsset.put(assetToStatePeriod.get(aid), aid);
             }
 
-            for (AssetStatePeriodAttribute attr : [
+            result = attributesByAsset([
                 SELECT AssetStatePeriodId, AttributeName, AttributeValue
                 FROM AssetStatePeriodAttribute
                 WHERE AssetStatePeriodId IN :statePeriodIds
                 WITH USER_MODE ORDER BY AttributeName ASC NULLS LAST
-            ]) {
-                Id assetId = statePeriodToAsset.get(attr.AssetStatePeriodId);
-                if (assetId == null) continue;
-                if (!result.containsKey(assetId)) {
-                    result.put(assetId, new List<AssetAttributeDetail>());
-                }
-                AssetAttributeDetail aad = new AssetAttributeDetail();
-                aad.label = attr.AttributeName;
-                aad.value = attr.AttributeValue;
-                result.get(assetId).add(aad);
-            }
+            ], statePeriodToAsset);
         } catch (Exception e) {
             if (failLoudly) throw e;
             System.debug('AssetStatePeriodAttribute failed: ' + e.getMessage());
@@ -186,17 +167,26 @@ public with sharing class RLM_InvoiceProductSummaryController {
         return result;
     }
 
-    // ─── Helper: Asset names ──────────────────────────────────────────────────
-
-    private static Map<Id, String> resolveAssetNames(Set<Id> assetIds) {
-        Map<Id, String> names = new Map<Id, String>();
-        if (assetIds == null || assetIds.isEmpty()) return names;
-        try {
-            for (Asset a : [SELECT Id, Name FROM Asset WHERE Id IN :assetIds WITH USER_MODE]) {
-                names.put(a.Id, a.Name);
+    // Groups the queried attributes by the asset whose state period they belong to. Takes rows
+    // so a test can pass attributes, whose definitions Apex tests cannot insert.
+    @TestVisible
+    private static Map<Id, List<AssetAttributeDetail>> attributesByAsset(
+        List<AssetStatePeriodAttribute> attributes,
+        Map<Id, Id> statePeriodToAsset
+    ) {
+        Map<Id, List<AssetAttributeDetail>> result = new Map<Id, List<AssetAttributeDetail>>();
+        for (AssetStatePeriodAttribute attr : attributes) {
+            Id assetId = statePeriodToAsset.get(attr.AssetStatePeriodId);
+            if (assetId == null) continue;
+            if (!result.containsKey(assetId)) {
+                result.put(assetId, new List<AssetAttributeDetail>());
             }
-        } catch (Exception e) { System.debug('Asset name query failed: ' + e.getMessage()); }
-        return names;
+            AssetAttributeDetail aad = new AssetAttributeDetail();
+            aad.label = attr.AttributeName;
+            aad.value = attr.AttributeValue;
+            result.get(assetId).add(aad);
+        }
+        return result;
     }
 
     // ─── Helper: Rich text table for RLM_Attributes__c ────────────────────────────
@@ -287,10 +277,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 AND   BillingScheduleGroupId != null WITH USER_MODE
             ];
 
-            List<InvoiceLine> blankLines = new List<InvoiceLine>();
-            for (InvoiceLine l : lines) {
-                if (String.isBlank(l.RLM_Attributes__c)) blankLines.add(l);
-            }
+            List<InvoiceLine> blankLines = linesWithoutAttributes(lines);
             if (blankLines.isEmpty()) return;
 
             Set<Id> bsgIds = new Set<Id>();
@@ -299,23 +286,44 @@ public with sharing class RLM_InvoiceProductSummaryController {
             Map<Id, Id> bsgToAssetId                          = resolveBsgToAsset(bsgIds, true);
             Map<Id, List<AssetAttributeDetail>> assetToAttrs  = resolveAssetAttributes(new Set<Id>(bsgToAssetId.values()), true);
 
-            List<InvoiceLine> toUpdate = new List<InvoiceLine>();
-            for (InvoiceLine line : blankLines) {
-                Id assetId = bsgToAssetId.get(line.BillingScheduleGroupId);
-                if (assetId == null) continue;
-                List<AssetAttributeDetail> attrs = assetToAttrs.get(assetId);
-                if (attrs == null || attrs.isEmpty()) continue;
-                String richText = buildRichTextTable(attrs);
-                if (richText == null) continue;
-                InvoiceLine upd   = new InvoiceLine(Id = line.Id);
-                upd.RLM_Attributes__c = richText;
-                toUpdate.add(upd);
-            }
+            List<InvoiceLine> toUpdate = attributeUpdates(blankLines, bsgToAssetId, assetToAttrs);
             if (!toUpdate.isEmpty()) update as user toUpdate;
 
         } catch (Exception e) {
             throw RLM_AuraErrors.failed(SAVE_FAILED_MESSAGE, 'RLM_InvoiceProductSummaryController.saveLineAttributes', e);
         }
+    }
+
+    // The lines whose attribute field is still blank: only those are written.
+    @TestVisible
+    private static List<InvoiceLine> linesWithoutAttributes(List<InvoiceLine> lines) {
+        List<InvoiceLine> blankLines = new List<InvoiceLine>();
+        for (InvoiceLine l : lines) {
+            if (String.isBlank(l.RLM_Attributes__c)) blankLines.add(l);
+        }
+        return blankLines;
+    }
+
+    // One update per line whose schedule group resolves to an asset that has attributes.
+    @TestVisible
+    private static List<InvoiceLine> attributeUpdates(
+        List<InvoiceLine> blankLines,
+        Map<Id, Id> bsgToAssetId,
+        Map<Id, List<AssetAttributeDetail>> assetToAttrs
+    ) {
+        List<InvoiceLine> toUpdate = new List<InvoiceLine>();
+        for (InvoiceLine line : blankLines) {
+            Id assetId = bsgToAssetId.get(line.BillingScheduleGroupId);
+            if (assetId == null) continue;
+            List<AssetAttributeDetail> attrs = assetToAttrs.get(assetId);
+            if (attrs == null || attrs.isEmpty()) continue;
+            String richText = buildRichTextTable(attrs);
+            if (richText == null) continue;
+            InvoiceLine upd   = new InvoiceLine(Id = line.Id);
+            upd.RLM_Attributes__c = richText;
+            toUpdate.add(upd);
+        }
+        return toUpdate;
     }
 
     // ─── METHOD 2: Read summary ───────────────────────────────────────────────
@@ -356,24 +364,13 @@ public with sharing class RLM_InvoiceProductSummaryController {
             }
 
             // Billing periods
-            Map<Id, Date> linePeriodStart = new Map<Id, Date>();
-            Map<Id, Date> linePeriodEnd   = new Map<Id, Date>();
+            List<BillingPeriodItem> periodItems = new List<BillingPeriodItem>();
             try {
-                for (BillingPeriodItem bpi : [
+                periodItems = [
                     SELECT InvoiceLineId, BillingPeriodStartDate, BillingPeriodEndDate
                     FROM BillingPeriodItem WHERE InvoiceLineId IN :lineIds
                     WITH USER_MODE ORDER BY BillingPeriodStartDate ASC NULLS LAST
-                ]) {
-                    Id lid = bpi.InvoiceLineId;
-                    if (!linePeriodStart.containsKey(lid) ||
-                        (bpi.BillingPeriodStartDate != null &&
-                         bpi.BillingPeriodStartDate < linePeriodStart.get(lid)))
-                        linePeriodStart.put(lid, bpi.BillingPeriodStartDate);
-                    if (!linePeriodEnd.containsKey(lid) ||
-                        (bpi.BillingPeriodEndDate != null &&
-                         bpi.BillingPeriodEndDate > linePeriodEnd.get(lid)))
-                        linePeriodEnd.put(lid, bpi.BillingPeriodEndDate);
-                }
+                ];
             } catch (Exception e) { System.debug('BillingPeriodItem failed: ' + e.getMessage()); }
 
             // UoM names
@@ -387,157 +384,192 @@ public with sharing class RLM_InvoiceProductSummaryController {
 
             // Asset attributes
             Map<Id, Id>     bsgToAssetId = resolveBsgToAsset(bsgIds, false);
-            Set<Id>         assetIds     = new Set<Id>(bsgToAssetId.values());
-            Map<Id, List<AssetAttributeDetail>> assetToAttrs = resolveAssetAttributes(assetIds, false);
-            Map<Id, String> assetNames   = resolveAssetNames(assetIds);
+            Map<Id, List<AssetAttributeDetail>> assetToAttrs =
+                resolveAssetAttributes(new Set<Id>(bsgToAssetId.values()), false);
 
-            // ── Bundle relationships ─────────────────────────────────────────────────
-            // componentToParent: child lineId → its direct parent lineId
-            // A line can be BOTH a component (has a parent) AND a parent (has children)
-            // — this is a nested bundle. We handle this recursively.
-            Map<Id, Id>        componentToParent = new Map<Id, Id>();
-            Map<Id, List<Id>>  parentToChildren  = new Map<Id, List<Id>>();
+            // Bundle relationships
+            List<InvoiceLineRelationship> relationships = new List<InvoiceLineRelationship>();
             try {
-                for (InvoiceLineRelationship ilr : [
+                relationships = [
                     SELECT MainInvoiceLineId, AssociatedInvoiceLineId
                     FROM InvoiceLineRelationship
                     WHERE MainInvoiceLineId IN :lineIds
                        OR AssociatedInvoiceLineId IN :lineIds WITH USER_MODE
-                ]) {
-                    if (ilr.MainInvoiceLineId == null || ilr.AssociatedInvoiceLineId == null) continue;
-                    componentToParent.put(ilr.AssociatedInvoiceLineId, ilr.MainInvoiceLineId);
-                    if (!parentToChildren.containsKey(ilr.MainInvoiceLineId)) {
-                        parentToChildren.put(ilr.MainInvoiceLineId, new List<Id>());
-                    }
-                    parentToChildren.get(ilr.MainInvoiceLineId).add(ilr.AssociatedInvoiceLineId);
-                }
+                ];
             } catch (Exception e) { System.debug('InvoiceLineRelationship failed: ' + e.getMessage()); }
 
-            // Build flat detail map for all lines first
-            Map<Id, InvoiceLineDetail> detailMap = new Map<Id, InvoiceLineDetail>();
-            for (InvoiceLine line : lines) {
-                InvoiceLineDetail d = buildDetail(
-                    line, linePeriodStart, linePeriodEnd,
-                    bsgToAssetId, uomNames, inv.CurrencyIsoCode
-                );
-                d.isParent    = parentToChildren.containsKey(line.Id);
-                d.isComponent = componentToParent.containsKey(line.Id);
-                if (d.isParent)    d.bundleRole = 'Bundle Parent';
-                if (d.isComponent) d.bundleRole = 'Bundle Component';
-                detailMap.put(line.Id, d);
-            }
-
-            // Recursively attach children to parents (supports unlimited nesting depth)
-            for (Id parentId : parentToChildren.keySet()) {
-                InvoiceLineDetail parent = detailMap.get(parentId);
-                if (parent == null) continue;
-                for (Id childId : parentToChildren.get(parentId)) {
-                    InvoiceLineDetail child = detailMap.get(childId);
-                    if (child != null) parent.components.add(child);
-                }
-            }
-
-            // ── Product grouping ──────────────────────────────────────────────────────
-            // Only top-level lines (those with no parent) are added to products.
-            // A top-level line may itself be a bundle parent — it shows once in the
-            // product header section and is NOT repeated as a line row beneath it.
-            Map<String, ProductSummary> productMap = new Map<String, ProductSummary>();
-            List<String> productOrder              = new List<String>();
-
-            for (InvoiceLine line : lines) {
-                // Skip children — they appear nested under their parent
-                if (componentToParent.containsKey(line.Id)) continue;
-
-                String key         = line.Product2Id != null ? (String) line.Product2Id : 'NO_PRODUCT';
-                String productName = line.Product2Id != null
-                    ? (line.Product2 != null ? line.Product2.Name : 'Unknown Product')
-                    : 'No Product';
-
-                if (!productMap.containsKey(key)) {
-                    ProductSummary ps = new ProductSummary();
-                    ps.productId      = key;
-                    ps.productName    = productName;
-                    ps.chargeType     = line.RLM_Charge_Type__c;
-                    productMap.put(key, ps);
-                    productOrder.add(key);
-                }
-
-                ProductSummary ps = productMap.get(key);
-                ps.lineCount++;
-                if (ps.chargeType == null && line.RLM_Charge_Type__c != null)
-                    ps.chargeType = line.RLM_Charge_Type__c;
-
-                Decimal chargeAmt = line.ChargeAmount != null ? line.ChargeAmount : 0;
-                Decimal taxAmt    = line.TaxAmount    != null ? line.TaxAmount    : 0;
-                Decimal lineAmt   = line.LineAmount   != null ? line.LineAmount   : (chargeAmt + taxAmt);
-                ps.subtotal     += chargeAmt;
-                ps.taxAmount    += taxAmt;
-                ps.totalWithTax += lineAmt;
-
-                InvoiceLineDetail detail = detailMap.get(line.Id);
-                // If this top-level line IS a bundle parent and shares the product name,
-                // suppress it as a row — its children show directly and the product
-                // header already carries the name. Just add its children as flat lines.
-                if (detail.isParent && detail.components != null && !detail.components.isEmpty()
-                    && detail.name != null && detail.name.equalsIgnoreCase(productName)
-                    && ps.lines.isEmpty()) {
-                    // Don't add the parent row; add children directly so they render
-                    // at top level (the product IS the bundle parent)
-                    detail.isSuppressedParent = true;
-                }
-                ps.lines.add(detail);
-            }
-
-            // Build merged attribute block per product
-            for (String key : productOrder) {
-                ProductSummary ps = productMap.get(key);
-                Set<String> seenAssetIds = new Set<String>();
-                Set<String> seenLabels   = new Set<String>();
-                List<AssetAttributeDetail> mergedAttrs = new List<AssetAttributeDetail>();
-
-                for (InvoiceLineDetail ld : ps.lines) {
-                    if (ld.assetId == null || seenAssetIds.contains(ld.assetId)) continue;
-                    seenAssetIds.add(ld.assetId);
-                    Id aid = (Id) ld.assetId;
-                    List<AssetAttributeDetail> attrs = assetToAttrs.get(aid);
-                    if (attrs == null || attrs.isEmpty()) continue;
-                    for (AssetAttributeDetail aad : attrs) {
-                        String lk = aad.label != null ? aad.label.toLowerCase() : 'null';
-                        if (seenLabels.contains(lk)) continue;
-                        seenLabels.add(lk);
-                        mergedAttrs.add(aad);
-                    }
-                }
-
-                if (!mergedAttrs.isEmpty()) {
-                    AssetBlock block = new AssetBlock();
-                    block.assetId   = 'merged';
-                    block.assetName = null;
-                    block.attributes = mergedAttrs;
-                    ps.assetBlocks = new List<AssetBlock>{ block };
-                }
-            }
-
-            // Sort and assemble
-            List<ProductSummary> sorted = new List<ProductSummary>();
-            for (String key : productOrder) sorted.add(productMap.get(key));
-            sorted.sort(new ProductSummaryComparator());
-
-            InvoiceSummaryResult result = new InvoiceSummaryResult();
-            result.currencyCode         = inv.CurrencyIsoCode;
-            result.totalLines           = lines.size();
-
-            for (ProductSummary ps : sorted) {
-                result.products.add(ps);
-                result.grandSubtotal += ps.subtotal;
-                result.grandTax      += ps.taxAmount;
-                result.grandTotal    += ps.totalWithTax;
-            }
-
-            return result;
+            return buildSummary(
+                inv.CurrencyIsoCode, lines, periodItems, uomNames, bsgToAssetId, assetToAttrs, relationships
+            );
 
         } catch (Exception e) {
             throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_InvoiceProductSummaryController.getInvoiceProductSummary', e);
         }
+    }
+
+    // Builds the summary from the rows the read path queried. Takes rows so a test can pass
+    // invoice lines, billing period items and line relationships, which Apex cannot insert.
+    @TestVisible
+    private static InvoiceSummaryResult buildSummary(
+        String currencyCode,
+        List<InvoiceLine> lines,
+        List<BillingPeriodItem> periodItems,
+        Map<Id, String> uomNames,
+        Map<Id, Id> bsgToAssetId,
+        Map<Id, List<AssetAttributeDetail>> assetToAttrs,
+        List<InvoiceLineRelationship> relationships
+    ) {
+        // Billing periods: each line's earliest start and latest end
+        Map<Id, Date> linePeriodStart = new Map<Id, Date>();
+        Map<Id, Date> linePeriodEnd   = new Map<Id, Date>();
+        for (BillingPeriodItem bpi : periodItems) {
+            Id lid = bpi.InvoiceLineId;
+            if (!linePeriodStart.containsKey(lid) ||
+                (bpi.BillingPeriodStartDate != null &&
+                 bpi.BillingPeriodStartDate < linePeriodStart.get(lid)))
+                linePeriodStart.put(lid, bpi.BillingPeriodStartDate);
+            if (!linePeriodEnd.containsKey(lid) ||
+                (bpi.BillingPeriodEndDate != null &&
+                 bpi.BillingPeriodEndDate > linePeriodEnd.get(lid)))
+                linePeriodEnd.put(lid, bpi.BillingPeriodEndDate);
+        }
+
+        // ── Bundle relationships ─────────────────────────────────────────────────
+        // componentToParent: child lineId → its direct parent lineId
+        // A line can be BOTH a component (has a parent) AND a parent (has children)
+        // — this is a nested bundle. We handle this recursively.
+        Map<Id, Id>        componentToParent = new Map<Id, Id>();
+        Map<Id, List<Id>>  parentToChildren  = new Map<Id, List<Id>>();
+        for (InvoiceLineRelationship ilr : relationships) {
+            if (ilr.MainInvoiceLineId == null || ilr.AssociatedInvoiceLineId == null) continue;
+            componentToParent.put(ilr.AssociatedInvoiceLineId, ilr.MainInvoiceLineId);
+            if (!parentToChildren.containsKey(ilr.MainInvoiceLineId)) {
+                parentToChildren.put(ilr.MainInvoiceLineId, new List<Id>());
+            }
+            parentToChildren.get(ilr.MainInvoiceLineId).add(ilr.AssociatedInvoiceLineId);
+        }
+
+        // Build flat detail map for all lines first
+        Map<Id, InvoiceLineDetail> detailMap = new Map<Id, InvoiceLineDetail>();
+        for (InvoiceLine line : lines) {
+            InvoiceLineDetail d = buildDetail(
+                line, linePeriodStart, linePeriodEnd,
+                bsgToAssetId, uomNames, currencyCode
+            );
+            d.isParent    = parentToChildren.containsKey(line.Id);
+            d.isComponent = componentToParent.containsKey(line.Id);
+            if (d.isParent)    d.bundleRole = 'Bundle Parent';
+            if (d.isComponent) d.bundleRole = 'Bundle Component';
+            detailMap.put(line.Id, d);
+        }
+
+        // Recursively attach children to parents (supports unlimited nesting depth)
+        for (Id parentId : parentToChildren.keySet()) {
+            InvoiceLineDetail parent = detailMap.get(parentId);
+            if (parent == null) continue;
+            for (Id childId : parentToChildren.get(parentId)) {
+                InvoiceLineDetail child = detailMap.get(childId);
+                if (child != null) parent.components.add(child);
+            }
+        }
+
+        // ── Product grouping ──────────────────────────────────────────────────────
+        // Only top-level lines (those with no parent) are added to products.
+        // A top-level line may itself be a bundle parent — it shows once in the
+        // product header section and is NOT repeated as a line row beneath it.
+        Map<String, ProductSummary> productMap = new Map<String, ProductSummary>();
+        List<String> productOrder              = new List<String>();
+
+        for (InvoiceLine line : lines) {
+            // Skip children — they appear nested under their parent
+            if (componentToParent.containsKey(line.Id)) continue;
+
+            String key         = line.Product2Id != null ? (String) line.Product2Id : 'NO_PRODUCT';
+            String productName = line.Product2Id != null
+                ? (line.Product2 != null ? line.Product2.Name : 'Unknown Product')
+                : 'No Product';
+
+            if (!productMap.containsKey(key)) {
+                ProductSummary ps = new ProductSummary();
+                ps.productId      = key;
+                ps.productName    = productName;
+                ps.chargeType     = line.RLM_Charge_Type__c;
+                productMap.put(key, ps);
+                productOrder.add(key);
+            }
+
+            ProductSummary ps = productMap.get(key);
+            ps.lineCount++;
+            if (ps.chargeType == null && line.RLM_Charge_Type__c != null)
+                ps.chargeType = line.RLM_Charge_Type__c;
+
+            Decimal chargeAmt = line.ChargeAmount != null ? line.ChargeAmount : 0;
+            Decimal taxAmt    = line.TaxAmount    != null ? line.TaxAmount    : 0;
+            Decimal lineAmt   = line.LineAmount   != null ? line.LineAmount   : (chargeAmt + taxAmt);
+            ps.subtotal     += chargeAmt;
+            ps.taxAmount    += taxAmt;
+            ps.totalWithTax += lineAmt;
+
+            InvoiceLineDetail detail = detailMap.get(line.Id);
+            // If this top-level line IS a bundle parent and shares the product name,
+            // suppress it as a row — its children show directly and the product
+            // header already carries the name. Just add its children as flat lines.
+            if (detail.isParent && detail.components != null && !detail.components.isEmpty()
+                && detail.name != null && detail.name.equalsIgnoreCase(productName)
+                && ps.lines.isEmpty()) {
+                // Don't add the parent row; add children directly so they render
+                // at top level (the product IS the bundle parent)
+                detail.isSuppressedParent = true;
+            }
+            ps.lines.add(detail);
+        }
+
+        // Build merged attribute block per product
+        for (String key : productOrder) {
+            ProductSummary ps = productMap.get(key);
+            Set<String> seenAssetIds = new Set<String>();
+            Set<String> seenLabels   = new Set<String>();
+            List<AssetAttributeDetail> mergedAttrs = new List<AssetAttributeDetail>();
+
+            for (InvoiceLineDetail ld : ps.lines) {
+                if (ld.assetId == null || seenAssetIds.contains(ld.assetId)) continue;
+                seenAssetIds.add(ld.assetId);
+                Id aid = (Id) ld.assetId;
+                List<AssetAttributeDetail> attrs = assetToAttrs.get(aid);
+                if (attrs == null || attrs.isEmpty()) continue;
+                for (AssetAttributeDetail aad : attrs) {
+                    String lk = aad.label != null ? aad.label.toLowerCase() : 'null';
+                    if (seenLabels.contains(lk)) continue;
+                    seenLabels.add(lk);
+                    mergedAttrs.add(aad);
+                }
+            }
+
+            if (!mergedAttrs.isEmpty()) {
+                AssetBlock block = new AssetBlock();
+                block.assetId   = 'merged';
+                block.assetName = null;
+                block.attributes = mergedAttrs;
+                ps.assetBlocks = new List<AssetBlock>{ block };
+            }
+        }
+
+        // Sort and assemble
+        List<ProductSummary> sorted = new List<ProductSummary>();
+        for (String key : productOrder) sorted.add(productMap.get(key));
+        sorted.sort(new ProductSummaryComparator());
+
+        InvoiceSummaryResult result = new InvoiceSummaryResult();
+        result.currencyCode         = currencyCode;
+        result.totalLines           = lines.size();
+
+        for (ProductSummary ps : sorted) {
+            result.products.add(ps);
+            result.grandSubtotal += ps.subtotal;
+            result.grandTax      += ps.taxAmount;
+            result.grandTotal    += ps.totalWithTax;
+        }
+
+        return result;
     }
 }

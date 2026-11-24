@@ -32,6 +32,9 @@ public with sharing class RLM_InvoiceAgingController {
         }
     }
     
+    // Builds the aging figures from the queried invoices. Takes rows so a test can pass
+    // invoices, which Apex cannot insert.
+    @TestVisible
     private static InvoiceAgingData processInvoiceData(List<Invoice> invoices) {
         InvoiceAgingData data = new InvoiceAgingData();
         

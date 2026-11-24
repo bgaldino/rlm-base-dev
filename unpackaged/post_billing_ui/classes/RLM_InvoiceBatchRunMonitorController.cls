@@ -22,13 +22,18 @@ public with sharing class RLM_InvoiceBatchRunMonitorController {
         ];
 
         for (AggregateResult ar : results) {
-            String status = (String) ar.get('Status');
-            Integer cnt = (Integer) ar.get('cnt');
-            if (status != null) {
-                counts.put(status, cnt);
-            }
+            addCount(counts, (String) ar.get('Status'), (Integer) ar.get('cnt'));
         }
 
         return counts;
+    }
+
+    // Records one status's count. Takes values, not an AggregateResult, so a test can pass
+    // counts for invoices, which Apex cannot insert.
+    @TestVisible
+    private static void addCount(Map<String, Integer> counts, String status, Integer cnt) {
+        if (status != null) {
+            counts.put(status, cnt);
+        }
     }
 }
