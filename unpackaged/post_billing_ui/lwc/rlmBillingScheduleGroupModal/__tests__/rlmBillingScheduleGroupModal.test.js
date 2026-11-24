@@ -299,6 +299,29 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     ]);
   });
 
+  it("says the billing account could not be read, not that there is none, when the link read is refused", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingLinkUnreadable: true
+    });
+    await flushPromises();
+
+    expect(toasts.map((toast) => [toast.title, toast.variant])).toEqual([
+      ["Billing Account Unavailable", "warning"]
+    ]);
+    expect(element.shadowRoot.textContent).toContain("could not be read");
+    expect(element.shadowRoot.textContent).not.toContain(
+      "No Billing Account associated"
+    );
+    expect(createButton(element).disabled).toBe(true);
+  });
+
   it("sends a one-time charge with its total price and no end date", async () => {
     const element = await mount();
     await fillOneTime(element);

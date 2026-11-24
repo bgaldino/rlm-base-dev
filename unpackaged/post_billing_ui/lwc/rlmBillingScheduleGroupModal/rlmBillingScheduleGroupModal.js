@@ -15,6 +15,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     billingAccountId;
     billingAccountName;
     billingCity;
+    billingLinkUnreadable = false; // a billing account may exist but the user cannot read it
 
     isLoading = true; // Start as loading while we fetch account data
     legalEntityOptions = [];
@@ -139,8 +140,17 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billingAccountId = data.billingAccountId;
             this.billingAccountName = data.billingAccountName;
             this.billingCity = data.billingCity;
+            this.billingLinkUnreadable = data.billingLinkUnreadable === true;
 
-            if (!this.billingAccountId) {
+            if (this.billingLinkUnreadable) {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Billing Account Unavailable',
+                        message: 'The billing account for this Account could not be read. Ask your administrator for access.',
+                        variant: 'warning'
+                    })
+                );
+            } else if (!this.billingAccountId) {
                 this.dispatchEvent(
                     new ShowToastEvent({
                         title: 'No Billing Account',

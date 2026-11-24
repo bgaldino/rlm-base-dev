@@ -305,12 +305,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.areEqual(ba.Id, info.billingAccountId, 'The billing role resolves the linked billing account.');
+        Assert.isFalse(info.billingLinkUnreadable, 'A readable link is not flagged as unreadable.');
     }
 
-    // A user who can read Account and BillingAccount but not AccountBillingAccount must get a
-    // specific access message, not an empty result that reads as "no billing account".
+    // A user who can read Account and BillingAccount but not AccountBillingAccount still sees the
+    // account, flagged as "billing account unreadable" rather than an empty result that reads as
+    // "no billing account".
     @isTest
-    static void getAccountBillingInfo_withoutAccessToTheBillingAccountLinks_reportsAnAccessFailure() {
+    static void getAccountBillingInfo_withoutAccessToTheBillingAccountLinks_flagsTheBillingAccountUnreadable() {
         Account a = new Account(Name = 'BSG No Link Access Acct');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG No Link Access BA');
@@ -328,24 +330,53 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ 'BillingAccount' },
             new List<String>{ 'Account.BillingAddress' });
 
-        String message;
+        RLM_BillingScheduleGroupService.AccountInfo info;
         Test.startTest();
         System.runAs(u) {
             Assert.isFalse(userModeQueryFails('SELECT Id FROM BillingAccount LIMIT 1'),
                 'PRECONDITION: the user can read BillingAccount (so the failure below is the link read).');
             Assert.isTrue(userModeQueryFails('SELECT Id FROM AccountBillingAccount LIMIT 1'),
                 'PRECONDITION: the user cannot read AccountBillingAccount.');
-            try {
-                RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
-                Assert.fail('Expected an access failure, not an empty result that reads as "no billing account".');
-            } catch (AuraHandledException e) {
-                message = e.getMessage();
-            }
+            info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
         }
         Test.stopTest();
 
-        Assert.areEqual(RLM_BillingScheduleGroupService.NO_BILLING_LINK_ACCESS_MESSAGE, message,
-            'The message names the missing access.');
+        Assert.areEqual(a.Name, info.accountName, 'The account name is still shown.');
+        Assert.isNull(info.billingAccountId, 'No billing account is resolved without the link read.');
+        Assert.isTrue(info.billingLinkUnreadable,
+            'The result says the billing account could not be read, not that there is none.');
+    }
+
+    // A readable link to a billing account that sharing hides from the user: a billing account
+    // exists, so the result is flagged unreadable, not "none". Needs a Private org-wide default for
+    // billing accounts; where they are readable by default there is nothing hidden to test.
+    @isTest
+    static void getAccountBillingInfo_linkToABillingAccountHiddenBySharing_flagsTheBillingAccountUnreadable() {
+        Account a = new Account(Name = 'BSG Hidden BA Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Hidden BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+
+        RLM_BillingScheduleGroupService.AccountInfo info;
+        Test.startTest();
+        System.runAs(u) {
+            if ([SELECT COUNT() FROM BillingAccount WHERE Id = :ba.Id WITH USER_MODE] != 0) {
+                System.debug(LoggingLevel.WARN, 'Billing accounts are not private in this org; nothing is hidden by sharing.');
+                return;
+            }
+            Assert.areEqual(1, [SELECT COUNT() FROM AccountBillingAccount WHERE AccountId = :a.Id WITH USER_MODE],
+                'PRECONDITION: the user can read the link.');
+            info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(a.Name, info.accountName, 'The account name is still shown.');
+        Assert.isNull(info.billingAccountId, 'The hidden billing account is not returned.');
+        Assert.isTrue(info.billingLinkUnreadable, 'A hidden billing account is not reported as none.');
     }
 
     private static Boolean userModeQueryFails(String soql) {

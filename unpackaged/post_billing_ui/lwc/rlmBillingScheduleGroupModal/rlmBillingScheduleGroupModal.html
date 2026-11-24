@@ -36,7 +36,12 @@
                                 <div class="slds-form-element__control">
                                     <div class="slds-form-element__static slds-text-color_error">
                                         <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                        No Billing Account associated with this Account
+                                        <template if:true={billingLinkUnreadable}>
+                                            The billing account for this Account could not be read. Ask your administrator for access.
+                                        </template>
+                                        <template if:false={billingLinkUnreadable}>
+                                            No Billing Account associated with this Account
+                                        </template>
                                     </div>
                                 </div>
                             </div>
