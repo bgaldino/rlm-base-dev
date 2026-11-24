@@ -38,6 +38,16 @@ must remain empty. A populated `IntegrationDefinitionName` is rejected for
 from loading. The tenant-provisioning callout remains on
 `Stage New Tenant for Provisioning - Platform`.
 
+That callout (`RLM_DFOTenantProvisioningCallout`) posts to
+`callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`. This repo no
+longer ships either end: the in-org `@RestResource` (`RLM_TenantProvisioningAPI`, with its
+tenant-environment object and flows) was removed in 2025-01 and the `RLM` named credential,
+which pointed at a single, hard-coded org, in 2026-03 (git history). On a fresh build the step therefore has no
+target. How the step ends (status, error, whether the plan continues) is not yet measured.
+The step is reached by products decomposed to
+`QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
+callout on its tenant-provisioning steps [inferred from its step definitions; not run].
+
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
 for decomposition. The scope reads `ItemRampIdentifier`; when a line has no
@@ -73,8 +83,8 @@ does not establish that a full SFDMU reload clears old values on existing orgs.
 Release 264 live verification confirmed decomposition and plan composition
 after these repairs, including the restored provisioning step and dependencies.
 End-to-end fulfillment remains unverified: the tenant-provisioning callout
-requires the `RLM` named credential, which was absent in the verification
-environment. Manual steps also require operator completion.
+requires the `RLM` named credential, which this repo no longer ships (see above),
+so the step has no target. Manual steps also require operator completion.
 
 The build currently creates `RLM_SalesTransactionContext` but does not select it
 in DRO Context Definition Settings. Automating and verifying that assignment
