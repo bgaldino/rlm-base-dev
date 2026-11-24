@@ -2,9 +2,11 @@
 private class RLM_BSGContextControllerTest {
 
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
-    // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
+    // BsgRelationship cannot be inserted in Apex tests, so getBSGContext itself is covered on
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
-    // query the user may not run. The admin-run unknown-id test
+    // query the user may not run. What it does with a found group is covered through the seams
+    // that take rows (fillContext, getBundleData, the milestone, usage and arrangement helpers),
+    // in the tests after "Seams over queried rows". The admin-run unknown-id test
     // (getBSGContext_unknownId_returnsEmptyStandard) reaches "not found or refused"
     // (indistinguishable when run as the admin).
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
@@ -13,9 +15,9 @@ private class RLM_BSGContextControllerTest {
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
     // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
-    // Fixed (live verification only; BillingScheduleGroup records are not insertable in Apex
-    // tests): groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
-    // TotalPendingAmount (no arbitrary single schedule), and the usage resource names come
+    // Fixed: groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
+    // TotalPendingAmount (no arbitrary single schedule; fillContext_usageGroupWithAnArrangement
+    // checks it), and the usage resource names come
     // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
     private static Id fakeBsgId() {
         return Id.valueOf(
@@ -514,7 +516,8 @@ private class RLM_BSGContextControllerTest {
         Assert.isFalse(target[1].shouldBillRemainder, 'Each line keeps its own flag');
     }
 
-    // A plan id that matches no plan returns an empty plan rather than throwing.
+    // Smoke test: for a plan id that matches no plan, the plan lookup returns an empty plan and
+    // does not throw. (A missing row and a swallowed error look the same from here.)
     @isTest
     static void getMilestonePlan_unknownPlanReturnsAnEmptyPlan() {
         Schema.SObjectType planType = Schema.getGlobalDescribe().get('BillingMilestonePlan');
@@ -595,7 +598,8 @@ private class RLM_BSGContextControllerTest {
     // blank); items keep their query order, with the accomplishment date as text.
     @isTest
     static void milestonePlanRows_fillTheHeaderAndItems() {
-        if (Type.forName('BillingMilestonePlanItem') == null) {
+        if (Schema.getGlobalDescribe().get('BillingMilestonePlanItem') == null
+            || Schema.getGlobalDescribe().get('BillingMilestonePlan') == null) {
             // No billing milestone objects in this org: the context never reads a plan here.
             return;
         }
@@ -631,8 +635,8 @@ private class RLM_BSGContextControllerTest {
             new List<String>{ target[0].name, target[1].name }, 'Items keep their query order');
         Assert.areEqual(30, target[0].percentage, 'A percentage item keeps its percentage');
         Assert.isTrue(target[0].isAccomplished, 'An accomplished item is marked');
-        Assert.areEqual(String.valueOf((Object) done), target[0].accomplishmentDate,
-            'The accomplishment date is shown as the text of the queried value');
+        Assert.areEqual('2026-03-01 00:00:00', target[0].accomplishmentDate,
+            'The accomplishment date is shown as the text of the queried date value');
         Assert.areEqual(630, target[1].flatAmount, 'A flat item keeps its amount');
         Assert.isNull(target[1].accomplishmentDate, 'An open item has no accomplishment date');
     }

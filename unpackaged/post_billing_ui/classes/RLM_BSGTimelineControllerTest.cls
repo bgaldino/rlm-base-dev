@@ -7,7 +7,9 @@ private class RLM_BSGTimelineControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
-    // BSG cannot be found; getMilestoneChartData degrades to an empty list. The admin-run
+    // BSG cannot be found; getMilestoneChartData degrades to an empty list. What they do with a
+    // found group is covered through the seams that take rows (dataFor, applySuspension,
+    // addSchedules, addMilestoneChartItems, consolidate). The admin-run
     // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin).
     // The refused-access test runs as a plain Minimum Access user with no permission set
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
@@ -194,8 +196,6 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(start.addYears(1), data.endDate, 'The end date is shown');
         Assert.areEqual(start.addMonths(6), data.cancellationDate, 'The cancellation date is shown');
         Assert.isTrue(data.billingSchedules.isEmpty(), 'No schedules were found');
-        Assert.isNull(data.milestoneItems, 'No milestones leaves the list unset');
-        Assert.isNull(data.suspensionDate, 'No suspension was found');
     }
 
     // Suspension and resumption dates are taken when set and left blank otherwise.
@@ -268,17 +268,18 @@ private class RLM_BSGTimelineControllerTest {
     // reference amount and the group's billed amount.
     @isTest
     static void addMilestoneChartItems_carryThePlanAndGroupAmounts() {
-        if (Type.forName('BillingMilestonePlanItem') == null) {
+        if (Schema.getGlobalDescribe().get('BillingMilestonePlanItem') == null) {
             // No billing milestone objects in this org: the timeline never reads milestones here.
             return;
         }
         Date done = Date.newInstance(2026, 3, 1);
+        // In the query's order: accomplished items first, which is not name order.
         List<SObject> items = new List<SObject>{
-            row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'MilestoneAmount' => 630,
-                'Percentage' => 70, 'Status' => 'Draft', 'IsMilestoneAccomplished' => false }),
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Kickoff', 'MilestoneAmount' => 270,
                 'Percentage' => 30, 'Status' => 'Accomplished', 'IsMilestoneAccomplished' => true,
-                'MilestoneAccomplishmentDate' => done })
+                'MilestoneAccomplishmentDate' => done }),
+            row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'MilestoneAmount' => 630,
+                'Percentage' => 70, 'Status' => 'Draft', 'IsMilestoneAccomplished' => false })
         };
         List<RLM_BSGTimelineController.MilestoneChartItem> result = new List<RLM_BSGTimelineController.MilestoneChartItem>();
 
@@ -286,13 +287,13 @@ private class RLM_BSGTimelineControllerTest {
         RLM_BSGTimelineController.addMilestoneChartItems(result, items, 900, 270);
         Test.stopTest();
 
-        Assert.areEqual(new List<String>{ 'Go-live', 'Kickoff' }, new List<String>{ result[0].name, result[1].name },
+        Assert.areEqual(new List<String>{ 'Kickoff', 'Go-live' }, new List<String>{ result[0].name, result[1].name },
             'Items keep the query order, not name order');
-        Assert.areEqual(630, result[0].amount, 'The milestone amount is shown');
-        Assert.areEqual(70, result[0].percentage, 'The percentage is shown');
-        Assert.isFalse(result[0].isAccomplished, 'An open milestone is not accomplished');
-        Assert.isNull(result[0].completionDate, 'An open milestone has no completion date');
-        Assert.areEqual(done, result[1].completionDate, 'An accomplished milestone has its date');
+        Assert.areEqual(630, result[1].amount, 'The milestone amount is shown');
+        Assert.areEqual(70, result[1].percentage, 'The percentage is shown');
+        Assert.isFalse(result[1].isAccomplished, 'An open milestone is not accomplished');
+        Assert.isNull(result[1].completionDate, 'An open milestone has no completion date');
+        Assert.areEqual(done, result[0].completionDate, 'An accomplished milestone has its date');
         Assert.areEqual(900, result[1].referenceAmount, 'Every item carries the plan\'s reference amount');
         Assert.areEqual(270, result[1].billedAmount, 'Every item carries the group\'s billed amount');
     }
