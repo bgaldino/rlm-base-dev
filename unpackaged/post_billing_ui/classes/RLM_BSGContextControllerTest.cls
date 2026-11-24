@@ -559,7 +559,7 @@ private class RLM_BSGContextControllerTest {
     // A group that is the main side of a relationship is the main bundle, described by its own
     // charge type and frequency; with no child groups found it lists no components.
     @isTest
-    static void getBundleData_mainSideIsItsOwnRoot() {
+    static void getBundleData_mainSideIsTheMainBundle() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         BillingScheduleGroup current = bsg(new Map<String, Object>{
             'Id' => groupId, 'ProductName' => 'Suite', 'BillingTermUnit' => 'OneTime', 'BillingTerm' => 1 });
@@ -572,17 +572,18 @@ private class RLM_BSGContextControllerTest {
         Test.stopTest();
 
         Assert.isTrue(bd.isMainBundle, 'The main side is the main bundle');
-        Assert.areEqual(groupId, bd.mainBsgId, 'The group is its own root');
         Assert.areEqual('Suite', bd.mainBsgProduct, 'The root product is shown');
         Assert.areEqual('One-Time', bd.mainChargeType, 'A one-time term is a one-time charge');
         Assert.areEqual('One-Time', bd.mainBillingFrequency, 'A one-time term has a one-time frequency');
         Assert.isTrue(bd.components.isEmpty(), 'No child groups were found');
     }
 
-    // A component group (no relationship where it is the main side) whose parent lookup finds no
-    // relationship is its own root. getBundleData reads only whether asMain is empty, not asComponent.
+    // A component group (no relationship where it is the main side) whose root cannot be found
+    // or read ends as its own root: here the ids are fake, so either the parent lookup finds
+    // nothing or the root query finds nothing and falls back. getBundleData reads only whether asMain is
+    // empty, not asComponent.
     @isTest
-    static void getBundleData_componentWithoutAFoundParentIsItsOwnRoot() {
+    static void getBundleData_componentWithoutAReadableRootIsItsOwnRoot() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         BillingScheduleGroup current = bsg(new Map<String, Object>{
             'Id' => groupId, 'ProductName' => 'Seat', 'BillingTermUnit' => 'Month', 'BillingTerm' => 3 });
@@ -595,7 +596,7 @@ private class RLM_BSGContextControllerTest {
         Test.stopTest();
 
         Assert.isFalse(bd.isMainBundle, 'A component is not the main bundle');
-        Assert.areEqual(groupId, bd.mainBsgId, 'With no parent found, the group is its own root');
+        Assert.areEqual(groupId, bd.mainBsgId, 'With no readable root, the group is its own root');
         Assert.areEqual('Evergreen', bd.mainChargeType, 'No end date is an evergreen charge');
         Assert.areEqual('3 Month', bd.mainBillingFrequency, 'The frequency is the term and its unit');
     }

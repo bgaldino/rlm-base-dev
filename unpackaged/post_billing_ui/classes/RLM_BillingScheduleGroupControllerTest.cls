@@ -5,8 +5,8 @@ private class RLM_BillingScheduleGroupControllerTest {
     // these tests drive getBillingScheduleGroups down its empty and refused paths, and cover what
     // it does with found groups through the seams that take rows (wrappersWithRelationships,
     // buildWrappers). Each System.runAs
-    // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
-    // Billing permission set license seat, the refused-access test (a plain Minimum Access
+    // test creates its user through RLM_BillingUITestUsers; the billing-role tests take a
+    // Billing permission set license seat each, the refused-access test (a plain Minimum Access
     // user with no permission set license) does not.
 
     // A billing role can run the BSG query. For an account with no BSGs and for a null account
