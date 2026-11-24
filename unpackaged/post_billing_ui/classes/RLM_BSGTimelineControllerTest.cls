@@ -10,8 +10,8 @@ private class RLM_BSGTimelineControllerTest {
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. What they do with a
     // found group is covered through the seams that take rows (dataFor, applySuspension,
     // addSchedules, addMilestoneChartItems, consolidate). dataFor is covered for the group's own
-    // fields; with a fake id its suspension and milestone queries find nothing, so that wiring is
-    // live verification only (the seams it calls are tested on their own). The admin-run
+    // fields; with a fake id its schedule, suspension and milestone queries find nothing, so that
+    // wiring is live verification only (the seams it calls are tested on their own). The admin-run
     // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin).
     // The refused-access test runs as a plain Minimum Access user with no permission set
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
@@ -333,11 +333,11 @@ private class RLM_BSGTimelineControllerTest {
         Date mar = Date.newInstance(2026, 3, 1);
         Date apr = Date.newInstance(2026, 4, 1);
         // In the query's order (by start date): the fully billed BS-2 comes before the
-        // cancellation BS-3.
+        // cancellation BS-0, numbered first.
         List<RLM_BSGTimelineController.BillingScheduleData> schedules = new List<RLM_BSGTimelineController.BillingScheduleData>{
             schedule('BS-1', jan, mar.addDays(30), 2, 100, 'Order', 'Active'),
             schedule('BS-2', feb, apr.addDays(29), 1, -30, 'Order', 'Completely Billed'),
-            schedule('BS-3', mar, mar.addDays(30), null, null, 'Cancellation', 'Active')
+            schedule('BS-0', mar, mar.addDays(30), null, null, 'Cancellation', 'Active')
         };
         // Two schedules over one span, the cancellation first.
         List<RLM_BSGTimelineController.BillingScheduleData> cancelledFirst = new List<RLM_BSGTimelineController.BillingScheduleData>{
@@ -365,8 +365,8 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(100, segments[1].periodicBilling, 'A negative period amount is not billing');
         Assert.areEqual('Completely Billed', segments[1].status, 'A fully billed schedule marks the segment');
 
-        Assert.areEqual(new List<String>{ 'BS-1', 'BS-2', 'BS-3' }, segments[2].activeScheduleNumbers,
-            'All three run in March, in schedule order');
+        Assert.areEqual(new List<String>{ 'BS-1', 'BS-2', 'BS-0' }, segments[2].activeScheduleNumbers,
+            'All three run in March, in the schedules\' order, not number order');
         Assert.areEqual(3, segments[2].netQuantity, 'A blank quantity adds nothing');
         Assert.areEqual('Cancelled', segments[2].status,
             'A cancellation replaces a fully billed schedule before it');
