@@ -42,9 +42,9 @@ private class RLM_InvoiceBatchRunMonitorControllerTest {
     }
 
     // Invoices cannot be inserted in Apex, so this passes the per-status counts the aggregate
-    // query would return. A status replaces its zero, a new status is added, a blank one is ignored.
+    // query would return. A status replaces its zero, a new status is added, a null one is ignored.
     @isTest
-    static void addCount_recordsEachStatusAndIgnoresABlankOne() {
+    static void addCount_recordsEachStatusAndIgnoresANullOne() {
         Map<String, Integer> counts = new Map<String, Integer>{ 'Draft' => 0, 'Pending' => 0, 'Posted' => 0, 'Error' => 0 };
 
         Test.startTest();
@@ -56,6 +56,6 @@ private class RLM_InvoiceBatchRunMonitorControllerTest {
         Assert.areEqual(3, counts.get('Posted'), 'A status found replaces its zero');
         Assert.areEqual(2, counts.get('Canceled'), 'A status outside the four buckets is added');
         Assert.areEqual(0, counts.get('Draft'), 'A status not found stays at zero');
-        Assert.areEqual(5, counts.size(), 'A blank status adds no entry');
+        Assert.areEqual(5, counts.size(), 'A null status adds no entry');
     }
 }

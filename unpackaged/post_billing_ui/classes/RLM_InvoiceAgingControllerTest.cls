@@ -121,7 +121,8 @@ private class RLM_InvoiceAgingControllerTest {
         Assert.areEqual(invoices, data.invoices, 'The invoices are returned for the table');
     }
 
-    // No invoices, or invoices without a currency, leave the defaults: zero counts and USD.
+    // No invoices returns the zeroed defaults with a non-null list; an invoice without a currency
+    // keeps the USD default.
     @isTest
     static void processInvoiceData_defaultsWhenThereIsNothingToCount() {
         Test.startTest();

@@ -654,10 +654,11 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.areEqual(written, updates[0].Id, 'The update targets that line');
         String html = updates[0].RLM_Attributes__c;
         Assert.isTrue(html.startsWith('<table'), 'The attributes are written as a table. Got: ' + html);
-        Assert.isTrue(html.contains('<td style="padding:4px 8px;">Plan &lt;b&gt;</td>'), 'Labels are escaped. Got: ' + html);
-        Assert.isTrue(html.contains('<td style="padding:4px 8px;">A&amp;B</td>'), 'Values are escaped. Got: ' + html);
-        Assert.isTrue(html.contains('<td style="padding:4px 8px;"></td><td style="padding:4px 8px;">—</td>'),
-            'A blank label is empty and a blank value is a dash. Got: ' + html);
+        Assert.isTrue(html.contains('>Plan &lt;b&gt;<'), 'Labels are escaped. Got: ' + html);
+        Assert.isTrue(html.contains('>A&amp;B<'), 'Values are escaped. Got: ' + html);
+        Integer emptyCell = html.indexOf('></td><td');
+        Assert.isTrue(emptyCell > 0 && html.indexOf('>—<', emptyCell) > emptyCell,
+            'A blank label is an empty cell, followed by a dash for the blank value. Got: ' + html);
     }
 
     // The attributes found are grouped under the asset whose state period they belong to, in

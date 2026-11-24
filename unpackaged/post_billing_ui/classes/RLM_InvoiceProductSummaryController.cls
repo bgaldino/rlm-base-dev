@@ -419,7 +419,8 @@ public with sharing class RLM_InvoiceProductSummaryController {
         Map<Id, List<AssetAttributeDetail>> assetToAttrs,
         List<InvoiceLineRelationship> relationships
     ) {
-        // Billing periods: each line's earliest start and latest end
+        // Billing periods: a line keeps its first item's dates, replaced by any earlier start or
+        // later end (a blank first value is kept; the query sorts blank starts last)
         Map<Id, Date> linePeriodStart = new Map<Id, Date>();
         Map<Id, Date> linePeriodEnd   = new Map<Id, Date>();
         for (BillingPeriodItem bpi : periodItems) {
