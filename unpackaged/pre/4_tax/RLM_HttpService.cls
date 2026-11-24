@@ -108,11 +108,12 @@ public with sharing class RLM_HttpService
         }
         catch(System.CalloutException e) 
         {
-            system.debug('callout exception happened' + e.getMessage());
+            // The message can quote the endpoint or the request, so only the exception type is logged.
+            system.debug('callout exception happened: ' + e.getTypeName());
         }
         catch(Exception e) 
         {
-            system.debug('callout did not happen' + e.getMessage());
+            system.debug('callout did not happen: ' + e.getTypeName());
         }
     }
     
