@@ -104,9 +104,9 @@ ProductCategoryProduct.csv               # 72 records
   resource and point the row at `/resource/<name>`. To move an org loaded before this change,
   deploy the `RLM_product_placeholder` static resource first, then reload this plan; until the
   resource is in the org, the 39 rows point at an image that does not resolve.
-- **The image hosts' trusted sites are gone from the repo.** `unpackaged/post_quantumbit` used to
-  deploy 16 CSP trusted sites (`img-src` only) for those hosts; nothing else in the repo used them,
-  so they were removed. Metadata deploys don't delete, so an org built before this change keeps
+- **The trusted sites added for those images are gone from the repo.** `unpackaged/post_quantumbit`
+  used to deploy 16 CSP trusted sites (`img-src` only) that were added for those images; nothing
+  else in the repo used them, so they were removed. Metadata deploys don't delete, so an org built before this change keeps
   the 16 records until they are deleted by hand in Setup → Trusted URLs: `amazon_media`,
   `apjonlinecdn`, `bruneau`, `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`,
   `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
