@@ -14,14 +14,24 @@
  * class reads the Sales Representative set's own object and field permissions instead, so the set
  * is shown to carry every grant the invocables need without relying on DocGenUser.
  *
- * The test fails, never skips, when the user cannot be built: standard profile names can be
- * translated, so this needs the English profile name, the license and a free seat.
+ * The Sales Representative set is deployed only by prepare_personas, which the personas flag gates
+ * independently of docgen, so a docgen-only build has no such set. A test that runs as
+ * salesRepresentative() starts with `if (!RLM_DocGenTestUsers.personaDeployed()) { return; }`: with
+ * no persona set there is no persona to prove. A test-local permission set cannot stand in for it
+ * (measured on a 264 org: the process insert as that user fails under a deploy-time test run).
+ *
+ * Where the set is deployed, the test fails, never skips, when the user cannot be built: standard
+ * profile names can be translated, so this needs the English profile name, the license and a free seat.
  */
 @IsTest
 public class RLM_DocGenTestUsers {
     public static final String SALES_REP_SET = 'RLM_QuantumBit_Sales_Representative';
     public static final String RUNTIME_SET = 'DocGenUser';
     public static final String RUNTIME_LICENSE = 'DocGenDesignerPsl';
+
+    public static Boolean personaDeployed() {
+        return [SELECT COUNT() FROM PermissionSet WHERE Name = :SALES_REP_SET] > 0;
+    }
 
     public static User salesRepresentative() {
         return build(true, true);
@@ -86,6 +96,9 @@ public class RLM_DocGenTestUsers {
     // permission row (files follow sharing), so there is nothing to grant.
     @IsTest
     static void salesRepresentativeSetCarriesEveryDocgenGrant() {
+        if (!personaDeployed()) {
+            return;
+        }
         Map<String, ObjectPermissions> objects = new Map<String, ObjectPermissions>();
         for (ObjectPermissions op : [
             SELECT SobjectType, PermissionsRead, PermissionsCreate FROM ObjectPermissions

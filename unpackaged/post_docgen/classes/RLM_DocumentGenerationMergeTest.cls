@@ -75,6 +75,10 @@ private class RLM_DocumentGenerationMergeTest {
     // that the Sales Representative set carries each grant itself.
     @IsTest
     static void mergeRunsForASalesRepresentative() {
+        // Needs RLM_QuantumBit_Sales_Representative, which only prepare_personas deploys.
+        if (!RLM_DocGenTestUsers.personaDeployed()) {
+            return;
+        }
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         Quote quote = createQuote(rep.Id);
 

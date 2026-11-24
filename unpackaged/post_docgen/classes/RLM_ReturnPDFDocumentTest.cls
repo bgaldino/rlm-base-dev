@@ -131,6 +131,10 @@ private class RLM_ReturnPDFDocumentTest {
     // it says nothing about files another user generated, which follow file sharing.
     @IsTest
     static void returnsTheirOwnPdfToASalesRepresentative() {
+        // Needs RLM_QuantumBit_Sales_Representative, which only prepare_personas deploys.
+        if (!RLM_DocGenTestUsers.personaDeployed()) {
+            return;
+        }
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         List<RLM_ReturnPDFDocument.OutputVariable> outputs;
         ContentVersion pdf;

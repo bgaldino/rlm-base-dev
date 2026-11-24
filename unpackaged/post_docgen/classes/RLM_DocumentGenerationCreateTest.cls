@@ -70,6 +70,10 @@ private class RLM_DocumentGenerationCreateTest {
     // Sales Representative set carries each grant itself.
     @IsTest
     static void createDocumentRunsForASalesRepresentative() {
+        // Needs RLM_QuantumBit_Sales_Representative, which only prepare_personas deploys.
+        if (!RLM_DocGenTestUsers.personaDeployed()) {
+            return;
+        }
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         Quote quote = createQuote(rep.Id);
         Id templateId = templatesByMethod().get('ContextService').Id;
