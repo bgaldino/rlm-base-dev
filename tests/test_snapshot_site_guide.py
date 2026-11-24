@@ -313,12 +313,22 @@ def main():
         check("a different release_name or start page in the same guide is not an identity change",
               not snap(tmp, mode="all", release_name="Spring '28")._identity_changes(load(tmp)))
         raw = load(tmp)
-        for label, kw, dropped in (("guide", {"site_url": other}, True), ("release", {"release_version": "266"}, False)):
+        for label, kw, dropped in (("guide", {"site_url": other}, True), ("release", {"release_version": "266"}, False),
+                                   ("deliverable", {"deliverable": "other_dev_guide"}, False)):
             m2 = snap(tmp, mode="refresh", **kw)._load_or_init_manifest(Path(tmp) / "manifest.json")
             check(f"a full refresh over a different {label} resets the old page records",
                   (m2["pages"] == [] if dropped else
                    all(p["status"] == "pending" for p in m2["pages"]) and len(m2["pages"]) == len(raw["pages"]))
-                  and (not dropped or len(m2.get("superseded_files", [])) == 4))
+                  and (not dropped or len(m2.get("superseded_files", [])) == 4)
+                  and (dropped or "superseded_files" not in m2))
+        mg = snap(tmp, mode="refresh", site_url=other)._load_or_init_manifest(Path(tmp) / "manifest.json")
+        mg["superseded_files"].append("articles/keep-me.md")
+        mg["pages"] = [{"page_id": "start", "status": "captured"}]
+        s3 = snap(tmp, mode="refresh", site_url=other)
+        s3._save_manifest(Path(tmp) / "m2.json", mg)
+        sf = load_path = json.loads((Path(tmp) / "m2.json").read_text(encoding="utf-8")).get("superseded_files", [])
+        check("a superseded file the refresh recaptured is dropped from the list, others are kept",
+              "articles/start.md" not in sf and "articles/keep-me.md" in sf)
 
 
     grouped = [{"label": "Group", "name": "", "children": [

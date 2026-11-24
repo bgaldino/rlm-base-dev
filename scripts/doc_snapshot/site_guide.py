@@ -507,7 +507,7 @@ class SiteGuideSnapshot:
                 "doc_version applies to atlas guides; a site guide pins api_version instead"
             )
         parsed = urllib.parse.urlparse(o["site_url"])
-        m = re.match(r"^(/docs/[^/]+/[^/]+/guide/)[^/]+\.html$", parsed.path)
+        m = self._GUIDE_RE.match(parsed.path)
         if f"{parsed.scheme}://{parsed.netloc}" != SITE_HOST or not m:
             raise OptionsError(
                 f"site_url must be a page of a developer.salesforce.com guide, like "
@@ -579,6 +579,16 @@ class SiteGuideSnapshot:
 
     _GUIDE_RE = re.compile(r"^(/docs/[^/]+/[^/]+/guide/)[^/]+\.html$")
 
+    @staticmethod
+    def _describe(changes) -> str:
+        return "; ".join(f"{k} {a!r} -> {b!r}" for k, (a, b) in changes.items())
+
+    @staticmethod
+    def _has_article(path: Path, page: Dict[str, Any]) -> bool:
+        """The page has an article on disk (captured, or a failed refetch of one)."""
+        return page.get("status") == "captured" or (
+            bool(page.get("page_id")) and (path.parent / "articles" / f"{page['page_id']}.md").exists())
+
     def _identity_changes(self, raw: Dict[str, Any]) -> Dict[str, Tuple[Any, Any]]:
         """What a stored site manifest records about its corpus that this run changes.
 
@@ -613,10 +623,10 @@ class SiteGuideSnapshot:
         changes = self._identity_changes(raw)
         if not changes:
             return
-        if not any(p.get("status") == "captured" for p in raw.get("pages", []) if isinstance(p, dict)):
+        if not any(self._has_article(path, p) for p in raw.get("pages", []) if isinstance(p, dict)):
             return
         if mode != "refresh" or self.options.get("section_filters"):
-            what = "; ".join(f"{k} {a!r} -> {b!r}" for k, (a, b) in changes.items())
+            what = self._describe(changes)
             raise OptionsError(
                 f"the output directory holds a different capture ({what}); its articles would "
                 "be kept under the new identity. Run the whole guide with --mode refresh "
@@ -663,31 +673,30 @@ class SiteGuideSnapshot:
                 )
             return fresh
         changes = self._identity_changes(manifest)
-        if "guide" in changes or "deliverable" in changes:
+        if "guide" in changes:
             # Another guide's pages are not this guide's: start the page list over (a full
-            # refresh follows); its article files stay on disk, listed as superseded.
+            # refresh follows); its article files stay on disk, listed as superseded
+            # (a file the refresh recaptures is dropped from the list when saved).
             old_files = sorted(
                 f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
-                if p.get("status") == "captured"
+                if self._has_article(path, p)
             )
             self.logger.warning(
-                f"  the manifest describes a different guide ({'; '.join(f'{k} {a!r} -> {b!r}' for k, (a, b) in changes.items())}): "
+                f"  the manifest describes a different guide ({self._describe(changes)}): "
                 f"{len(manifest.get('pages', []))} page record(s) are dropped"
             )
             fresh = dict(base)
-            fresh["snapshot_started"] = manifest.get("snapshot_started") or base["snapshot_started"]
-            if old_files:
-                fresh["superseded_files"] = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
+            fresh["superseded_files"] = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
             return fresh
         if changes:
-            # Same guide, another release or API version: nothing is current until it is
-            # recaptured, so a capped or failed run leaves pages pending.
-            stale = [p["page_id"] for p in manifest.get("pages", []) if p.get("status") == "captured"]
+            # Same guide, another release, deliverable or API version: nothing is current
+            # until it is recaptured, so a capped or failed run leaves pages pending.
+            stale = [p["page_id"] for p in manifest.get("pages", []) if self._has_article(path, p)]
             for page in manifest.get("pages", []):
                 page["status"] = "pending"
             if stale:
                 self.logger.warning(
-                    f"  {'; '.join(f'{k} {a!r} -> {b!r}' for k, (a, b) in changes.items())}: {len(stale)} "
+                    f"  {self._describe(changes)}: {len(stale)} "
                     "captured page(s) are reset to pending; their old article files stay on disk "
                     "until each is recaptured"
                 )
@@ -704,6 +713,12 @@ class SiteGuideSnapshot:
                 "none was confirmed; the atlas manifest was kept. Rerun with --mode all or "
                 "refresh while the site is reachable (set probe_page if its pages show no version)."
             )
+        if manifest.get("superseded_files"):
+            live = {f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
+                    if p.get("status") == "captured"}
+            manifest["superseded_files"] = [f for f in manifest["superseded_files"] if f not in live]
+            if not manifest["superseded_files"]:
+                del manifest["superseded_files"]
         manifest["last_updated"] = utc_timestamp()
         manifest["stats"] = compute_stats(manifest, "pages")
         write_manifest(path, {k: v for k, v in manifest.items() if k != "_legacy_ids"})
