@@ -5,10 +5,10 @@ public class RLM_DetermineDROSourceType {
      * an "s" suffix. An input whose deciding id is missing or malformed gets a blank output instead of a
      * platform exception.
      * The calling flow's Check_Source_Data_Type decision matches only order items and fulfillment order
-     * lines and has no connector on its default outcome, so for a blank output, or the name of any
-     * other object (an Order id gives "Order", or "Orders" from recordIds), the flow ends without
-     * creating assets and without a fault. The flow ships as Draft; a Custom Error cannot stop it
-     * because that element needs a record-triggered flow.
+     * lines. For a blank output, or the name of any other object (an Order id gives "Order", or
+     * "Orders" from recordIds), its default outcome sets isSuccess false and the error code
+     * RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE; no assets are created. A Custom Error cannot stop that
+     * flow because the element needs a record-triggered flow.
      */
     @InvocableMethod(label='Determine DRO Source Type' description='Returns string value of source object that initiated DRO Fulfillment' category='RLM SE TAT')
     public static List<String> returnDROSourceObjectType(List<droSourceInfo> sourceInfoArray){

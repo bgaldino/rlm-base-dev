@@ -376,23 +376,18 @@ these conditions; rerun the amendment and cancel checks there.
     type that matches none of the four rules) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a
     fault connector from each of the 5 action calls and 6 record lookups sets
     `RLM_ASSETIZE_FAULT`. The four recognized source types are unchanged.
-  - What `RLM_DetermineDROSourceType` does with a blank or malformed id, read from the Apex
-    (the class on `main` when this was written; another change may alter it). With
-    `recordId` set, it casts it to an `Id`, so a non-Id string throws. With only `recordIds`
-    set, it reads the first element, so an empty (non-null) list throws, a non-Id element
-    throws, and a null first element throws a null-pointer error at `getSObjectType()`
-    [inferred; not run]; a valid first Id returns the type name with `s` appended. With both null it
-    returns an empty list without throwing. A throw reaches the flow as a fault on
-    `Determine_DRO_Source_Type`, so it takes `RLM_ASSETIZE_FAULT` [inferred; not run]. What the flow sees from the
-    empty list (a null output, so the Default Outcome and
-    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`, or a fault) is not measured [inferred]. An invocable
-    that returns fewer results than inputs usually errors at runtime (a "number of results does
-    not match the number of interviews" error), which would make the empty-list case a fault
-    rather than the Default Outcome [inferred; not run]. Invoke the flow with both inputs null
-    to settle it (an empty `recordIds` instead exercises the throw described above). The class also reads only the first interview's
-    input (`sourceInfoArray.get(0)`), so it returns at most one result for a batch of several
-    interviews, which would raise the same error even when every id is valid [inferred; not
-    run]; invoke the flow for two or more interviews in one transaction to settle that.
+  - What `RLM_DetermineDROSourceType` returns, per its Apex and `RLM_DetermineDROSourceTypeTest`:
+    one output per input, in input order, so a batch of several interviews gets one result
+    each. A non-blank `recordId` decides, even a malformed one; otherwise the first `recordIds`
+    element decides and the type name gets an `s` suffix. A missing or malformed deciding id
+    (both inputs null, an empty `recordIds`, or a non-Id string) gives a blank output instead
+    of an exception; one bad input does not affect the rest of the batch. A null or blank first
+    `recordIds` element also gives a blank output (read from the Apex; no test covers it).
+  - In the flow, a blank output or any other object name (an Order id gives `Order`, or
+    `Orders` from `recordIds`) matches none of `Check_Source_Data_Type`'s four rules, so it takes
+    the Default Outcome and `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE` [inferred from the flow and
+    the class; not run as a flow]. An exception the class does not catch would reach the flow as
+    a fault on `Determine_DRO_Source_Type` and take `RLM_ASSETIZE_FAULT` [inferred; not run].
   - Two connector-less ends read as intended skips, not failures [inferred from the flow's
     structure]:
     `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
