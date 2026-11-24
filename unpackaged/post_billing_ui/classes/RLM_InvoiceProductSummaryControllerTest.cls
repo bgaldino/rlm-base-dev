@@ -450,8 +450,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.isFalse(first.isUsage, 'A line without a usage charge type is not usage');
     }
 
-    // A line's period is its earliest billing period start and latest end; a line with no billing
-    // period item keeps its own dates. A usage line gets its overage, unit of measure and rate.
+    // With dated billing period items, a line's period is the earliest start and the latest end
+    // (a blank value on the first item would be kept; these items are all dated). A line with no
+    // billing period item keeps its own dates. A usage line gets its overage, unit of measure and rate.
     @isTest
     static void buildSummary_periodsAndUsageLines() {
         Id usageLine = fakeId(InvoiceLine.SObjectType, 1);
