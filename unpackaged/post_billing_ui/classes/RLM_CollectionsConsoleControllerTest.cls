@@ -223,12 +223,14 @@ private class RLM_CollectionsConsoleControllerTest {
     @isTest
     static void disputeFieldAvailable_answersForTheDisputeObjectsOwnFields() {
         Test.startTest();
-        Boolean known = RLM_CollectionsConsoleController.disputeFieldAvailable('Id');
+        Boolean known = RLM_CollectionsConsoleController.disputeFieldAvailable('DisputeType');
+        Boolean invoiceOnly = RLM_CollectionsConsoleController.disputeFieldAvailable('DaysInvoiceOverdue');
         Boolean unknown = RLM_CollectionsConsoleController.disputeFieldAvailable('RLM_No_Such_Field__c');
         Test.stopTest();
 
-        Assert.isTrue(known, 'Every Dispute has an Id');
-        Assert.isFalse(unknown, 'A field Dispute does not have is not available');
+        Assert.isTrue(known, 'DisputeType is a Dispute field');
+        Assert.isFalse(invoiceOnly, 'An Invoice field is not a Dispute field');
+        Assert.isFalse(unknown, 'A field no object has is not available');
     }
 
     // Fails on a null amount and names both values in the message; Decimal equality already
