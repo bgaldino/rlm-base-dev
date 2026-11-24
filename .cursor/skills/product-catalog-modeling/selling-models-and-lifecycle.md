@@ -237,8 +237,9 @@ In this repo:
   `unpackaged/post_quantumbit/staticresources/`, and six (`powersupply`, `liquidcooler`,
   `nvexpand`, `RAIDController`, `cacheboost`, `cpuheatsink`) in
   `force-app/main/default/staticresources/`. A product with no art of its own points at one
-  shared logo, and most do. **Known gap:** `/resource/omniserver` (product `PROD-455868158`)
-  has no resource in either location, so that image does not resolve. [Repo:
+  shared logo, and most do. Every path names a resource that ships in one of the two places;
+  point a product at an existing image rather than at a name that does not ship
+  (`PROD-455868158` reuses `powerswerve`). [Repo:
   `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
   `force-app/main/default/staticresources/`]
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
@@ -259,5 +260,5 @@ In this repo:
   address without a trusted-site entry is **Open — needs live verification** (open a q3 product
   such as `CERT007` in the configurator and on the product page).
 
-In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
+In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
