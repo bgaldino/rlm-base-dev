@@ -25,7 +25,7 @@
  * not per class, so this class's figure does not by itself block a deploy.
  * The usage tests build entitlement accounts, entitlements and buckets
  * (newEntitlementAccount, newEntitlement and newBucket, over newUsageFixture).
- * Not reached by these tests, and why:
+ * Among the paths these tests do not reach, and why:
  *  - Deletes of the other usage rows (entries, billing period items, summaries,
  *    journals, commitment junction rows), asset rate card entries and the
  *    fulfillment records: no fixtures, so they run against empty sets.
@@ -883,6 +883,43 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
+    @IsTest
+    static void phaseOneOutOfRowsKeepsWhatItDeleted() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Phase One Opp');
+        UsageFixture f = newUsageFixture();
+        // Two consecutive periods: policies for one object and resource may not overlap.
+        Datetime start = Datetime.now().addDays(-10);
+        insert new List<BindingObjUsageRsrcPlcy>{
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start, EffectiveEndDate = start.addDays(4)),
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start.addDays(5))
+        };
+        Assert.areEqual(2, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'PRECONDITION: both binding policies must exist before the reset runs');
+        // Room for one of the two policies, the first delete of the run.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run that ran out of DML rows did not complete');
+        Assert.isTrue(
+            result.reason.contains('limit on record changes')
+                && result.reason.contains('stay deleted')
+                && result.reason.contains('Run the reset again'),
+            'The reason must name the limit, keep the usage progress and say a rerun continues. Got: ' + result.reason
+        );
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'Phase 1 deletes what fits and keeps it, so a rerun starts further on');
+        Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
+            'The policy that went must be reported');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'The opportunity must survive a run that stopped in phase 1');
+    }
+
     // ------------------------------------------------------------- usage graph
     //
     // A usage entitlement bucket hangs off an entitlement account (ParentId) or
@@ -1152,43 +1189,6 @@ private without sharing class RLM_AccountUtilitiesTest {
             result.removedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)),
             'Both buckets must be reported. Got: ' + result.removedSummary
         );
-    }
-
-    @IsTest
-    static void phaseOneOutOfRowsKeepsWhatItDeleted() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Phase One Opp');
-        UsageFixture f = newUsageFixture();
-        // Two consecutive periods: policies for one object and resource may not overlap.
-        Datetime start = Datetime.now().addDays(-10);
-        insert new List<BindingObjUsageRsrcPlcy>{
-            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
-                EffectiveStartDate = start, EffectiveEndDate = start.addDays(4)),
-            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
-                EffectiveStartDate = start.addDays(5))
-        };
-        Assert.areEqual(2, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
-            'PRECONDITION: both binding policies must exist before the reset runs');
-        // Room for one of the two policies, the first delete of the run.
-        RLM_AccountUtilities.dmlRowLimitForTest = 1;
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
-        Test.stopTest();
-
-        Assert.areEqual(false, result.completed, 'A run that ran out of DML rows did not complete');
-        Assert.isTrue(
-            result.reason.contains('limit on record changes')
-                && result.reason.contains('stay deleted')
-                && result.reason.contains('Run the reset again'),
-            'The reason must name the limit, keep the usage progress and say a rerun continues. Got: ' + result.reason
-        );
-        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
-            'Phase 1 deletes what fits and keeps it, so a rerun starts further on');
-        Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
-            'The policy that went must be reported');
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'The opportunity must survive a run that stopped in phase 1');
     }
 
     // ------------------------------------------------------------------ orders
