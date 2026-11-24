@@ -354,9 +354,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
   on a fresh harness build, and on an active static bundle. How pricing and the configurator
   treat a mismatched parent and child model that insert accepted is also open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
-- **An external `https` `DisplayUrl`.** Whether this repo's UI renders one without a trusted-site
-  entry. No shipped plan loads one any longer (q3 now uses a shipped placeholder), so the test
-  needs a product given an external address by hand. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#product-images).
+- **An external `https` `DisplayUrl` in the configurator and catalog cards.** On a Product2
+  record page it loads only when its host is allowed by `img-src` (Salesforce's built-in list or
+  an `img-src` CSP Trusted Site) [Measured: 2026-11-24, 264, fresh build]; whether the
+  configurator and catalog cards behave the same is not measured. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#product-images).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.

@@ -260,9 +260,16 @@ In this repo:
   `force-app/main/default/staticresources/`; the other 39 have none. They used to hotlink
   third-party hosts, which break without notice and which the repo has no license to use; do not
   reintroduce such addresses. The dev guide's example responses still show external `https`
-  addresses. Whether this repo's UI renders such an address without a trusted-site entry is
-  **Open — needs live verification**; no shipped plan exercises it any longer, so the test needs a
-  product given an external address by hand, in the configurator and on the product page.
+  addresses.
+- **An external `https` address loads only from an allowed host.** In Lightning, the page's
+  `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
+  (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no
+  `https:` wildcard. An image whose host is in neither is blocked by the browser
+  (`securitypolicyviolation`); `images.ctfassets.net` loaded with no trusted site, a `gstatic`
+  host loaded through its trusted site. The record's Details tab shows `DisplayUrl` as text, not
+  as an image. [Measured: 2026-11-24, 264, fresh build; Product2 record page in Chrome] So ship
+  images as static resources rather than adding a trusted site per host. Whether the configurator
+  and catalog cards follow the same rule is **Open — needs live verification**.
 
 In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
