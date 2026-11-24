@@ -367,7 +367,7 @@ these conditions; rerun the amendment and cancel checks there.
     success [inferred; live check pending]. A decision with no connector on its Default
     Outcome ends the interview normally, with no error [Flow behavior, not run here].
     A Get Records lookup that finds nothing is not a fault either [Flow behavior, not run here], so a fault connector alone
-    cannot report it: the flow now tests each lookup result explicitly.
+    cannot report it: the flow tests each lookup result explicitly. The two collection checks use `IsNull`, which assumes an empty result leaves the collection null rather than empty [inferred; not run].
   - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through three output variables,
     `isSuccess` (defaults true), `fulfillmentStepErrorCode` and `fulfillmentStepErrorMessage`.
     Whether DRO reads or surfaces them is not measured. Three failure assignments set
@@ -410,7 +410,8 @@ these conditions; rerun the amendment and cancel checks there.
     parent) and the `exists` decision's Default Outcome (the source line was found but is not
     in `Not_Components`; components are removed earlier by `Collection_Filter_1`, so this is
     reached when a top-level line has no `RelatedOrderItemId`, which `Has_Value` tests
-    [inferred; not run]). A line that is missing altogether no
+    with `WasSet`; whether `WasSet` is false for a queried null field is not established, and
+    if it is, a new-sale top-level line skips assetization, so check it live [inferred; not run]). A line that is missing altogether no
     longer reaches `exists`; it fails with `RLM_ASSETIZE_SOURCE_NOT_FOUND`. The step's status, error text and retries for these paths are not yet
     measured [inferred; live check pending].
   - Not yet checked on a live org:

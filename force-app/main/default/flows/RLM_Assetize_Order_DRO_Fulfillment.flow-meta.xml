@@ -315,6 +315,13 @@
             <name>Found_FOP_Source_Found</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
+                <leftValueReference>Get_FOP_Source</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
                 <leftValueReference>Get_FOP_Source.SourceLineItemId</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
