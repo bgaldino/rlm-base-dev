@@ -214,6 +214,68 @@ private without sharing class RLM_AccountUtilitiesTest {
         return Database.countQuery('SELECT COUNT() FROM ' + objectName + ' WHERE Id = \'' + recordId + '\'');
     }
 
+    private class UsageFixture {
+        Id resourceId;
+        Id uomId;
+        Id pricebookEntryId;
+    }
+
+    private static final String USAGE_PRODUCT = 'RLM Reset Usage Product';
+    private static final String RESOURCE_CODE = 'RLM_AU_TEST_UR';
+
+    // Built once for the class, so EVERY test method starts with these rows: an
+    // active standard price book, a unit of measure, a usage resource, a product
+    // and its standard price book entry. None is linked to an account, so the
+    // reset never touches them. The usage and order tests read them back with
+    // newUsageFixture; one price book entry for the class, rather than one per
+    // test method running in parallel.
+    @TestSetup
+    static void setupUsageFixture() {
+        update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+
+        UnitOfMeasureClass uomClass = new UnitOfMeasureClass(
+            Name = 'RLM Reset Volume', Code = 'RLM_AU_TEST_UOMC', Type = 'Usage', Status = 'Draft'
+        );
+        insert uomClass;
+        uomClass.Status = 'Active';
+        update uomClass;
+
+        UnitOfMeasure uom = new UnitOfMeasure(
+            Name = 'RLM Reset Unit', UnitCode = 'RLMAUTU', Type = 'Usage',
+            UnitOfMeasureClassId = uomClass.Id, Status = 'Draft'
+        );
+        insert uom;
+        uom.Status = 'Active';
+        update uom;
+
+        UsageResource resource = new UsageResource(
+            Name = 'RLM Reset Resource', Code = RESOURCE_CODE, Category = 'Usage', Status = 'Draft',
+            DefaultUnitOfMeasureId = uom.Id, UnitOfMeasureClassId = uomClass.Id
+        );
+        insert resource;
+        resource.Status = 'Active';
+        update resource;
+
+        Product2 product = new Product2(Name = USAGE_PRODUCT, IsActive = true);
+        insert product;
+        insert new PricebookEntry(
+            Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1, IsActive = true
+        );
+    }
+
+    private static UsageFixture newUsageFixture() {
+        UsageResource resource = [SELECT Id, DefaultUnitOfMeasureId FROM UsageResource WHERE Code = :RESOURCE_CODE];
+        Id standardPricebookId = Test.getStandardPricebookId();
+        UsageFixture f = new UsageFixture();
+        f.resourceId = resource.Id;
+        f.uomId = resource.DefaultUnitOfMeasureId;
+        f.pricebookEntryId = [
+            SELECT Id FROM PricebookEntry
+            WHERE Product2.Name = :USAGE_PRODUCT AND Pricebook2Id = :standardPricebookId
+        ].Id;
+        return f;
+    }
+
     // ------------------------------------------------------------------ guards
 
     @IsTest
@@ -931,63 +993,6 @@ private without sharing class RLM_AccountUtilitiesTest {
     // loop ends with rows left (usageDrained stays false), and phase 2 retries
     // the entitlement account's buckets along the hierarchy, leaves first.
 
-    private class UsageFixture {
-        Id resourceId;
-        Id uomId;
-        Id pricebookEntryId;
-    }
-
-    private static final String USAGE_PRODUCT = 'RLM Reset Usage Product';
-    private static final String RESOURCE_CODE = 'RLM_AU_TEST_UR';
-
-    // Built once for the class: the unit of measure, usage resource, product and
-    // standard price book entry the usage records need. One price book entry for
-    // the whole class, rather than one per test method running in parallel.
-    @TestSetup
-    static void setupUsageFixture() {
-        UnitOfMeasureClass uomClass = new UnitOfMeasureClass(
-            Name = 'RLM Reset Volume', Code = 'RLM_AU_TEST_UOMC', Type = 'Usage', Status = 'Draft'
-        );
-        insert uomClass;
-        uomClass.Status = 'Active';
-        update uomClass;
-
-        UnitOfMeasure uom = new UnitOfMeasure(
-            Name = 'RLM Reset Unit', UnitCode = 'RLMAUTU', Type = 'Usage',
-            UnitOfMeasureClassId = uomClass.Id, Status = 'Draft'
-        );
-        insert uom;
-        uom.Status = 'Active';
-        update uom;
-
-        UsageResource resource = new UsageResource(
-            Name = 'RLM Reset Resource', Code = RESOURCE_CODE, Category = 'Usage', Status = 'Draft',
-            DefaultUnitOfMeasureId = uom.Id, UnitOfMeasureClassId = uomClass.Id
-        );
-        insert resource;
-        resource.Status = 'Active';
-        update resource;
-
-        Product2 product = new Product2(Name = USAGE_PRODUCT, IsActive = true);
-        insert product;
-        insert new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1, IsActive = true
-        );
-    }
-
-    private static UsageFixture newUsageFixture() {
-        UsageResource resource = [SELECT Id, DefaultUnitOfMeasureId FROM UsageResource WHERE Code = :RESOURCE_CODE];
-        Id standardPricebookId = Test.getStandardPricebookId();
-        UsageFixture f = new UsageFixture();
-        f.resourceId = resource.Id;
-        f.uomId = resource.DefaultUnitOfMeasureId;
-        f.pricebookEntryId = [
-            SELECT Id FROM PricebookEntry
-            WHERE Product2.Name = :USAGE_PRODUCT AND Pricebook2Id = :standardPricebookId
-        ].Id;
-        return f;
-    }
-
     // An entitlement's external order line must be unique, and test methods can run
     // in parallel, so each method's entitlements carry their own token.
     private static final String TOKEN = String.valueOf(Crypto.getRandomInteger()).remove('-');
@@ -1102,7 +1107,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void rollbackReportsTheUsageRowsPhaseOneCouldNotDelete() {
+    static void rollbackRestoresPhaseOneRefusals() {
         Account a = newAccount();
         UsageFixture f = newUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1230,6 +1235,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void activatedOrdersAreDeleted() {
         Account a = newAccount();
+        // The class-wide setup's standard price book entry.
         Id pricebookEntryId = newUsageFixture().pricebookEntryId;
         Order o = new Order(
             AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
@@ -1245,7 +1251,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // DeleteFulfillment on, so the fulfillment lookup runs against a real order
-        // and order line; no fulfillment records exist, so it finds none.
+        // and order line. This test checks only the order's removal.
         RLM_AccountUtilities.Result result = run(request(a.Id, false, true, false));
         Test.stopTest();
 
