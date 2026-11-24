@@ -85,4 +85,58 @@ private class RLM_InvoiceAgingControllerTest {
             return e.getMessage();
         }
     }
+
+    // Invoices cannot be inserted in Apex, so these build them with JSON.deserialize, read-only
+    // aging fields included, and pass them to the method the controller calls with its query.
+    private static Invoice invoice(Decimal balance, Decimal daysOpen, Decimal daysOverdue, String currencyCode) {
+        return (Invoice) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'Balance' => balance, 'DaysInvoiceOpen' => daysOpen, 'DaysInvoiceOverdue' => daysOverdue,
+            'CurrencyIsoCode' => currencyCode
+        }), Invoice.class);
+    }
+
+    // Each invoice lands in one age bucket by days open (30 and 60 start the next bucket; a blank
+    // age counts as 0), is overdue when its overdue days are above zero, and adds its balance.
+    @isTest
+    static void processInvoiceData_bucketsByAgeAndTotalsTheBalance() {
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(100, 10, 0, 'EUR'),
+            invoice(50, 30, 5, 'GBP'),
+            invoice(null, 60, null, null),
+            invoice(25.5, null, -1, null)
+        };
+
+        Test.startTest();
+        RLM_InvoiceAgingController.InvoiceAgingData data = RLM_InvoiceAgingController.processInvoiceData(invoices);
+        Test.stopTest();
+
+        Assert.areEqual(4, data.totalInvoices, 'Every invoice is counted');
+        Assert.areEqual(1, data.overdueInvoices, 'Only positive overdue days count as overdue');
+        Assert.areEqual(175.5, data.totalAmount, 'The balances add up; a blank balance adds nothing');
+        Assert.areEqual(25, data.averageAge, 'The average age is (10 + 30 + 60 + 0) / 4');
+        Assert.areEqual(2, data.lessThan30, 'Ages 10 and blank (0) are under 30 days');
+        Assert.areEqual(1, data.days30To60, 'Age 30 starts the 30-60 bucket');
+        Assert.areEqual(1, data.moreThan60, 'Age 60 starts the over-60 bucket');
+        Assert.areEqual('GBP', data.currencyCode, 'The last invoice with a currency sets it; a blank one does not');
+        Assert.areEqual(invoices, data.invoices, 'The invoices are returned for the table');
+    }
+
+    // No invoices returns the zeroed defaults with a non-null list; an invoice without a currency
+    // keeps the USD default.
+    @isTest
+    static void processInvoiceData_defaultsForNoInvoicesOrNoCurrency() {
+        Test.startTest();
+        RLM_InvoiceAgingController.InvoiceAgingData fromNull = RLM_InvoiceAgingController.processInvoiceData(null);
+        RLM_InvoiceAgingController.InvoiceAgingData fromEmpty =
+            RLM_InvoiceAgingController.processInvoiceData(new List<Invoice>());
+        RLM_InvoiceAgingController.InvoiceAgingData noCurrency =
+            RLM_InvoiceAgingController.processInvoiceData(new List<Invoice>{ invoice(10, 5, 0, null) });
+        Test.stopTest();
+
+        Assert.areEqual(0, fromNull.totalInvoices, 'No invoices: zero count');
+        Assert.isNotNull(fromNull.invoices, 'A null input still returns a list, never null');
+        Assert.areEqual(0, fromEmpty.totalAmount, 'No invoices: zero amount');
+        Assert.isTrue(fromEmpty.invoices.isEmpty(), 'No invoices: an empty list');
+        Assert.areEqual('USD', noCurrency.currencyCode, 'An invoice without a currency leaves the USD default');
+    }
 }
