@@ -302,7 +302,8 @@ private class RLM_DisputeDetailsControllerTest {
         Schema.SObjectType itemType = Schema.getGlobalDescribe().get('DisputeItem');
 
         Test.startTest();
-        String none = RLM_DisputeDetailsController.approvedAmountField(Account.SObjectType.getDescribe().fields.getMap());
+        String none = RLM_DisputeDetailsController.approvedAmountField(new Map<String, Schema.SObjectField>{
+            'name' => Account.Name, 'industry' => Account.Industry });
         String found = itemType == null ? null
             : RLM_DisputeDetailsController.approvedAmountField(itemType.getDescribe().fields.getMap());
         Test.stopTest();

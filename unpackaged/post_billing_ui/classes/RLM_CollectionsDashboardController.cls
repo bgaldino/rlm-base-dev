@@ -382,14 +382,14 @@ public with sharing class RLM_CollectionsDashboardController {
 
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
-            addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact);
+            addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
         } catch (Exception e) { }
     }
 
     // One row per queried invoice, with its account name and collection plan. Takes rows so a
     // test can pass invoices, which Apex cannot insert.
     @TestVisible
-    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillToContact) {
+    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillToContact, Date today) {
         Set<Id> billingAccountIds = new Set<Id>();
         for (Invoice inv : invs) {
             if (inv.get('BillingAccountId') != null) {
@@ -413,7 +413,6 @@ public with sharing class RLM_CollectionsDashboardController {
             } catch (Exception ex) { }
         }
 
-        Date today = Date.today();
         for (Invoice inv : invs) {
             Integer daysOverdue;
             if (hasDaysField && inv.get('DaysInvoiceOverdue') != null) {
@@ -464,14 +463,14 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
         } catch (Exception e) { return; }
-        addHighValueDelinquents(wl, invs, invAccountField);
+        addHighValueDelinquents(wl, invs, invAccountField, Date.today());
     }
 
     // Rolls the queried invoices up by account and adds the ten largest balances of 2000 or more,
     // with each account's collection plan. Takes rows so a test can pass invoices, which Apex
     // cannot insert.
     @TestVisible
-    private static void addHighValueDelinquents(WorklistData wl, List<Invoice> invs, String invAccountField) {
+    private static void addHighValueDelinquents(WorklistData wl, List<Invoice> invs, String invAccountField, Date today) {
         Decimal minBalanceThreshold = 2000;
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
         Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
@@ -480,7 +479,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (accId == null) continue;
             Decimal bal = inv.Balance != null ? inv.Balance : 0;
             accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
-            Integer days = inv.DueDate != null ? inv.DueDate.daysBetween(Date.today()) : 0;
+            Integer days = inv.DueDate != null ? inv.DueDate.daysBetween(today) : 0;
             Integer existing = accountMaxDays.get(accId);
             if (existing == null || days > existing) accountMaxDays.put(accId, days);
         }
