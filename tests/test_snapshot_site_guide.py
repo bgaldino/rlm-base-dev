@@ -199,6 +199,20 @@ def main():
         raises(SnapshotError, snap(tmp, api_version="69.0", mode="refresh").run)
         check("a refused switch leaves the atlas manifest untouched",
               (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "manifest.json").write_text(json.dumps({"source": "site", "pages": []}), encoding="utf-8")
+        from scripts.doc_snapshot.dev_guide import DevGuideSnapshot
+        dg = DevGuideSnapshot({"release_version": "264", "release_name": "x", "deliverable": "d",
+                               "root_article_id": "r.htm", "output_dir": str(tmp)}, logger=Log())
+        check("an atlas target refuses a site corpus in preflight", raises(OptionsError, dg.preflight))
+    with tempfile.TemporaryDirectory() as tmp:
+        old = json.dumps({"pages": [{"page_id": "rlm_get_started.htm", "status": "captured"}]})
+        (Path(tmp) / "manifest.json").write_text(old, encoding="utf-8")
+        only_start = make_fetcher({BASE + p + ".html": (404, "", BASE) for p in
+                                   ("deployment-overview", "deployment-considerations", "connect-resources-get-catalogs")})
+        raises(SnapshotError, snap(tmp, fetcher=only_start, mode="refresh").run)
+        check("an unverified atlas switch keeps the atlas manifest",
+              (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
     import http.client
     import urllib.request
     class _Boom:

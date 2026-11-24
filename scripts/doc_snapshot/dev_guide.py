@@ -485,15 +485,29 @@ class DevGuideSnapshot:
             self.options.get("follow_links"), self.options["section_filters"] is None
         )
 
+    @staticmethod
+    def _refuse_site_corpus(manifest_path: Path) -> None:
+        """An atlas run must not merge its pages into a ``source: site`` corpus."""
+        try:
+            raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        if isinstance(raw, dict) and raw.get("source") == "site":
+            raise OptionsError(
+                f"{manifest_path.parent} holds a site capture (source: site); an atlas run "
+                "would mix atlas pages into it. Point the preset at its own output_dir."
+            )
+
     def preflight(self) -> None:
         """Raise the conflicts detectable offline, before any target of a batch runs.
 
         Only a pinned doc_version can be checked here; an unpinned one is
         resolved from the guide's meta during the run, which checks it again.
         """
+        manifest_path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
+        self._refuse_site_corpus(manifest_path)
         if not self.options.get("doc_version"):
             return
-        manifest_path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
         # Load it silently: run() loads (and logs) it again. A manifest it
         # can't read comes back empty, so it has nothing to conflict with.
         manifest = read_manifest(manifest_path, {"pages": []}, "pages")
@@ -544,15 +558,7 @@ class DevGuideSnapshot:
             "snapshot_started": today(),
             "pages": [],
         }
-        try:
-            raw = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            raw = None
-        if isinstance(raw, dict) and raw.get("source") == "site":
-            raise OptionsError(
-                f"{manifest_path.parent} holds a site capture (source: site); an atlas run "
-                "would mix atlas pages into it. Point the preset at its own output_dir."
-            )
+        self._refuse_site_corpus(manifest_path)
         manifest = read_manifest(manifest_path, base, "pages", self.logger)
         # Label the manifest with the tool that last wrote it.
         manifest["capture_method"] = CAPTURE_METHOD

@@ -96,7 +96,7 @@ _SAFE_SLUG_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
 _API_VERSION_RE = re.compile(r"/services/data/v(\d+\.\d+)")
 # Tag attributes, quote-aware: a literal ">" inside a quoted value (``Map<String>``,
 # ``->``) does not end the tag.
-_ATTRS = r"""((?:[^>"']|"[^"]*"|'[^']*')*)"""
+_ATTRS = r'((?:[^>"]|"[^"]*")*)'
 _CONTENT_RE = re.compile(r"<doc-content-layout\b" + _ATTRS + r">(.*)</doc-content-layout>", re.DOTALL)
 _ATTR_RE = re.compile(r'([\w:-]+)="([^"]*)"')
 _DOC_HEADING_RE = re.compile(
@@ -106,7 +106,7 @@ _CODE_BLOCK_RE = re.compile(
     r"<dx-code-block\b" + _ATTRS + r">(?:\s*</dx-code-block>)?", re.DOTALL
 )
 _CALLOUT_RE = re.compile(r"<doc-content-callout\b" + _ATTRS + r">(.*?)</doc-content-callout>", re.DOTALL)
-_CUSTOM_TAG_RE = re.compile(r"<((?:doc|dx)-[a-z0-9-]+)")
+_CUSTOM_TAG_RE = re.compile(r"</?((?:doc|dx)-[a-z0-9-]+)")
 _HREF_RE = re.compile(r'href="([^"]*)"')
 _H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.DOTALL)
 
@@ -599,6 +599,7 @@ class SiteGuideSnapshot:
         self._check_switch(manifest_path, mode)
         manifest = self._load_or_init_manifest(manifest_path)
         legacy_ids = manifest.get("_legacy_ids")
+        self._version_verified = False
 
         if mode in ("discover", "all", "refresh"):
             self._discover(manifest, manifest_path, legacy_ids, save=mode == "discover")
@@ -611,6 +612,11 @@ class SiteGuideSnapshot:
             if to_capture:
                 failed, attempted = self._capture_pages(to_capture, output_dir, manifest, manifest_path)
 
+        if legacy_ids and not self._version_verified:
+            raise SnapshotError(
+                "the site's API version was never confirmed, so the atlas manifest was "
+                "kept and nothing was switched. Set probe_page and rerun with --mode refresh."
+            )
         self._save_manifest(manifest_path, manifest)
         self._build_index(output_dir / "index.md", manifest)
         stats = manifest.get("stats", {})
@@ -628,7 +634,10 @@ class SiteGuideSnapshot:
         # Settle the API version before the manifest is touched or saved, so a
         # refusal leaves the corpus (and an atlas manifest being switched) intact.
         votes: Counter = Counter(set(api_versions(start["body"])))
-        self._verify_version(votes, manifest, require=False)
+        if save:
+            # Discover-only: the start page decides. With a capture to follow, capture
+            # settles the version over many pages before any save.
+            self._verify_version(votes, manifest, require=False)
         toc = parse_toc(start["attrs"])
         discovered, skipped = flatten_toc(toc, self.guide_path, o["section_filters"])
         if skipped:
@@ -732,6 +741,7 @@ class SiteGuideSnapshot:
                 "to a newer release and no per-release copy is served. Compare the "
                 "pages against the PDF archive, or update the preset on purpose."
             )
+        self._version_verified = True
         self.logger.info(f"  API version check: site serves {seen} (matches the preset)")
 
     def _capture_pages(self, pages, output_dir: Path, manifest, manifest_path) -> Tuple[List[str], int]:
