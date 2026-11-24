@@ -66,9 +66,9 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** set a component selling model on a configurable bundle's components, or,
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
-  An insert was rejected for the configurable case (also seen on a scratch load) and, on an
-  existing org (fresh-build check pending), accepted for an inactive static test bundle (active
-  bundle untested), so Help's static rule looks like guidance, not a guard
+  An insert was rejected for the configurable case and accepted for static test bundles
+  (inactive on an existing org; inactive and active on a fresh build), so Help's static rule
+  looks like guidance, not a guard; a mismatched pair then priced and configured with no message
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -343,17 +343,13 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** A measured Term Defined root with Term Defined, Evergreen and One Time children, and an Evergreen static bundle with One Time and Term Annual children, drew no message, which conflicts with the traced rule; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
-  sets them; Help's rule is written for a *new* static bundle. Under a new test bundle in an
-  existing org, an insert of rows of that shape was accepted (not `CERT007`'s own rows); pricing
-  and configurator behaviour are still open. See
+  sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
+  were accepted on test bundles (not `CERT007`'s own rows), and a mismatched pair priced and
+  configured with no message; whether `CERT007`'s matched pairs price, order and renew
+  correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
-- **Component selling-model rules on a fresh build.** The static-bundle inserts were measured
-  only on an existing org (the configurable refusal was also seen on a scratch load); repeat them
-  on a fresh harness build, and on an active static bundle. How pricing and the configurator
-  treat a mismatched parent and child model that insert accepted is also open. See
-  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.
