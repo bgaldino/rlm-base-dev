@@ -388,6 +388,29 @@ def main():
     check("a page listed twice is selectable by its page id (first listing wins)",
           [p["page_id"] for p in sg.flatten_toc(twice, G, ["x"])[0]] == ["x"]
           and sg.flatten_toc(twice, G, ["x"])[0][0]["ancestors"][0].startswith("a\t"))
+    whole = {p["page_id"]: p for p in sg.flatten_toc(twice, G, None)[0]}
+    check("a page listed under two branches records the second path apart from the first",
+          len(whole["x"]["alt_ancestors"]) == 1 and whole["x"]["alt_ancestors"][0][0].startswith("b\t")
+          and whole["x"]["ancestors"][0].startswith("a\t") and whole["a"]["alt_ancestors"] == [])
+    recs = [dict(p) for p in whole.values()]
+    check("capture-mode resolution finds a multi-listed page under its second branch",
+          sg.SiteGuideSnapshot._stored_section_ids(recs, ["b"]) == {"b", "x"}
+          and sg.SiteGuideSnapshot._stored_section_ids(recs, ["a"]) == {"a", "x"})
+    walked = {p["page_id"] for p in sg.flatten_toc(twice, G, ["b"])[0]}
+    check("the stored resolution agrees with the filtered TOC walk",
+          walked == sg.SiteGuideSnapshot._stored_section_ids(recs, ["b"]))
+    legacy = [{k: v for k, v in r.items() if k != "alt_ancestors"} for r in recs]
+    check("a legacy record without alt_ancestors still resolves its first path, and bad fields are ignored",
+          sg.SiteGuideSnapshot._stored_section_ids(legacy, ["a"]) == {"a", "x"}
+          and sg.SiteGuideSnapshot._stored_section_ids(
+              [dict(r, alt_ancestors="junk") for r in recs], ["a"]) == {"a", "x"}
+          and sg._merge_paths("junk", [["p"], ["p"], "q"], ["z"]) == [["p"]])
+    check("a non-string legacy_id_map value is ignored, not a crash",
+          sg._legacy_map({"legacy_id_map": {"a.htm": ["x"], "b.htm": "b", 3: "c"}}) == {"b.htm": "b"}
+          and sg._legacy_map({"legacy_id_map": "junk"}) == {})
+    mf2 = {"pages": [{"page_id": "b", "status": "captured"}], "legacy_id_map": {"a.htm": ["b"], "c.htm": {"x": 1}}}
+    sg.SiteGuideSnapshot._settle_superseded(Path(tempfile.gettempdir()) / "manifest.json", mf2)
+    check("_settle_superseded survives a non-string mapped slug", True)
     twice2 = [{"label": "A", "name": G + "a.html", "children": [{"label": "X", "name": G + "x.html", "children": []}]},
               {"label": "B", "name": G + "b.html", "children": [{"label": "X", "name": G + "x.html",
                "children": [{"label": "Y", "name": G + "y.html", "children": []}]}]}]

@@ -188,6 +188,7 @@ def flatten_toc(
     """
     pages: List[Dict[str, Any]] = []
     seen = set()
+    by_slug: Dict[str, Dict[str, Any]] = {}
     skipped = 0
 
     def walk(nodes, section, parent, anc=()):
@@ -205,10 +206,15 @@ def flatten_toc(
             here = anc + (_node_entry(label, slug),)
             if slug and slug not in seen:
                 seen.add(slug)
-                pages.append({
+                by_slug[slug] = {
                     "page_id": slug, "title": label,
                     "section": this_section, "parent_page": parent, "ancestors": list(here),
-                })
+                    "alt_ancestors": [],
+                }
+                pages.append(by_slug[slug])
+            elif slug and list(here) != by_slug[slug]["ancestors"] and list(here) not in by_slug[slug]["alt_ancestors"]:
+                # A page listed under another TOC branch: keep that path apart from the first.
+                by_slug[slug]["alt_ancestors"].append(list(here))
             walk(node.get("children"), this_section, slug or parent, here)
 
     if section_filters:
@@ -236,6 +242,33 @@ def flatten_toc(
     else:
         walk(toc, None, None)
     return pages, skipped
+
+
+def _legacy_map(manifest) -> Dict[str, str]:
+    """``legacy_id_map`` as {old id: slug}; a hand-edited non-string entry is ignored."""
+    raw = manifest.get("legacy_id_map")
+    return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)} if isinstance(raw, dict) else {}
+
+
+def _paths_of(rec) -> list:
+    """Every recorded TOC path of a page record: the first listing, then the alternates.
+    Tolerates a legacy or hand-edited record (missing or non-list fields, non-string entries)."""
+    out = []
+    first = rec.get("ancestors")
+    alts = rec.get("alt_ancestors")
+    for path in [first] + (alts if isinstance(alts, list) else []):
+        if isinstance(path, list) and path and all(isinstance(e, str) for e in path):
+            out.append(path)
+    return out
+
+
+def _merge_paths(stored, new, canonical) -> list:
+    """Union of alternate paths, without the canonical one and without duplicates."""
+    out = []
+    for path in list(stored if isinstance(stored, list) else []) + list(new or []):
+        if isinstance(path, list) and path != canonical and path not in out:
+            out.append(path)
+    return out
 
 
 def _node_ident(node, guide_path: str):
@@ -738,8 +771,7 @@ class SiteGuideSnapshot:
         captured = {p["page_id"] for p in pages if p.get("status") == "captured"}
         # A page has an article when its file is on disk (a refused refetch keeps the old one).
         have = {p["page_id"] for p in pages if (out / "articles" / f"{p['page_id']}.md").is_file()}
-        mapped = manifest.get("legacy_id_map")
-        mapped = mapped if isinstance(mapped, dict) else {}
+        mapped = _legacy_map(manifest)
         unmapped = manifest.get("unmapped_legacy_ids")
         unmapped = unmapped if isinstance(unmapped, dict) else {}
         replacement = {f"articles/{old}.md": slug for old, slug in mapped.items()}
@@ -877,10 +909,13 @@ class SiteGuideSnapshot:
                 if d["parent_page"]:
                     rec.setdefault("parent_page", d["parent_page"])
                 rec.setdefault("ancestors", d["ancestors"])  # a page listed twice keeps its first path
+                # other branches it is listed under accumulate: a section walk sees only its own
+                rec["alt_ancestors"] = _merge_paths(rec.get("alt_ancestors"), d.get("alt_ancestors"), rec["ancestors"])
             else:  # the whole TOC is authoritative: follow a restructure
                 rec["parent_page"] = d["parent_page"]
                 rec["section"] = d["section"]
                 rec["ancestors"] = d["ancestors"]
+                rec["alt_ancestors"] = d.get("alt_ancestors") or []
             rec["source_url"] = self._page_url(d["page_id"])
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         # The legacy map needs the whole guide's slugs, not just a section's.
@@ -895,7 +930,7 @@ class SiteGuideSnapshot:
 
     def _map_legacy(self, manifest, legacy_ids: List[str], slugs: set) -> None:
         """Fill ``legacy_id_map``/``unmapped_legacy_ids`` for atlas ids ``legacy_ids``."""
-        mapping = dict(manifest.get("legacy_id_map") or {})
+        mapping = _legacy_map(manifest)
         unmapped: List[str] = []
         by_rename = by_redirect = 0
         for old in legacy_ids:
@@ -942,14 +977,15 @@ class SiteGuideSnapshot:
         for f in filters:
             hit, nodes = set(), set()
             for p in pages:
-                path = p.get("ancestors") or []
-                for i, entry in enumerate(path):
-                    label, _, slug_key = entry.partition("\t")
-                    if _entry_matches(label, slug_key, f):
-                        hit.add(p["page_id"])
-                        # the matched node's identity: its page (a page listed twice is one node), else its path
-                        nodes.add(slug_key or tuple(path[: i + 1]))
-                        break
+                # the first listing plus every other branch the page is listed under
+                for path in _paths_of(p):
+                    for i, entry in enumerate(path):
+                        label, _, slug_key = entry.partition("\t")
+                        if _entry_matches(label, slug_key, f):
+                            hit.add(p["page_id"])
+                            # the matched node's identity: its page (a page listed twice is one node), else its path
+                            nodes.add(slug_key or tuple(path[: i + 1]))
+                            break
             if not hit:
                 raise OptionsError(
                     f"section {f!r} is not in the manifest; run --mode discover (or all) first"
@@ -1038,7 +1074,7 @@ class SiteGuideSnapshot:
 
         by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
         legacy_by_slug: Dict[str, List[str]] = {}
-        for old, slug in sorted((manifest.get("legacy_id_map") or {}).items()):
+        for old, slug in sorted(_legacy_map(manifest).items()):
             legacy_by_slug.setdefault(slug, []).append(old)
         accept = o["accept_shrinkage"]
         def prior_for(pid: str) -> Optional[str]:
@@ -1143,7 +1179,7 @@ class SiteGuideSnapshot:
             *stats_table(manifest.get("stats", {})),
         ]
         unmapped = manifest.get("unmapped_legacy_ids") or {}
-        mapped = manifest.get("legacy_id_map") or {}
+        mapped = _legacy_map(manifest)
         if mapped or unmapped:
             lines += [
                 "## Legacy atlas ids", "",
