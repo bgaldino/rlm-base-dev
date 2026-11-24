@@ -17,7 +17,7 @@ transport state beyond the ``target_org`` / ``api_version`` args.
 from typing import Any, Dict, List, Optional
 
 from . import _client
-from ._guards import VERSION_FIELDS
+from ._guards import VERSION_FIELDS, executing_version, rank_order_warning
 
 
 class ResolveError(RuntimeError):
@@ -87,28 +87,36 @@ def resolve_version_by_es_id(
 ) -> Dict[str, Any]:
     """Resolve the ``ExpressionSetVersion`` from the ExpressionSet Id.
 
-    Prefers the ACTIVE version (the one actually executing) over a merely
-    higher-numbered draft — mutating the wrong version would target a record
-    that isn't live. Orders by IsActive then VersionNumber so the active (or,
-    absent any active one, the highest-numbered) version is first.
+    Prefers the version actually executing (``_guards.executing_version``: the
+    highest Rank among active versions whose date window covers now) over a merely
+    higher-numbered draft — mutating the wrong version would target a record that
+    isn't live. Absent an executing version, the active (then highest-numbered)
+    version comes first.
     """
     log = logger or _client.eprint
     safe = _client.soql_literal(es_id)
     records = _query(
-        "SELECT Id, ApiName, IsActive, VersionNumber "
+        f"SELECT {VERSION_FIELDS} "
         f"FROM ExpressionSetVersion WHERE ExpressionSetId = '{safe}' "
         "ORDER BY IsActive DESC, VersionNumber DESC",
         target_org=target_org, api_version=api_version,
     )
     if not records:
         raise ResolveError(f"No ExpressionSetVersion found for ExpressionSet {es_id}.")
-    chosen = records[0]
+    try:
+        chosen = executing_version(records) or records[0]
+        note = rank_order_warning(records)
+    except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
+        raise ResolveError(str(exc)) from exc
     active = [r for r in records if r.get("IsActive")]
     if len(active) > 1:
         log(
             f"WARNING: ExpressionSet {es_id} has {len(active)} active versions; "
-            f"operating on the highest-numbered active one ({chosen.get('ApiName')})."
+            f"operating on {chosen.get('ApiName')}, the executing one (highest Rank "
+            "among active versions in their date window)."
         )
+        if note:
+            log(f"WARNING: {note}")
     return chosen
 
 

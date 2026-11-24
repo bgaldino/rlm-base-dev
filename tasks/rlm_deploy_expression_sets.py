@@ -226,9 +226,13 @@ class DeployExpressionSets(Deploy):
             return
         definitions = sorted({v["definition"] for v in expected})
         org_versions = self._org_versions(definitions)
-        findings = version_findings(expected, org_versions)
-        for definition in definitions:
-            note = rank_order_warning(org_versions.get(definition) or [])
+        try:
+            findings = version_findings(expected, org_versions)
+            notes = {d: rank_order_warning(org_versions.get(d) or []) for d in definitions}
+        except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
+            raise CumulusCIFailure(f"Version read-back could not resolve the executing "
+                                   f"version: {exc}") from exc
+        for definition, note in notes.items():
             if note:
                 self.logger.warning(f"{definition}: {note}")
         if not findings:

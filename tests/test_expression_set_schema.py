@@ -2175,6 +2175,40 @@ RAMP264_VERSIONS = [
 ]
 
 
+def test_resolve_version_targets_the_executing_version():
+    # Todo pack 172: the CCI tasks' default target is the executing version (the
+    # shared resolver: highest Rank among active versions in their date window),
+    # not merely the highest-numbered active one.
+    import logging
+
+    rows = [dict(v, Rank=r) for v, r in zip(RAMP264_VERSIONS, (9, 2, 3, 4))]
+    queries, logs = [], []
+    task = object.__new__(Connect)
+    task.logger = logging.getLogger("test_resolve_executing")
+    task.logger.handlers[:] = []
+
+    class _Capture(logging.Handler):
+        def emit(handler, record):
+            logs.append(record.getMessage())
+    task.logger.addHandler(_Capture())
+    task.logger.propagate = False
+    task._soql_query = lambda q: (queries.append(q), rows)[1]
+    chosen = task._resolve_version_by_es_id("9QLx")
+    check("CCI: the default target follows Rank (v1 with Rank 9, not v40)",
+          chosen["Id"] == "9QM1" and "Rank" in queries[0])
+    check("CCI: several active versions and the Rank/VersionNumber disagreement are warned",
+          any("the executing one" in m for m in logs)
+          and any("highest VersionNumber" in m for m in logs))
+    task._soql_query = lambda q: [dict(RAMP264_VERSIONS[0], EndDateTime="soon")]
+    try:
+        task._resolve_version_by_es_id("9QLx")
+        bad = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        bad = exc
+    check("CCI: an unreadable version date fails with a clear error",
+          bad is not None and "soon" in str(bad))
+
+
 def test_import_replace_refuses_a_version_rebind():
     # Todo pack 172: on ramp264 the payload's _V1 was rebound onto the executing
     # v40 and the platform rejected it on a version-name collision after partially

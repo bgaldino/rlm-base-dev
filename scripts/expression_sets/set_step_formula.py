@@ -408,7 +408,7 @@ def main(argv=None) -> int:
             reactivate_on_failure=True,
         )
     except (ExpressionSetClientError, ResolveError, LifecycleError, ToolingError,
-            StepFormulaError) as exc:
+            StepFormulaError, ValueError) as exc:  # ValueError: an unreadable version date
         eprint(f"\nFAILED: {exc}")
         return 1
 

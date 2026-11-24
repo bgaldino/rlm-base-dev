@@ -78,7 +78,12 @@ from tasks.expression_set_schema import (
     validate_overlay_against_definition,
 )
 # Stdlib-only pure guards shared with the standalone toolkit (no CumulusCI import).
-from scripts.expression_sets._guards import VERSION_FIELDS, import_target_refusal
+from scripts.expression_sets._guards import (
+    VERSION_FIELDS,
+    executing_version,
+    import_target_refusal,
+    rank_order_warning,
+)
 
 
 _REQUEST_TIMEOUT = 120
@@ -229,15 +234,16 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         whose version identity can be a transiently stale clone name. We match
         on the ExpressionSetId FK rather than guessing by naming convention.
 
-        Prefer the ACTIVE version (the one actually executing) over a merely
-        higher VersionNumber: mutating/deactivating the latest-numbered draft
-        while a different version is live would target the wrong record. Order
-        by IsActive then VersionNumber so the active (or, absent any active one,
-        the highest-numbered) version is first.
+        Prefer the version actually executing (the shared
+        ``_guards.executing_version``: highest Rank among active versions whose
+        date window covers now) over a merely higher VersionNumber:
+        mutating/deactivating the latest-numbered draft while a different version
+        is live would target the wrong record. Absent an executing version, the
+        active (then highest-numbered) version comes first.
         """
         safe = self._soql_escape(es_id)
         records = self._soql_query(
-            "SELECT Id, ApiName, IsActive, VersionNumber "
+            f"SELECT {VERSION_FIELDS} "
             f"FROM ExpressionSetVersion WHERE ExpressionSetId = '{safe}' "
             "ORDER BY IsActive DESC, VersionNumber DESC"
         )
@@ -245,14 +251,20 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             raise TaskOptionsError(
                 f"No ExpressionSetVersion found for ExpressionSet {es_id}."
             )
-        chosen = records[0]
+        try:
+            chosen = executing_version(records) or records[0]
+            note = rank_order_warning(records)
+        except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
+            raise TaskOptionsError(str(exc)) from exc
         active = [r for r in records if r.get("IsActive")]
         if len(active) > 1:
             self.logger.warning(
-                "ExpressionSet %s has %d active versions; operating on the "
-                "highest-numbered active one (%s).",
-                es_id, len(active), chosen.get("ApiName"),
+                "ExpressionSet %s has %d active versions; operating on %s, the "
+                "executing one (highest Rank among active versions in their date "
+                "window).", es_id, len(active), chosen.get("ApiName"),
             )
+            if note:
+                self.logger.warning(note)
         return chosen
 
     def _list_versions(self, es_id: str) -> List[dict]:

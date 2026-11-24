@@ -1822,21 +1822,68 @@ def test_import_guards():
     ranked[0]["Rank"] = 9
     check("the highest Rank wins over a higher VersionNumber",
           executing_version(ranked, now)["Id"] == "9QM1")
-    check("…and the disagreement is warned about",
-          "disagree" in (rank_order_warning(ranked, now) or ""))
+    warn = rank_order_warning(ranked, now) or ""
+    check("…and the Rank/VersionNumber disagreement is warned about (no tie claimed)",
+          "highest VersionNumber" in warn and "tie-break" not in warn, warn)
     tied = [dict(v, Rank=5) for v in RAMP264_VERSIONS]
     check("equal Ranks: the higher VersionNumber (unverified tie-break), with a warning",
           executing_version(tied, now)["Id"] == "9QMv"
           and "tie-break" in (rank_order_warning(tied, now) or ""))
+    top_tie = [dict(v) for v in RAMP264_VERSIONS]
+    for v, r in zip(top_tie, (5, None, 5, 1)):
+        v["Rank"] = r
+    warn = rank_order_warning(top_tie, now) or ""
+    check("ranks 5/5/1: v30 wins only by the tie-break, and the warning says so",
+          executing_version(top_tie, now)["Id"] == "9QM3" and "tie-break" in warn
+          and "share the top Rank" in warn, warn)
     nulls = [dict(v, Rank=None) for v in RAMP264_VERSIONS]
     nulls[2]["Rank"] = 1
+    nulls[3]["Rank"] = 2
+    warn = rank_order_warning(nulls, now) or ""
     check("a null Rank sorts below any numeric Rank (unverified)",
-          executing_version(nulls, now)["Id"] == "9QM3")
+          executing_version(nulls, now)["Id"] == "9QMv")
+    check("ranks None/1/2: v40 wins on Rank; the warning names the null-Rank assumption, "
+          "not a tie-break", "null Rank" in warn and "tie-break" not in warn, warn)
     windowed = [dict(v) for v in RAMP264_VERSIONS]
     windowed[3]["StartDateTime"] = "2027-01-01T00:00:00.000+0000"
     windowed[2]["EndDateTime"] = "2026-01-01T00:00:00Z"
     check("a version whose window does not cover now is not a candidate",
           executing_version(windowed, now)["Id"] == "9QM1")
+    ends_now = [dict(RAMP264_VERSIONS[0], EndDateTime="2026-11-24T00:00:00.000+0000")]
+    check("EndDateTime is when a version becomes inactive: now == end is outside",
+          executing_version(ends_now, now) is None)
+    try:
+        executing_version([dict(RAMP264_VERSIONS[0], StartDateTime="24/11/2026")], now)
+        bad_date = None
+    except ValueError as exc:
+        bad_date = exc
+    check("an unreadable date raises instead of being treated as an open window",
+          bad_date is not None and "24/11/2026" in str(bad_date), bad_date)
+
+    # The mutators' default target (resolve_version_by_es_id) uses the same resolver.
+    import scripts.expression_sets._resolve as resolve_mod
+    seen, logs = [], []
+    undo = _patch(resolve_mod, _query=lambda soql, **k: (seen.append(soql), ranked)[1])
+    try:
+        chosen = resolve_mod.resolve_version_by_es_id("9QLx", target_org="x",
+                                                      logger=logs.append)
+        undo_bad = _patch(resolve_mod, _query=lambda soql, **k: [
+            dict(RAMP264_VERSIONS[0], StartDateTime="garbage")])
+        try:
+            resolve_mod.resolve_version_by_es_id("9QLx", target_org="x", logger=logs.append)
+            bad = None
+        except resolve_mod.ResolveError as exc:
+            bad = exc
+        finally:
+            undo_bad()
+    finally:
+        undo()
+    check("resolve_version_by_es_id targets the executing version by Rank",
+          chosen["Id"] == "9QM1" and "Rank" in seen[0], (chosen, seen))
+    check("…warning that several are active and that Rank and VersionNumber disagree",
+          any("operating on RLM_DefaultPricingProcedure_V1, the executing one" in m
+              for m in logs) and any("highest VersionNumber" in m for m in logs), logs)
+    check("…and an unreadable date is a ResolveError", bad is not None, bad)
     check("a single running version gives no Rank warning",
           rank_order_warning(RAMP264_VERSIONS[:1], now) is None)
     check("the version queries select Rank and the date window",

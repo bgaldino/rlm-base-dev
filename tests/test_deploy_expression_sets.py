@@ -140,7 +140,7 @@ ranked[0]["Rank"] = 10
 check("Rank decides: the deployed _V1 with the highest Rank executes → no finding",
       mod.version_findings([expected()], {PRICING: ranked}, NOW) == [])
 check("…and the Rank/VersionNumber disagreement is warned about",
-      "disagree" in (mod.rank_order_warning(ranked, NOW) or ""))
+      "highest VersionNumber" in (mod.rank_order_warning(ranked, NOW) or ""))
 
 expired = [{"ApiName": V1, "VersionNumber": 1, "IsActive": True,
             "EndDateTime": "2020-01-01T00:00:00.000+0000"}]

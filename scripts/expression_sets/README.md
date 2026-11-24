@@ -69,7 +69,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | Module | Purpose |
 |--------|---------|
 | `_client.py` | The `sf api request rest` wrapper; Connect base `connect/business-rules/expression-set/{9QL}`; SOQL with `nextRecordsUrl` paging; the injectable `Transport` seam (binds `target_org` / `api_version` / `dry_run` / `logger`, short-circuits mutating verbs under dry-run). |
-| `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / active `ExpressionSetVersion`; the "prefer active version" ordering. |
+| `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / `ExpressionSetVersion`. The mutators' default version (`resolve_version_by_es_id`) is the executing one from `_guards.executing_version` (then the highest-numbered active, then the highest-numbered), with a warning when several are active. |
 | `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (the highest `Rank` among active versions whose date window covers now; tie-break unverified), `rank_order_warning`, `VERSION_FIELDS` (the fields every caller selects for it) and `import_target_refusal` (the multi-version import rule). |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |

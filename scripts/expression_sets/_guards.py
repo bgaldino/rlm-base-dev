@@ -36,28 +36,32 @@ VERSION_FIELDS = "Id, ApiName, VersionNumber, IsActive, Rank, StartDateTime, End
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
-    """A Salesforce dateTime (``2020-01-01T08:00:00.000+0000`` or ``…Z``), or None."""
-    if not value or not isinstance(value, str):
+    """A Salesforce dateTime (``2020-01-01T08:00:00.000+0000`` or ``…Z``); None when
+    empty. Raises ValueError on any other value: guessing a window would pick a
+    version silently, so an unreadable date stops the caller instead."""
+    if value is None or value == "":
         return None
-    text = value.strip().replace("Z", "+0000")
-    for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
-        try:
-            return datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-    return None
+    if isinstance(value, str):
+        text = value.strip().replace("Z", "+0000")
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+            try:
+                return datetime.strptime(text, fmt)
+            except ValueError:
+                continue
+    raise ValueError(f"Unrecognized ExpressionSetVersion dateTime {value!r}.")
 
 
 def in_window(version: Dict[str, Any], now: Optional[datetime] = None) -> bool:
     """Whether ``now`` lies in the version's StartDateTime/EndDateTime window.
 
-    A missing (or unread) bound is open. Whether the platform treats the end as
-    inclusive is not documented; this treats ``now == EndDateTime`` as inside.
+    A missing (or unread) bound is open. The object reference says EndDateTime is
+    when the version becomes inactive, so ``now == EndDateTime`` is outside; the
+    exact boundary is not otherwise documented.
     """
     now = now or datetime.now(timezone.utc)
     start = _parse_datetime(version.get("StartDateTime"))
     end = _parse_datetime(version.get("EndDateTime"))
-    return (start is None or start <= now) and (end is None or now <= end)
+    return (start is None or start <= now) and (end is None or now < end)
 
 
 def _rank_key(version: Dict[str, Any]):
@@ -95,32 +99,39 @@ def executing_version(versions: List[Dict[str, Any]],
 
 def rank_order_warning(versions: List[Dict[str, Any]],
                        now: Optional[datetime] = None) -> Optional[str]:
-    """A warning when Rank and VersionNumber disagree about which version runs, or
-    when the choice rests on the undocumented tie-break; ``None`` otherwise."""
+    """A warning when the executing-version choice rests on something the platform
+    does not document (equal top Ranks, a null Rank) or when Rank and
+    VersionNumber disagree about which version runs; ``None`` otherwise."""
     candidates = running_candidates(versions, now)
     if len(candidates) < 2:
         return None
     by_rank = max(candidates, key=_rank_key)
     by_number = max(candidates, key=lambda v: v.get("VersionNumber") or 0)
-    ranks = [v.get("Rank") for v in candidates]
+    ranks = ", ".join(f"{v.get('ApiName')}={v.get('Rank')}" for v in candidates)
     top = _rank_key(by_rank)[:2]
-    tied = sum(1 for v in candidates if _rank_key(v)[:2] == top) > 1
+    tied = [v for v in candidates if _rank_key(v)[:2] == top]
+    confirm = " Confirm which one runs with a constant-control formula."
+    if len(tied) > 1:
+        return (
+            f"{len(tied)} active versions share the top Rank ({ranks}); "
+            f"{by_rank.get('ApiName')} is taken as the executing version by the higher "
+            "VersionNumber, a tie-break the platform does not document." + confirm
+        )
+    notes = []
     if by_rank is not by_number:
-        return (
-            f"Rank and VersionNumber disagree among the {len(candidates)} active "
-            f"versions: {by_rank.get('ApiName')} has the highest Rank "
-            f"({by_rank.get('Rank')}) and is taken as the executing version, while "
-            f"{by_number.get('ApiName')} has the highest VersionNumber. Confirm which "
-            "one runs with a constant-control formula before relying on either."
+        notes.append(
+            f"{by_rank.get('ApiName')} has the highest Rank and is taken as the "
+            f"executing version, while {by_number.get('ApiName')} has the highest "
+            "VersionNumber"
         )
-    if tied or any(r is None for r in ranks):
-        return (
-            f"{len(candidates)} active versions share the top Rank or have no Rank "
-            f"({', '.join(str(r) for r in ranks)}); {by_rank.get('ApiName')} is taken "
-            "as the executing version by the higher VersionNumber, a tie-break the "
-            "platform does not document. Confirm with a constant-control formula."
+    if any(v.get("Rank") is None for v in candidates):
+        notes.append(
+            "a null Rank is assumed to rank below any number, which the platform "
+            "does not document"
         )
-    return None
+    if not notes:
+        return None
+    return f"Among the active versions ({ranks}): " + "; ".join(notes) + "." + confirm
 
 
 def version_rows(versions: List[Dict[str, Any]]) -> str:
