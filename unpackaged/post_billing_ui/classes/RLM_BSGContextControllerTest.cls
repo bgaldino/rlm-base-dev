@@ -6,7 +6,9 @@ private class RLM_BSGContextControllerTest {
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
     // query the user may not run. What it does with a found group is covered through the seams
     // that take rows (fillContext, getBundleData, the milestone, usage and arrangement helpers),
-    // in the tests after "Seams over queried rows". The admin-run unknown-id test
+    // in the tests after "Seams over queried rows". With fake ids fillContext reaches only the
+    // usage and standard views; choosing the milestone or bundle view needs real rows (live
+    // verification only). The admin-run unknown-id test
     // (getBSGContext_unknownId_returnsEmptyStandard) reaches "not found or refused"
     // (indistinguishable when run as the admin).
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
@@ -556,8 +558,9 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.arrangement, 'A group without an arrangement gets none');
     }
 
-    // A group that is the main side of a relationship is the main bundle, described by its own
-    // charge type and frequency; with no child groups found it lists no components.
+    // A group that is the main side of a relationship is the main bundle, even when it is also a
+    // component of another group; it is described by its own charge type and frequency, and with
+    // no child groups found it lists no components.
     @isTest
     static void getBundleData_mainSideIsTheMainBundle() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
@@ -565,25 +568,27 @@ private class RLM_BSGContextControllerTest {
             'Id' => groupId, 'ProductName' => 'Suite', 'BillingTermUnit' => 'OneTime', 'BillingTerm' => 1 });
         BsgRelationship asMain = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
             'MainBsgId' => groupId, 'AssociatedBsgId' => fakeId(BillingScheduleGroup.SObjectType, 2) });
+        BsgRelationship alsoComponent = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
+            'MainBsgId' => fakeId(BillingScheduleGroup.SObjectType, 3), 'AssociatedBsgId' => groupId });
 
         Test.startTest();
         RLM_BSGContextController.BundleData bd = RLM_BSGContextController.getBundleData(
-            groupId, current, new List<BsgRelationship>{ asMain }, new List<BsgRelationship>());
+            groupId, current, new List<BsgRelationship>{ asMain }, new List<BsgRelationship>{ alsoComponent });
         Test.stopTest();
 
-        Assert.isTrue(bd.isMainBundle, 'The main side is the main bundle');
+        Assert.isTrue(bd.isMainBundle, 'The main side is the main bundle, even as a component');
         Assert.areEqual('Suite', bd.mainBsgProduct, 'The root product is shown');
         Assert.areEqual('One-Time', bd.mainChargeType, 'A one-time term is a one-time charge');
         Assert.areEqual('One-Time', bd.mainBillingFrequency, 'A one-time term has a one-time frequency');
         Assert.isTrue(bd.components.isEmpty(), 'No child groups were found');
     }
 
-    // A component group (no relationship where it is the main side) whose root cannot be found
-    // or read ends as its own root: here the ids are fake, so either the parent lookup finds
-    // nothing or the root query finds nothing and falls back. getBundleData reads only whether asMain is
-    // empty, not asComponent.
+    // A component group (no relationship where it is the main side) whose parent lookup finds
+    // nothing for its fake id is its own root. (Had the lookup returned some other id, the root
+    // query would find nothing and fall back to the group too, so this cannot tell those apart.)
+    // getBundleData reads only whether asMain is empty, not asComponent.
     @isTest
-    static void getBundleData_componentWithoutAReadableRootIsItsOwnRoot() {
+    static void getBundleData_componentWithNoParentFoundIsItsOwnRoot() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         BillingScheduleGroup current = bsg(new Map<String, Object>{
             'Id' => groupId, 'ProductName' => 'Seat', 'BillingTermUnit' => 'Month', 'BillingTerm' => 3 });
@@ -596,7 +601,7 @@ private class RLM_BSGContextControllerTest {
         Test.stopTest();
 
         Assert.isFalse(bd.isMainBundle, 'A component is not the main bundle');
-        Assert.areEqual(groupId, bd.mainBsgId, 'With no readable root, the group is its own root');
+        Assert.areEqual(groupId, bd.mainBsgId, 'With no parent found, the group is its own root');
         Assert.areEqual('Evergreen', bd.mainChargeType, 'No end date is an evergreen charge');
         Assert.areEqual('3 Month', bd.mainBillingFrequency, 'The frequency is the term and its unit');
     }
@@ -619,7 +624,7 @@ private class RLM_BSGContextControllerTest {
         List<SObject> items = new List<SObject>{
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Kickoff', 'Type' => 'Percentage',
                 'Percentage' => 30, 'MilestoneAmount' => 270, 'IsMilestoneAccomplished' => true,
-                'MilestoneAccomplishmentDate' => done, 'Status' => 'Accomplished' }),
+                'MilestoneAccomplishmentDate' => done, 'Status' => 'Invoiced' }),
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'Type' => 'FlatAmount',
                 'FlatAmount' => 630, 'MilestoneAmount' => 600, 'IsMilestoneAccomplished' => false })
         };
@@ -640,7 +645,8 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual(new List<String>{ 'Kickoff', 'Go-live' },
             new List<String>{ target[0].name, target[1].name }, 'Items keep their query order');
         Assert.areEqual(30, target[0].percentage, 'A percentage item keeps its percentage');
-        Assert.isTrue(target[0].isAccomplished, 'An accomplished item is marked');
+        Assert.isTrue(target[0].isAccomplished, 'The accomplished flag is shown, whatever the status');
+        Assert.isFalse(target[1].isAccomplished, 'An open item is not accomplished');
         Assert.isTrue(target[0].accomplishmentDate != null && target[0].accomplishmentDate.startsWith('2026-03-01'),
             'The accomplishment date is shown as text starting with the date. Got: ' + target[0].accomplishmentDate);
         Assert.areEqual(630, target[1].flatAmount, 'A flat item keeps its flat amount');

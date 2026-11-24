@@ -9,7 +9,9 @@ private class RLM_BSGTimelineControllerTest {
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. What they do with a
     // found group is covered through the seams that take rows (dataFor, applySuspension,
-    // addSchedules, addMilestoneChartItems, consolidate). The admin-run
+    // addSchedules, addMilestoneChartItems, consolidate). dataFor is covered for the group's own
+    // fields; with a fake id its suspension and milestone queries find nothing, so that wiring is
+    // live verification only (the seams it calls are tested on their own). The admin-run
     // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin).
     // The refused-access test runs as a plain Minimum Access user with no permission set
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
@@ -281,7 +283,7 @@ private class RLM_BSGTimelineControllerTest {
         // In the query's order: accomplished items first, which is not name order.
         List<SObject> items = new List<SObject>{
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Kickoff', 'MilestoneAmount' => 270,
-                'Percentage' => 30, 'Status' => 'Accomplished', 'IsMilestoneAccomplished' => true,
+                'Percentage' => 30, 'Status' => 'Invoiced', 'IsMilestoneAccomplished' => true,
                 'MilestoneAccomplishmentDate' => done }),
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'MilestoneAmount' => 630,
                 'Percentage' => 70, 'Status' => 'Draft', 'IsMilestoneAccomplished' => false })
@@ -296,6 +298,7 @@ private class RLM_BSGTimelineControllerTest {
             'Items keep the query order, not name order');
         Assert.areEqual(630, result[1].amount, 'The milestone amount is shown');
         Assert.areEqual(70, result[1].percentage, 'The percentage is shown');
+        Assert.isTrue(result[0].isAccomplished, 'The accomplished flag is shown, whatever the status');
         Assert.isFalse(result[1].isAccomplished, 'An open milestone is not accomplished');
         Assert.isNull(result[1].completionDate, 'An open milestone has no completion date');
         Assert.areEqual(done, result[0].completionDate, 'An accomplished milestone has its date');
@@ -354,10 +357,12 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(new List<String>{ 'BS-1' }, segments[0].activeScheduleNumbers, 'Only BS-1 runs in January');
         Assert.areEqual(2, segments[0].netQuantity, 'January adds BS-1\'s quantity');
         Assert.areEqual(100, segments[0].periodicBilling, 'A positive period amount is billing');
+        Assert.areEqual(0, segments[0].credits, 'A positive period amount is not a credit');
         Assert.areEqual('Active', segments[0].status, 'No cancelled or fully billed schedule: Active');
 
         Assert.areEqual(3, segments[1].netQuantity, 'February adds BS-1 and BS-2');
         Assert.areEqual(-30, segments[1].credits, 'A negative period amount is a credit');
+        Assert.areEqual(100, segments[1].periodicBilling, 'A negative period amount is not billing');
         Assert.areEqual('Completely Billed', segments[1].status, 'A fully billed schedule marks the segment');
 
         Assert.areEqual(new List<String>{ 'BS-1', 'BS-2', 'BS-3' }, segments[2].activeScheduleNumbers,
