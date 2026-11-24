@@ -55,7 +55,7 @@ private class RLM_InvoiceBatchRunMonitorControllerTest {
 
         Assert.areEqual(3, counts.get('Posted'), 'A status found replaces its zero');
         Assert.areEqual(2, counts.get('Canceled'), 'A status outside the four buckets is added');
-        Assert.areEqual(0, counts.get('Draft'), 'A status not found stays at zero');
+        Assert.areEqual(0, counts.get('Draft'), 'addCount touches only the status it is given');
         Assert.areEqual(5, counts.size(), 'A null status adds no entry');
     }
 }
