@@ -521,8 +521,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.isNull(byName.get('Unmetered data').rate, 'A usage line with a blank quantity has no rate');
     }
 
-    // A line's schedule group leads to its asset; each product gets one block of that asset's
-    // attributes, one per label (compared without case) across the product's assets.
+    // A line's schedule group leads to its asset; each product gets one block merging its
+    // assets' attributes, one per label (compared without case).
     @isTest
     static void buildSummary_mergesAssetAttributesPerProduct() {
         Id product = fakeId(Product2.SObjectType, 1);
