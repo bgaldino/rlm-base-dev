@@ -703,7 +703,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.areEqual(2, result.get(assetA).size(), 'Both of asset A\'s attributes are kept');
         Assert.areEqual('Size', result.get(assetA)[0].label, 'Attributes keep their query order, not label order');
         Assert.areEqual('L', result.get(assetA)[0].value, 'The value comes with its label');
-        Assert.areEqual('Color', result.get(assetA)[1].label, 'Attributes keep their query order, not label order');
+        Assert.areEqual('Red', result.get(assetA)[1].value, 'Each attribute keeps its own value');
         Assert.areEqual('8', result.get(assetB)[0].value, 'Asset B gets its own attribute');
     }
 }

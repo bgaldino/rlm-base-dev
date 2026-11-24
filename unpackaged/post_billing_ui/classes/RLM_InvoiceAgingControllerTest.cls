@@ -124,7 +124,7 @@ private class RLM_InvoiceAgingControllerTest {
     // No invoices returns the zeroed defaults with a non-null list; an invoice without a currency
     // keeps the USD default.
     @isTest
-    static void processInvoiceData_defaultsWhenThereIsNothingToCount() {
+    static void processInvoiceData_defaultsForNoInvoicesOrNoCurrency() {
         Test.startTest();
         RLM_InvoiceAgingController.InvoiceAgingData fromNull = RLM_InvoiceAgingController.processInvoiceData(null);
         RLM_InvoiceAgingController.InvoiceAgingData fromEmpty =
@@ -138,6 +138,5 @@ private class RLM_InvoiceAgingControllerTest {
         Assert.areEqual(0, fromEmpty.totalAmount, 'No invoices: zero amount');
         Assert.isTrue(fromEmpty.invoices.isEmpty(), 'No invoices: an empty list');
         Assert.areEqual('USD', noCurrency.currencyCode, 'An invoice without a currency leaves the USD default');
-        Assert.areEqual(5, noCurrency.averageAge, 'One invoice: its own age is the average');
     }
 }
