@@ -52,8 +52,8 @@ drop the `.md` suffix of the snapshot file name.
 7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
-8. **Load a PCM plan twice into a fresh org, unless `scripts/check_classification_attrs.py` exits 0 (one pass matches the CSV, as it does for QuantumBit), and never extract from an org where
-   that check exits 1**: on the measured plan, the first insert left classification attributes'
+8. **Load a PCM plan twice into a fresh org, unless `scripts/check_classification_attrs.py` exits 0 (one pass matches the CSV, as it does for QuantumBit), and never extract from an org unless
+   that check exits 0; on exit 2 (could not compare) fix and rerun before deciding**: on the measured plan, the first insert left classification attributes'
    `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT
@@ -184,7 +184,7 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | On the measured PCM plan (the QuantumBit plan does not need it; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org, unless `scripts/check_classification_attrs.py` exits 0 (one pass matches the CSV) (QuantumBit). Never re-extract an org that had one pass where that check reports differences; the extract would bake the definition's values into the CSVs. |
+| a | On the measured PCM plan (the QuantumBit plan does not need it; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org, unless `scripts/check_classification_attrs.py` exits 0 (one pass matches the CSV, as it does for QuantumBit); on exit 2 (could not compare) fix and rerun before deciding. Never re-extract an org unless that check exits 0; the extract would bake the definition's values into the CSVs. |
 | b | A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups unresolved. [Measured: 2026-11, 264] Whether the lookup shape is the cause is open. Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*, with the open check; not restated here. | Keep that CSV with the `$$` column the children's lookup columns name. |
 | c | Repeating an object across object sets does not give pass 2 its own data unless the plan sets `useSeparatedCSVFiles: true`. [Measured: 2026-11, 264] Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
