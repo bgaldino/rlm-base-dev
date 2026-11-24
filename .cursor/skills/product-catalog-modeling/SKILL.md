@@ -362,5 +362,6 @@ Every item marked **Open — needs live verification** in this skill and its sub
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.
 - **Other classification-attribute fields after one pass.** Whether fields beyond
-  `AttributeNameOverride` and `IsRequired` behave like fact (a). See
+  `AttributeNameOverride` and `IsRequired` behave like fact (a) on a plan whose values differ from the
+  definition's: QuantumBit's already match on all five copied fields, which cannot show the copy. See
   [`attributes-and-classifications.md`](attributes-and-classifications.md#loading-attributes).

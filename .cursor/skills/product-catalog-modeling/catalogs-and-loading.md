@@ -123,7 +123,8 @@ inactive was not checked. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] 
 # ProrationPolicy, tolerate the platform-seeded duplicate as insert_quantumbit_pcm_data does;
 # otherwise drop the ignore_row_errors_for option.
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>
-cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass
+python scripts/check_classification_attrs.py --target-org <sf_alias> --plan datasets/sfdmu/<shape>/<locale>/<plan>   # exit 0: one pass is enough
+cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass: only when the check below exits 1
 cci flow run refresh_all_decision_tables --org <cci_alias>
 cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, then retry Place until "Could not find product" stops
 ```
