@@ -307,6 +307,7 @@
         <locationX>1590</locationX>
         <locationY>620</locationY>
         <defaultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Source_Not_Found</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Not Found</defaultConnectorLabel>
@@ -384,7 +385,6 @@
         <locationX>50</locationX>
         <locationY>400</locationY>
         <defaultConnector>
-            <isGoTo>true</isGoTo>
             <targetReference>Fail_Source_Not_Found</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Not Found</defaultConnectorLabel>

@@ -46,7 +46,7 @@ which pointed at a single, hard-coded org, in 2026-03 (git history). On a fresh 
 target. How the step ends (status, error, whether the plan continues) is not yet measured.
 The step is reached by products decomposed to
 `QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
-callout on its tenant-provisioning steps.
+callout on its tenant-provisioning steps [inferred from its step definitions; not run].
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
