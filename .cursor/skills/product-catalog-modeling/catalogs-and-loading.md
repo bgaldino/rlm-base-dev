@@ -96,7 +96,7 @@ it lists the values the QuantumBit plan uses and no `None` value; the q3 and mfg
 not list. Deploying the set without `None` took it out of what the org offers: the value left
 `Product2.Family`'s picklist values and a retrieve of the set no longer listed it, while a
 product holding it kept the stored value `None`. Whether the value is deleted or only made
-inactive was not checked. [Measured: 2026-11-23, fresh 264 ent-sb0 scratch org] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
+inactive was not checked. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
 
 ## From model to plan
 
@@ -114,7 +114,7 @@ inactive was not checked. [Measured: 2026-11-23, fresh 264 ent-sb0 scratch org] 
    [Repo: `sfdmu-data-plans/SKILL.md`]
 3. **Mark empty objects `excluded: true`.** [Repo: `sfdmu-data-plans/SKILL.md`]
 4. **Write a README** and run the plan checks (below).
-5. **Load into a fresh org, then check.** Run `scripts/check_classification_attrs.py` after the load and follow this bounded rule. Exit 0: extract is safe. Exit 1 (a missing row or a key-field difference; investigate a missing row as a possible load failure first): run the second pass. Exit 2 (could not compare): fix the cause and rerun the check; if the cause is outside the plan (an `sf` or query error, or an org key shared with another plan's rows), run the second pass anyway (it only applies the CSV's values); a duplicate or unreadable CSV is a plan defect, so stop and fix the plan. Recheck after the second pass: exit 0 means extract; exit 1 with no missing row and every key-field difference (a `DIFF KEY` line) on a row the first check listed missing means one third pass and a recheck; anything else, or any non-zero result after the third pass, means stop and investigate, with no extract and no further load. One pass is enough for QuantumBit [Measured: 2026-11-23, 264].
+5. **Load into a fresh org, then check.** Run `scripts/check_classification_attrs.py` after the load and follow this bounded rule. Exit 0: extract is safe. Exit 1 (a missing row or a key-field difference; investigate a missing row as a possible load failure first): run the second pass. Exit 2 (could not compare): fix the cause and rerun the check (a failed `sf` call, an unwritable `--json` path or an unreadable CSV is yours to fix; a duplicate CSV key is a plan defect, so stop and fix the plan); if an `sf` or query error cannot be fixed, run the second pass anyway (it only applies the CSV's values); an org key shared with another plan's rows persists through any load, so stop and investigate. Recheck after the second pass: exit 0 means extract; exit 1 with no missing row and every key-field difference (a `DIFF KEY` line) on a row the first check listed missing means one third pass and a recheck; anything else (including exit 2 on a recheck), or any non-zero result after the third pass, means stop and investigate, with no extract and no further load; rerunning only the check after fixing a transient `sf` error is allowed. One pass is enough for QuantumBit [Measured: 2026-11-23, 264].
 6. **Run the `refresh_all_decision_tables` flow and the `rebuild_search_index` task** before
    placing a quote (fact f; the refresh is `decision-tables` Quick Rule 1).
 

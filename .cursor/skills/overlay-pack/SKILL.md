@@ -151,7 +151,7 @@ layers:
     steps:
       - {id: catalog-meta, kind: deploy, dir: "{pack}/catalog/metadata"}
       - {id: catalog-pass1, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"]}
-      - {id: catalog-check, kind: run, cmd: ["{py}", scripts/check_classification_attrs.py, --target-org, "{sf}", --plan, "{pack}/catalog"], note: "exit 0 continues; a non-zero exit stops the step and the loader follows catalogs-and-loading.md step 5 (second pass, recheck)"}
+      - {id: catalog-check, kind: run, cmd: ["{py}", scripts/check_classification_attrs.py, --target-org, "{sf}", --plan, "{pack}/catalog"], note: "exit 0 continues; a non-zero exit stops the load: follow catalogs-and-loading.md step 5, resuming with --from catalog-pass1 for the second pass and its recheck (at most once more for the third)"}
       - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"]}
       - {id: cml-cycle, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, deactivate_versions, -o, version_full_names, MyModel_V1], note: "a reload's changed model reaches the solver only after a cycle; skipped when inactive (Rerun and idempotency)"}
       - {id: cml-activate, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, activate_versions, -o, version_full_names, MyModel_V1]}
