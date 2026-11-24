@@ -175,8 +175,7 @@ private class RLM_CollectionsConsoleControllerTest {
     @isTest
     static void disputeReasons_typeThenSubtypeFromTheFirstDispute() {
         if (!RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId')) {
-            Assert.isFalse(RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId'),
-                'Without Dispute.InvoiceId the console skips dispute reasons');
+            // No Dispute.InvoiceId in this org: the console never reads dispute reasons here.
             return;
         }
         Id invoiceA = mintId(Invoice.SObjectType);

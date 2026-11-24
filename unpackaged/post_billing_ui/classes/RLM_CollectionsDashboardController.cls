@@ -358,16 +358,9 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) { return false; }
     }
 
-    private static Boolean invoiceHasBillingAccountId() {
-        try {
-            return Schema.SObjectType.Invoice.fields.getMap().containsKey('BillingAccountId');
-        } catch (Exception e) { return false; }
-    }
-
     private static void buildCriticalFollowUpInvoices(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
         try {
             Boolean hasDaysField = invoiceHasDaysInvoiceOverdue();
-            Boolean hasBillingAcct = invoiceHasBillingAccountId();
             Boolean hasBillToContact = invoiceHasBillToContactId();
             Integer thirtyDays = 30;
 
@@ -378,28 +371,28 @@ public with sharing class RLM_CollectionsDashboardController {
             } else {
                 invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
             }
-            if (filterAccount && invAccountField != null) invWhere += ' AND ' + invAccountField + ' = :accountId ';
+            if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
 
             String invSelect = 'SELECT Id, InvoiceNumber, Balance';
             if (hasDaysField) invSelect += ', DaysInvoiceOverdue';
             invSelect += ', DueDate';
-            if (hasBillingAcct) invSelect += ', BillingAccountId';
+            invSelect += ', BillingAccountId';
             if (hasBillToContact) invSelect += ', BillToContactId';
 
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
-            addCriticalFollowUps(wl, invs, hasDaysField, hasBillingAcct, hasBillToContact);
+            addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact);
         } catch (Exception e) { }
     }
 
     // One row per queried invoice, with its account name and collection plan. Takes rows so a
     // test can pass invoices, which Apex cannot insert.
     @TestVisible
-    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillingAcct, Boolean hasBillToContact) {
+    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillToContact) {
         Set<Id> billingAccountIds = new Set<Id>();
         for (Invoice inv : invs) {
-            if (hasBillingAcct && inv.get('BillingAccountId') != null) {
+            if (inv.get('BillingAccountId') != null) {
                 billingAccountIds.add((Id) inv.get('BillingAccountId'));
             }
         }
@@ -429,7 +422,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 daysOverdue = inv.DueDate != null ? inv.DueDate.daysBetween(today) : null;
             }
             String invNum = inv.InvoiceNumber != null ? inv.InvoiceNumber : '—';
-            Id billingAcctId = hasBillingAcct && inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
+            Id billingAcctId = inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
             String billingAcctName = billingAcctId != null ? accountNames.get(billingAcctId) : null;
             Id billToContactId = hasBillToContact && inv.get('BillToContactId') != null ? (Id) inv.get('BillToContactId') : null;
             Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
