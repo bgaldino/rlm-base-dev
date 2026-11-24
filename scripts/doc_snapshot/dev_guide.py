@@ -994,15 +994,18 @@ class DevGuideSnapshot:
         refusals: Dict[str, str] = {}
         self.accepted = []
         all_ids = set(fetched)
+        no_article: set = set()  # converted to nothing: no file is written for these
         for pid, data in fetched.items():
             body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=all_ids)
             title = data["title"] or record(pid).get("title") or pid
+            if not body_md:
+                no_article.add(pid)
             if body_md and (reason := refusal_reason(
                 title, body_md, prior_texts[pid], pid, accept,
                 lambda why, p=pid: self._note_accepted(p, why),
             )):
                 refusals[pid] = reason
-        known_ids = all_ids - {p for p in refusals if prior_texts[p] is None}
+        known_ids = all_ids - {p for p in (set(refusals) | no_article) if prior_texts[p] is None}
 
         written = 0
         empty: List[str] = []   # fetched, but converted to an empty body

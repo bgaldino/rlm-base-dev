@@ -7,8 +7,8 @@ Run:  python3 tests/test_snapshot_site_guide.py   (stdlib only)
 """
 
 import json
-import re
 import os
+import re
 import sys
 import tempfile
 from collections import Counter
