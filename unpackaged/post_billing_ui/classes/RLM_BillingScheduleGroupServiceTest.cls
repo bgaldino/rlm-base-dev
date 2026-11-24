@@ -31,18 +31,10 @@
  * key set, so it catches a fix only if the fix adds payload keys; prerequisites supplied on
  * records through the context mapping would not show there.
  *
- * Known gap (pinned): the Create Billing Schedule Group modal (rlmBillingScheduleGroupModal)
- * sends termSetting only as 'Evergreen' (its default) or 'Termed' and expresses a one-time
- * charge with billingTermUnitPicklist = 'OneTime'; handleChargeTypeChange changes neither
- * termSetting nor endDate. The service derives SellingModelType__std from termSetting alone,
- * so a one-time charge goes out as SellingModelType__std 'Evergreen' with
- * BillingTermUnit__std 'OneTime' or, after Recurring -> Termed -> One Time, as 'TermDefined'
- * with the old EndDate__std. The 264 developer guide requires SellingModelType 'OneTime' for
- * a one-time sale, and lists only Month, Quarter, Semi-Annual and Year as evergreen billing
- * term units. See buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen and
- * buildTransactionDetailsJson_oneTimeAfterTermedFromModal_isSentAsTermDefined. If the fix lands in the
- * modal instead (sending termSetting 'OneTime'), that pin and the "no caller sends OneTime"
- * comments on the pass-through tests must be updated too.
+ * Fixed: a one-time charge from the Create Billing Schedule Group modal (billing term unit
+ * 'OneTime', termSetting 'Evergreen' or a leftover 'Termed') is sent as SellingModelType__std
+ * 'OneTime' with no EndDate__std, as the 264 developer guide requires. The service derives it from
+ * the billing term unit. See the buildTransactionDetailsJson_oneTime* tests.
  *
  * Known gap (documented, not pinned): getAccountBillingInfo reads one arbitrary
  * BillingAccount for the account (LIMIT 1 with no ORDER BY, ignoring
@@ -629,13 +621,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('EUR', txn.get('CurrencyIsoCode__std'));
     }
 
-    // No caller sends termSetting 'OneTime' (the modal sends only 'Evergreen' or 'Termed'), so
-    // the 'OneTime' case covers only the service's pass-through branch for other values.
+    // The modal marks a one-time charge by billing term unit, not termSetting (it sends only
+    // 'Evergreen' or 'Termed'), so the 'OneTime' case covers the service's termSetting
+    // pass-through branch for other values.
     @isTest
     static void buildTransactionDetailsJson_sellingModel_termSettingBranches() {
         Assert.areEqual('Evergreen', sellingModelFor('Evergreen'), 'Evergreen passes through.');
         Assert.areEqual('OneTime', sellingModelFor('OneTime'),
-            'Pass-through branch: any other non-blank setting is sent as given (no caller sends OneTime).');
+            'Pass-through branch: any other non-blank setting is sent as given.');
         Assert.areEqual('Evergreen', sellingModelFor(null), 'No term setting defaults to Evergreen.');
         Assert.areEqual('Evergreen', sellingModelFor('  '), 'A blank term setting defaults to Evergreen.');
     }
@@ -657,7 +650,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     // billingTermUnitPicklist 'OneTime' and leaves termSetting at its default, 'Evergreen'
     // (rlmBillingScheduleGroupModal.js, termSetting = 'Evergreen').
     @isTest
-    static void buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen() {
+    static void buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsOneTime() {
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'OneTime', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
@@ -665,16 +658,16 @@ private class RLM_BillingScheduleGroupServiceTest {
             'Evergreen', null
         ));
         Assert.areEqual('OneTime', txn.get('BillingTermUnit__std'), 'The one-time unit is sent as given.');
-        Assert.areEqual('Evergreen', txn.get('SellingModelType__std'),
-            'Known gap: a one-time charge from the modal (billing term unit OneTime, termSetting '
-            + 'Evergreen) is sent as SellingModelType__std Evergreen, but a one-time sale needs '
-            + 'OneTime; update this test when it is fixed.');
+        Assert.areEqual('OneTime', txn.get('SellingModelType__std'),
+            'A one-time charge from the modal (billing term unit OneTime, termSetting Evergreen) '
+            + 'is sent as SellingModelType__std OneTime.');
+        Assert.isFalse(txn.containsKey('EndDate__std'), 'A one-time charge sends no end date.');
     }
 
     // The modal path Recurring -> Termed (which sets endDate) -> One Time: handleChargeTypeChange
     // sets billingTermUnitPicklist 'OneTime' but keeps termSetting 'Termed' and the old endDate.
     @isTest
-    static void buildTransactionDetailsJson_oneTimeAfterTermedFromModal_isSentAsTermDefined() {
+    static void buildTransactionDetailsJson_oneTimeAfterTermedFromModal_isSentAsOneTimeWithoutEndDate() {
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'OneTime', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
@@ -682,20 +675,18 @@ private class RLM_BillingScheduleGroupServiceTest {
             'Termed', Date.newInstance(2026, 12, 31)
         ));
         Assert.areEqual('OneTime', txn.get('BillingTermUnit__std'), 'The one-time unit is sent as given.');
-        Assert.areEqual('TermDefined', txn.get('SellingModelType__std'),
-            'Known gap: a one-time charge chosen after Termed is sent as SellingModelType__std '
-            + 'TermDefined, but a one-time sale needs OneTime; update this test when it is fixed.');
-        Assert.isTrue(txn.containsKey('EndDate__std'),
-            'Known gap: a one-time charge chosen after Termed still sends the old EndDate__std; '
-            + 'update this test when it is fixed.');
+        Assert.areEqual('OneTime', txn.get('SellingModelType__std'),
+            'A one-time charge chosen after Termed is sent as SellingModelType__std OneTime.');
+        Assert.isFalse(txn.containsKey('EndDate__std'),
+            'The end date left over from Termed is not sent for a one-time charge.');
     }
 
     @isTest
     static void buildTransactionDetailsJson_evergreenAndPassThroughSendTotalButNoEndDate() {
         // TotalPrice__std is required for every new-sale selling model; only TermDefined has an
-        // end date, so a supplied one is ignored for the others. No caller sends termSetting
-        // 'OneTime' (see the one-time gap in the class header); that case covers only the
-        // service's pass-through branch.
+        // end date, so a supplied one is ignored for the others. The modal marks a one-time
+        // charge by billing term unit, not termSetting; the 'OneTime' case here covers the
+        // service's termSetting pass-through branch.
         for (String termSetting : new List<String>{ 'Evergreen', 'OneTime' }) {
             Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
                 fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,

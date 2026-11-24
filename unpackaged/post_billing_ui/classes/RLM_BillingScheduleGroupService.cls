@@ -333,8 +333,15 @@ public with sharing class RLM_BillingScheduleGroupService {
     ) {
         String transactionId = 'txn_' + String.valueOf(System.currentTimeMillis());
 
+        // A one-time charge is identified by its billing term unit: the modal marks it with
+        // billingTermUnitPicklist 'OneTime' and leaves termSetting at Evergreen/Termed, and a
+        // one-time sale needs SellingModelType OneTime and no end date.
+        Boolean isOneTime = billingTermUnitPicklist == 'OneTime';
+
         String sellingModelType;
-        if (termSetting == 'Termed') {
+        if (isOneTime) {
+            sellingModelType = 'OneTime';
+        } else if (termSetting == 'Termed') {
             sellingModelType = 'TermDefined';
         } else if (String.isNotBlank(termSetting)) {
             sellingModelType = termSetting;
@@ -370,7 +377,7 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         // EndDate applies only to a fixed-term (TermDefined) schedule; OneTime and
         // Evergreen have no end date.
-        if (termSetting == 'Termed' && endDate != null) {
+        if (!isOneTime && termSetting == 'Termed' && endDate != null) {
             transactionData.put('EndDate__std', formatIsoDate(endDate));
         }
 
