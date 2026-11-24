@@ -1386,7 +1386,7 @@ private class RLM_Learning_FrameworkTest {
   // A well-formed Id with no site behind it is rejected in every org. Then, for every site with a
   // login URL (the prm flag deploys the "rlm" site; other bundles deploy more): when the login URL
   // contains "/s/" the site URL must be exactly the part before "/s/"; otherwise it must be the
-  // login URL's host plus the Network's own UrlPathPrefix (read here as an admin), with no
+  // login URL's host plus the site's path prefix on that domain (read here as an admin), with no
   // trailing slash. The shaping rules are asserted against literal URLs in
   // siteBaseUrl_shapesTheBaseUrlFromTheLoginUrlAndPrefix. The no-"/s/" assertion here calls that
   // same helper, so it checks that getSiteUrl feeds it the real prefix, not the helper's own logic.
@@ -1427,17 +1427,28 @@ private class RLM_Learning_FrameworkTest {
           'the site URL is the part of the login URL before "/s/"' + context
         );
       } else {
-        // No "/s/": the base is the login URL's host plus the Network's own UrlPathPrefix, read
-        // here as an admin. A regression to a host-only URL fails this when the site has a prefix.
+        // No "/s/": the base is the login URL's host plus the site's path prefix on that domain
+        // (DomainSite.PathPrefix), else the Network's own UrlPathPrefix, both read here as an admin.
+        // A regression to a host-only URL fails this when the site has a prefix on its domain.
         Url parsed = new Url(loginUrl);
         String hostUrl = parsed.getProtocol() + '://' + parsed.getHost();
         Id siteId = (Id) site.Id;
         List<SObject> prefixRows = Database.query('SELECT UrlPathPrefix FROM Network WHERE Id = :siteId');
         String prefix = (String) prefixRows[0].get('UrlPathPrefix');
+        String networkPrefix = prefix;
+        String host = parsed.getHost();
+        List<SObject> mappings = String.isBlank(networkPrefix)
+          ? new List<SObject>()
+          : Database.query(
+              'SELECT PathPrefix FROM DomainSite WHERE Domain.Domain = :host AND Site.UrlPathPrefix = :networkPrefix LIMIT 1'
+            );
+        if (!mappings.isEmpty()) {
+          prefix = (String) mappings[0].get('PathPrefix');
+        }
         Assert.areEqual(
           RLM_Learning_DynamicLinkHelper.siteBaseUrl(loginUrl, prefix),
           siteUrl,
-          'the site URL is the host plus the Network UrlPathPrefix' + context
+          'the site URL is the host plus the site path prefix on that domain' + context
         );
         Assert.isTrue(siteUrl.startsWith(hostUrl), 'the site URL starts with the login URL host' + context);
         Assert.isFalse(siteUrl.endsWith('/'), 'the site URL has no trailing slash' + context);
@@ -1464,7 +1475,7 @@ private class RLM_Learning_FrameworkTest {
       'https://acme.my.site.com',
       RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.site.com/s/login', null)
     );
-    // No "/s/": scheme://host plus the Network's path prefix (the Visualforce site case).
+    // No "/s/": scheme://host plus the site's resolved path prefix (the Visualforce site case).
     Assert.areEqual(
       'https://acme.my.salesforce-sites.com/sfpwebhookvforcesite',
       RLM_Learning_DynamicLinkHelper.siteBaseUrl(
@@ -1485,6 +1496,38 @@ private class RLM_Learning_FrameworkTest {
     Assert.areEqual(
       'https://acme.my.salesforce-sites.com',
       RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.salesforce-sites.com/login', '  ')
+    );
+  }
+
+  // A readable domain mapping decides, even when its prefix is blank (a custom domain that serves
+  // the site at its root); with no mapping the Network's prefix is used. Pure, so literal inputs.
+  @IsTest
+  static void resolvePathPrefix_prefersTheDomainMapping() {
+    Assert.areEqual(
+      '/sfpwebhookvforcesite',
+      RLM_Learning_DynamicLinkHelper.resolvePathPrefix(new List<String>{ '/sfpwebhookvforcesite' }, 'sfpwebhookvforcesite')
+    );
+    Assert.areEqual(
+      '',
+      RLM_Learning_DynamicLinkHelper.resolvePathPrefix(new List<String>{ '' }, 'sfpwebhookvforcesite'),
+      'a root mapping on the domain wins over the Network prefix'
+    );
+    Assert.areEqual(
+      'sfpwebhookvforcesite',
+      RLM_Learning_DynamicLinkHelper.resolvePathPrefix(new List<String>(), 'sfpwebhookvforcesite'),
+      'no readable mapping falls back to the Network prefix'
+    );
+    Assert.areEqual(
+      'sfpwebhookvforcesite',
+      RLM_Learning_DynamicLinkHelper.resolvePathPrefix(null, 'sfpwebhookvforcesite')
+    );
+    Assert.areEqual(
+      'https://acme.example.com',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl(
+        'https://acme.example.com/login',
+        RLM_Learning_DynamicLinkHelper.resolvePathPrefix(new List<String>{ '/' }, 'customers')
+      ),
+      'a root mapping keeps the host-only URL'
     );
   }
 

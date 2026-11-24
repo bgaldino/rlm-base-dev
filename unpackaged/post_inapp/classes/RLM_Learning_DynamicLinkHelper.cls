@@ -132,7 +132,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       String loginUrl = Network.getLoginUrl(nId);
       // Only a login URL with no "/s/" segment needs the site's path prefix looked up.
       String pathPrefix = (loginUrl != null && !loginUrl.contains('/s/'))
-        ? lookupNetworkPathPrefix(nId)
+        ? lookupPathPrefix(nId, loginUrl)
         : null;
       return siteBaseUrl(loginUrl, pathPrefix);
     } catch (Exception e) {
@@ -140,18 +140,17 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     }
   }
 
-  // Shapes the site base URL from the login URL and the Network's UrlPathPrefix. Pure, so it is
+  // Shapes the site base URL from the login URL and the site's path prefix. Pure, so it is
   // unit-tested over literal URLs.
   //  - The login URL of an Experience Cloud site is "<scheme>://<host>[/<sitePrefix>]/s/login":
   //    the base is everything before "/s/", which keeps a path-based prefix (e.g. "/customers").
   //  - A site whose login URL has no "/s/" (for example a Visualforce site) carries no prefix in
-  //    that URL, so the base is scheme://host plus "/" + the Network's UrlPathPrefix.
-  //  - Known limit: a Visualforce-based site (login URL without "/s/") served by a custom
-  //    domain at the domain root still has a Network UrlPathPrefix, and that prefix is appended
-  //    here even though the custom domain does not carry it. The login URL cannot tell the two
-  //    cases apart, and on the default domains such a site is served under its prefix. Sites
-  //    whose login URL contains "/s/" (Experience Cloud) are not affected: the base is the part
-  //    before "/s/", with or without a custom domain.
+  //    that URL, so the base is scheme://host plus "/" + the site's path prefix on that domain.
+  //  - For a site with a Network UrlPathPrefix, the prefix is the one the site has on the login URL's
+  //    own domain (DomainSite.PathPrefix), so a Visualforce-based site that a custom domain serves at
+  //    the root keeps the host-only URL. Only when no such domain mapping is readable is the
+  //    Network's UrlPathPrefix used, which is the site's path on the default domains. A site with no
+  //    Network prefix keeps the host-only URL.
   //  - A blank prefix keeps scheme://host.
   @TestVisible
   private static String siteBaseUrl(String loginUrl, String urlPathPrefix) {
@@ -164,6 +163,53 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     // Strip every leading and trailing slash (String.removeStart/removeEnd would strip only one).
     String prefix = urlPathPrefix == null ? '' : urlPathPrefix.trim().replaceAll('^/+|/+$', '');
     return String.isBlank(prefix) ? base : base + '/' + prefix;
+  }
+
+  // The path prefix the site has on the login URL's domain: the domain mapping when one is readable,
+  // else the Network's own prefix. A custom domain that serves the site at its root maps it with a
+  // blank prefix, which must win over the Network's prefix.
+  private static String lookupPathPrefix(Id networkId, String loginUrl) {
+    String networkPrefix = lookupNetworkPathPrefix(networkId);
+    return resolvePathPrefix(
+      lookupDomainPathPrefixes(new Url(loginUrl).getHost(), networkPrefix),
+      networkPrefix
+    );
+  }
+
+  // Pure, so it is unit-tested: a readable domain mapping decides, even when its prefix is blank.
+  @TestVisible
+  private static String resolvePathPrefix(List<String> domainPrefixes, String networkPrefix) {
+    return domainPrefixes == null || domainPrefixes.isEmpty() ? networkPrefix : domainPrefixes[0];
+  }
+
+  // DomainSite maps a site to a domain with its own PathPrefix. Queried dynamically like Network,
+  // in USER_MODE: a user who cannot read it gets no mapping and falls back to the Network prefix.
+  // Measured on a 264 org: a default-domain row carries "/<UrlPathPrefix>" (for example
+  // "/sfpwebhookvforcesite"); the root-mapping custom-domain case is not reproducible on a scratch
+  // org, so the blank-prefix branch is covered by resolvePathPrefix's unit test only.
+  private static List<String> lookupDomainPathPrefixes(String host, String networkPrefix) {
+    List<String> prefixes = new List<String>();
+    if (String.isBlank(networkPrefix)) {
+      return prefixes;
+    }
+    try {
+      for (
+        SObject row : Database.query(
+          'SELECT PathPrefix FROM DomainSite WHERE Domain.Domain = :host AND Site.UrlPathPrefix = :networkPrefix LIMIT 1',
+          AccessLevel.USER_MODE
+        )
+      ) {
+        String prefix = (String) row.get('PathPrefix');
+        prefixes.add(prefix == null ? '' : prefix);
+      }
+    } catch (QueryException e) {
+      System.debug(
+        LoggingLevel.WARN,
+        'RLM_Learning_DynamicLinkHelper: could not read DomainSite.PathPrefix, using the Network prefix: ' +
+        e.getMessage()
+      );
+    }
+    return prefixes;
   }
 
   // Network exists only with Digital Experiences, so it is queried dynamically (a static
