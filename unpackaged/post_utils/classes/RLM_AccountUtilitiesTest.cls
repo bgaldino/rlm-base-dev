@@ -1109,7 +1109,8 @@ private without sharing class RLM_AccountUtilitiesTest {
             result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
             'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
         );
-        Assert.isNull(result.removedSummary, 'Nothing is reported removed after a rollback');
+        Assert.isNull(result.removedSummary,
+            'Phase 1 removed nothing here, so nothing is reported removed after the rollback');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
             'The entitlement account must still exist');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
@@ -1163,6 +1164,16 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reset account\'s own entitlement account must be removed');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
             'The other account\'s entitlement account must be kept');
+        for (String removed : new List<String>{
+            entry(TransactionUsageEntitlement.SObjectType, 1),
+            entry(UsageEntitlementBucket.SObjectType, 2),
+            entry(Schema.Asset.SObjectType, 1)
+        }) {
+            Assert.isTrue(
+                result.removedSummary.contains(removed),
+                'Expected "' + removed + '" in the removed summary. Got: ' + result.removedSummary
+            );
+        }
     }
 
     @IsTest
@@ -1175,7 +1186,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         // A bucket under a bucket must hold an entitlement. This one holds another
         // account's, so the loop (which follows the reset account's entitlements)
         // sees neither bucket, and only phase 2's walk down from the entitlement
-        // account finds the child. This pins that walk and the end state.
+        // account finds the child. The test checks the end state.
         TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
         UsageEntitlementBucket parent = newBucket(uea.Id, null, f);
         UsageEntitlementBucket child = newBucket(parent.Id, othersTue.Id, f);
