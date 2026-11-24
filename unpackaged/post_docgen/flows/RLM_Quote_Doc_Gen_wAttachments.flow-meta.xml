@@ -312,9 +312,10 @@
         <expression>&apos;Quote_&apos; +  {!forT_TodayDay} + &apos;-&apos; + {!forT_TodayMonth} + &apos;-&apos; +   TEXT(YEAR(TODAY()))</expression>
     </formulas>
     <formulas>
+        <description>What the error screen says happened. The fault message is not shown: it can name objects, fields and Apex classes. An administrator sees it by running the flow in debug.</description>
         <name>forT_ErrorDetail</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!$Flow.FaultMessage}), &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!docStatus}), &apos;unknown&apos;, {!docStatus}) &amp; &apos;.&apos;, {!$Flow.FaultMessage})</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}), &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!docStatus}), &apos;unknown&apos;, {!docStatus}) &amp; &apos;.&apos;, &apos;A step in the document generation could not be completed.&apos;)</expression>
     </formulas>
     <formulas>
         <name>forT_TodayDay</name>
@@ -381,7 +382,7 @@
     </processMetadataValues>
     <processType>Flow</processType>
     <recordDeletes>
-        <description>We don&apos;t need the Proposal. The final document has it so we are just doing some housekeeping</description>
+        <description>We don&apos;t need the Proposal. The final document has it so we are just doing some housekeeping. A failed delete goes on to View_Multi_Documents too: the merged document exists, and failed housekeeping must not hide it.</description>
         <name>Delete_Proposal_Doc</name>
         <label>Delete Proposal Doc</label>
         <locationX>0</locationX>
@@ -390,7 +391,7 @@
             <targetReference>View_Multi_Documents</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Document_Generation_Error</targetReference>
+            <targetReference>View_Multi_Documents</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>

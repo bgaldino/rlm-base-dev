@@ -125,6 +125,10 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return results;
     }
 
+    @TestVisible
+    static final String ADD_FAILED_MESSAGE =
+        'The product could not be added to the quote because of an unexpected error. Try again, or contact your administrator.';
+
     private static AddOutput processAdd(AddInput input) {
         AddOutput out = new AddOutput();
         try {
@@ -176,8 +180,14 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             out.quoteLineItemId = findNewQuoteLineId(quoteId, product.Id);
             out.lineSummaryDisplay = buildLineSummary(product.Name, quantity, psm.sellingModelName);
         } catch (Exception e) {
+            // An unexpected exception (a refused read, a platform fault) carries internal detail, so
+            // the user gets a fixed sentence and the detail goes to the debug log. The add-line
+            // action's own errorMessage and Invocable errors are passed through above as they are:
+            // the platform writes those for the user (for example a missing price or an invalid date).
+            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add failed: '
+                + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             out.isSuccess = false;
-            out.errorMessage = e.getMessage();
+            out.errorMessage = ADD_FAILED_MESSAGE;
         }
         return out;
     }

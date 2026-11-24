@@ -64,6 +64,32 @@ private class RLM_DocumentGenerationCreateTest {
         );
     }
 
+    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
+    // (see RLM_DocGenTestUsers), creates the process for a quote on their own opportunity: the set
+    // carries every grant CreateDocument needs as the running user (template read, quote read,
+    // process create, and the field-level-security fields it sets).
+    @IsTest
+    static void createDocumentRunsForASalesRepresentativeWithOnlyThatSet() {
+        User rep = RLM_DocGenTestUsers.salesRepresentative();
+        Quote quote = createQuote(rep.Id);
+        Id templateId = templatesByMethod().get('ContextService').Id;
+
+        List<RLM_DocumentGenerationCreate.Response> responses;
+        Test.startTest();
+        System.runAs(rep) {
+            responses = RLM_DocumentGenerationCreate.CreateDocument(
+                new List<RLM_DocumentGenerationCreate.Request>{ requestFor(quote.Id, templateId, 'Rep proposal') });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, responses.size(), 'One response for the one request.');
+        DocumentGenerationProcess process = [
+            SELECT ReferenceObject, CreatedById FROM DocumentGenerationProcess WHERE Id = :responses[0].NewContentId
+        ];
+        Assert.areEqual(String.valueOf(quote.Id), process.ReferenceObject, 'The process references the quote.');
+        Assert.areEqual(rep.Id, process.CreatedById, 'The process was created as the sales representative.');
+    }
+
     @IsTest
     static void buildProcessesIsBulkSafeAndPreservesOrder() {
         Quote quote = createQuote();
@@ -97,32 +123,32 @@ private class RLM_DocumentGenerationCreateTest {
 
     @IsTest
     static void createDocumentRejectsMissingRequestsAndTemplates() {
-        assertIllegalArgument(null, 'at least one request is required');
-        assertIllegalArgument(new List<RLM_DocumentGenerationCreate.Request>(), 'at least one request is required');
+        assertIllegalArgument(null, RLM_DocumentGenerationCreate.NO_REQUEST_MESSAGE);
+        assertIllegalArgument(new List<RLM_DocumentGenerationCreate.Request>(), RLM_DocumentGenerationCreate.NO_REQUEST_MESSAGE);
         assertIllegalArgument(
             new List<RLM_DocumentGenerationCreate.Request>{ null },
-            'request 0 is required'
+            RLM_DocumentGenerationCreate.INCOMPLETE_REQUEST_MESSAGE
         );
 
         RLM_DocumentGenerationCreate.Request missingRecord = new RLM_DocumentGenerationCreate.Request();
         missingRecord.DocTemplateId = templatesByMethod().get('ContextService').Id;
         assertIllegalArgument(
             new List<RLM_DocumentGenerationCreate.Request>{ missingRecord },
-            'CurrentRecordId is required'
+            RLM_DocumentGenerationCreate.INCOMPLETE_REQUEST_MESSAGE
         );
 
         RLM_DocumentGenerationCreate.Request missingTemplate = new RLM_DocumentGenerationCreate.Request();
         missingTemplate.CurrentRecordId = createQuote().Id;
         assertIllegalArgument(
             new List<RLM_DocumentGenerationCreate.Request>{ missingTemplate },
-            'DocTemplateId is required'
+            RLM_DocumentGenerationCreate.INCOMPLETE_REQUEST_MESSAGE
         );
 
         assertIllegalArgument(
             new List<RLM_DocumentGenerationCreate.Request>{
                 requestFor(createQuote().Id, Id.valueOf('2dt000000000001'), 'Missing template')
             },
-            'DocumentTemplate records were not found'
+            RLM_DocumentGenerationCreate.TEMPLATE_NOT_FOUND_MESSAGE
         );
 
         try {
@@ -134,21 +160,25 @@ private class RLM_DocumentGenerationCreateTest {
             );
             Assert.fail('Expected an unknown-template error from the defensive builder check.');
         } catch (IllegalArgumentException caughtException) {
-            Assert.isTrue(
-                caughtException.getMessage().contains('DocumentTemplate was not found for request 0'),
-                caughtException.getMessage()
-            );
+            Assert.areEqual(RLM_DocumentGenerationCreate.TEMPLATE_NOT_FOUND_MESSAGE, caughtException.getMessage(),
+                'The builder check uses the same user-facing sentence');
         }
     }
 
     private static Quote createQuote() {
+        return createQuote(UserInfo.getUserId());
+    }
+
+    // The quote's access follows its opportunity, so a runAs test passes the user who owns the deal.
+    private static Quote createQuote(Id ownerId) {
         Account account = new Account(Name = 'DocGen Test Account');
         insert account;
         Opportunity opportunity = new Opportunity(
             Name = 'DocGen Test Opportunity',
             AccountId = account.Id,
             StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30)
+            CloseDate = Date.today().addDays(30),
+            OwnerId = ownerId
         );
         insert opportunity;
         Quote quote = new Quote(
@@ -189,7 +219,7 @@ private class RLM_DocumentGenerationCreateTest {
             RLM_DocumentGenerationCreate.CreateDocument(requests);
             Assert.fail('Expected IllegalArgumentException.');
         } catch (IllegalArgumentException caughtException) {
-            Assert.isTrue(caughtException.getMessage().contains(expectedMessage), caughtException.getMessage());
+            Assert.areEqual(expectedMessage, caughtException.getMessage(), 'The exact user-facing sentence');
         }
     }
 }

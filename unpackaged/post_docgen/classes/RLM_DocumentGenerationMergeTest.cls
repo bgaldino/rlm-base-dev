@@ -69,11 +69,42 @@ private class RLM_DocumentGenerationMergeTest {
         Assert.isNull(plainText.get('title'), 'An omitted title serializes as null.');
     }
 
+    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
+    // (see RLM_DocGenTestUsers), creates the merge process for a quote on their own opportunity: the
+    // set carries quote read, the process create grant and the field-level-security fields Merge sets.
+    @IsTest
+    static void mergeRunsForASalesRepresentativeWithOnlyThatSet() {
+        User rep = RLM_DocGenTestUsers.salesRepresentative();
+        Quote quote = createQuote(rep.Id);
+
+        List<RLM_DocumentGenerationMerge.Response> responses;
+        ContentVersion pdf;
+        Test.startTest();
+        System.runAs(rep) {
+            pdf = newPdf('RepProposal.pdf');
+            insert pdf;
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ pdf.Id };
+            request.DocTitle = 'Rep merge';
+            responses = RLM_DocumentGenerationMerge.MergeDocuments(
+                new List<RLM_DocumentGenerationMerge.Request>{ request });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, responses.size(), 'One response for the one request.');
+        DocumentGenerationProcess process = [
+            SELECT PdfDocIdentifiersList, CreatedById FROM DocumentGenerationProcess WHERE Id = :responses[0].MergedRecordId
+        ];
+        Assert.areEqual(String.valueOf(pdf.Id), process.PdfDocIdentifiersList, 'The PDF id is recorded.');
+        Assert.areEqual(rep.Id, process.CreatedById, 'The process was created as the sales representative.');
+    }
+
     @IsTest
     static void mergeRejectsMissingRequests() {
-        assertRejected(null, 'at least one request is required');
+        assertRejected(null, RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>(),
-            'at least one request is required');
+            RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
     }
 
     // A request with no usable PDF ids is rejected before anything is inserted.
@@ -91,9 +122,9 @@ private class RLM_DocumentGenerationMergeTest {
 
         Test.startTest();
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ nullList },
-            'recordIds must contain at least one non-null Id');
+            RLM_DocumentGenerationMerge.NO_PDFS_MESSAGE);
         assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ onlyNulls },
-            'recordIds must contain at least one non-null Id');
+            RLM_DocumentGenerationMerge.NO_PDFS_MESSAGE);
         Test.stopTest();
 
         String referenceObject = String.valueOf(quote.Id);
@@ -106,7 +137,7 @@ private class RLM_DocumentGenerationMergeTest {
     // A null request in the list is rejected by name, not with a NullPointerException.
     @IsTest
     static void mergeRejectsANullRequest() {
-        assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ null }, 'request 0 is required');
+        assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ null }, RLM_DocumentGenerationMerge.NO_REQUEST_MESSAGE);
     }
 
     // The whole batch is one DML statement, however many requests it carries.
@@ -143,13 +174,19 @@ private class RLM_DocumentGenerationMergeTest {
     }
 
     private static Quote createQuote() {
+        return createQuote(UserInfo.getUserId());
+    }
+
+    // The quote's access follows its opportunity, so a runAs test passes the user who owns the deal.
+    private static Quote createQuote(Id ownerId) {
         Account account = new Account(Name = 'DocGen Merge Test Account');
         insert account;
         Opportunity opportunity = new Opportunity(
             Name = 'DocGen Merge Test Opportunity',
             AccountId = account.Id,
             StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30)
+            CloseDate = Date.today().addDays(30),
+            OwnerId = ownerId
         );
         insert opportunity;
         Quote quote = new Quote(
@@ -168,7 +205,7 @@ private class RLM_DocumentGenerationMergeTest {
             RLM_DocumentGenerationMerge.MergeDocuments(requests);
             Assert.fail('Expected IllegalArgumentException.');
         } catch (IllegalArgumentException caught) {
-            Assert.isTrue(caught.getMessage().contains(expectedMessage), caught.getMessage());
+            Assert.areEqual(expectedMessage, caught.getMessage(), 'The exact user-facing sentence');
         }
     }
 }

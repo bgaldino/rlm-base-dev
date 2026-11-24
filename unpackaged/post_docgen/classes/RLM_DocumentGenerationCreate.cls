@@ -1,4 +1,16 @@
 public with sharing class RLM_DocumentGenerationCreate {
+    // The shipped flow shows its own fixed sentence on a fault, but the exception text still reaches
+    // any other caller (another flow's fault message, an unhandled-fault email), so it is written for
+    // a user: no class name, request index or field API name. The detail goes to the debug log.
+    @TestVisible
+    private static final String NO_REQUEST_MESSAGE = 'No document request was given, so no document was generated.';
+    @TestVisible
+    private static final String INCOMPLETE_REQUEST_MESSAGE =
+        'The document could not be generated: a record and a document template are both required.';
+    @TestVisible
+    private static final String TEMPLATE_NOT_FOUND_MESSAGE =
+        'The document template could not be found, or you do not have access to it.';
+
     @InvocableMethod(
         label='Build a PDF file from an Object'
         description='Accepts the Object Id and a DocTitle.'
@@ -6,7 +18,7 @@ public with sharing class RLM_DocumentGenerationCreate {
     )
     public static List<Response> CreateDocument(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException('RLM_DocumentGenerationCreate: at least one request is required.');
+            throw rejected(NO_REQUEST_MESSAGE, 'no requests');
         }
 
         Set<Id> templateIds = new Set<Id>();
@@ -22,9 +34,9 @@ public with sharing class RLM_DocumentGenerationCreate {
             [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds WITH USER_MODE]
         );
         if (templateMap.size() != templateIds.size()) {
-            throw new IllegalArgumentException(
-                'RLM_DocumentGenerationCreate: one or more DocumentTemplate records were not found.'
-            );
+            throw rejected(TEMPLATE_NOT_FOUND_MESSAGE,
+                (templateIds.size() - templateMap.size()) + ' of ' + templateIds.size()
+                + ' DocumentTemplate ids were not found or are not readable: ' + templateIds);
         }
 
         List<DocumentGenerationProcess> processes = buildProcesses(requests, templateMap);
@@ -59,9 +71,8 @@ public with sharing class RLM_DocumentGenerationCreate {
 
             DocumentTemplate template = templateMap.get(request.DocTemplateId);
             if (template == null) {
-                throw new IllegalArgumentException(
-                    'RLM_DocumentGenerationCreate: DocumentTemplate was not found for request ' + index + '.'
-                );
+                throw rejected(TEMPLATE_NOT_FOUND_MESSAGE,
+                    'DocumentTemplate ' + request.DocTemplateId + ' was not found for request ' + index);
             }
 
             DocumentGenerationProcess process = new DocumentGenerationProcess();
@@ -90,18 +101,19 @@ public with sharing class RLM_DocumentGenerationCreate {
 
     private static void validateRequest(Request request, Integer index) {
         if (request == null) {
-            throw new IllegalArgumentException('RLM_DocumentGenerationCreate: request ' + index + ' is required.');
+            throw rejected(INCOMPLETE_REQUEST_MESSAGE, 'request ' + index + ' is null');
         }
         if (request.CurrentRecordId == null) {
-            throw new IllegalArgumentException(
-                'RLM_DocumentGenerationCreate: CurrentRecordId is required for request ' + index + '.'
-            );
+            throw rejected(INCOMPLETE_REQUEST_MESSAGE, 'CurrentRecordId is null for request ' + index);
         }
         if (request.DocTemplateId == null) {
-            throw new IllegalArgumentException(
-                'RLM_DocumentGenerationCreate: DocTemplateId is required for request ' + index + '.'
-            );
+            throw rejected(INCOMPLETE_REQUEST_MESSAGE, 'DocTemplateId is null for request ' + index);
         }
+    }
+
+    private static IllegalArgumentException rejected(String message, String detail) {
+        System.debug(LoggingLevel.ERROR, 'RLM_DocumentGenerationCreate: ' + detail);
+        return new IllegalArgumentException(message);
     }
 
     public class Request {

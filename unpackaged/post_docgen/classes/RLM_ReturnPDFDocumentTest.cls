@@ -70,8 +70,8 @@ private class RLM_ReturnPDFDocumentTest {
             'The PDF request also carries its ContentDocument.');
     }
 
-    // Ids were given but none is a PDF (Word only, or malformed ids dropped to nothing readable):
-    // a specific exception, not an empty output that hides a failed generation.
+    // Ids were given but none is a PDF the user can read (here, Word only): a specific exception,
+    // not an empty output that hides a failed generation.
     @IsTest
     static void throwsPdfNotFoundWhenIdsAreGivenButNoneIsAPdf() {
         ContentVersion word = newVersion('Proposal.docx');
@@ -87,8 +87,24 @@ private class RLM_ReturnPDFDocumentTest {
                 new List<RLM_ReturnPDFDocument.InputVariable>{ wordOnly });
             Assert.fail('Expected PdfNotFoundException for a Word-only response.');
         } catch (RLM_ReturnPDFDocument.PdfNotFoundException caught) {
-            Assert.isTrue(caught.getMessage().contains('is a PDF the current user can read'),
-                caught.getMessage());
+            Assert.areEqual(RLM_ReturnPDFDocument.PDF_NOT_FOUND_MESSAGE, caught.getMessage(),
+                'The exact user-facing sentence');
+        }
+    }
+
+    // ResponseText was given but no token in it is an id: generation returned something unusable,
+    // so the request fails instead of returning the empty output a blank ResponseText gets.
+    @IsTest
+    static void throwsWhenResponseTextHasNoUsableIds() {
+        RLM_ReturnPDFDocument.InputVariable malformed = new RLM_ReturnPDFDocument.InputVariable();
+        malformed.ResponseText = 'not-an-id, ,also-not-an-id,';
+        try {
+            RLM_ReturnPDFDocument.ReturnPDFDocumentId(
+                new List<RLM_ReturnPDFDocument.InputVariable>{ malformed });
+            Assert.fail('Expected PdfNotFoundException for a ResponseText with no usable id.');
+        } catch (RLM_ReturnPDFDocument.PdfNotFoundException caught) {
+            Assert.areEqual(RLM_ReturnPDFDocument.NO_USABLE_IDS_MESSAGE, caught.getMessage(),
+                'The exact user-facing sentence');
         }
     }
 
@@ -114,6 +130,28 @@ private class RLM_ReturnPDFDocumentTest {
         Assert.areEqual(1, used, 'One ContentVersion query for all five requests.');
     }
 
+    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
+    // (see RLM_DocGenTestUsers), gets back the PDF they can read.
+    @IsTest
+    static void returnsThePdfForASalesRepresentativeWithOnlyThatSet() {
+        User rep = RLM_DocGenTestUsers.salesRepresentative();
+        List<RLM_ReturnPDFDocument.OutputVariable> outputs;
+        ContentVersion pdf;
+        Test.startTest();
+        System.runAs(rep) {
+            pdf = newVersion('RepContract.pdf');
+            insert pdf;
+            RLM_ReturnPDFDocument.InputVariable request = new RLM_ReturnPDFDocument.InputVariable();
+            request.ResponseText = String.valueOf(pdf.Id);
+            outputs = RLM_ReturnPDFDocument.ReturnPDFDocumentId(
+                new List<RLM_ReturnPDFDocument.InputVariable>{ request });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, outputs.size(), 'One output for the one request.');
+        Assert.areEqual(pdf.Id, outputs[0].ContentVersionId, 'The PDF the representative can read is returned.');
+    }
+
     @IsTest
     static void rejectsMissingRequests() {
         assertRejected(null);
@@ -133,8 +171,8 @@ private class RLM_ReturnPDFDocumentTest {
             RLM_ReturnPDFDocument.ReturnPDFDocumentId(requests);
             Assert.fail('Expected IllegalArgumentException for a missing request list.');
         } catch (IllegalArgumentException caught) {
-            Assert.isTrue(caught.getMessage().contains('at least one request is required'),
-                caught.getMessage());
+            Assert.areEqual(RLM_ReturnPDFDocument.NO_REQUEST_MESSAGE, caught.getMessage(),
+                'The exact user-facing sentence');
         }
     }
 }

@@ -170,6 +170,33 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         System.assertEquals('Managed add-line said no.', results[0].errorMessage);
     }
 
+    private class ThrowingInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            throw new IllegalArgumentException('internal detail the user must not see');
+        }
+    }
+
+    @isTest
+    static void unexpectedFailureShowsAFixedSentence() {
+        Fixture f = buildFixture('Quinn Throwing Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new ThrowingInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Throwing Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE, results[0].errorMessage);
+    }
+
     @isTest
     static void rejectsBlankQuoteId() {
         RLM_AI_AddProductToQuoteService.AddInput input =

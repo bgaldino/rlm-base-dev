@@ -1,15 +1,22 @@
 public with sharing class RLM_DocumentGenerationMerge {
+    // Written for a user (it reaches any caller: another flow's fault message, an unhandled-fault
+    // email): no class name or request index. The detail goes to the debug log.
+    @TestVisible
+    private static final String NO_REQUEST_MESSAGE = 'No merge request was given, so no documents were merged.';
+    @TestVisible
+    private static final String NO_PDFS_MESSAGE = 'Choose at least one PDF to merge.';
+
     @InvocableMethod(label='Build a PDF file from Ids and return the merge id' description='Accepts a list of Ids and a DocTitle.' category='Document Generation')
     public static List<Response> MergeDocuments(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
-            throw new IllegalArgumentException('RLM_DocumentGenerationMerge: at least one request is required.');
+            throw rejected(NO_REQUEST_MESSAGE, 'no requests');
         }
         List<Response> responses = new List<Response>();
         List<DocumentGenerationProcess> processes = new List<DocumentGenerationProcess>();
         for (Integer index = 0; index < requests.size(); index++) {
             Request req = requests[index];
             if (req == null) {
-                throw new IllegalArgumentException('RLM_DocumentGenerationMerge: request ' + index + ' is required.');
+                throw rejected(NO_REQUEST_MESSAGE, 'request ' + index + ' is null');
             }
             List<String> idStrings = new List<String>();
 
@@ -26,7 +33,7 @@ public with sharing class RLM_DocumentGenerationMerge {
             // Use JSON.serialize to safely escape DocTitle (avoids invalid JSON on quotes/newlines)
             dgp.RequestText = JSON.serialize(new Map<String, Object>{ 'title' => req.DocTitle });
             if (idStrings.isEmpty()) {
-                throw new IllegalArgumentException('RLM_DocumentGenerationMerge: recordIds must contain at least one non-null Id.');
+                throw rejected(NO_PDFS_MESSAGE, 'request ' + index + ' has no non-null recordIds');
             }
             dgp.PdfDocIdentifiersList = String.join(idStrings, ',');
             dgp.Status = 'InProgress';
@@ -47,6 +54,11 @@ public with sharing class RLM_DocumentGenerationMerge {
             responses.add(res);
         }
         return responses;
+    }
+
+    private static IllegalArgumentException rejected(String message, String detail) {
+        System.debug(LoggingLevel.ERROR, 'RLM_DocumentGenerationMerge: ' + detail);
+        return new IllegalArgumentException(message);
     }
 
     public class Request {
