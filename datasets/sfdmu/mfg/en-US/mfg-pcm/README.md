@@ -35,13 +35,18 @@
 | 21 | ProductCatalog | 1 | Upsert | Code | 5 |
 | 22 | ProductCategory | 1 | Upsert | Code | 29 |
 | 23 | ProductCategoryProduct | 1 | Upsert | ProductCategory.Code;Product.StockKeepingUnit | 61 |
-| 24 | ProductQualification | 1 | Readonly | Name | 0 |
-| 25 | ProductDisqualification | 1 | Readonly | Name | 0 |
-| 26 | ProductCategoryDisqual | 1 | Readonly | Name | 0 |
-| 27 | ProductCategoryQualification | 1 | Readonly | Name | 0 |
-| 28 | ProdtAttrScope | 1 | Readonly | Name | 3 |
+| 24 | ProductQualification | 1 | Readonly | Name | — |
+| 25 | ProductDisqualification | 1 | Readonly | Name | — |
+| 26 | ProductCategoryDisqual | 1 | Readonly | Name | — |
+| 27 | ProductCategoryQualification | 1 | Readonly | Name | — |
+| 28 | ProdtAttrScope | 1 | Readonly | Name | — |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 AttributePicklist.csv                    # 18 records
@@ -62,15 +67,8 @@ ProductRampSegment.csv                   # 0 records
 ProductRelationshipType.csv              # 4 records
 ProductComponentGroup.csv                # 53 records
 ProductRelatedComponent.csv              # 261 records
-ProductComponentGrpOverride.csv          # 0 records
-ProductRelComponentOverride.csv          # 0 records
 ProductCatalog.csv                       # 5 records
 ProductCategory.csv                      # 29 records
 ProductCategoryProduct.csv               # 61 records
-ProductQualification.csv                 # 0 records
-ProductDisqualification.csv              # 0 records
-ProductCategoryDisqual.csv               # 0 records
-ProductCategoryQualification.csv         # 0 records
-ProdtAttrScope.csv                       # 3 records
 ```
 <!-- generate_plan_readme:end -->
