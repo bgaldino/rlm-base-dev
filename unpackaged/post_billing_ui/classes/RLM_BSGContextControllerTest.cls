@@ -13,9 +13,10 @@ private class RLM_BSGContextControllerTest {
     // (indistinguishable when run as the admin).
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
     // charge-type / frequency helpers are called directly with plain inputs.
-    // The refused-access test runs as a plain Minimum Access user with no permission set
-    // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
-    // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
+    // The refused-access tests (the refused BSG query and the unreadable schedules) run as a
+    // plain Minimum Access user with no permission set license (no Billing PSL seat);
+    // billing-role read coverage for the controller's fields is in RLM_BillingUIAccessTest
+    // (billingOperationsCanRunItsControllerReads).
     //
     // Fixed: groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
     // TotalPendingAmount (no arbitrary single schedule; fillContext_usageGroupWithAnArrangement
