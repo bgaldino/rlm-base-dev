@@ -455,16 +455,42 @@ public with sharing class RLM_UsageUploaderController {
                     result.journalIds.add(saveResults[i].getId());
                 } else {
                     result.errorCount++;
-                    String errorMsg = '';
-                    for (Database.Error err : saveResults[i].getErrors()) {
-                        errorMsg += err.getMessage() + ' ';
-                    }
-                    result.errors.add('Row ' + (validIndices[i] + 1) + ': ' + errorMsg.trim());
+                    result.errors.add('Row ' + (validIndices[i] + 1) + ': '
+                        + rowErrorText(saveResults[i].getErrors(), validIndices[i] + 1));
                 }
             }
         }
 
         return result;
+    }
+
+    @TestVisible
+    private static final String ROW_SAVE_FAILED_MESSAGE =
+        'This usage record could not be saved. Check the values and try again, or contact your administrator.';
+
+    // The text shown for a row that failed to save. Users of the Usage tab, sales representatives
+    // included, see it. A validation rule's message is written by an administrator for that user,
+    // so it is shown as it is; every other save error (a required field, a trigger, a platform
+    // fault) can name fields or carry internal detail, so it becomes a fixed sentence and the detail
+    // goes to the debug log.
+    @TestVisible
+    private static String rowErrorText(List<Database.Error> errors, Integer rowNumber) {
+        List<String> shown = new List<String>();
+        Boolean hidden = false;
+        for (Database.Error err : errors) {
+            if (err.getStatusCode() == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION
+                    && String.isNotBlank(err.getMessage())) {
+                shown.add(err.getMessage());
+            } else {
+                hidden = true;
+                System.debug(LoggingLevel.ERROR, 'RLM_UsageUploaderController row ' + rowNumber + ' save failed: '
+                    + err.getStatusCode() + ' ' + err.getFields() + ': ' + err.getMessage());
+            }
+        }
+        if (hidden || shown.isEmpty()) {
+            shown.add(ROW_SAVE_FAILED_MESSAGE);
+        }
+        return String.join(shown, ' ');
     }
 
     // ─── Rate & Grant Methods ─────────────────────────────────────────

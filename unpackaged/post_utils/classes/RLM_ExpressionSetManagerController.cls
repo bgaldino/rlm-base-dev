@@ -11,6 +11,13 @@
  * Composite subrequest failures throw so the AsyncApexJob is marked Failed
  * and the LWC poll loop terminates with a surfaced error.
  *
+ * Error text: the partially-applied CalloutExceptions below append the underlying error (the
+ * Composite response's concise error), which reaches the screen through AsyncApexJob.ExtendedStatus
+ * and getJobStatus. That detail is kept on purpose: the component is an administrator tool. Its
+ * permission set carries ApiEnabled for the session loopback, and the build deliberately does not
+ * give it to the sales representative persona, so the people who see the text are the ones who can
+ * act on it.
+ *
  * ⚠ Atomicity: a bulk action is NOT one transaction. Each Composite request is
  * sent with allOrNone=true, and each sObject-Collections delete batch likewise,
  * so an individual request rolls back on failure — but a selection that

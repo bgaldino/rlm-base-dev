@@ -346,6 +346,19 @@ private with sharing class RLM_UsageUploaderControllerTest {
         System.assertEquals(1, result.errors.size());
     }
 
+    // A save error that is not a validation rule message (here a missing required field, which
+    // names the field) is replaced by the fixed sentence; an empty error list gets it too.
+    @isTest
+    static void rowErrorText_hidesSaveErrorsThatAreNotValidationMessages() {
+        Database.SaveResult failed = Database.insert(new Account(), false);
+        System.assert(!failed.isSuccess(), 'PRECONDITION: an account with no name fails to save');
+
+        System.assertEquals(RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE,
+            RLM_UsageUploaderController.rowErrorText(failed.getErrors(), 1));
+        System.assertEquals(RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE,
+            RLM_UsageUploaderController.rowErrorText(new List<Database.Error>(), 1));
+    }
+
     // ─── getRatesForAsset Tests ──────────────────────────────────────
 
     @IsTest

@@ -179,11 +179,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
         Assert.areEqual(false, result.get('isSuccess'), 'A 500 is not a success');
         Assert.areEqual('500', result.get('statusCode'), 'The failing status code is reported');
-        Assert.areEqual(
-            'API call failed: Internal Server Error - [{"errorCode":"UNKNOWN_EXCEPTION"}]',
-            result.get('message'),
-            'The message carries the HTTP status text and the raw body'
-        );
+        Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_REFUSED_MESSAGE, result.get('message'),
+            'The message is a fixed sentence; the response body goes to the debug log only');
         Assert.isFalse(result.containsKey('snapshotId'), 'A failed call reports no snapshot');
     }
 
@@ -354,7 +351,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.areEqual(1, results.size(), 'One result for one request');
         Assert.areEqual(false, results[0].isSuccess, 'A 400 is a failed result');
         Assert.areEqual('400', results[0].statusCode, 'The failing status code is mapped');
-        Assert.areEqual('API call failed: Bad Request - bad request body', results[0].message, 'Error message is mapped');
+        Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_REFUSED_MESSAGE, results[0].message,
+            'A refused deploy maps to the fixed sentence, not the response body');
         Assert.isNull(results[0].snapshotId, 'No snapshot id on failure');
         Assert.isNull(results[0].indexId, 'No index id on failure');
     }

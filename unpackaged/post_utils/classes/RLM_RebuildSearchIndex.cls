@@ -8,6 +8,9 @@ public with sharing class RLM_RebuildSearchIndex {
     private static final String DEPLOY_FAILED_MESSAGE =
         'The search index deployment could not be started. Try again; if it continues, contact your administrator.';
     @TestVisible
+    private static final String DEPLOY_REFUSED_MESSAGE =
+        'The search index deployment was refused. Try again; if it continues, contact your administrator.';
+    @TestVisible
     private static final String NULL_REQUEST_MESSAGE = 'No request was given, so no index was deployed.';
 
     @AuraEnabled
@@ -48,7 +51,7 @@ public with sharing class RLM_RebuildSearchIndex {
                 // An unknown build type is rejected, not silently run as a FULL rebuild.
                 PCMDeployResult rejected = new PCMDeployResult();
                 rejected.isSuccess = false;
-                rejected.message = 'Unsupported buildType "' + request.buildType
+                rejected.message = 'Unsupported build type "' + request.buildType
                     + '". Use FULL or INCREMENTAL.';
                 System.debug(LoggingLevel.WARN, 'RLM_RebuildSearchIndex: ' + rejected.message);
                 results.add(rejected);
@@ -151,7 +154,11 @@ public with sharing class RLM_RebuildSearchIndex {
         } else {
             result.put('isSuccess', false);
             result.put('statusCode', String.valueOf(httpRes.getStatusCode()));
-            result.put('message', 'API call failed: ' + httpRes.getStatus() + ' - ' + httpRes.getBody());
+            // The response body is server detail, not text for the user: it goes to the debug log and
+            // the result carries a fixed sentence (the status code stays in statusCode).
+            System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex deploy refused: '
+                + httpRes.getStatusCode() + ' ' + httpRes.getStatus() + ' - ' + httpRes.getBody());
+            result.put('message', DEPLOY_REFUSED_MESSAGE);
         }
 
         return result;
