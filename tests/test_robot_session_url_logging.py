@@ -552,6 +552,21 @@ class ScannerTest(unittest.TestCase):
         self.assertEqual(self.scan(**{"log-1__js": leak, "log-2__js": clean, "log-3__js": broken}),
                          ["log-1.js", "log-3.js"])
 
+    def test_default_paths_cover_every_harness_layout(self):
+        # CLI harness: .harness/runs/<run>/scenarios/<id>/robot_results; TUI:
+        # .harness/tui-runs/<workspace>/robot_results. A no-argument scan must reach both.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            dirs = [root / "robot" / "rlm-base" / "results",
+                    root / ".harness" / "runs" / "run-1" / "scenarios" / "ent" / "robot_results",
+                    root / ".harness" / "tui-runs" / "tui-workspace-1" / "robot_results"]
+            for p in dirs:
+                p.mkdir(parents=True)
+            self.assertEqual(sorted(scanner.default_paths(root)), sorted(dirs))
+            (dirs[1] / "output.xml").write_text(FRONTDOOR)
+            self.assertEqual([p.name for p in scanner.scan_paths(scanner.default_paths(root))],
+                             ["output.xml"])
+
     def test_main_exit_codes(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(scanner.main([d]), 0)

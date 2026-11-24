@@ -13,8 +13,9 @@ that will not decode is itself a finding) and also reads split-log ``.js`` files
 Usage:
     python scripts/ai/check_robot_session_urls.py [PATH ...]
 
-With no PATH it scans ``robot/rlm-base/results``, ``.harness/runs/*/robot_results`` and
-``.harness/tui-runs/*/robot_results`` that exist (none existing is a pass: a clean checkout has no
+With no PATH it scans ``robot/rlm-base/results`` and the build harness's kept Robot output that
+exists: ``.harness/runs/<run>/scenarios/<scenario>/robot_results`` (CLI ``harness.py run``) and
+``.harness/tui-runs/<workspace>/robot_results`` (the TUI) (none existing is a pass: a clean checkout has no
 results). Run it on a live run's output directory before declaring a Robot change verified.
 
 Exit 0 clean, 1 on a finding (file and kind only; the match is never printed), 2 on bad usage.
@@ -112,10 +113,16 @@ def scan_paths(paths) -> list[Path]:
     return hits
 
 
-def default_paths() -> list[Path]:
-    candidates = [REPO / "robot" / "rlm-base" / "results"]
-    for tier in ("runs", "tui-runs"):
-        candidates += sorted((REPO / ".harness" / tier).glob("*/robot_results"))
+# Where the build harness keeps Robot output, relative to .harness/. The CLI harness makes
+# runs/<run>/scenarios/<id> (harness.py, harness/scenario_runner.py) and config.py puts
+# ROBOT_RESULTS_DIRNAME there; the TUI keeps one per workspace (scripts/build_harness/tui/README.md).
+HARNESS_RESULT_GLOBS = ("runs/*/scenarios/*/robot_results", "tui-runs/*/robot_results")
+
+
+def default_paths(repo: Path = REPO) -> list[Path]:
+    candidates = [repo / "robot" / "rlm-base" / "results"]
+    for pattern in HARNESS_RESULT_GLOBS:
+        candidates += sorted((repo / ".harness").glob(pattern))
     return [p for p in candidates if p.exists()]
 
 
