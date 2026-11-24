@@ -75,7 +75,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       String query = 'SELECT Id FROM ' + objectAPIName + ' WHERE ' + whereCondition;
       return Database.query(query, AccessLevel.USER_MODE);
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(LINK_TARGET_UNREADABLE, 'getObjectIdFromQuery on ' + objectAPIName, e);
     }
   }
 
@@ -118,8 +118,10 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         noRedirect = noRedirect + '&isContactEntityOverride=1';
       }
       return url + noRedirect;
+    } catch (AuraHandledException e) {
+      throw e; // a missing or blank Setup page mapping already carries its own message
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(SETUP_LINK_FAILED, 'getSetupPageLink for ' + objectAPIName, e);
     }
   }
 
@@ -134,7 +136,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         : null;
       return siteBaseUrl(loginUrl, pathPrefix);
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(SITE_URL_FAILED, 'getSiteUrl for ' + networkId, e);
     }
   }
 
@@ -234,8 +236,30 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         }
       }
       return Database.query(query, AccessLevel.USER_MODE);
+    } catch (AuraHandledException e) {
+      throw e; // the unsupported-type message names only the configured link type
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(LINK_TARGET_UNREADABLE, 'getRecordIdFromDynamicLinkType ' + dynamicLinkType, e);
     }
+  }
+
+  @TestVisible
+  private static final String LINK_TARGET_UNREADABLE = 'The record this link points to could not be read.';
+  @TestVisible
+  private static final String SETUP_LINK_FAILED = 'The Setup page link could not be built.';
+  @TestVisible
+  private static final String SITE_URL_FAILED = 'The site URL could not be resolved.';
+
+  // A failed query or id check carries query, object and field text, so the user sees a fixed
+  // sentence; the detail goes to the debug log and stays on the cause.
+  private static AuraHandledException userFailure(String message, String context, Exception cause) {
+    System.debug(
+      LoggingLevel.ERROR,
+      'RLM_Learning_DynamicLinkHelper ' + context + ': ' + cause.getTypeName() + ': ' + cause.getMessage()
+    );
+    AuraHandledException e = new AuraHandledException(message);
+    e.setMessage(message);
+    e.initCause(cause);
+    return e;
   }
 }

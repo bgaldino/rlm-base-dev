@@ -1111,9 +1111,8 @@ private class RLM_Learning_FrameworkTest {
   //  - getSetupPageLink('User', 'not-an-id'): without its Id check the call
   //    would return a URL instead of throwing.
   // The other calls are coverage-only. Each still must throw, but a removed
-  // guard is not detectable here, because the code after it also ends in an
-  // AuraHandledException (whose message is the generic "Script-thrown
-  // exception"):
+  // guard is not detected here, because the code after it also ends in an
+  // AuraHandledException (these calls do not compare messages):
   //  - Blank object (getObjectIdFromQuery): the object allow-list rejects it.
   //  - Blank type (getRecordIdFromDynamicLinkType): the unsupported-type
   //    branch rejects it.
@@ -1214,7 +1213,7 @@ private class RLM_Learning_FrameworkTest {
     User runner = runnerWithLearning();
     Id pageId = homePage().Id;
     List<SObject> rows;
-    Boolean malformedThrew = false;
+    String malformedMessage;
     System.runAs(runner) {
       rows = RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery(
         'RLM_Learning_Page__c',
@@ -1223,12 +1222,17 @@ private class RLM_Learning_FrameworkTest {
       try {
         RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery('RLM_Learning_Page__c', 'Name =');
       } catch (AuraHandledException e) {
-        malformedThrew = true;
+        malformedMessage = e.getMessage();
       }
     }
     Assert.areEqual(1, rows.size());
     Assert.areEqual(pageId, rows[0].Id);
-    Assert.isTrue(malformedThrew, 'a malformed where condition is wrapped in an AuraHandledException');
+    // The query error names the object and the condition, so the user sees a fixed sentence.
+    Assert.areEqual(
+      RLM_Learning_DynamicLinkHelper.LINK_TARGET_UNREADABLE,
+      malformedMessage,
+      'a malformed where condition is reported as a fixed sentence, not the query error'
+    );
   }
 
   // ---- DynamicLinkHelper: setup and platform lookups (no learning objects) -----
@@ -1366,13 +1370,17 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSiteUrl_rejectsMalformedNetworkId() {
-    Boolean threw = false;
+    String message;
     try {
       RLM_Learning_DynamicLinkHelper.getSiteUrl('not-an-id');
     } catch (AuraHandledException e) {
-      threw = true;
+      message = e.getMessage();
     }
-    Assert.isTrue(threw, 'expected an error for a malformed network id');
+    Assert.areEqual(
+      RLM_Learning_DynamicLinkHelper.SITE_URL_FAILED,
+      message,
+      'a malformed network id is reported as a fixed sentence, not the Id conversion error'
+    );
   }
 
   // A well-formed Id with no site behind it is rejected in every org. Then, for every site with a
