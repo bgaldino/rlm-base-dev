@@ -111,14 +111,15 @@ private class RLM_PaymentsDataControllerTest {
         Assert.areEqual('All Accounts', options[0].get('label'), 'The sentinel is "All Accounts".');
     }
 
-    // A user who can read PaymentScheduleItem but not Account gets only the sentinel. Measured on
-    // a 264 org: PaymentScheduleItem.PaymentAccountId is not readable for a user without Account
-    // read (the field is not permissionable, and a USER_MODE query naming it throws), so the
-    // controller's first query is already refused for this user. The Account-name lookup's own
-    // refusal is therefore not reachable through object or field access: no setup was found that
-    // reads PaymentAccountId and still refuses Account.
+    // A user who can read PaymentScheduleItem but not Account gets only the sentinel, and the
+    // refusal that produces it is the first query's (the item aggregate), not the Account-name
+    // lookup's. Measured on a 264 org: PaymentScheduleItem.PaymentAccountId is not readable for a
+    // user without Account read (the field is not permissionable, and a USER_MODE query naming it
+    // throws). The Account-name lookup's own refusal is not reachable through object or field
+    // access: no setup was found that reads PaymentAccountId and still refuses Account, so no
+    // test covers it.
     @isTest
-    static void getAccountOptions_forAUserWhoReadsItemsButNotAccounts_returnsOnlyTheSentinel() {
+    static void getAccountOptions_whenTheItemAccountReferenceIsRefused_returnsOnlyTheSentinel() {
         Account acc = new Account(Name = 'RLM Payments Refused Account Test');
         insert acc;
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
