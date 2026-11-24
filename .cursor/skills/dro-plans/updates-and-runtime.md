@@ -373,7 +373,7 @@ these conditions; rerun the amendment and cancel checks there.
     Whether DRO reads or surfaces them is not measured. Three failure assignments set
     `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a source type that
     matches none of the four rules) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a "not found"
-    outcome after each of the six Get Records lookups (`Get_Order_Product`,
+    outcome after each of the six Get Records lookups (the `OrderItems` collection path uses none) (`Get_Order_Product`,
     `Get_Fulfillment_Order_Item`, `Get_Fulfillment_Order_Items`, `Get_Source_Relationship`,
     `Get_FOP_Source`, `Get_Order_Product_and_Parent_Id`) sets `RLM_ASSETIZE_SOURCE_NOT_FOUND`;
     a fault connector from each of the 5 action calls and 6 lookups sets `RLM_ASSETIZE_FAULT`
@@ -383,7 +383,8 @@ these conditions; rerun the amendment and cancel checks there.
     that stores its output automatically is not measured [inferred; not run], so the
     flow does not rely on it: the explicit null check after each lookup is what fails. A source relationship whose
     `SourceLineItemId` is null counts as not found. The four recognized source types are
-    unchanged. Known gaps, kept as live checks: a `recordIds` collection where only some ids
+    unchanged. Known gaps, kept as live checks: the `OrderItems` collection path has no lookup, so even an all-missing `recordIds` relies on
+    the action faulting (`RLM_ASSETIZE_FAULT`) [inferred; not run]; a fulfillment-line `recordIds` collection where only some ids
     are missing still assetizes the ones found (the lookup is null only when all miss; the flow
     cannot compare collection sizes); the `exists` skip above also ends successfully for a
     top-level line it does not recognize; the output of `createOrUpdateAssetFromOrderItem` is
