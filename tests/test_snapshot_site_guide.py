@@ -7,6 +7,7 @@ Run:  python3 tests/test_snapshot_site_guide.py   (stdlib only)
 """
 
 import json
+import re
 import os
 import sys
 import tempfile
@@ -260,6 +261,38 @@ def main():
         st = snap(tmp, mode="all", fetcher=make_fetcher({START: (200, old_only, START)})).run()
         check("a start page citing only an older version does not refuse an idempotent rerun",
               st["captured"] == 4)
+
+    print("codex round 4")
+    def try_run(sn):  # a page that fails to capture still saves, then the run raises
+        try:
+            sn.run()
+        except SnapshotError:
+            pass
+    # A page that converts to nothing gets no article, so no local link may point at it.
+    dc_url = BASE + "deployment-considerations.html"
+    full = (FIX / "deployment-considerations.html").read_text(encoding="utf-8")
+    emptied = re.sub(r"(<doc-content-layout[^>]*>).*?(</doc-content-layout>)", r"\1\2", full, flags=re.S)
+    ef = make_fetcher({dc_url: (200, emptied, dc_url)})
+    with tempfile.TemporaryDirectory() as tmp:
+        try_run(snap(tmp, mode="all", fetcher=ef))
+        started = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
+        check("an empty conversion with no earlier article is not a local link target (first capture)",
+              not (Path(tmp) / "articles" / "deployment-considerations.md").exists()
+              and "./deployment-considerations.md" not in started
+              and "https://developer.salesforce.com/docs/revenue/revenue-management/guide/deployment-considerations.html#notes" in started)
+        try_run(snap(tmp, mode="refresh", fetcher=ef))
+        started = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
+        check("... and stays online on a refresh", "./deployment-considerations.md" not in started
+              and "deployment-considerations.html#notes" in started)
+        snap(tmp, mode="refresh").run()
+        started = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
+        check("once the page converts, its link is local again", "./deployment-considerations.md#notes" in started)
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        try_run(snap(tmp, mode="refresh", fetcher=ef))
+        check("an empty refetch of a page whose earlier article is kept leaves its link local",
+              (Path(tmp) / "articles" / "deployment-considerations.md").exists()
+              and "./deployment-considerations.md#notes" in (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8"))
 
     print("codex round 1")
     with tempfile.TemporaryDirectory() as tmp:

@@ -1005,14 +1005,19 @@ class SiteGuideSnapshot:
         earlier = {pid for pid, rec in by_id.items()
                    if rec.get("status") == "captured" and (articles_dir / f"{pid}.md").is_file()}
         all_ids = set(fetched) | earlier
+        no_article: set = set()  # converted to nothing: no file is written for these
         for pid in fetched:
             title, body_md = convert(pid, all_ids)
+            if not body_md:
+                no_article.add(pid)
             if body_md and (reason := refusal_reason(
                 title, body_md, prior_texts[pid], pid, accept,
                 lambda why, p=pid: (self.accepted.append(p), self.logger.warning(f"  [accepted] {p}: {why}")),
             )):
                 refusals[pid] = reason
-        known = all_ids - {p for p in refusals if prior_texts[p] is None}
+        # A link stays local only when the target has (or keeps) an article file: a refused
+        # or empty page with no earlier file would leave a dead ./slug.md.
+        known = all_ids - {p for p in (set(refusals) | no_article) if prior_texts[p] is None}
 
         written = 0
         empty: List[str] = []
