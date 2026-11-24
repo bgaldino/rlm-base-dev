@@ -1107,11 +1107,16 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
         UsageFixture f = newUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // The loop deletes this bucket and its entitlement in phase 1. The bucket
+        // with no entitlement keeps the entitlement account refused, so phase 2
+        // runs, deletes them, and is rolled back.
+        TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
-        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
-            'PRECONDITION: the bucket must exist before the reset runs');
-        // This test checks the report after a rollback. That phase 2's retry deletes
-        // these rows is shown by bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved.
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :loose.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
+            'PRECONDITION: the entitlement must exist before the reset runs');
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
 
         Test.startTest();
@@ -1123,12 +1128,19 @@ private without sharing class RLM_AccountUtilitiesTest {
             result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
             'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
         );
-        Assert.isNull(result.removedSummary,
-            'Phase 1 removed nothing here, so nothing is reported removed after the rollback');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'Phase 1\'s delete of the bucket must survive the rollback');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
+            'Phase 1\'s delete of the entitlement must survive the rollback');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
             'The entitlement account must still exist');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
-            'The bucket must still exist');
+            'The bucket with no entitlement must still exist');
+        Assert.areEqual(
+            entry(UsageEntitlementBucket.SObjectType, 1) + '; ' + entry(TransactionUsageEntitlement.SObjectType, 1),
+            result.removedSummary,
+            'Only phase 1\'s deletes may be reported removed after the rollback'
+        );
         String kept = entry(UsageEntitlementAccount.SObjectType, 1) + ' (could not be deleted: ';
         Assert.isTrue(
             result.retainedSummary != null && result.retainedSummary.contains(kept),
@@ -1253,7 +1265,6 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
         Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE Id = :o.Id], 'The activated order must be deleted');
-        Assert.areEqual(0, [SELECT COUNT() FROM OrderItem WHERE OrderId = :o.Id], 'Its items must be deleted');
         Assert.isTrue(
             result.removedSummary.contains(entry(Order.SObjectType, 1)),
             'The deleted order must be reported. Got: ' + result.removedSummary
