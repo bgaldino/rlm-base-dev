@@ -21,7 +21,7 @@ import time
 from typing import Any, Callable, List
 
 from ._client import CONNECT_BASE
-from ._engine import LifecycleCore
+from ._engine import LifecycleCore, retry_on_row_lock
 
 
 class LifecycleError(RuntimeError):
@@ -52,6 +52,8 @@ class LifecycleEngine(LifecycleCore):
         self.log = logger or transport.logger
         self.max_wait = max(0, max_wait_seconds)
         self.poll = max(1, poll_interval_seconds)
+        # Waits (state polls, row-lock backoff); a test can replace it.
+        self.sleep = time.sleep
 
     # -- Engine I/O hooks ------------------------------------------------
 
@@ -59,7 +61,12 @@ class LifecycleEngine(LifecycleCore):
         return self.t.soql(soql)
 
     def write_sobject(self, sobject: str, record_id: str, body: dict) -> None:
-        self.t.sobject("PATCH", sobject, record_id, body)
+        # Retried on UNABLE_TO_LOCK_ROW, as the CCI task's PATCH is: a plan or
+        # version briefly locked by another writer must not fail (or strand) a run.
+        retry_on_row_lock(
+            lambda: self.t.sobject("PATCH", sobject, record_id, body),
+            what=f"{sobject}/{record_id}", emit=self.emit, sleep=self.sleep,
+        )
 
     def delete_sobject(self, sobject: str, record_id: str) -> None:
         self.t.sobject("DELETE", sobject, record_id)
@@ -82,7 +89,7 @@ class LifecycleEngine(LifecycleCore):
         if self.dry_run:
             return
         self.poll_version_state(version_id, active, max_wait=self.max_wait,
-                                poll=self.poll, sleep=time.sleep)
+                                poll=self.poll, sleep=self.sleep)
 
     # -- Connect resource ops ------------------------------------------
 

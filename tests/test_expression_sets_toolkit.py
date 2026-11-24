@@ -2964,6 +2964,82 @@ def test_overlay_multi_version():
           in words and "python " not in words, words)
 
 
+def test_row_lock_retry():
+    """Todo pack 226: the toolkit's sObject writes retry UNABLE_TO_LOCK_ROW like the
+    CCI task's PATCH (4 attempts, waits 2/4/6 s); anything else raises at once."""
+    print("test_row_lock_retry")
+    from scripts.expression_sets._client import ExpressionSetClientError
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    lock = ExpressionSetClientError(
+        "sf api request PATCH 'sobjects/ProcedurePlanDefinitionVersion/1Cv1' failed "
+        "for org 'x' [UNABLE_TO_LOCK_ROW]:\n[{\"errorCode\": \"UNABLE_TO_LOCK_ROW\"}]",
+        error_codes=["UNABLE_TO_LOCK_ROW"])
+
+    class _LockTransport(_PlanTransport):
+        def __init__(self, failures, error=lock, **kw):
+            super().__init__(**kw)
+            self.failures, self.error, self.attempts = failures, error, 0
+
+        def sobject(self, method, sobject, record_id=None, body=None, **kw):
+            if sobject == "ProcedurePlanDefinitionVersion":
+                self.attempts += 1
+                if self.failures:
+                    self.failures -= 1
+                    raise self.error
+            return super().sobject(method, sobject, record_id, body, **kw)
+
+    def engine(t, logs, waits):
+        e = LifecycleEngine(t, logger=logs.append, poll_interval_seconds=1)
+        e.sleep = waits.append
+        return e
+
+    logs, waits = [], []
+    t = _LockTransport(2, plans={"1Cv1": False})
+    engine(t, logs, waits).cascade_reactivate_procedure_plans(["1Cv1"])
+    check("two row locks, then the write lands",
+          t.plans == {"1Cv1": True} and t.attempts == 3 and waits == [2, 4], (t.plans, waits))
+    check("each retry is logged",
+          sum("Row lock on ProcedurePlanDefinitionVersion/1Cv1" in m for m in logs) == 2, logs)
+
+    logs, waits = [], []
+    t = _LockTransport(9, plans={"1Cv1": False})
+    try:
+        engine(t, logs, waits).cascade_reactivate_procedure_plans(["1Cv1"])
+        raised = None
+    except Exception as exc:  # noqa: BLE001
+        raised = exc
+    check("a lock on all four attempts fails the write, after waits 2/4/6",
+          raised is not None and "UNABLE_TO_LOCK_ROW" in str(raised)
+          and t.attempts == 4 and waits == [2, 4, 6], (raised, t.attempts, waits))
+
+    logs, waits = [], []
+    t = _LockTransport(1, error=ExpressionSetClientError("INVALID_FIELD boom"),
+                       plans={"1Cv1": False})
+    try:
+        engine(t, logs, waits).cascade_reactivate_procedure_plans(["1Cv1"])
+        raised = None
+    except Exception as exc:  # noqa: BLE001
+        raised = exc
+    check("any other error is not retried",
+          raised is not None and t.attempts == 1 and waits == [], (t.attempts, waits))
+
+    # In the lifecycle: a plan briefly locked during the post-PATCH reactivation
+    # is restored rather than left offline.
+    logs, waits = [], []
+    t = _LockTransport(0, plans={"1Cv1": True})
+    e = engine(t, logs, waits)
+    t.failures = 0
+
+    def lock_next_plan_write():
+        t.failures = 1
+    e.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                   mutate=lock_next_plan_write, activate_after=True, cascade=True)
+    check("a row lock on the plan reactivation is retried and the plan comes back",
+          t.plans == {"1Cv1": True} and t.esv_active is True and waits == [2],
+          (t.plans, t.esv_active, waits))
+
+
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""
     import subprocess
@@ -3032,7 +3108,7 @@ def main():
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
-               test_overlay_multi_version):
+               test_overlay_multi_version, test_row_lock_retry):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

@@ -375,6 +375,10 @@ expected behavior; the outputs are not dead code.
   cosmetic labels are stale. That path therefore **reactivates** the version even
   on failure (`run_mutation(reactivate_on_failure=True)`), so a cosmetic relabel
   error never knocks a live procedure offline; the error is still reported.
+- **Row locks are retried.** Every sObject PATCH the engine sends (version and plan
+  `IsActive`, `ResourceInitializationType`) retries `UNABLE_TO_LOCK_ROW` up to four
+  attempts, waiting 2, 4 and 6 seconds, as the CCI task does; any other error
+  fails at once.
 - **Default reactivation.** Every mutator defaults to `activate_after=True`, so
   applying/importing/relabeling reactivates the version on success. If you are
   operating on an **intentionally inactive** version, pass `--no-activate` or it

@@ -79,7 +79,12 @@ from tasks.expression_set_schema import (
 )
 # Stdlib-only modules shared with the standalone toolkit (no CumulusCI import): the
 # version guards and the one deactivate → mutate → recover engine.
-from scripts.expression_sets._engine import LifecycleCore
+from scripts.expression_sets._engine import (
+    ROW_LOCK,
+    ROW_LOCK_ATTEMPTS,
+    LifecycleCore,
+    row_lock_backoff,
+)
 from scripts.expression_sets._guards import (
     NO_ACTIVATION_CCI_APPLY,
     NO_ACTIVATION_CCI_IMPORT,
@@ -255,7 +260,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     def _patch_sobject(self, sobject: str, record_id: str, payload: dict) -> None:
         url = f"{self._base_url}/sobjects/{sobject}/{record_id}"
-        max_attempts = 4
+        # The shared row-lock policy (the toolkit applies it in its engine adapter).
+        max_attempts = ROW_LOCK_ATTEMPTS
         for attempt in range(1, max_attempts + 1):
             resp = requests.patch(
                 url, headers=self._headers, json=payload, timeout=_REQUEST_TIMEOUT
@@ -263,8 +269,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if resp.status_code in (200, 204):
                 return
             resp_text = resp.text or ""
-            if "UNABLE_TO_LOCK_ROW" in resp_text and attempt < max_attempts:
-                wait = attempt * 2
+            if ROW_LOCK in resp_text and attempt < max_attempts:
+                wait = row_lock_backoff(attempt)
                 self.logger.warning(
                     "Row lock on %s/%s (attempt %s/%s). Retrying in %ss.",
                     sobject, record_id, attempt, max_attempts, wait,

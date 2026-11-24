@@ -49,6 +49,38 @@ RESOURCE_INIT_TYPES = frozenset({"Default", "Off"})
 
 DRY_RUN_STYLES = ("transport", "announce")
 
+# A concurrent writer holds the record; the platform's own advice is to retry.
+ROW_LOCK = "UNABLE_TO_LOCK_ROW"
+ROW_LOCK_ATTEMPTS = 4
+
+
+def row_lock_backoff(attempt: int) -> int:
+    """Seconds to wait after failed attempt ``attempt`` (2, 4, 6)."""
+    return attempt * 2
+
+
+def retry_on_row_lock(call: Callable[[], Any], *, what: str,
+                      emit: Callable[[str, str], None],
+                      sleep: Callable[[float], None] = time.sleep,
+                      attempts: int = ROW_LOCK_ATTEMPTS) -> Any:
+    """Run ``call``, retrying while it fails with ``UNABLE_TO_LOCK_ROW``.
+
+    Up to ``attempts`` tries with :func:`row_lock_backoff` waits; any other
+    failure, or a lock on the last try, raises. The CCI task applies the same
+    policy at its HTTP layer (``_patch_sobject``).
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            return call()
+        except Exception as exc:
+            if ROW_LOCK in str(exc) and attempt < attempts:
+                wait = row_lock_backoff(attempt)
+                emit("warning", f"Row lock on {what} (attempt {attempt}/{attempts}). "
+                                f"Retrying in {wait}s.")
+                sleep(wait)
+                continue
+            raise
+
 
 def soql_literal(value: Any) -> str:
     """Escape a value for safe interpolation inside a single-quoted SOQL literal."""
