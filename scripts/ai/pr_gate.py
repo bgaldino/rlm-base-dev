@@ -106,6 +106,18 @@ PINS = {"cumulusci": "cumulusci==4.10.1", "robotframework": "robotframework>=7.5
 # with setuptools 84, which has no `pkg_resources`. Emitting it here keeps the installs in step.
 CO_REQUIRES = {"cumulusci": ["setuptools>=75.4"]}
 
+# Install stages: `--requirements --stage N` prints only stage N, and CI runs one `pip install`
+# per stage, in order. CumulusCI 4.10.1 declares `robotframework-seleniumlibrary<6` and
+# `selenium<4`, while the Robot suites need seleniumlibrary>=6.9.0,<7 and selenium>=4.52
+# (robot/requirements.txt), so one `pip install` of both is ResolutionImpossible. Production
+# resolves it the same way this does: `prepare-rlm-org.yml` installs cumulusci, then
+# `-r robot/requirements.txt` in a second call, and docker/Dockerfile injects the Robot stack into
+# the CumulusCI pipx venv afterwards, accepting pip's post-install conflict warning. Staging
+# makes the gate test the environment those build. A package absent from STAGE is stage 1; plain
+# `--requirements` (no `--stage`) prints every stage in order.
+STAGE = {"robotframework": 2, "robotframework-seleniumlibrary": 2}
+STAGE_COUNT = max(STAGE.values(), default=1)
+
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing
 # plan, so tailing kept a wall of passes and elided the only thing the reader needs.
@@ -1391,6 +1403,8 @@ def main(reexec=False):
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--stage", type=int, choices=range(1, STAGE_COUNT + 1), metavar="N",
+                    help="with --requirements, print only install stage N (1..%d)" % STAGE_COUNT)
     ap.add_argument("--needs-node", action="store_true",
                     help="print `true` when a selected check needs Node packages, else `false`, then exit")
     ap.add_argument("--no-reexec", action="store_true",
@@ -1428,9 +1442,12 @@ def main(reexec=False):
         selected = [c for c in CHECKS if selects(c, files)]
 
     if args.requirements:
-        needed = sorted({d for c in selected for d in c["deps"]})
+        needed = sorted({d for c in selected for d in c["deps"]},
+                        key=lambda d: (STAGE.get(d, 1), d))
         emitted = []
         for pkg in needed:
+            if args.stage and STAGE.get(pkg, 1) != args.stage:
+                continue
             # Co-requirements first: pip installs in order, so the setuptools floor is in
             # place before the package it accompanies.
             for extra in CO_REQUIRES.get(pkg, ()):

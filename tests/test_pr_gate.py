@@ -708,6 +708,40 @@ if os.path.exists(robot_requirements):
 else:
     check("robot/requirements.txt exists to compare pins against", False, "file missing")
 
+# Install stages. CumulusCI 4.10.1 declares seleniumlibrary<6 and selenium<4, which the Robot suites
+# contradict, so one `pip install` of both is unresolvable; prepare-rlm-org.yml and the Dockerfile
+# install CumulusCI first and the Robot stack after, and the gate's CI step must do the same.
+def _gate_reqs(*extra):
+    out = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"),
+                          "--requirements", "--all", *extra],
+                         capture_output=True, text=True, cwd=REPO)
+    return out.stdout.split()
+
+_all = _gate_reqs()
+_s1, _s2 = _gate_reqs("--stage", "1"), _gate_reqs("--stage", "2")
+check("--requirements --all lists cumulusci before the Robot packages",
+      (pr_gate.PINS["cumulusci"] in _all
+                  and pr_gate.PINS["robotframework-seleniumlibrary"] in _all
+                  and _all.index(pr_gate.PINS["cumulusci"])
+                  < _all.index(pr_gate.PINS["robotframework-seleniumlibrary"])), _all)
+check("stage 1 carries CumulusCI and its setuptools floor, and no Robot package",
+      pr_gate.PINS["cumulusci"] in _s1 and "setuptools>=75.4" in _s1
+      and not any(x.startswith("robotframework") for x in _s1), _s1)
+check("stage 2 carries both Robot packages and no CumulusCI",
+      pr_gate.PINS["robotframework"] in _s2 and pr_gate.PINS["robotframework-seleniumlibrary"] in _s2
+      and pr_gate.PINS["cumulusci"] not in _s2, _s2)
+check("the stages together are exactly the unstaged list",
+      sorted(_s1 + _s2) == sorted(_all), (_s1, _s2, _all))
+check("STAGE_COUNT covers every staged package",
+      all(1 <= n <= pr_gate.STAGE_COUNT for n in pr_gate.STAGE.values()), pr_gate.STAGE)
+with open(os.path.join(REPO, ".github", "workflows", "pr-checks.yml")) as _fh:
+    _wf_text = _fh.read()
+_stage_calls = re.findall(r"--requirements --stage (\d+) \$\{SEL\}", _wf_text)
+check("the workflow installs every stage, once each, in order, each with its own pip install",
+      _stage_calls == [str(n) for n in range(1, pr_gate.STAGE_COUNT + 1)]
+      and len(re.findall(r"python -m pip install \$\{reqs\}", _wf_text)) == pr_gate.STAGE_COUNT,
+      _stage_calls)
+
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
 # tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
 print("\nThe workflow that runs the gate cannot be quietly defanged")
@@ -3065,7 +3099,8 @@ if os.path.exists(workflow):
     # is decided inside `pip_install_ok`, not by a constant here.
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
-        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+        'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 1 ${SEL})"',
+        'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 2 ${SEL})"',
         'node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"',)
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
     # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
@@ -6012,7 +6047,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 847
+EXPECTED = 853
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

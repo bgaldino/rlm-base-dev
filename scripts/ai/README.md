@@ -395,6 +395,7 @@ python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a ba
 python scripts/ai/pr_gate.py --all               # run everything
 python scripts/ai/pr_gate.py --list              # the matrix: check, gating, deps, triggers
 python scripts/ai/pr_gate.py --requirements --base origin/main   # pip deps the selection needs
+python scripts/ai/pr_gate.py --requirements --stage 1 --base origin/main   # one install stage (CumulusCI first, Robot stack second)
 python scripts/ai/pr_gate.py --needs-node --base origin/main     # true when a selected check needs npm packages
 ```
 
@@ -651,7 +652,7 @@ one ran, because no optional dependency was missing; a machine blocked on one (`
 The two always-run checks added since: `private_refs` (one `git grep` of the private-tree
 citations) takes under a second, and `dockerignore` about three (measured 2026-11-10).
 
-Verified by `tests/test_pr_gate.py` (847 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (853 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the

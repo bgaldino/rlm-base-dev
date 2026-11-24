@@ -109,20 +109,27 @@ jobs:
             SEL="--base ${BASE}"
           fi
           echo "SEL=${SEL}" >> "$GITHUB_ENV"
-          reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"
+          python -m pip install --upgrade pip
+          # One `pip install` per stage, in order: CumulusCI 4.10.1 declares
+          # `robotframework-seleniumlibrary<6` and `selenium<4`, which the Robot suites'
+          # requirements contradict, so installing both in one call is unresolvable. This is the
+          # order prepare-rlm-org.yml and docker/Dockerfile build (CumulusCI first, Robot stack
+          # after), so the gate tests that environment. One block per stage, matching STAGE_COUNT in
+          # pr_gate.py (tests/test_pr_gate.py asserts it). Each stage's specs come from
+          # --requirements, so this workflow never restates a pin or a co-requirement.
+          # Unquoted on purpose so each printed line becomes its own requirement spec, with
+          # globbing off so a spec containing extras (`pkg[extra]`) cannot be eaten by
+          # pathname expansion.
+          set -f
+          reqs="$(python scripts/ai/pr_gate.py --requirements --stage 1 ${SEL})"
           if [ -n "${reqs}" ]; then
-            python -m pip install --upgrade pip
-            # Unquoted on purpose so each printed line becomes its own requirement spec, with
-            # globbing off so a spec containing extras (`pkg[extra]`) cannot be eaten by
-            # pathname expansion. --requirements emits the `setuptools>=75.4` floor ahead of the
-            # CumulusCI pin itself, so this workflow never restates a pin and cannot drift
-            # from PINS.
-            set -f
             python -m pip install ${reqs}
-            set +f
-          else
-            echo "No extra dependencies needed."
           fi
+          reqs="$(python scripts/ai/pr_gate.py --requirements --stage 2 ${SEL})"
+          if [ -n "${reqs}" ]; then
+            python -m pip install ${reqs}
+          fi
+          set +f
           # Node packages, only when a selected check needs them. From the committed lockfile, and
           # with install scripts off: nothing the Jest check uses needs one, and a dependency's
           # postinstall is code this job would otherwise run unreviewed.
