@@ -629,7 +629,7 @@ class SiteGuideSnapshot:
                 failed, attempted = self._capture_pages(to_capture, output_dir, manifest, manifest_path)
 
         if not self._version_verified and self._start_votes and not self._switching:
-            # No capture verified (nothing queued): the start page still must not
+            # No capture settled the version (nothing queued or fetched): the start page still must not
             # let a moved site's TOC be saved.
             self._verify_version(self._start_votes, manifest, require=False, weak=True)
         self._save_manifest(manifest_path, manifest)
@@ -738,7 +738,7 @@ class SiteGuideSnapshot:
         seen = observed_version(votes)
         if weak and votes:
             # One page is thin evidence: it may cite older versions ("v62.0 and later").
-            # It refuses only when the preset's version is absent or a newer one appears.
+            # It refuses only when a newer version appears; it passes when the preset's version is present, and is otherwise undecided.
             want = tuple(int(n) for n in o["api_version"].split("."))
             newer = any(tuple(int(n) for n in v.lstrip("v").split(".")) > want for v in votes)
             if not newer:

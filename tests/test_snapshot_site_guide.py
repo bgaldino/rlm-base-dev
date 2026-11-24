@@ -218,7 +218,7 @@ def main():
         (Path(tmp) / "manifest.json").write_text(old, encoding="utf-8")
         check("discover-only switch reaches the save guard",
               raises(SnapshotError, snap(tmp, mode="discover").run))
-        check("a discover-only switch with no version evidence keeps the atlas manifest",
+        check("a discover-only switch is refused (never verified) and keeps the atlas manifest",
               (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
     with tempfile.TemporaryDirectory() as tmp:
         v69 = make_fetcher()(START)[1].replace("</doc-content-layout>", "<p>/services/data/v69.0/x</p></doc-content-layout>")
