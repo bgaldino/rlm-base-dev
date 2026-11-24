@@ -19,7 +19,7 @@ products with selling models, **Configure** for configurable ones > **Add** or *
 Quote** into the New Quote Line Items preview > **Add Items to Quote**. A configured product that is
 saved is created even if it doesn't show in the preview. Derived-price products show list price 0 until
 added. If the page has no line editor, save from the Browse Catalogs page. Using it needs Use Product
-Discovery, Manage Revenue Management and Run Flows.
+Discovery, Manage Revenue Cloud and Run Flows.
 
 Child products appear in the editor only when **Quote Visibility** on the product-related component is
 blank, Always or Transaction Line Editor (the dev guide's value label is *Transaction Line Editor Only*) [Help: `ind.qocal_view_and_edit_quotes`; Dev guide:

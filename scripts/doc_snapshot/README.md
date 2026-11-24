@@ -32,7 +32,7 @@ Each corpus lives under `docs/salesforce/{release}/`:
 |---|---|
 | `help/` | Help portal areas. Every area of a release shares this one folder and its manifest. |
 | `release-notes/` | The Revenue section of the release notes, for releases that have a `release_notes` preset. |
-| `dev-guide/` | The Revenue Cloud Developer Guide. |
+| `dev-guide/` | The Revenue Management Developer Guide. |
 | `dev-guide-industries/` | The Revenue Cloud sections of the Industries Common Resources guide. |
 
 Every corpus holds the same three things:
@@ -72,7 +72,7 @@ flags.
 | `help --release R --area A` | Snapshot one or more Help areas. |
 | `dev-guide --release R --guide G` | Snapshot one or more developer guides. |
 | `run --release R [--only k1,k2]` | Snapshot every preset of a release, Help and dev guide alike. |
-| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus. |
+| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus, and for `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). |
 | `bootstrap --from R --to NEW --release-name N` | Add a release to `presets.yaml` by copying an existing one. |
 
 `--area` and `--guide` take a preset key, a comma-separated list of keys, or
@@ -134,10 +134,81 @@ python -m scripts.doc_snapshot check --release 264
 | `discover` | Record every article as `pending`; fetch no text. |
 | `capture` | Fetch the manifest's `pending` articles only. |
 | `all` (default) | `discover`, then `capture`. Re-running never re-fetches captured articles. |
-| `refresh` | Re-fetch every article and overwrite the files. |
+| `refresh` | Re-fetch every article and overwrite the files, except captures the guard refuses (see **Capture guard**). |
 
 A capture only touches the selected area. Other areas in the same manifest are
 left as they are.
+
+## Capture guard
+
+A refresh used to write whatever the portal served. Two bad shapes got through
+the fetch-level checks, and the 2026-11-23 264 refresh wrote both into the
+corpus. `scripts/doc_snapshot/guard.py` now refuses them before anything is
+written (stdlib, offline-testable):
+
+| Shape | What the portal served | Signals (any one refuses) |
+|---|---|---|
+| **Not-found page** | A rendered page with an H1 and a body, no HTTP error: "We couldn't find the page you're looking for." (4 captures: two Help articles, two release notes) | The title, or the body's first line, leads with a known not-found headline (curly quotes and case folded; the older "We looked high and low" shell too); or a body of 1,500 characters or fewer that carries both boilerplate markers ("Searching for something? Agentforce can help", "May we also suggest"). |
+| **Truncated stub** | A developer-guide page cut to its heading and first lines (the atlas 264.0 source itself; the converter is faithful) | The new body keeps **under 50% of the prior capture's characters and under 60% of its words**, and the prior body was **at least 500 characters**. |
+
+Evidence behind the thresholds (the 264 refresh, compared 2026-11-23 over the
+3,917 pages that had a prior capture): the four not-found pages and the six
+stubs are all caught. The stubs kept 3% to 21% of the prior characters
+(Decision Table Definitions POST: 410 body characters against 16,162). On the
+same data, a characters-only 50% rule flagged 371 pages, almost all short
+reference pages that lost a table or a note upstream; requiring the word ratio
+as well brought that to 13: those 10 plus 3 pages whose text really shrank (a
+page that became an index of its children, and two short Help articles). Those
+3 need `--accept-shrinkage` if a refresh should take them. The 500-character
+floor exists because a page of a few lines (479 characters, now "Reserved for
+internal use.") swings its ratio on any edit. Pages whose text changed upstream
+by a few cells or notes (the credit memo and calculation-procedure pages checked
+at source in 413) stay well above both limits and are written.
+
+A refused capture:
+
+- **keeps the prior file** and its `file` and `body_length` in the manifest,
+  and is recorded as `status: error` with `error: "refused: <reason>"`, so it
+  shows under **Errored** in `index.md`;
+- is logged as `[refused] <id>: <reason>` as it happens, and listed again with
+  the way out at the end of the capture;
+- counts as a failed capture: the run exits 1 after saving its progress. A failed
+  run returns no stats, so the count rides on the error: the multi-preset
+  summary prints it on that preset's FAILED row ("... [N refused by the capture
+  guard, M no longer in the contents] ...").
+
+A refused page is listed under **Errored** in `index.md`, while its kept prior
+file stays on disk and `check` still reads it. The same holds for any failed
+fetch (a navigation timeout, a missing H1, an empty body): Help and dev-guide
+alike keep the prior file and its `file` and `body_length`, and change only
+`status` and `error`.
+
+**Override.** `--accept-shrinkage ID[,ID...]` (on `help`, `dev-guide` and `run`)
+writes the named pages even when the shrinkage rule would refuse them, and logs
+one `[accepted] <id>: <reason>` warning per page it lets through. It names pages,
+never the whole run, so one real cut cannot switch the guard off for the rest.
+Use it only after reading each page and finding the loss is real upstream
+(verify against the live content API or page, as 413 did). It is a run flag, not
+a preset option. An id that no capture used in the run (a typo, a moved page, or
+a page that did not shrink) is named in a warning at the end; the exit code is
+unchanged. It never writes a not-found page: the id was retired or moved, so
+search the manifest by title for its new id.
+
+The new body is measured without its leading H1 and preview banner, the same
+way the prior file's body is, so a long title cannot hide a stub.
+
+A dev-guide page that is refused and has no prior file is left out of the set of
+known pages, so links to it keep their online URL instead of pointing at a file
+that does not exist. A prior file that is not valid UTF-8 is treated as absent
+(the capture replaces it).
+
+**Orphans.** A page that errors and is no longer listed by the run's own
+discovery (a whole-guide TOC walk for `dev-guide`, the sidebar walk for `help`)
+is reported at the end as moved or retired upstream, with its earlier capture
+kept (a failed fetch never deletes it). The 264.0 guide dropped 18 asset and order object pages this way. The
+report is a lead: a page reached only through cross-reference following is also
+not in the TOC. Retire such a page or mark it moved by hand; the tool never
+deletes it.
 
 ## Reading the result
 
@@ -180,7 +251,8 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   a browser error or timeout, a filesystem error such as an unwritable output folder, or a missing dependency. A run where any article
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
-  run retries them.
+  run retries them. A capture the guard refuses (not-found page, truncated stub)
+  counts as failed.
 - `2`: a usage error, such as an unknown preset or preset option, an empty selector, flag value, or `sections` list, a list or mapping where an option takes one value (only `sections` may be a list), an integer option given `true` or `2.5`, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
@@ -211,6 +283,7 @@ applied in this order, and each step overrides the one before:
 | `headless` | `true` | Set `false` to watch the browser. |
 | `concurrency` | 4 (Help), 6 (dev guide) | Parallel fetches. |
 | `wait_ms` | 3000 | Time to wait after each page load. |
+| `accept_shrinkage` | none | Page ids, as a flag only (`--accept-shrinkage ID[,ID...]`), never a preset value. See **Capture guard**. |
 
 **`help`:**
 
@@ -311,7 +384,8 @@ signs that the area has been updated.
 ```bash
 python tests/test_snapshot_help.py           # stdlib only
 python tests/test_snapshot_dev_guide.py      # stdlib only
+python tests/test_snapshot_guard.py          # stdlib only; fixtures in tests/fixtures/doc_snapshot_guard/
 python tests/test_doc_snapshot_presets.py    # needs PyYAML
 ```
 
-All three run offline without a browser. `scripts/ai/pr_gate.py` runs them.
+All four run offline without a browser. `scripts/ai/pr_gate.py` runs them.

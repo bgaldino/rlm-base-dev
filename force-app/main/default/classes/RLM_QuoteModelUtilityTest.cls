@@ -8,8 +8,6 @@
  * Database.insertImmediate is not returned by SOQL in the same test transaction). Not asserted:
  * StartProrationPeriod, StartProrationPeriodMonth, and the relationship's RootProductSellingModel
  * and MainItemProductSellingModel.
- *
- * Production gaps that can be observed are pinned below with "Known gap:" assertions.
  */
 @IsTest
 private class RLM_QuoteModelUtilityTest {
@@ -323,58 +321,51 @@ private class RLM_QuoteModelUtilityTest {
     }
 
     @IsTest
-    static void emptyInputThrows() {
-        try {
-            RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>());
-            Assert.fail(
-                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, ListException.class,
-                'Known gap: an empty input list throws a raw ListException; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
-        }
+    static void emptyInputReturnsNoContexts() {
+        Assert.isTrue(
+            RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>()).isEmpty(),
+            'No quote ids, no contexts, and no exception'
+        );
     }
 
     @IsTest
-    static void getQuoteFailsForAnUnknownQuote() {
+    static void unknownQuoteIdFailsWithAClearMessage() {
         Id missingQuoteId = Quote.SObjectType.getDescribe().getKeyPrefix() + '000000000001';
 
         try {
             RLM_QuoteModelUtility.getQuote(new List<Id>{ missingQuoteId });
-            Assert.fail(
-                'Known gap: getQuote throws a raw ListException for an unknown id; update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, ListException.class,
-                'Known gap: getQuote throws a raw ListException for an unknown id; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
+            Assert.fail('getQuote must reject an unknown id');
+        } catch (RLM_QuoteModelUtility.QuoteModelException e) {
+            Assert.isTrue(e.getMessage().contains(String.valueOf(missingQuoteId)), 'The message names the id: ' + e);
+        }
+        try {
+            RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>{ missingQuoteId });
+            Assert.fail('CreateQuoteContextString must reject an unknown id');
+        } catch (RLM_QuoteModelUtility.QuoteModelException e) {
+            Assert.isTrue(e.getMessage().contains(String.valueOf(missingQuoteId)), 'The message names the id: ' + e);
         }
     }
 
     @IsTest
-    static void onlyOneQuoteIsConvertedPerCall() {
+    static void everyQuoteIdGetsItsOwnContextInOrder() {
         QuoteFixture first = buildQuote(1, false, false);
-        QuoteFixture second = buildQuote(1, false, false);
-        Set<String> quoteIds = new Set<String>{ String.valueOf(first.quote.Id), String.valueOf(second.quote.Id) };
+        QuoteFixture second = buildQuote(2, false, false);
 
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
         List<String> result = RLM_QuoteModelUtility.CreateQuoteContextString(
-            new List<Id>{ first.quote.Id, second.quote.Id }
+            new List<Id>{ second.quote.Id, first.quote.Id, second.quote.Id }
         );
+        Integer queriesUsed = Limits.getQueries() - queriesBefore;
+        Test.stopTest();
 
-        Assert.areEqual(
-            1, result.size(),
-            'Known gap: CreateQuoteContextString builds one context per call (getQuote returns a single '
-                + 'quote), so only one of several quote ids is converted; update this test when it is fixed'
-        );
-        Assert.isTrue(
-            quoteIds.contains(parse(result[0]).SalesTransactionSource),
-            'The context is for one of the requested quotes'
-        );
+        Assert.areEqual(4, queriesUsed, 'A batch of quotes still costs four queries');
+        Assert.areEqual(3, result.size(), 'One context per input, duplicates included');
+        Assert.areEqual(String.valueOf(second.quote.Id), parse(result[0]).SalesTransactionSource, 'First input first');
+        Assert.areEqual(String.valueOf(first.quote.Id), parse(result[1]).SalesTransactionSource, 'Second input second');
+        Assert.areEqual(String.valueOf(second.quote.Id), parse(result[2]).SalesTransactionSource, 'Third input third');
+        Assert.areEqual(2, parse(result[0]).SalesTransactionItem.size(), 'Each context holds only its own quote lines');
+        Assert.areEqual(1, parse(result[1]).SalesTransactionItem.size(), 'Each context holds only its own quote lines');
     }
 
     @IsTest
@@ -399,5 +390,63 @@ private class RLM_QuoteModelUtilityTest {
 
         Assert.areEqual('2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d), 'Start of day');
         Assert.areEqual('2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d), 'End of day');
+    }
+
+    @IsTest
+    static void userWithoutQuoteAccessIsRefused() {
+        QuoteFixture f = buildQuote(1, false, false);
+        User noAccess = minimumAccessUser();
+
+        RLM_QuoteModelUtility.QuoteModelException refusal;
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(
+                Schema.SObjectType.Quote.isAccessible(), 'PRECONDITION: the user cannot read Quote'
+            );
+            try {
+                RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>{ f.quote.Id });
+            } catch (RLM_QuoteModelUtility.QuoteModelException e) {
+                refusal = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(refusal, 'WITH USER_MODE refuses the read for a user without Quote access');
+        Assert.isInstanceOfType(refusal.getCause(), QueryException.class, 'The refusal comes from the user-mode query');
+        Assert.areEqual(
+            'The quote data could not be read as the running user.', refusal.getMessage(),
+            'The message is the fixed access-failure sentence (not "quote not found", no query text)'
+        );
+    }
+
+    /**
+     * A Minimum Access user (no object access to Quote). The profile is found by its English standard
+     * name; if it is missing (translated org) the test fails with that reason rather than passing
+     * without testing anything. A DmlException on the user insert (for example no free seat) is not
+     * swallowed either.
+     */
+    private static User minimumAccessUser() {
+        List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        Assert.areEqual(
+            1, profiles.size(),
+            'PRECONDITION: this test needs the standard profile "Minimum Access - Salesforce" (English name) in the org'
+        );
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        User u = new User(
+            ProfileId = profiles[0].Id,
+            LastName = 'QuoteModel',
+            Email = 'rlm.quotemodel@example.com',
+            Username = 'rlm.quotemodel.' + stamp + '@example.com',
+            Alias = 'rlmqm',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        // Setup-object DML after the quote fixture needs its own runAs context (mixed DML).
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+        }
+        return u;
     }
 }

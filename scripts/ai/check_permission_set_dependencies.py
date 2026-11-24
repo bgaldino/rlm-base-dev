@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Fail a permission set that grants Account read without Contact read.
+"""Fail a permission set that has no label, or that grants Account read without Contact read.
+
+A permission set with no `<label>` (or an empty one) fails the deploy with "Required field is
+missing: label"; RLM_CollectionsUI was written that way until a live deploy caught it.
 
 Salesforce rejects the deploy ("Permission Read Account depends on permission(s): Read
 Contact") when a permission set grants read on Account but not on Contact. It is for the person
@@ -40,11 +43,15 @@ def grants_read(root, obj):
 def violations(path):
     """Messages for one permission set file; empty when it is fine."""
     root = ET.parse(path).getroot()
+    problems = []
+    if not (root.findtext(NS + "label") or "").strip():
+        problems.append(f"{path}: has no <label>. The deploy fails with 'Required field is missing: "
+                        "label'; add one, as the sibling RLM_* permission sets do.")
     if grants_read(root, "Account") and not grants_read(root, "Contact"):
-        return [f"{path}: grants Account read without Contact read. Person accounts in TSO orgs "
-                "make Account depend on Contact; add an objectPermissions block for Contact "
-                "(allowRead true)."]
-    return []
+        problems.append(f"{path}: grants Account read without Contact read. Person accounts in TSO "
+                        "orgs make Account depend on Contact; add an objectPermissions block for "
+                        "Contact (allowRead true).")
+    return problems
 
 
 def tracked_permission_sets():

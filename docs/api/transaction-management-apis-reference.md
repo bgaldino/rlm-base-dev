@@ -1,7 +1,7 @@
 # Salesforce Transaction Management APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Transaction Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Transaction Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 Transaction Management covers the full quote-to-cash lifecycle: placing and managing sales transactions (quotes and orders), managing asset lifecycle events (amendments, cancellations, renewals, upgrades, downgrades, swaps), and creating and updating ramp deals. As of API v63.0, the **Place Sales Transaction** API (`/connect/rev/sales-transaction/actions/place`) supersedes the deprecated `/commerce/quotes/actions/place` and `/commerce/sales-orders/actions/place` paths. Grounded against the 264 (Winter '27) Developer Guide snapshot, the actual superseding resource lives under the `/connect/rev/sales-transaction/`, `/connect/revenue/transaction-management/`, and `/connect/revenue-management/` resource families — not under a `/commerce/sales-transactions/` path as a prior extraction of this document assumed. Path corrections below are cited per endpoint.
 
@@ -40,9 +40,12 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `contextId` (String, Required): ID of the context to retrieve data records from.
   - `queryTags` (List<String>, Optional): List of objects to retrieve from the context (e.g., `Quote`, `QuoteLineItem`, `Product`).
   - `sobjectFieldMap` (Map<String, List<String>>, Optional, **Available Version 67.0**): Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.
-  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **Available Version 67.0**): Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.
+  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **Available Version 67.0**): Filter conditions to query the context data. Each condition names the field to filter on by `sObjectName` and `fieldName`, or by `nodeName` and `attributeName`, plus an `operator` (`Equals`, `NotEquals`, `Gt`, `GtEq`, `Lt`, `LtEq`, `In`) and `operands` (each a `value` and a `type`). Conditions can be nested with `underlyingFilters` and combined with `operatorLogic` (`AND` or `OR`).
+  - `batchIndices` (List<Integer>, Optional, **Available Version 68.0**): Zero-based indices of the batches to fetch. When set, the response returns only those batches; several can be fetched in parallel.
+  - `shouldReturnMetadataOnly` (Boolean, Optional, **Available Version 68.0**): When `true`, returns only the batch metadata without fetching batch data.
+- **Response (batch fields, Available Version 68.0):** `batches` (the requested batches, each with a `batchIndex` and its `batchRecords`) and `batchMetadata` (`parentContextId`, `totalBatches`, `batchId`), alongside the existing `isSuccess`, `errors` and `response`. `batchMetadata` is returned when you request only the metadata or fetch specific batches. The 264 response examples also show `GrandTotalAmount` and `hasDeletedLines` among a Quote's returned `data` values; the guide lists them in examples only, not as documented properties.
 
-*Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`*
+*Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`, `connect_requests_sales_transaction_filter_condition_input.htm.md`, `connect_responses_read_sales_transaction_output.htm.md`, `connect_responses_batch_metadata_output.htm.md`*
 
 ---
 
@@ -439,4 +442,4 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

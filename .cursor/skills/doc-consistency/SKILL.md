@@ -67,6 +67,12 @@ covers **two different reasons**, and conflating them is a live trap in both dir
 `EXCLUDED_PREFIXES` in `scripts/ai/bump_api_version.py` refuses both by path prefix;
 only the first group is genuinely frozen.
 
+A single provenance line in code (a capture recorded at a past release) is protected by its own
+words, never by line number: keep a phrase such as "verified on" or "observed at" on the same line as
+the version and `PROVENANCE_LINE_RE` spares it wherever it moves. `tests/test_bump_api_version.py`
+(a `pr_gate.py` check) fails if that protection regresses; the always-run `api_version_pins`
+check (`bump_api_version.py --check`) fails on an off-target pin or a rule that has gone blind.
+
 **Frozen — never bump, in the sweep or by hand.** Their whole value is recording a
 *past* release; relabelling a 262 snapshot as v68.0 destroys the baseline the next
 release is diffed against.

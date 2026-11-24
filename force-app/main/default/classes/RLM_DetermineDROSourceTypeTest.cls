@@ -49,86 +49,65 @@ private class RLM_DetermineDROSourceTypeTest {
     }
 
     @IsTest
-    static void noIdsReturnsEmptyList() {
+    static void noIdsReturnsOneBlankOutput() {
         List<String> result = run(new RLM_DetermineDROSourceType.droSourceInfo());
 
-        Assert.isTrue(
-            result.isEmpty(),
-            'Known gap: an input with no ids returns no output for that input, which would fault a calling '
-                + 'flow (the in-repo caller ships as Draft); update this test when it is fixed'
-        );
+        Assert.areEqual(1, result.size(), 'Every input gets an output, or the calling flow faults');
+        Assert.areEqual('', result[0], 'An input with no ids resolves to a blank source type');
     }
 
     @IsTest
-    static void onlyTheFirstInputIsRead() {
+    static void everyInputGetsItsOwnOutputInOrder() {
         RLM_DetermineDROSourceType.droSourceInfo first = new RLM_DetermineDROSourceType.droSourceInfo();
         first.recordId = fakeId(OrderItem.SObjectType, 1);
         RLM_DetermineDROSourceType.droSourceInfo second = new RLM_DetermineDROSourceType.droSourceInfo();
         second.recordId = fakeId(Order.SObjectType, 2);
+        RLM_DetermineDROSourceType.droSourceInfo third = new RLM_DetermineDROSourceType.droSourceInfo();
+        third.recordIds = new List<String>{ fakeId(Account.SObjectType, 3) };
 
         List<String> result = RLM_DetermineDROSourceType.returnDROSourceObjectType(
-            new List<RLM_DetermineDROSourceType.droSourceInfo>{ first, second }
+            new List<RLM_DetermineDROSourceType.droSourceInfo>{ first, second, third }
         );
 
-        Assert.areEqual(
-            1, result.size(),
-            'Known gap: only the first of several inputs is read, so a bulk call gets one output; '
-                + 'update this test when it is fixed'
-        );
-        Assert.areEqual('OrderItem', result[0], 'The output is for the first input');
+        Assert.areEqual(3, result.size(), 'A bulk call gets one output per input');
+        Assert.areEqual('OrderItem', result[0], 'The first output is for the first input');
+        Assert.areEqual('Order', result[1], 'The second output is for the second input');
+        Assert.areEqual('Accounts', result[2], 'The third output is for the third input');
     }
 
     @IsTest
-    static void emptyInputListThrows() {
-        try {
-            RLM_DetermineDROSourceType.returnDROSourceObjectType(new List<RLM_DetermineDROSourceType.droSourceInfo>());
-            Assert.fail(
-                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, ListException.class,
-                'Known gap: an empty input list throws a raw ListException; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
-        }
+    static void emptyInputListReturnsNoOutputs() {
+        List<String> result = RLM_DetermineDROSourceType.returnDROSourceObjectType(
+            new List<RLM_DetermineDROSourceType.droSourceInfo>()
+        );
+
+        Assert.isTrue(result.isEmpty(), 'No inputs, no outputs, and no exception');
     }
 
     @IsTest
-    static void emptyRecordIdListThrows() {
+    static void emptyRecordIdListReturnsBlankOutput() {
         RLM_DetermineDROSourceType.droSourceInfo info = new RLM_DetermineDROSourceType.droSourceInfo();
         info.recordIds = new List<String>();
 
-        try {
-            run(info);
-            Assert.fail(
-                'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, ListException.class,
-                'Known gap: an empty recordIds list throws a raw ListException; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
-        }
+        List<String> result = run(info);
+
+        Assert.areEqual(1, result.size(), 'The input still gets an output');
+        Assert.areEqual('', result[0], 'An empty recordIds list resolves to a blank source type');
     }
 
     @IsTest
-    static void malformedRecordIdThrows() {
-        RLM_DetermineDROSourceType.droSourceInfo info = new RLM_DetermineDROSourceType.droSourceInfo();
-        info.recordId = 'not-an-id';
+    static void malformedRecordIdReturnsBlankOutputAndKeepsTheRestOfTheBatch() {
+        RLM_DetermineDROSourceType.droSourceInfo bad = new RLM_DetermineDROSourceType.droSourceInfo();
+        bad.recordId = 'not-an-id';
+        RLM_DetermineDROSourceType.droSourceInfo good = new RLM_DetermineDROSourceType.droSourceInfo();
+        good.recordId = fakeId(OrderItem.SObjectType, 1);
 
-        try {
-            run(info);
-            Assert.fail(
-                'Known gap: a malformed record id throws a raw StringException; update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, StringException.class,
-                'Known gap: a malformed record id throws a raw StringException; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
-        }
+        List<String> result = RLM_DetermineDROSourceType.returnDROSourceObjectType(
+            new List<RLM_DetermineDROSourceType.droSourceInfo>{ bad, good }
+        );
+
+        Assert.areEqual(2, result.size(), 'One output per input');
+        Assert.areEqual('', result[0], 'A malformed id resolves to a blank source type');
+        Assert.areEqual('OrderItem', result[1], 'A bad input does not spoil the others');
     }
 }

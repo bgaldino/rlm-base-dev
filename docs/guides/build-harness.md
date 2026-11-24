@@ -45,7 +45,23 @@ Each scenario includes:
 `flag_overrides` are merged with `project.custom` defaults in `cumulusci.yml`.
 The harness materializes each scenario into a scenario-scoped CCI project root with
 an overridden `cumulusci.yml`, so CCI `when:` evaluation (including nested
-sub-flows/tasks) uses the scenario's effective flags at execution time.
+sub-flows/tasks) uses the scenario's effective flags at execution time. Before creating or
+resuming an org, the harness (and the TUI) makes two checks in the workspace and stops with
+target `project_root_flags` if either fails:
+
+- The workspace's `.git` must be a directory. It is the checkout's `.git` entry, so it is a
+  file (and the check fails) when the build started from a git worktree. CumulusCI then
+  takes the enclosing checkout as its project root, with that checkout's `tasks/` and
+  robot results, even when the flag values happen to match.
+- `cci project info` must print the scenario's boolean flags exactly. This catches a
+  project root that resolves to another checkout with different flag defaults.
+
+On `resume` the failure is `resume_blocked` (exit 30); only a `cci` timeout keeps
+resume recommended, and only for two retries (the consecutive transient preflight rows at the end of the step log count; any later row resets them, including the success row written when a later attempt passes). After that the result is a deterministic `manual_fix_required` saying `cci` timed out repeatedly. The budget is per run directory (its `step_results.jsonl`): `resume` sees it, while every `run` gets a new run directory and starts over, where a single timeout stays `rerun_full`. A `cci`
+that cannot run, any non-zero exit (its text is not pattern-matched), and a wrong setup do not, so a policy-following agent does not loop
+on exit 30. On `run` it is a failed
+scenario. For the TUI, `run_build` returns 20 and emits `run_failed`; the TUI app does not
+use that return value.
 
 The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
 to the repo and copies `scripts/` and `robot/`. Robot output
@@ -206,6 +222,26 @@ Resume safety guard:
 
 - resume is blocked when current scenario effective flags do not match checkpoint `effective_flags`
 
+Before resuming, the harness probes the kept org with `sf org display` (45-second
+timeout), never with CumulusCI. The probe has four outcomes:
+
+- `present`: resume continues.
+- `missing` (no authorization, or the org is Expired or Deleted): resume is blocked with
+  target `org_missing`, and the run cannot be resumed.
+- `timeout` (`org_probe_timeout`) and `error` (`org_probe_failed`): the org may still
+  exist, so resume is blocked but still recommended. Re-run `resume`; if it repeats,
+  check `sf org list --all`.
+
+When `sf org display` fails for a reason other than an unknown alias, the probe also runs
+`sf org list --all --skip-connection-status --json`. That list is not network-free: the
+Salesforce CLI reads each scratch org's status from the dev hub, so the worst case is two
+45-second waits per probe, and the probe runs at resume and again at the end of a failed
+run. An alias missing from that list is not treated as a deleted org.
+
+Do not check an org by hand with `cci org info`: for an expired scratch org CumulusCI
+recreates the org under the same alias, which gives a new, unbuilt org. Use
+`sf org display --target-org rlm-base__<alias> --json` instead.
+
 Phase-1 resume scope is top-level `prepare_rlm_org` steps only. Nested sub-flow task-level resume is intentionally out of scope.
 
 ## Output Artifacts
@@ -246,8 +282,8 @@ Each run writes:
 
 - `0` - success
 - `10` - scenario/build failure
-- `20` - harness configuration/validation error
-- `30` - resume blocked (missing run/checkpoint/org)
+- `20` - harness configuration/validation error (`run_build` returns 20 for a failed flag check; the TUI app ignores the return value)
+- `30` - resume blocked (missing run/checkpoint/org, the org probe could not confirm the org, or the `project_root_flags` check failed)
 
 ## Agent Policy
 

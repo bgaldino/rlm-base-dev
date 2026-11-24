@@ -1,37 +1,39 @@
 # Release 264 (Winter '27) — Feature Index
 
-**Per-area inventory of features in Winter '27 / Release 264, derived from the Salesforce Help portal snapshot.** Release 264 reached its cutover on 2026-09-16; Help snapshots captured 2026-09-04 through 2026-09-07 for ten functional areas (1,131 articles across configurator, transaction_mgmt, billing, pcm, dro, pricing, rating, usage, agents, and approvals). Collections area not captured — still serving 262 content as of 2026-09-07.
+**Per-area inventory of features in Winter '27 / Release 264, derived from the Salesforce Help portal snapshot.** Release 264 reached its cutover on 2026-09-16. The Help snapshot (1,703 articles in 12 areas) was recaptured on 2026-11-23. This index inventories 11 of those areas, 1,275 articles: configurator, transaction_mgmt, billing, pcm, dro, pricing, rating, usage, agents, approvals and collections. The 428-article `salesforce_contracts` area has no 262 counterpart to diff against and is outside the per-area inventory (see the `salesforce-contracts` skill).
 
-> **Pre-GA status:** API v68.0 GA waves 2026-09-05 → 2026-10-10 are in progress as of 2026-09-29. This index derives from Help articles captured during early GA rollout. The feature inventory comes from the Help corpus only. The Winter '27 release notes are published on Help, and their Revenue section is captured under `docs/salesforce/264/release-notes/` (PR #480) and cross-referenced below (**Release-Note Cross-Reference**). A live 264 org remains the ground truth for behavioral verification.
+> **Status:** the index was first written during the API v68.0 GA rollout (waves 2026-09-05 → 2026-10-10) and updated for the 2026-11-23 recapture. The feature inventory comes from the Help corpus only. The Winter '27 release notes are published on Help, and their Revenue section is captured under `docs/salesforce/264/release-notes/` (PR #480) and cross-referenced below (**Release-Note Cross-Reference**). A live 264 org remains the ground truth for behavioral verification.
 
 ## Sources
 
 | File | Description |
 |---|---|
-| [`help/`](help/) | Salesforce Help snapshot — 1,131 articles captured 2026-09-04 through 2026-09-07 across 10 RC functional areas. Collections not captured — verified still serving 262 content. |
+| [`help/`](help/) | Salesforce Help snapshot: 1,703 articles in 12 areas, recaptured 2026-11-23 (capture began 2026-09-04). Collections is captured (97 articles). The Contracts area (428 articles) is outside the per-area inventory. |
 | [`release-notes/`](release-notes/) | Winter '27 (264) Revenue release notes under `release-notes.rn_revenue.htm`, captured by `python -m scripts.doc_snapshot help --release 264 --area release_notes` and mapped in **Release-Note Cross-Reference**. The notes label no feature Beta or Pilot. Invoice Risk Scoring (Pilot) is labelled only in Help. |
 | *(not captured)* | Solution Overview decks, so features without Help or release-note coverage are unverified. |
 
 ## Change Summary
 
-**Corpus comparison (264 vs 262):**
-- **Total articles:** 1,131 (264) vs 935 (262) — net +196 articles
-- **New in 264:** 301 articles
-- **Only in 262:** 105 articles (97 collections + 8 others)
-- **Shared articles:** 830 articles (many with material body changes)
+**Corpus comparison (264 vs 262, the 11 inventoried areas):**
+- **Total articles:** 1,275 (264) vs 935 (262), net +340 articles. The 264 manifest holds 1,703 articles in all; the other 428 are the Contracts area, which 262 does not have.
+- **New in 264:** 347 articles
+- **Only in 262:** 7 articles (5 billing, 2 transaction management; see **Articles in 262 but not in the 264 capture**)
+- **Shared articles:** 928 articles (many with material body changes)
 
 **Per-area captured article counts (262 → 264; net change, new IDs, IDs only in 262):**
 - Agents: 13 → 17 (net +4; 4 new)
-- Approvals: 34 → 43 (net +9; 9 new)
-- Billing: 171 → 265 (net +94; 99 new, 5 only in 262 — largest expansion)
-- Configurator: 76 → 83 (net +7; 7 new)
-- DRO: 70 → 96 (net +26; 27 new, 1 only in 262). The 264 manifest discovered 99 DRO IDs, but 3 failed to capture (see below).
-- PCM: 107 → 142 (net +35; 35 new)
-- Pricing: 110 → 155 (net +45; 45 new)
-- Rating: 35 → 70 (net +35; 35 new — doubled)
-- Transaction Mgmt: 170 → 208 (net +38; 40 new, 2 only in 262)
-- Usage: 52 → 52 (0 new; 3 articles with material updates)
-- Collections: 97 → not captured
+- Approvals: 34 → 44 (net +10; 10 new)
+- Billing: 171 → 287 (net +116; 121 new, 5 only in 262; largest expansion)
+- Collections: 97 → 97 (0 new; same text as 262, see **Collections and Recovery**)
+- Configurator: 76 → 84 (net +8; 8 new)
+- DRO: 70 → 102 (net +32; 32 new)
+- PCM: 107 → 143 (net +36; 36 new)
+- Pricing: 110 → 158 (net +48; 48 new)
+- Rating: 35 → 70 (net +35; 35 new; doubled)
+- Transaction Mgmt: 170 → 221 (net +51; 53 new, 2 only in 262)
+- Usage: 52 → 52 (0 new; 4 articles with material updates)
+
+The 2026-11-23 recapture added 141 articles to the earlier 264 snapshot (22 billing, 97 collections, 13 transaction management, 3 pricing, 3 DRO, 1 each PCM, configurator and approvals) and 19 release notes, and recovered the three DRO articles that had failed to capture.
 
 ---
 
@@ -44,22 +46,32 @@
 | **Payment Reconciliation** | Billing | Yes: [1](release-notes/articles/release-notes.rn_billing_lockbox_reconciliation.htm.md) | Automate reconciliation of payment advice/proof with bank data using Document AI + vector search + Data 360. | 12 articles including [`ind.billing_payment_reconciliation.htm`](help/articles/ind.billing_payment_reconciliation.htm.md), [`ind.billing_payment_reconciliation_setup.htm`](help/articles/ind.billing_payment_reconciliation_setup.htm.md), [`ind.billing_payment_reconciliation_run.htm`](help/articles/ind.billing_payment_reconciliation_run.htm.md) |
 | **Approval Agent** | Agentforce | Yes: [1](release-notes/articles/release-notes.rn_rev_agentforce_approvals_agent.htm.md) | Conversational approval lifecycle — submit, track, summarize, approve/reject from Salesforce/Slack. AI-generated summaries. Three subagents. | 4 articles: [`ind.rev_agent_approval_agent.htm`](help/articles/ind.rev_agent_approval_agent.htm.md), [`ind.rev_agent_topic_approval_management.htm`](help/articles/ind.rev_agent_topic_approval_management.htm.md), [`ind.rev_agent_topic_search_approval_records.htm`](help/articles/ind.rev_agent_topic_search_approval_records.htm.md), [`ind.rev_agent_topic_summarize_multiple_approval_work_items.htm`](help/articles/ind.rev_agent_topic_summarize_multiple_approval_work_items.htm.md) |
 | **Compound Price Uplifts for Ramps** | Transaction Mgmt | Yes: [1](release-notes/articles/release-notes.rn_transaction_management_ramp_deal_compound_uplift.htm.md), [2](release-notes/articles/release-notes.rn_billing_price_uplifts_for_multiyear_ramp_dealsxml.htm.md), [3](release-notes/articles/release-notes.rn_pricing_reduce_pricing_errors_and_improve_deal_transparency_on_ramp_deals.htm.md) | Create ramp deals with standard or compound price uplifts. | 2 articles: [`ind.qocal_ramp_deal_compound_uplift_sales_reps.htm`](help/articles/ind.qocal_ramp_deal_compound_uplift_sales_reps.htm.md), [`ind.qocal_ramp_deal_compound_uplift.htm`](help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md) |
-| **Invoice Aging** | Billing | Yes: [1](release-notes/articles/release-notes.rn_billing_invoice_aging_summaries.htm.md) | Invoice Aging for Account component: invoice counts, overdue invoices, aging buckets, and average and maximum age on Account and Order pages. | 2 articles: [`ind.billing_invoice_aging.htm`](help/articles/ind.billing_invoice_aging.htm.md), [`ind.billing_invoice_aging_component.htm`](help/articles/ind.billing_invoice_aging_component.htm.md) |
+| **Invoice Aging** | Billing | Yes: [1](release-notes/articles/release-notes.rn_billing_invoice_aging_summaries.htm.md) | Invoice Aging for Account component: invoice counts, overdue invoices, aging buckets, and average and maximum age on Account and Order pages. | 3 articles: [`ind.billing_invoice_aging.htm`](help/articles/ind.billing_invoice_aging.htm.md), [`ind.billing_invoice_aging_component.htm`](help/articles/ind.billing_invoice_aging_component.htm.md), [`ind.billing_invoice_aging_overview.htm`](help/articles/ind.billing_invoice_aging_overview.htm.md) |
 | **Billing Start Month and Next Billing Date Override** | Billing | None (Help only) | Billing schedule group fields you can update on existing groups. 262 documented billing day of month and the separate period boundary start month, but not these. The [billing-frequency note](release-notes/articles/release-notes.rn_billing_change_frequency_arc.htm.md) mentions setting a billing start month, but only as an input (`BillingStartMonth__std`) to a billing-frequency change amendment on an existing group through the Create Standalone Billing Schedules API ([procedure](help/articles/ind.billing_change_billing_pricing_frequencies.htm.md)), not as a direct edit of the group's field, so it is mapped to Change Billing Frequency only. | 3 articles: [`ind.billing_schedule_group_update.htm`](help/articles/ind.billing_schedule_group_update.htm.md), [`ind.billing_schedule_group_update_billing_start_month.htm`](help/articles/ind.billing_schedule_group_update_billing_start_month.htm.md), [`ind.billing_schedule_group_update_next_billing_date_override.htm`](help/articles/ind.billing_schedule_group_update_next_billing_date_override.htm.md) |
 | **Exclude From Billing** | Billing | None (Help only) | A billing treatment value that skips billing schedules, groups and invoices for order items not ready to bill, without holding the whole order. | [`ind.billing_treatment_exclude_from_billing.htm`](help/articles/ind.billing_treatment_exclude_from_billing.htm.md) |
 | **Prefix Matching and Partial Search** | PCM | Yes: [1](release-notes/articles/release-notes.rn_product_catalog_find_products_with_prefix_matching_and_partial_search.htm.md) | Prefix matching is on by default: a term of at least 3 characters matches the start of a searchable Product Name, Code or SKU (262 said prefix search was unsupported). Partial search is opt-in and matches any part of a Product Code or SKU, ignoring hyphens, spaces and similar characters. | 3 articles: [`ind.product_catalog_search_considerations.htm`](help/articles/ind.product_catalog_search_considerations.htm.md), [`ind.product_catalog_partial_search.htm`](help/articles/ind.product_catalog_partial_search.htm.md), [`ind.product_catalog_configure_partial_search.htm`](help/articles/ind.product_catalog_configure_partial_search.htm.md) |
-| **Price Book Filtering** | PCM | Yes: [1](release-notes/articles/release-notes.rn_product_catalog_discover_products_faster_using_price_book_filters.htm.md) | Return only the products associated with the selected price book, for large catalogs with little price book overlap. | [`ind.product_catalog_turn_on_price_book_filtering.htm`](help/articles/ind.product_catalog_turn_on_price_book_filtering.htm.md) |
+| **Price Book Filtering** | PCM | Yes: [1](release-notes/articles/release-notes.rn_product_catalog_discover_products_faster_using_price_book_filters.htm.md) | Return only the products associated with the selected price book, for large catalogs with little price book overlap. Help now lists two scenarios where the issue occurs (browsing catalogs when a quote has a selected price book, and configuring bundles by product classification) and links to Manage Your Product Index; the note that the index is required only the first time is gone. | [`ind.product_catalog_turn_on_price_book_filtering.htm`](help/articles/ind.product_catalog_turn_on_price_book_filtering.htm.md) |
 | **Custom Dynamic Addition Screen Flow** | Configurator | None (Help only) | Replace the default add-products experience for a product classification with your own screen flow during bundle configuration. | [`ind.product_configurator_set_up_a_custom_dynamic_addition_screen_flow.htm`](help/articles/ind.product_configurator_set_up_a_custom_dynamic_addition_screen_flow.htm.md) |
 | **Special Terms on Quotes** | Transaction Mgmt | Yes: [1](release-notes/articles/release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm.md) | Insert an active Document Clause Library clause as a quote special term and resolve its placeholder tokens. | [`ind.qocal_add_a_special_term_to_a_quote.htm`](help/articles/ind.qocal_add_a_special_term_to_a_quote.htm.md) |
 | **Backdated Asset Transactions** | Transaction Mgmt | Yes: [1](release-notes/articles/release-notes.rn_transaction_management_backdated_arc_for_ramps.htm.md), [2](release-notes/articles/release-notes.rn_transaction_management_backdate_asset_transactions.htm.md) | Backdate asset amendments, renewals and cancellations, with considerations. 262 said "You can't back-date transactions" (`ind.qocal_future_dated_order_amendments_important_considerations.htm`); the 264 release note "Gain Transaction Flexibility with Backdated Asset Changes" introduces it. | 2 articles: [`ind.qocal_backdate_asset_transactions.htm`](help/articles/ind.qocal_backdate_asset_transactions.htm.md), [`ind.qocal_considerations_for_assets_with_backdated_changes.htm`](help/articles/ind.qocal_considerations_for_assets_with_backdated_changes.htm.md) |
+| **Invoice Line Summary** | Billing | Yes: [1](release-notes/articles/release-notes.rn_billing_invoice_line_summary.htm.md) | Invoice lines grouped by product in one hierarchy, including usage resources of the same usage product, so one-time, recurring, usage, overage and milestone charges can be explained without scanning line by line. | [`ind.billing_invoice_line_summary.htm`](help/articles/ind.billing_invoice_line_summary.htm.md) |
+| **Failed Transaction Journal Reconciliation** | Billing | Yes: [1](release-notes/articles/release-notes.rn_billing_access_request_payload_data_on_rtel.htm.md) | When Billing fails to create transaction journals, generate them from the details saved in Revenue Transaction Error Log records by running a custom Apex class that uses the TransactionJournalReconciler or TransactionJournalBatchReconciler class. | 3 articles: [`ind.billing_general_ledger_reconcile.htm`](help/articles/ind.billing_general_ledger_reconcile.htm.md), [`ind.billing_general_ledger_reconciler_apex_class.htm`](help/articles/ind.billing_general_ledger_reconciler_apex_class.htm.md), [`ind.billing_general_ledger_reconciler_batch_apex_class.htm`](help/articles/ind.billing_general_ledger_reconciler_batch_apex_class.htm.md) |
+| **Quote Document Generation Options** | Transaction Mgmt | Yes: [1](release-notes/articles/release-notes.rn_transaction_management_docgen_clm.htm.md), [2](release-notes/articles/release-notes.rn_share_quote_documents_and_track_e_sign.htm.md) | Three options for quote documents: legacy quote PDF generation, Document Builder and CLM Document Generation. Signature capture on web and mobile. | 4 articles including [`ind.qocal_document_generation_for_quotes.htm`](help/articles/ind.qocal_document_generation_for_quotes.htm.md), [`ind.qocal_choose_a_document_generation_option.htm`](help/articles/ind.qocal_choose_a_document_generation_option.htm.md), [`ind.qocal_generate_a_quote_document_with_clm_document_generation.htm`](help/articles/ind.qocal_generate_a_quote_document_with_clm_document_generation.htm.md), [`ind.qocal_document_builder_signatures_on_web_and_mobile_app.htm`](help/articles/ind.qocal_document_builder_signatures_on_web_and_mobile_app.htm.md) |
+| **Renewal Rate and Grant Sourcing** | Transaction Mgmt | None | For usage-based assets, set the asset's pricing source to Last Transaction before renewal to carry negotiated rates and grants into the renewal quote, or the quote uses active catalog values. Includes on-time renewal behavior and a subscription renewal example. | [`ind.qocal_renewal_rate_and_grant_sourcing_consideratins.htm`](help/articles/ind.qocal_renewal_rate_and_grant_sourcing_consideratins.htm.md), [`ind.qocal_retain_negotiated_rates_and_grants_on_renewal.htm`](help/articles/ind.qocal_retain_negotiated_rates_and_grants_on_renewal.htm.md), [`ind.qocal_usage_on_time_renewals.htm`](help/articles/ind.qocal_usage_on_time_renewals.htm.md), [`ind.qocal_subscription_renewal_example.htm`](help/articles/ind.qocal_subscription_renewal_example.htm.md) |
+| **Amendment, Renewal and Cancellation Examples** | Transaction Mgmt | None | End-to-end examples from the initial asset state through order decomposition, fulfillment and billing, plus a pricing-procedure note: actions don't update when a pricing procedure changes an amended line's sales price, so use a post-pricing Apex class. | [`ind.qocal_amendment_renewal_cancellation_scenarios.htm`](help/articles/ind.qocal_amendment_renewal_cancellation_scenarios.htm.md), [`ind.qocal_asset_cancellation_example.htm`](help/articles/ind.qocal_asset_cancellation_example.htm.md), [`ind.qocal_asset_swap_example.htm`](help/articles/ind.qocal_asset_swap_example.htm.md), [`ind.qocal_quantity_amendment_example.htm`](help/articles/ind.qocal_quantity_amendment_example.htm.md), [`ind.qocal_amend_line_items_pricing_procedure.htm`](help/articles/ind.qocal_amend_line_items_pricing_procedure.htm.md) |
+| **Advanced Detail Line Pricing Limits** | Pricing | None | Limits and configuration requirements to review before adding the Advanced Detail Line Pricing element to a pricing procedure. | [`ind.pricing_advanced_detail_line_pricing_limits.htm`](help/articles/ind.pricing_advanced_detail_line_pricing_limits.htm.md) |
+| **Dynamic Revenue Orchestrator Access** | DRO | Yes: [1](release-notes/articles/release-notes.rn_dro_read_only_permission_set.htm.md) | Assign a permission set to give users access, including the read-only permission set, and review the permissions each set includes. | [`ind.dro_provide_user_access.htm`](help/articles/ind.dro_provide_user_access.htm.md) |
+| **Retry Assetization and Business Process Changes** | DRO | None | Fix the cause of a failed assetization and invoke the Create or Update Asset from Order action to retry it. Phased rollouts can change or run several configurations of a business process. | [`ind.dro_retry_assetization_for_an_order.htm`](help/articles/ind.dro_retry_assetization_for_an_order.htm.md), [`ind.dro_changing_a_business_process_in_an_orchestration_plan.htm`](help/articles/ind.dro_changing_a_business_process_in_an_orchestration_plan.htm.md) |
+| **Convert Simple Product to Bundle** | PCM | Yes: [1](release-notes/articles/release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm.md) | Change a product's type to a bundle to add bundle-specific features without making duplicates. | [`ind.product_catalog_convert_simple_product_to_bundle_product.htm`](help/articles/ind.product_catalog_convert_simple_product_to_bundle_product.htm.md) |
+| **Consolidation Strategies for Large Catalogs** | Configurator | None | Choose between one constraint model for many products and several models with distinct product sets; the choice affects performance, maintainability and ownership. | [`ind.product_configurator_model_large_catalogs.htm`](help/articles/ind.product_configurator_model_large_catalogs.htm.md) |
 
-**Scope:** this index is selective. It names the major feature clusters, and the feature tables link 118 of the 301 new article IDs (they also link 8 shared articles whose content expanded). The count comes from the captured manifests. For the complete list, diff the captured files in [`../262/help/manifest.json`](../262/help/manifest.json) and [`help/manifest.json`](help/manifest.json) (see **How this index was built**). Unlisted new IDs are mostly per-element, per-variable and setup sub-articles of the clusters above (for example the Rating element pages), but some smaller features may remain unclassified.
+**Scope:** this index is selective. It names the major feature clusters, and the feature tables link 154 of the 347 new article IDs. The file also links 24 distinct articles that exist in both captures: 6 linked in the tables (3 of them also elsewhere) and 18 linked only outside them. IDs named only in backticks are not counted. Of the 24, 16 have a longer `body_length` in 264 and 21 a larger file size. The count comes from the captured manifests. For the complete list, diff the captured files in [`../262/help/manifest.json`](../262/help/manifest.json) and [`help/manifest.json`](help/manifest.json) (see **How this index was built**). Unlisted new IDs are mostly per-element, per-variable and setup sub-articles of the clusters above (for example the Rating element pages), but some smaller features may remain unclassified.
 
 ---
 
 ## Expanded / Newly Documented Features (existed in 262)
 
-### Agentforce for Revenue Management
+### Agentforce for Revenue Cloud
 
 Approval Agent (the published name; Approval Management is one of its three subagents) moved to **New Features in 264**: the 262 corpus has no approval-agent article, and 264 adds 4.
 
@@ -71,20 +83,28 @@ Approval Agent (the published name; Approval Management is one of its three suba
 | Serial and Parallel Approvers | **Expanded** (3 → 5 approvals articles mention parallel) | None | Multi-stakeholder workflows. 262 already described serial and parallel workflows; 264 adds dedicated types-of-approvals and serial/parallel setup articles. | [`ind.approvals_implement_serial_and_parallel_approvers.htm`](help/articles/ind.approvals_implement_serial_and_parallel_approvers.htm.md) |
 | Smart / Rule-Based Auto-Approvals | **Expanded** | None | Automated approval logic. | [`ind.approvals_smart_or_rule_based_approvals.htm`](help/articles/ind.approvals_smart_or_rule_based_approvals.htm.md) |
 | Approval Delegation | **Newly documented** (0 → 4 articles with delegation in the ID) | Yes: [1](release-notes/articles/release-notes.rn_adv_approvals_approval_delegation.htm.md) | Delegate approval responsibilities for temporary coverage. 262 already referenced delegates (delegate notifications in `ind.approvals_email_templates.htm`; "Delegates don’t receive approval notifications in Slack"), so this is not counted as new. 264 adds dedicated setup articles. | 4 articles: [`ind.approvals_approval_delegation.htm`](help/articles/ind.approvals_approval_delegation.htm.md), [`ind.approvals_create_delegation_records.htm`](help/articles/ind.approvals_create_delegation_records.htm.md), [`ind.approvals_turn_on_delegation.htm`](help/articles/ind.approvals_turn_on_delegation.htm.md), [`ind.approvals_delegation_considerations.htm`](help/articles/ind.approvals_delegation_considerations.htm.md) |
+| Override Approval Work Item (Flow Core Action) | **Newly documented** | None | Update an approval work item's status to reflect the approval admin's decision, letting admins override the decision for any assignee. | [`ind.approvals_core_actions_override_approval_work_item.htm`](help/articles/ind.approvals_core_actions_override_approval_work_item.htm.md) |
 
-### Billing (99 new articles, net +94)
+### Billing (121 new articles, net +116)
 
 | Feature | Status | Release note | Description | Key Articles |
 |---|---|---|---|---|
-| Collections & Dunning | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_collections_specialist_console.htm.md) | Collections Specialist Console, dunning orchestration, collection plans/items. | [`ind.billing_collections.htm`](help/articles/ind.billing_collections.htm.md) (+3,564 chars), [`ind.billing_collections_specialist_console.htm`](help/articles/ind.billing_collections_specialist_console.htm.md), [`ind.billing_configure_dunning_orchestration.htm`](help/articles/ind.billing_configure_dunning_orchestration.htm.md) |
+| Collections & Dunning | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_collections_specialist_console.htm.md) | Collections Specialist Console, dunning orchestration, collection plans/items. | [`ind.billing_collections.htm`](help/articles/ind.billing_collections.htm.md) (+3,562 chars; the intro is rewritten, and Key Terms, Process Workflow and Business Use Case sections are added; the editions line no longer lists Performance), [`ind.billing_collections_specialist_console.htm`](help/articles/ind.billing_collections_specialist_console.htm.md), [`ind.billing_configure_dunning_orchestration.htm`](help/articles/ind.billing_configure_dunning_orchestration.htm.md) |
 | Change Billing Frequency | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_change_frequency_arc.htm.md), [2](release-notes/articles/release-notes.rn_billing_weekly_cycle.htm.md) | Change frequency on new/existing subscriptions. | [`ind.billing_change_billing_pricing_frequencies.htm`](help/articles/ind.billing_change_billing_pricing_frequencies.htm.md), [`ind.billing_change_billing_frequency_examples.htm`](help/articles/ind.billing_change_billing_frequency_examples.htm.md) |
-| Refunds & Credit Management | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_issue_credits_as_refunds.htm.md) | Issue refunds, unreferenced refunds, rule-based application. Unreferenced refunds are new in 264 (0 → 3 articles mention them). | [`ind.billing_refunds_overview.htm`](help/articles/ind.billing_refunds_overview.htm.md), [`ind.billing_unreferenced_refunds.htm`](help/articles/ind.billing_unreferenced_refunds.htm.md), [`ind.billing_setup_credit_memos_payments_application_rules.htm`](help/articles/ind.billing_setup_credit_memos_payments_application_rules.htm.md) |
-| Tax Engine Framework | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_extend_tax_engine.htm.md) | Create tax engines/providers, extend Revenue Standard Tax Engine. | [`ind.billing_tax_engine_create.htm`](help/articles/ind.billing_tax_engine_create.htm.md), [`ind.billing_extend_revenue_standard_tax_engine.htm`](help/articles/ind.billing_extend_revenue_standard_tax_engine.htm.md), [`ind.billing_tax_policies_and_treatments_create.htm`](help/articles/ind.billing_tax_policies_and_treatments_create.htm.md) |
+| Refunds & Credit Management | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_issue_credits_as_refunds.htm.md) | Issue refunds, unreferenced refunds, rule-based application. Unreferenced refunds are new in 264 (0 → 3 articles mention them). Unapplying a refund line payment is documented in 264 ([`ind.billing_unapply_refund_line.htm`](help/articles/ind.billing_unapply_refund_line.htm.md); release note "Undo Refund Line Applications with Unapply Support"). | [`ind.billing_refunds_overview.htm`](help/articles/ind.billing_refunds_overview.htm.md), [`ind.billing_unreferenced_refunds.htm`](help/articles/ind.billing_unreferenced_refunds.htm.md), [`ind.billing_setup_credit_memos_payments_application_rules.htm`](help/articles/ind.billing_setup_credit_memos_payments_application_rules.htm.md) |
+| Tax Engine Framework | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_extend_tax_engine.htm.md) | Create tax engines/providers, extend Revenue Standard Tax Engine. The custom metadata extension is now "Extend Your Revenue Standard Tax Engine" ([`ind.billing_standard_tax_custom_metadata_types_configure.htm`](help/articles/ind.billing_standard_tax_custom_metadata_types_configure.htm.md)): clone the Revenue Standard Tax Entries decision table and add custom columns to match tax rates on custom attributes. | [`ind.billing_tax_engine_create.htm`](help/articles/ind.billing_tax_engine_create.htm.md), [`ind.billing_extend_revenue_standard_tax_engine.htm`](help/articles/ind.billing_extend_revenue_standard_tax_engine.htm.md), [`ind.billing_tax_policies_and_treatments_create.htm`](help/articles/ind.billing_tax_policies_and_treatments_create.htm.md) |
 | Invoice Previews | **Expanded** | None | Generate previews for orders, accounts, billing schedule groups. | [`ind.billing_preview_invoice.htm`](help/articles/ind.billing_preview_invoice.htm.md), [`ind.billing_invoice_preview_create.htm`](help/articles/ind.billing_invoice_preview_create.htm.md) |
 | Invoice Operations | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_review_split_invoices.htm.md) | Delete, write off, review split invoices, convert to async. | [`ind.billing_invoice_delete.htm`](help/articles/ind.billing_invoice_delete.htm.md), [`ind.billing_write_off_invoice_balance.htm`](help/articles/ind.billing_write_off_invoice_balance.htm.md), [`ind.billing_invoice_run_sync_process.htm`](help/articles/ind.billing_invoice_run_sync_process.htm.md) |
-| Billing Schedule Management | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_catch_up_bill_runs.htm.md), [2](release-notes/articles/release-notes.rn_billing_future_dated_suspensions.htm.md), [3](release-notes/articles/release-notes.rn_billing_schedule_timelines.htm.md) | Generate from orders, update groups, suspend/resume, APIs. | [`ind.billing_schedules_from_orders.htm`](help/articles/ind.billing_schedules_from_orders.htm.md), [`ind.billing_suspend_and_resume_overview.htm`](help/articles/ind.billing_suspend_and_resume_overview.htm.md), [`ind.billing_catch_up_bill_runs.htm`](help/articles/ind.billing_catch_up_bill_runs.htm.md) |
+| Billing Schedule Management | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_billing_catch_up_bill_runs.htm.md), [2](release-notes/articles/release-notes.rn_billing_future_dated_suspensions.htm.md), [3](release-notes/articles/release-notes.rn_billing_schedule_timelines.htm.md) | Generate from orders with the Order to Billing Schedule flow or the Create Billing Schedules for Orders API, update groups, suspend/resume, APIs. Early renewals that supersede an active renewal or future-dated order cancel and replace the overlapping billing schedule (not for usage-based or ramped products). | [`ind.billing_schedules_from_orders.htm`](help/articles/ind.billing_schedules_from_orders.htm.md), [`ind.billing_suspend_and_resume_overview.htm`](help/articles/ind.billing_suspend_and_resume_overview.htm.md), [`ind.billing_catch_up_bill_runs.htm`](help/articles/ind.billing_catch_up_bill_runs.htm.md) |
 | General Ledger | **Expanded** | None | GL account assignment rules, FX gains/losses, legal entity periods. | [`ind.billing_general_ledger_account_assignment_rules_create.htm`](help/articles/ind.billing_general_ledger_account_assignment_rules_create.htm.md), [`ind.billing_foreign_exchange_realized_gains_and_losses.htm`](help/articles/ind.billing_foreign_exchange_realized_gains_and_losses.htm.md) |
 | Debit Memos & Policies | **Expanded** | None | Create debit memos, billing policies/treatments. | [`ind.billing_debit_memo_create.htm`](help/articles/ind.billing_debit_memo_create.htm.md), [`ind.billing_policies_and_treatments_create.htm`](help/articles/ind.billing_policies_and_treatments_create.htm.md) |
+| Billing Overview and Planning | **Newly documented** | None | Overview, get-started, planning and Customer 360 topics that frame the billing area; permission sets give users precise access. | [`ind.billing_overview.htm`](help/articles/ind.billing_overview.htm.md), [`ind.billing_get_started.htm`](help/articles/ind.billing_get_started.htm.md), [`ind.billing_plan_your_billing.htm`](help/articles/ind.billing_plan_your_billing.htm.md), [`ind.billing_support_your_customers.htm`](help/articles/ind.billing_support_your_customers.htm.md) |
+| Disputes and Adjustments | **Expanded** | None | Disputes overview (cases from the Account record page) and credit and debit memo adjustments. | [`ind.billing_disputes_overview.htm`](help/articles/ind.billing_disputes_overview.htm.md), [`ind.billing_adjustments.htm`](help/articles/ind.billing_adjustments.htm.md) |
+| Collections Overview in Billing | **Newly documented** | None | Billing's collections workflow overview. Collections and Recovery is a separate area (see below). | [`ind.billing_collections_overview.htm`](help/articles/ind.billing_collections_overview.htm.md) |
+
+### Collections and Recovery (97 articles, same text as 262)
+
+The `collections` area (root [`ind.collections.htm`](help/articles/ind.collections.htm.md)) is captured in 264. It is separate from Billing's collections topics (`ind.billing_collections*`, above). Compared with 262, 96 of the 97 articles carry the same body text (ignoring the header, the attribution note and the brand wording). The one exception, [`ind.collections_setup_calculate_risk_scores.htm`](help/articles/ind.collections_setup_calculate_risk_scores.htm.md), adds an "Explore and Learn" video note. No Collections feature is new in 264. The editions article ([`ind.collections_editions_permissions.htm`](help/articles/ind.collections_editions_permissions.htm.md)) governs availability; read it before promising Collections on a Revenue Cloud org.
 
 ### Product Configurator
 
@@ -97,8 +117,8 @@ Approval Agent (the published name; Approval Management is one of its three suba
 
 | Feature | Status | Release note | Description | Articles |
 |---|---|---|---|---|
-| **Time-Aware Fulfillment** | **Expanded** (1 → 12 articles mention time-aware) | Yes: [1](release-notes/articles/release-notes.rn_dro_optimize_multiyear_orchestration.htm.md), [2](release-notes/articles/release-notes.rn_dro_backdated_future_dated_amendments.htm.md), [3](release-notes/articles/release-notes.rn_dro_staged_assetization_ramped_products.htm.md) | DRO decomposes multi-year ramps into FOLIs and FASPs aligned with period effective dates. Prevents overwrites on amendments. A Staged Assetize step creates ramp-segment assets during plan execution; it works only for time-aware fulfillment assets. | [`ind.dro_time_aware_fulfillment.htm`](help/articles/ind.dro_time_aware_fulfillment.htm.md), [`ind.dro_ramp_deal_decomposition.htm`](help/articles/ind.dro_ramp_deal_decomposition.htm.md), [`ind.dro_time_aware_fulfillment_enable.htm`](help/articles/ind.dro_time_aware_fulfillment_enable.htm.md), [`ind.dro_time_aware_fulfillment_migration.htm`](help/articles/ind.dro_time_aware_fulfillment_migration.htm.md), [`ind.dro_time_aware_fulfillment_example_add.htm`](help/articles/ind.dro_time_aware_fulfillment_example_add.htm.md) |
-| High Tech Order Orchestration Template | **Expanded** (15 → 21 articles mention technical product) | Yes: [1](release-notes/articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md) | Pre-built DRO template. | [`ind.dro_hi_tech_order_orchestration_template.htm`](help/articles/ind.dro_hi_tech_order_orchestration_template.htm.md), [`ind.dro_install_hi_tech_order_orchestration_template.htm`](help/articles/ind.dro_install_hi_tech_order_orchestration_template.htm.md) |
+| **Time-Aware Fulfillment** | **Expanded** (1 → 16 articles mention time-aware) | Yes: [1](release-notes/articles/release-notes.rn_dro_optimize_multiyear_orchestration.htm.md), [2](release-notes/articles/release-notes.rn_dro_backdated_future_dated_amendments.htm.md), [3](release-notes/articles/release-notes.rn_dro_staged_assetization_ramped_products.htm.md) | DRO decomposes multi-year ramps into FOLIs and FASPs aligned with period effective dates. Prevents overwrites on amendments. A Staged Assetize step creates ramp-segment assets during plan execution; it works only for time-aware fulfillment assets. | [`ind.dro_time_aware_fulfillment.htm`](help/articles/ind.dro_time_aware_fulfillment.htm.md), [`ind.dro_ramp_deal_decomposition.htm`](help/articles/ind.dro_ramp_deal_decomposition.htm.md), [`ind.dro_time_aware_fulfillment_enable.htm`](help/articles/ind.dro_time_aware_fulfillment_enable.htm.md), [`ind.dro_time_aware_fulfillment_migration.htm`](help/articles/ind.dro_time_aware_fulfillment_migration.htm.md), [`ind.dro_time_aware_fulfillment_example_add.htm`](help/articles/ind.dro_time_aware_fulfillment_example_add.htm.md) |
+| High Tech Order Orchestration Template | **Expanded** (15 → 22 articles mention technical product) | Yes: [1](release-notes/articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md) | Pre-built DRO template. | [`ind.dro_hi_tech_order_orchestration_template.htm`](help/articles/ind.dro_hi_tech_order_orchestration_template.htm.md), [`ind.dro_install_hi_tech_order_orchestration_template.htm`](help/articles/ind.dro_install_hi_tech_order_orchestration_template.htm.md) |
 | Technical Product Catalog | **Expanded** | None | Build technical product catalog, create products/bundles. | [`ind.dro_technical_product_in_dro.htm`](help/articles/ind.dro_technical_product_in_dro.htm.md), [`ind.dro_creating_a_technical_product.htm`](help/articles/ind.dro_creating_a_technical_product.htm.md), [`ind.dro_technical_bundles.htm`](help/articles/ind.dro_technical_bundles.htm.md) |
 | Future-Dated Steps | **Expanded** | None | Delay step execution relative to the source line start date, the previous step, or a context-definition date field. 262 had Turn On Future Dated Steps; 264 adds a configuration article. | [`ind.dro_configure_steps_for_future_execution.htm`](help/articles/ind.dro_configure_steps_for_future_execution.htm.md) |
 | Fulfillment Workspaces | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_dro_clone_fulfillment_workspaces.htm.md) | Clone, configure deep cloning. | [`ind.dro_clone_a_fulfillment_workspace.htm`](help/articles/ind.dro_clone_a_fulfillment_workspace.htm.md), [`ind.dro_configure_fulfillment_workspace_deep_cloning.htm`](help/articles/ind.dro_configure_fulfillment_workspace_deep_cloning.htm.md) |
@@ -124,6 +144,8 @@ Approval Agent (the published name; Approval Management is one of its three suba
 | Discovery Procedure | **Expanded** | None | Configure, discover pricing factors. | [`ind.pricing_set_up_your_discovery_procedure.htm`](help/articles/ind.pricing_set_up_your_discovery_procedure.htm.md), [`ind.pricing_discovery_procedure_for_pricing.htm`](help/articles/ind.pricing_discovery_procedure_for_pricing.htm.md) |
 | Pricing Recipes | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_pricing_tailor_pricing_rules_for_multiple_industry_clouds.htm.md) | Setup, create, sync decision tables. | [`ind.pricing_pricing_recipes.htm`](help/articles/ind.pricing_pricing_recipes.htm.md), [`ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm`](help/articles/ind.pricing_sync_decision_tables_in_a_pricing_recipe.htm.md) |
 | Pricing Adjustment Batch Jobs | **Expanded** | None | Perform, fix/execute failed, view logs. | [`ind.pricing_pricing_adjustment_batch_jobs.htm`](help/articles/ind.pricing_pricing_adjustment_batch_jobs.htm.md), [`ind.pricing_perform_pricing_adjustment_batch_job.htm`](help/articles/ind.pricing_perform_pricing_adjustment_batch_job.htm.md) |
+| Price Books and Cost Books | **Newly documented** | None | One overview of price books and cost books, with an illustrative example that calculates margin from a standard cost book. Help says the margin example is not a packaged feature: it uses custom cost and margin fields, context mapping and a lookup. | [`ind.pricing_price_books_and_cost_books.htm`](help/articles/ind.pricing_price_books_and_cost_books.htm.md), [`ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`](help/articles/ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm.md) |
+| Pricing Procedure Run-Only Changes | **Expanded** | None | Changes a procedure makes to the ProductSellingModel and PricebookEntry context tags apply only to that pricing run and are not saved to the quote line. | [`ind.pricing_configure_pricing_procedure.htm`](help/articles/ind.pricing_configure_pricing_procedure.htm.md) |
 
 ### Rate Management
 
@@ -135,9 +157,9 @@ Approval Agent (the published name; Approval Management is one of its three suba
 
 | Feature | Status | Release note | Description | Articles |
 |---|---|---|---|---|
-| **Ramp Deals** | **Expanded** | None | Considerations expanded +9,220 chars (+505%). Compound uplifts (new), groups vs lines transition, renewal price uplifts. | [`ind.qocal_considerations_ramp_deals.htm`](help/articles/ind.qocal_considerations_ramp_deals.htm.md), [`ind.qocal_ramp_deals_for_groups_transition.htm`](help/articles/ind.qocal_ramp_deals_for_groups_transition.htm.md), [`ind.qocal_renewal_price_uplifts.htm`](help/articles/ind.qocal_renewal_price_uplifts.htm.md) |
+| **Ramp Deals** | **Expanded** | None | Considerations expanded +9,180 chars (+503%). Compound uplifts (new), groups vs lines transition, renewal price uplifts. | [`ind.qocal_considerations_ramp_deals.htm`](help/articles/ind.qocal_considerations_ramp_deals.htm.md), [`ind.qocal_ramp_deals_for_groups_transition.htm`](help/articles/ind.qocal_ramp_deals_for_groups_transition.htm.md), [`ind.qocal_renewal_price_uplifts.htm`](help/articles/ind.qocal_renewal_price_uplifts.htm.md) |
 | Quote Line Item CSV Import | **Expanded** (6 → 10 articles mention quote line item import or import lines) | None | Import from CSV, custom templates. Requires `Advanced CSV Data Import` permission set. | [`ind.qocal_qli_import_user_import_lines_csv.htm`](help/articles/ind.qocal_qli_import_user_import_lines_csv.htm.md), [`ind.qocal_set_up_quote_line_item_import.htm`](help/articles/ind.qocal_set_up_quote_line_item_import.htm.md) |
-| Usage-Based Asset Renewal | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md), [2](release-notes/articles/release-notes.rn_um_renew_ramped_usage_assets_early.htm.md), [3](release-notes/articles/release-notes.rn_um_renew_expired_usage_assets.htm.md) | Renew usage-based assets early (new renewal term, renegotiated rates and grants) or after expiry. 262 had one usage-based renewal article and said usage-based assets can't be renewed in ramp contexts. | [`ind.qocal_renew_usage_based_assets_early.htm`](help/articles/ind.qocal_renew_usage_based_assets_early.htm.md), [`ind.qocal_renew_expired_usage_based_assets.htm`](help/articles/ind.qocal_renew_expired_usage_based_assets.htm.md) |
+| Usage-Based Asset Renewal | **Expanded** | Yes: [1](release-notes/articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md), [2](release-notes/articles/release-notes.rn_um_renew_ramped_usage_assets_early.htm.md), [3](release-notes/articles/release-notes.rn_um_renew_expired_usage_assets.htm.md) | Renew usage-based assets early (new renewal term; rates and grants adjusted as needed) or after expiry. With the asset's pricing source set to Last Transaction the renewal quote carries the negotiated rates and original sold grant quantities that are effective on the renewal date. For an expired ramped asset the renewal is non-ramped and uses the rates and grants of the last active ramp segment; in an early renewal of a ramp product each renewal segment uses the rates and grants effective for its own dates. Early renewal needs a term-defined selling model and is not available for one-time or evergreen products. 262 had one usage-based renewal article and said usage-based assets can't be renewed in ramp contexts. | [`ind.qocal_renew_usage_based_assets_early.htm`](help/articles/ind.qocal_renew_usage_based_assets_early.htm.md), [`ind.qocal_renew_expired_usage_based_assets.htm`](help/articles/ind.qocal_renew_expired_usage_based_assets.htm.md) |
 | Tiered Contract Pricing | **Newly documented** | None | 262 linked to this setup topic from its contract-pricing articles; 264 captures it as a dedicated article. | [`ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm`](help/articles/ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm.md) |
 | Zero-Quantity Quote Detail Lines | **Newly documented** | None | Why zero-quantity detail lines appear when a period's effective quantity is zero. 262 only mentioned zero quantity in amendment and renewal prose. | [`ind.qocal_zero_quantity_considerations.htm`](help/articles/ind.qocal_zero_quantity_considerations.htm.md) |
 | Extract Product Mentions | **Newly documented** | None | Template that extracts products, quantities and attributes from emails, Slack messages or call summaries into quotes. 262 linked to `#qocal_extract_product_mentions` from its foundational setup article; 264 adds dedicated articles. | 2 articles: [`ind.qocal_extract_product_mentions.htm`](help/articles/ind.qocal_extract_product_mentions.htm.md), [`ind.qocal_example_extract_product_mentions.htm`](help/articles/ind.qocal_example_extract_product_mentions.htm.md) |
@@ -148,33 +170,34 @@ Approval Agent (the published name; Approval Management is one of its three suba
 
 ### Usage Management
 
-**No new articles** (52 → 52), but **3 articles with material updates** (>500 chars):
+**No new articles** (52 → 52), but **4 articles with material updates** (>500 chars by manifest `body_length`):
 - **Usage Management Limits** ([`ind.um_usage_management_limits.htm`](help/articles/ind.um_usage_management_limits.htm.md)) — +1,232 chars (+127%)
-- **Create Usage Commitment Policy** ([`ind.um_create_usage_commitment_policy.htm`](help/articles/ind.um_create_usage_commitment_policy.htm.md)) — +1,051 chars (+131%)
-- **Create Usage Product Grant Binding Policy** ([`ind.um_create_a_usage_product_grant_binding_policy.htm`](help/articles/ind.um_create_a_usage_product_grant_binding_policy.htm.md)) — +533 chars (+43%)
+- **Create a Usage Commitment Policy** ([`ind.um_create_usage_commitment_policy.htm`](help/articles/ind.um_create_usage_commitment_policy.htm.md)) — +1,051 chars (+131%)
+- **Consumption Management Lifecycle Statuses** ([`ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm`](help/articles/ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm.md)) — +780 chars (+23%)
+- **Create Usage Product Grant Binding Policy** ([`ind.um_create_a_usage_product_grant_binding_policy.htm`](help/articles/ind.um_create_a_usage_product_grant_binding_policy.htm.md)) — +513 chars (+41%)
 
 ---
 
 ## Material Changes to Shared Articles (Top 10)
 
-Of 830 articles captured in both releases, these had the largest absolute body changes, ranked by `body_length` delta in the two manifests:
+Of 928 articles captured in both releases, these had the largest absolute body changes, ranked by `body_length` delta in the two manifests. The 264 recapture changed how tables and headings are laid out and added a brand rewrite, so smaller deltas can be format only; the largest ones below are content.
 
-1. **Considerations for Ramp Deals** ([`ind.qocal_considerations_ramp_deals.htm`](help/articles/ind.qocal_considerations_ramp_deals.htm.md)) — +9,220 chars (+505%)
+1. **Considerations for Ramp Deals** ([`ind.qocal_considerations_ramp_deals.htm`](help/articles/ind.qocal_considerations_ramp_deals.htm.md)) — +9,180 chars (+503%)
 2. **Best Practices for Apex Pricing Hooks** ([`ind.pricing_apex_hooks_best_practices.htm`](help/articles/ind.pricing_apex_hooks_best_practices.htm.md)) — +8,762 chars (+998%)
-3. **Manage Collections for Accounts** ([`ind.billing_collections.htm`](help/articles/ind.billing_collections.htm.md)) — +3,564 chars (+132%)
-4. **Configure Your Pricing Procedure** ([`ind.pricing_configure_pricing_procedure.htm`](help/articles/ind.pricing_configure_pricing_procedure.htm.md)) — +3,370 chars (+89%)
-5. **Ramp Deal for Groups with Single Ramp Schedule** ([`ind.qocal_ramp_deal_for_groups_create.htm`](help/articles/ind.qocal_ramp_deal_for_groups_create.htm.md)) — -2,574 chars (-67%)
-6. **Create Collection Plans and Collection Plan Items** ([`ind.billing_collection_plans_and_plan_items_create.htm`](help/articles/ind.billing_collection_plans_and_plan_items_create.htm.md)) — +2,574 chars (+248%; tied with #5)
-7. **Ramp Deals in Revenue Management** ([`ind.qocal_ramp_deals_complex_long_term_multiple_products.htm`](help/articles/ind.qocal_ramp_deals_complex_long_term_multiple_products.htm.md)) — -2,570 chars (-50%)
-8. **Create Ramp Deals for Groups with Multiple Ramp Schedules** ([`ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm`](help/articles/ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm.md)) — -2,538 chars (-68%)
-9. **Use the Price Revision Element** ([`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`](help/articles/ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md)) — +2,379 chars (+39%)
-10. **Honor Precise Time Zones in Asset Lifecycle Dates** ([`ind.qocal_asset_lifecycle_date_time_precision.htm`](help/articles/ind.qocal_asset_lifecycle_date_time_precision.htm.md)) — +2,100 chars (+79%)
+3. **Permission Sets in Dynamic Revenue Orchestrator** ([`ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm`](help/articles/ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm.md)) — +4,786 chars (+207%)
+4. **Manage Billing in Revenue Cloud** ([`ind.billing.htm`](help/articles/ind.billing.htm.md)) — -4,188 chars (-47%)
+5. **Generated Billing Schedule Details** ([`ind.billing_view_billing_sched_group.htm`](help/articles/ind.billing_view_billing_sched_group.htm.md)) — +3,964 chars (+45%)
+6. **Configure Your Pricing Procedure** ([`ind.pricing_configure_pricing_procedure.htm`](help/articles/ind.pricing_configure_pricing_procedure.htm.md)) — +3,801 chars (+100%)
+7. **Manage Collections for Accounts in Billing** ([`ind.billing_collections.htm`](help/articles/ind.billing_collections.htm.md)) — +3,562 chars (+131%)
+8. **Ramp Deals in Revenue Cloud** ([`ind.qocal_ramp_deals_complex_long_term_multiple_products.htm`](help/articles/ind.qocal_ramp_deals_complex_long_term_multiple_products.htm.md)) — -2,708 chars (-53%)
+9. **Create a Ramp Deal for Groups with Single Ramp Schedule Per Transaction** ([`ind.qocal_ramp_deal_for_groups_create.htm`](help/articles/ind.qocal_ramp_deal_for_groups_create.htm.md)) — -2,604 chars (-68%)
+10. **Create Collection Plans and Collection Plan Items** ([`ind.billing_collection_plans_and_plan_items_create.htm`](help/articles/ind.billing_collection_plans_and_plan_items_create.htm.md)) — +2,574 chars (+248%)
 
 ---
 
 ## Articles in 262 but not in the 264 capture
 
-This covers removals, renames, 264 capture errors, and the uncaptured Collections area. Absence from the capture alone does not prove an article was removed.
+This covers removals and renames. Absence from the capture alone does not prove an article was removed. The three DRO capture errors in the earlier 264 snapshot are now captured, and Collections is captured.
 
 ### Billing (5 only in 262: 4 replaced or renamed, 1 with no dedicated replacement)
 
@@ -184,26 +207,18 @@ This covers removals, renames, 264 capture errors, and the uncaptured Collection
 - **Tax Interface Extension** (`ind.billing_understand_tax_interface_extension.htm`) — renamed: still documented in [`ind.billing_extend_tax_interface.htm`](help/articles/ind.billing_extend_tax_interface.htm.md)
 - **Troubleshoot Invoice Batch Run Errors** (`ind.billing_invoice_batch_runs_troubleshooting.htm`) — no dedicated replacement found; invoice batch run errors are still covered in [`ind.billing_invoice_batch_run.htm`](help/articles/ind.billing_invoice_batch_run.htm.md)
 
-### DRO (1 capture error, not a verified removal)
-
-- **Create Custom Context Definition and Map Attribute to Field** (`ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm`). The 264 manifest discovered it but recorded a capture error, so its 264 status is unknown. Two new 264 DRO IDs also errored: `ind.dro_create_a_fulfillment_task_assignment_rule.htm` and `ind.dro_create_a_fulfillment_workspace.htm`. Re-run the DRO snapshot to capture all three.
-
 ### Transaction Management (2 only in 262, both reorganized)
 
 - **Divide Subscription Transactions into Segments with Ramp Deals for Lines** (`ind.qocal_ramp_deals.htm`) — reorganized, not removed: 264 still documents Ramp Deals for Lines in [`ind.qocal_ramp_deals_for_groups_transition.htm`](help/articles/ind.qocal_ramp_deals_for_groups_transition.htm.md), which recommends moving to groups but allows both in parallel during migration
 - **View Rate Cards for Usage-Based Assets** (`ind.qocal_view_asset_usage_rate_cards.htm`) — reorganized, not removed: asset rate-card visibility (the Usage Rates tab) is in [`ind.qocal_view_and_manage_assets_in_revenue_cloud.htm`](help/articles/ind.qocal_view_and_manage_assets_in_revenue_cloud.htm.md)
 
-### Collections (97 not captured — not verified as removed)
-
-All 97 Collections articles present in 262 are absent from 264 because the Collections area was **verified still serving 262 content** as of 2026-09-07. Collections snapshot intentionally not captured. Expected to be captured once 264-specific content publishes.
-
 ---
 
 ## Release-Note Cross-Reference
 
-The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 articles) contain 22 section pages, 17 reference notes and 88 feature notes. This section maps each feature note to the index row that covers the same capability.
+The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 146 articles) contain 23 section pages (notes that are another note's parent), 17 reference notes (no parent role and no `Where:` line) and 106 feature notes (with a `Where:` line). This section maps each feature note to the index row that covers the same capability.
 
-- **37 of the 88 feature notes map onto 27 index rows.** The other 51 have no index row, because the corpus diff did not surface them as a feature cluster. Examples are Large Transactions, Promotions, most of Salesforce Contracts and the billing-portal payment notes. Consider them first when the index is extended.
+- **45 of the 106 feature notes map onto 32 index rows.** The other 61 have no index row, because the corpus diff did not surface them as a feature cluster. Examples are Large Transactions, Promotions, most of Salesforce Contracts and the billing-portal payment notes. Consider them first when the index is extended.
 - **Tier:** no note is labelled Beta or Pilot, so a note's presence is read as GA; confirm on a live org at GA. One note is a Release Update: opt-in now, enforced in Summer '27. Invoice Risk Scoring is Pilot by its Help titles and has no release note. Three other New rows (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) also have none and rest on Help alone.
 - The mapping was done by hand. The license column summarizes the licenses and prerequisites in the note's `Where:` line, with "Revenue Cloud" and "license" dropped. Shared prerequisites follow `+`, alternatives are parenthesized when a prerequisite applies to all of them (a comma separates an alternative that needs no prerequisite), and license conditions or exclusions from later sentences (including `Who:` and `Note:` lines) follow a semicolon. Edition and Lightning Experience limits and the permission sets named in `Who:` lines are left out, so the column is not a setup checklist; read each note for full eligibility.
 
@@ -215,19 +230,20 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Keep Approval Workflows Moving with Advanced Approval Delegation](release-notes/articles/release-notes.rn_adv_approvals_approval_delegation.htm.md) | Advanced Approvals enabled | Approval Delegation |
 | [Limit Approval Work Item Visibility to Keep Review Steps Confidential](release-notes/articles/release-notes.rn_adv_approvals_work_item_sharing.htm.md) | Advanced Approvals or Flow Approval Processes enabled | *not in index* |
 
-### Agentforce for Revenue Management (1)
+### Agentforce for Revenue Cloud (1)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Accelerate Approval Decisions with Approval Agent](release-notes/articles/release-notes.rn_rev_agentforce_approvals_agent.htm.md) | Advanced Approvals and Agentforce enabled | Approval Agent |
 
-### Billing (24)
+### Billing (29)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Accept Regional Payment Methods in the Self-Service Billing Portal Through Native Gateways](release-notes/articles/release-notes.rn_billing_regional_payment_methods.htm.md) | Billing | *not in index* |
 | [Add Billing Self-Service Components in LWR Experience Cloud Sites](release-notes/articles/release-notes.rn_billing_self_service_components_lwr.htm.md) | Billing | *not in index* |
 | [Advance Migrated Billing Schedules Without Rebilling by Using Catch-Up Bill Runs](release-notes/articles/release-notes.rn_billing_catch_up_bill_runs.htm.md) | Advanced or Billing | Billing Schedule Management |
+| [Automate Billing Schedule Reconciliations for Early Renewals of Future-Dated Orders](release-notes/articles/release-notes.rn_billing_billing_schedule_reconciliations_for_early_renewals.htm.md) | Advanced or Billing | Billing Schedule Management |
 | [Automate Compound Price Uplifts for Multiyear Ramp Deals](release-notes/articles/release-notes.rn_billing_price_uplifts_for_multiyear_ramp_dealsxml.htm.md) | Advanced | Compound Price Uplifts for Ramps |
 | [Bill Every Few Weeks, Months, or Years Instead of Every Term](release-notes/articles/release-notes.rn_billing_term_units.htm.md) | Advanced or Billing | *not in index* |
 | [Change Billing Frequency on Active Subscriptions Anytime](release-notes/articles/release-notes.rn_billing_change_frequency_arc.htm.md) | Advanced or Billing; setting the frequency and billing start month through the Create Standalone Billing Schedules API needs Billing | Change Billing Frequency |
@@ -236,21 +252,25 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Generate Invoice Documents Automatically During Invoice Batch Runs](release-notes/articles/release-notes.rn_billing_generate_invoice_documents_batch.htm.md) | Billing | *not in index* |
 | [Generate Invoices Across Accounts for Owned and Billed Charges](release-notes/articles/release-notes.rn_billing_generate_invoices_across_accounts.htm.md) | Billing | *not in index* |
 | [Honor Future-Dated Billing Suspensions During Invoicing](release-notes/articles/release-notes.rn_billing_future_dated_suspensions.htm.md) | Advanced or Billing | Billing Schedule Management |
+| [Manage Saved Payment Methods in Aura Experience Sites](release-notes/articles/release-notes.rn_billing_saved_payment_method_aura_component.htm.md) | Billing | *not in index* |
 | [Orchestrate Cart-to-Cash Checkout Flow With a Single API Call](release-notes/articles/release-notes.rn_billing_api_updates.htm.md) | Billing | *not in index* |
 | [Preview Future Invoice Charges with Billing Forecast](release-notes/articles/release-notes.rn_billing_forecast.htm.md) | Billing; the Billing Forecast Console also needs Tableau Next Consumer | Billing Forecast |
-| [Prioritize Collections with Invoice Aging Summaries on Accounts](release-notes/articles/release-notes.rn_billing_invoice_aging_summaries.htm.md) | Billing | Invoice Aging |
 | [Prioritize and Act on Overdue Invoices in the Collections Specialist Console](release-notes/articles/release-notes.rn_billing_collections_specialist_console.htm.md) | Billing | Collections & Dunning |
+| [Prioritize Collections with Invoice Aging Summaries on Accounts](release-notes/articles/release-notes.rn_billing_invoice_aging_summaries.htm.md) | Billing | Invoice Aging |
 | [Reconcile Payment Advice and Bank Data with Lockbox Processing](release-notes/articles/release-notes.rn_billing_lockbox_reconciliation.htm.md) | Billing | Payment Reconciliation |
+| [Recover Failed Transaction Journals Using Payload from Revenue Transaction Error Logs](release-notes/articles/release-notes.rn_billing_access_request_payload_data_on_rtel.htm.md) | Billing | Failed Transaction Journal Reconciliation |
 | [Refund Available Credit Balances to Customer Accounts](release-notes/articles/release-notes.rn_billing_issue_credits_as_refunds.htm.md) | Billing | Refunds & Credit Management |
 | [Review All Impacted Split Invoices Before Posting, Voiding, or Deleting](release-notes/articles/release-notes.rn_billing_review_split_invoices.htm.md) | Billing | Invoice Operations |
 | [Save Digital Wallets for Future Invoice Payments](release-notes/articles/release-notes.rn_billing_save_digital_wallets.htm.md) | Billing | *not in index* |
+| [See Product Charges Together on an Invoice](release-notes/articles/release-notes.rn_billing_invoice_line_summary.htm.md) | Billing | Invoice Line Summary |
 | [Send Level 2 and Level 3 Payment Data Through a Native Payment Gateway](release-notes/articles/release-notes.rn_billing_send_l2_l3_data_native.htm.md) | Billing | *not in index* |
 | [Set Invoice Target Dates by Calendar Day or Billing Period Count](release-notes/articles/release-notes.rn_billing_target_date_flexibility.htm.md) | Advanced or Billing | *not in index* |
 | [Support Flexible Billing With Weekly Cadences](release-notes/articles/release-notes.rn_billing_weekly_cycle.htm.md) | Advanced or Billing | Change Billing Frequency |
 | [Track Ramp Deal Details on Billing Schedules](release-notes/articles/release-notes.rn_billing_track_ramp_deal_details.htm.md) | Advanced | *not in index* |
+| [Undo Refund Line Applications with Unapply Support](release-notes/articles/release-notes.rn_billing_unapply_refund_line.htm.md) | Billing | Refunds & Credit Management |
 | [Visualize Billing Schedule Lifecycles with Timelines](release-notes/articles/release-notes.rn_billing_schedule_timelines.htm.md) | Advanced or Billing | Billing Schedule Management |
 
-### Dynamic Revenue Orchestrator (7)
+### Dynamic Revenue Orchestrator (8)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
@@ -259,14 +279,16 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Clone and Reuse Fulfillment Workspaces](release-notes/articles/release-notes.rn_dro_clone_fulfillment_workspaces.htm.md) | Advanced | Fulfillment Workspaces |
 | [Eliminate Fulfillment Delays by Using Staged Assetization for Ramped Products](release-notes/articles/release-notes.rn_dro_staged_assetization_ramped_products.htm.md) | Advanced | Time-Aware Fulfillment |
 | [Navigate Orders Easily with the Enhanced Decomposition Viewer](release-notes/articles/release-notes.rn_dro_enhanced_decomposition_viewer.htm.md) | Advanced | *not in index* |
+| [Optimize License Spend with Read-Only Access to Dynamic Revenue Orchestrator](release-notes/articles/release-notes.rn_dro_read_only_permission_set.htm.md) | Advanced | Dynamic Revenue Orchestrator Access |
 | [Orchestrate Backdated and Future-Dated Contract Changes Automatically](release-notes/articles/release-notes.rn_dro_backdated_future_dated_amendments.htm.md) | Advanced | Time-Aware Fulfillment |
 | [Streamline Fulfillment of Ramped Asset Amendments](release-notes/articles/release-notes.rn_dro_fulfill_ramped_asset_amendments.htm.md) | Advanced | *not in index* |
 
-### Large Transactions and Quote Processing (7)
+### Large Transactions and Quote Processing (8)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Apply Configuration Rules Across 15,000 Line Items](release-notes/articles/release-notes.rn_large_txn_apply_configuration_rules.htm.md) | Growth or Advanced | *not in index* |
+| [Clone Large Quotes and Orders](release-notes/articles/release-notes.rn_large_txn_clone_quotes_orders.htm.md) | Advanced | *not in index* |
 | [Generate Documents for Quotes with 15,000 Line Items](release-notes/articles/release-notes.rn_large_txn_generate_documents_for_quotes_with_15_000.htm.md) | Growth or Advanced | *not in index* |
 | [Price Quotes and Orders with Up to 15,000 Lines](release-notes/articles/release-notes.rn_large_txn_price_quotes_and_orders.htm.md) | Growth or Advanced | *not in index* |
 | [Recover Faster from Quote and Order Calculation Errors](release-notes/articles/release-notes.rn_large_txn_recover_faster_from_quote_and_order_calculation_errors.htm.md) | Growth or Advanced | *not in index* |
@@ -274,7 +296,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Sync Large Quotes to Opportunities Without Interruption](release-notes/articles/release-notes.rn_large_txn_sync_large_quotes_to_opportunities.htm.md) | Growth or Advanced | *not in index* |
 | [Transform Context Data in Large Transactions](release-notes/articles/release-notes.rn_large_txn_transform_context_data_in_large_transactions.htm.md) | Advanced or Billing | *not in index* |
 
-### Product Catalog Management (7)
+### Product Catalog Management (8)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
@@ -283,6 +305,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Get Accurate Product Details with Automated Product Cache Management](release-notes/articles/release-notes.rn_product_catalog_get_accurate_product_details_with_automated_product_cache_management.htm.md) | Growth, Advanced or Billing | *not in index* |
 | [Get Faster Product Pricing with List Price Caching](release-notes/articles/release-notes.rn_product_catalog_get_faster_product_pricing_with_list_price_caching.htm.md) | Growth, Advanced or Billing | List Price from Cache |
 | [Guide Sales Reps Through Product Setup with Dynamic UI Controls](release-notes/articles/release-notes.rn_product_catalog_guide_sales_reps_through_product_setups_with_dynamic_ui_controls.htm.md) | Growth, Advanced or Billing | *not in index* |
+| [Reuse Existing Simple Products as Bundles](release-notes/articles/release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm.md) | Growth, Advanced or Billing | Convert Simple Product to Bundle |
 | [See Instant Updates in Product Discovery While Building Quotes](release-notes/articles/release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm.md) | Growth, Advanced or Billing | *not in index* |
 | [Simplify Product Configuration with Custom Attribute and Category Ordering](release-notes/articles/release-notes.rn_product_catalog_display_order_attributes.htm.md) | Growth, Advanced or Billing | Attribute Management |
 
@@ -292,15 +315,15 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 |---|---|---|
 | [Enforce Per-Bundle Product Requirements Regardless of Order Size](release-notes/articles/release-notes.rn_product_configurator_instance_quantity.htm.md) | Growth or Advanced | *not in index* |
 | [Let Constraint Rules Assign Child Product Quantities in Bundles](release-notes/articles/release-notes.rn_product_configurator_allowQuantityChange.htm.md) | Growth or Advanced | *not in index* |
-| [Optimize Performance for Revenue Management (Release Update)](release-notes/articles/release-notes.rn_product_configurator_optimize_performance.htm.md) **(Release Update: opt-in, enforced Summer '27)** | Growth or Advanced | *not in index* |
+| [Optimize Performance for Revenue Cloud (Release Update)](release-notes/articles/release-notes.rn_product_configurator_optimize_performance.htm.md) **(Release Update: opt-in, enforced Summer '27)** | Growth or Advanced | *not in index* |
 | [Prevent Constraint Conflicts When Sharing Attributes and Relations](release-notes/articles/release-notes.rn_product_configurator_guardrails_annotation.htm.md) | Growth or Advanced | *not in index* |
 | [Updates in Default Product Configurator Flow](release-notes/articles/release-notes.rn_product_configurator_flow_updates.htm.md) | Growth or Advanced | *not in index* |
 
-### Promotions in Revenue Management (1)
+### Promotions in Revenue Cloud (1)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
-| [Increase Sales with Promotions in Revenue Management](release-notes/articles/release-notes.rn_revenue_increase_sales_with_promotions.htm.md) | Advanced | *not in index* |
+| [Increase Sales with Promotions in Revenue Cloud](release-notes/articles/release-notes.rn_revenue_increase_sales_with_promotions.htm.md) | Advanced | *not in index* |
 
 ### Ramp Deals (2)
 
@@ -308,6 +331,17 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 |---|---|---|
 | [Apply Compound Price Uplifts to Multiyear Ramp Deals to Adjust Pricing Over Time](release-notes/articles/release-notes.rn_transaction_management_ramp_deal_compound_uplift.htm.md) | Growth or Advanced | Compound Price Uplifts for Ramps |
 | [Backdate Amendments, Renewals, and Cancellations for Ramp Deals to Adjust Billing](release-notes/articles/release-notes.rn_transaction_management_backdated_arc_for_ramps.htm.md) | Growth or Advanced | Backdated Asset Transactions |
+
+### Revenue Cloud Accelerators (6)
+
+| Release note | License or requirement | Index row |
+|---|---|---|
+| [Build Revenue Cloud Faster with Prebuilt Design Foundations](release-notes/articles/release-notes.rn_build_revenue_management_foundations.htm.md) | Advanced | *not in index* |
+| [Connect Order Fulfillment to Field Service](release-notes/articles/release-notes.rn_connect_order_fulfillment_to_fieldservice.htm.md) | Advanced | *not in index* |
+| [Create Quotes Faster with Opportunity Data](release-notes/articles/release-notes.rn_create_quotes_faster_with_opportunity.htm.md) | Advanced | *not in index* |
+| [Keep Quote Approvals Moving with Automated Workflows](release-notes/articles/release-notes.rn_quote_auto_approval.htm.md) | Advanced | *not in index* |
+| [Share Quote Documents and Track E-Signatures from Salesforce](release-notes/articles/release-notes.rn_share_quote_documents_and_track_e_sign.htm.md) | Advanced | Quote Document Generation Options |
+| [Validate Orders Before Activation](release-notes/articles/release-notes.rn_validate_orders_before_activation.htm.md) | Advanced | *not in index* |
 
 ### Review and Complete Actions for Salesforce CPQ and Advanced Approvals Managed Package Security Enhancements (1)
 
@@ -327,12 +361,13 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Track Recipient Signing Progress for Document Envelopes](release-notes/articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 | [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts; either way, users also need Sales Cloud, Sales and Service Cloud, Lightning Platform Starter, or Lightning Platform Plus | *not in index* |
 
-### Salesforce Document Generation (3)
+### Salesforce Document Generation (4)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Eliminate Manual Template Updates When Clause Content Changes](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
 | [Generate Documents That Include Tables in Rich Text Fields](release-notes/articles/release-notes.rn_salesforce_document_generation_rich_text_tables.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
+| [Handle Document Generation Timeouts with Configurable Retry](release-notes/articles/release-notes.rn_salesforce_document_generation_retry_timeout.htm.md) | Salesforce Document Generation | *not in index* |
 | [Populate Clause Content with Merge and Placeholder Tokens](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
 
 ### Salesforce Pricing (5)
@@ -345,14 +380,15 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Reduce Pricing Errors and Improve Deal Transparency on Ramp Deals](release-notes/articles/release-notes.rn_pricing_reduce_pricing_errors_and_improve_deal_transparency_on_ramp_deals.htm.md) | Growth or Advanced | Compound Price Uplifts for Ramps |
 | [Tailor Pricing Rules for Multiple Industry Clouds](release-notes/articles/release-notes.rn_pricing_tailor_pricing_rules_for_multiple_industry_clouds.htm.md) | Growth or Advanced | Pricing Recipes |
 
-### Simplify Revenue Cloud Feature Discovery and Setup (2)
+### Simplify Revenue Cloud Feature Discovery and Setup (3)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Configure Billing Features Faster](release-notes/articles/release-notes.rn_billing_features_with_salesforce_go.htm.md) | Advanced or Billing; Invoice Document Delivery needs Billing, and Advanced includes only a few Accounting Sub-Ledger for Accounts Receivables features | *not in index* |
+| [Launch the Revenue Cloud Solution for Subscription Selling](release-notes/articles/release-notes.rn_launch_the_revenue_cloud_solution_for_subscription_selling.htm.md) | Advanced | *not in index* |
 | [Orchestrate High Tech Order Scenarios by Using a Prebuilt Template](release-notes/articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md) | Advanced or Billing | High Tech Order Orchestration Template |
 
-### Transaction Management (9)
+### Transaction Management (11)
 
 | Release note | License or requirement | Index row |
 |---|---|---|
@@ -361,9 +397,11 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | [Edit Accurate Quotes and Orders in Sales Transaction Line Editor with Autorefresh](release-notes/articles/release-notes.rn_transaction_management_stle_enhance_autorefresh.htm.md) | Growth or Advanced | Transaction Summary |
 | [Gain Pricing Flexibility with Price Amendments](release-notes/articles/release-notes.rn_transaction_management_update_quote_and_order_prices_with_price_amendments.htm.md) | Growth or Advanced | *not in index* |
 | [Gain Transaction Flexibility with Backdated Asset Changes](release-notes/articles/release-notes.rn_transaction_management_backdate_asset_transactions.htm.md) | Growth or Advanced | Backdated Asset Transactions |
+| [Generate Documents for Quotes via CLM](release-notes/articles/release-notes.rn_transaction_management_docgen_clm.htm.md) | Advanced | Quote Document Generation Options |
 | [Limit a Procedure Plan to a Specific Industry](release-notes/articles/release-notes.rn_transaction_management_prevent_cross_industry_pricing_errors_with_subtype.htm.md) | Growth or Advanced | *not in index* |
 | [Maintain Time Zone Accuracy for Asset Lifecycle Changes](release-notes/articles/release-notes.rn_transaction_managment_preserve_original_time_zones_for_asset_lifecycle_changes.htm.md) | Growth or Advanced | *not in index* |
 | [Organize Sales Transaction Line Editor Actions into Button Groups for Efficient Editing](release-notes/articles/release-notes.rn_transaction_management_stle_enhance_button_groups.htm.md) | Growth or Advanced | Header-Level Action Buttons in STLE |
+| [Stack Renewals on Termed Assets with an Active Future-Dated Renewal](release-notes/articles/release-notes.rn_transaction_management_renewal_stacking_of_termed_assets.htm.md) | Growth or Advanced | *not in index* |
 | [Sync Quote to Opportunity](release-notes/articles/release-notes.rn_transaction_management_sync_quote_to_opportunity.htm.md) | Growth or Advanced | *not in index* |
 
 ### Usage Management (4)
@@ -387,17 +425,12 @@ New and changed objects, Connect APIs, metadata types, invocable actions and Ape
 
 1. **Refresh the release notes** (`python -m scripts.doc_snapshot help --release 264 --area release_notes --mode refresh`) and re-map any new or retitled feature notes in **Release-Note Cross-Reference**. Update tiers if a note gains a Beta or Pilot label. Promote unmapped notes to index rows as the index is extended.
 2. **Check the v68.0 Metadata Coverage Report** (availability not yet checked): if it is available, verify object/field/API changes match it.
-3. **Refresh Collections snapshot** once 264 content publishes:
-   ```bash
-   python -m scripts.doc_snapshot help --release 264 --area collections --mode discover
-   # byte-diff shared articles against 262 to confirm changed-text signal
-   # if ready: python -m scripts.doc_snapshot help --release 264 --area collections
-   ```
+3. **Refresh the Help snapshot** (`python -m scripts.doc_snapshot help --release 264 --area <area> --mode refresh`; options are in `scripts/doc_snapshot/README.md`). Collections is captured: re-diff its articles against 262 after each refresh, as the 2026-11-23 capture matched 262 text in 96 of 97 articles.
 4. **When Solution Overview decks publish:** Add to Sources table, reconcile descriptions.
 
 ### How this index was built
 
-1. Diffing the captured article files (manifest `status: captured`) of 262 and 264: 301 new, 105 only in 262, 830 in both. Discovery counts, which include the three errored 264 DRO IDs, are not used.
+1. Diffing the captured article files (manifest `status: captured`) of 262 and 264, excluding the Contracts area (428 articles, not in 262): 347 new, 7 only in 262, 928 in both.
 2. Grouping new articles by title patterns to identify features.
 3. Reading sample articles from each feature group.
 4. Computing body-length changes for shared articles.

@@ -9,7 +9,7 @@ record which orgs the schema was extracted from, not a version the file is pinne
 to. Bumping them without re-extracting would make the ERD claim to describe a
 release while serving another one's data.
 
-The core `erd-data.json` reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch` is carried forward from the 262 pass and was not re-run; 264 has no published Core UDD branch or Metadata Coverage Report yet, which is why a live org is ground truth for this release.
+The core `erd-data.json` reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification in `core-262-public` at `p4/262-patch` (internal code search) is carried forward from the 262 pass and was not re-run; 264 had no Core UDD branch or Metadata Coverage Report at the 2026-08 refresh (a `p4/264-patch` branch in `core-264-public` was listed in code search on 2026-11-24; its UDD pass has not been run), so a live org remains ground truth for this release.
 
 **262 → 264:** 70 fields added, 8 removed, 0 type changes, 1 polymorphic
 reference-target change, 270 picklist values added and 18 removed, across 62 changed
@@ -106,7 +106,7 @@ object count see the Domain Overview table in
 
 - **contracts-erd-data.json** — Separate Contracts CLM viewer extension (40 new objects, 446 fields, 55 additional relationship edges)
   - Kept separate from the Revenue Cloud baseline so its release-diff history remains comparable
-  - Includes Contracts Developer Guide objects plus related contract status, state-model, and Context Service objects
+  - Includes Salesforce Contracts guide objects plus related contract status, state-model, and Context Service objects
   - `scripts/erd/schema_diff/264-clm-schema.json` records the four-org describe consensus (48 objects, 553 fields) and feature-gated visibility
   - `scripts/erd/schema_diff/clm-object-list.txt` preserves the explicit selection for future release-aligned extracts
   - Four Developer Guide object pages were absent from the primary org's object inventory and failed direct describe in all four prepared orgs; two included generation status-event objects are marked not SOQL-queryable

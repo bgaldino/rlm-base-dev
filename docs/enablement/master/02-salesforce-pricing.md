@@ -516,7 +516,7 @@ For workshop attendees: the Preview lets you build the propagation rules iterati
 
 # Part 8: Promotions (Beta — 260)
 
-## Section 18: Promotions in Agentforce Revenue Management {#promotions}
+## Section 18: Promotions in Revenue Cloud {#promotions}
 
 > **Version:** introduced 260 (Spring '26) · available 260+ · tier: **Beta** · *Scenario step: Promotions 1* · ✨ **New in 260**
 

@@ -24,7 +24,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `calmdelete` | `True` | 1 flow step(s) |
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
-| `collections` | `True` | 4 flow step(s) |
+| `collections` | `True` | 5 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 4 flow step(s) |
 | `constraints_data` | `True` | 6 flow step(s) |
@@ -167,6 +167,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_collections` step 2 → `deploy_post_collections`
 - `prepare_collections` step 3 → `seed_collections_case_matrix`
 - `prepare_collections` step 4 → `deploy_collections_case_flow`
+- `prepare_collections` step 5 → `assign_permission_sets`
 
 ### `commerce` (default: `False`)
 

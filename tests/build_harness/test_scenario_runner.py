@@ -11,6 +11,7 @@ import json
 
 import pytest
 
+from scripts.build_harness.harness.execution import PreflightFailure
 from scripts.build_harness.harness.io import write_json
 from scripts.build_harness.harness.config import Step
 from scripts.build_harness.harness import scenario_runner
@@ -214,7 +215,7 @@ def test_run_single_scenario_uses_failed_step_retry_count_for_policy(tmp_path, m
     monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _root: None)
     monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_kwargs: None)
     monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(scenario_runner, "org_exists", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_args, **_kwargs: {"state": "present", "detail": ""})
 
     steps = [
         Step(step_number=1, target_type="task", target_name="first", when=None),
@@ -344,3 +345,298 @@ def test_run_single_scenario_accumulates_duration_across_retries(tmp_path, monke
     prepare_row = next(row for row in rows if row["phase"] == "prepare_step")
     assert prepare_row["status"] == "success"
     assert prepare_row["duration_seconds"] == pytest.approx(5.5)
+
+
+def _resume_blocked_result(tmp_path, monkeypatch, probe):
+    run_dir = tmp_path / "runs" / "run-9"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    seen = []
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"demo": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+
+    def _probe(_root, sf_alias, **_kwargs):
+        seen.append(sf_alias)
+        return probe
+
+    monkeypatch.setattr(scenario_runner, "probe_org", _probe)
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"demo": True},
+        base_cci={"project": {"name": "proj"}},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=True,
+        resume_from_step=1,
+        existing_alias="demo-org",
+    )
+    return result, seen
+
+
+@pytest.mark.parametrize(
+    "probe,target,failure_class",
+    [
+        ({"state": "missing", "detail": "gone"}, "org_missing", "deterministic"),
+        ({"state": "timeout", "detail": "slow"}, "org_probe_timeout", "transient"),
+        ({"state": "error", "detail": "boom"}, "org_probe_failed", "unknown"),
+    ],
+)
+def test_resume_reports_probe_outcome_distinctly(tmp_path, monkeypatch, probe, target, failure_class) -> None:
+    result, seen = _resume_blocked_result(tmp_path, monkeypatch, probe)
+    assert seen == ["proj__demo-org"]
+    assert result["status"] == "resume_blocked"
+    assert result["failed_target"] == target
+    assert result["failure_class"] == failure_class
+    if target != "org_missing":
+        assert "does not exist" not in result["failure_signature"]
+        assert "sf org list --all" in result["failure_signature"]
+        assert result["can_resume"] is True
+        assert result["policy"]["recommended_action"] == "resume"
+    else:
+        assert result["can_resume"] is False
+        assert result["policy"]["recommended_action"] != "resume"
+
+
+@pytest.mark.parametrize(
+    "state,expected",
+    [("missing", False), ("timeout", True), ("error", True), ("present", True)],
+)
+def test_end_of_run_can_resume_follows_probe_state(tmp_path, monkeypatch, state, expected) -> None:
+    run_dir = tmp_path / "runs" / "run-11"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"demo": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+    monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_a, **_k: True)
+    monkeypatch.setattr(scenario_runner.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": state, "detail": ""})
+
+    def _run_command(_root, command, *_a, **_k):
+        failed = command[:3] == ["cci", "task", "run"]
+        return {
+            "duration_seconds": 0.1,
+            "exit_code": 2 if failed else 0,
+            "failure_signature": "boom" if failed else "",
+            "failure_class": "deterministic" if failed else "none",
+            "tail": [],
+        }
+
+    monkeypatch.setattr(scenario_runner, "run_command", _run_command)
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"demo": True},
+        base_cci={},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=False,
+    )
+    assert result["status"] == "failed"
+    assert result["can_resume"] is expected
+
+
+def _preflight_failure(tmp_path, monkeypatch, *, is_resume, failure_class="deterministic"):
+    run_dir = tmp_path / "runs" / "run-10"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"inapp": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", failure_class))
+    # Neither a CCI command nor the org probe may run when the flags do not reach CCI.
+    monkeypatch.setattr(scenario_runner, "run_command", lambda *_a, **_k: pytest.fail("CCI command ran"))
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: pytest.fail("org probe ran"))
+    return scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"inapp": False},
+        base_cci={},
+        skip_validate=False,
+        keep_orgs=True,
+        is_resume=is_resume,
+        resume_from_step=3 if is_resume else None,
+        existing_alias="demo-org" if is_resume else None,
+    )
+
+
+def _read_step_results(tmp_path):
+    path = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_run_single_scenario_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False)
+    assert result["status"] == "failed"
+    assert result["failed_target"] == "project_root_flags"
+    assert result["failure_class"] == "deterministic"
+    assert "inapp=False" in result["failure_signature"]
+    assert result["can_resume"] is False
+    rows = _read_step_results(tmp_path)
+    assert len(rows) == 1
+    assert rows[0]["phase"] == "preflight" and rows[0]["target_name"] == "project_root_flags"
+    assert rows[0]["status"] == "failed" and rows[0]["failure_class"] == "deterministic"
+
+
+def test_preflight_failure_class_comes_from_the_check(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
+    assert result["failure_class"] == "transient"
+    assert result["can_resume"] is False
+    assert _read_step_results(tmp_path)[0]["failure_class"] == "transient"
+
+
+def test_resume_is_blocked_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True)
+    assert result["status"] == "resume_blocked"
+    assert result["failed_step"] == 3
+    assert result["failed_target"] == "project_root_flags"
+    assert result["can_resume"] is False
+    assert result["policy"]["recommended_action"] != "resume"
+
+
+def test_resume_stays_recommended_after_a_transient_preflight_failure(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    assert result["status"] == "resume_blocked"
+    assert result["can_resume"] is True
+    assert result["policy"]["recommended_action"] == "resume"
+
+
+@pytest.mark.parametrize("failure_class", ["unknown", "deterministic"])
+def test_resume_is_not_recommended_after_a_non_transient_preflight_failure(tmp_path, monkeypatch, failure_class) -> None:
+    # `unknown` would otherwise make summarize_policy recommend resume at retry_count 0
+    # on every attempt, and an agent following the policy would loop on exit 30.
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class=failure_class)
+    assert result["can_resume"] is False
+    assert result["policy"]["recommended_action"] != "resume"
+
+
+def test_a_fresh_run_never_offers_resume_after_a_preflight_failure(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
+    assert result["status"] == "failed"
+    assert result["can_resume"] is False
+
+
+def _rerun_preflight(tmp_path, *, is_resume=True):
+    return scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=tmp_path / "runs" / "run-10",
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"inapp": False},
+        base_cci={},
+        skip_validate=False,
+        keep_orgs=True,
+        is_resume=is_resume,
+        resume_from_step=3 if is_resume else None,
+        existing_alias="demo-org" if is_resume else None,
+    )
+
+
+def test_a_persistent_transient_preflight_failure_becomes_a_manual_fix(tmp_path, monkeypatch) -> None:
+    # Each attempt appends a preflight row; the policy's retry limit is 2.
+    first = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    assert first["retry_count"] == 0 and first["policy"]["recommended_action"] == "resume"
+    second = _rerun_preflight(tmp_path)
+    assert second["retry_count"] == 1 and second["can_resume"] is True
+    third = _rerun_preflight(tmp_path)
+    assert third["retry_count"] == 2
+    assert third["can_resume"] is False
+    assert third["failure_class"] == "deterministic"
+    assert "timed out on 3 consecutive attempts" in third["failure_signature"]
+    assert third["policy"]["recommended_action"] == "manual_fix_required"
+    # The log keeps the observed class.
+    assert _read_step_results(tmp_path)[-1]["failure_class"] == "transient"
+
+
+def test_a_single_transient_preflight_failure_on_a_fresh_run_is_a_rerun(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
+    assert result["failure_class"] == "transient"
+    assert result["policy"]["recommended_action"] == "rerun_full"
+
+
+def test_a_step_row_resets_the_transient_preflight_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"phase": "prepare", "target_name": "first", "status": "success"}) + "\n")
+    third = _rerun_preflight(tmp_path)
+    assert third["retry_count"] == 0 and third["can_resume"] is True
+
+
+def test_the_preflight_count_skips_a_truncated_or_non_object_line(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write("[1, 2]\n")
+        handle.write('{"phase": "preflight", "target_na\n')
+    result = _rerun_preflight(tmp_path)
+    assert result["status"] == "resume_blocked"
+    assert result["retry_count"] == 1
+
+
+def test_a_validate_setup_row_between_transient_rows_resets_the_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"phase": "preflight", "target_name": "validate_setup", "status": "success"}) + "\n")
+    result = _rerun_preflight(tmp_path)
+    assert result["retry_count"] == 0 and result["can_resume"] is True
+
+
+def test_a_pass_after_a_failure_writes_a_row_that_resets_the_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": "missing", "detail": "gone"})
+    _rerun_preflight(tmp_path)  # preflight passes; the resume then stops at the org probe
+    rows = [r for r in _read_step_results(tmp_path) if r.get("target_name") == "project_root_flags"]
+    assert rows[-1]["status"] == "success"
+    monkeypatch.setattr(
+        scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("cci timed out", "transient")
+    )
+    result = _rerun_preflight(tmp_path)
+    assert result["retry_count"] == 0 and result["can_resume"] is True
+
+
+def test_an_exhausted_budget_is_terminal_when_not_resuming(tmp_path, monkeypatch) -> None:
+    # Calls run_single_scenario(is_resume=False) directly; cmd_run always uses a new run directory.
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    _rerun_preflight(tmp_path)
+    result = _rerun_preflight(tmp_path, is_resume=False)
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "deterministic"
+    assert result["policy"]["recommended_action"] == "manual_fix_required"
+
+
+def test_the_preflight_count_survives_bytes_that_are_not_utf8(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("ab") as handle:
+        handle.write(b'\xff\xfe{"broken\n')
+    result = _rerun_preflight(tmp_path)
+    assert result["status"] == "resume_blocked"
+    assert result["retry_count"] == 1
+
+
+def test_repeated_passes_after_a_failure_write_exactly_one_success_row(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": "missing", "detail": "gone"})
+    _rerun_preflight(tmp_path)
+    _rerun_preflight(tmp_path)
+    statuses = [r["status"] for r in _read_step_results(tmp_path) if r.get("target_name") == "project_root_flags"]
+    assert statuses == ["failed", "success"]

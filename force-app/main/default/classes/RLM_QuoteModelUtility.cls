@@ -1,32 +1,49 @@
-public class RLM_QuoteModelUtility {
+public with sharing class RLM_QuoteModelUtility {
+    /**
+     * One context string per input quote id, in input order (the Flow bulk contract). The quotes, their
+     * lines and the line children are each read in one query for the whole batch. A quote id that
+     * does not resolve to a readable quote throws a QuoteModelException that names it, so callers must pass
+     * validated ids. Runs with sharing and WITH USER_MODE: a user without read access to a queried object or
+     * field gets a QuoteModelException caused by the QueryException, not a partial context.
+     */
     @InvocableMethod(label='Convert Quote to Context String' description='Converts a Single Quote to SalesTranscationModel for context' category='RLM SE TAT')
     public static List<String> CreateQuoteContextString(List<Id> quoteId){
-        Quote q = getQuote(quoteId);
-        List<QuoteLineItem> qls = getQuoteLines(q.Id);
+        List<String> contexts = new List<String>();
+        if(quoteId == null || quoteId.isEmpty()){
+            return contexts;
+        }
 
-        SalesContextModel SalesContext = new SalesContextModel();
+        try{
+            return buildContexts(quoteId);
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
+    }
 
-        SalesContext.SalesTransaction.SalesTransactionSource = q.Id;
-        SalesContext.SalesTransaction.PriceBooks = q.Pricebook2Id;
-        SalesContext.SalesTransaction.EffectiveDate = String.valueOf(q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
-        SalesContext.SalesTransaction.CurrencyIsoCode = q.CurrencyIsoCode;
-        SalesContext.SalesTransaction.SalesTransactionItem = new List<SalesTransactionItemModel>();
+    private static List<String> buildContexts(List<Id> quoteId){
+        List<String> contexts = new List<String>();
 
-        // Bulkified (pack 083): query the child objects ONCE for the whole quote and
+        Map<Id, Quote> quotesById = getQuotes(quoteId);
+        Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(quotesById.keySet());
+
+        // Bulkified: query the child objects ONCE for the whole batch and
         // group them by quote-line id, instead of issuing two SOQL queries per line
         // inside the loop — the per-line form hit `Too many SOQL queries: 101` on a
         // ~50-line quote. ORDER BY Id preserves the same per-line row ordering the
         // previous unordered per-line queries returned (the model is consumed
         // downstream in order).
         Set<Id> qlIds = new Set<Id>();
-        for(QuoteLineItem ql: qls){
-            qlIds.add(ql.Id);
+        for(List<QuoteLineItem> quoteLines : linesByQuote.values()){
+            for(QuoteLineItem ql : quoteLines){
+                qlIds.add(ql.Id);
+            }
         }
 
         Map<Id, List<QuoteLineItemAttribute>> attsByLine = new Map<Id, List<QuoteLineItemAttribute>>();
         for(QuoteLineItemAttribute qlAtt : [SELECT QuoteLineItemId, AttributeName, AttributeValue
                                             FROM QuoteLineItemAttribute
                                             WHERE QuoteLineItemId IN :qlIds
+                                            WITH USER_MODE
                                             ORDER BY Id]){
             if(!attsByLine.containsKey(qlAtt.QuoteLineItemId)){
                 attsByLine.put(qlAtt.QuoteLineItemId, new List<QuoteLineItemAttribute>());
@@ -39,12 +56,31 @@ public class RLM_QuoteModelUtility {
                                             AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
                                          FROM QuoteLineRelationship
                                          WHERE AssociatedQuoteLineId IN :qlIds
+                                         WITH USER_MODE
                                          ORDER BY Id]){
             if(!relsByLine.containsKey(qlr.AssociatedQuoteLineId)){
                 relsByLine.put(qlr.AssociatedQuoteLineId, new List<QuoteLineRelationship>());
             }
             relsByLine.get(qlr.AssociatedQuoteLineId).add(qlr);
         }
+
+        for(Id qid : quoteId){
+            List<QuoteLineItem> qls = linesByQuote.containsKey(qid) ? linesByQuote.get(qid) : new List<QuoteLineItem>();
+            contexts.add(buildContext(quotesById.get(qid), qls, attsByLine, relsByLine));
+        }
+        return contexts;
+    }
+
+    private static String buildContext(Quote q, List<QuoteLineItem> qls,
+                                       Map<Id, List<QuoteLineItemAttribute>> attsByLine,
+                                       Map<Id, List<QuoteLineRelationship>> relsByLine){
+        SalesContextModel SalesContext = new SalesContextModel();
+
+        SalesContext.SalesTransaction.SalesTransactionSource = q.Id;
+        SalesContext.SalesTransaction.PriceBooks = q.Pricebook2Id;
+        SalesContext.SalesTransaction.EffectiveDate = String.valueOf(q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''));
+        SalesContext.SalesTransaction.CurrencyIsoCode = q.CurrencyIsoCode;
+        SalesContext.SalesTransaction.SalesTransactionItem = new List<SalesTransactionItemModel>();
 
         for(QuoteLineItem ql: qls){
             SalesTransactionItemModel item = new SalesTransactionItemModel();
@@ -115,29 +151,60 @@ public class RLM_QuoteModelUtility {
             SalesContext.SalesTransaction.SalesTransactionItem.add(item);
         }
         system.debug(JSON.serialize(SalesContext));
-        List<String> JSONstringsToReturn = new List<String>();
-		
-        String JSONstringToReturn = JSON.serialize(SalesContext).replace('null', '""');
-        JSONstringsToReturn.add(JSONstringToReturn);
-        system.debug(JSONstringsToReturn);
-        return JSONstringsToReturn;
+        return JSON.serialize(SalesContext).replace('null', '""');
     }
 
+    /**
+     * The quote for the first id. Every id in the list must resolve to a readable quote, or this throws a
+     * QuoteModelException naming the first id that does not; callers pass validated ids, as for the invocable.
+     */
     public static Quote getQuote(List<Id> quoteId){
-        Quote q = [SELECT Id, Pricebook2Id, CurrencyIsoCode, CreatedDate 
-                    FROM Quote 
-                    WHERE Id IN: quoteId LIMIT 1].get(0);
-        return q;
+        if(quoteId == null || quoteId.isEmpty()){
+            throw new QuoteModelException('No quote id was given.');
+        }
+        try{
+            return getQuotes(quoteId).get(quoteId[0]);
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
+    }
+
+    /** The quotes for the ids, keyed by id; throws QuoteModelException for any id that is not a readable quote. */
+    private static Map<Id, Quote> getQuotes(List<Id> quoteIds){
+        Map<Id, Quote> quotesById = new Map<Id, Quote>([SELECT Id, Pricebook2Id, CurrencyIsoCode, CreatedDate
+                                                          FROM Quote
+                                                          WHERE Id IN: quoteIds
+                                                          WITH USER_MODE]);
+        for(Id qid : quoteIds){
+            if(!quotesById.containsKey(qid)){
+                throw new QuoteModelException('Quote ' + qid + ' was not found or is not visible to the running user.');
+            }
+        }
+        return quotesById;
     }
 
     public static List<QuoteLineItem> getQuoteLines(Id quoteId){
-        List<QuoteLineItem> qls = [SELECT QuoteId, ProductSellingModelId, SubscriptionTerm, Product2Id,
+        try{
+            Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(new Set<Id>{ quoteId });
+            return linesByQuote.containsKey(quoteId) ? linesByQuote.get(quoteId) : new List<QuoteLineItem>();
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
+    }
+
+    private static Map<Id, List<QuoteLineItem>> getQuoteLinesByQuote(Set<Id> quoteIds){
+        Map<Id, List<QuoteLineItem>> linesByQuote = new Map<Id, List<QuoteLineItem>>();
+        for(QuoteLineItem ql : [SELECT QuoteId, ProductSellingModelId, SubscriptionTerm, Product2Id,
                                 ListPrice, Discount, DiscountAmount, StartDate, EndDate, LineNumber, Quantity, 
                                 PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth, SellingModelType,
                                 ProrationPolicy.ArePartialPeriodsAllowed, PricingTermUnit 
-                                FROM QuoteLineItem WHERE QuoteId =: quoteId];
-
-        return qls;
+                                FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE]){
+            if(!linesByQuote.containsKey(ql.QuoteId)){
+                linesByQuote.put(ql.QuoteId, new List<QuoteLineItem>());
+            }
+            linesByQuote.get(ql.QuoteId).add(ql);
+        }
+        return linesByQuote;
     }
 
     public static string convertStartDate(Date sd){
@@ -153,6 +220,18 @@ public class RLM_QuoteModelUtility {
 
         return convertedEndDateTime;
     }
+
+    /**
+     * One exception type for callers: a refused or failed read keeps its QueryException as the cause. The
+     * message is a fixed sentence, so a caller that shows it does not show object or field names; the
+     * query detail goes to the debug log and stays on the cause.
+     */
+    private static QuoteModelException accessFailure(QueryException e){
+        System.debug(LoggingLevel.ERROR, 'RLM_QuoteModelUtility could not read the quote data as the running user: ' + e.getMessage());
+        return new QuoteModelException('The quote data could not be read as the running user.', e);
+    }
+
+    public class QuoteModelException extends Exception {}
 
     public class SalesContextModel{
         public SalesTransactionModel SalesTransaction;

@@ -51,9 +51,15 @@ EXIT_USAGE = 2
 # of the same name, so these derive from the preset schema. `--area` selects
 # presets rather than overriding one; `--release-name` overrides the release
 # block's name. A flag left unset is None and never overrides the preset.
-HELP_FLAGS = sorted(presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"})
-DEV_GUIDE_FLAGS = sorted(presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"})
-RUN_FLAGS = sorted(presets_mod.SHARED_OPTIONS - {"output_dir"})
+HELP_FLAGS = sorted(
+    presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"} | presets_mod.CLI_ONLY_OPTIONS
+)
+DEV_GUIDE_FLAGS = sorted(
+    presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"} | presets_mod.CLI_ONLY_OPTIONS
+)
+RUN_FLAGS = sorted(
+    presets_mod.SHARED_OPTIONS - {"output_dir"} | presets_mod.CLI_ONLY_OPTIONS
+)
 # Flags that describe one specific target, meaningless across several presets:
 # argparse dest -> the flag as the user types it.
 SINGLE_TARGET_FLAGS = {
@@ -78,6 +84,14 @@ def _snapshot_class(kind: str):
 # ---------------------------------------------------------------------------
 
 
+def _id_list(value: str) -> List[str]:
+    """Parse ``ID[,ID...]``; an empty list must not read as "accept nothing"."""
+    ids = [part.strip() for part in value.split(",") if part.strip()]
+    if not ids:
+        raise argparse.ArgumentTypeError("needs at least one page or article id")
+    return ids
+
+
 def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--mode", choices=VALID_MODES,
                    help="discover | capture | all | refresh (default all)")
@@ -86,6 +100,12 @@ def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--concurrency", type=int, help="parallel fetches")
     p.add_argument("--wait-ms", dest="wait_ms", type=int,
                    help="ms to wait after each navigation")
+    p.add_argument("--accept-shrinkage", dest="accept_shrinkage", type=_id_list,
+                   metavar="ID[,ID...]",
+                   help="write these pages even when the capture kept under 50%% of "
+                        "the prior text's characters and under 60%% of its words (a "
+                        "real upstream cut you have checked); named pages only, and "
+                        "a not-found page is never written")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -214,23 +234,42 @@ def run_targets(
 
     # (label, error or None, stats)
     results: List[Tuple[str, Optional[str], Dict[str, Any]]] = []
-    for label, snapshot in planned:
-        logger.info(f"=== {label} ===")
-        try:
-            results.append((label, None, snapshot.run() or {}))
-        except (SnapshotError, OSError) as exc:
-            # Includes an OptionsError raised mid-run (a doc_version conflict, a
-            # renamed section): earlier targets already ran, so record it and
-            # carry on. Selector errors were raised while planning, above.
-            if not multi:
-                raise
-            logger.error(f"{label} failed: {exc}")
-            results.append((label, str(exc), {}))
+    try:
+        for label, snapshot in planned:
+            logger.info(f"=== {label} ===")
+            try:
+                results.append((label, None, snapshot.run() or {}))
+            except (SnapshotError, OSError) as exc:
+                # Includes an OptionsError raised mid-run (a doc_version conflict, a
+                # renamed section): earlier targets already ran, so record it and
+                # carry on. Selector errors were raised while planning, above.
+                if not multi:
+                    raise
+                logger.error(f"{label} failed: {exc}")
+                results.append((label, str(exc), {}))
+    finally:
+        _warn_unused_accepts(overrides.get("accept_shrinkage"),
+                             (s for _, s in planned), logger)
 
     failed = sum(1 for _, error, _ in results if error is not None)
     if multi:
         _print_summary(results, failed)
     return EXIT_FAILED if failed else 0
+
+
+def _warn_unused_accepts(requested, snapshots, logger) -> None:
+    """Warn about ``--accept-shrinkage`` ids no capture used (a typo, a moved id,
+    or a page that did not shrink). The exit code is unchanged."""
+    if not requested:
+        return
+    used = {i for s in snapshots for i in getattr(s, "accepted", ())}
+    unused = sorted(set(requested) - used)
+    if unused:
+        logger.warning(
+            "--accept-shrinkage: no capture shrank past the guard's threshold for "
+            f"{', '.join(unused)} in this run, so nothing was accepted for "
+            "them (check the id, or the run may have stopped before reaching the page)"
+        )
 
 
 def _print_summary(results, failed: int) -> None:

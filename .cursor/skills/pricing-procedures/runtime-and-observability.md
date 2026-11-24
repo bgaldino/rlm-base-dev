@@ -150,7 +150,7 @@ to use that element.
 
 - Class implements `RevSignaling.SignalingApexProcessor`; add as an Apex-type section in the
   procedure plan, prehooks above and posthooks below the Pricing Procedure section.
-- Apex must be the first or last element of the plan sequence (Revenue Management process type).
+- Apex must be the first or last element of the plan sequence (the Revenue Cloud process type, as Help words it).
 - No DML in hooks (stale context). External callouts only when PST is triggered from the UI or
   PST API (not Apex/Flow), and not with Double Persist; they hurt performance, no SLO.
 - Governor limits are cumulative; retrieve only needed data (heap).

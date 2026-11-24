@@ -61,7 +61,7 @@ releases:
 
   # -------------------------------------------------------------------------
   # Summer '26 (262) — frozen corpus; presets kept so it stays reproducible.
-  # Coverage and counts: docs/salesforce/262/help/index.md.
+  # Coverage and counts: docs/salesforce/<release>/help/index.md (here 262).
   # Ordered to mirror the data-model domain flow: Catalog → Pricing → Rating →
   # Configuration → Transaction lifecycle → Fulfillment → Usage → Billing →
   # Agents → Approvals → Collections.
@@ -125,7 +125,7 @@ releases:
         root_article_id: ind.collections.htm
         article_id_prefix: ind.collections
     dev_guide:
-      # Full Revenue Cloud Developer Guide. Add --section "Constraint Modeling
+      # Full Revenue Management Developer Guide. Add --section "Constraint Modeling
       # Language" (title or page_id) to capture a single section.
       rlm:
         deliverable: revenue_lifecycle_management_dev_guide
@@ -153,7 +153,8 @@ releases:
   #
   # A help preset with expect_min_articles has been verified for this release
   # and captured; one without a floor has not been verified yet, so check its
-  # discovery count and compare a few articles against 262 before capturing.
+  # discovery count and compare a few articles against the prior release before
+  # capturing.
   # The dev guides need doc_version set (see the README).
   # -------------------------------------------------------------------------
   "264":
@@ -206,7 +207,8 @@ releases:
         root_article_id: ind.approvals_advanced_approvals.htm
         article_id_prefix: ind.approvals
         expect_min_articles: 17
-      collections:            # no floor yet: not verified for 264 (see header)
+      collections:            # captured for 264 (97 articles under the prefix); no
+                              # floor yet: set one from a measured discovery walk
         root_article_id: ind.collections.htm
         article_id_prefix: ind.collections
       # Revenue Management section of the release notes. Every release-notes

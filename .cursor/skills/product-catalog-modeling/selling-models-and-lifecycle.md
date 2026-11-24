@@ -131,6 +131,7 @@ recurs (One Time, Term Defined or Evergreen), then check the source for these:
 | ramps the bundle, or renews it early | Early renewal of ramped assets takes a term-defined bundle whose children are all term-defined: a ramped bundle renewed early cannot contain one-time or evergreen child assets. [Help: `ind.qocal_early_renewal_of_ramped_assets.htm`] Measured amend limits for mixed children are in [`../ramped-quotes/bundle-children-lifecycle.md`](../ramped-quotes/bundle-children-lifecycle.md#amend-and-cancel-limitation). |
 
 One Time children renew as No Change, quantity 0, whatever the root's model. [Help: `ind.qocal_asset_lifecycle_considerations.htm`]
+Early renewal of a usage-based asset needs a Term Defined selling model; it is not available for One Time or Evergreen. [Help: `ind.qocal_renew_usage_based_assets_early.htm`]
 No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
 children. One shape is measured, a locked configurable bundle with a Term Defined root: its
 Evergreen child came through at quantity 0 ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur)).

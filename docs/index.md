@@ -48,6 +48,7 @@ flow ordering and feature-flag conditions.
 | [Contract Pricing](guides/contract-pricing.md) | How contract prices and discounts reach quote lines through `RLM_DefaultPricingProcedure`, amendment behavior, changing the contract on a priced quote, setup checklist and known limits |
 | [QB Consumption Demo Scenarios](guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 historically verified on Release 262; scenario 6 requires re-verification with current grant sizes; 9 platform-blocked), with worked arithmetic and execution-order guidance |
 | [Post-Billing Portal](guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Known limitations for Release 264](guides/known-limitations-264.md) | Features the build does not provision (approvals add-ons, tax engine extension, payment gateways, Data 360 billing features) |
 | [Prepare RLM Org Build Guide](guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
 | [CCI / SF CLI Token Workaround](guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — fixed in CumulusCI 4.10.1; history and personal cleanup |
 | [Build Harness](guides/build-harness.md) | Build harness profiles, resume, and reporting |
@@ -121,6 +122,6 @@ These are checked-in snapshots, not continuously updated documentation. Each ind
 - [CumulusCI Documentation](https://cumulusci.readthedocs.io/)
 - [Salesforce CLI Documentation](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
 - [SFDMU Documentation](https://help.sfdmu.com/)
-- [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest online version; not pinned to 264)
+- [Revenue Management Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest online version; not pinned to 264)
 - [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (historical reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)

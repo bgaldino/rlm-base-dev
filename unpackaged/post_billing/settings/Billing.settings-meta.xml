@@ -2,6 +2,7 @@
 <BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <billingContextDefinition>RLM_BillingContext</billingContextDefinition>
     <enableBillingDisputeManagement>true</enableBillingDisputeManagement>
+    <enableBillingForecast>true</enableBillingForecast>
     <enableBillingSetup>true</enableBillingSetup>
     <enableConvertedCrMemoCrMemoLnAppln>true</enableConvertedCrMemoCrMemoLnAppln>
     <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>

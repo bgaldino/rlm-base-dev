@@ -1,7 +1,7 @@
 # Salesforce Product Catalog Management (PCM) APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Catalog Management (PCM) APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Catalog Management (PCM) APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The PCM APIs provide direct catalog access with standard REST semantics (GET/POST/PUT/PATCH). For context-aware, buyer-session-scoped catalog operations, see the [Product Discovery APIs](product-discovery-apis-reference.md), which use POST for all operations and apply context filters, entitlements, and pricing rules.
 
@@ -132,7 +132,7 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 ---
 
 ### 8. Product Related Records (POST)
-- **Retained from the prior extraction; not present in the 264 snapshot** — the Revenue Cloud Developer Guide's 264 PCM resource index lists no article for this route. Item 9 (`Product Related Records List`, `/connect/pcm/relatedRecords/{entityName}`) is the 264-grounded equivalent. Verify this route against a live 264 org before relying on it.
+- **Retained from the prior extraction; not present in the 264 snapshot** — the Revenue Management Developer Guide's 264 PCM resource index lists no article for this route. Item 9 (`Product Related Records List`, `/connect/pcm/relatedRecords/{entityName}`) is the 264-grounded equivalent. Verify this route against a live 264 org before relying on it.
 - **HTTP Method:** POST
 - **URI Path:** `/connect/pcm/products/{productId}/related-records`
 - **Full URL:** `https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/products/{{defaultTermDefinedAnnualProductId}}/related-records`
@@ -364,4 +364,4 @@ The PCM APIs provide direct catalog access with standard REST semantics (GET/POS
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

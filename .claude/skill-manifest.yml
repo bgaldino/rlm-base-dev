@@ -41,15 +41,14 @@ generated_at: "2026-05-23T00:00:00Z"
 # never been committed on any branch. `skill_manifest.py --check` did not catch any of
 # that at the time — it resolved repo roots only. It now audits every declared skill
 # and every path-shaped value, so re-stamping this date means running it.
-last_verified: "2026-10-22"
+last_verified: "2026-11-24"
 salesforce_release_active: "264"
 salesforce_release_prior_ga: "262"
 api_version_active: "v68.0"
 api_version_prior_ga: "v67.0"
-# ⚠ "active" here is the BRANCH TARGET, not the verified-corpus release. 264 is
-# pre-GA: the grounding artifacts below (help_corpus_active, erd_data) are still
-# 262/v67.0 captures and are labeled as such. Do not infer that a 264 corpus
-# exists because api_version_active says v68.0.
+# "active" here is the release the branch targets. The help, release-notes, dev-guide
+# and feature-index grounding entries below are 264 captures (2026-11-23); help_corpus_prior
+# keeps the 262 capture. erd_data is still a 262/v67.0 capture and is labeled as such.
 
 # ─── Foundations (this repo) ────────────────────────────────────────────────
 foundations:
@@ -128,7 +127,7 @@ foundations:
         - scripts/renewal_assets/augment_asset_lifecycle.apex
         - scripts/renewal_assets/reset_augment.apex
         - scripts/build_quote_to_asset.py
-      provenance: ported from eng git.soma.salesforce.com/tsubramaniam/RevAssetCreation; offline (py_compile + dry-run) verified, org behavior needs-live-verification
+      provenance: ported from an internal eng toolkit (the `create-revenue-asset-from-quote` skill); offline (py_compile + dry-run) verified, org behavior needs-live-verification
       caveats:
         - "Accounts must pre-exist — build_quote_to_asset.py resolves by name and does not create them"
         - "The two Apex scripts + end-to-end bucket build write to an org and are not covered by the offline checks; run live before relying on results"
@@ -139,7 +138,7 @@ foundations:
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: grounded re-extraction from the tracked 264 (v68.0) dev-guide snapshot (docs/salesforce/264/dev-guide/) — 143 grounded, 12 retained/external
       caveats:
-        - "264 is pre-GA — treat a live 264 org as ground truth over the dev-guide-derived references"
+        - "Treat a live 264 org as ground truth over the dev-guide-derived references"
         - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
         - "The docs/api/index.html viewer (155 endpoints) is hand-maintained; the docs/api/ Markdown wins on any disagreement"
 
@@ -629,18 +628,52 @@ foundations:
   # Grounding artifacts (referenced by skills above; here for direct lookup)
   grounding:
     help_corpus_active:
-      # ⚠ Still a 262 capture. 264 is pre-GA and its Help articles have not
-      # published, so this remains the newest captured corpus even though
-      # salesforce_release_active is 264. Refresh with the refresh_command
-      # (release 264) once 264 Help publishes, then add a 264 entry.
+      # 264 capture of 2026-11-23 (Winter '27, Help rebranded to "Revenue Cloud").
+      path: docs/salesforce/264/help/articles/
+      manifest: docs/salesforce/264/help/manifest.json
+      index: docs/salesforce/264/help/index.md
+      article_count: 1703  # = len(manifest.json articles) = files on disk, verified 2026-11-24; becomes generator-computed when generate_skill_manifest lands
+      release: "264"
+      season: "Winter '27"
+      api_version: v68.0
+      refresh_command: "python -m scripts.doc_snapshot help --release {release} --area all"
+
+    help_corpus_prior:
+      # Previous capture, kept for before/after comparison and for citations that
+      # have not been re-checked against 264. Not the active corpus.
       path: docs/salesforce/262/help/articles/
       manifest: docs/salesforce/262/help/manifest.json
       index: docs/salesforce/262/help/index.md
-      article_count: 935  # = len(manifest.json articles) = files on disk, verified 2026-08-16; becomes generator-computed when generate_skill_manifest lands (todo 132)
+      article_count: 935
       release: "262"
       season: "Summer '26"
       api_version: v67.0
-      refresh_command: "python -m scripts.doc_snapshot help --release {release} --area all"
+
+    release_notes_active:
+      path: docs/salesforce/264/release-notes/articles/
+      manifest: docs/salesforce/264/release-notes/manifest.json
+      index: docs/salesforce/264/release-notes/index.md
+      article_count: 146
+      release: "264"
+      season: "Winter '27"
+
+    dev_guide_active:
+      # Developer guide (still says "Revenue Management"), industries guide and the
+      # Contracts guide. Counts are captured pages; 56 / 19 pages errored at capture
+      # time (manifest stats.errored) in the first two.
+      path: docs/salesforce/264/dev-guide/articles/
+      manifest: docs/salesforce/264/dev-guide/manifest.json
+      index: docs/salesforce/264/dev-guide/index.md
+      article_count: 1409
+      industries_path: docs/salesforce/264/dev-guide-industries/articles/
+      industries_manifest: docs/salesforce/264/dev-guide-industries/manifest.json
+      industries_article_count: 550
+      contracts_path: docs/salesforce/264/dev-guide-contracts/articles/
+      contracts_manifest: docs/salesforce/264/dev-guide-contracts/manifest.json
+      contracts_article_count: 198
+      release: "264"
+      season: "Winter '27"
+      api_version: v68.0
 
     help_corpus_prior_ga:
       # ⚠ NOT CAPTURED. This advertised docs/salesforce/260/help/{articles,manifest.json}
@@ -689,8 +722,8 @@ foundations:
       consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
 
     feature_index_active:
-      path: docs/salesforce/262/feature-index.md
-      release: "262"
+      path: docs/salesforce/264/feature-index.md
+      release: "264"
 
     capability_roadmap:
       # Foundations does NOT hold this; declared here so PMOS skills can route correctly

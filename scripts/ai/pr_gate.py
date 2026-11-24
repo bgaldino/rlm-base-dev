@@ -607,6 +607,28 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="api_version_pins",
+        cmd=["python", "scripts/ai/bump_api_version.py", "--check"],
+        # Every API-version pin in the script's scope is at the target, and every rule still
+        # matches its own probe. Any tracked file can hold a pin, so a trigger list mirroring the
+        # rule scopes would drift from them; like release_refs it always runs (about one second).
+        triggers=["scripts/ai/bump_api_version.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
+        name="bump_api_version",
+        cmd=["python", "tests/test_bump_api_version.py"],
+        # Keeps release-provenance and floor lines protected by their own text, by a dry run to
+        # the next version. The repo-wide pin check is the always-run api_version_pins. Triggers
+        # are the script, its suite, cumulusci.yml (the target it reads), and the files whose lines it asserts on.
+        triggers=["scripts/ai/bump_api_version.py", "tests/test_bump_api_version.py", "cumulusci.yml",
+                  "scripts/context_service/examples/contextServiceLifecycle.apex",
+                  "unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls",
+                  "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransaction.cls",
+                  "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransactionTest.cls"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="node_line",
         cmd=["python", "tests/test_node_line.py"],
         # Every file that names the Node major line, so bumping any one alone runs the check that
@@ -714,6 +736,8 @@ CHECKS = [
         # was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
+                  # tests/test_collection_plan_page_fields.py reads this page template.
+                  "templates/flexipages/standalone/collections/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
                   # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
@@ -962,6 +986,7 @@ STDLIB_SUITES = [
     "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_build_quote_ramp_args.py",
+    "tests/test_collection_plan_page_fields.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_private_refs.py",
@@ -998,6 +1023,7 @@ STDLIB_SUITES = [
     "tests/test_sfdmu_id_lookups.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
+    "tests/test_snapshot_guard.py",
     "tests/test_snapshot_help.py",
     "tests/test_toolchain_audit.py",
     "tests/test_update_toolchain_sf.py",
