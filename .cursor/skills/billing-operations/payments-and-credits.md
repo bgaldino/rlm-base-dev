@@ -80,7 +80,7 @@ otherwise. Ask what the customer's finance team expects for unreferenced cash
 What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each is
 one observation, so re-measure on the release patch in hand before relying on it; error text
 and object names may change between patches. Header Level was not measured.
-[Measured: 2026-10-15, 264, harness build, API 68.0, Line Level]
+[Measured: 2026-11-24, 264, fresh build, API 68.0, Line Level]
 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
   as `appliedToId` failed ("Specify an InvoiceLineId as the appliedToId because the Credit
@@ -93,15 +93,21 @@ and object names may change between patches. Header Level was not measured.
   credits minus applied payments (250 less a 50 credit and a 100 payment left 100). A payment
   could be created directly as a record (`Amount`, `Status` Processed, `Type` Sale,
   `ProcessingMode` External, `AccountId`) with no gateway.
-- **Payment Schedule Item.** One could not request more than its payment's balance ("The
-  payment balance can't be less than requested amount").
+- **Payment Schedule Item.** One could not request more than its payment's balance
+  (on a Payment Schedule with no reference entity: INVALID_OPERATION: "The payment balance can't be less than requested amount on the Payment
+  Schedule Item. Provide a payment with sufficient balance."; an earlier build's record quoted
+  only the first clause); a request equal to the balance was accepted.
 - **The shipped Apply Payment flow.** The Apply Payment quick action launches the flow
   `RLM_Apply_Payments_on_Invoice`, which calls the subflow `RLM_Apply_Payment_To_Invoice_Lines`.
   The subflow spreads a payment over the invoice's open lines in record Id order, capped at the
   smaller of the payment's balance and the invoice's balance. Copies ship in the
   billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
-  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On a fresh build it spread a
-  payment over a three-line invoice with no header-level rows.
+  `unpackaged/post_payments/`, `unpackaged/post_collections/`] Called directly
+  (`/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs `paymentId`, `invoiceId`),
+  it applied a 1000 payment to lines of 250, 250 and 1200 as 250, 250 and 500, with no
+  header-level rows. A second 1000 payment on the remaining 700 applied 700 and reported
+  `unappliedAmount` 0: that output is what is left of the capped amount, not of the payment,
+  which kept a balance of 300.
 
 Read-back after any of these: query the line-level junction (`PaymentLineInvoiceLine`,
 `CreditMemoLineInvoiceLine`) and confirm the header-level one (`PaymentLineInvoice`,
