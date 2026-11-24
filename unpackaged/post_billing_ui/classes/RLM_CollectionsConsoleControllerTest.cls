@@ -101,6 +101,136 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.isTrue(rows.isEmpty(), 'No invoices, no rows.');
     }
 
+    // Payment schedules, plan items and disputes on invoices cannot exist in a test (Invoice is
+    // not insertable), so these pass rows built with JSON.deserialize, child subquery included.
+    private static PaymentSchedule schedule(Id invoiceId, Date newestItemDate) {
+        List<Object> items = newestItemDate == null
+            ? new List<Object>()
+            : new List<Object>{ new Map<String, Object>{ 'TargetPaymentProcessingDate' => newestItemDate } };
+        return (PaymentSchedule) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'ReferenceEntityId' => invoiceId,
+            'PaymentScheduleItems' => new Map<String, Object>{
+                'totalSize' => items.size(), 'done' => true, 'records' => items }
+        }), PaymentSchedule.class);
+    }
+
+    // An invoice's promise-to-pay date is the newest item date across its schedules; a schedule
+    // with no dated item adds nothing.
+    @isTest
+    static void latestPromiseDates_keepsEachInvoicesNewestItemDate() {
+        Id invoiceA = mintId(Invoice.SObjectType);
+        Id invoiceB = mintId(Invoice.SObjectType);
+        Id invoiceC = mintId(Invoice.SObjectType);
+        Date d = Date.newInstance(2026, 6, 1);
+
+        Test.startTest();
+        Map<Id, Date> dates = RLM_CollectionsConsoleController.latestPromiseDates(new List<PaymentSchedule>{
+            schedule(invoiceA, d.addDays(10)),
+            schedule(invoiceA, d.addDays(30)),
+            schedule(invoiceA, d.addDays(20)),
+            schedule(invoiceB, d),
+            schedule(invoiceC, null)
+        });
+        Test.stopTest();
+
+        Assert.areEqual(d.addDays(30), dates.get(invoiceA), 'The newest date across the invoice\'s schedules wins');
+        Assert.areEqual(d, dates.get(invoiceB), 'A single schedule gives its own date');
+        Assert.isFalse(dates.containsKey(invoiceC), 'A schedule with no dated item adds nothing');
+    }
+
+    // Each invoice keeps the first collection plan found for it, by name and by id together.
+    @isTest
+    static void addFirstCollectionPlans_keepsTheFirstPlanPerInvoice() {
+        Id invoiceA = mintId(Invoice.SObjectType);
+        Id invoiceB = mintId(Invoice.SObjectType);
+        Id firstPlan = mintId(CollectionPlan.SObjectType);
+        Id secondPlan = mintId(CollectionPlan.SObjectType);
+        Id otherPlan = mintId(CollectionPlan.SObjectType);
+        List<CollectionPlanItem> items = new List<CollectionPlanItem>();
+        for (List<Object> r : new List<List<Object>>{
+            new List<Object>{ invoiceA, firstPlan, 'Plan One' },
+            new List<Object>{ invoiceA, secondPlan, 'Plan Two' },
+            new List<Object>{ invoiceB, otherPlan, 'Plan Three' }
+        }) {
+            items.add((CollectionPlanItem) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                'InvoiceId' => r[0], 'CollectionPlanId' => r[1],
+                'CollectionPlan' => new Map<String, Object>{ 'Id' => r[1], 'Name' => r[2] }
+            }), CollectionPlanItem.class));
+        }
+        Map<Id, String> names = new Map<Id, String>();
+        Map<Id, Id> ids = new Map<Id, Id>();
+
+        Test.startTest();
+        RLM_CollectionsConsoleController.addFirstCollectionPlans(items, names, ids);
+        Test.stopTest();
+
+        Assert.areEqual('Plan One', names.get(invoiceA), 'The first plan found for an invoice is kept');
+        Assert.areEqual(firstPlan, ids.get(invoiceA), 'The plan id matches the kept name');
+        Assert.areEqual('Plan Three', names.get(invoiceB), 'Each invoice gets its own plan');
+        Assert.areEqual(otherPlan, ids.get(invoiceB), 'Each invoice gets its own plan id');
+    }
+
+    // An invoice's dispute reason is the first dispute's type, with " - " and its subtype when it
+    // has one.
+    @isTest
+    static void disputeReasons_typeThenSubtypeFromTheFirstDispute() {
+        if (!RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId')) {
+            // No Dispute.InvoiceId in this org: the console never reads dispute reasons here.
+            return;
+        }
+        Id invoiceA = mintId(Invoice.SObjectType);
+        Id invoiceB = mintId(Invoice.SObjectType);
+        List<Dispute> disputes = new List<Dispute>();
+        for (List<Object> r : new List<List<Object>>{
+            new List<Object>{ invoiceA, 'Billing', 'Wrong Amount' },
+            new List<Object>{ invoiceA, 'Service', null },
+            new List<Object>{ invoiceB, 'Service', ' ' }
+        }) {
+            disputes.add((Dispute) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                'InvoiceId' => r[0], 'DisputeType' => r[1], 'DisputeSubtype' => r[2]
+            }), Dispute.class));
+        }
+
+        Test.startTest();
+        Map<Id, String> reasons = RLM_CollectionsConsoleController.disputeReasons(disputes);
+        Test.stopTest();
+
+        Assert.areEqual('Billing - Wrong Amount', reasons.get(invoiceA), 'The first dispute wins: type, then subtype');
+        Assert.areEqual('Service', reasons.get(invoiceB), 'A blank subtype leaves the type alone');
+    }
+
+    // Smoke test: for an invoice with no schedules, plan items or disputes, the related-record
+    // lookups run without throwing and leave every map empty. The query count is not checked:
+    // the dispute query runs only where the org has Dispute.InvoiceId, and in user mode it may
+    // fail and be caught, so the count varies by org.
+    @isTest
+    static void loadRelatedRecords_findsNothingForUnknownInvoices() {
+        Set<Id> invoiceIds = new Set<Id>{ mintId(Invoice.SObjectType) };
+        Map<Id, Date> ptp = new Map<Id, Date>();
+        Map<Id, String> planNames = new Map<Id, String>();
+        Map<Id, Id> planIds = new Map<Id, Id>();
+        Map<Id, String> reasons = new Map<Id, String>();
+
+        Test.startTest();
+        RLM_CollectionsConsoleController.loadRelatedRecords(invoiceIds, ptp, planNames, planIds, reasons);
+        Test.stopTest();
+
+        Assert.isTrue(ptp.isEmpty() && planNames.isEmpty() && planIds.isEmpty() && reasons.isEmpty(),
+            'Nothing is found for an invoice with no related records');
+    }
+
+    // The dispute-field check is true only for a field the Dispute object has.
+    @isTest
+    static void disputeFieldAvailable_answersForTheDisputeObjectsOwnFields() {
+        Test.startTest();
+        Boolean known = RLM_CollectionsConsoleController.disputeFieldAvailable('DisputeType');
+        Boolean invoiceOnly = RLM_CollectionsConsoleController.disputeFieldAvailable('DaysInvoiceOverdue');
+        Test.stopTest();
+
+        Assert.isTrue(known, 'DisputeType is a Dispute field');
+        Assert.isFalse(invoiceOnly, 'An Invoice field is not a Dispute field');
+    }
+
     // Fails on a null amount and names both values in the message; Decimal equality already
     // ignores scale.
     private static void assertAmount(Decimal expected, Decimal actual, String message) {

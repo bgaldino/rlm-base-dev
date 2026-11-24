@@ -23,73 +23,8 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, String> disputeReasonByInvoice = new Map<Id, String>();
 
         if (!invoiceIds.isEmpty()) {
-            List<PaymentSchedule> schedules = [
-                SELECT Id, ReferenceEntityId,
-                    (SELECT Id, TargetPaymentProcessingDate
-                     FROM PaymentScheduleItems
-                     WHERE TargetPaymentProcessingDate != NULL
-                     ORDER BY TargetPaymentProcessingDate DESC
-                     LIMIT 1)
-                FROM PaymentSchedule
-                WHERE ReferenceEntityId IN :invoiceIds
-                WITH USER_MODE
-            ];
-            for (PaymentSchedule ps : schedules) {
-                if (!ps.PaymentScheduleItems.isEmpty()) {
-                    Id invoiceId = ps.ReferenceEntityId;
-                    Date itemDate = ps.PaymentScheduleItems[0].TargetPaymentProcessingDate;
-                    if (!latestPtpByInvoice.containsKey(invoiceId) || itemDate > latestPtpByInvoice.get(invoiceId)) {
-                        latestPtpByInvoice.put(invoiceId, itemDate);
-                    }
-                }
-            }
-
-            List<CollectionPlanItem> planItems = [
-                SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name
-                FROM CollectionPlanItem
-                WHERE InvoiceId IN :invoiceIds
-                WITH USER_MODE
-            ];
-            for (CollectionPlanItem cpi : planItems) {
-                if (!collectionPlanByInvoice.containsKey(cpi.InvoiceId)) {
-                    collectionPlanByInvoice.put(cpi.InvoiceId, cpi.CollectionPlan.Name);
-                    collectionPlanIdByInvoice.put(cpi.InvoiceId, cpi.CollectionPlanId);
-                }
-            }
-
-            // Query disputes linked to these invoices for the dispute-reason display.
-            // Dispute and its InvoiceId lookup are license-gated billing extensions:
-            // present at runtime only when the billing dispute feature is provisioned,
-            // and not surfaced to the Apex compiler for static SOQL. In a baseline build
-            // the field (and sometimes the object) is absent entirely, so guard with a
-            // Schema describe and run dynamic SOQL (USER_MODE) inside try/catch — the
-            // panel omits dispute reasons where the feature isn't enabled rather than
-            // throwing. (The org's custom Dispute.Invoice__c field is not part of this
-            // repo; the standard InvoiceId lookup is used instead.)
-            if (disputeFieldAvailable('InvoiceId')) {
-                try {
-                    List<Dispute> disputes = Database.query(
-                        'SELECT InvoiceId, DisputeType, DisputeSubtype, Description ' +
-                        'FROM Dispute WHERE InvoiceId IN :invoiceIds',
-                        AccessLevel.USER_MODE
-                    );
-                    for (Dispute d : disputes) {
-                        Id dispInvoiceId = (Id) d.get('InvoiceId');
-                        if (!disputeReasonByInvoice.containsKey(dispInvoiceId)) {
-                            String reason = (String) d.get('DisputeType');
-                            String subtype = (String) d.get('DisputeSubtype');
-                            if (String.isNotBlank(subtype)) {
-                                reason += ' - ' + subtype;
-                            }
-                            disputeReasonByInvoice.put(dispInvoiceId, reason);
-                        }
-                    }
-                } catch (Exception e) {
-                    // Dispute / Dispute.InvoiceId not available (billing dispute feature
-                    // not provisioned in this org) — omit dispute reasons.
-                    System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage());
-                }
-            }
+            loadRelatedRecords(invoiceIds, latestPtpByInvoice, collectionPlanByInvoice,
+                collectionPlanIdByInvoice, disputeReasonByInvoice);
         }
 
         return buildDelinquents(
@@ -130,12 +65,122 @@ public with sharing class RLM_CollectionsConsoleController {
         return results;
     }
 
+    // Fills the promise-to-pay, collection plan and dispute maps for the invoices. Takes the ids
+    // so a test can run the queries for invoices that do not exist (Apex cannot insert one).
+    @TestVisible
+    private static void loadRelatedRecords(
+        Set<Id> invoiceIds,
+        Map<Id, Date> latestPtpByInvoice,
+        Map<Id, String> collectionPlanByInvoice,
+        Map<Id, Id> collectionPlanIdByInvoice,
+        Map<Id, String> disputeReasonByInvoice
+    ) {
+        List<PaymentSchedule> schedules = [
+            SELECT Id, ReferenceEntityId,
+                (SELECT Id, TargetPaymentProcessingDate
+                 FROM PaymentScheduleItems
+                 WHERE TargetPaymentProcessingDate != NULL
+                 ORDER BY TargetPaymentProcessingDate DESC
+                 LIMIT 1)
+            FROM PaymentSchedule
+            WHERE ReferenceEntityId IN :invoiceIds
+            WITH USER_MODE
+        ];
+        latestPtpByInvoice.putAll(latestPromiseDates(schedules));
+
+        List<CollectionPlanItem> planItems = [
+            SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name
+            FROM CollectionPlanItem
+            WHERE InvoiceId IN :invoiceIds
+            WITH USER_MODE
+        ];
+        addFirstCollectionPlans(planItems, collectionPlanByInvoice, collectionPlanIdByInvoice);
+
+        // Query disputes linked to these invoices for the dispute-reason display.
+        // Dispute and its InvoiceId lookup are license-gated billing extensions:
+        // present at runtime only when the billing dispute feature is provisioned,
+        // and not surfaced to the Apex compiler for static SOQL. In a baseline build
+        // the field (and sometimes the object) is absent entirely, so guard with a
+        // Schema describe and run dynamic SOQL (USER_MODE) inside try/catch — the
+        // panel omits dispute reasons where the feature isn't enabled rather than
+        // throwing. (The org's custom Dispute.Invoice__c field is not part of this
+        // repo; the standard InvoiceId lookup is used instead.)
+        if (disputeFieldAvailable('InvoiceId')) {
+            try {
+                List<Dispute> disputes = Database.query(
+                    'SELECT InvoiceId, DisputeType, DisputeSubtype, Description ' +
+                    'FROM Dispute WHERE InvoiceId IN :invoiceIds',
+                    AccessLevel.USER_MODE
+                );
+                disputeReasonByInvoice.putAll(disputeReasons(disputes));
+            } catch (Exception e) {
+                // Dispute / Dispute.InvoiceId not available (billing dispute feature
+                // not provisioned in this org) — omit dispute reasons.
+                System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage());
+            }
+        }
+    }
+
+    // Each invoice's latest promise-to-pay date: the newest dated item across its payment
+    // schedules (each schedule's subquery returns its newest item). Takes rows so a test can
+    // pass schedules on invoices, which Apex cannot insert.
+    @TestVisible
+    private static Map<Id, Date> latestPromiseDates(List<PaymentSchedule> schedules) {
+        Map<Id, Date> latestPtpByInvoice = new Map<Id, Date>();
+        for (PaymentSchedule ps : schedules) {
+            if (!ps.PaymentScheduleItems.isEmpty()) {
+                Id invoiceId = ps.ReferenceEntityId;
+                Date itemDate = ps.PaymentScheduleItems[0].TargetPaymentProcessingDate;
+                if (!latestPtpByInvoice.containsKey(invoiceId) || itemDate > latestPtpByInvoice.get(invoiceId)) {
+                    latestPtpByInvoice.put(invoiceId, itemDate);
+                }
+            }
+        }
+        return latestPtpByInvoice;
+    }
+
+    // The first collection plan found for each invoice, by name and by id. Takes rows so a test
+    // can pass plan items on invoices, which Apex cannot insert.
+    @TestVisible
+    private static void addFirstCollectionPlans(
+        List<CollectionPlanItem> planItems,
+        Map<Id, String> collectionPlanByInvoice,
+        Map<Id, Id> collectionPlanIdByInvoice
+    ) {
+        for (CollectionPlanItem cpi : planItems) {
+            if (!collectionPlanByInvoice.containsKey(cpi.InvoiceId)) {
+                collectionPlanByInvoice.put(cpi.InvoiceId, cpi.CollectionPlan.Name);
+                collectionPlanIdByInvoice.put(cpi.InvoiceId, cpi.CollectionPlanId);
+            }
+        }
+    }
+
+    // The first dispute's reason for each invoice: its type, then " - " and its subtype when it
+    // has one. Takes rows so a test can pass disputes on invoices, which Apex cannot insert.
+    @TestVisible
+    private static Map<Id, String> disputeReasons(List<Dispute> disputes) {
+        Map<Id, String> disputeReasonByInvoice = new Map<Id, String>();
+        for (Dispute d : disputes) {
+            Id dispInvoiceId = (Id) d.get('InvoiceId');
+            if (!disputeReasonByInvoice.containsKey(dispInvoiceId)) {
+                String reason = (String) d.get('DisputeType');
+                String subtype = (String) d.get('DisputeSubtype');
+                if (String.isNotBlank(subtype)) {
+                    reason += ' - ' + subtype;
+                }
+                disputeReasonByInvoice.put(dispInvoiceId, reason);
+            }
+        }
+        return disputeReasonByInvoice;
+    }
+
     /**
      * True only when the Dispute object exists AND exposes the named field in this
      * org. Dispute and its InvoiceId/CaseId lookups are license-gated billing
      * extensions absent from a baseline build, so callers must gate dynamic SOQL
      * on this before referencing those fields.
      */
+    @TestVisible
     private static Boolean disputeFieldAvailable(String fieldName) {
         if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
             return false;

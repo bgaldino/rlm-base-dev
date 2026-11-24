@@ -249,4 +249,68 @@ private class RLM_DisputeDetailsControllerTest {
         String prefix = Schema.getGlobalDescribe().get('DisputeItem').getDescribe().getKeyPrefix();
         return Id.valueOf(prefix + '000000000000');
     }
+
+    // Invoices and invoice lines cannot be inserted in Apex, so these pass rows built with
+    // JSON.deserialize to the methods getRelatedNames calls with the rows it queried.
+    private static Id fakeId(Schema.SObjectType objectType, Integer n) {
+        return Id.valueOf(objectType.getDescribe().getKeyPrefix() + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static SObject row(Schema.SObjectType objectType, Map<String, Object> fields) {
+        return (SObject) JSON.deserialize(JSON.serialize(fields), Type.forName(objectType.getDescribe().getName()));
+    }
+
+    // Each row's name is keyed by its id; a row without a name keeps its id with a null name.
+    @isTest
+    static void namesById_keysEachNameByItsRowId() {
+        Id invoiceA = fakeId(Invoice.SObjectType, 1);
+        Id invoiceB = fakeId(Invoice.SObjectType, 2);
+
+        Test.startTest();
+        Map<String, String> names = RLM_DisputeDetailsController.namesById(new List<SObject>{
+            row(Invoice.SObjectType, new Map<String, Object>{ 'Id' => invoiceA, 'DocumentNumber' => 'INV-0001' }),
+            row(Invoice.SObjectType, new Map<String, Object>{ 'Id' => invoiceB })
+        }, 'DocumentNumber');
+        Test.stopTest();
+
+        Assert.areEqual('INV-0001', names.get(String.valueOf(invoiceA)), 'The name is keyed by the 18-character id');
+        Assert.isTrue(names.containsKey(String.valueOf(invoiceB)), 'A row without a name keeps its id');
+        Assert.isNull(names.get(String.valueOf(invoiceB)), 'A row without a name has a null name');
+    }
+
+    // Each line's balance is keyed by its id; a line without a balance is left out.
+    @isTest
+    static void balancesById_leavesOutLinesWithoutABalance() {
+        if (!InvoiceLine.SObjectType.getDescribe().fields.getMap().containsKey('Balance')) {
+            // No InvoiceLine.Balance in this org: getRelatedNames never reads balances here.
+            return;
+        }
+        Id lineA = fakeId(InvoiceLine.SObjectType, 1);
+        Id lineB = fakeId(InvoiceLine.SObjectType, 2);
+
+        Test.startTest();
+        Map<String, Decimal> balances = RLM_DisputeDetailsController.balancesById(new List<SObject>{
+            row(InvoiceLine.SObjectType, new Map<String, Object>{ 'Id' => lineA, 'Balance' => 42.5 }),
+            row(InvoiceLine.SObjectType, new Map<String, Object>{ 'Id' => lineB })
+        });
+        Test.stopTest();
+
+        Assert.areEqual(42.5, balances.get(String.valueOf(lineA)), 'The balance is keyed by the line id');
+        Assert.isFalse(balances.containsKey(String.valueOf(lineB)), 'A line without a balance is left out');
+    }
+
+    // On DisputeItem the approved-amount field found is ApprovedAmount; a field map with no
+    // approved field gives null, which the save turns into a handled error.
+    @isTest
+    static void approvedAmountField_findsApprovedAmountOrReturnsNull() {
+        Test.startTest();
+        String none = RLM_DisputeDetailsController.approvedAmountField(new Map<String, Schema.SObjectField>{
+            'name' => Account.Name, 'industry' => Account.Industry });
+        String found = RLM_DisputeDetailsController.approvedAmountField(
+            Schema.getGlobalDescribe().get('DisputeItem').getDescribe().fields.getMap());
+        Test.stopTest();
+
+        Assert.isNull(none, 'A field map with no approved field gives null');
+        Assert.areEqual('ApprovedAmount', found, 'On DisputeItem the approved amount is ApprovedAmount, the field the save writes');
+    }
 }
