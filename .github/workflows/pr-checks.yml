@@ -109,7 +109,12 @@ jobs:
             SEL="--base ${BASE}"
           fi
           echo "SEL=${SEL}" >> "$GITHUB_ENV"
-          python -m pip install --upgrade pip
+          # Upgrade pip only when something will be installed, so a selection with nothing to
+          # install never touches the package index.
+          reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"
+          if [ -n "${reqs}" ]; then
+            python -m pip install --upgrade pip
+          fi
           # One `pip install` per stage, in order: CumulusCI 4.10.1 declares
           # `robotframework-seleniumlibrary<6` and `selenium<4`, which the Robot suites'
           # requirements contradict, so installing both in one call is unresolvable. This is the

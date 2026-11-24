@@ -732,15 +732,31 @@ check("stage 2 carries both Robot packages and no CumulusCI",
       and pr_gate.PINS["cumulusci"] not in _s2, _s2)
 check("the stages together are exactly the unstaged list",
       sorted(_s1 + _s2) == sorted(_all), (_s1, _s2, _all))
-check("STAGE_COUNT covers every staged package",
-      all(1 <= n <= pr_gate.STAGE_COUNT for n in pr_gate.STAGE.values()), pr_gate.STAGE)
+_known = sorted(set(pr_gate.PINS.values()) | {x for v in pr_gate.CO_REQUIRES.values() for x in v})
+_per_stage = [_gate_reqs("--stage", str(n)) for n in range(1, pr_gate.STAGE_COUNT + 1)]
+check("every PINS and CO_REQUIRES spec appears in exactly one stage's output",
+      all(sum(spec in st for st in _per_stage) == 1 for spec in _known),
+      {spec: [i + 1 for i, st in enumerate(_per_stage) if spec in st] for spec in _known})
+check("stages are contiguous from 1 and each is non-empty under --all",
+      sorted(set(pr_gate.STAGE.values()) | {1}) == list(range(1, pr_gate.STAGE_COUNT + 1))
+      and all(_per_stage), (pr_gate.STAGE, _per_stage))
 with open(os.path.join(REPO, ".github", "workflows", "pr-checks.yml")) as _fh:
     _wf_text = _fh.read()
-_stage_calls = re.findall(r"--requirements --stage (\d+) \$\{SEL\}", _wf_text)
-check("the workflow installs every stage, once each, in order, each with its own pip install",
-      _stage_calls == [str(n) for n in range(1, pr_gate.STAGE_COUNT + 1)]
-      and len(re.findall(r"python -m pip install \$\{reqs\}", _wf_text)) == pr_gate.STAGE_COUNT,
-      _stage_calls)
+_n = pr_gate.STAGE_COUNT
+_seq = re.findall(r'^\s*(reqs="\$\(python scripts/ai/pr_gate\.py --requirements[^\n]*\)"'
+                  r'|python -m pip install --upgrade pip|python -m pip install \$\{reqs\})\s*$',
+                  _wf_text, re.M)
+_expect = (['reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+            "python -m pip install --upgrade pip"]
+           + sum(([f'reqs="$(python scripts/ai/pr_gate.py --requirements --stage {k} ${{SEL}})"',
+                   "python -m pip install ${reqs}"] for k in range(1, _n + 1)), []))
+check("the workflow upgrades pip once behind the unstaged check, then pairs each stage's assignment "
+      "with its own install, in order",
+      _seq == _expect, _seq)
+_blocks = re.findall(r'(if \[ -n "\$\{reqs\}" \]; then\n\s*python -m pip install[^\n]*\n\s*fi)',
+                     _wf_text)
+check("pip upgrade and every install sit inside a non-empty-reqs guard",
+      len(_blocks) == _n + 1, _blocks)
 
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
 # tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
@@ -3099,6 +3115,7 @@ if os.path.exists(workflow):
     # is decided inside `pip_install_ok`, not by a constant here.
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
+        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
         'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 1 ${SEL})"',
         'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 2 ${SEL})"',
         'node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"',)
@@ -6047,7 +6064,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 853
+EXPECTED = 855
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
