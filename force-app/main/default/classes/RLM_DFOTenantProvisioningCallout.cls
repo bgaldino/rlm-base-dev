@@ -1,4 +1,16 @@
-global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfwk.ProcessIntegrationProvider{
+/**
+ * Deliberately system mode (WITH SYSTEM_MODE) and without sharing.
+ * This class is outside rule 1 of apex-security-hardening (it is not an Aura, Invocable, Visualforce or
+ * webservice entry); it is a DRO integration-provider step, so the system-mode justification rule (6) applies.
+ * The record id is supplied by the fulfillment engine, not by a user. The user the step runs as is not
+ * known from this repo, and the class has to read FulfillmentLineSourceRel and OrderItem (and is handed a
+ * FulfillmentOrderLineItem id) to find the order id; under USER_MODE a missing read for that user would
+ * fail a provisioning step that works today. It reads only the order id behind the step and sends it to the
+ * QuantumBit tenant service.
+ * 'without sharing' states what an undeclared entry-point class does today; 'with sharing' or
+ * 'inherited sharing' could hide the order item from the fulfillment user.
+ */
+global without sharing class RLM_DFOTenantProvisioningCallout implements industriesintegrationfwk.ProcessIntegrationProvider{
 
     private static final industriesintegrationfwk.ApexProviderAttr inputOrderIdTest = new industriesintegrationfwk.ApexProviderAttr('inputOrderId', 
     'inputOrderId', '', false, 'String');
@@ -72,7 +84,8 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
         } else if (sourceObjectType == 'FulfillmentOrderLineItem') {
             List<FulfillmentLineSourceRel> lineSourceRels = [SELECT Id, SourceLineItemId, FulfilmentOrderLineId
                                                               FROM FulfillmentLineSourceRel
-                                                              WHERE (SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId =: sourceId) LIMIT 1];
+                                                              WHERE (SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId =: sourceId)
+                                                              WITH SYSTEM_MODE LIMIT 1];
             if (lineSourceRels.isEmpty()) {
                 throw new TenantProvisioningException('The fulfillment order line ' + sourceId + ' has no order item source');
             }
@@ -83,7 +96,8 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
 
         List<OrderItem> orderItems = [SELECT Id, OrderId
                                       FROM OrderItem
-                                      WHERE Id =: orderItemId LIMIT 1];
+                                      WHERE Id =: orderItemId
+                                      WITH SYSTEM_MODE LIMIT 1];
         if (orderItems.isEmpty()) {
             throw new TenantProvisioningException('Order item ' + orderItemId + ' was not found');
         }

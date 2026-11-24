@@ -52,7 +52,8 @@ description: >-
   controlled by the master and the platform **silently drops** the child object perms on
   deploy (deploy "succeeds" but the perms never persist). Grant the master instead
   (e.g. `Quote R/E` covers `QuoteLineItem`/`QuoteLineGroup` create/edit/delete; `OrderItem`
-  follows `Order`).
+  follows `Order`, but on 264 a user also needs Read on `Product2` and `Pricebook2` before
+  `OrderItem` is readable; its fields still need their own field grants).
 - **DO NOT** trust `Schema.SObjectType.X.fields.getMap()` keys to preserve casing — they
   are **lowercase**. Compare with `apiName.toLowerCase()`.
 - **DO NOT** leave a perm-set object/field grant that no user-mode code path needs — an

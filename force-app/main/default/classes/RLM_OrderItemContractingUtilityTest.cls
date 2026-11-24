@@ -238,6 +238,68 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     /**
+     * Reaches the user-mode query fallback: the user can read the Order, OrderItem and OrderAction fields the
+     * pre-check names, but not ProductSellingModel, which only the query itself reads. The assertions prove the
+     * fallback ran; they do not identify which refused part of the query raised the QueryException.
+     */
+    @IsTest
+    static void userWhoCannotReadTheSellingModelGetsAnErrorResultFromTheQuery() {
+        Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
+        insert o;
+        User limited = minimumAccessUser();
+        PermissionSet readOrders = new PermissionSet(Name = 'RLM_Test_Read_Orders_Only', Label = 'RLM test read orders only');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert readOrders;
+            // Measured on a 264 org with Minimum Access users: ObjectPermissions.SobjectType is a restricted
+            // picklist that lists Order but neither OrderItem nor OrderAction, so OrderItem access can only
+            // come from its parents. Order Read alone leaves OrderItem unreadable; Order Read plus Product2
+            // Read plus Pricebook2 Read makes it readable, and neither of the two extra reads works alone.
+            // OrderAction is readable with Order Read. A field grant on an OrderItem field has no effect
+            // until the object is readable, and OrderItem.ServiceDate and EndDate then need their own field
+            // grants (OrderItem.Quantity does not). ProductSellingModel stays unreadable throughout.
+            // The preconditions below assert the outcome, so a change in platform behaviour fails the test
+            // instead of passing it.
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Product2', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Pricebook2', PermissionsRead = true)
+            };
+            insert new List<FieldPermissions>{
+                new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.ServiceDate', PermissionsRead = true),
+                new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.EndDate', PermissionsRead = true)
+            };
+            insert new PermissionSetAssignment(AssigneeId = limited.Id, PermissionSetId = readOrders.Id);
+        }
+
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
+        Test.startTest();
+        System.runAs(limited) {
+            Assert.isTrue(
+                Schema.SObjectType.Order.fields.EffectiveDate.isAccessible()
+                    && Schema.SObjectType.OrderItem.fields.ServiceDate.isAccessible()
+                    && Schema.SObjectType.OrderItem.fields.EndDate.isAccessible()
+                    && Schema.SObjectType.OrderAction.fields.Type.isAccessible(),
+                'PRECONDITION: the user passes the field-access pre-check'
+            );
+            Assert.isFalse(
+                Schema.SObjectType.ProductSellingModel.fields.SellingModelType.isAccessible(),
+                'PRECONDITION: the user cannot read ProductSellingModel.SellingModelType'
+            );
+            results = run(new List<Id>{ o.Id });
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, results.size(), 'The input still gets an output');
+        Assert.areEqual(o.Id, results[0].orderId, 'The output names its order');
+        Assert.isNotNull(results[0].errorMessage, 'The output says why it has no data');
+        Assert.areEqual(
+            'The order could not be read as the running user.', results[0].errorMessage,
+            'The message is the fixed query-fallback sentence (not the pre-check, no query text)'
+        );
+        Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
+    }
+
+    /**
      * A Minimum Access user: no object access to Order, OrderItem or OrderAction. The test fails, never
      * skips, when the precondition cannot be built: standard profile names can be translated, so this
      * needs the English profile name "Minimum Access - Salesforce" and a free seat for the user insert.

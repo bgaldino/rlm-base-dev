@@ -1,8 +1,10 @@
-public class RLM_QuoteModelUtility {
+public with sharing class RLM_QuoteModelUtility {
     /**
      * One context string per input quote id, in input order (the Flow bulk contract). The quotes, their
      * lines and the line children are each read in one query for the whole batch. A quote id that
-     * does not resolve to a readable quote throws a QuoteModelException that names it.
+     * does not resolve to a readable quote throws a QuoteModelException that names it, so callers must pass
+     * validated ids. Runs with sharing and WITH USER_MODE: a user without read access to a queried object or
+     * field gets a QuoteModelException caused by the QueryException, not a partial context.
      */
     @InvocableMethod(label='Convert Quote to Context String' description='Converts a Single Quote to SalesTranscationModel for context' category='RLM SE TAT')
     public static List<String> CreateQuoteContextString(List<Id> quoteId){
@@ -10,6 +12,16 @@ public class RLM_QuoteModelUtility {
         if(quoteId == null || quoteId.isEmpty()){
             return contexts;
         }
+
+        try{
+            return buildContexts(quoteId);
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
+    }
+
+    private static List<String> buildContexts(List<Id> quoteId){
+        List<String> contexts = new List<String>();
 
         Map<Id, Quote> quotesById = getQuotes(quoteId);
         Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(quotesById.keySet());
@@ -31,6 +43,7 @@ public class RLM_QuoteModelUtility {
         for(QuoteLineItemAttribute qlAtt : [SELECT QuoteLineItemId, AttributeName, AttributeValue
                                             FROM QuoteLineItemAttribute
                                             WHERE QuoteLineItemId IN :qlIds
+                                            WITH USER_MODE
                                             ORDER BY Id]){
             if(!attsByLine.containsKey(qlAtt.QuoteLineItemId)){
                 attsByLine.put(qlAtt.QuoteLineItemId, new List<QuoteLineItemAttribute>());
@@ -43,6 +56,7 @@ public class RLM_QuoteModelUtility {
                                             AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
                                          FROM QuoteLineRelationship
                                          WHERE AssociatedQuoteLineId IN :qlIds
+                                         WITH USER_MODE
                                          ORDER BY Id]){
             if(!relsByLine.containsKey(qlr.AssociatedQuoteLineId)){
                 relsByLine.put(qlr.AssociatedQuoteLineId, new List<QuoteLineRelationship>());
@@ -148,14 +162,19 @@ public class RLM_QuoteModelUtility {
         if(quoteId == null || quoteId.isEmpty()){
             throw new QuoteModelException('No quote id was given.');
         }
-        return getQuotes(quoteId).get(quoteId[0]);
+        try{
+            return getQuotes(quoteId).get(quoteId[0]);
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
     }
 
     /** The quotes for the ids, keyed by id; throws QuoteModelException for any id that is not a readable quote. */
     private static Map<Id, Quote> getQuotes(List<Id> quoteIds){
         Map<Id, Quote> quotesById = new Map<Id, Quote>([SELECT Id, Pricebook2Id, CurrencyIsoCode, CreatedDate
                                                           FROM Quote
-                                                          WHERE Id IN: quoteIds]);
+                                                          WHERE Id IN: quoteIds
+                                                          WITH USER_MODE]);
         for(Id qid : quoteIds){
             if(!quotesById.containsKey(qid)){
                 throw new QuoteModelException('Quote ' + qid + ' was not found or is not visible to the running user.');
@@ -165,8 +184,12 @@ public class RLM_QuoteModelUtility {
     }
 
     public static List<QuoteLineItem> getQuoteLines(Id quoteId){
-        Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(new Set<Id>{ quoteId });
-        return linesByQuote.containsKey(quoteId) ? linesByQuote.get(quoteId) : new List<QuoteLineItem>();
+        try{
+            Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(new Set<Id>{ quoteId });
+            return linesByQuote.containsKey(quoteId) ? linesByQuote.get(quoteId) : new List<QuoteLineItem>();
+        }catch(QueryException e){
+            throw accessFailure(e);
+        }
     }
 
     private static Map<Id, List<QuoteLineItem>> getQuoteLinesByQuote(Set<Id> quoteIds){
@@ -175,7 +198,7 @@ public class RLM_QuoteModelUtility {
                                 ListPrice, Discount, DiscountAmount, StartDate, EndDate, LineNumber, Quantity, 
                                 PeriodBoundary, PeriodBoundaryDay, PeriodBoundaryStartMonth, SellingModelType,
                                 ProrationPolicy.ArePartialPeriodsAllowed, PricingTermUnit 
-                                FROM QuoteLineItem WHERE QuoteId IN :quoteIds]){
+                                FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE]){
             if(!linesByQuote.containsKey(ql.QuoteId)){
                 linesByQuote.put(ql.QuoteId, new List<QuoteLineItem>());
             }
@@ -196,6 +219,16 @@ public class RLM_QuoteModelUtility {
         String convertedEndDateTime = endDateTime.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'');
 
         return convertedEndDateTime;
+    }
+
+    /**
+     * One exception type for callers: a refused or failed read keeps its QueryException as the cause. The
+     * message is a fixed sentence, so a caller that shows it does not show object or field names; the
+     * query detail goes to the debug log and stays on the cause.
+     */
+    private static QuoteModelException accessFailure(QueryException e){
+        System.debug(LoggingLevel.ERROR, 'RLM_QuoteModelUtility could not read the quote data as the running user: ' + e.getMessage());
+        return new QuoteModelException('The quote data could not be read as the running user.', e);
     }
 
     public class QuoteModelException extends Exception {}
