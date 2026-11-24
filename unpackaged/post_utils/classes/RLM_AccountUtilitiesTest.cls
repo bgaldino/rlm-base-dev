@@ -1108,8 +1108,10 @@ private without sharing class RLM_AccountUtilitiesTest {
         UsageFixture f = newUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         // The loop deletes this bucket and its entitlement in phase 1. The bucket
-        // with no entitlement keeps the entitlement account refused, so phase 2
-        // runs, deletes them, and is rolled back.
+        // with no entitlement keeps the entitlement account refused, so phase 2's
+        // retry (usageDrained false) deletes them and the rollback restores them;
+        // bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved shows the
+        // retry deleting them.
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
@@ -1150,28 +1152,67 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void entitlementBoundToTheAssetFromAnotherAccountIsDeletedWithIt() {
+    static void phaseOneDeletesAnEntitlementAccountItEmptied() {
+        Account a = newAccount();
+        UsageFixture f = newUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'PRECONDITION: the bucket must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'PRECONDITION: the entitlement account must exist before the reset runs');
+        // With every bucket reachable, the loop deletes the bucket, the entitlement
+        // and then the entitlement account. Failing phase 2 shows those deletes are
+        // phase 1's: a rollback would restore anything phase 2 deleted.
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.isTrue(result.reason.contains('Forced phase 2 failure'),
+            'The run must have reached phase 2 and rolled it back. Got: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'Phase 1\'s delete of the entitlement account must survive the rollback');
+        Assert.areEqual(
+            entry(UsageEntitlementBucket.SObjectType, 1) + '; '
+                + entry(TransactionUsageEntitlement.SObjectType, 1) + '; '
+                + entry(UsageEntitlementAccount.SObjectType, 1),
+            result.removedSummary,
+            'Phase 1\'s deletes must be reported removed'
+        );
+    }
+
+    @IsTest
+    static void entitlementsBoundToTheAssetFromAnotherAccountAreDeletedWithIt() {
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner');
         insert previousOwner;
         UsageFixture f = newUsageFixture();
         Asset asset = new Asset(Name = 'RLM Utilities Moved Asset', AccountId = a.Id);
         insert asset;
-        // The entitlement still names the account the asset was granted on. The
-        // teardown loop follows the reset account, so only the asset step finds it.
+        // The entitlements still name the account the asset was granted on. The
+        // teardown loop follows the reset account, so only the asset step finds
+        // them: one through AssetId, one through GrantBindingTargetId.
         UsageEntitlementAccount othersUea = newEntitlementAccount(previousOwner.Id, f);
-        TransactionUsageEntitlement tue = newEntitlement(previousOwner.Id, asset.Id, asset.Id, f);
-        UsageEntitlementBucket bucket = newBucket(othersUea.Id, tue.Id, f);
+        TransactionUsageEntitlement byAsset = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
+        TransactionUsageEntitlement byGrant = newEntitlement(previousOwner.Id, asset.Id, null, f);
+        UsageEntitlementBucket assetBucket = newBucket(othersUea.Id, byAsset.Id, f);
+        UsageEntitlementBucket grantBucket = newBucket(othersUea.Id, byGrant.Id, f);
         // An entitlement account of the reset account's own, which the loop cannot
         // clear (its bucket has no entitlement). It keeps usageDrained false, so the
         // asset step takes its retry branch; this test checks none of that branch's
         // summary deletes, which run against empty sets.
         UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
         newBucket(ownUea.Id, null, f);
-        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id AND AssetId = :asset.Id],
-            'PRECONDITION: the other account\'s entitlement must be bound to the asset before the reset runs');
-        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :bucket.Id],
-            'PRECONDITION: the entitlement\'s bucket must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byAsset.Id AND AssetId = :asset.Id],
+            'PRECONDITION: one entitlement must name the asset in AssetId');
+        Assert.areEqual(1,
+            [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byGrant.Id AND GrantBindingTargetId = :asset.Id AND AssetId = null],
+            'PRECONDITION: the other must name the asset only in GrantBindingTargetId');
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:assetBucket.Id, :grantBucket.Id)],
+            'PRECONDITION: both entitlements\' buckets must exist before the reset runs');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
             'PRECONDITION: the reset account\'s entitlement account must exist before the reset runs');
 
@@ -1181,17 +1222,22 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
         Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'DeleteAssets=true must remove the asset');
-        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
-            'The entitlement bound to the asset must be deleted');
-        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :bucket.Id],
-            'The entitlement\'s bucket must be deleted too');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byAsset.Id],
+            'The entitlement bound through AssetId must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byGrant.Id],
+            'The entitlement bound through GrantBindingTargetId must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:assetBucket.Id, :grantBucket.Id)],
+            'Both entitlements\' buckets must be deleted too');
         Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
             'The reset account\'s own entitlement account must be removed');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
             'The other account\'s entitlement account must be kept');
+        // Buckets: the two entitlements' buckets (asset step) and the reset
+        // account's own bucket (phase 2's retry).
         for (String removed : new List<String>{
-            entry(TransactionUsageEntitlement.SObjectType, 1),
-            entry(UsageEntitlementBucket.SObjectType, 2),
+            entry(TransactionUsageEntitlement.SObjectType, 2),
+            entry(UsageEntitlementBucket.SObjectType, 3),
+            entry(UsageEntitlementAccount.SObjectType, 1),
             entry(Schema.Asset.SObjectType, 1)
         }) {
             Assert.isTrue(
