@@ -261,6 +261,43 @@ def main():
         check("a start page citing only an older version does not refuse an idempotent rerun",
               st["captured"] == 4)
 
+    print("codex round 1")
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        calls = []
+        s1 = snap(tmp, mode="refresh", sections=["deployment-considerations"], probe_page="connect-resources-get-catalogs")
+        s1._fetch_once = make_fetcher(calls=calls)
+        s1.run()
+        fetched = sorted(u[len(BASE):-5] for u in calls)
+        check("refreshing a nested section by id fetches only its subtree (plus the TOC page)",
+              "deployment-considerations" in fetched and "deployment-overview" not in fetched)
+        calls = []
+        s2 = snap(tmp, mode="refresh", sections=["Considerations"], probe_page="connect-resources-get-catalogs")
+        s2._fetch_once = make_fetcher(calls=calls)
+        st = s2.run()
+        check("refreshing a nested section by label queues its page, not nothing",
+              any(u.endswith("/deployment-considerations.html") for u in calls)
+              and not any(u.endswith("/deployment-overview.html") for u in calls) and st["captured"] == 4)
+        pages = load(tmp)["pages"]
+        check("stored subtree ids follow parent links (capture mode without a TOC walk)",
+              sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["deployment-overview"])
+              == {"deployment-overview", "deployment-considerations"}
+              and sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["Considerations"]) == {"deployment-considerations"})
+        check("a section absent from the manifest raises instead of queueing nothing",
+              raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_subtree_ids(pages, ["nope"])))
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
+        check("a different api_version over a captured corpus is refused in all mode",
+              raises(OptionsError, lambda: snap(tmp, mode="all", api_version="69.0").run())
+              and raises(OptionsError, snap(tmp, mode="all", api_version="69.0").preflight))
+        check("... and in a sectioned refresh", raises(
+            OptionsError, lambda: snap(tmp, mode="refresh", api_version="69.0", sections=["deployment-overview"]).run()))
+        check("... and a full refresh that then fails the version check saves nothing",
+              raises(SnapshotError, lambda: snap(tmp, mode="refresh", api_version="69.0").run())
+              and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        check("the same version is unaffected", snap(tmp, mode="all").run()["captured"] == 4)
+
     print("API version check")
     with tempfile.TemporaryDirectory() as tmp:
         s = snap(tmp, api_version="69.0")

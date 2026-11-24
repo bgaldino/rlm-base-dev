@@ -239,6 +239,13 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   version (a metadata-only section), it fetches `probe_page` for evidence, and
   refuses when there is still none. The observed version and its votes are in the
   manifest.
+  A corpus captured for one `api_version` is never relabelled: a run for a
+  different version over captured pages is refused unless it is a whole-guide
+  `--mode refresh` (or uses another `output_dir`).
+- **Sections.** A `sections` filter selects the TOC subtree of the named page id
+  or label, also on a later `refresh`, whatever top-level section the stored
+  records carry. `--mode capture` resolves it from the manifest's `parent_page`
+  links and `toc_label`, and refuses a section it cannot find.
 - **Legacy ids.** The manifest's `legacy_id_map` maps old atlas page ids to
   slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
   neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.

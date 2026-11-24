@@ -435,6 +435,7 @@ class SiteGuideSnapshot:
         self.accepted: List[str] = []
         self.orphaned: List[str] = []
         self._toc_ids: Optional[set] = None
+        self._section_ids: Optional[set] = None
         self._init_options()
 
     # -- options ----------------------------------------------------------
@@ -483,10 +484,9 @@ class SiteGuideSnapshot:
 
     def preflight(self) -> None:
         """Raise offline-detectable conflicts before any target of a batch runs."""
-        self._check_switch(
-            self._manifest_path(resolve_output_dir(self.options["output_dir"])),
-            self.options["mode"],
-        )
+        path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
+        self._check_switch(path, self.options["mode"])
+        self._check_version_change(path, self.options["mode"])
 
     def run(self) -> Dict[str, Any]:
         output_dir = resolve_output_dir(self.options["output_dir"])
@@ -519,6 +519,32 @@ class SiteGuideSnapshot:
                 "the output directory holds an atlas capture; recording the site's "
                 "pages over it would orphan its files. Use --mode refresh to switch "
                 "the corpus to the site (its atlas ids become legacy_id_map entries)."
+            )
+
+    def _check_version_change(self, path: Path, mode: str) -> None:
+        """A corpus captured for one API version is replaced whole or not at all.
+
+        Relabelling the manifest while keeping its captured articles would claim the
+        new version over old text, so a different ``api_version`` needs a full
+        ``--mode refresh`` (or a separate output_dir).
+        """
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return
+        if not isinstance(raw, dict) or raw.get("source") != "site":
+            return
+        stored = raw.get("api_version")
+        if not stored or str(stored) == self.options["api_version"]:
+            return
+        if not any(p.get("status") == "captured" for p in raw.get("pages", []) if isinstance(p, dict)):
+            return
+        if mode != "refresh" or self.options.get("section_filters"):
+            raise OptionsError(
+                f"the output directory was captured for API {stored} but this run is for "
+                f"API {self.options['api_version']}; its articles would keep the old text under "
+                "the new version. Run the whole guide with --mode refresh (no --section), or "
+                "use a separate output_dir."
             )
 
     def _load_or_init_manifest(self, path: Path) -> Dict[str, Any]:
@@ -560,6 +586,11 @@ class SiteGuideSnapshot:
                     "(listed under superseded_files in the manifest); remove them with the re-capture commit"
                 )
             return fresh
+        if manifest.get("api_version") != o["api_version"]:
+            # A full refresh follows (_check_version_change): nothing is current until
+            # it is recaptured, so a capped or failed run leaves pages pending.
+            for page in manifest.get("pages", []):
+                page["status"] = "pending"
         manifest.update(
             api_version=o["api_version"], site_url=o["site_url"],
             deliverable=o["deliverable"], capture_method=CAPTURE_METHOD,
@@ -609,12 +640,14 @@ class SiteGuideSnapshot:
         mode = o["mode"]
         manifest_path = self._manifest_path(output_dir)
         self._check_switch(manifest_path, mode)
+        self._check_version_change(manifest_path, mode)
         manifest = self._load_or_init_manifest(manifest_path)
         legacy_ids = manifest.get("_legacy_ids")
         self._version_verified = False
         self._switching = "_legacy_ids" in manifest
         self._start_votes = Counter()
         self._toc_ids = None
+        self._section_ids = None
         self.refused, self.accepted, self.orphaned = [], [], []
 
         if mode in ("discover", "all", "refresh"):
@@ -667,13 +700,18 @@ class SiteGuideSnapshot:
         )
         if not discovered:
             raise SnapshotError("the TOC walk found no pages")
-        if not o["section_filters"]:
+        if o["section_filters"]:
+            # The filtered TOC walk is the section's subtree; stored records keep the
+            # top-level label from a full-guide capture, so select by id, not label.
+            self._section_ids = {d["page_id"] for d in discovered}
+        else:
             self._toc_ids = {d["page_id"] for d in discovered}
         by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
         for d in discovered:
             rec = by_id.setdefault(d["page_id"], {"page_id": d["page_id"], "status": "pending"})
             rec["title"] = rec.get("title") or d["title"]
             rec.setdefault("section", d["section"])
+            rec["toc_label"] = d["title"]  # the title field becomes the page's H1 once captured
             if d["parent_page"]:
                 rec.setdefault("parent_page", d["parent_page"])
             rec["source_url"] = self._page_url(d["page_id"])
@@ -718,13 +756,36 @@ class SiteGuideSnapshot:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
         filters = self.options.get("section_filters")
         if filters:
-            by_key = {normalize_key(p["page_id"]): p for p in pages}
-            wanted = set()
-            for f in filters:
-                root = by_key.get(normalize_key(f))
-                wanted.add((root.get("section") or f if root else f).strip().lower())
-            pages = [p for p in pages if (p.get("section") or "").strip().lower() in wanted]
+            ids = self._section_ids if self._section_ids is not None else self._stored_subtree_ids(pages, filters)
+            pages = [p for p in pages if p["page_id"] in ids]
         return pages if mode == "refresh" else [p for p in pages if p.get("status") != "captured"]
+
+    @staticmethod
+    def _stored_subtree_ids(pages, filters) -> set:
+        """Section subtrees from the manifest's parent links (``--mode capture``: no TOC walk).
+
+        A filter names a page id (``_``/``-``, ``.htm`` ignored) or its TOC label.
+        """
+        children: Dict[str, List[str]] = {}
+        for p in pages:
+            if p.get("parent_page"):
+                children.setdefault(p["parent_page"], []).append(p["page_id"])
+        ids: set = set()
+        for f in filters:
+            key, label = normalize_key(f), f.strip().lower()
+            roots = [p["page_id"] for p in pages
+                     if normalize_key(p["page_id"]) == key or (p.get("toc_label") or p.get("title") or "").strip().lower() == label]
+            if not roots:
+                raise OptionsError(
+                    f"section {f!r} is not in the manifest; run --mode discover (or all) first"
+                )
+            stack = list(roots)
+            while stack:
+                pid = stack.pop()
+                if pid not in ids:
+                    ids.add(pid)
+                    stack.extend(children.get(pid, []))
+        return ids
 
     def _verify_version(self, votes: Counter, manifest, require: bool = True,
                         weak: bool = False) -> None:
