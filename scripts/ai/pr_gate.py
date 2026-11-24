@@ -1007,6 +1007,7 @@ STDLIB_SUITES = [
     "tests/test_context_runtime.py",
     "tests/test_decision_tables_client.py",
     "tests/test_decision_tables_toolkit.py",
+    "tests/test_deploy_expression_sets.py",
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",

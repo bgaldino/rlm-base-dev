@@ -885,13 +885,14 @@
 
 ### `activate_and_deploy_expression_sets`
 
-**Description:** Activate and Deploy Expression Sets
+**Description:** Activate and Deploy Expression Sets, then read back each deployed version: fail (version_check: fail, the default) or warn (version_check: warn) when it is missing, under a different VersionNumber (a silent no-op deploy), inactive, or not the highest-numbered active version that executes
 
-**Class:** `cumulusci.tasks.salesforce.Deploy`
+**Class:** `tasks.rlm_deploy_expression_sets.DeployExpressionSets`
 
 **Options:**
 
 - `path`: `force-app/main/default/expressionSetDefinition`
+- `version_check`: `fail`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/status[text()="...`
 
 ---
