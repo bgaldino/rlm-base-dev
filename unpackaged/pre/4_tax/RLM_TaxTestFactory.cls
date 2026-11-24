@@ -339,7 +339,10 @@ public with sharing class RLM_TaxTestFactory {
         }
     }
 
-    /** Records every request and answers with a fixed status and body. Never reaches the network. */
+    /**
+     * Records every request and answers with a fixed status and body. Never reaches the network.
+     * A null body is never set, so the response has no body (getBody returns an empty string).
+     */
     public class RecordingHttpMock implements HttpCalloutMock {
         public List<HttpRequest> requests = new List<HttpRequest>();
         private Integer statusCode;
@@ -356,7 +359,9 @@ public with sharing class RLM_TaxTestFactory {
             response.setStatusCode(statusCode);
             response.setStatus(statusCode >= 200 && statusCode < 300 ? 'OK' : 'Error');
             response.setHeader('Content-Type', 'application/json');
-            response.setBody(body);
+            if (body != null) {
+                response.setBody(body);
+            }
             return response;
         }
     }

@@ -71,6 +71,9 @@ global class RLM_CalculateTaxService {
     // The body as untyped JSON, or null when it is not valid JSON.
     @TestVisible
     private static Object parseBodyOrNull(String body) {
+        if (String.isBlank(body)) {
+            return null;
+        }
         try {
             return JSON.deserializeUntyped(body);
         } catch (JSONException e) {
@@ -127,21 +130,22 @@ global class RLM_CalculateTaxService {
                 String requestBody = RLM_AvalaraJSONBuilder.getInstance().frameJsonForGetTaxOrderItem(request);
                 sendHttpRequest.post('/transactions/create',requestBody);
                 //system.debug('Request '+requestBody);
-                String responseString = bodyOrNull(sendHttpRequest.getResponse());
-                if(responseString == null) {
+                HttpResponse httpResponse = sendHttpRequest.getResponse();
+                if(httpResponse == null) {
                     // RLM_HttpService swallows a failed callout and leaves no response.
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '503', NO_RESPONSE_MESSAGE);
                 }
-                //system.debug(sendHttpRequest.getResponse());
-                //system.debug('response'+responseString);
+                String responseString = bodyOrNull(httpResponse);
                 system.debug('Heap size used ' +Limits.getHeapSize());
-                
-                // The HTTP status is checked first: a response outside 2xx is an error whose code is that
-                // status, never a success body. Its message is the engine's own error message when the
-                // body carries a top-level "error" key (the Avalara error result), else a fixed text
-                // naming the status. The "error" shape is an assumption, not measured against a live
-                // engine.
-                Integer statusCode = sendHttpRequest.getResponse().getStatusCode();
+
+                // The HTTP status is checked before the body: a response outside 2xx is an error whose
+                // code is that status, never a success body, even when the body is empty. Its message is
+                // the engine's own error message when the body carries a top-level "error" key (the
+                // Avalara error result), else a fixed text naming the status. The "error" shape is an
+                // assumption, not measured against a live engine. The engine's message is passed on
+                // deliberately: the caller is the platform tax engine, not a page, and the message is
+                // what explains the failure to whoever configured the integration.
+                Integer statusCode = httpResponse.getStatusCode();
                 Object parsedBody = parseBodyOrNull(responseString);
                 if(statusCode < 200 || statusCode > 299) {
                     Object statusError = parsedBody instanceof Map<String, Object>
@@ -151,7 +155,7 @@ global class RLM_CalculateTaxService {
                         : errorMessageFrom(statusError, responseString);
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, String.valueOf(statusCode), statusMessage);
                 }
-                // A 2xx body that is not a JSON object, or whose fields do not fit the success parser
+                // A 2xx body that is empty, not a JSON object, or whose fields do not fit the success parser
                 // (for example "totalAmount":"abc"), returns the 502 unreadable response.
                 // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
                 // successful body can carry the word in a tax name or a reason.
@@ -255,6 +259,7 @@ global class RLM_CalculateTaxService {
                 }
                 else
                 {
+                    // The engine's own message is passed on deliberately, as for a non-2xx status above.
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', errorMessageFrom(errorValue, responseString));
                 }
             }else return null;

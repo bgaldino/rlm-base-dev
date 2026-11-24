@@ -194,7 +194,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     // RLM_HttpService swallows a failed callout (RLM_HttpServiceTest covers that) and leaves a null
-    // response; getTax reads the body through bodyOrNull and returns an ErrorResponse when it is null.
+    // response; getTax returns an ErrorResponse when the response is null.
     // A mock that throws CalloutException drives that production path. bodyOrNull itself is tested below.
     @IsTest
     static void getTax_failedCallout_returnsTheNoResponseError() {
@@ -322,11 +322,11 @@ private with sharing class RLM_CalculateTaxServiceTest {
         }
     }
 
-    // A body that is not JSON cannot be read: a 502 error response, not a JSONException. A blank body is
-    // sent as ' ' because an empty string may read back as no body, which is the 503 path above.
+    // A body that is not JSON cannot be read: a 502 error response, not a JSONException. An empty or
+    // missing body is the same 502 (see the 2xx empty-body case in the non-2xx test).
     @IsTest
     static void getTax_bodyThatIsNotJson_returnsAnUnreadableResponseError() {
-        for (String body : new List<String>{ '<html>Bad gateway</html>', '[1,2]', ' ' }) {
+        for (String body : new List<String>{ '<html>Bad gateway</html>', '[1,2]', ' ', '' }) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-NOT-JSON', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
@@ -435,6 +435,19 @@ private with sharing class RLM_CalculateTaxServiceTest {
             RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '500', body + ': the code is the HTTP status.');
             RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', expectedByBody.get(body), body + ': the message.');
         }
+        for (String emptyBody : new List<String>{ null, '' }) {
+            commercetax.TaxEngineResponse empty = getTaxAnswering(504, emptyBody);
+            Assert.isInstanceOfType(empty, commercetax.ErrorResponse.class, emptyBody + ': an error response.');
+            RLM_TaxTestFactory.assertResponseField(empty, 'errorCode', '504',
+                emptyBody + ': a status outside 2xx with no body keeps its status.');
+            RLM_TaxTestFactory.assertResponseField(empty, 'errorMessage', RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '504.',
+                emptyBody + ': the message names the status.');
+        }
+        commercetax.TaxEngineResponse emptySuccess = getTaxAnswering(200, null);
+        Assert.isInstanceOfType(emptySuccess, commercetax.ErrorResponse.class, 'A 2xx with no body is an error response.');
+        RLM_TaxTestFactory.assertResponseField(emptySuccess, 'errorCode', '502', 'A 2xx with no body is unreadable.');
+        RLM_TaxTestFactory.assertResponseField(emptySuccess, 'errorMessage', RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE,
+            'A 2xx with no body carries the unreadable-response message.');
         commercetax.TaxEngineResponse unauthorized = getTaxAnswering(401, '{"error":"Bad credentials"}');
         RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorCode', '401', 'A 401 keeps its status.');
         RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorMessage', 'Bad credentials', 'A 401 keeps the engine message.');
