@@ -41,6 +41,7 @@ outside their own folders.
 
 | I want to… | Start here |
 |---|---|
+| Plan a build from a customer's quoting spreadsheet, price list or RFP before anything is built | [Implementation planning](.cursor/skills/implementation-planning/SKILL.md) · [Overlay pack](.cursor/skills/overlay-pack/SKILL.md) |
 | Understand Revenue Cloud objects and relationships | [Data model](.cursor/skills/revenue-cloud-data-model/SKILL.md) |
 | Build integrations and work with Revenue Cloud APIs | [Business APIs](.cursor/skills/rlm-business-apis/SKILL.md) |
 | Turn commercial offerings into a product catalog | [Product catalog modeling](.cursor/skills/product-catalog-modeling/SKILL.md) · [Constraint models](.cursor/skills/constraint-models/SKILL.md) |
