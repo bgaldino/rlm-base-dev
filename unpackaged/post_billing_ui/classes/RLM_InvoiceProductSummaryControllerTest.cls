@@ -458,6 +458,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Id usageLine = fakeId(InvoiceLine.SObjectType, 1);
         Id plainLine = fakeId(InvoiceLine.SObjectType, 2);
         Id noQuantityLine = fakeId(InvoiceLine.SObjectType, 3);
+        Id blankQuantityLine = fakeId(InvoiceLine.SObjectType, 4);
         Id uom = fakeId(UnitOfMeasure.SObjectType, 1);
         Date d = Date.newInstance(2026, 1, 1);
         List<InvoiceLine> lines = new List<InvoiceLine>{
@@ -469,7 +470,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
                 'UnitOfMeasureId' => uom, 'UsageOverageQuantity' => 1,
                 'InvoiceLineStartDate' => d, 'InvoiceLineEndDate' => d.addDays(30) }),
             line(new Map<String, Object>{ 'Id' => noQuantityLine, 'Name' => 'Free data',
-                'RLM_Charge_Type__c' => 'Usage Resource', 'Quantity' => 0, 'ChargeAmount' => 1 })
+                'RLM_Charge_Type__c' => 'Usage Resource', 'Quantity' => 0, 'ChargeAmount' => 1 }),
+            line(new Map<String, Object>{ 'Id' => blankQuantityLine, 'Name' => 'Unmetered data',
+                'RLM_Charge_Type__c' => 'Usage Resource', 'ChargeAmount' => 1 })
         };
         List<BillingPeriodItem> periods = new List<BillingPeriodItem>{
             periodItem(usageLine, d.addMonths(1), d.addMonths(2)),
@@ -512,7 +515,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.isNull(plain.overageQty, 'Only a usage line carries its overage');
         Assert.isNull(plain.rate, 'Only a usage line gets a rate');
 
-        Assert.isNull(byName.get('Free data').rate, 'A usage line with no quantity has no rate');
+        Assert.isNull(byName.get('Free data').rate, 'A usage line with a zero quantity has no rate');
+        Assert.isNull(byName.get('Unmetered data').rate, 'A usage line with a blank quantity has no rate');
     }
 
     // A line's schedule group leads to its asset; each product gets one block of that asset's
