@@ -104,96 +104,117 @@ public with sharing class RLM_BSGTimelineController {
                 throw RLM_AuraErrors.handled('Billing Schedule Group not found');
             }
             
-            BillingScheduleGroup bsg = bsgList[0];
-            
-            // Query related Billing Schedules separately
-            List<BillingSchedule> billingSchedules = [
-                SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount, 
-                       PendingAmount, TotalAmount, BillingPeriodAmount, UnitPrice,
-                       BillingScheduleStartDate, BillingScheduleEndDate,
-                       NextBillingDate, BillingMethod, BillingType, BillingTerm,
-                       BillingTermUnit
-                FROM BillingSchedule
-                WHERE BillingScheduleGroupId = :recordId
-                WITH USER_MODE
-                ORDER BY BillingScheduleStartDate ASC, CreatedDate ASC
-            ];
-            
-            BSGData data = new BSGData();
-            data.id = bsg.Id;
-            data.groupNumber = bsg.BillingScheduleGroupNumber;
-            data.productName = bsg.ProductName;
-            data.accountName = bsg.BillingAccount?.Name;
-            data.currencyCode = bsg.CurrencyIsoCode;
-            data.totalBilledAmount = bsg.TotalBilledAmount;
-            data.totalPendingAmount = bsg.TotalPendingAmount;
-            data.billingTerm = String.valueOf(bsg.BillingTerm);
-            data.billingTermUnit = bsg.BillingTermUnit;
-            data.billDayOfMonth = bsg.BillDayOfMonth;
-            data.cancellationDate = bsg.CancellationDate;
-            data.startDate = bsg.StartDate;
-            data.endDate = bsg.EndDate;
-
-            // Suspension fields may not be available in all API versions — use dynamic query
-            try {
-                List<SObject> suspList = Database.query(
-                    'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1',
-                    AccessLevel.USER_MODE
-                );
-                if (!suspList.isEmpty()) {
-                    Object suspVal = suspList[0].get('BillingSuspensionDate');
-                    Object resVal  = suspList[0].get('BillingResumptionDate');
-                    if (suspVal != null) {
-                        data.suspensionDate = Date.valueOf(String.valueOf(suspVal));
-                    }
-                    if (resVal != null) {
-                        data.resumptionDate = Date.valueOf(String.valueOf(resVal));
-                    }
-                }
-            } catch (Exception ex) {
-                // Fields not available
-            }
-            
-            // Map billing schedules
-            data.billingSchedules = new List<BillingScheduleData>();
-            for (BillingSchedule bs : billingSchedules) {
-                BillingScheduleData bsData = new BillingScheduleData();
-                bsData.id = bs.Id;
-                bsData.scheduleNumber = bs.BillingScheduleNumber;
-                bsData.category = bs.Category;
-                bsData.status = bs.Status;
-                bsData.quantity = bs.Quantity;
-                bsData.billedAmount = bs.BilledAmount;
-                bsData.pendingAmount = bs.PendingAmount;
-                bsData.totalAmount = bs.TotalAmount;
-                bsData.billingPeriodAmount = bs.BillingPeriodAmount;
-                bsData.unitPrice = bs.UnitPrice;
-                bsData.startDate = bs.BillingScheduleStartDate;
-                bsData.endDate = bs.BillingScheduleEndDate;
-                bsData.nextBillingDate = bs.NextBillingDate;
-                bsData.billingMethod = bs.BillingMethod;
-                bsData.billingType = bs.BillingType;
-                bsData.billingTerm = bs.BillingTerm;
-                bsData.billingTermUnit = bs.BillingTermUnit;
-                
-                data.billingSchedules.add(bsData);
-            }
-
-            // Inline milestone data if applicable. Billing milestone objects/fields are
-            // license-gated billing extensions that aren't visible to the Apex compiler for
-            // static references, so getMilestoneChartData() accesses them dynamically and
-            // returns an empty list when no plan (or the feature) is present.
-            List<MilestoneChartItem> milestones = getMilestoneChartData(recordId);
-            if (!milestones.isEmpty()) {
-                data.milestoneItems = milestones;
-            }
-            
-            return data;
+            return dataFor(bsgList[0]);
             
         } catch (AuraHandledException ae) {
             throw ae; // already carries the user-facing text; do not wrap it
         } catch (Exception e) {
             throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_BSGTimelineController.getBillingScheduleGroupData', e);
+        }
+    }
+
+    // The group's data, its schedules, its suspension dates and its milestones, for a queried
+    // group. Takes the group so a test can pass one, which Apex cannot insert.
+    @TestVisible
+    private static BSGData dataFor(BillingScheduleGroup bsg) {
+        String recordId = bsg.Id;
+
+        // Query related Billing Schedules separately
+        List<BillingSchedule> billingSchedules = [
+            SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount,
+                   PendingAmount, TotalAmount, BillingPeriodAmount, UnitPrice,
+                   BillingScheduleStartDate, BillingScheduleEndDate,
+                   NextBillingDate, BillingMethod, BillingType, BillingTerm,
+                   BillingTermUnit
+            FROM BillingSchedule
+            WHERE BillingScheduleGroupId = :recordId
+            WITH USER_MODE
+            ORDER BY BillingScheduleStartDate ASC, CreatedDate ASC
+        ];
+
+        BSGData data = new BSGData();
+        data.id = bsg.Id;
+        data.groupNumber = bsg.BillingScheduleGroupNumber;
+        data.productName = bsg.ProductName;
+        data.accountName = bsg.BillingAccount?.Name;
+        data.currencyCode = bsg.CurrencyIsoCode;
+        data.totalBilledAmount = bsg.TotalBilledAmount;
+        data.totalPendingAmount = bsg.TotalPendingAmount;
+        data.billingTerm = String.valueOf(bsg.BillingTerm);
+        data.billingTermUnit = bsg.BillingTermUnit;
+        data.billDayOfMonth = bsg.BillDayOfMonth;
+        data.cancellationDate = bsg.CancellationDate;
+        data.startDate = bsg.StartDate;
+        data.endDate = bsg.EndDate;
+
+        // Suspension fields may not be available in all API versions — use dynamic query
+        try {
+            List<SObject> suspList = Database.query(
+                'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1',
+                AccessLevel.USER_MODE
+            );
+            if (!suspList.isEmpty()) {
+                applySuspension(data, suspList[0]);
+            }
+        } catch (Exception ex) {
+            // Fields not available
+        }
+
+        // Map billing schedules
+        data.billingSchedules = new List<BillingScheduleData>();
+        addSchedules(data.billingSchedules, billingSchedules);
+
+        // Inline milestone data if applicable. Billing milestone objects/fields are
+        // license-gated billing extensions that aren't visible to the Apex compiler for
+        // static references, so getMilestoneChartData() accesses them dynamically and
+        // returns an empty list when no plan (or the feature) is present.
+        List<MilestoneChartItem> milestones = getMilestoneChartData(recordId);
+        if (!milestones.isEmpty()) {
+            data.milestoneItems = milestones;
+        }
+
+        return data;
+    }
+
+    // The suspension and resumption dates from the queried row, when set. Takes the row so a
+    // test can pass one for a group Apex cannot insert.
+    @TestVisible
+    private static void applySuspension(BSGData data, SObject row) {
+        Object suspVal = row.get('BillingSuspensionDate');
+        Object resVal  = row.get('BillingResumptionDate');
+        if (suspVal != null) {
+            data.suspensionDate = Date.valueOf(String.valueOf(suspVal));
+        }
+        if (resVal != null) {
+            data.resumptionDate = Date.valueOf(String.valueOf(resVal));
+        }
+    }
+
+    // One row per queried billing schedule, in query order. Takes rows so a test can pass
+    // schedules, which Apex cannot insert.
+    @TestVisible
+    private static void addSchedules(List<BillingScheduleData> target, List<BillingSchedule> billingSchedules) {
+        for (BillingSchedule bs : billingSchedules) {
+            BillingScheduleData bsData = new BillingScheduleData();
+            bsData.id = bs.Id;
+            bsData.scheduleNumber = bs.BillingScheduleNumber;
+            bsData.category = bs.Category;
+            bsData.status = bs.Status;
+            bsData.quantity = bs.Quantity;
+            bsData.billedAmount = bs.BilledAmount;
+            bsData.pendingAmount = bs.PendingAmount;
+            bsData.totalAmount = bs.TotalAmount;
+            bsData.billingPeriodAmount = bs.BillingPeriodAmount;
+            bsData.unitPrice = bs.UnitPrice;
+            bsData.startDate = bs.BillingScheduleStartDate;
+            bsData.endDate = bs.BillingScheduleEndDate;
+            bsData.nextBillingDate = bs.NextBillingDate;
+            bsData.billingMethod = bs.BillingMethod;
+            bsData.billingType = bs.BillingType;
+            bsData.billingTerm = bs.BillingTerm;
+            bsData.billingTermUnit = bs.BillingTermUnit;
+
+            target.add(bsData);
         }
     }
 
@@ -237,24 +258,34 @@ public with sharing class RLM_BSGTimelineController {
                 AccessLevel.USER_MODE
             );
 
-            for (SObject item : items) {
-                MilestoneChartItem mci = new MilestoneChartItem();
-                mci.id = String.valueOf(item.get('Id'));
-                mci.name = String.valueOf(item.get('Name'));
-                mci.amount = (Decimal) item.get('MilestoneAmount');
-                mci.percentage = (Decimal) item.get('Percentage');
-                mci.status = (String) item.get('Status');
-                mci.completionDate = (Date) item.get('MilestoneAccomplishmentDate');
-                mci.isAccomplished = (Boolean) item.get('IsMilestoneAccomplished');
-                mci.milestoneType = (String) item.get('MilestoneType');
-                mci.referenceAmount = referenceAmount;
-                mci.billedAmount = groupBilledAmount;
-                result.add(mci);
-            }
+            addMilestoneChartItems(result, items, referenceAmount, groupBilledAmount);
         } catch (Exception e) {
             // Billing milestone objects/fields not available in this org — return empty
         }
         return result;
+    }
+
+    // One chart item per queried milestone plan item, in query order, each carrying the plan's
+    // reference amount and the group's billed amount. Takes rows so a test can pass items of a
+    // plan it cannot create.
+    @TestVisible
+    private static void addMilestoneChartItems(
+        List<MilestoneChartItem> result, List<SObject> items, Decimal referenceAmount, Decimal groupBilledAmount
+    ) {
+        for (SObject item : items) {
+            MilestoneChartItem mci = new MilestoneChartItem();
+            mci.id = String.valueOf(item.get('Id'));
+            mci.name = String.valueOf(item.get('Name'));
+            mci.amount = (Decimal) item.get('MilestoneAmount');
+            mci.percentage = (Decimal) item.get('Percentage');
+            mci.status = (String) item.get('Status');
+            mci.completionDate = (Date) item.get('MilestoneAccomplishmentDate');
+            mci.isAccomplished = (Boolean) item.get('IsMilestoneAccomplished');
+            mci.milestoneType = (String) item.get('MilestoneType');
+            mci.referenceAmount = referenceAmount;
+            mci.billedAmount = groupBilledAmount;
+            result.add(mci);
+        }
     }
     
     /**
@@ -266,79 +297,87 @@ public with sharing class RLM_BSGTimelineController {
             // Get BSG data
             BSGData bsgData = getBillingScheduleGroupData(recordId);
             
-            if (bsgData.billingSchedules.isEmpty()) {
-                return new List<ConsolidatedSegment>();
-            }
-            
-            // Build segments in a List (insertion order = chronological order since allDates is sorted).
-            // A Map was previously used but Map.values() iteration order is not guaranteed in Apex.
-            List<ConsolidatedSegment> segments = new List<ConsolidatedSegment>();
-            List<Date> allDates = new List<Date>();
-            
-            // Collect all unique start and end dates
-            Set<Date> dateSet = new Set<Date>();
-            for (BillingScheduleData bs : bsgData.billingSchedules) {
-                if (bs.startDate != null) dateSet.add(bs.startDate);
-                if (bs.endDate != null) dateSet.add(bs.endDate.addDays(1)); // Add 1 day for exclusive end
-            }
-            
-            allDates.addAll(dateSet);
-            allDates.sort();
-            
-            // Create segments based on date boundaries
-            Integer periodNum = 1;
-            for (Integer i = 0; i < allDates.size() - 1; i++) {
-                Date segStart = allDates[i];
-                Date segEnd = allDates[i + 1].addDays(-1); // Subtract 1 for inclusive end
-                
-                ConsolidatedSegment segment = new ConsolidatedSegment();
-                segment.periodNumber = periodNum++;
-                segment.startDate = segStart;
-                segment.endDate = segEnd;
-                segment.netQuantity = 0;
-                segment.periodicBilling = 0;
-                segment.credits = 0;
-                segment.activeScheduleIds = new List<String>();
-                segment.activeScheduleNumbers = new List<String>();
-                segment.status = 'Active';
-                
-                // Find all BS that overlap with this segment
-                for (BillingScheduleData bs : bsgData.billingSchedules) {
-                    if (bs.startDate <= segEnd && bs.endDate >= segStart) {
-                        segment.activeScheduleIds.add(bs.id);
-                        segment.activeScheduleNumbers.add(bs.scheduleNumber);
-                        
-                        // Calculate quantities and amounts
-                        if (bs.quantity != null) {
-                            segment.netQuantity += bs.quantity;
-                        }
-                        
-                        if (bs.billingPeriodAmount != null) {
-                            if (bs.billingPeriodAmount >= 0) {
-                                segment.periodicBilling += bs.billingPeriodAmount;
-                            } else {
-                                segment.credits += bs.billingPeriodAmount;
-                            }
-                        }
-                        
-                        // Check if any schedule is cancelled
-                        if (bs.category == 'Cancellation' || bs.status == 'Cancelled') {
-                            segment.status = 'Cancelled';
-                        } else if (bs.status == 'Completely Billed' && segment.status != 'Cancelled') {
-                            segment.status = 'Completely Billed';
-                        }
-                    }
-                }
-                
-                segments.add(segment);
-            }
-
-            return segments;
+            return consolidate(bsgData.billingSchedules);
             
         } catch (AuraHandledException ae) {
             throw ae;
         } catch (Exception e) {
             throw RLM_AuraErrors.failed(TIMELINE_FAILED_MESSAGE, 'RLM_BSGTimelineController.getConsolidatedTimeline', e);
         }
+    }
+
+    // The timeline segments between every schedule start and end, each with the schedules active
+    // in it and their totals. Takes schedule rows so a test can pass them for a group Apex cannot
+    // insert.
+    @TestVisible
+    private static List<ConsolidatedSegment> consolidate(List<BillingScheduleData> schedules) {
+        if (schedules.isEmpty()) {
+            return new List<ConsolidatedSegment>();
+        }
+
+        // Build segments in a List (insertion order = chronological order since allDates is sorted).
+        // A Map was previously used but Map.values() iteration order is not guaranteed in Apex.
+        List<ConsolidatedSegment> segments = new List<ConsolidatedSegment>();
+        List<Date> allDates = new List<Date>();
+
+        // Collect all unique start and end dates
+        Set<Date> dateSet = new Set<Date>();
+        for (BillingScheduleData bs : schedules) {
+            if (bs.startDate != null) dateSet.add(bs.startDate);
+            if (bs.endDate != null) dateSet.add(bs.endDate.addDays(1)); // Add 1 day for exclusive end
+        }
+
+        allDates.addAll(dateSet);
+        allDates.sort();
+
+        // Create segments based on date boundaries
+        Integer periodNum = 1;
+        for (Integer i = 0; i < allDates.size() - 1; i++) {
+            Date segStart = allDates[i];
+            Date segEnd = allDates[i + 1].addDays(-1); // Subtract 1 for inclusive end
+
+            ConsolidatedSegment segment = new ConsolidatedSegment();
+            segment.periodNumber = periodNum++;
+            segment.startDate = segStart;
+            segment.endDate = segEnd;
+            segment.netQuantity = 0;
+            segment.periodicBilling = 0;
+            segment.credits = 0;
+            segment.activeScheduleIds = new List<String>();
+            segment.activeScheduleNumbers = new List<String>();
+            segment.status = 'Active';
+
+            // Find all BS that overlap with this segment
+            for (BillingScheduleData bs : schedules) {
+                if (bs.startDate <= segEnd && bs.endDate >= segStart) {
+                    segment.activeScheduleIds.add(bs.id);
+                    segment.activeScheduleNumbers.add(bs.scheduleNumber);
+
+                    // Calculate quantities and amounts
+                    if (bs.quantity != null) {
+                        segment.netQuantity += bs.quantity;
+                    }
+
+                    if (bs.billingPeriodAmount != null) {
+                        if (bs.billingPeriodAmount >= 0) {
+                            segment.periodicBilling += bs.billingPeriodAmount;
+                        } else {
+                            segment.credits += bs.billingPeriodAmount;
+                        }
+                    }
+
+                    // Check if any schedule is cancelled
+                    if (bs.category == 'Cancellation' || bs.status == 'Cancelled') {
+                        segment.status = 'Cancelled';
+                    } else if (bs.status == 'Completely Billed' && segment.status != 'Cancelled') {
+                        segment.status = 'Completely Billed';
+                    }
+                }
+            }
+
+            segments.add(segment);
+        }
+
+        return segments;
     }
 }

@@ -139,63 +139,7 @@ public with sharing class RLM_BSGContextController {
                 ctx.viewType = 'standard';
                 return ctx;
             }
-            BillingScheduleGroup bsg = bsgList[0];
-
-            ctx.bsgNumber = bsg.BillingScheduleGroupNumber;
-            ctx.productName = bsg.ProductName;
-            ctx.billingType = bsg.BillingType;
-            ctx.billingMethod = bsg.BillingMethod;
-            ctx.billingTermUnit = bsg.BillingTermUnit;
-            ctx.billingTerm = bsg.BillingTerm;
-
-            // Group-level billed/pending for the panel's % calculation. The group's own rollups
-            // are used (no extra query, record currency like the panel's formatting); a sum over
-            // schedules would be corporate-currency converted in a multi-currency org.
-            ctx.groupBilledAmount = bsg.TotalBilledAmount;
-            ctx.groupPendingAmount = bsg.TotalPendingAmount;
-
-            // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
-            // BillingMilestonePlan(Item) objects are license-gated billing extensions that are
-            // not surfaced to the Apex compiler for static SOQL (compile visibility can also lag
-            // behind entitlement propagation in a fresh org), so query them dynamically.
-            Id milestonePlanId = findMilestonePlanId(bsgRecordId);
-            if (milestonePlanId != null) {
-                ctx.viewType = 'milestone';
-                ctx.milestonePlan = getMilestonePlan(milestonePlanId, bsg.TotalBilledAmount);
-            }
-
-            // 2. Check for Bundle relationships
-            if (ctx.viewType == null) {
-                List<BsgRelationship> asMain = [
-                    SELECT Id, AssociatedBsgId, AssociatedBsgRole, AssociatedBsgPricing
-                    FROM BsgRelationship WHERE MainBsgId = :bsgRecordId WITH USER_MODE LIMIT 50
-                ];
-                List<BsgRelationship> asComponent = [
-                    SELECT Id, MainBsgId, MainBsgRole
-                    FROM BsgRelationship WHERE AssociatedBsgId = :bsgRecordId WITH USER_MODE LIMIT 1
-                ];
-
-                if (!asMain.isEmpty() || !asComponent.isEmpty()) {
-                    ctx.viewType = 'bundle';
-                    ctx.bundle = getBundleData(bsgRecordId, bsg, asMain, asComponent);
-                }
-            }
-
-            // 3. Check for Usage
-            if (ctx.viewType == null && bsg.BillingMethod == 'Usage') {
-                ctx.viewType = 'usage';
-                ctx.usage = getUsageData(bsgRecordId, bsg);
-            }
-
-            // 4. Fallback
-            if (ctx.viewType == null) {
-                ctx.viewType = 'standard';
-            }
-
-            // 5. Check for Billing Arrangement (applies to any view type)
-            if (bsg.BillingArrangementId != null) {
-                ctx.arrangement = getArrangementData(bsg.BillingArrangementId);
-            }
+            fillContext(ctx, bsgList[0]);
         } catch (Exception e) {
             // Degrade gracefully to a standard view rather than throwing to the client.
             if (ctx.viewType == null) {
@@ -206,12 +150,75 @@ public with sharing class RLM_BSGContextController {
         return ctx;
     }
 
+    // The view type and its data for a queried group: milestone, bundle, usage or standard, plus
+    // its billing arrangement. Takes the group so a test can pass one, which Apex cannot insert.
+    @TestVisible
+    private static void fillContext(BSGContext ctx, BillingScheduleGroup bsg) {
+
+        ctx.bsgNumber = bsg.BillingScheduleGroupNumber;
+        ctx.productName = bsg.ProductName;
+        ctx.billingType = bsg.BillingType;
+        ctx.billingMethod = bsg.BillingMethod;
+        ctx.billingTermUnit = bsg.BillingTermUnit;
+        ctx.billingTerm = bsg.BillingTerm;
+
+        // Group-level billed/pending for the panel's % calculation. The group's own rollups
+        // are used (no extra query, record currency like the panel's formatting); a sum over
+        // schedules would be corporate-currency converted in a multi-currency org.
+        ctx.groupBilledAmount = bsg.TotalBilledAmount;
+        ctx.groupPendingAmount = bsg.TotalPendingAmount;
+
+        // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
+        // BillingMilestonePlan(Item) objects are license-gated billing extensions that are
+        // not surfaced to the Apex compiler for static SOQL (compile visibility can also lag
+        // behind entitlement propagation in a fresh org), so query them dynamically.
+        Id milestonePlanId = findMilestonePlanId(bsg.Id);
+        if (milestonePlanId != null) {
+            ctx.viewType = 'milestone';
+            ctx.milestonePlan = getMilestonePlan(milestonePlanId, bsg.TotalBilledAmount);
+        }
+
+        // 2. Check for Bundle relationships
+        if (ctx.viewType == null) {
+            List<BsgRelationship> asMain = [
+                SELECT Id, AssociatedBsgId, AssociatedBsgRole, AssociatedBsgPricing
+                FROM BsgRelationship WHERE MainBsgId = :bsg.Id WITH USER_MODE LIMIT 50
+            ];
+            List<BsgRelationship> asComponent = [
+                SELECT Id, MainBsgId, MainBsgRole
+                FROM BsgRelationship WHERE AssociatedBsgId = :bsg.Id WITH USER_MODE LIMIT 1
+            ];
+
+            if (!asMain.isEmpty() || !asComponent.isEmpty()) {
+                ctx.viewType = 'bundle';
+                ctx.bundle = getBundleData(bsg.Id, bsg, asMain, asComponent);
+            }
+        }
+
+        // 3. Check for Usage
+        if (ctx.viewType == null && bsg.BillingMethod == 'Usage') {
+            ctx.viewType = 'usage';
+            ctx.usage = getUsageData(bsg.Id, bsg);
+        }
+
+        // 4. Fallback
+        if (ctx.viewType == null) {
+            ctx.viewType = 'standard';
+        }
+
+        // 5. Check for Billing Arrangement (applies to any view type)
+        if (bsg.BillingArrangementId != null) {
+            ctx.arrangement = getArrangementData(bsg.BillingArrangementId);
+        }
+    }
+
     // ─── Milestone ──────────────────────────────────────────────────────────
 
     /**
      * Resolve the milestone plan id for a BSG. BillingSchedule.BillingMilestonePlanId is a
      * license-gated billing extension field not visible to the Apex compiler for static SOQL.
      */
+    @TestVisible
     private static Id findMilestonePlanId(Id recordId) {
         try {
             List<SObject> rows = Database.query(
@@ -228,6 +235,7 @@ public with sharing class RLM_BSGContextController {
         return null;
     }
 
+    @TestVisible
     private static MilestonePlanData getMilestonePlan(Id planId, Decimal bsgBilledAmount) {
         MilestonePlanData plan = new MilestonePlanData();
         try {
@@ -241,14 +249,7 @@ public with sharing class RLM_BSGContextController {
             if (bmpList.isEmpty()) {
                 return plan;
             }
-            SObject bmp = bmpList[0];
-
-            plan.planId = String.valueOf(bmp.get('Id'));
-            plan.planName = (String) bmp.get('Name');
-            plan.planStatus = (String) bmp.get('Status');
-            plan.description = (String) bmp.get('Description');
-            plan.referenceAmount = (Decimal) bmp.get('ReferenceItemAmount');
-            plan.billedAmount = bsgBilledAmount != null ? bsgBilledAmount : 0;
+            fillPlanHeader(plan, bmpList[0], bsgBilledAmount);
 
             List<SObject> items = Database.query(
                 'SELECT Id, Name, Type, Percentage, FlatAmount, MilestoneType, ' +
@@ -260,22 +261,7 @@ public with sharing class RLM_BSGContextController {
             );
 
             plan.items = new List<MilestoneItemData>();
-            for (SObject item : items) {
-                MilestoneItemData mid = new MilestoneItemData();
-                mid.id = String.valueOf(item.get('Id'));
-                mid.name = (String) item.get('Name');
-                mid.itemType = (String) item.get('Type');
-                mid.percentage = (Decimal) item.get('Percentage');
-                mid.flatAmount = (Decimal) item.get('FlatAmount');
-                mid.milestoneType = (String) item.get('MilestoneType');
-                mid.milestoneAmount = (Decimal) item.get('MilestoneAmount');
-                mid.commencementDate = (String) item.get('CommencementDate');
-                mid.isAccomplished = (Boolean) item.get('IsMilestoneAccomplished');
-                mid.status = (String) item.get('Status');
-                Object accDate = item.get('MilestoneAccomplishmentDate');
-                mid.accomplishmentDate = accDate != null ? String.valueOf(accDate) : null;
-                plan.items.add(mid);
-            }
+            addMilestoneItems(plan.items, items);
         } catch (Exception e) {
             // Billing milestone extension not available — return whatever was populated
         }
@@ -283,8 +269,43 @@ public with sharing class RLM_BSGContextController {
         return plan;
     }
 
+    // The plan's own fields, and the group's billed amount (zero when blank). Takes the row so a
+    // test can pass a plan without the billing treatment a real one needs.
+    @TestVisible
+    private static void fillPlanHeader(MilestonePlanData plan, SObject bmp, Decimal bsgBilledAmount) {
+        plan.planId = String.valueOf(bmp.get('Id'));
+        plan.planName = (String) bmp.get('Name');
+        plan.planStatus = (String) bmp.get('Status');
+        plan.description = (String) bmp.get('Description');
+        plan.referenceAmount = (Decimal) bmp.get('ReferenceItemAmount');
+        plan.billedAmount = bsgBilledAmount != null ? bsgBilledAmount : 0;
+    }
+
+    // One item per queried milestone plan item, in query order. Takes rows so a test can pass
+    // items of a plan it cannot create.
+    @TestVisible
+    private static void addMilestoneItems(List<MilestoneItemData> target, List<SObject> items) {
+        for (SObject item : items) {
+            MilestoneItemData mid = new MilestoneItemData();
+            mid.id = String.valueOf(item.get('Id'));
+            mid.name = (String) item.get('Name');
+            mid.itemType = (String) item.get('Type');
+            mid.percentage = (Decimal) item.get('Percentage');
+            mid.flatAmount = (Decimal) item.get('FlatAmount');
+            mid.milestoneType = (String) item.get('MilestoneType');
+            mid.milestoneAmount = (Decimal) item.get('MilestoneAmount');
+            mid.commencementDate = (String) item.get('CommencementDate');
+            mid.isAccomplished = (Boolean) item.get('IsMilestoneAccomplished');
+            mid.status = (String) item.get('Status');
+            Object accDate = item.get('MilestoneAccomplishmentDate');
+            mid.accomplishmentDate = accDate != null ? String.valueOf(accDate) : null;
+            target.add(mid);
+        }
+    }
+
     // ─── Bundle ─────────────────────────────────────────────────────────────
 
+    @TestVisible
     private static BundleData getBundleData(
         Id recordId, BillingScheduleGroup currentBsg,
         List<BsgRelationship> asMain, List<BsgRelationship> asComponent
@@ -365,17 +386,10 @@ public with sharing class RLM_BSGContextController {
             if (frontier.isEmpty()) break;
             seenParents.addAll(frontier);
             Set<Id> nextFrontier = new Set<Id>();
-            for (BsgRelationship rel : [
+            addRelationshipLevel([
                 SELECT MainBsgId, AssociatedBsgId FROM BsgRelationship
                 WHERE MainBsgId IN :frontier WITH USER_MODE
-            ]) {
-                if (!parentToChildren.containsKey(rel.MainBsgId)) {
-                    parentToChildren.put(rel.MainBsgId, new List<Id>());
-                }
-                parentToChildren.get(rel.MainBsgId).add(rel.AssociatedBsgId);
-                allChildIds.add(rel.AssociatedBsgId);
-                nextFrontier.add(rel.AssociatedBsgId);
-            }
+            ], parentToChildren, allChildIds, nextFrontier);
             frontier = nextFrontier;
             level++;
         }
@@ -392,6 +406,23 @@ public with sharing class RLM_BSGContextController {
 
         appendComponentsDfs(mainBsgId, currentRecordId, startDepth, parentToChildren,
                             subBundleIds, bsgById, result, new Set<Id>{ mainBsgId });
+    }
+
+    // Records one level of the hierarchy: each child under its parent, in the next frontier and
+    // among all children. Takes rows so a test can pass relationships, which Apex cannot insert.
+    @TestVisible
+    private static void addRelationshipLevel(
+        List<BsgRelationship> rels, Map<Id, List<Id>> parentToChildren,
+        Set<Id> allChildIds, Set<Id> nextFrontier
+    ) {
+        for (BsgRelationship rel : rels) {
+            if (!parentToChildren.containsKey(rel.MainBsgId)) {
+                parentToChildren.put(rel.MainBsgId, new List<Id>());
+            }
+            parentToChildren.get(rel.MainBsgId).add(rel.AssociatedBsgId);
+            allChildIds.add(rel.AssociatedBsgId);
+            nextFrontier.add(rel.AssociatedBsgId);
+        }
     }
 
     @TestVisible
@@ -462,6 +493,7 @@ public with sharing class RLM_BSGContextController {
 
     // ─── Usage ──────────────────────────────────────────────────────────────
 
+    @TestVisible
     private static UsageData getUsageData(Id recordId, BillingScheduleGroup bsg) {
         UsageData ud = new UsageData();
         ud.anchorBsgId = bsg.AnchorProdtBillingSchdGrpId;
@@ -523,22 +555,33 @@ public with sharing class RLM_BSGContextController {
                 }
             }
 
-            for (BillingScheduleGroup sib : siblingBsgs) {
-                UsageSiblingData usd = new UsageSiblingData();
-                usd.bsgId = sib.Id;
-                usd.bsgNumber = sib.BillingScheduleGroupNumber;
-                usd.resourceName = bsgToResourceName.get(sib.Id);
-                usd.billedAmount = sib.TotalBilledAmount != null ? sib.TotalBilledAmount : 0;
-                usd.isCurrent = (sib.Id == recordId);
-                ud.siblings.add(usd);
-            }
+            addUsageSiblings(ud.siblings, siblingBsgs, bsgToResourceName, recordId);
         }
 
         return ud;
     }
 
+    // One row per sibling usage group, with its resource and billed amount (zero when blank),
+    // marking the current group. Takes rows so a test can pass groups, which Apex cannot insert.
+    @TestVisible
+    private static void addUsageSiblings(
+        List<UsageSiblingData> target, List<BillingScheduleGroup> siblingBsgs,
+        Map<Id, String> bsgToResourceName, Id recordId
+    ) {
+        for (BillingScheduleGroup sib : siblingBsgs) {
+            UsageSiblingData usd = new UsageSiblingData();
+            usd.bsgId = sib.Id;
+            usd.bsgNumber = sib.BillingScheduleGroupNumber;
+            usd.resourceName = bsgToResourceName.get(sib.Id);
+            usd.billedAmount = sib.TotalBilledAmount != null ? sib.TotalBilledAmount : 0;
+            usd.isCurrent = (sib.Id == recordId);
+            target.add(usd);
+        }
+    }
+
     // ─── Billing Arrangement ────────────────────────────────────────────────
 
+    @TestVisible
     private static ArrangementData getArrangementData(Id arrangementId) {
         ArrangementData ad = new ArrangementData();
 
@@ -556,23 +599,30 @@ public with sharing class RLM_BSGContextController {
         ad.status = ba.Status;
 
         ad.lines = new List<ArrangementLineData>();
-        for (BillingArrangementLine bal : [
+        addArrangementLines(ad.lines, [
             SELECT Id, BillingArrangementLineName, Account.Name,
                    BillingAccountId, BillingPercentage, ShouldBillRemainder
             FROM BillingArrangementLine
             WHERE BillingArrangementId = :arrangementId
             WITH USER_MODE
             ORDER BY BillingPercentage DESC
-        ]) {
+        ]);
+
+        return ad;
+    }
+
+    // One row per queried arrangement line, in query order. Takes rows so a test can pass lines,
+    // which need a fully set-up billing account to insert.
+    @TestVisible
+    private static void addArrangementLines(List<ArrangementLineData> target, List<BillingArrangementLine> lines) {
+        for (BillingArrangementLine bal : lines) {
             ArrangementLineData ald = new ArrangementLineData();
             ald.lineId = bal.Id;
             ald.lineName = bal.BillingArrangementLineName;
             ald.accountName = bal.Account.Name;
             ald.billingPercentage = bal.BillingPercentage;
             ald.shouldBillRemainder = bal.ShouldBillRemainder;
-            ad.lines.add(ald);
+            target.add(ald);
         }
-
-        return ad;
     }
 }

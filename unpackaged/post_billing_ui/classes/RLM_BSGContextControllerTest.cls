@@ -2,21 +2,26 @@
 private class RLM_BSGContextControllerTest {
 
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
-    // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
+    // BsgRelationship cannot be inserted in Apex tests, so getBSGContext itself is covered on
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
-    // query the user may not run. The admin-run unknown-id test
+    // query the user may not run. What it does with a found group is covered through the seams
+    // that take rows (fillContext, getBundleData, the milestone, usage and arrangement helpers),
+    // in the tests after "Seams over queried rows". With fake ids fillContext reaches only the
+    // usage and standard views; choosing the milestone or bundle view needs real rows (live
+    // verification only). The admin-run unknown-id test
     // (getBSGContext_unknownId_returnsEmptyStandard) reaches "not found or refused"
     // (indistinguishable when run as the admin).
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
     // charge-type / frequency helpers are called directly with plain inputs.
-    // The refused-access test runs as a plain Minimum Access user with no permission set
-    // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
-    // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
+    // The refused-access tests (the refused BSG query and the unreadable schedules) run as a
+    // plain Minimum Access user with no permission set license (no Billing PSL seat);
+    // billing-role read coverage for the controller's fields is in RLM_BillingUIAccessTest
+    // (billingOperationsCanRunItsControllerReads).
     //
-    // Fixed (live verification only; BillingScheduleGroup records are not insertable in Apex
-    // tests): groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
-    // TotalPendingAmount (no arbitrary single schedule), and the usage resource names come
-    // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
+    // Fixed: groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
+    // TotalPendingAmount (no arbitrary single schedule; fillContext_usageGroupWithAnArrangement
+    // checks it), and the usage resource names come from the earliest schedule
+    // (ORDER BY CreatedDate, Id, first wins; live verification only).
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'
@@ -432,5 +437,313 @@ private class RLM_BSGContextControllerTest {
         };
         m.putAll(overrides);
         return (BillingScheduleGroup) JSON.deserialize(JSON.serialize(m), BillingScheduleGroup.class);
+    }
+
+    // ─── Seams over queried rows ─────────────────────────────────────────────
+    // Billing schedule groups, schedules and relationships cannot be inserted in Apex, and a
+    // milestone plan needs a billing treatment, so these tests pass rows built with
+    // JSON.deserialize to the methods the controller calls with the rows it queried. Billing
+    // arrangements can be inserted, so that read runs against real records.
+
+    private static Id fakeId(Schema.SObjectType objectType, Integer n) {
+        return Id.valueOf(objectType.getDescribe().getKeyPrefix() + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static BillingScheduleGroup bsg(Map<String, Object> fields) {
+        return (BillingScheduleGroup) JSON.deserialize(JSON.serialize(fields), BillingScheduleGroup.class);
+    }
+
+    private static SObject row(String objectName, Map<String, Object> fields) {
+        return (SObject) JSON.deserialize(JSON.serialize(fields), Type.forName(objectName));
+    }
+
+    // True when the org has no such object, by describe or as an Apex type; row() needs both.
+    private static Boolean missing(String objectName) {
+        return Schema.getGlobalDescribe().get(objectName) == null || Type.forName(objectName) == null;
+    }
+
+    // A usage group with no milestone and no bundle relationships is a usage view: its own
+    // fields, its anchor, no siblings found; its billing arrangement is read (lines need a fully
+    // set-up billing account to insert, so addArrangementLines_keepsTheQueryOrder covers them).
+    @isTest
+    static void fillContext_usageGroupWithAnArrangement() {
+        BillingArrangement arrangement = new BillingArrangement(Name = 'RLM Split', Status = 'Draft');
+        insert arrangement;
+        Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id anchorId = fakeId(BillingScheduleGroup.SObjectType, 2);
+        RLM_BSGContextController.BSGContext ctx = new RLM_BSGContextController.BSGContext();
+
+        Test.startTest();
+        RLM_BSGContextController.fillContext(ctx, bsg(new Map<String, Object>{
+            'Id' => groupId, 'BillingScheduleGroupNumber' => 'BSG-0001', 'ProductName' => 'Data Plan',
+            'BillingType' => 'Advance', 'BillingMethod' => 'Usage', 'BillingTermUnit' => 'Month',
+            'BillingTerm' => 1, 'TotalBilledAmount' => 100, 'TotalPendingAmount' => 50,
+            'AnchorProdtBillingSchdGrpId' => anchorId, 'BillingArrangementId' => arrangement.Id }));
+        Test.stopTest();
+
+        Assert.areEqual('usage', ctx.viewType, 'A usage group without a milestone or bundle is a usage view');
+        Assert.areEqual('BSG-0001', ctx.bsgNumber, 'The group number is shown');
+        Assert.areEqual('Data Plan', ctx.productName, 'The product is shown');
+        Assert.areEqual(100, ctx.groupBilledAmount, 'Billed comes from the group');
+        Assert.areEqual(50, ctx.groupPendingAmount, 'Pending comes from the group');
+        Assert.areEqual('Advance', ctx.billingType, 'The billing type is shown');
+        Assert.areEqual('Usage', ctx.billingMethod, 'The billing method is shown');
+        Assert.areEqual('Month', ctx.billingTermUnit, 'The term unit is shown');
+        Assert.areEqual(1, ctx.billingTerm, 'The term is shown');
+        Assert.areEqual(anchorId, ctx.usage.anchorBsgId, 'The anchor group is named');
+        Assert.areEqual('BSG-0001', ctx.usage.currentBsgNumber, 'The current group is named');
+        Assert.isTrue(ctx.usage.siblings.isEmpty(), 'No sibling groups exist');
+        Assert.areEqual('RLM Split', ctx.arrangement.arrangementName, 'The arrangement is read');
+        Assert.areEqual('Draft', ctx.arrangement.status, 'The arrangement status is read');
+        Assert.areEqual(arrangement.Id, ctx.arrangement.arrangementId, 'The arrangement id is read');
+        Assert.isTrue(ctx.arrangement.lines.isEmpty(), 'An arrangement without lines lists none');
+    }
+
+    // Arrangement lines: one row each in query order (the query sorts by share), with the line's
+    // account name, share and remainder flag.
+    @isTest
+    static void addArrangementLines_keepsTheQueryOrder() {
+        List<BillingArrangementLine> lines = new List<BillingArrangementLine>();
+        for (List<Object> r : new List<List<Object>>{
+            new List<Object>{ 'Line B', 'Payer', 60, true },
+            new List<Object>{ 'Line A', 'Other', 40, false }
+        }) {
+            lines.add((BillingArrangementLine) row('BillingArrangementLine', new Map<String, Object>{
+                'BillingArrangementLineName' => r[0], 'Account' => new Map<String, Object>{ 'Name' => r[1] },
+                'BillingPercentage' => r[2], 'ShouldBillRemainder' => r[3] }));
+        }
+        List<RLM_BSGContextController.ArrangementLineData> target = new List<RLM_BSGContextController.ArrangementLineData>();
+
+        Test.startTest();
+        RLM_BSGContextController.addArrangementLines(target, lines);
+        Test.stopTest();
+
+        Assert.areEqual(new List<String>{ 'Line B', 'Line A' }, new List<String>{ target[0].lineName, target[1].lineName },
+            'Lines keep the query order, not name order');
+        Assert.areEqual('Payer', target[0].accountName, 'The line\'s account name is shown');
+        Assert.areEqual(60, target[0].billingPercentage, 'The share is shown');
+        Assert.isTrue(target[0].shouldBillRemainder, 'The remainder flag is shown');
+        Assert.isFalse(target[1].shouldBillRemainder, 'Each line keeps its own flag');
+    }
+
+    // Smoke test: for a plan id that matches no plan, the plan lookup returns an empty plan and
+    // does not throw. (A missing row and a swallowed error look the same from here.)
+    @isTest
+    static void getMilestonePlan_unknownPlanReturnsAnEmptyPlan() {
+        Schema.SObjectType planType = Schema.getGlobalDescribe().get('BillingMilestonePlan');
+        if (planType == null) {
+            // No billing milestone objects in this org: the context never reads a plan here.
+            return;
+        }
+
+        Test.startTest();
+        RLM_BSGContextController.MilestonePlanData plan =
+            RLM_BSGContextController.getMilestonePlan(fakeId(planType, 1), 100);
+        Test.stopTest();
+
+        Assert.isNull(plan.planId, 'No plan was found, so none is described');
+        Assert.isNull(plan.items, 'No plan was found, so no items are read');
+    }
+
+    // A group that is neither milestone, bundle nor usage is a standard view, with no arrangement
+    // when it has none.
+    @isTest
+    static void fillContext_plainGroupIsStandard() {
+        RLM_BSGContextController.BSGContext ctx = new RLM_BSGContextController.BSGContext();
+
+        Test.startTest();
+        RLM_BSGContextController.fillContext(ctx, bsg(new Map<String, Object>{
+            'Id' => fakeId(BillingScheduleGroup.SObjectType, 1), 'BillingMethod' => 'OrderAmount' }));
+        Test.stopTest();
+
+        Assert.areEqual('standard', ctx.viewType, 'A plain group falls back to the standard view');
+        Assert.isNull(ctx.arrangement, 'A group without an arrangement gets none');
+    }
+
+    // A group that is the main side of a relationship is the main bundle, even when it is also a
+    // component of another group; it is described by its own charge type and frequency, and with
+    // no child groups found it lists no components.
+    @isTest
+    static void getBundleData_mainSideIsTheMainBundle() {
+        Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
+        BillingScheduleGroup current = bsg(new Map<String, Object>{
+            'Id' => groupId, 'ProductName' => 'Suite', 'BillingTermUnit' => 'OneTime', 'BillingTerm' => 1 });
+        BsgRelationship asMain = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
+            'MainBsgId' => groupId, 'AssociatedBsgId' => fakeId(BillingScheduleGroup.SObjectType, 2) });
+        BsgRelationship alsoComponent = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
+            'MainBsgId' => fakeId(BillingScheduleGroup.SObjectType, 3), 'AssociatedBsgId' => groupId });
+
+        Test.startTest();
+        RLM_BSGContextController.BundleData bd = RLM_BSGContextController.getBundleData(
+            groupId, current, new List<BsgRelationship>{ asMain }, new List<BsgRelationship>{ alsoComponent });
+        Test.stopTest();
+
+        Assert.isTrue(bd.isMainBundle, 'The main side is the main bundle, even as a component');
+        Assert.areEqual('Suite', bd.mainBsgProduct, 'The root product is shown');
+        Assert.areEqual('One-Time', bd.mainChargeType, 'A one-time term is a one-time charge');
+        Assert.areEqual('One-Time', bd.mainBillingFrequency, 'A one-time term has a one-time frequency');
+        Assert.isTrue(bd.components.isEmpty(), 'No child groups were found');
+    }
+
+    // A component group (no relationship where it is the main side) whose parent lookup finds
+    // nothing for its fake id is its own root. (Had the lookup returned some other id, the root
+    // query would find nothing and fall back to the group too, so this cannot tell those apart.)
+    // getBundleData reads only whether asMain is empty, not asComponent.
+    @isTest
+    static void getBundleData_componentWithNoParentFoundIsItsOwnRoot() {
+        Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
+        BillingScheduleGroup current = bsg(new Map<String, Object>{
+            'Id' => groupId, 'ProductName' => 'Seat', 'BillingTermUnit' => 'Month', 'BillingTerm' => 3 });
+        BsgRelationship asComponent = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
+            'AssociatedBsgId' => groupId });
+
+        Test.startTest();
+        RLM_BSGContextController.BundleData bd = RLM_BSGContextController.getBundleData(
+            groupId, current, new List<BsgRelationship>(), new List<BsgRelationship>{ asComponent });
+        Test.stopTest();
+
+        Assert.isFalse(bd.isMainBundle, 'A component is not the main bundle');
+        Assert.areEqual(groupId, bd.mainBsgId, 'With no parent found, the group is its own root');
+        Assert.areEqual('Evergreen', bd.mainChargeType, 'No end date is an evergreen charge');
+        Assert.areEqual('3 Month', bd.mainBillingFrequency, 'The frequency is the term and its unit');
+    }
+
+    // The plan header takes the plan's own fields and the group's billed amount (zero when
+    // blank); items keep their query order, with the accomplishment date as text.
+    @isTest
+    static void milestonePlanRows_fillTheHeaderAndItems() {
+        if (missing('BillingMilestonePlanItem') || missing('BillingMilestonePlan')) {
+            // No billing milestone objects in this org: the context never reads a plan here.
+            return;
+        }
+        RLM_BSGContextController.MilestonePlanData plan = new RLM_BSGContextController.MilestonePlanData();
+        RLM_BSGContextController.MilestonePlanData noBilled = new RLM_BSGContextController.MilestonePlanData();
+        Id planId = fakeId(Schema.getGlobalDescribe().get('BillingMilestonePlan'), 1);
+        SObject header = row('BillingMilestonePlan', new Map<String, Object>{
+            'Id' => planId, 'Name' => 'Rollout', 'Status' => 'Active', 'Description' => 'Three phases',
+            'ReferenceItemAmount' => 900 });
+        Date done = Date.newInstance(2026, 3, 1);
+        List<SObject> items = new List<SObject>{
+            row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Kickoff', 'Type' => 'Percentage',
+                'Percentage' => 30, 'MilestoneAmount' => 270, 'IsMilestoneAccomplished' => true,
+                'MilestoneAccomplishmentDate' => done, 'Status' => 'Invoiced' }),
+            row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'Type' => 'FlatAmount',
+                'FlatAmount' => 630, 'MilestoneAmount' => 600, 'IsMilestoneAccomplished' => false })
+        };
+        List<RLM_BSGContextController.MilestoneItemData> target = new List<RLM_BSGContextController.MilestoneItemData>();
+
+        Test.startTest();
+        RLM_BSGContextController.fillPlanHeader(plan, header, 270);
+        RLM_BSGContextController.fillPlanHeader(noBilled, header, null);
+        RLM_BSGContextController.addMilestoneItems(target, items);
+        Test.stopTest();
+
+        Assert.areEqual(String.valueOf(planId), plan.planId, 'The plan id is shown');
+        Assert.areEqual('Rollout', plan.planName, 'The plan name is shown');
+        Assert.areEqual('Active', plan.planStatus, 'The plan status is shown');
+        Assert.areEqual(900, plan.referenceAmount, 'The reference amount is shown');
+        Assert.areEqual(270, plan.billedAmount, 'The billed amount comes from the group');
+        Assert.areEqual(0, noBilled.billedAmount, 'A blank billed amount shows zero');
+        Assert.areEqual(new List<String>{ 'Kickoff', 'Go-live' },
+            new List<String>{ target[0].name, target[1].name }, 'Items keep their query order');
+        Assert.areEqual(30, target[0].percentage, 'A percentage item keeps its percentage');
+        Assert.isTrue(target[0].isAccomplished, 'An accomplished item is marked');
+        Assert.isFalse(target[1].isAccomplished, 'An open item is not accomplished');
+        Assert.isTrue(target[0].accomplishmentDate != null && target[0].accomplishmentDate.startsWith('2026-03-01'),
+            'The accomplishment date is shown as text starting with the date. Got: ' + target[0].accomplishmentDate);
+        Assert.areEqual(630, target[1].flatAmount, 'A flat item keeps its flat amount');
+        Assert.areEqual(600, target[1].milestoneAmount, 'A flat item keeps its milestone amount, separate from the flat one');
+        Assert.isNull(target[1].accomplishmentDate, 'An open item has no accomplishment date');
+    }
+
+    // Sibling usage groups: one row each, with its resource, its billed amount (zero when
+    // blank), and the current group marked.
+    @isTest
+    static void addUsageSiblings_marksTheCurrentGroup() {
+        Id current = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id sibling = fakeId(BillingScheduleGroup.SObjectType, 2);
+        List<RLM_BSGContextController.UsageSiblingData> target = new List<RLM_BSGContextController.UsageSiblingData>();
+
+        Test.startTest();
+        RLM_BSGContextController.addUsageSiblings(target, new List<BillingScheduleGroup>{
+            bsg(new Map<String, Object>{ 'Id' => sibling, 'BillingScheduleGroupNumber' => 'BSG-2', 'TotalBilledAmount' => 75 }),
+            bsg(new Map<String, Object>{ 'Id' => current, 'BillingScheduleGroupNumber' => 'BSG-1' })
+        }, new Map<Id, String>{ sibling => 'Minutes' }, current);
+        Test.stopTest();
+
+        Assert.areEqual(2, target.size(), 'One row per sibling group');
+        Assert.areEqual('BSG-2', target[0].bsgNumber, 'Rows keep the query order');
+        Assert.areEqual('Minutes', target[0].resourceName, 'A group\'s resource is shown');
+        Assert.areEqual(75, target[0].billedAmount, 'A group\'s billed amount is shown');
+        Assert.isFalse(target[0].isCurrent, 'Another group is not current');
+        Assert.isNull(target[1].resourceName, 'A group without a resource shows none');
+        Assert.areEqual(0, target[1].billedAmount, 'A blank billed amount shows zero');
+        Assert.isTrue(target[1].isCurrent, 'The current group is marked');
+    }
+
+    // An arrangement id that matches no arrangement returns an empty arrangement.
+    @isTest
+    static void getArrangementData_unknownArrangementIsEmpty() {
+        Test.startTest();
+        RLM_BSGContextController.ArrangementData ad =
+            RLM_BSGContextController.getArrangementData(fakeId(BillingArrangement.SObjectType, 1));
+        Test.stopTest();
+
+        Assert.isNull(ad.arrangementId, 'No arrangement was found, so none is described');
+        Assert.isNull(ad.lines, 'No arrangement was found, so no lines are read');
+    }
+
+    // For a user who cannot read billing schedules, the milestone lookup finds no plan rather
+    // than throwing. The premise is checked first.
+    @isTest
+    static void findMilestonePlanId_unreadableSchedulesFindNoPlan() {
+        User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Boolean premise = false;
+        Id found;
+
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query('SELECT Id FROM BillingSchedule LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
+            found = RLM_BSGContextController.findMilestonePlanId(fakeId(BillingScheduleGroup.SObjectType, 1));
+        }
+        Test.stopTest();
+
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read BillingSchedule');
+        Assert.isNull(found, 'A refused lookup finds no plan instead of throwing');
+    }
+
+    // One hierarchy level: each child is listed under its parent in relationship order, and is
+    // added to the next frontier and to all children.
+    @isTest
+    static void addRelationshipLevel_listsChildrenUnderTheirParent() {
+        Id parentA = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id parentB = fakeId(BillingScheduleGroup.SObjectType, 2);
+        Id child1 = fakeId(BillingScheduleGroup.SObjectType, 3);
+        Id child2 = fakeId(BillingScheduleGroup.SObjectType, 4);
+        Id child3 = fakeId(BillingScheduleGroup.SObjectType, 5);
+        List<BsgRelationship> rels = new List<BsgRelationship>();
+        for (List<Id> pair : new List<List<Id>>{
+            new List<Id>{ parentA, child2 }, new List<Id>{ parentB, child3 }, new List<Id>{ parentA, child1 }
+        }) {
+            rels.add((BsgRelationship) row('BsgRelationship', new Map<String, Object>{
+                'MainBsgId' => pair[0], 'AssociatedBsgId' => pair[1] }));
+        }
+        Map<Id, List<Id>> parentToChildren = new Map<Id, List<Id>>();
+        Set<Id> allChildIds = new Set<Id>();
+        Set<Id> nextFrontier = new Set<Id>();
+
+        Test.startTest();
+        RLM_BSGContextController.addRelationshipLevel(rels, parentToChildren, allChildIds, nextFrontier);
+        Test.stopTest();
+
+        Assert.areEqual(new List<Id>{ child2, child1 }, parentToChildren.get(parentA),
+            'A parent lists its children in relationship order');
+        Assert.areEqual(new List<Id>{ child3 }, parentToChildren.get(parentB), 'Each parent gets its own children');
+        Assert.areEqual(new Set<Id>{ child1, child2, child3 }, allChildIds, 'Every child is among all children');
+        Assert.areEqual(new Set<Id>{ child1, child2, child3 }, nextFrontier, 'Every child is in the next frontier');
     }
 }
