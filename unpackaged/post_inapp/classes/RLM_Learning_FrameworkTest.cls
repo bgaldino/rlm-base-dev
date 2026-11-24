@@ -18,8 +18,9 @@
  *    whatever the runner holds.
  *  - A separate least-privilege "learner" is a user on the
  *    "Minimum Access - Salesforce" profile (looked up by its English name)
- *    holding only RLM_Learning. knownGap_learnerCannotResequenceRowsItDoesNotOwn and
- *    userInformation_paths use it, and learnerProfileGrantsNoLearningObjectAccess
+ *    holding only RLM_Learning. knownGap_learnerCannotResequenceRowsItDoesNotOwn,
+ *    knownGap_learnerCannotReadTheTrialExpiry and userInformation_paths use it, and
+ *    learnerProfileGrantsNoLearningObjectAccess
  *    checks its profile. In the Apex test context user inserts are not limited
  *    by free seats (observed on a Release 264 org: 22 Minimum Access users
  *    inserted with 12 free seats). The learner is created lazily by learner(),
@@ -27,7 +28,8 @@
  *    those tests. When it cannot be created (no Minimum Access profile,
  *    RLM_Learning missing, LICENSE_LIMIT_EXCEEDED on the insert, or the
  *    learner does not hold exactly the RLM_Learning permission set),
- *    knownGap_learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
+ *    knownGap_learnerCannotResequenceRowsItDoesNotOwn and
+ *    knownGap_learnerCannotReadTheTrialExpiry return early with a WARN
  *    "SKIPPED" debug line and userInformation_paths calls getName as the
  *    runner instead. The sentinel skips its assignment check only when no
  *    learner user exists; for a learner with extra permission sets it still
@@ -45,6 +47,9 @@
  *    who does not own them (for example a learner, for content an admin
  *    loaded) cannot re-sequence that section;
  *    knownGap_learnerCannotResequenceRowsItDoesNotOwn pins this.
+ *  - Trial countdown. A learner's user-mode read of Organization fails, so
+ *    getExpiryDays throws for a learner and the welcome page shows no
+ *    countdown; knownGap_learnerCannotReadTheTrialExpiry pins this.
  *
  * Not covered here:
  *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
@@ -54,7 +59,9 @@
  *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
  *    Network and Organization lookups run as the runner here. In production
  *    they run as the learner, and RLM_Learning grants no custom-metadata-type
- *    access, so the learner's access to them is not tested.
+ *    access, so the learner's access to them is not tested (except the trial
+ *    countdown's Organization read, which knownGap_learnerCannotReadTheTrialExpiry
+ *    pins).
  */
 @IsTest
 private class RLM_Learning_FrameworkTest {
@@ -1574,5 +1581,66 @@ private class RLM_Learning_FrameworkTest {
         'the days left in the trial, clamped at zero: expected ' + daysLeft + ', got ' + expiryDays
       );
     }
+  }
+
+  // Known gap: getExpiryDays reads Organization in USER_MODE, and for a learner (Minimum Access plus
+  // RLM_Learning) that read fails (on a Release 264 org the query reported "sObject type
+  // 'Organization' is not supported"). So for a learner the call throws and the welcome page shows
+  // no trial countdown. The handled error hides its cause, so the same query run directly as the
+  // learner is the evidence that the Organization read, and nothing else, is what fails.
+  @IsTest
+  static void knownGap_learnerCannotReadTheTrialExpiry() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
+
+    Boolean threw = false;
+    String directQueryError;
+    Test.startTest();
+    System.runAs(learnerUser) {
+      try {
+        RLM_Learning_UserInformation.getExpiryDays();
+      } catch (AuraHandledException e) {
+        threw = true;
+      }
+      try {
+        Integer found = [SELECT TrialExpirationDate FROM Organization WITH USER_MODE LIMIT 1].size();
+        directQueryError = 'no error: ' + found + ' row';
+      } catch (QueryException e) {
+        directQueryError = e.getMessage();
+      }
+    }
+    Test.stopTest();
+
+    Assert.isTrue(
+      directQueryError != null && directQueryError.contains('Organization'),
+      'Known gap: the learner\'s user-mode Organization query failed; it now gives ' +
+      directQueryError + '. Update this test.'
+    );
+    Assert.isTrue(
+      threw,
+      'Known gap: getExpiryDays threw an AuraHandledException for a learner, whose user-mode read of ' +
+      'Organization failed; it now returns. Update this test.'
+    );
+  }
+
+  // An org has a trial expiry or not, so userInformation_paths reaches only one of these; the
+  // countdown takes the expiry and today's date so both, and the clamp, are checked here.
+  @IsTest
+  static void userInformation_daysRemaining() {
+    Date today = Date.newInstance(2026, 6, 30);
+
+    Test.startTest();
+    Integer noTrial = RLM_Learning_UserInformation.daysRemaining(null, today);
+    Integer ahead = RLM_Learning_UserInformation.daysRemaining(
+      Datetime.newInstance(today.addDays(10), Time.newInstance(18, 0, 0, 0)), today);
+    Integer expired = RLM_Learning_UserInformation.daysRemaining(
+      Datetime.newInstance(today.addDays(-3), Time.newInstance(9, 0, 0, 0)), today);
+    Test.stopTest();
+
+    Assert.isNull(noTrial, 'no trial expiry means no countdown');
+    Assert.areEqual(10, ahead, 'the days from the given date to the expiry date');
+    Assert.areEqual(0, expired, 'an expired trial shows zero days, not a negative count');
   }
 }
