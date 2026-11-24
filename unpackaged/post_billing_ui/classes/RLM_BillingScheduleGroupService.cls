@@ -150,9 +150,10 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         // Deterministic pick: the account's default billing profile first, then oldest first. A billing
         // account linked to the account only through AccountBillingAccount is resolved too, as the
-        // create path does. Only the billing accounts the user reads are ranked: a readable one is
-        // returned even if a hidden one is the default, since telling them apart would reveal more
-        // than that one exists.
+        // create path does. Of the account's own billing accounts, only those the user reads are
+        // ranked: a readable one is returned even if a hidden one is the default, since telling them
+        // apart would reveal more than that one exists. A linked one is picked by its link, oldest
+        // first, whether or not the user reads it (see below).
         // Account.BillingCity is a component of the compound BillingAddress. Measured on a 264 org:
         // describe reports BillingCity permissionable, yet no permission set carries a FieldPermissions
         // row for Account.BillingCity, while 121 carry one for Account.BillingAddress. So the compound is
@@ -225,7 +226,9 @@ public with sharing class RLM_BillingScheduleGroupService {
                 }
                 if (billingAccounts.isEmpty()) {
                     // The link names a billing account that sharing hides from this user: one exists,
-                    // so this is not "no billing account" either.
+                    // so this is not "no billing account" either. Only the oldest link is read, so a
+                    // newer link to a billing account the user can read is not tried: the account is
+                    // flagged unreadable even then. A known gap, not fixed here.
                     System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService: the linked billing account is not visible to the user');
                     return billingAccountUnreadable(acc.Name);
                 }

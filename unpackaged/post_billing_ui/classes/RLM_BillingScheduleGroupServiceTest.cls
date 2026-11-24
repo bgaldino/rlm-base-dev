@@ -347,6 +347,24 @@ private class RLM_BillingScheduleGroupServiceTest {
             'The result says the billing account could not be read, not that there is none.');
     }
 
+    // The hidden-billing-account tests below branch on what the test user reads, so where billing
+    // accounts are not private they do not check the hidden case. This test fails on an org-wide
+    // default other than Private, so that gap shows instead of passing silently. It does not catch
+    // a sharing rule that lets the test user read the billing account on a Private org.
+    @isTest
+    static void billingAccountsArePrivateByDefault() {
+        String sharingModel = billingAccountSharingModel();
+        Assert.areEqual('Private', sharingModel,
+            'The org-wide default for billing accounts is ' + sharingModel + ', not Private: the tests of a '
+            + 'billing account hidden by sharing rely on it and do not check the hidden case here.');
+    }
+
+    private static String billingAccountSharingModel() {
+        return [
+            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'BillingAccount'
+        ].InternalSharingModel;
+    }
+
     // A billing account that sharing hides from the user, linked to the account or owned by it: one
     // exists, so the result is flagged unreadable, not "none". Billing accounts are private by default
     // (measured on a fresh 264 org), but a test cannot change the org-wide default or remove a sharing
@@ -375,9 +393,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     // linked: the billing account reaches the account through an AccountBillingAccount link, which the
     // user must be able to read (the service relies on the link following the account's sharing).
     private static void assertHiddenOrReturned(Account a, BillingAccount ba, Boolean linked) {
-        String sharingModel = [
-            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'BillingAccount'
-        ].InternalSharingModel;
+        String sharingModel = billingAccountSharingModel();
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
@@ -423,9 +439,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-        Boolean billingAccountsPrivate = [
-            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'BillingAccount'
-        ].InternalSharingModel == 'Private';
+        Boolean billingAccountsPrivate = billingAccountSharingModel() == 'Private';
         if (billingAccountsPrivate) {
             insert new BillingAccountShare(ParentId = linkedBa.Id, UserOrGroupId = u.Id, AccessLevel = 'Read');
         }
