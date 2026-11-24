@@ -52,8 +52,9 @@ drop the `.md` suffix of the snapshot file name.
 7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
-8. **Load a PCM plan twice into a fresh org, and never extract from an org that had only
-   one pass**: on the measured plan, the first insert left classification attributes'
+8. **Load a PCM plan twice into a fresh org, unless `scripts/check_classification_attrs.py` shows one pass already
+   matches the CSV (it does for QuantumBit), and never extract from an org whose
+   one pass differs from the CSV**: on the measured plan, the first insert left classification attributes'
    `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT
@@ -184,7 +185,7 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the definition's values into the CSVs. |
+| a | On the measured PCM plan (the QuantumBit plan does not need it; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org, unless `scripts/check_classification_attrs.py` shows one pass already matches the CSV (QuantumBit). Never re-extract an org that had one pass where that check reports differences; the extract would bake the definition's values into the CSVs. |
 | b | A `Readonly` anchor reached through a `$$` composite lookup column, with no CSV for the anchor, left those lookups unresolved. [Measured: 2026-11, 264] Whether the lookup shape is the cause is open. Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*, with the open check; not restated here. | Keep that CSV with the `$$` column the children's lookup columns name. |
 | c | Repeating an object across object sets does not give pass 2 its own data unless the plan sets `useSeparatedCSVFiles: true`. [Measured: 2026-11, 264] Owned by `sfdmu-data-plans` -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
@@ -193,11 +194,11 @@ general SFDMU behaviour, seen on a PCM plan):
 In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 `test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
 extraction, so its second load replays the one-pass org state, not the CSVs: it is not
-fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
-one-pass QuantumBit build leaves any classification attribute at its definition's value where that differs
-from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
-`false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
-first-insert value was not recorded. Inferred from the traced copy: every QuantumBit `AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so one pass should already match the CSV; not measured. [inferred] [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] One pass is enough for QuantumBit: on a fresh one-pass build, all 36
+classification attribute rows match `ProductClassificationAttr.csv` (0 missing, 0 differences; a query of the rows' `CreatedDate` and `LastModifiedDate` showed none modified after
+creation), run with `python scripts/check_classification_attrs.py --target-org <sf_alias>`. [Measured: 2026-11-23, fresh 264 ent-sb0 scratch org] Why: every QuantumBit
+`AttributeNameOverride` and `IsRequired` equals its definition's, and `DefaultValue`, `Description` and `HelpText` match wherever the definition sets one, so the
+copy an insert makes already equals the CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
@@ -299,7 +300,7 @@ Review the CSVs for these, each a rule above:
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
-After a load into an org: run the plan's second pass (fact a), then the `refresh_all_decision_tables` flow and
+After a load into an org: run the plan's second pass (fact a; not needed when `scripts/check_classification_attrs.py` shows one pass matches the CSV), then the `refresh_all_decision_tables` flow and
 the `rebuild_search_index` task, run **Validate Product
 Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_product_validations.htm`], and
 configure one bundle in the configurator with rules on.
@@ -345,8 +346,6 @@ Every item marked **Open — needs live verification** in this skill and its sub
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
-- **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
-  where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Under a new test bundle in an
   existing org, an insert of rows of that shape was accepted (not `CERT007`'s own rows); pricing
@@ -363,5 +362,6 @@ Every item marked **Open — needs live verification** in this skill and its sub
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.
 - **Other classification-attribute fields after one pass.** Whether fields beyond
-  `AttributeNameOverride` and `IsRequired` behave like fact (a). See
+  `AttributeNameOverride` and `IsRequired` behave like fact (a) on a plan whose values differ from the
+  definition's: QuantumBit's already match on all five copied fields, which cannot show the copy. See
   [`attributes-and-classifications.md`](attributes-and-classifications.md#loading-attributes).
