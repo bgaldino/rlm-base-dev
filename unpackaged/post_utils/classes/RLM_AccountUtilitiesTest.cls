@@ -227,8 +227,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // active standard price book, a unit of measure, a usage resource, a product
     // and its standard price book entry. None is linked to an account, so the
     // reset never touches them. The usage and order tests read them back with
-    // newUsageFixture; one price book entry for the class, rather than one per
-    // test method running in parallel.
+    // newUsageFixture.
     @TestSetup
     static void setupUsageFixture() {
         update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
@@ -948,7 +947,6 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void phaseOneOutOfRowsKeepsWhatItDeleted() {
         Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Phase One Opp');
         UsageFixture f = newUsageFixture();
         // Two consecutive periods: policies for one object and resource may not overlap.
         Datetime start = Datetime.now().addDays(-10);
@@ -978,8 +976,8 @@ private without sharing class RLM_AccountUtilitiesTest {
             'One policy must be deleted and the other kept');
         Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
             'The policy that went must be reported');
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'The opportunity must survive a run that stopped in phase 1');
+        Assert.isFalse(result.reason.contains('rolled back'),
+            'The run must stop in phase 1, not roll back in phase 2. Got: ' + result.reason);
     }
 
     // ------------------------------------------------------------- usage graph
