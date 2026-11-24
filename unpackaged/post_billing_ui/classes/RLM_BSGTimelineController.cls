@@ -1,4 +1,10 @@
 public with sharing class RLM_BSGTimelineController {
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The billing schedule group could not be loaded. Refresh the page; if it continues, contact your administrator.';
+    @TestVisible
+    private static final String TIMELINE_FAILED_MESSAGE =
+        'The consolidated timeline could not be loaded. Refresh the page; if it continues, contact your administrator.';
     
     /**
      * Wrapper class for Billing Schedule Group data
@@ -187,7 +193,7 @@ public with sharing class RLM_BSGTimelineController {
         } catch (AuraHandledException ae) {
             throw ae; // already carries the user-facing text; do not wrap it
         } catch (Exception e) {
-            throw RLM_AuraErrors.handled('Error retrieving Billing Schedule Group: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_BSGTimelineController.getBillingScheduleGroupData', e);
         }
     }
 
@@ -332,7 +338,7 @@ public with sharing class RLM_BSGTimelineController {
         } catch (AuraHandledException ae) {
             throw ae;
         } catch (Exception e) {
-            throw RLM_AuraErrors.handled('Error calculating consolidated timeline: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(TIMELINE_FAILED_MESSAGE, 'RLM_BSGTimelineController.getConsolidatedTimeline', e);
         }
     }
 }

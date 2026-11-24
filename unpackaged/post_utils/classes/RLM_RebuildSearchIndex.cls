@@ -4,13 +4,19 @@ public with sharing class RLM_RebuildSearchIndex {
     private static final String DEFAULT_BUILD_TYPE = 'FULL';
     private static final String DEFAULT_ACTIVATION_TYPE = 'IMMEDIATE';
 
+    @TestVisible
+    private static final String DEPLOY_FAILED_MESSAGE =
+        'The search index deployment could not be started. Try again; if it continues, contact your administrator.';
+    @TestVisible
+    private static final String NULL_REQUEST_MESSAGE = 'No request was given, so no index was deployed.';
+
     @AuraEnabled
     public static Map<String, Object> deployIndex() {
         try {
             HttpResponse httpRes = callPcmDeploy(DEFAULT_BUILD_TYPE, DEFAULT_ACTIVATION_TYPE);
             return buildResultMap(httpRes);
         } catch (Exception e) {
-            throw RLM_UtilsAuraErrors.handled(e.getMessage());
+            throw RLM_UtilsAuraErrors.failed(DEPLOY_FAILED_MESSAGE, 'RLM_RebuildSearchIndex.deployIndex', e);
         }
     }
 
@@ -30,7 +36,12 @@ public with sharing class RLM_RebuildSearchIndex {
 
         for (PCMDeployRequest request : requests) {
             if (request == null) {
-                continue; // nothing to deploy for a null element, so it yields no result
+                // One output per input, in order: a null element gets a failed result in its place.
+                PCMDeployResult missing = new PCMDeployResult();
+                missing.isSuccess = false;
+                missing.message = NULL_REQUEST_MESSAGE;
+                results.add(missing);
+                continue;
             }
             String buildType = normalizeBuildType(request.buildType);
             if (buildType == null) {
@@ -49,14 +60,16 @@ public with sharing class RLM_RebuildSearchIndex {
                 try {
                     parsedByKey.put(key, buildResultMap(callPcmDeploy(buildType, DEFAULT_ACTIVATION_TYPE)));
                 } catch (Exception e) {
-                    failureByKey.put(key, e.getMessage());
+                    System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex.deployPCMIndex ' + key + ': '
+                        + e.getTypeName() + ': ' + e.getMessage());
+                    failureByKey.put(key, DEPLOY_FAILED_MESSAGE);
                 }
             }
 
             PCMDeployResult result = new PCMDeployResult();
             if (failureByKey.containsKey(key)) {
                 result.isSuccess = false;
-                result.message = 'Exception occurred: ' + failureByKey.get(key);
+                result.message = failureByKey.get(key);
             } else {
                 Map<String, Object> parsed = parsedByKey.get(key);
                 result.isSuccess      = (Boolean) parsed.get('isSuccess');

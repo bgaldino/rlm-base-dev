@@ -40,6 +40,8 @@ private class RLM_BSGTimelineControllerTest {
             RLM_BSGTimelineController.getConsolidatedTimeline(fakeBsgId());
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual('Billing Schedule Group not found', e.getMessage(),
+                'The not-found sentence from the group read reaches the caller unwrapped');
         }
         Test.stopTest();
         System.assert(threw, 'A non-existent BSG should raise an AuraHandledException for the timeline.');

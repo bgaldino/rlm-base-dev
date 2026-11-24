@@ -1,4 +1,10 @@
 public with sharing class RLM_InvoiceProductSummaryController {
+    @TestVisible
+    private static final String SAVE_FAILED_MESSAGE =
+        'The line attributes could not be saved. Check your access, then try again.';
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The invoice product summary could not be loaded. Refresh the page; if it continues, contact your administrator.';
 
     // ─── Wrapper classes ──────────────────────────────────────────────────────
 
@@ -308,8 +314,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             if (!toUpdate.isEmpty()) update as user toUpdate;
 
         } catch (Exception e) {
-            System.debug('saveLineAttributes failed: ' + e.getMessage());
-            throw RLM_AuraErrors.handled('Failed to save attributes: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(SAVE_FAILED_MESSAGE, 'RLM_InvoiceProductSummaryController.saveLineAttributes', e);
         }
     }
 
@@ -532,7 +537,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             return result;
 
         } catch (Exception e) {
-            throw RLM_AuraErrors.handled('Error fetching invoice product summary: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_InvoiceProductSummaryController.getInvoiceProductSummary', e);
         }
     }
 }

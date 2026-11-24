@@ -94,7 +94,7 @@ private class RLM_BillingUIAccessTest {
             'ShouldBillRemainder', 'BillingArrangementId'
         },
         'BillingAccount' => new List<String>{ 'Name', 'AccountId', 'IsDefaultBillingProfile' },
-        'AccountBillingAccount' => new List<String>{ 'AccountId', 'BillingAccountId', 'IsDefaultBillingAccount' },
+        'AccountBillingAccount' => new List<String>{ 'AccountId', 'BillingAccountId' },
         'UsageResource' => new List<String>{ 'Name' },
         'Product2' => new List<String>{ 'Name', 'IsActive', 'Family' },
         'LegalEntity' => new List<String>{ 'Name', 'Status' },

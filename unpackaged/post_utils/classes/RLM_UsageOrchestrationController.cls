@@ -8,6 +8,9 @@
 public with sharing class RLM_UsageOrchestrationController {
 
     private static final String ORCHESTRATION_FLOW_API_NAME = 'RLM_OrchestrateUsageManagement';
+    @TestVisible
+    private static final String START_FAILED_MESSAGE =
+        'The usage orchestration could not be started. Contact your administrator.';
 
     /**
      * Starts the usage orchestration flow asynchronously.
@@ -36,7 +39,7 @@ public with sharing class RLM_UsageOrchestrationController {
             return 'started';
 
         } catch (Exception e) {
-            throw RLM_UtilsAuraErrors.handled('Failed to start orchestration: ' + e.getMessage());
+            throw RLM_UtilsAuraErrors.failed(START_FAILED_MESSAGE, 'RLM_UsageOrchestrationController start ' + flowApiName, e);
         }
     }
 }

@@ -36,7 +36,8 @@
  * 'OneTime' with no EndDate__std, as the 264 developer guide requires. The service derives it from
  * the billing term unit. See the buildTransactionDetailsJson_oneTime* tests.
  *
- * Fixed: getAccountBillingInfo picks the oldest billing account (ORDER BY CreatedDate, Id) and
+ * Fixed: getAccountBillingInfo picks the account's default billing profile first, then the oldest
+ * billing account (ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id), and
  * resolves one linked only through AccountBillingAccount; getLegalEntities/getTaxTreatments
  * offer only Active records; the create path rejects a null total price and a Termed
  * recurring create with no end date. ParentTransactionId__std (Required for TermDefined) is
@@ -55,6 +56,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getAccountBillingInfo(null);
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual('Account Id is required.', e.getMessage(), 'The page is told what is missing');
         }
         System.assert(threw, 'Expected AuraHandledException for null accountId');
     }
@@ -66,8 +68,54 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getAccountBillingInfo(fakeId(Account.SObjectType));
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual('Account not found.', e.getMessage(), 'The page is told the account is missing');
         }
         System.assert(threw, 'Expected AuraHandledException for missing account');
+    }
+
+    // A refused USER_MODE read reaches the page as a sentence naming what could not be read; the
+    // query error stays on the cause. A user with no grants cannot read Account.
+    @isTest
+    static void getAccountBillingInfo_refusedAccountRead_namesWhatCouldNotBeRead() {
+        Account acc = new Account(Name = 'RLM BSG Service Refused Read');
+        insert acc;
+        User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Boolean premise = false;
+        AuraHandledException thrown;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query('SELECT Id, Name FROM Account LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
+            try {
+                RLM_BillingScheduleGroupService.getAccountBillingInfo(acc.Id);
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+        }
+        Test.stopTest();
+        Assert.isTrue(premise, 'PRECONDITION: a user with no grants cannot read Account.');
+        Assert.isNotNull(thrown, 'A refused account read is reported, not returned as empty');
+        Assert.areEqual(
+            'You do not have access to read the account this screen needs. Contact your administrator.',
+            thrown.getMessage(), 'The page is told what could not be read');
+        Assert.isInstanceOfType(thrown.getCause(), QueryException.class, 'The query error is kept as the cause');
+        AuraHandledException direct = RLM_BillingScheduleGroupService.readRefused(
+            'the billing account', new QueryException('detail with field names'));
+        Assert.areEqual(
+            'You do not have access to read the billing account this screen needs. Contact your administrator.',
+            direct.getMessage(), 'The sentence carries no query text');
+    }
+
+    @isTest
+    static void describeErrors_listsEachCodeAndMessageForTheDebugLog() {
+        Assert.areEqual('(no error detail)', RLM_BillingScheduleGroupService.describeErrors(null),
+            'No errors still yields a log line');
+        Assert.areEqual('(no error detail)',
+            RLM_BillingScheduleGroupService.describeErrors(new List<Invocable.Action.Error>()),
+            'An empty list still yields a log line');
     }
 
     @isTest

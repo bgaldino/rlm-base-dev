@@ -80,6 +80,9 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
             Assert.fail('Expected exception for invalid flow API name');
         } catch (AuraHandledException e) {
             didThrow = true;
+            Assert.areEqual(RLM_UsageOrchestrationController.START_FAILED_MESSAGE, e.getMessage(),
+                'The user gets a fixed sentence, not the flow runtime text');
+            Assert.isNotNull(e.getCause(), 'The flow runtime exception is kept as the cause');
         }
         Test.stopTest();
         Assert.isTrue(didThrow, 'Expected AuraHandledException for invalid flow API name');

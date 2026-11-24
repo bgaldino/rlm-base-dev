@@ -198,6 +198,9 @@ private with sharing class RLM_RebuildSearchIndexTest {
             RLM_RebuildSearchIndex.deployIndex();
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_FAILED_MESSAGE, e.getMessage(),
+                'The LWC gets a fixed sentence, not the callout exception text');
+            Assert.isNotNull(e.getCause(), 'The callout exception is kept as the cause');
         }
         Test.stopTest();
 
@@ -374,14 +377,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.areEqual(2, results.size(), 'Each request still yields its own result, not an exception');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(false, r.isSuccess, 'The result is marked failed');
-            Assert.isTrue(
-                r.message.startsWith('Exception occurred: '),
-                'The exception is reported in the message: ' + r.message
-            );
-            Assert.isTrue(
-                r.message.contains('Simulated transport failure'),
-                'The original exception text is preserved: ' + r.message
-            );
+            Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_FAILED_MESSAGE, r.message,
+                'The flow gets a fixed sentence; the exception text goes to the debug log');
             Assert.isNull(r.statusCode, 'No HTTP status when the callout itself failed');
         }
     }
@@ -402,7 +399,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
     }
 
     @IsTest
-    static void deployPcmIndexGuardsANullListAndSkipsNullElements() {
+    static void deployPcmIndexGuardsANullListAndFailsNullElementsInPlace() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
@@ -418,7 +415,12 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.isTrue(fromNull.isEmpty(), 'A null request list yields no results and no exception');
-        Assert.areEqual(1, fromMixed.size(), 'Null elements are skipped; the real request still runs');
+        Assert.areEqual(3, fromMixed.size(), 'One result per input, null elements included');
+        Assert.areEqual(false, fromMixed[0].isSuccess, 'The first null element gets a failed result');
+        Assert.areEqual(RLM_RebuildSearchIndex.NULL_REQUEST_MESSAGE, fromMixed[0].message, 'It says why');
+        Assert.areEqual(true, fromMixed[1].isSuccess, 'The real request keeps its own position and runs');
+        Assert.areEqual(false, fromMixed[2].isSuccess, 'The last null element gets a failed result');
+        Assert.areEqual(RLM_RebuildSearchIndex.NULL_REQUEST_MESSAGE, fromMixed[2].message, 'It says why');
         Assert.areEqual(1, mock.received.size(), 'Only the real request makes a callout');
     }
 }

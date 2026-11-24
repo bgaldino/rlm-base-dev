@@ -95,6 +95,20 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
     }
 
+    @TestVisible
+    private static final String CREATE_FAILED_MESSAGE =
+        'The billing schedule could not be created. Check the values entered, then try again; '
+        + 'if it continues, contact your administrator.';
+
+    // A refused USER_MODE read names the object and field, so the user gets a sentence naming what
+    // could not be read; the query error goes to the debug log and stays on the cause.
+    @TestVisible
+    private static AuraHandledException readRefused(String what, QueryException cause) {
+        return RLM_AuraErrors.failed(
+            'You do not have access to read ' + what + ' this screen needs. Contact your administrator.',
+            'RLM_BillingScheduleGroupService read of ' + what + ' refused', cause);
+    }
+
     // Throws for a missing id or an account the caller cannot read: there is no account name to show
     // then, and the modal surfaces the message as an error toast (its account-info wire handler), so
     // the header is not left blank without a reason. An account with no billing account still returns
@@ -105,7 +119,12 @@ public with sharing class RLM_BillingScheduleGroupService {
             throw RLM_AuraErrors.handled('Account Id is required.');
         }
 
-        List<Account> accounts = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+        List<Account> accounts;
+        try {
+            accounts = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+        } catch (QueryException qe) {
+            throw readRefused('the account', qe);
+        }
         if (accounts.isEmpty()) {
             throw RLM_AuraErrors.handled('Account not found.');
         }
@@ -121,14 +140,22 @@ public with sharing class RLM_BillingScheduleGroupService {
         // it does not insert a component row in tests. That a user holding only the compound grant reads
         // BillingCity here is inferred, not measured; RLM_BillingUIAccessTest READS asserts it where
         // the set is deployed.
-        List<BillingAccount> billingAccounts = [
-            SELECT Id, Name, Account.BillingCity
-            FROM BillingAccount
-            WHERE AccountId = :accountId
-            WITH USER_MODE
-            ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id
-            LIMIT 1
-        ];
+        // BillingAccount.IsDefaultBillingProfile in ORDER BY adds no field-level-security dependency:
+        // measured on a 264 org, describe reports it not permissionable and a FieldPermissions row for
+        // it is refused, so USER_MODE does not check it and no permission set can grant it.
+        List<BillingAccount> billingAccounts;
+        try {
+            billingAccounts = [
+                SELECT Id, Name, Account.BillingCity
+                FROM BillingAccount
+                WHERE AccountId = :accountId
+                WITH USER_MODE
+                ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id
+                LIMIT 1
+            ];
+        } catch (QueryException qe) {
+            throw readRefused('the billing accounts', qe);
+        }
 
         if (billingAccounts.isEmpty()) {
             List<AccountBillingAccount> links = new List<AccountBillingAccount>();
@@ -150,13 +177,17 @@ public with sharing class RLM_BillingScheduleGroupService {
             }
             if (!links.isEmpty()) {
                 // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
-                billingAccounts = [
-                    SELECT Id, Name, Account.BillingCity
-                    FROM BillingAccount
-                    WHERE Id = :links[0].BillingAccountId
-                    WITH USER_MODE
-                    LIMIT 1
-                ];
+                try {
+                    billingAccounts = [
+                        SELECT Id, Name, Account.BillingCity
+                        FROM BillingAccount
+                        WHERE Id = :links[0].BillingAccountId
+                        WITH USER_MODE
+                        LIMIT 1
+                    ];
+                } catch (QueryException qe) {
+                    throw readRefused('the billing accounts', qe);
+                }
             }
         }
 
@@ -172,16 +203,20 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<ProductOption> getProducts() {
         List<ProductOption> results = new List<ProductOption>();
-        for (Product2 prod : [
-            SELECT Id, Name
-            FROM Product2
-            WHERE IsActive = true
-            AND Family = 'Software'
-            WITH USER_MODE
-            ORDER BY Name
-            LIMIT 200
-        ]) {
-            results.add(new ProductOption(prod.Id, prod.Name));
+        try {
+            for (Product2 prod : [
+                SELECT Id, Name
+                FROM Product2
+                WHERE IsActive = true
+                AND Family = 'Software'
+                WITH USER_MODE
+                ORDER BY Name
+                LIMIT 200
+            ]) {
+                results.add(new ProductOption(prod.Id, prod.Name));
+            }
+        } catch (QueryException qe) {
+            throw readRefused('the products', qe);
         }
         return results;
     }
@@ -189,8 +224,12 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<LegalEntityOption> getLegalEntities() {
         List<LegalEntityOption> results = new List<LegalEntityOption>();
-        for (LegalEntity le : [SELECT Id, Name FROM LegalEntity WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
-            results.add(new LegalEntityOption(le.Id, le.Name));
+        try {
+            for (LegalEntity le : [SELECT Id, Name FROM LegalEntity WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
+                results.add(new LegalEntityOption(le.Id, le.Name));
+            }
+        } catch (QueryException qe) {
+            throw readRefused('the legal entities', qe);
         }
         return results;
     }
@@ -200,8 +239,12 @@ public with sharing class RLM_BillingScheduleGroupService {
         List<TaxTreatmentOption> results = new List<TaxTreatmentOption>();
         // TaxTreatment.Status is not permissionable (measured on a 264 org), so no field grant applies;
         // object read on TaxTreatment is what gates this query.
-        for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
-            results.add(new TaxTreatmentOption(tt.Id, tt.Name));
+        try {
+            for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
+                results.add(new TaxTreatmentOption(tt.Id, tt.Name));
+            }
+        } catch (QueryException qe) {
+            throw readRefused('the tax treatments', qe);
         }
         return results;
     }
@@ -280,13 +323,18 @@ public with sharing class RLM_BillingScheduleGroupService {
             throw RLM_AuraErrors.handled('Billing account is required.');
         }
 
-        List<BillingAccount> billingAccounts = [
-            SELECT Id, AccountId
-            FROM BillingAccount
-            WHERE Id = :billingAccountId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        List<BillingAccount> billingAccounts;
+        try {
+            billingAccounts = [
+                SELECT Id, AccountId
+                FROM BillingAccount
+                WHERE Id = :billingAccountId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+        } catch (QueryException qe) {
+            throw readRefused('the billing account', qe);
+        }
 
         if (billingAccounts.isEmpty()) {
             throw RLM_AuraErrors.handled('Billing Account not found.');
@@ -295,13 +343,18 @@ public with sharing class RLM_BillingScheduleGroupService {
         Id accountId = billingAccounts[0].AccountId;
 
         if (accountId == null) {
-            List<AccountBillingAccount> accountBillingAccounts = [
-                SELECT AccountId, BillingAccountId
-                FROM AccountBillingAccount
-                WHERE BillingAccountId = :billingAccountId
-                WITH USER_MODE
-                LIMIT 1
-            ];
+            List<AccountBillingAccount> accountBillingAccounts;
+            try {
+                accountBillingAccounts = [
+                    SELECT AccountId, BillingAccountId
+                    FROM AccountBillingAccount
+                    WHERE BillingAccountId = :billingAccountId
+                    WITH USER_MODE
+                    LIMIT 1
+                ];
+            } catch (QueryException qe) {
+                throw readRefused('the links between the billing account and its accounts', qe);
+            }
 
             if (!accountBillingAccounts.isEmpty()) {
                 accountId = accountBillingAccounts[0].AccountId;
@@ -465,20 +518,30 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         List<Invocable.Action.Result> results = action.invoke();
         if (results.isEmpty()) {
-            throw RLM_AuraErrors.handled('Create Standalone Billing Schedules action returned no result.');
+            System.debug(LoggingLevel.ERROR, 'RLM_BillingScheduleGroupService: createBillingSchedulesFromTrxn returned no result.');
+            throw RLM_AuraErrors.handled(CREATE_FAILED_MESSAGE);
         }
 
         Invocable.Action.Result res = results[0];
         if (!res.isSuccess()) {
-            List<String> messages = new List<String>();
-            for (Invocable.Action.Error err : res.getErrors()) {
-                messages.add(err.getCode() + ': ' + err.getMessage());
-            }
-            throw RLM_AuraErrors.handled(
-                'Create Standalone Billing Schedules action failed: ' + String.join(messages, '; ')
-            );
+            // The action's errors can name context mappings, fields and records, so they go to the
+            // debug log and the user gets a fixed sentence.
+            System.debug(LoggingLevel.ERROR, 'RLM_BillingScheduleGroupService: createBillingSchedulesFromTrxn failed: '
+                + describeErrors(res.getErrors()));
+            throw RLM_AuraErrors.handled(CREATE_FAILED_MESSAGE);
         }
         return res.getOutputParameters();
+    }
+
+    @TestVisible
+    private static String describeErrors(List<Invocable.Action.Error> errors) {
+        List<String> messages = new List<String>();
+        if (errors != null) {
+            for (Invocable.Action.Error err : errors) {
+                messages.add(err.getCode() + ': ' + err.getMessage());
+            }
+        }
+        return messages.isEmpty() ? '(no error detail)' : String.join(messages, '; ');
     }
 
     /**

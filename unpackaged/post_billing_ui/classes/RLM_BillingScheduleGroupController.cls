@@ -1,4 +1,7 @@
 public with sharing class RLM_BillingScheduleGroupController {
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The billing schedule groups could not be loaded. Refresh the page; if it continues, contact your administrator.';
     
     public class BsgWrapper {
         @AuraEnabled
@@ -80,7 +83,7 @@ public with sharing class RLM_BillingScheduleGroupController {
             return wrappers;
             
         } catch (Exception e) {
-            throw RLM_AuraErrors.handled('Error fetching billing schedule groups: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_BillingScheduleGroupController.getBillingScheduleGroups', e);
         }
     }
 }

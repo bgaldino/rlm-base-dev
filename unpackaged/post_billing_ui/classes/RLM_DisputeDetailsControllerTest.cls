@@ -133,10 +133,10 @@ private class RLM_DisputeDetailsControllerTest {
             try {
                 RLM_DisputeDetailsController.saveApprovedAmounts(items);
             } catch (AuraHandledException e) {
-                // The controller builds its message without setMessage, so in a test getMessage()
-                // returns only 'Script-thrown exception'; the describe-derived amount is the
-                // premise that ties the failure to the save.
                 rejected = true;
+                Assert.areEqual(RLM_DisputeDetailsController.SAVE_FAILED_MESSAGE, e.getMessage(),
+                    'The page gets a fixed sentence, not the DML error');
+                Assert.isInstanceOfType(e.getCause(), DmlException.class, 'The DML error is kept as the cause');
             }
         }
         Test.stopTest();

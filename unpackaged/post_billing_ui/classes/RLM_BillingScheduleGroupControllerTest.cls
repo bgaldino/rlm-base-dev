@@ -65,6 +65,9 @@ private class RLM_BillingScheduleGroupControllerTest {
         Assert.isNotNull(thrown, 'A refused read must not come back as an empty list.');
         Assert.isInstanceOfType(thrown, AuraHandledException.class,
             'The refused read is wrapped for the LWC, got ' + thrown.getTypeName());
+        Assert.areEqual(RLM_BillingScheduleGroupController.LOAD_FAILED_MESSAGE, thrown.getMessage(),
+            'The LWC gets a fixed sentence, not the query error');
+        Assert.isInstanceOfType(thrown.getCause(), QueryException.class, 'The query error is kept as the cause');
     }
 
     @isTest

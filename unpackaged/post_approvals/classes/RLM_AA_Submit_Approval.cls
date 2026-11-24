@@ -4,6 +4,11 @@
  * Limits: each request starts its own flow interview, so a batch is bounded by the per-transaction
  * limits (for example the 150 DML statements and 100 SOQL queries any interview's elements use).
  * Pass the smallest batches the caller can; the invocable does not chunk or bulkify the flow.
+ *
+ * A failure stops the whole batch: the interviews run in the caller's transaction and nothing here
+ * catches their exceptions, so when one request fails (an unknown flow name, or a fault in its flow)
+ * the later requests are not started, and unless the caller handles the fault the transaction rolls
+ * back the submissions the earlier requests made.
  */
 global class RLM_AA_Submit_Approval {
 @InvocableMethod(label='Submit for Approval' description='Calls a Flow Orchestration Approval.' category='Approvals')
