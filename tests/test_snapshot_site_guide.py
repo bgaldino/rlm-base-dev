@@ -524,6 +524,64 @@ def main():
               load(tmp)["legacy_id_map"]["rlm_get_started.htm"] == "rlm-get-started"
               and "gone.htm" in load(tmp)["unmapped_legacy_ids"])
 
+    print("atlas switch sweep")
+    big = "# Get started\n\n" + ("A full atlas article body line.\n" * 300)
+    redir = {"https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/"
+             "revenue_lifecycle_management_dev_guide/odd_old_name.htm": G + "deployment-overview.html"}
+
+    def atlas_dir(tmp):
+        (Path(tmp) / "articles").mkdir(parents=True, exist_ok=True)
+        for pid in ("rlm_get_started.htm", "odd_old_name.htm", "gone.htm"):
+            (Path(tmp) / "articles" / f"{pid}.md").write_text(
+                big if pid == "rlm_get_started.htm" else "# Old\n\nolder text\n", encoding="utf-8")
+        (Path(tmp) / "manifest.json").write_text(json.dumps({"pages": [
+            {"page_id": pid, "status": "captured"} for pid in ("rlm_get_started.htm", "odd_old_name.htm", "gone.htm")]}),
+            encoding="utf-8")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
+        check("a switch limited to a section is refused (it would drop the other pages' records)",
+              raises(OptionsError, snap(tmp, redirects=redir, mode="refresh", sections=["deployment-overview"]).preflight))
+        try:
+            snap(tmp, redirects=redir, mode="refresh").run()
+        except SnapshotError:
+            pass
+        m = load(tmp)
+        arts = Path(tmp) / "articles"
+        check("a truncated replacement is judged against the mapped atlas article and refused",
+              not (arts / "rlm-get-started.md").exists() and (arts / "rlm_get_started.htm.md").read_text(encoding="utf-8") == big
+              and any(p["page_id"] == "rlm-get-started" and p["status"] == "error" and "refused" in p.get("error", "")
+                      for p in m["pages"]))
+        check("the atlas article that is still the only copy is not listed superseded; the replaced ones are",
+              m["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md"])
+        check("no local link points at the refused page",
+              all("./rlm-get-started.md" not in f.read_text(encoding="utf-8") for f in arts.glob("*.md")))
+        snap(tmp, redirects=redir, mode="all", accept_shrinkage=["rlm-get-started"], probe_page="connect-resources-get-catalogs").run()
+        check("once the replacement is accepted, the atlas article is listed superseded",
+              load(tmp)["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md",
+                                                 "articles/rlm_get_started.htm.md"])
+        later = {"https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/"
+                 "revenue_lifecycle_management_dev_guide/gone.htm": G + "connect-resources-get-catalogs.html", **redir}
+        snap(tmp, redirects=later, mode="all", probe_page="connect-resources-get-catalogs").run()
+        m = load(tmp)
+        check("a rerun retries ids that stayed unmapped",
+              m["legacy_id_map"].get("gone.htm") == "connect-resources-get-catalogs" and not m["unmapped_legacy_ids"])
+    with tempfile.TemporaryDirectory() as tmp:
+        snap(tmp, mode="all").run()
+        mm = load(tmp)
+        mm["legacy_id_map"] = {"a_b.htm": "rlm-get-started", "a-b.htm": "rlm-get-started"}
+        mm["pages"] = [dict(p, status="pending") if p["page_id"] == "rlm-get-started" else p for p in mm["pages"]]
+        (Path(tmp) / "manifest.json").write_text(json.dumps(mm), encoding="utf-8")
+        (Path(tmp) / "articles" / "rlm-get-started.md").unlink()
+        (Path(tmp) / "articles" / "a_b.htm.md").write_text("# s\n\nshort\n", encoding="utf-8")
+        (Path(tmp) / "articles" / "a-b.htm.md").write_text(big, encoding="utf-8")
+        try:
+            snap(tmp, mode="capture").run()
+        except SnapshotError:
+            pass
+        check("two atlas ids mapped to one page: the longest article is the guard's prior",
+              not (Path(tmp) / "articles" / "rlm-get-started.md").exists())
+
     print(f"\n{_passed}/{_total} passed")
     return 0 if _passed == _total else 1
 

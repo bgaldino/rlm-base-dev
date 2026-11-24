@@ -256,8 +256,13 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
   neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.
   The old ids come from an atlas manifest in the same `output_dir`; switching that
-  directory to the site needs `--mode refresh`, and the old articles are not
-  deleted (remove them in the same change).
+  directory to the site needs a whole-guide `--mode refresh` (no `--section`), and the
+  old articles are not deleted (remove them in the same change). The shrinkage guard
+  compares a replacement with the page's atlas article (the longest, if several ids map
+  to it) when no site article exists. An atlas article is listed under
+  `superseded_files` only once its page is captured (ids that map to nothing stay
+  listed); a refused or failed replacement leaves it as the only copy. A rerun retries
+  the ids that stayed unmapped.
 - Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
   batches (default 500), three attempts with backoff on a failed connection, 429 or
   5xx. The capture guard (not-found and stub) applies as for atlas.

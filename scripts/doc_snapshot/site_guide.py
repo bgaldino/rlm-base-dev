@@ -567,7 +567,14 @@ class SiteGuideSnapshot:
 
     def _check_switch(self, path: Path, mode: str) -> None:
         """An atlas corpus is replaced only by a refresh, like a doc_version change."""
-        if mode == "refresh" or self._file_is_site(path):
+        if self._file_is_site(path):
+            return
+        if mode == "refresh":
+            if self.options.get("section_filters"):
+                raise OptionsError(
+                    "switching an atlas corpus to the site replaces its page records, so it needs the "
+                    "whole guide: run --mode refresh without --section."
+                )
             return
         manifest = read_manifest(path, {"pages": []}, "pages")
         if any(p.get("status") == "captured" for p in manifest.get("pages", [])):
@@ -663,7 +670,7 @@ class SiteGuideSnapshot:
             fresh["_legacy_ids"] = legacy
             old_files = sorted(
                 f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
-                if p.get("status") == "captured" and str(p.get("page_id", "")).endswith(".htm")
+                if str(p.get("page_id", "")).endswith(".htm") and self._has_article(path, p)
             )
             if old_files:
                 fresh["superseded_files"] = old_files
@@ -708,6 +715,29 @@ class SiteGuideSnapshot:
         )
         return manifest
 
+    @staticmethod
+    def _settle_superseded(path: Path, manifest: Dict[str, Any]) -> None:
+        """List an atlas article as superseded only once the site page it maps to is captured.
+
+        A refused, failed or not-yet-captured replacement leaves the atlas file as the only
+        copy, so it must not be offered for removal; it is listed again when its page is
+        captured. Atlas ids that map to nothing stay listed (no replacement will come).
+        """
+        pages = manifest.get("pages", [])
+        captured = {p["page_id"] for p in pages if p.get("status") == "captured"}
+        live = {f"articles/{pid}.md" for pid in captured}
+        replacement = {f"articles/{old}.md": slug
+                       for old, slug in (manifest.get("legacy_id_map") or {}).items()}
+        keep = {f for f in (manifest.get("superseded_files") or [])
+                if f not in live and (f not in replacement or replacement[f] in captured)}
+        for f, slug in replacement.items():  # (re)list a mapped atlas file whose page is now captured
+            if slug in captured and (path.parent / f).is_file():
+                keep.add(f)
+        if keep:
+            manifest["superseded_files"] = sorted(keep)
+        else:
+            manifest.pop("superseded_files", None)
+
     def _save_manifest(self, path: Path, manifest: Dict[str, Any]) -> None:
         if self._switching and not self._version_verified:
             raise SnapshotError(
@@ -715,12 +745,7 @@ class SiteGuideSnapshot:
                 "none was confirmed; the atlas manifest was kept. Rerun with --mode all or "
                 "refresh while the site is reachable (set probe_page if its pages show no version)."
             )
-        if manifest.get("superseded_files"):
-            live = {f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
-                    if p.get("status") == "captured"}
-            manifest["superseded_files"] = [f for f in manifest["superseded_files"] if f not in live]
-            if not manifest["superseded_files"]:
-                del manifest["superseded_files"]
+        self._settle_superseded(path, manifest)
         manifest["last_updated"] = utc_timestamp()
         manifest["stats"] = compute_stats(manifest, "pages")
         write_manifest(path, {k: v for k, v in manifest.items() if k != "_legacy_ids"})
@@ -841,6 +866,9 @@ class SiteGuideSnapshot:
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         # The legacy map needs the whole guide's slugs, not just a section's.
         all_slugs = {d["page_id"] for d in flatten_toc(toc, self.guide_path, None)[0]}
+        if not legacy_ids and not o["section_filters"]:
+            # A rerun (an interrupted switch, a redirect that failed) retries what stayed unmapped.
+            legacy_ids = sorted(manifest.get("unmapped_legacy_ids") or {})
         if legacy_ids:
             self._map_legacy(manifest, legacy_ids, all_slugs)
         if save:  # with a capture to follow, the one save comes after the version check
@@ -990,9 +1018,22 @@ class SiteGuideSnapshot:
             self.logger.warning(f"  custom elements left unconverted: {dict(extra)}")
 
         by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
-        legacy_by_slug = {v: k for k, v in (manifest.get("legacy_id_map") or {}).items()}
+        legacy_by_slug: Dict[str, List[str]] = {}
+        for old, slug in sorted((manifest.get("legacy_id_map") or {}).items()):
+            legacy_by_slug.setdefault(slug, []).append(old)
         accept = o["accept_shrinkage"]
-        prior_texts = {pid: read_prior(articles_dir / f"{pid}.md") for pid in fetched}
+        def prior_for(pid: str) -> Optional[str]:
+            """What a capture would replace: the page's site article, else (a corpus switched from the
+            atlas) the longest atlas article mapped to it, so the shrinkage guard sees the real prior."""
+            text = read_prior(articles_dir / f"{pid}.md")
+            if text is None:
+                texts = [t for old in legacy_by_slug.get(pid, ())
+                         if (t := read_prior(articles_dir / f"{old}.md")) is not None]
+                text = max(texts, key=len) if texts else None
+            return text
+
+        prior_texts = {pid: prior_for(pid) for pid in fetched}
+        has_site_file = {pid: (articles_dir / f"{pid}.md").is_file() for pid in fetched}
         self.accepted = []
         refusals: Dict[str, str] = {}
 
@@ -1017,7 +1058,7 @@ class SiteGuideSnapshot:
                 refusals[pid] = reason
         # A link stays local only when the target has (or keeps) an article file: a refused
         # or empty page with no earlier file would leave a dead ./slug.md.
-        known = all_ids - {p for p in (set(refusals) | no_article) if prior_texts[p] is None}
+        known = all_ids - {p for p in (set(refusals) | no_article) if not has_site_file[p]}
 
         written = 0
         empty: List[str] = []
@@ -1035,7 +1076,7 @@ class SiteGuideSnapshot:
                 self.refused.append((pid, refusals[pid]))
                 self.logger.warning(f"  [refused] {pid}: {refusals[pid]}")
             else:
-                legacy = legacy_by_slug.get(pid)
+                legacy = (legacy_by_slug.get(pid) or [None])[0]
                 (articles_dir / f"{pid}.md").write_text(render_page_markdown(
                     slug=pid, title=title, body_md=body_md, source_url=self._page_url(pid),
                     release_version=o["release_version"], release_name=o["release_name"],
