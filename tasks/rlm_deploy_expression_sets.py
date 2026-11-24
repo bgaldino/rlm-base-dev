@@ -6,21 +6,29 @@ with the tracked Draft versions flipped to Active. A successful deploy does not 
 the deployed version is the one pricing runs, for two reasons, both silent:
 
 - **A version chain.** An org can hold several versions of one definition, several of
-  them active, and the runtime executes the highest-numbered ACTIVE one. In an upgraded
-  org (``ramp264``: v1 to v4, three active) the repo's ``_V1`` deploys and changes no
-  price (todo packs 172, 175).
+  them active. The runtime runs one of them: the 264 object reference says the
+  highest ``Rank`` among enabled versions whose date windows overlap (see
+  ``scripts/expression_sets/_guards.executing_version``; the tie-break is
+  unverified). In an upgraded org (``ramp264``: v1 to v4, three active) the repo's
+  ``_V1`` deploys and changes no price (todo packs 172, 175).
 - **A no-op deploy.** The Metadata API deploy handler matches payload versions to org
   versions by VersionNumber. A payload version whose DeveloperName exists in the org
   under a different VersionNumber is neither updated nor inserted, and the deploy still
   succeeds (read from the Core deploy handler; not yet reproduced live).
 
-So after the deploy this task reads every repo procedure's ExpressionSetVersion rows
-and checks, for each version the repo deploys:
+So after the deploy this task reads every deployed procedure's ExpressionSetVersion
+rows and checks, for each version the deploy sent:
 
-- a version with that ApiName exists, under the repo's VersionNumber (catches the
+- a version with that ApiName exists, under the deployed VersionNumber (catches the
   no-op);
-- when the deploy activates it, it is active and it is the highest-numbered active
-  version, so it is the one that executes (catches the version chain).
+- when the deploy activates it, it is active and it is the executing version
+  (catches the version chain).
+
+**What "deployed" means.** The expected versions are read from the package this task
+actually built and sent — after ``sf project convert source`` (which honours
+``.forceignore``: ``Salesforce_Pricing_Discovery_Procedure`` is in the repo but
+ignored, so it is never deployed) and after the task's ``transforms`` (which flip
+Draft to Active). Nothing here re-implements either.
 
 ``version_check`` decides what a finding does. ``fail`` (the default) fails the task:
 a deploy that changed nothing, or changed a version that does not run, produces
@@ -29,9 +37,13 @@ it. ``warn`` logs the same findings and lets the build go on, for an org whose f
 version chain is known and accepted (edit the executing version with
 ``scripts/expression_sets/set_step_formula.py``).
 """
+import base64
+import io
+import sys
 import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 try:
     from cumulusci.tasks.salesforce import Deploy
@@ -47,88 +59,88 @@ except ImportError:
     class TaskOptionsError(Exception):
         pass
 
+# Bootstrap the repo root so the stdlib-only shared resolver imports when CCI loads
+# this task module (same pattern as tasks/rlm_ux_assembly.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.expression_sets._guards import (  # noqa: E402
+    VERSION_FIELDS,
+    executing_version,
+    rank_order_warning,
+    version_rows,
+)
 
-DEFINITION_SUFFIX = ".expressionSetDefinition-meta.xml"
+MDAPI_SUFFIX = ".expressionSetDefinition"
 _MD_NS = "{http://soap.sforce.com/2006/04/metadata}"
 VERSION_CHECK_MODES = ("fail", "warn")
-
-# The status the deploy leaves a version in. A version whose source status is Draft
-# deploys as Active when the task's transforms flip it (see draft_deploys_active).
 _ACTIVE = "Active"
 
 
-def repo_versions(path: Path) -> List[Dict]:
-    """The versions the repo deploys from ``path``: one dict per ``<versions>`` entry.
+def version_check_mode(value) -> str:
+    """Parse the ``version_check`` option: ``fail`` (default) or ``warn``."""
+    mode = str(value or "fail").strip().lower()
+    if mode not in VERSION_CHECK_MODES:
+        raise TaskOptionsError(
+            f"version_check must be one of {', '.join(VERSION_CHECK_MODES)}; got {value!r}."
+        )
+    return mode
 
-    ``{"definition", "apiName", "versionNumber", "status", "file"}``; the definition
-    name is the file name (source format carries no top-level fullName). Pure apart
-    from reading the files; raises ValueError on a file it cannot parse.
-    """
-    out: List[Dict] = []
-    if not path.is_dir():
-        return out
-    for file in sorted(path.glob(f"*{DEFINITION_SUFFIX}")):
-        definition = file.name[: -len(DEFINITION_SUFFIX)]
-        try:
-            root = ET.parse(file).getroot()
-        except ET.ParseError as exc:
-            raise ValueError(f"Could not parse {file}: {exc}") from exc
-        for version in root.findall(f"{_MD_NS}versions"):
-            number = version.findtext(f"{_MD_NS}versionNumber")
-            out.append({
-                "definition": definition,
-                "apiName": version.findtext(f"{_MD_NS}fullName"),
-                "versionNumber": int(number) if number and number.strip().isdigit() else None,
-                "status": (version.findtext(f"{_MD_NS}status") or "").strip(),
-                "file": file.name,
-            })
+
+def versions_from_xml(definition: str, xml_bytes: bytes) -> List[Dict]:
+    """One dict per ``<versions>`` entry of an expressionSetDefinition XML:
+    ``{"definition", "apiName", "versionNumber", "status"}``. Raises ValueError on
+    XML it cannot parse."""
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError as exc:
+        raise ValueError(f"Could not parse {definition}: {exc}") from exc
+    out = []
+    for version in root.findall(f"{_MD_NS}versions"):
+        number = (version.findtext(f"{_MD_NS}versionNumber") or "").strip()
+        out.append({
+            "definition": definition,
+            "apiName": version.findtext(f"{_MD_NS}fullName"),
+            "versionNumber": int(number) if number.isdigit() else None,
+            "status": (version.findtext(f"{_MD_NS}status") or "").strip(),
+        })
     return out
 
 
-def draft_deploys_active(transforms: Optional[Iterable]) -> bool:
-    """Whether the task's ``transforms`` turn a Draft version status into Active.
+def deployed_versions(package_zip_b64: Optional[str]) -> List[Dict]:
+    """The expression set versions in the package the deploy sent.
 
-    ``activate_and_deploy_expression_sets`` carries a ``find_replace`` pattern on
-    ``versions/status[text()="Draft"]`` replacing it with ``Active``; that is the
-    "activate" in its name. Reading the option rather than assuming it keeps the
-    check honest if the transform is ever removed. Pure.
+    ``package_zip_b64`` is the base64 Metadata API zip ``Deploy._get_package_zip``
+    built, already converted from source format (``.forceignore`` applied) and
+    transformed. Each ``expressionSetDefinitions/<Name>.expressionSetDefinition``
+    member contributes its ``<versions>``; the status is the deployed one.
     """
-    for transform in transforms or []:
-        if not isinstance(transform, dict) or transform.get("transform") != "find_replace":
-            continue
-        for pattern in (transform.get("options") or {}).get("patterns") or []:
-            xpath = str(pattern.get("xpath") or "")
-            if ("versions/status" in xpath and '"Draft"' in xpath
-                    and pattern.get("replace") == _ACTIVE):
-                return True
-    return False
+    if not package_zip_b64:
+        return []
+    out: List[Dict] = []
+    with zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip_b64))) as zf:
+        for name in sorted(zf.namelist()):
+            leaf = name.rsplit("/", 1)[-1]
+            if not leaf.endswith(MDAPI_SUFFIX):
+                continue
+            definition = leaf[: -len(MDAPI_SUFFIX)]
+            out.extend(v for v in versions_from_xml(definition, zf.read(name))
+                       if v.get("apiName"))
+    return out
 
 
-def expected_active(version: Dict, draft_active: bool) -> bool:
-    """Whether the deploy leaves ``version`` active. Pure."""
-    status = version.get("status")
-    return status == _ACTIVE or (status == "Draft" and draft_active)
+def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
+                     now=None) -> List[str]:
+    """Compare what the deploy sent with the org's ExpressionSetVersion rows.
 
-
-def version_findings(
-    expected: List[Dict], org_versions: Dict[str, List[Dict]], draft_active: bool
-) -> List[str]:
-    """Compare what the repo deployed with the org's ExpressionSetVersion rows.
-
-    ``org_versions`` maps a definition DeveloperName to its rows
-    (``ApiName``, ``VersionNumber``, ``IsActive``). Returns one message per problem;
-    an empty list means every deployed version exists under its VersionNumber and
-    every version the deploy activates is the one that executes. Pure.
+    ``org_versions`` maps a definition DeveloperName to its rows (the
+    ``_guards.VERSION_FIELDS``). Returns one message per problem; an empty list means
+    every deployed version exists under its VersionNumber and every version the
+    deploy activated is the executing one. Pure.
     """
     findings: List[str] = []
     for version in expected:
         definition, api_name = version["definition"], version["apiName"]
         rows = org_versions.get(definition) or []
-        table = ", ".join(
-            f"{r.get('ApiName')} v{r.get('VersionNumber')}"
-            f"{' active' if r.get('IsActive') else ''}"
-            for r in sorted(rows, key=lambda r: r.get("VersionNumber") or 0)
-        ) or "(none)"
+        table = version_rows(rows) or "(none)"
         match = [r for r in rows if r.get("ApiName") == api_name]
         if not match:
             findings.append(
@@ -141,29 +153,31 @@ def version_findings(
                 row.get("VersionNumber") != version["versionNumber"]:
             findings.append(
                 f"{definition}: {api_name} is VersionNumber {row.get('VersionNumber')} in "
-                f"the org but {version['versionNumber']} in the repo. The deploy matches "
-                "versions by VersionNumber, so it did not update this version (a silent "
-                f"no-op). Versions in the org: {table}."
+                f"the org but {version['versionNumber']} in the deployed package. The "
+                "deploy matches versions by VersionNumber, so it did not update this "
+                f"version (a silent no-op). Versions in the org: {table}."
             )
             continue
-        if not expected_active(version, draft_active):
+        if version.get("status") != _ACTIVE:
             continue
         if not row.get("IsActive"):
             findings.append(
-                f"{definition}: {api_name} should be active after the deploy but is "
-                f"inactive. Versions in the org: {table}."
+                f"{definition}: {api_name} was deployed Active but is inactive. "
+                f"Versions in the org: {table}."
             )
             continue
-        active = [r for r in rows if r.get("IsActive")]
-        running = max(active, key=lambda r: r.get("VersionNumber") or 0)
-        if running.get("ApiName") != api_name:
+        running = executing_version(rows, now)
+        if running is None or running.get("ApiName") != api_name:
+            runs = (f"{running.get('ApiName')} (v{running.get('VersionNumber')}) is the "
+                    "executing version (highest Rank among active versions in their "
+                    "date window)" if running else
+                    f"{api_name}'s date window does not cover now, so it is not running")
             findings.append(
                 f"{definition}: the deployed {api_name} is active but does not execute; "
-                f"{running.get('ApiName')} (v{running.get('VersionNumber')}) is the "
-                "highest-numbered active version, so pricing runs it and the repo change "
-                f"has no effect. Versions in the org: {table}. Edit the executing version "
-                "with scripts/expression_sets/set_step_formula.py, or set version_check "
-                "to warn if this org's version chain is intended."
+                f"{runs}, so pricing runs it and the repo change has no effect. "
+                f"Versions in the org: {table}. Edit the executing version with "
+                "scripts/expression_sets/set_step_formula.py, or set version_check to "
+                "warn if this org's version chain is intended."
             )
     return findings
 
@@ -178,8 +192,8 @@ class DeployExpressionSets(Deploy):
                 "What a post-deploy version finding does: 'fail' (default) fails the "
                 "task, 'warn' logs it and continues. A finding is a deployed version "
                 "that is missing, under a different VersionNumber (a silent no-op), "
-                "inactive when the deploy activates it, or not the highest-numbered "
-                "active version (so not the one that executes)."
+                "inactive when the deploy activates it, or not the version that "
+                "executes (highest Rank among active versions in their date window)."
             ),
             "required": False,
         },
@@ -187,14 +201,17 @@ class DeployExpressionSets(Deploy):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        mode = str(self.options.get("version_check") or "fail").strip().lower()
-        if mode not in VERSION_CHECK_MODES:
-            raise TaskOptionsError(
-                f"version_check must be one of {', '.join(VERSION_CHECK_MODES)}; got {mode!r}."
-            )
-        self.version_check = mode
+        self.version_check = version_check_mode(self.options.get("version_check"))
+
+    def _get_package_zip(self, path):
+        # Keep the exact package sent (converted with .forceignore applied, then
+        # transformed), so the read-back expects only what was deployed.
+        package_zip = super()._get_package_zip(path)
+        self._deployed_package = package_zip if isinstance(package_zip, str) else None
+        return package_zip
 
     def _run_task(self):
+        self._deployed_package = None
         result = super()._run_task()
         if getattr(self, "check_only", False):
             self.logger.info("check_only deploy; skipping the version read-back.")
@@ -203,18 +220,21 @@ class DeployExpressionSets(Deploy):
         return result
 
     def _check_versions(self):
-        path = Path(self.options["path"])
-        expected = [v for v in repo_versions(path) if v.get("apiName")]
+        expected = deployed_versions(getattr(self, "_deployed_package", None))
         if not expected:
-            self.logger.info(f"No expression set versions under {path}; nothing to read back.")
+            self.logger.info("No expression set versions were deployed; nothing to read back.")
             return
-        draft_active = draft_deploys_active(self.options.get("transforms"))
         definitions = sorted({v["definition"] for v in expected})
-        findings = version_findings(expected, self._org_versions(definitions), draft_active)
+        org_versions = self._org_versions(definitions)
+        findings = version_findings(expected, org_versions)
+        for definition in definitions:
+            note = rank_order_warning(org_versions.get(definition) or [])
+            if note:
+                self.logger.warning(f"{definition}: {note}")
         if not findings:
             self.logger.info(
                 f"Version read-back: all {len(expected)} deployed version(s) exist under "
-                "their repo VersionNumber, and each one the deploy activates is the "
+                "their deployed VersionNumber, and each one the deploy activated is the "
                 "version that executes."
             )
             return
@@ -247,7 +267,7 @@ class DeployExpressionSets(Deploy):
             return out
         ids = "', '".join(by_set)
         rows = self._sf.query_all(
-            "SELECT Id, ApiName, VersionNumber, IsActive, ExpressionSetId "
+            f"SELECT {VERSION_FIELDS}, ExpressionSetId "
             f"FROM ExpressionSetVersion WHERE ExpressionSetId IN ('{ids}')"
         ).get("records", [])
         for row in rows:
