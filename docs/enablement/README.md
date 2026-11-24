@@ -79,7 +79,7 @@ External dependencies (also gitignored / external):
 | `docs/salesforce/260/solution-overview-spring-26-billing.pdf` | Internal Solution Overview deck for 260 (RCB) | **CONFIDENTIAL — Internal Only**. Not in repo. |
 | `docs/salesforce/262/*.pdf` | Equivalent 262 sources (RCA + Billing SOs, release notes) | Same status — not in repo |
 
-The markdown content in [`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and [`docs/salesforce/264/feature-index.md`](../salesforce/264/feature-index.md) summarizes what's in those sources, so you can review without needing the raw PDFs.
+The markdown content in [`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) summarizes the 262 sources, and [`docs/salesforce/264/feature-index.md`](../salesforce/264/feature-index.md) is built from the 264 Help corpus and release notes, so you can review without needing the raw PDFs.
 
 ---
 
@@ -224,7 +224,7 @@ For each release (260, 262), I worked from up to 4 sources:
 | **Public Salesforce Help portal release notes** | Captured via Chrome MCP (the Help portal is a SPA, so a recursive shadow-DOM walker is needed to extract content). From 264 on, `python -m scripts.doc_snapshot help --release {version} --area release_notes` captures them instead (see `revenue-cloud-docs/SKILL.md`) |
 | **The `rlm-base-dev` project itself** | QB scenario reference, data plans, skills — what's actually in QB orgs |
 
-For an authoring agent picking up the work later, the captured release notes (e.g., the 264 notes under [`docs/salesforce/264/release-notes/`](../salesforce/264/release-notes/index.md)) preserve what was on the public Help portal at extraction time, archived next to the captured Solution Overview content in [`docs/salesforce/{version}/feature-index.md`](../salesforce/264/feature-index.md). The repo keeps only the current and previous release's corpora (264, 262); the 260 feature index and release notes were removed.
+For an authoring agent picking up the work later, the captured release notes (e.g., the 264 notes under [`docs/salesforce/264/release-notes/`](../salesforce/264/release-notes/index.md)) preserve what was on the public Help portal at extraction time, archived alongside the feature indexes in [`docs/salesforce/{version}/feature-index.md`](../salesforce/262/feature-index.md) (262 summarizes the Solution Overview decks; 264 is Help-derived). The repo keeps only the current and previous release's corpora (264, 262); the 260 feature index and release notes were removed.
 
 ### 2. Skill + pattern extraction
 
