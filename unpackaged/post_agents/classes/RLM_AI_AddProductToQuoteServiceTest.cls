@@ -167,39 +167,98 @@ private class RLM_AI_AddProductToQuoteServiceTest {
                 new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
 
         System.assertEquals(false, results[0].isSuccess);
-        System.assertEquals('Managed add-line said no.', results[0].errorMessage);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE, results[0].errorMessage,
+            'The action\'s own text is not shown.');
     }
 
-    // The add-line action passes a validation rule's or trigger's own message back for the user;
-    // that text is shown as is. Measured shapes (a 264 org) are used verbatim below.
+    // The add-line action's errorMessage cannot be told apart by source (measured on a 264 org:
+    // validation rule text, addError text, trigger faults, DML errors and unresolved label keys all
+    // arrive the same way), so every refusal gets the fixed sentence. Measured shapes are used
+    // verbatim, plus the phrasings a review found leaking through a pattern filter.
     @isTest
-    static void refusalTextIsPassedThroughOnlyWhenItIsWrittenForTheUser() {
-        System.assertEquals('Quantity must be at least 5 for this product.',
-            RLM_AI_AddProductToQuoteService.userSafeRefusal('Quantity must be at least 5 for this product.'),
-            'A validation rule message is shown as written.');
-        String triggerFault = 'SomeTrigger: execution of BeforeInsert\n\ncaused by: '
-            + 'System.ListException: List index out of bounds: 3\n\nTrigger.SomeTrigger: line 3, column 1';
-        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
-            RLM_AI_AddProductToQuoteService.userSafeRefusal(triggerFault),
-            'A trigger fault is replaced by the fixed sentence.');
-        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
-            RLM_AI_AddProductToQuoteService.userSafeRefusal('FIELD_INTEGRITY_EXCEPTION: bad value'),
-            'A status-code style message is replaced by the fixed sentence.');
-        for (String fault : new List<String>{
-            'INSUFFICIENT_ACCESS_OR_READONLY, insufficient access rights on object id',
-            'Insert failed. First exception on row 0; first error: DUPLICATE_VALUE, duplicate value found',
+    static void everyRefusalGetsTheFixedSentence() {
+        for (String actionMessage : new List<String>{
+            'Quantity must be at least 5 for this product.',
+            'Add this product only to quotes in USD.',
+            'Required fields are missing: [StartDate]',
+            'Required fields are missing: [PricebookEntryId]',
+            'insufficient access rights on cross-reference id: 01t000000000001',
+            'invalid cross reference id',
+            'Attempt to de-reference a null object',
+            'SomeTrigger: execution of BeforeInsert\n\ncaused by: '
+                + 'System.ListException: List index out of bounds: 3\n\nTrigger.SomeTrigger: line 3, column 1',
+            'FIELD_INTEGRITY_EXCEPTION: bad value',
             'Apex CPU time limit exceeded',
-            'System.NullPointerException: Attempt to de-reference a null object'
+            '__MISSING LABEL__ PropertyFile - val SomeKey not found in section SomeSection',
+            '  ',
+            null
         }) {
             System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
-                RLM_AI_AddProductToQuoteService.userSafeRefusal(fault), 'Hidden: ' + fault);
+                RLM_AI_AddProductToQuoteService.refusalMessage(actionMessage), 'Shown for: ' + actionMessage);
         }
-        System.assertEquals('Add this product only to quotes in USD.',
-            RLM_AI_AddProductToQuoteService.userSafeRefusal('Add this product only to quotes in USD.'),
-            'An acronym in a validation message is not a status code.');
-        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
-            RLM_AI_AddProductToQuoteService.userSafeRefusal('  '),
-            'A blank message gets the fixed sentence.');
+    }
+
+    // The action's outputs are read without a cast that could throw after the line is committed.
+    @isTest
+    static void readingTheActionOutputsCannotThrow() {
+        RLM_AI_AddProductToQuoteService.ManagedResult ok = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => true, 'errorMessage' => 42 });
+        System.assertEquals(true, ok.isSuccess, 'A non-text errorMessage does not flip a success.');
+        System.assertEquals(false, ok.actionFailed);
+        System.assertEquals('42', ok.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult refused = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => false, 'errorMessage' => 'no' });
+        System.assertEquals(false, refused.isSuccess);
+        System.assertEquals(false, refused.actionFailed);
+        System.assertEquals('no', refused.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult textFlag = RLM_AI_AddProductToQuoteService.resultFrom(
+            new Map<String, Object>{ 'isSuccess' => 'true' });
+        System.assertEquals(false, textFlag.isSuccess, 'Only a Boolean true counts as success.');
+        System.assertEquals(null, textFlag.errorMessage);
+
+        RLM_AI_AddProductToQuoteService.ManagedResult none = RLM_AI_AddProductToQuoteService.resultFrom(null);
+        System.assertEquals(false, none.isSuccess);
+        System.assertEquals(true, none.actionFailed, 'No outputs means the action did not run.');
+    }
+
+    private class ThrowingLineLookup implements RLM_AI_AddProductToQuoteService.NewLineLookup {
+        public String findNewLineId(Id quoteId, Id productId) {
+            throw new QueryException('lookup refused');
+        }
+    }
+
+    private class FixedLineLookup implements RLM_AI_AddProductToQuoteService.NewLineLookup {
+        public Id lastQuoteId;
+        public Id lastProductId;
+        public String findNewLineId(Id quoteId, Id productId) {
+            lastQuoteId = quoteId;
+            lastProductId = productId;
+            return 'line-id-from-lookup';
+        }
+    }
+
+    @isTest
+    static void theNewLineIdComesFromTheLookup() {
+        Fixture f = buildFixture('Quinn Found Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new FakeInvoker(true, null);
+        FixedLineLookup lookup = new FixedLineLookup();
+        RLM_AI_AddProductToQuoteService.lineLookup = lookup;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Found Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals('line-id-from-lookup', results[0].quoteLineItemId);
+        System.assertEquals(f.quoteId, lookup.lastQuoteId);
+        System.assertEquals(f.productId, lookup.lastProductId);
     }
 
     @isTest
@@ -229,7 +288,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         Fixture f = buildFixture('Quinn Lookup Product', true, false);
         FakeInvoker fake = new FakeInvoker(true, null);
         RLM_AI_AddProductToQuoteService.invoker = fake;
-        RLM_AI_AddProductToQuoteService.lineLookupFailure = new QueryException('lookup refused');
+        RLM_AI_AddProductToQuoteService.lineLookup = new ThrowingLineLookup();
 
         RLM_AI_AddProductToQuoteService.AddInput input =
             new RLM_AI_AddProductToQuoteService.AddInput();
@@ -302,7 +361,8 @@ private class RLM_AI_AddProductToQuoteServiceTest {
                 new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
 
         System.assertEquals(false, results[0].isSuccess);
-        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE, results[0].errorMessage);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_UNCERTAIN_MESSAGE, results[0].errorMessage,
+            'A throw from the invocation leaves the outcome unknown, so the user is told to check the quote.');
     }
 
     @isTest

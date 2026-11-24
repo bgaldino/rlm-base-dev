@@ -125,81 +125,80 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return results;
     }
 
+    // Failure sentences. What the managed add-line action leaves behind was measured on a 264 org
+    // by counting the quote's lines before and after each call: a refusal (a validation rule, a
+    // trigger's addError, an unhandled trigger exception, a missing required field) and an action
+    // that did not run (invalid input) all left no line. So a refusal or an action that did not run
+    // can say that nothing was added; only an exception thrown out of the invocation itself leaves
+    // the outcome unknown.
     @TestVisible
     static final String ADD_FAILED_MESSAGE =
-        'The product could not be added to the quote because of an unexpected error. Try again, or contact your administrator.';
+        'The product was not added to the quote because of an unexpected error. Try again, or contact your administrator.';
     @TestVisible
-    static final String ADD_REFUSED_MESSAGE = 'The product could not be added to the quote.';
+    static final String ADD_REFUSED_MESSAGE =
+        'The product was not added to the quote. Ask your administrator to check the quote and the product.';
+    @TestVisible
+    static final String ADD_UNCERTAIN_MESSAGE =
+        'The product may not have been added to the quote because of an unexpected error. Check the quote before trying again.';
+
+    private class PreparedAdd {
+        Id quoteId;
+        Product2 product;
+        SellingModelResolution sellingModel;
+        Decimal quantity;
+    }
 
     private static AddOutput processAdd(AddInput input) {
         AddOutput out = new AddOutput();
-        Id quoteId;
-        Product2 product;
+        PreparedAdd prep;
         try {
-            if (input == null || String.isBlank(input.quoteId)) {
-                out.errorMessage = 'Quote Id is required.';
-                return out;
-            }
-            quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
-            if (quoteId == null) {
-                out.errorMessage = 'Invalid quote Id: ' + input.quoteId;
-                return out;
-            }
-
-            // 1. Resolve the product (by Id, or by name with disambiguation).
-            product = resolveProduct(input, out);
-            if (product == null) {
-                // out already carries the error or disambiguation payload.
-                return out;
-            }
-
-            // 2. Resolve the selling model (hard prerequisite for add-line):
-            // the user-named one when supplied, otherwise the product default.
-            SellingModelResolution psm = resolveSellingModel(product.Id, input.sellingModelName);
-            if (psm.errorMessage != null) {
-                out.errorMessage = psm.errorMessage;
-                return out;
-            }
-
-            // 3. Invoke the managed add-line action with the resolved inputs.
-            Decimal quantity = (input.quantity == null || input.quantity <= 0)
-                ? 1
-                : input.quantity;
-            ManagedResult mr = invoker.addLine(
-                quoteId, product.Id, psm.sellingModelId, quantity,
-                input.startDate, input.endDate
-            );
-            if (mr == null || mr.actionFailed == true) {
-                // The action did not run (or returned nothing): a platform failure, not a refusal.
-                out.errorMessage = ADD_FAILED_MESSAGE;
-                return out;
-            }
-            if (mr.isSuccess != true) {
-                out.errorMessage = userSafeRefusal(mr.errorMessage);
-                return out;
-            }
-
-            // 4. Success. The line is committed from here on, so nothing below may flip isSuccess:
-            // a retry after a reported failure would add the line twice.
-            out.isSuccess = true;
-            out.productNameAdded = product.Name;
-            out.quantityAdded = quantity;
-            out.sellingModelName = psm.sellingModelName;
-            out.lineSummaryDisplay = buildLineSummary(product.Name, quantity, psm.sellingModelName);
+            prep = prepare(input, out);
         } catch (Exception e) {
-            // An unexpected exception (a refused read, a platform fault) carries internal detail, so
-            // the user gets a fixed sentence and the detail goes to the debug log.
-            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add failed: '
+            // An unexpected exception before the add (a refused read, a platform fault) carries
+            // internal detail, so the user gets a fixed sentence and the detail goes to the debug log.
+            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService preparing the add failed: '
                 + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
-            out.isSuccess = false;
             out.errorMessage = ADD_FAILED_MESSAGE;
             return out;
         }
+        if (prep == null) {
+            // out already carries the input error or the disambiguation payload.
+            return out;
+        }
 
-        // Best effort, outside the try: the line was added, so a failed lookup leaves the id null
-        // and the add still reports success.
+        ManagedResult mr;
         try {
-            out.quoteLineItemId = findNewQuoteLineId(quoteId, product.Id);
+            mr = invoker.addLine(
+                prep.quoteId, prep.product.Id, prep.sellingModel.sellingModelId, prep.quantity,
+                input.startDate, input.endDate
+            );
+        } catch (Exception e) {
+            // The invocation threw, so whether the action committed a line is unknown.
+            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add-line invocation threw: '
+                + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            out.errorMessage = ADD_UNCERTAIN_MESSAGE;
+            return out;
+        }
+        if (mr == null || mr.actionFailed == true) {
+            // The action did not run (or returned nothing): no line was added.
+            out.errorMessage = ADD_FAILED_MESSAGE;
+            return out;
+        }
+        if (mr.isSuccess != true) {
+            out.errorMessage = refusalMessage(mr.errorMessage);
+            return out;
+        }
+
+        // The line is committed. Nothing below can throw or flip isSuccess: a reported failure
+        // after a committed add would invite a retry that adds the line twice.
+        out.isSuccess = true;
+        out.productNameAdded = prep.product.Name;
+        out.quantityAdded = prep.quantity;
+        out.sellingModelName = prep.sellingModel.sellingModelName;
+        out.lineSummaryDisplay = buildLineSummary(prep.product.Name, prep.quantity, prep.sellingModel.sellingModelName);
+        // Best effort: a failed lookup leaves the id null and the add still reports success.
+        try {
+            out.quoteLineItemId = lineLookup.findNewLineId(prep.quoteId, prep.product.Id);
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService new line lookup failed: '
                 + e.getTypeName() + ': ' + e.getMessage());
@@ -207,33 +206,53 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return out;
     }
 
-    /**
-     * The add-line action reports a refused add in its own errorMessage (measured on a 264 org:
-     * the outer action result is a success either way). A validation rule's message and a
-     * trigger's addError text come back as written, for the user, and are passed through. An
-     * unhandled exception in a trigger or flow comes back as the platform's fault text, naming the
-     * trigger, the exception type and the line; that goes to the debug log and the user gets a
-     * fixed sentence.
-     */
-    @TestVisible
-    private static String userSafeRefusal(String actionMessage) {
-        if (String.isBlank(actionMessage)) {
-            return ADD_REFUSED_MESSAGE;
+    // Validates the input and resolves the product and selling model. Returns null with out carrying
+    // the error or the disambiguation payload when there is nothing to add.
+    private static PreparedAdd prepare(AddInput input, AddOutput out) {
+        if (input == null || String.isBlank(input.quoteId)) {
+            out.errorMessage = 'Quote Id is required.';
+            return null;
         }
-        if (looksLikePlatformFault(actionMessage)) {
-            System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add-line fault: ' + actionMessage);
-            return ADD_REFUSED_MESSAGE;
+        PreparedAdd prep = new PreparedAdd();
+        prep.quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
+        if (prep.quoteId == null) {
+            out.errorMessage = 'Invalid quote Id: ' + input.quoteId;
+            return null;
         }
-        return actionMessage;
+
+        // 1. Resolve the product (by Id, or by name with disambiguation).
+        prep.product = resolveProduct(input, out);
+        if (prep.product == null) {
+            return null;
+        }
+
+        // 2. Resolve the selling model (hard prerequisite for add-line):
+        // the user-named one when supplied, otherwise the product default.
+        prep.sellingModel = resolveSellingModel(prep.product.Id, input.sellingModelName);
+        if (prep.sellingModel.errorMessage != null) {
+            out.errorMessage = prep.sellingModel.errorMessage;
+            return null;
+        }
+
+        prep.quantity = (input.quantity == null || input.quantity <= 0) ? 1 : input.quantity;
+        return prep;
     }
 
-    private static final Pattern PLATFORM_FAULT = Pattern.compile(
-        '(?s)caused by:|execution of (Before|After)|unhandled (exception|fault)|[A-Za-z]+Exception:'
-        + '|line \\d+, column \\d+|Trigger\\.[A-Za-z0-9_]+|Class\\.[A-Za-z0-9_.]+|first error:'
-        + '|CPU time limit|\\b[A-Z]{2,}(_[A-Z]+)+\\b');
-
-    private static Boolean looksLikePlatformFault(String message) {
-        return PLATFORM_FAULT.matcher(message).find();
+    /**
+     * The add-line action reports a refused add in its own errorMessage, with the outer action
+     * result a success either way. Measured on a 264 org, that one field carries a validation
+     * rule's message and a trigger's addError text as written, but also the platform's own text:
+     * an unhandled trigger exception (trigger name, exception type, line), a DML error naming a
+     * field ("Required fields are missing: [PricebookEntryId]") and an unresolved label key. The
+     * action returns no status code or other marker that tells them apart, so no message from it
+     * can be shown as provably written for the user: every refusal gets the fixed sentence and
+     * the action's text goes to the debug log for the administrator.
+     */
+    @TestVisible
+    private static String refusalMessage(String actionMessage) {
+        System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService add-line refused: '
+            + (String.isBlank(actionMessage) ? '(no message)' : actionMessage));
+        return ADD_REFUSED_MESSAGE;
     }
 
     /**
@@ -401,21 +420,6 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return res;
     }
 
-    /** Best-effort lookup of the just-added line for variable wiring. */
-    private static String findNewQuoteLineId(Id quoteId, Id productId) {
-        if (lineLookupFailure != null) {
-            throw lineLookupFailure;
-        }
-        List<QuoteLineItem> lines = [
-            SELECT Id
-            FROM QuoteLineItem
-            WHERE QuoteId = :quoteId AND Product2Id = :productId
-            ORDER BY CreatedDate DESC, LineNumber DESC
-            LIMIT 1
-        ];
-        return lines.isEmpty() ? null : String.valueOf(lines[0].Id);
-    }
-
     private static String buildLineSummary(String productName, Decimal quantity, String sellingModelName) {
         String qty = formatQuantity(quantity);
         String summary = 'Added **' + qty + ' × ' + productName + '** to the quote';
@@ -464,6 +468,21 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         }
     }
 
+    // Reads the action's outputs without anything that can throw: the action may already have
+    // committed the line, so a cast failure here must not turn a success into a reported failure.
+    @TestVisible
+    private static ManagedResult resultFrom(Map<String, Object> outputs) {
+        if (outputs == null) {
+            // No outputs means the action did not run (measured: an invalid input returns none).
+            ManagedResult failed = new ManagedResult(false, null);
+            failed.actionFailed = true;
+            return failed;
+        }
+        Boolean innerSuccess = outputs.get('isSuccess') == true;
+        Object rawError = outputs.get('errorMessage');
+        return new ManagedResult(innerSuccess, rawError == null ? null : String.valueOf(rawError));
+    }
+
     public interface ManagedAddLineInvoker {
         ManagedResult addLine(
             Id quoteId, Id productId, Id sellingModelId,
@@ -503,10 +522,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
                 failed.actionFailed = true;
                 return failed;
             }
-            Map<String, Object> outputs = actionResults[0].getOutputParameters();
-            Boolean innerSuccess = outputs.get('isSuccess') == true;
-            String innerError = (String) outputs.get('errorMessage');
-            return new ManagedResult(innerSuccess, innerError);
+            return resultFrom(actionResults[0].getOutputParameters());
         }
 
         private String summarizeErrors(List<Invocable.Action.Error> errors) {
@@ -521,9 +537,28 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         }
     }
 
-    // Test hook: when set, the new-line lookup throws it, to show a committed add stays a success.
+    // ---- New-line lookup seam (injectable for tests) ----
+
+    public interface NewLineLookup {
+        String findNewLineId(Id quoteId, Id productId);
+    }
+
+    /** Best-effort lookup of the just-added line for variable wiring. */
+    public class DefaultNewLineLookup implements NewLineLookup {
+        public String findNewLineId(Id quoteId, Id productId) {
+            List<QuoteLineItem> lines = [
+                SELECT Id
+                FROM QuoteLineItem
+                WHERE QuoteId = :quoteId AND Product2Id = :productId
+                ORDER BY CreatedDate DESC, LineNumber DESC
+                LIMIT 1
+            ];
+            return lines.isEmpty() ? null : String.valueOf(lines[0].Id);
+        }
+    }
+
     @TestVisible
-    private static Exception lineLookupFailure;
+    private static NewLineLookup lineLookup = new DefaultNewLineLookup();
 
     @TestVisible
     private static ManagedAddLineInvoker invoker = new DefaultManagedAddLineInvoker();
