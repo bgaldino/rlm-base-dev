@@ -41,33 +41,32 @@ global class RLM_CalculateTaxService {
     @TestVisible private static final String INVALID_DATE_PREFIX = 'The tax engine response has an invalid date: ';
 
     // Names the first date the response carries that Date.valueOf cannot read, or null when all parse.
-    // Date.valueOf throws TypeException for text that is not a date.
+    // Date.valueOf throws TypeException for text that is not a date; any other exception it raises is
+    // treated the same way, so no date text can throw out of getTax.
     @TestVisible
     private static String invalidResponseDate(RLM_JsonSuccessParser parsed) {
-        try {
-            Date.valueOf(parsed.taxDate);
-        } catch (TypeException e) {
-            return 'taxDate';
-        }
-        try {
-            Date.valueOf(parsed.transactionDate);
-        } catch (TypeException e) {
-            return 'date';
-        }
+        if (!isDate(parsed.taxDate)) { return 'taxDate'; }
+        if (!isDate(parsed.transactionDate)) { return 'date'; }
         if (parsed.lines != null) {
             for (RLM_JsonSuccessParser.Lines line : parsed.lines) {
-                try {
-                    Date.valueOf(line.taxDate);
-                } catch (TypeException e) {
-                    return 'line taxDate';
-                }
+                if (!isDate(line.taxDate)) { return 'line taxDate'; }
             }
         }
         return null;
     }
 
+    private static Boolean isDate(String value) {
+        try {
+            Date.valueOf(value);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @TestVisible private static final String UNREADABLE_RESPONSE_MESSAGE = 'The tax engine response could not be read.';
     @TestVisible private static final String ERROR_WITHOUT_MESSAGE = 'The tax engine returned an error without a message.';
+    @TestVisible private static final String HTTP_ERROR_PREFIX = 'The tax engine returned HTTP status ';
 
     // The body as untyped JSON, or null when it is not valid JSON.
     @TestVisible
@@ -137,16 +136,25 @@ global class RLM_CalculateTaxService {
                 //system.debug('response'+responseString);
                 system.debug('Heap size used ' +Limits.getHeapSize());
                 
-                // The code expects an engine error to carry a top-level "error" key (the Avalara error
-                // result). That shape is an assumption, not measured against a live engine. The HTTP status
-                // is not consulted, so a non-2xx JSON body without an "error" key is treated as a success
-                // body: usually it lacks the totals and returns the 502 incomplete response; one that
-                // carries the totals and dates maps as a success; a field of the wrong type (for example
-                // "totalAmount":"abc") makes RLM_JsonSuccessParser.parse throw a JSONException, which getTax
-                // rethrows. A body that is not JSON returns the 502 unreadable response.
+                // The HTTP status is checked first: a response outside 2xx is an error whose code is that
+                // status, never a success body. Its message is the engine's own error message when the
+                // body carries a top-level "error" key (the Avalara error result), else a fixed text
+                // naming the status. The "error" shape is an assumption, not measured against a live
+                // engine.
+                Integer statusCode = sendHttpRequest.getResponse().getStatusCode();
+                Object parsedBody = parseBodyOrNull(responseString);
+                if(statusCode < 200 || statusCode > 299) {
+                    Object statusError = parsedBody instanceof Map<String, Object>
+                        ? ((Map<String, Object>) parsedBody).get('error') : null;
+                    String statusMessage = statusError == null
+                        ? HTTP_ERROR_PREFIX + statusCode + '.'
+                        : errorMessageFrom(statusError, responseString);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, String.valueOf(statusCode), statusMessage);
+                }
+                // A 2xx body that is not a JSON object, or whose fields do not fit the success parser
+                // (for example "totalAmount":"abc"), returns the 502 unreadable response.
                 // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
                 // successful body can carry the word in a tax name or a reason.
-                Object parsedBody = parseBodyOrNull(responseString);
                 if(!(parsedBody instanceof Map<String, Object>)) {
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
                 }
@@ -154,7 +162,12 @@ global class RLM_CalculateTaxService {
                 if(errorValue == null)
                 {
                     commercetax.CalculateTaxResponse response = new commercetax.CalculateTaxResponse();
-                    RLM_JsonSuccessParser jsonSuccessParserClass = RLM_JsonSuccessParser.parse(responseString);
+                    RLM_JsonSuccessParser jsonSuccessParserClass;
+                    try {
+                        jsonSuccessParserClass = RLM_JsonSuccessParser.parse(responseString);
+                    } catch (JSONException e) {
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
+                    }
                     String missing = missingResponseValue(jsonSuccessParserClass);
                     if(missing != null) {
                         return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INCOMPLETE_RESPONSE_PREFIX + missing + ' is missing.');
@@ -166,6 +179,9 @@ global class RLM_CalculateTaxService {
                     response.setTaxTransactionType(request.taxTransactionType);
                     response.setDocumentCode(jsonSuccessParserClass.code);
                     response.setReferenceDocumentCode(jsonSuccessParserClass.referenceCode);
+                    // Only Temporary and Committed are mapped. Any other engine status (AvaTax also
+                    // documents Saved, Posted, Adjusted and Cancelled, among others) leaves the response
+                    // status unset rather than guessing a platform status for it.
                     if(jsonSuccessParserClass.status == 'Temporary')  {
                         response.setStatus(commercetax.TaxTransactionStatus.Uncommitted);
                     }

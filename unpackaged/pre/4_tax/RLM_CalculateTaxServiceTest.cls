@@ -4,8 +4,10 @@
  * (RLM_TaxTestFactory): the request side is asserted through the recorded callout, the response side
  * through the response type and its String form. The two no-lines tests set a mock but make no callout
  * (they assert none was recorded), and bodyOrNull is unit-tested directly, without a mock. A mock body
- * stands in for each engine response, a CalloutException-throwing mock for the failed callout (503), and bodies that lack a value, are not JSON or carry an "error" key reach the
- * incomplete (502), unreadable (502) and engine-error (501) branches.
+ * stands in for each engine response, a CalloutException-throwing mock for the failed callout (503), a
+ * status outside 2xx for the error carrying that status, and 2xx bodies that lack a value, are not JSON
+ * or do not fit the parser, or carry an "error" key reach the incomplete (502), unreadable (502) and
+ * engine-error (501) branches.
  * Setters in getTax that no assertion covers (every other setter call is asserted): header
  * referenceDocumentCode, header exemptAmount, effectiveDate and transactionDate; imposition subType and
  * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
@@ -13,7 +15,8 @@
  * from isItemTaxable), exemptAmount, productCode and quantity. The detail-level exemptAmount is covered by
  * getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped (the canned payload's are all 0). Both status
  * branches are covered: the canned payload's Temporary maps to Uncommitted, and
- * getTax_committedStatus_mapsToCommitted supplies a body with status Committed.
+ * getTax_committedStatus_mapsToCommitted supplies a body with status Committed; an unmapped status
+ * leaves it unset (getTax_unmappedEngineStatus_leavesTheStatusUnset).
  */
 @IsTest
 private with sharing class RLM_CalculateTaxServiceTest {
@@ -402,6 +405,74 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A Committed body is a success response.');
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Committed', 'An engine status of Committed maps to Committed.');
+    }
+
+    private static commercetax.TaxEngineResponse getTaxAnswering(Integer statusCode, String body) {
+        commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
+            commercetax.CalculateTaxType.Estimated, 'DOC-STATUS', RLM_TaxTestFactory.lines(232));
+        request.taxTransactionType = commercetax.TaxTransactionType.Debit;
+        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(statusCode, body));
+        return RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+    }
+
+    // A status outside 2xx is an error carrying that status, whatever the body holds: a body that
+    // would map as a success, one with no totals, or one that is not JSON. An engine error body keeps
+    // its own message.
+    @IsTest
+    static void getTax_non2xxStatus_returnsAnErrorCarryingTheStatus() {
+        String successBody = '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,'
+            + '"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}';
+        Map<String, String> expectedByBody = new Map<String, String>{
+            successBody => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
+            '{"message":"Internal error"}' => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
+            '<html>Server error</html>' => RLM_CalculateTaxService.HTTP_ERROR_PREFIX + '500.',
+            '{"error":{"code":"E","message":"Engine down.","details":[]}}' => 'Engine down.'
+        };
+        for (String body : expectedByBody.keySet()) {
+            commercetax.TaxEngineResponse response = getTaxAnswering(500, body);
+
+            Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, body + ': an error response.');
+            RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '500', body + ': the code is the HTTP status.');
+            RLM_TaxTestFactory.assertResponseField(response, 'errorMessage', expectedByBody.get(body), body + ': the message.');
+        }
+        commercetax.TaxEngineResponse unauthorized = getTaxAnswering(401, '{"error":"Bad credentials"}');
+        RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorCode', '401', 'A 401 keeps its status.');
+        RLM_TaxTestFactory.assertResponseField(unauthorized, 'errorMessage', 'Bad credentials', 'A 401 keeps the engine message.');
+    }
+
+    // A 2xx JSON body whose field does not fit the success parser used to throw a JSONException out
+    // of getTax; it is the 502 unreadable response.
+    @IsTest
+    static void getTax_successBodyWithAFieldOfTheWrongType_returnsAnUnreadableResponseError() {
+        commercetax.TaxEngineResponse response = getTaxAnswering(200, '{"code":"X","status":"Temporary",'
+            + '"totalAmount":"abc","totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}');
+
+        Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, 'An unparseable body is an error response.');
+        RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', 'The error code is 502.');
+        RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
+            RLM_CalculateTaxService.UNREADABLE_RESPONSE_MESSAGE, 'The unreadable message.');
+    }
+
+    // Only Temporary and Committed are mapped; any other engine status leaves the response status unset.
+    @IsTest
+    static void getTax_unmappedEngineStatus_leavesTheStatusUnset() {
+        commercetax.TaxEngineResponse response = getTaxAnswering(200, '{"code":"X","status":"Saved",'
+            + '"totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}');
+
+        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'The body still maps.');
+        RLM_TaxTestFactory.assertResponseField(response, 'status', '<null>', 'An unmapped engine status sets no status.');
+    }
+
+    // Any date text Date.valueOf rejects is named, whatever exception it raises, and never throws.
+    @IsTest
+    static void invalidResponseDate_namesAnyUnreadableDateWithoutThrowing() {
+        for (String text : new List<String>{ 'not a date', '2020-13-45', '2020-07' }) {
+            RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
+                '{"taxDate":' + JSON.serialize(text) + ',"date":"2020-07-15"}');
+            Assert.areEqual('taxDate', RLM_CalculateTaxService.invalidResponseDate(parsed), text + ': named as invalid.');
+        }
+        RLM_JsonSuccessParser valid = RLM_JsonSuccessParser.parse('{"taxDate":"2020-07-15","date":"2020-07-15"}');
+        Assert.isNull(RLM_CalculateTaxService.invalidResponseDate(valid), 'Valid dates are not named.');
     }
 
     @IsTest
