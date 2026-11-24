@@ -217,7 +217,7 @@ def flatten_toc(
             if not nodes:
                 raise OptionsError(f"section {needle!r} not found in the guide TOC")
             # A page listed twice is one page (its first listing wins); only distinct pages are ambiguous.
-            distinct, seen_slugs = [], set()
+            listings, distinct, seen_slugs = nodes, [], set()
             for n_ in nodes:
                 sl = _node_ident(n_, guide_path)[0]
                 if sl and sl in seen_slugs:
@@ -230,7 +230,9 @@ def flatten_toc(
                     f"section {needle!r} names {len(nodes)} different TOC nodes; name one by its page id"
                 )
             node = nodes[0]
-            walk([node], node.get("label") or needle, None, _ancestor_entries(toc, node, guide_path))
+            # Walk every listing of the page: a later listing may carry children the first lacks.
+            for n_ in listings:
+                walk([n_], node.get("label") or needle, None, _ancestor_entries(toc, n_, guide_path))
     else:
         walk(toc, None, None)
     return pages, skipped
@@ -844,7 +846,8 @@ class SiteGuideSnapshot:
                     label, _, slug_key = entry.partition("\t")
                     if _entry_matches(label, slug_key, f):
                         hit.add(p["page_id"])
-                        nodes.add(tuple(path[: i + 1]))  # the matched node's identity
+                        # the matched node's identity: its page (a page listed twice is one node), else its path
+                        nodes.add(slug_key or tuple(path[: i + 1]))
                         break
             if not hit:
                 raise OptionsError(

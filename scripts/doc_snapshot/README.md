@@ -248,7 +248,8 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   recorded by discover, and refuses a section it cannot find. In every mode a label that
   names two TOC nodes is refused (name one by its page id). A manifest from before paths
   were recorded needs one discover. A page listed twice in the TOC keeps its
-  first path.
+  first path, and its subtree is the union of its listings. A filter is a label or a
+  bare page id, not a URL or path.
 - **Legacy ids.** The manifest's `legacy_id_map` maps old atlas page ids to
   slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
   neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.

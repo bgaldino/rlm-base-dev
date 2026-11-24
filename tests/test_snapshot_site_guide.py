@@ -326,8 +326,14 @@ def main():
     check("a page listed twice is selectable by its page id (first listing wins)",
           [p["page_id"] for p in sg.flatten_toc(twice, G, ["x"])[0]] == ["x"]
           and sg.flatten_toc(twice, G, ["x"])[0][0]["ancestors"][0].startswith("a\t"))
+    twice2 = [{"label": "A", "name": G + "a.html", "children": [{"label": "X", "name": G + "x.html", "children": []}]},
+              {"label": "B", "name": G + "b.html", "children": [{"label": "X", "name": G + "x.html",
+               "children": [{"label": "Y", "name": G + "y.html", "children": []}]}]}]
+    check("a page listed twice: discover and capture both select its later listing's children",
+          sorted(p["page_id"] for p in sg.flatten_toc(twice2, G, ["x"])[0]) == ["x", "y"]
+          and sg.SiteGuideSnapshot._stored_section_ids(sg.flatten_toc(twice2, G, None)[0], ["x"]) == {"x", "y"})
     check("a label with a slash never matches an unrelated page id",
-          not sg._entry_matches("Pricing/Billing", "billing", "Pricing/Billing".replace("Pricing", "Other"))
+          not sg._entry_matches("Pricing/Billing", "billing", "Other/Billing")
           and sg._entry_matches("pricing/billing", "", "Pricing/Billing"))
     href = [{"label": "H", "link": {"href": G + "h.html"}, "children": []}]
     check("an href-only node is found by id the same way the walk and stored paths see it",
