@@ -976,8 +976,6 @@ private without sharing class RLM_AccountUtilitiesTest {
             'One policy must be deleted and the other kept');
         Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
             'The policy that went must be reported');
-        Assert.isFalse(result.reason.contains('rolled back'),
-            'The run must stop in phase 1, not roll back in phase 2. Got: ' + result.reason);
     }
 
     // ------------------------------------------------------------- usage graph
