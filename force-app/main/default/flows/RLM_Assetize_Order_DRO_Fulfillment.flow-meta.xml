@@ -29,6 +29,7 @@
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -50,6 +51,7 @@
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -71,6 +73,7 @@
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -95,6 +98,7 @@
             <targetReference>Check_Source_Data_Type</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
@@ -207,6 +211,33 @@
         </assignmentItems>
     </assignments>
     <assignments>
+        <name>Fail_Source_Not_Found</name>
+        <label>Fail Source Not Found</label>
+        <locationX>1326</locationX>
+        <locationY>566</locationY>
+        <assignmentItems>
+            <assignToReference>isSuccess</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>fulfillmentStepErrorCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>RLM_ASSETIZE_SOURCE_NOT_FOUND</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>fulfillmentStepErrorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>SourceNotFoundMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
         <name>Fail_Unresolved_Source_Type</name>
         <label>Fail Unresolved Source Type</label>
         <locationX>1326</locationX>
@@ -270,6 +301,135 @@
             <targetReference>Assignment_4</targetReference>
         </connector>
     </collectionProcessors>
+    <decisions>
+        <name>Check_FOP_Source_Found</name>
+        <label>Check FOP Source Found</label>
+        <locationX>1590</locationX>
+        <locationY>620</locationY>
+        <defaultConnector>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_FOP_Source_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_FOP_Source.SourceLineItemId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Order_Id_from_Current_FOP</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Fulfillment_Line_Found</name>
+        <label>Check Fulfillment Line Found</label>
+        <locationX>754</locationX>
+        <locationY>400</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_Fulfillment_Line_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Fulfillment_Order_Item</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Source_Relationship</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Fulfillment_Lines_Found</name>
+        <label>Check Fulfillment Lines Found</label>
+        <locationX>1502</locationX>
+        <locationY>400</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_Fulfillment_Lines_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Fulfillment_Order_Items</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Over_FOPs</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Order_Item_Found</name>
+        <label>Check Order Item Found</label>
+        <locationX>50</locationX>
+        <locationY>400</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_Order_Item_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Order_Product</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Has_Parent_Id</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Order_Items_Found</name>
+        <label>Check Order Items Found</label>
+        <locationX>754</locationX>
+        <locationY>720</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_Order_Items_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Order_Product_and_Parent_Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Collection_Filter_1</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Check_Source_Data_Type</name>
         <label>Check Source Data Type</label>
@@ -338,6 +498,39 @@
                 <targetReference>Get_Fulfillment_Order_Items</targetReference>
             </connector>
             <label>Is Fulfillment Order Items (Collection)</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Source_Rel_Found</name>
+        <label>Check Source Relationship Found</label>
+        <locationX>754</locationX>
+        <locationY>500</locationY>
+        <defaultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>Fail_Source_Not_Found</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Found</defaultConnectorLabel>
+        <rules>
+            <name>Found_Source_Rel_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Source_Relationship</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Source_Relationship.SourceLineItemId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Order_Item_Id_from_FOP</targetReference>
+            </connector>
+            <label>Found</label>
         </rules>
     </decisions>
     <decisions>
@@ -464,11 +657,12 @@
         <label>Get FOP Source</label>
         <locationX>1590</locationX>
         <locationY>566</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Add_Order_Id_from_Current_FOP</targetReference>
+            <targetReference>Check_FOP_Source_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -488,11 +682,12 @@
         <label>Get Fulfillment Order Item</label>
         <locationX>754</locationX>
         <locationY>350</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Get_Source_Relationship</targetReference>
+            <targetReference>Check_Fulfillment_Line_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -512,11 +707,12 @@
         <label>Get Fulfillment Order Items</label>
         <locationX>1502</locationX>
         <locationY>350</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Loop_Over_FOPs</targetReference>
+            <targetReference>Check_Fulfillment_Lines_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -536,11 +732,12 @@
         <label>Get Order Product</label>
         <locationX>50</locationX>
         <locationY>350</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Has_Parent_Id</targetReference>
+            <targetReference>Check_Order_Item_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -560,11 +757,12 @@
         <label>Get Order Product and Parent Id</label>
         <locationX>754</locationX>
         <locationY>674</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Collection_Filter_1</targetReference>
+            <targetReference>Check_Order_Items_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -584,11 +782,12 @@
         <label>Get Source Relationship</label>
         <locationX>754</locationX>
         <locationY>458</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Add_Order_Item_Id_from_FOP</targetReference>
+            <targetReference>Check_Source_Rel_Found</targetReference>
         </connector>
         <faultConnector>
+            <isGoTo>true</isGoTo>
             <targetReference>Fail_Action_Fault</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
@@ -611,6 +810,11 @@
         </connector>
     </start>
     <status>Draft</status>
+    <textTemplates>
+        <name>SourceNotFoundMessage</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>No source order line was found for the fulfillment or order line being assetized (a line, its source relationship, or its order item is missing or not visible to this flow), so no assets were created.</text>
+    </textTemplates>
     <textTemplates>
         <name>UnresolvedSourceTypeMessage</name>
         <isViewedAsPlainText>true</isViewedAsPlainText>

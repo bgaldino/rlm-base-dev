@@ -365,17 +365,25 @@ these conditions; rerun the amendment and cancel checks there.
     [Help: `ind.dro_fallout_design_and_management`]. How DRO treats an autolaunched flow
     that ends normally having done nothing is not documented in the snapshot: it reads as a
     success [inferred; live check pending]. A decision with no connector on its Default
-    Outcome therefore ends the interview normally, with no error.
+    Outcome ends the interview normally, with no error [Flow behavior, not run here].
+    A Get Records lookup that finds nothing is not a fault either, so a fault connector alone
+    cannot report it: the flow now tests each lookup result explicitly.
   - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through three output variables,
     `isSuccess` (defaults true), `fulfillmentStepErrorCode` and `fulfillmentStepErrorMessage`.
-    The message carries the fault text (`$Flow.FaultMessage`) on the fault path. On the
-    unresolved-type path it is a text template that names the value
-    `RLM_DetermineDROSourceType` returned (empty when it returned nothing) and lists the four
-    expected values. Whether DRO reads or surfaces the variable is not measured. Two failure
-    assignments set `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a source
-    type that matches none of the four rules) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a
-    fault connector from each of the 5 action calls and 6 record lookups sets
-    `RLM_ASSETIZE_FAULT`. The four recognized source types are unchanged.
+    Whether DRO reads or surfaces them is not measured. Three failure assignments set
+    `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a source type that
+    matches none of the four rules) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a "not found"
+    outcome after each of the six Get Records lookups (`Get_Order_Product`,
+    `Get_Fulfillment_Order_Item`, `Get_Fulfillment_Order_Items`, `Get_Source_Relationship`,
+    `Get_FOP_Source`, `Get_Order_Product_and_Parent_Id`) sets `RLM_ASSETIZE_SOURCE_NOT_FOUND`;
+    a fault connector from each of the 5 action calls and 6 lookups sets `RLM_ASSETIZE_FAULT`
+    with the fault text (`$Flow.FaultMessage`). The lookups set
+    `assignNullValuesIfNoRecordsFound` true, so a miss clears the output variable instead of
+    leaving the previous loop iteration's record in it; a source relationship whose
+    `SourceLineItemId` is null counts as not found. The four recognized source types are
+    unchanged. Fault paths catch element errors, not governor-limit errors (`Get_FOP_Source`
+    runs one query per loop iteration), which end the interview and do not reach the fault
+    connector [Flow behavior; not run here].
   - What `RLM_DetermineDROSourceType` returns, per its Apex and `RLM_DetermineDROSourceTypeTest`:
     one output per input, in input order, so a batch of several interviews gets one result
     each. A non-blank `recordId` decides, even a malformed one; otherwise the first `recordIds`
@@ -386,18 +394,20 @@ these conditions; rerun the amendment and cancel checks there.
   - In the flow, a blank output or any other object name (an Order id gives `Order`, or
     `Orders` from `recordIds`) matches none of `Check_Source_Data_Type`'s four rules, so it takes
     the Default Outcome and `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE` [inferred from the flow and
-    the class; not run as a flow]. An exception the class does not catch would reach the flow as
+    the class; not run as a flow]. An exception the class does not catch (other than a governor-limit error) would reach the flow as
     a fault on `Determine_DRO_Source_Type` and take `RLM_ASSETIZE_FAULT` [inferred; not run].
   - Two connector-less ends read as intended skips, not failures [inferred from the flow's
     structure]:
     `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
-    parent) and the `exists` decision's Default Outcome (the source line is not in
-    `Not_Components`). The step's status, error text and retries for these paths are not yet
+    parent) and the `exists` decision's Default Outcome (the source line was found but is not
+    in `Not_Components`, for example a component line). A line that is missing altogether no
+    longer reaches `exists`; it fails with `RLM_ASSETIZE_SOURCE_NOT_FOUND`. The step's status, error text and retries for these paths are not yet
     measured [inferred; live check pending].
   - Not yet checked on a live org:
     - Can an AutoTask step launch a flow whose status is Draft, and what does DRO do? The
-      flow ships `Draft` in source and nothing in `cumulusci.yml`, `tasks/` or `scripts/`
-      activates it. In this repo only the `mfg-dro` `Convert Order to Asset` step binds it,
+      flow ships `Draft` in source and no build step activates it (a generic `manage_flows`
+      activation could, but none is configured for it). So none of these paths has any
+      runtime effect until the flow is activated and a failing step is run live. In this repo only the `mfg-dro` `Convert Order to Asset` step binds it,
       and `mfg-dro` is not wired into `cumulusci.yml`. The `qb-dro` steps all have a blank
       flow name, so no `qb-dro` step binds it; `qb-dro` jeopardy rule `000000002`
       (`FulfillmentStepJeopardyRule.csv`) names it. What that jeopardy reference does on a
@@ -406,10 +416,13 @@ these conditions; rerun the amendment and cancel checks there.
       read Help's Auto Task article `ind.dro_auto_task` live for the message output
       variable name it expects, and check whether DRO reads or shows
       `fulfillmentStepErrorMessage` (unverified name).
-    - `qb-dro` `FulfillmentFalloutRule` `000000002` is an AutoTask catch-all (blank flow and
-      error code, 3 immediate retries). A permanent failure such as these codes is
-      therefore retried by that rule before it goes Fatally Failed [from the dataset; the
-      match not yet measured]. A no-retry rule for the two codes is not added until the
+    - Whether any fallout rule matches these codes. No `qb-dro` step binds the flow, so
+      `qb-dro` rule `000000002` (AutoTask, any flow, any code, 3 immediate retries) does not
+      apply to it in this repo. `mfg-dro` binds it (`FulfillmentStepDefinition.csv` row 9) but
+      its only fallout rule is for `Callout` steps (`FulfillmentFalloutRule.csv`), so the
+      step has no matching rule. Help says no matching rule means Fatally Failed without
+      retry, and a fresh build creates no fallout decision tables (above), so no retry is
+      expected [inferred; not measured]. A no-retry rule for the codes is not added until
       rule matching is measured.
   - A jeopardy rule with its own flow definition matched a manual task through the step's
     `FlowDefinitionName`. The step showed the rule's threshold and a planned completion of

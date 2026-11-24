@@ -83,8 +83,8 @@ does not establish that a full SFDMU reload clears old values on existing orgs.
 Release 264 live verification confirmed decomposition and plan composition
 after these repairs, including the restored provisioning step and dependencies.
 End-to-end fulfillment remains unverified: the tenant-provisioning callout
-requires the `RLM` named credential, which was absent in the verification
-environment. Manual steps also require operator completion.
+requires the `RLM` named credential, which this repo no longer ships (see above),
+so the step has no target. Manual steps also require operator completion.
 
 The build currently creates `RLM_SalesTransactionContext` but does not select it
 in DRO Context Definition Settings. Automating and verifying that assignment
