@@ -75,7 +75,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       String query = 'SELECT Id FROM ' + objectAPIName + ' WHERE ' + whereCondition;
       return Database.query(query, AccessLevel.USER_MODE);
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(LINK_TARGET_UNREADABLE, 'getObjectIdFromQuery on ' + objectAPIName, e);
     }
   }
 
@@ -118,8 +118,10 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         noRedirect = noRedirect + '&isContactEntityOverride=1';
       }
       return url + noRedirect;
+    } catch (AuraHandledException e) {
+      throw e; // a missing or blank Setup page mapping already carries its own message
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(SETUP_LINK_FAILED, 'getSetupPageLink for ' + objectAPIName, e);
     }
   }
 
@@ -127,19 +129,109 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
   public static String getSiteUrl(String networkId) {
     try {
       Id nId = Id.valueOf(networkId);
-      // The login URL is "<scheme>://<host>[/<sitePrefix>]/s/login". The site base
-      // URL is everything before "/s/", which preserves a path-based site prefix
-      // (e.g. "/customers") that getProtocol()+getHost() alone would drop. Fall back
-      // to scheme://host when there is no "/s/" segment (path-less site).
       String loginUrl = Network.getLoginUrl(nId);
-      Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
-      if (sIndex > 0) {
-        return loginUrl.substring(0, sIndex);
-      }
-      Url parsed = new Url(loginUrl);
-      return parsed.getProtocol() + '://' + parsed.getHost();
+      // Only a login URL with no "/s/" segment needs the site's path prefix looked up.
+      String pathPrefix = (loginUrl != null && !loginUrl.contains('/s/'))
+        ? lookupPathPrefix(nId, loginUrl)
+        : null;
+      return siteBaseUrl(loginUrl, pathPrefix);
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(SITE_URL_FAILED, 'getSiteUrl for ' + networkId, e);
+    }
+  }
+
+  // Shapes the site base URL from the login URL and the site's path prefix. Pure, so it is
+  // unit-tested over literal URLs.
+  //  - The login URL of an Experience Cloud site is "<scheme>://<host>[/<sitePrefix>]/s/login":
+  //    the base is everything before "/s/", which keeps a path-based prefix (e.g. "/customers").
+  //  - A site whose login URL has no "/s/" (for example a Visualforce site) carries no prefix in
+  //    that URL, so the base is scheme://host plus "/" + the site's path prefix on that domain.
+  //  - For a site with a Network UrlPathPrefix, the prefix is the one the site has on the login URL's
+  //    own domain (DomainSite.PathPrefix), so a Visualforce-based site that a custom domain serves at
+  //    the root keeps the host-only URL. Only when no such domain mapping is readable is the
+  //    Network's UrlPathPrefix used, which is the site's path on the default domains. A site with no
+  //    Network prefix keeps the host-only URL.
+  //  - A blank prefix keeps scheme://host.
+  @TestVisible
+  private static String siteBaseUrl(String loginUrl, String urlPathPrefix) {
+    Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
+    if (sIndex > 0) {
+      return loginUrl.substring(0, sIndex);
+    }
+    Url parsed = new Url(loginUrl);
+    String base = parsed.getProtocol() + '://' + parsed.getHost();
+    // Strip every leading and trailing slash (String.removeStart/removeEnd would strip only one).
+    String prefix = urlPathPrefix == null ? '' : urlPathPrefix.trim().replaceAll('^/+|/+$', '');
+    return String.isBlank(prefix) ? base : base + '/' + prefix;
+  }
+
+  // The path prefix the site has on the login URL's domain: the domain mapping when one is readable,
+  // else the Network's own prefix. A custom domain that serves the site at its root maps it with a
+  // blank prefix, which must win over the Network's prefix.
+  private static String lookupPathPrefix(Id networkId, String loginUrl) {
+    String networkPrefix = lookupNetworkPathPrefix(networkId);
+    return resolvePathPrefix(
+      lookupDomainPathPrefixes(new Url(loginUrl).getHost(), networkPrefix),
+      networkPrefix
+    );
+  }
+
+  // Pure, so it is unit-tested: a readable domain mapping decides, even when its prefix is blank.
+  @TestVisible
+  private static String resolvePathPrefix(List<String> domainPrefixes, String networkPrefix) {
+    return domainPrefixes == null || domainPrefixes.isEmpty() ? networkPrefix : domainPrefixes[0];
+  }
+
+  // DomainSite maps a site to a domain with its own PathPrefix. Queried dynamically like Network,
+  // in USER_MODE: a user who cannot read it gets no mapping and falls back to the Network prefix.
+  // Measured on a 264 org: a default-domain row carries "/<UrlPathPrefix>" (for example
+  // "/sfpwebhookvforcesite"); the root-mapping custom-domain case is not reproducible on a scratch
+  // org, so the blank-prefix branch is covered by resolvePathPrefix's unit test only.
+  private static List<String> lookupDomainPathPrefixes(String host, String networkPrefix) {
+    List<String> prefixes = new List<String>();
+    if (String.isBlank(networkPrefix)) {
+      return prefixes;
+    }
+    try {
+      for (
+        SObject row : Database.query(
+          'SELECT PathPrefix FROM DomainSite WHERE Domain.Domain = :host AND Site.UrlPathPrefix = :networkPrefix LIMIT 1',
+          AccessLevel.USER_MODE
+        )
+      ) {
+        String prefix = (String) row.get('PathPrefix');
+        prefixes.add(prefix == null ? '' : prefix);
+      }
+    } catch (QueryException e) {
+      System.debug(
+        LoggingLevel.WARN,
+        'RLM_Learning_DynamicLinkHelper: could not read DomainSite.PathPrefix, using the Network prefix: ' +
+        e.getMessage()
+      );
+    }
+    return prefixes;
+  }
+
+  // Network exists only with Digital Experiences, so it is queried dynamically (a static
+  // reference would not compile without it). USER_MODE: a user who cannot read Network
+  // gets no prefix, the host-only URL the method returned before, and a WARN debug line says so.
+  // Measured on a 264 org: Network.UrlPathPrefix is not permissionable (no field-level security)
+  // and no permission set carries an object permission for Network, so no grant is needed or
+  // possible; whether every persona can read it is inferred and checked live.
+  private static String lookupNetworkPathPrefix(Id networkId) {
+    try {
+      List<SObject> rows = Database.query(
+        'SELECT UrlPathPrefix FROM Network WHERE Id = :networkId LIMIT 1',
+        AccessLevel.USER_MODE
+      );
+      return rows.isEmpty() ? null : (String) rows[0].get('UrlPathPrefix');
+    } catch (QueryException e) {
+      System.debug(
+        LoggingLevel.WARN,
+        'RLM_Learning_DynamicLinkHelper: could not read Network.UrlPathPrefix, using the host-only site URL: ' +
+        e.getMessage()
+      );
+      return null;
     }
   }
 
@@ -190,8 +282,30 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         }
       }
       return Database.query(query, AccessLevel.USER_MODE);
+    } catch (AuraHandledException e) {
+      throw e; // the unsupported-type message names only the configured link type
     } catch (Exception e) {
-      throw new AuraHandledException(e.getMessage());
+      throw userFailure(LINK_TARGET_UNREADABLE, 'getRecordIdFromDynamicLinkType ' + dynamicLinkType, e);
     }
+  }
+
+  @TestVisible
+  private static final String LINK_TARGET_UNREADABLE = 'The record this link points to could not be read.';
+  @TestVisible
+  private static final String SETUP_LINK_FAILED = 'The Setup page link could not be built.';
+  @TestVisible
+  private static final String SITE_URL_FAILED = 'The site URL could not be resolved.';
+
+  // A failed query or id check carries query, object and field text, so the user sees a fixed
+  // sentence; the detail goes to the debug log and stays on the cause.
+  private static AuraHandledException userFailure(String message, String context, Exception cause) {
+    System.debug(
+      LoggingLevel.ERROR,
+      'RLM_Learning_DynamicLinkHelper ' + context + ': ' + cause.getTypeName() + ': ' + cause.getMessage()
+    );
+    AuraHandledException e = new AuraHandledException(message);
+    e.setMessage(message);
+    e.initCause(cause);
+    return e;
   }
 }
