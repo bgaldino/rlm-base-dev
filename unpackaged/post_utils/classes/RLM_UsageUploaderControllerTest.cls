@@ -545,21 +545,29 @@ private with sharing class RLM_UsageUploaderControllerTest {
     static void aCallerWhoCanReadTheAssetButNotTheResourcesGetsFixedSentences() {
         Asset ast = getTestAsset();
         UsageResource ur = getTestUsageResource();
-        User rep = buildMinimalAccessUser();
-        PermissionSet ps = new PermissionSet(Name = 'Usage_Asset_Reader', Label = 'Usage Asset Reader');
-        insert ps;
-        insert new List<ObjectPermissions>{
-            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
-            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Asset', PermissionsRead = true),
-            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Product2', PermissionsRead = true),
-            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'TransactionJournal',
-                PermissionsRead = true, PermissionsCreate = true)
-        };
-        insert new List<FieldPermissions>{
-            new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.AccountId', PermissionsRead = true),
-            new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.Product2Id', PermissionsRead = true)
-        };
-        insert new PermissionSetAssignment(AssigneeId = rep.Id, PermissionSetId = ps.Id);
+        // The user, the permission set and its assignment are setup objects and the account update
+        // below is not. All of the setup DML runs in its own runAs context, so the test does not
+        // rely on which setup DML the platform lets share a context with the update.
+        User rep;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            rep = buildMinimalAccessUser();
+            // Create on TransactionJournal is granted without read on the usage resource or unit of
+            // measure objects; measured on a 264 org, the permission set insert accepts that.
+            PermissionSet ps = new PermissionSet(Name = 'Usage_Asset_Reader', Label = 'Usage Asset Reader');
+            insert ps;
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Asset', PermissionsRead = true),
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Product2', PermissionsRead = true),
+                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'TransactionJournal',
+                    PermissionsRead = true, PermissionsCreate = true)
+            };
+            insert new List<FieldPermissions>{
+                new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.AccountId', PermissionsRead = true),
+                new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.Product2Id', PermissionsRead = true)
+            };
+            insert new PermissionSetAssignment(AssigneeId = rep.Id, PermissionSetId = ps.Id);
+        }
         Account acc = [SELECT Id FROM Account LIMIT 1];
         acc.OwnerId = rep.Id;
         update acc;
