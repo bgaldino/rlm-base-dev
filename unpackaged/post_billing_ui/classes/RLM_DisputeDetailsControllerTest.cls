@@ -260,7 +260,7 @@ private class RLM_DisputeDetailsControllerTest {
         return (SObject) JSON.deserialize(JSON.serialize(fields), Type.forName(objectType.getDescribe().getName()));
     }
 
-    // Each row's name is keyed by its id; a row without a name keeps its id with a blank name.
+    // Each row's name is keyed by its id; a row without a name keeps its id with a null name.
     @isTest
     static void namesById_keysEachNameByItsRowId() {
         Id invoiceA = fakeId(Invoice.SObjectType, 1);
@@ -275,7 +275,7 @@ private class RLM_DisputeDetailsControllerTest {
 
         Assert.areEqual('INV-0001', names.get(String.valueOf(invoiceA)), 'The name is keyed by the 18-character id');
         Assert.isTrue(names.containsKey(String.valueOf(invoiceB)), 'A row without a name keeps its id');
-        Assert.isNull(names.get(String.valueOf(invoiceB)), 'A row without a name has a blank name');
+        Assert.isNull(names.get(String.valueOf(invoiceB)), 'A row without a name has a null name');
     }
 
     // Each line's balance is keyed by its id; a line without a balance is left out.

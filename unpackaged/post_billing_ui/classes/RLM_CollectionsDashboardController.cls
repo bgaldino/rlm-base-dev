@@ -280,8 +280,8 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) { }
     }
 
-    // Rolls the queried invoices up by account and adds the five largest balances. Takes rows so
-    // a test can pass invoices, which Apex cannot insert.
+    // Rolls the queried invoices up by account and, when the list is still empty, adds the five
+    // largest balances. Takes rows so a test can pass invoices, which Apex cannot insert.
     @TestVisible
     private static void addLastResortDelinquents(WorklistData wl, List<SObject> rows, String invAccountField, Date today) {
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();

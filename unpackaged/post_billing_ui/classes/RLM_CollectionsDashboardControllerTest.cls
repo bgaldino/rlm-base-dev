@@ -816,17 +816,22 @@ private class RLM_CollectionsDashboardControllerTest {
         Id invoiceA = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
         Id invoiceB = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
         Date today = Date.newInstance(2026, 6, 30);
+        // Invoice.BillToContactId is optional to the controller, so it is set only where it exists.
+        Boolean hasContactField = Invoice.SObjectType.getDescribe().fields.getMap().containsKey('BillToContactId');
+        Map<String, Object> fullInvoice = new Map<String, Object>{ 'Id' => invoiceA, 'InvoiceNumber' => 'INV-1',
+            'Balance' => 2500, 'DaysInvoiceOverdue' => 45, 'DueDate' => today.addDays(-10), 'BillingAccountId' => acc.Id };
+        if (hasContactField) {
+            fullInvoice.put('BillToContactId', contactId);
+        }
         List<Invoice> invoices = new List<Invoice>{
-            invoice(new Map<String, Object>{ 'Id' => invoiceA, 'InvoiceNumber' => 'INV-1', 'Balance' => 2500,
-                'DaysInvoiceOverdue' => 45, 'DueDate' => today.addDays(-10), 'BillingAccountId' => acc.Id,
-                'BillToContactId' => contactId }),
+            invoice(fullInvoice),
             invoice(new Map<String, Object>{ 'Id' => invoiceB, 'DueDate' => today.addDays(-33) })
         };
         RLM_CollectionsDashboardController.WorklistData withFields = new RLM_CollectionsDashboardController.WorklistData();
         RLM_CollectionsDashboardController.WorklistData withoutFields = new RLM_CollectionsDashboardController.WorklistData();
 
         Test.startTest();
-        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, true, true, today);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, true, hasContactField, today);
         RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, false, today);
         Test.stopTest();
 
@@ -839,7 +844,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(45, full.daysInvoiceOverdue, 'The overdue-days field wins over the due date');
         Assert.areEqual(acc.Id, full.billingAccountId, 'The billing account is shown');
         Assert.areEqual('RLM Critical Follow Up', full.billingAccountName, 'The account name is looked up');
-        Assert.areEqual(contactId, full.billToContactId, 'The bill-to contact is shown');
+        if (hasContactField) {
+            Assert.areEqual(contactId, full.billToContactId, 'The bill-to contact is shown');
+        }
 
         RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem bare = withFields.criticalFollowUpInvoices[1];
         Assert.areEqual(33, bare.daysInvoiceOverdue, 'With the field blank, days come from the due date');
