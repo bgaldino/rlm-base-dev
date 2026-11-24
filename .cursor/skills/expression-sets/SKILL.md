@@ -262,8 +262,9 @@ python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
 
 Two independent surfaces cover Expression Set CRUD — the **CCI tasks** (build
 work) and the standalone **`scripts/expression_sets/` toolkit** (inspection +
-one-off lifecycle, `sf`-CLI transport, no access token). They share no code; the
-toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
+one-off lifecycle, `sf`-CLI transport, no access token). They share only the pure
+version guards in `scripts/expression_sets/_guards.py`; the toolkit mirrors the
+tasks' live-verified rules. Full toolkit detail:
 `scripts/expression_sets/README.md`.
 
 | I need to… | Use |
@@ -277,6 +278,7 @@ toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
 | Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
 | Create/replace a whole ES from JSON | `import_expression_set` (CCI, build) **or** `python scripts/expression_sets/import_expression_set.py --target-org <sf_alias> --input-file <path>` (preview; `--confirm` to write) |
 | Apply a declarative overlay | `apply_expression_set_overlay` (CCI, build) **or** `python scripts/expression_sets/apply_expression_set_overlay.py --target-org <sf_alias> --expression-set <name> --overlay <path>` (preview; `--confirm`) |
+| Change one step's formula on one version (the executing one by default), with read-back | `python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> --expression-set <name> --step <s> \| --parent-step <p> --formula '<text>'` (preview; `--confirm`; `--show` reads only) — see [Multi-version orgs](#multi-version-orgs) |
 | Activate / deactivate a version (+ procedure-plan cascade) | `python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> --expression-set <name> --activate \| --deactivate` (preview; `--confirm`) |
 | Delete a whole ES or one version | `delete_expression_set` (CCI) **or** `python scripts/expression_sets/delete_expression_set.py --target-org <sf_alias> --expression-set <name> [--version <v>] --confirm` (destructive) |
 | Pre-flight a JSON file offline (no org) | `python scripts/ai/validate_expression_set.py <path> [--definition\|--overlay]` |
@@ -323,6 +325,37 @@ per-parent `sequenceNumber`, HTML-escaped string leaves), and the **Metadata API
 source-controlled path (nested graphs, no lifecycle, create-with-content) all live
 in **`metadata-vs-connect.md`** — read it before any Connect mutation or
 source-controlled edit.
+
+## <a name="multi-version-orgs"></a>Multi-version orgs
+
+An expression set can hold several versions, several of them **active at once**;
+the runtime executes the **highest-numbered active** one. Upgraded orgs carry
+`RLM_DefaultPricingProcedure` as such a chain (one 264 org: v1 to v4, v1, v3 and v4
+active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
+`CompoundUplift` in v4). Before any edit, list the versions:
+`SELECT ApiName, VersionNumber, IsActive FROM ExpressionSetVersion WHERE ExpressionSetId = '<9QL>'`.
+
+- **Edit the executing version.** A constant written into a lower version changed no
+  price; written into the executing one it changed every price. Use
+  `set_step_formula.py`: it targets the executing version unless
+  `--version-api-name` names another (and warns then), selects the step by `--step`
+  or by its version-stable `--parent-step`, runs the deactivate → Tooling
+  `Metadata` PATCH → reactivate lifecycle (reactivating even if the PATCH fails,
+  since a Tooling sObject update is atomic), and exits 1 when the read-back formula,
+  the version state or any referencing `ProcedurePlanDefinitionVersion.IsActive`
+  differs from what it should be.
+- **A whole-set import is refused on a version rebind.** Both `import_expression_set`
+  surfaces refuse, before any write, a multi-version set with more than one active
+  version, or a payload whose version `apiName` is not the version the import would
+  replace: the PATCH rebinds one version onto another, which the platform rejected
+  on a version-name collision after partially applying. One active version plus an
+  inactive draft, with a payload for the active version, still imports.
+- **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
+  deployed repo version is missing, sits under a different `VersionNumber` (the
+  deploy handler matches versions by number, so it changed nothing), is inactive, or
+  is not the version that executes. `-o version_check warn` logs instead, for an org
+  whose chain is intended. Toolkit detail: `scripts/expression_sets/README.md` →
+  *Multi-version expression sets*.
 
 ## Overlays & dependency capture (summary)
 

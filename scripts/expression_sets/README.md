@@ -18,13 +18,13 @@ Full guidance lives in the **expression-sets skill**:
 
 ## Independent of the CCI tasks
 
-This package imports **nothing** from `tasks/`, and nothing under `tasks/`
-imports from it. The CCI task `tasks/rlm_expression_set_connect.py` (and
-`tasks/expression_set_schema.py`) is **reference-only**: the toolkit mirrors its
-live-verified Connect/lifecycle rules but runs as its own program. The validator
-is therefore **vendored** here as `_schema.py` rather than imported (the task
-imports the canonical copy; a standalone CLI must not share an import with a CCI
-task). The two encode the same platform truths independently.
+This package imports **nothing** from `tasks/`. The CCI task
+`tasks/rlm_expression_set_connect.py` (and `tasks/expression_set_schema.py`) is
+**reference-only**: the toolkit mirrors its live-verified Connect/lifecycle rules
+but runs as its own program. The validator is therefore **vendored** here as
+`_schema.py` rather than imported. The one module the CCI task imports from here is
+`_guards.py`: stdlib-only pure functions with no CumulusCI import, so both
+importers apply one multi-version rule.
 
 **How these fit the lifecycle** (what to reach for, and when):
 
@@ -35,7 +35,7 @@ task). The two encode the same platform truths independently.
 | **Slice a step into a portable overlay** | — | `export_expression_set_overlay.py` (read-only; writes a local file only) |
 
 So: the CCI tasks + Metadata API own the build; the **read-only** CLIs are always
-safe; the **mutators** (`import` / `apply_expression_set_overlay` / `activate` / `delete`) are
+safe; the **mutators** (`import` / `apply_expression_set_overlay` / `set_step_formula` / `activate` / `delete`) are
 **preview-by-default** and require `--confirm` to write — use them for one-off
 exploration and updates on a **disposable clone**, never a shipped procedure
 (Quick Rule 8).
@@ -57,7 +57,8 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 
 | Script | Org? | Purpose |
 |--------|------|---------|
-| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). |
+| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). On a set with several versions it **refuses before any write** when more than one is active or the payload's version is not the one it would replace (see [Multi-version expression sets](#multi-version-expression-sets)). |
+| `set_step_formula.py` | **Mutates** | Set one step's formula (`formula-section-<N>-input`) on **one version** through the Tooling `Metadata` PATCH: the executing (highest-numbered active) version by default, or `--version-api-name`. Select the step by `--step`, or by `--parent-step` (the one child carrying the formula; stable when versions rename the child). Runs deactivate → PATCH → reactivate (an inactive target stays inactive), reads the formula, the version and every referencing plan back, and exits 1 on any mismatch. `--show` reads only. The tool for formula edits on a multi-version set. |
 | `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for added or updated steps, restores after — `--no-preserve-labels` to skip). |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
 | `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). Label source: `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable), or **`--from-metadata <file>`** (read the authoritative `{name: label}` map straight from a `*.expressionSetDefinition-meta.xml` — the source-controlled `force-app/…/expressionSetDefinition/` files, or a target-org retrieve). Runs the same deactivate→PATCH→reactivate lifecycle. The Connect mutators now auto-restore labels, so this is mainly for a manual fix or a bulk relabel from the repo XML. |
@@ -69,6 +70,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 |--------|---------|
 | `_client.py` | The `sf api request rest` wrapper; Connect base `connect/business-rules/expression-set/{9QL}`; SOQL with `nextRecordsUrl` paging; the injectable `Transport` seam (binds `target_org` / `api_version` / `dry_run` / `logger`, short-circuits mutating verbs under dry-run). |
 | `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / active `ExpressionSetVersion`; the "prefer active version" ordering. |
+| `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (highest-numbered active) and `import_target_refusal` (the multi-version import rule). |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` or `updateSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
@@ -80,7 +82,9 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `_tooling` (incl. the
 label-preservation trio `capture_labels` / `relabel_version` /
 `restore_labels_after_clobber`, `labels_from_metadata_xml`, and `overlay_labels`) /
-`export_expression_set_overlay` + shipped-fixture validator parity. Run:
+`export_expression_set_overlay` + shipped-fixture validator parity, `_guards`
+(the multi-version import rule over a version-chain table) and
+`set_step_formula`. Run:
 `python tests/test_expression_sets_toolkit.py`.
 
 ## Quick start — export → trace → slice → apply-to-clone
@@ -202,6 +206,29 @@ Qualification). For Constraint sets:
 - **import/apply_overlay** — NOT applicable (CML authoring uses Configurator UI + SFDMU data)
 
 See `docs/salesforce/264/dev-guide/` (cml_* articles) for CML authoring guidance.
+
+### <a name="multi-version-expression-sets"></a>Multi-version expression sets
+
+An org can hold several versions of one set, several of them active, and the
+runtime executes the **highest-numbered active** one. Salesforce ships
+`RLM_DefaultPricingProcedure` as such a chain in upgraded orgs (one 264 org had v1
+to v4, three active). Two consequences:
+
+- **A whole-set import cannot always target one version.** `import_expression_set`
+  (toolkit and CCI) rewrites the payload's version id to the version it resolves.
+  When more than one version is active, or the payload's version `apiName` is not
+  that version, the PATCH would rebind one version onto another: the platform
+  rejected that on a version-name collision after partially applying. Both
+  importers refuse it before any write. A set with one active version and an
+  inactive draft, imported with a payload for the active version, still runs.
+- **Edit the version that executes.** A change to any other version changes no
+  price. Use `set_step_formula.py` for formula edits; it defaults to the executing
+  version and reads the result back.
+
+`apply_expression_set_overlay` is not affected by the importer rule (it PATCHes the
+graph it read). After a build, `activate_and_deploy_expression_sets` reads back
+which version each repo procedure executes and fails when it is not the deployed
+one (`-o version_check warn` to continue).
 
 ### Discovery Procedure "Unused" Outputs
 
