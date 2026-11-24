@@ -24,14 +24,24 @@
  * Salesforce enforces 75% across ALL Apex in the org for a production deploy,
  * not per class, so this class's figure does not by itself block a deploy.
  * The usage-graph tests build real entitlement accounts, entitlements and
- * buckets (newUsageFixture), so the teardown loop, the phase 2 retry of buckets
- * under an entitlement account, and the asset step's entitlement cleanup all
- * run against rows that exist. What stays uncovered, and why:
- *  - The entitlement-side retry (deleteTransactionUsageEntitlement with
- *    buckets). Any bucket under another bucket must hold an entitlement, so the
- *    loop finds and drains it; an entitlement survives the loop only when a
- *    bucket below it holds another account's entitlement, which is not data
- *    worth constructing.
+ * buckets (newUsageFixture). Those three objects run against rows that exist:
+ * the teardown loop's drains of them, phase 2's bottom-up retry of buckets
+ * under an entitlement account, and the asset step's cleanup of an entitlement
+ * bound to the asset. What stays uncovered, and why:
+ *  - The loop's other drains (usage entitlement entries, billing period items,
+ *    usage and ratable summaries, transaction journals, commitment junction
+ *    rows), deleteAssetRateCardEntries, the asset step's summary deletes and
+ *    every fulfillment helper run, but only against empty sets: no fixtures.
+ *  - The entitlement-side bottom-up retry (deleteTransactionUsageEntitlement
+ *    with buckets). Any bucket under another bucket must hold an entitlement,
+ *    so the loop finds and drains it; an entitlement of the account survives
+ *    the loop only when a bucket below it holds ANOTHER account's entitlement.
+ *    In that case the retry also tries to delete that other account's
+ *    entitlement (heldTues takes no account filter; whether the platform
+ *    refuses it while its bucket still holds it is untested). That is a scope
+ *    question for the production class, not behavior to pin here.
+ *  - The asset step's entitlement-account delete: phase 2's retry has already
+ *    removed the account's entitlement accounts by the time it runs.
  *  - Running out of DML statements or queries partway through phase 2, and an
  *    unexpected exception in phase 1. The row-budget and query-reserve stops
  *    in phase 1 are covered.
@@ -836,12 +846,13 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void blankAccountIdIsReportedNotThrown() {
+    static void nullAccountIdIsReportedNotThrown() {
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(null, true, true, true));
         Test.stopTest();
 
-        Assert.areEqual(false, result.completed, 'A blank Id must not count as a completed reset');
+        Assert.areEqual(false, result.completed, 'A null Id must not count as a completed reset');
+        Assert.areEqual(false, result.cleared, 'A null Id must not count as a cleared account');
         Assert.areEqual('Not an Account Id: null', result.reason, 'The reason must name the missing Id');
     }
 
@@ -852,11 +863,12 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // A teardown round starts only while its own 9 queries plus the 50 phase 2
-        // keeps back are left. Leaving 55 means the first round cannot start, the
-        // state a usage graph too large for one run reaches after several rounds.
+        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
+        // loop, means the first round cannot start: the state a usage graph too
+        // large for one run reaches after several rounds.
         Integer spend = Limits.getLimitQueries() - 55;
         for (Integer i = 0; i < spend; i++) {
-            Database.countQuery('SELECT COUNT() FROM Account WHERE Id = \'' + a.Id + '\'');
+            countOf('Account', a.Id);
         }
         RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
@@ -883,8 +895,8 @@ private without sharing class RLM_AccountUtilitiesTest {
     // balance (platform validation, 264). The teardown loop finds buckets only
     // through their entitlement's account, so a bucket with no entitlement is
     // invisible to it: the entitlement account above it refuses every round, the
-    // loop ends with rows left, and phase 2 retries them along the bucket
-    // hierarchy, leaves first.
+    // loop ends with rows left (usageDrained stays false), and phase 2 retries
+    // the entitlement account's buckets along the hierarchy, leaves first.
 
     private class UsageFixture {
         Id resourceId;
@@ -988,14 +1000,16 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void bucketsAreRemovedLeavesFirstIncludingOnesTheLoopCannotSee() {
+    static void bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved() {
         Account a = newAccount();
         UsageFixture f = newUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         TransactionUsageEntitlement childTue = newEntitlement(a.Id, a.Id, null, f);
         // The entitlement account holds two buckets: one with an entitlement and a
-        // child bucket (with its own) below it, and one with no entitlement at all.
+        // child bucket (with its own) below it, which the loop drains over two rounds
+        // (the platform refuses a parent while its child exists), and one with no
+        // entitlement at all, which only phase 2's retry can find.
         UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
         UsageEntitlementBucket child = newBucket(held.Id, childTue.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
@@ -1040,6 +1054,8 @@ private without sharing class RLM_AccountUtilitiesTest {
         UsageFixture f = newUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'PRECONDITION: the bucket must exist before the reset runs');
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
 
         Test.startTest();
@@ -1047,10 +1063,15 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
+            'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
+        );
+        Assert.isNull(result.removedSummary, 'Rows phase 2 removed and the rollback restored are not reported');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
-            'Phase 2 deleted the entitlement account, and the rollback must restore it');
+            'After the rollback the entitlement account must still exist');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
-            'Phase 2 deleted the bucket, and the rollback must restore it');
+            'After the rollback the bucket must still exist');
         String kept = UsageEntitlementAccount.SObjectType.getDescribe().getLabelPlural()
             + ': 1 (could not be deleted: ';
         Assert.isTrue(
@@ -1074,9 +1095,13 @@ private without sharing class RLM_AccountUtilitiesTest {
         TransactionUsageEntitlement tue = newEntitlement(previousOwner.Id, asset.Id, asset.Id, f);
         UsageEntitlementBucket bucket = newBucket(othersUea.Id, tue.Id, f);
         // An entitlement account of the reset account's own, which the loop cannot
-        // clear (its bucket has no entitlement), so the asset step also retries it.
+        // clear (its bucket has no entitlement). It keeps usageDrained false, so the
+        // asset step also runs its retry of the account's summaries; phase 2's
+        // entitlement retry removes it before the asset step starts.
         UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
         newBucket(ownUea.Id, null, f);
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id AND AssetId = :asset.Id],
+            'PRECONDITION: the other account\'s entitlement must be bound to the asset before the reset runs');
 
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
@@ -1089,9 +1114,44 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :bucket.Id],
             'The entitlement\'s bucket must go before the entitlement');
         Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
-            'The reset account\'s own entitlement account must go');
+            'Phase 2\'s retry must remove the reset account\'s own entitlement account');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
             'The other account\'s entitlement account is not bound to the asset and must be kept');
+    }
+
+    @IsTest
+    static void phaseTwoRemovesAChildBucketBeforeItsParent() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Other Account');
+        insert other;
+        UsageFixture f = newUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // A bucket under a bucket must hold an entitlement. This one holds another
+        // account's, so the loop (which follows the reset account's entitlements)
+        // sees neither bucket, and only phase 2's walk down from the entitlement
+        // account finds the child. The parent cannot go while the child exists.
+        TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
+        UsageEntitlementBucket parent = newBucket(uea.Id, null, f);
+        UsageEntitlementBucket child = newBucket(parent.Id, othersTue.Id, f);
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:parent.Id, :child.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:parent.Id, :child.Id)],
+            'Deleting the child first lets the parent go too');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'The entitlement account must go once its buckets have');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :othersTue.Id],
+            'Another account\'s entitlement must be kept: the entitlement-account retry deletes buckets, not entitlements');
+        Assert.areEqual(true, result.cleared, 'Nothing was kept. Retained: ' + result.retainedSummary);
+        Assert.isTrue(
+            result.removedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)),
+            'Both buckets must be reported. Got: ' + result.removedSummary
+        );
     }
 
     @IsTest
