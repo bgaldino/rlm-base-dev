@@ -18,12 +18,12 @@ This plan is executed as **step 1** of the `prepare_product_data` flow (when `qb
 |------|-------------------------------------|--------------------------------------------|
 | 1    | `insert_quantumbit_pcm_data`        | Runs this SFDMU plan (single pass)         |
 
-One pass is enough. An insert copies `AttributeNameOverride`, `IsRequired`, `DefaultValue`, `Description` and `HelpText` from the attribute
+One pass is enough. An insert copies `AttributeNameOverride` and `IsRequired` (measured on another plan) and, by trace, `DefaultValue`, `Description` and `HelpText` from the attribute
 definition onto a classification attribute, and every row here carries the definition's own value (or the definition sets none), so
 nothing needs a second, update pass (`product-catalog-modeling` -> `catalogs-and-loading.md`, fact (a)).
-Measured on a fresh one-pass 264 ent-sb0 scratch build: 36 of 36 `ProductClassificationAttr` rows match
+Measured on a fresh one-pass 264 ent-sb0 scratch build [Measured: 2026-11-23, 264]: 36 of 36 `ProductClassificationAttr` rows match
 `ProductClassificationAttr.csv` (`python scripts/check_classification_attrs.py --target-org <sf_alias>`).
-Rerun that check after changing `ProductClassificationAttr.csv` or `AttributeDefinition.csv`.
+Rerun that check after changing `ProductClassificationAttr.csv` or `AttributeDefinition.csv`, and on a non-zero exit follow `product-catalog-modeling` -> `catalogs-and-loading.md` step 5.
 
 ### Task Definition
 

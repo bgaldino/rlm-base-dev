@@ -151,7 +151,7 @@ layers:
     steps:
       - {id: catalog-meta, kind: deploy, dir: "{pack}/catalog/metadata"}
       - {id: catalog-pass1, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"]}
-      - {id: catalog-pass2, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"], note: "classification attributes settle on pass 2"}
+      - {id: catalog-check, kind: run, cmd: ["{py}", scripts/check_classification_attrs.py, --target-org, "{sf}", --plan, "{pack}/catalog"], note: "exit 0 continues; a non-zero exit stops the load and the operator follows catalogs-and-loading.md step 5 (it needs the first check's missing list, so copy this step's log before any resume overwrites it)"}
       - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"]}
       - {id: cml-cycle, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, deactivate_versions, -o, version_full_names, MyModel_V1], note: "a reload's changed model reaches the solver only after a cycle; skipped when inactive (Rerun and idempotency)"}
       - {id: cml-activate, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, activate_versions, -o, version_full_names, MyModel_V1]}
@@ -254,9 +254,7 @@ Every step must be safe to run twice. What the proved build learned:
   `Status = Draft` to records already Active was refused on the second load; status
   objects take `skipExistingRecords: true`, as `sfdmu-data-plans` prescribes
   [Measured: 2026-11-17, 264].
-- **Catalog:** run the PCM plan twice on a fresh org (or run `scripts/check_classification_attrs.py` after one pass and load again only if it reports differences); when it does load again, the second pass applies
-  classification-attribute values (`product-catalog-modeling` → `catalogs-and-loading.md`, PCM load fact a). A
-  third pass is expected to change nothing.
+- **Catalog:** load the PCM plan, run `scripts/check_classification_attrs.py` and follow `catalogs-and-loading.md` step 5 for any second pass (one pass is enough for QuantumBit [Measured: 2026-11-23, 264]); a second pass applies classification-attribute values (PCM load fact a), and extract only after the check exits 0.
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
 - **CML:** on the proved second load, with the model's version Active, `import_cml` exited
