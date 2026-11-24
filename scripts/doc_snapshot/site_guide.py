@@ -538,7 +538,7 @@ class SiteGuideSnapshot:
         """Raise offline-detectable conflicts before any target of a batch runs."""
         path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
         self._check_switch(path, self.options["mode"])
-        self._check_version_change(path, self.options["mode"])
+        self._check_identity_change(path, self.options["mode"])
         if self.options["mode"] == "capture" and self.options.get("section_filters") and path.exists():
             self._stored_section_ids(
                 read_manifest(path, {"pages": []}, "pages").get("pages", []),
@@ -577,12 +577,32 @@ class SiteGuideSnapshot:
                 "the corpus to the site (its atlas ids become legacy_id_map entries)."
             )
 
-    def _check_version_change(self, path: Path, mode: str) -> None:
-        """A corpus captured for one API version is replaced whole or not at all.
+    _GUIDE_RE = re.compile(r"^(/docs/[^/]+/[^/]+/guide/)[^/]+\.html$")
+
+    def _identity_changes(self, raw: Dict[str, Any]) -> Dict[str, Tuple[Any, Any]]:
+        """What a stored site manifest records about its corpus that this run changes.
+
+        Keys: ``guide`` (the guide path of ``site_url``), ``deliverable``, ``release``,
+        ``api_version``; each maps to (stored, requested). ``release_name`` and the
+        start page within the same guide are labels and do not count.
+        """
+        o = self.options
+        m = self._GUIDE_RE.match(urllib.parse.urlparse(str(raw.get("site_url") or "")).path)
+        want = {
+            "guide": (m.group(1) if m else None, self.guide_path),
+            "deliverable": (raw.get("deliverable"), o["deliverable"]),
+            "release": (raw.get("release"), o["release_version"]),
+            "api_version": (raw.get("api_version"), o["api_version"]),
+        }
+        # Only a recorded value that differs counts (a missing one is not a change).
+        return {k: (a, b) for k, (a, b) in want.items() if a and str(a) != str(b)}
+
+    def _check_identity_change(self, path: Path, mode: str) -> None:
+        """A corpus captured for one guide, release or API version is replaced whole or not at all.
 
         Relabelling the manifest while keeping its captured articles would claim the
-        new version over old text, so a different ``api_version`` needs a full
-        ``--mode refresh`` (or a separate output_dir).
+        new identity over old text (or mix two guides' pages), so any change needs a
+        full ``--mode refresh`` (or a separate output_dir).
         """
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
@@ -590,17 +610,17 @@ class SiteGuideSnapshot:
             return
         if not isinstance(raw, dict) or raw.get("source") != "site":
             return
-        stored = raw.get("api_version")
-        if not stored or str(stored) == self.options["api_version"]:
-            return  # (same normalised test as _load_or_init_manifest)
+        changes = self._identity_changes(raw)
+        if not changes:
+            return
         if not any(p.get("status") == "captured" for p in raw.get("pages", []) if isinstance(p, dict)):
             return
         if mode != "refresh" or self.options.get("section_filters"):
+            what = "; ".join(f"{k} {a!r} -> {b!r}" for k, (a, b) in changes.items())
             raise OptionsError(
-                f"the output directory was captured for API {stored} but this run is for "
-                f"API {self.options['api_version']}; its articles would keep the old text under "
-                "the new version. Run the whole guide with --mode refresh (no --section), or "
-                "use a separate output_dir."
+                f"the output directory holds a different capture ({what}); its articles would "
+                "be kept under the new identity. Run the whole guide with --mode refresh "
+                "(no --section), or use a separate output_dir."
             )
 
     def _load_or_init_manifest(self, path: Path) -> Dict[str, Any]:
@@ -642,21 +662,38 @@ class SiteGuideSnapshot:
                     "(listed under superseded_files in the manifest); remove them with the re-capture commit"
                 )
             return fresh
-        stored = manifest.get("api_version")
-        if stored and str(stored) != o["api_version"]:
-            # A full refresh follows (_check_version_change): nothing is current until
-            # it is recaptured, so a capped or failed run leaves pages pending.
+        changes = self._identity_changes(manifest)
+        if "guide" in changes or "deliverable" in changes:
+            # Another guide's pages are not this guide's: start the page list over (a full
+            # refresh follows); its article files stay on disk, listed as superseded.
+            old_files = sorted(
+                f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
+                if p.get("status") == "captured"
+            )
+            self.logger.warning(
+                f"  the manifest describes a different guide ({'; '.join(f'{k} {a!r} -> {b!r}' for k, (a, b) in changes.items())}): "
+                f"{len(manifest.get('pages', []))} page record(s) are dropped"
+            )
+            fresh = dict(base)
+            fresh["snapshot_started"] = manifest.get("snapshot_started") or base["snapshot_started"]
+            if old_files:
+                fresh["superseded_files"] = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
+            return fresh
+        if changes:
+            # Same guide, another release or API version: nothing is current until it is
+            # recaptured, so a capped or failed run leaves pages pending.
             stale = [p["page_id"] for p in manifest.get("pages", []) if p.get("status") == "captured"]
             for page in manifest.get("pages", []):
                 page["status"] = "pending"
             if stale:
                 self.logger.warning(
-                    f"  API {stored} -> {o['api_version']}: {len(stale)} captured page(s) are reset to "
-                    "pending; their old article files stay on disk until each is recaptured"
+                    f"  {'; '.join(f'{k} {a!r} -> {b!r}' for k, (a, b) in changes.items())}: {len(stale)} "
+                    "captured page(s) are reset to pending; their old article files stay on disk "
+                    "until each is recaptured"
                 )
         manifest.update(
-            api_version=o["api_version"], site_url=o["site_url"],
-            deliverable=o["deliverable"], capture_method=CAPTURE_METHOD,
+            api_version=o["api_version"], site_url=o["site_url"], release=o["release_version"],
+            release_name=o["release_name"], deliverable=o["deliverable"], capture_method=CAPTURE_METHOD,
         )
         return manifest
 
@@ -703,7 +740,7 @@ class SiteGuideSnapshot:
         mode = o["mode"]
         manifest_path = self._manifest_path(output_dir)
         self._check_switch(manifest_path, mode)
-        self._check_version_change(manifest_path, mode)
+        self._check_identity_change(manifest_path, mode)
         manifest = self._load_or_init_manifest(manifest_path)
         legacy_ids = manifest.get("_legacy_ids")
         self._version_verified = False

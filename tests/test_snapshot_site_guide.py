@@ -302,6 +302,24 @@ def main():
               raises(SnapshotError, lambda: snap(tmp, mode="refresh", api_version="69.0").run())
               and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
         check("the same version is unaffected", snap(tmp, mode="all").run()["captured"] == 4)
+        other = "https://developer.salesforce.com/docs/industries/common/guide/start.html"
+        for label, kw in (("guide", {"site_url": other}), ("release", {"release_version": "266"}),
+                          ("deliverable", {"deliverable": "other_dev_guide"})):
+            check(f"a different {label} over a captured corpus is refused in all mode, preflight and sectioned refresh, saving nothing",
+                  raises(OptionsError, lambda: snap(tmp, mode="all", **kw).run())
+                  and raises(OptionsError, snap(tmp, mode="all", **kw).preflight)
+                  and raises(OptionsError, lambda: snap(tmp, mode="refresh", sections=["x"], **kw).run())
+                  and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        check("a different release_name or start page in the same guide is not an identity change",
+              not snap(tmp, mode="all", release_name="Spring '28")._identity_changes(load(tmp)))
+        raw = load(tmp)
+        for label, kw, dropped in (("guide", {"site_url": other}, True), ("release", {"release_version": "266"}, False)):
+            m2 = snap(tmp, mode="refresh", **kw)._load_or_init_manifest(Path(tmp) / "manifest.json")
+            check(f"a full refresh over a different {label} resets the old page records",
+                  (m2["pages"] == [] if dropped else
+                   all(p["status"] == "pending" for p in m2["pages"]) and len(m2["pages"]) == len(raw["pages"]))
+                  and (not dropped or len(m2.get("superseded_files", [])) == 4))
+
 
     grouped = [{"label": "Group", "name": "", "children": [
         {"label": "Kid", "name": G + "kid.html", "children": []}]}]

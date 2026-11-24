@@ -239,9 +239,11 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   version (a metadata-only section), it fetches `probe_page` for evidence, and
   refuses when there is still none. The observed version and its votes are in the
   manifest.
-  A corpus captured for one `api_version` is never relabelled: a run for a
-  different version over captured pages is refused unless it is a whole-guide
-  `--mode refresh` (or uses another `output_dir`).
+  A corpus is never relabelled: a run for a different `api_version`, guide (the
+  `/docs/<area>/<guide>/guide/` of `site_url`), `release_version` or `deliverable` over
+  captured pages is refused, before anything is saved, unless it is a whole-guide
+  `--mode refresh` (or uses another `output_dir`). That refresh resets the old page
+  records (a different guide's are dropped and their files listed under `superseded_files`).
 - **Sections.** A `sections` filter selects the TOC subtree of the named page id
   or label, also on a later `refresh`, whatever top-level section the stored
   records carry. `--mode capture` resolves it from the TOC paths (`ancestors`)
