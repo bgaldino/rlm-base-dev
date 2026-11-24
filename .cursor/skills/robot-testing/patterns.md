@@ -29,7 +29,7 @@ robot/rlm-base/
 │   ├── SalesforceAPI.py              # REST API keywords (SOQL, DML)
 │   ├── ChromeOptionsHelper.py        # Headless Chrome options
 │   ├── ChromeDebugHelper.py          # Headed Chrome + CDP
-│   ├── AnalyticsSetupHelper.py       # VF iframe checkbox automation
+│   ├── AnalyticsSetupHelper.py       # Enable CRM Analytics button (JS only, no WebDriver lookups)
 │   └── WebDriverManager.py           # ChromeDriver path resolution
 ├── variables/
 │   ├── E2EVariables.robot            # Test data + feature flags
@@ -398,7 +398,7 @@ processing makes `/\s+/` ambiguous. Prefer a `charCodeAt`-based whitespace check
 |-------|---------|-----|
 | Lightning Record Pages | E2E tests | SeleniumLibrary + shadow DOM JS |
 | Lightning Setup Pages | Setup tests | SeleniumLibrary + XPath + shadow DOM JS |
-| Visualforce Iframes | `enable_analytics` | `switch_to.frame()` + standard WebDriver |
+| Lightning Setup, JS only | `enable_analytics` | In-page shadow-DOM JavaScript polled from Python; no WebDriver element lookups |
 | Aura Framework API | `reorder_app_launcher` | Synchronous XHR to `/aura` |
 | Salesforce REST API | E2E verification | `SalesforceAPI.py` via `sf org display` |
 | SF CLI (`sf`) | Auth + navigation | `Run Process sf org open/display` |
