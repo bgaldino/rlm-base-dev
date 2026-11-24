@@ -57,7 +57,7 @@ Each release has up to four primary sources. Drop them into `docs/salesforce/{ve
 |---|---|---|
 | **Master Help compendium** | Full Help docs for the release as one PDF — definitive but huge (often 1,000+ pages). Use for detailed configuration steps. | `revenue-cloud-{release-name}-{date}.pdf` |
 | **Internal Solution Overview deck** | Per-feature Customer Need / Solution / Use Case / Impact — most digestible primary source for authoring. Marked CONFIDENTIAL. | `solution-overview-{release-name}.pdf` |
-| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. | 264+: per-article snapshot under `docs/salesforce/{version}/release-notes/`. 260/262: a hand-curated `release-notes-{area}.md` and/or `salesforce-release-notes-{release-name}-{date}.pdf` |
+| **Public release notes** | The "what's new" summary with feature names + one-paragraph descriptions. | 264+: per-article snapshot under `docs/salesforce/{version}/release-notes/`. 260/262: a hand-curated `release-notes-{area}.md` and/or `salesforce-release-notes-{release-name}-{date}.pdf` (neither is in the repo now) |
 | **Org access / screenshots** | For verifying configuration steps work, capturing visuals, sanity-checking what users actually see. | (live) |
 
 **Capturing release notes from Salesforce Help:**
@@ -76,7 +76,7 @@ python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spr
 python -m scripts.doc_snapshot help --release 266 --area all --mode discover
 ```
 
-Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.
+Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). Before the tool existed, release notes were captured by hand (260's `release-notes-pricing.md`, since removed).
 
 ## Workflow
 

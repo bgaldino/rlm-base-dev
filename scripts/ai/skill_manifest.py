@@ -786,14 +786,14 @@ def _path_like_values(node: Any, where: str):
     repo path. Recursive on purpose — see the caller."""
     if isinstance(node, dict):
         # ⚠ An entry that declares itself absent used to skip its WHOLE subtree, which
-        # also skipped the paths it still actively claims. The prior-GA entry is exactly
-        # that shape: status not_captured, and a `partial:` path to a file that does
-        # exist and is offered to consumers. Deleting or misspelling it passed --check while the audit printed
-        # "all paths resolve".
+        # also skipped the paths it still actively claims. The former prior-GA entry
+        # (help_corpus_prior_ga, removed with the 260 corpus) had that shape: status
+        # not_captured, and a `partial:` path to a file that did exist and was offered
+        # to consumers. Deleting or misspelling it passed --check while the audit
+        # printed "all paths resolve".
         #
         # The skip bought nothing anyway: an entry declaring itself absent has its
-        # path/manifest keys REMOVED from the YAML (the prior-GA comment says to restore
-        # them once captured), so there was never an absent path here to protect. Keep
+        # path/manifest keys REMOVED from the YAML, so there was never an absent path here to protect. Keep
         # walking — what a not_captured entry still names, it still has to have.
         for key, value in node.items():
             yield from _path_like_values(value, f"{where}.{key}")

@@ -50,7 +50,7 @@
 releases:
 
   # -------------------------------------------------------------------------
-  # Spring '26 (260) — kept for the 260-vs-262 diff work.
+  # Spring '26 (260) — kept so the 260 billing Help corpus can be recaptured (corpus not in-tree; see the revenue-cloud-docs Retention paragraph).
   # -------------------------------------------------------------------------
   "260":
     release_name: "Spring '26"

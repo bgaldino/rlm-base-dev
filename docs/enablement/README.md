@@ -61,7 +61,7 @@ For the canonical reference of what's in QB orgs by default — including bundle
 | Path | What's there | Status |
 |---|---|---|
 | **[`master/`](master/)** | The two-tier model's source of truth — master exercises + scenario reference | 🚧 **Pilot** (PCM + Pricing drafted; 8 areas pending) |
-| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference) | ✅ All 10 area drafts complete |
+| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, historical extracts) | ✅ All 10 area drafts complete |
 | **`262/`** (no files) | Per-release artifacts for 262 (Summer '26, prior GA reference) | Empty: the QB demo script moved to [`264/`](264/qb-demo-script.md) on 2026-10-29; 10 per-area Hands-On extracts pending |
 | **[`264/`](264/)** | Per-release artifacts for 264 (Winter '27, current release cycle) | 🚧 QB demo script ([`qb-demo-script.md`](264/qb-demo-script.md)), relabeled from the 262 draft; ⏳ Hands-On scaffold only ([`README.md`](264/README.md)); feature index populated (Help-derived), authoring blocked on tier verification |
 | `248/`, `252/`, `254/`, `256/`, `258/` *(not in repo)* | **Read-only historical labels** — used in exercise files to point at prior published exercise PDFs (e.g. ``docs/enablement/258/Salesforce Pricing - Winter '26 Revenue Cloud - External.pdf``). The PDFs themselves live outside git (see the *External dependencies* table below); these path labels exist only as textual references in carry-forward sections. | Frozen labels. Never created in-repo. |
