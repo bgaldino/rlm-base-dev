@@ -78,4 +78,90 @@ private class RLM_BillingScheduleGroupControllerTest {
         Assert.isTrue(wrapper.relationships.isEmpty());
         Assert.isNull(wrapper.bsg, 'No BSG until one is assigned.');
     }
+
+    // Groups and relationships cannot be inserted in Apex, so these pass rows built with
+    // JSON.deserialize to the methods the controller calls after its group query.
+    private static Id fakeId(Schema.SObjectType objectType, Integer n) {
+        return Id.valueOf(objectType.getDescribe().getKeyPrefix() + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static BillingScheduleGroup bsg(Id id, String productName) {
+        return (BillingScheduleGroup) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'Id' => id, 'ProductName' => productName }), BillingScheduleGroup.class);
+    }
+
+    private static BsgRelationship relationship(Id id, Id mainId, Id associatedId) {
+        return (BsgRelationship) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'Id' => id, 'MainBsgId' => mainId, 'AssociatedBsgId' => associatedId }), BsgRelationship.class);
+    }
+
+    // One wrapper per group in the groups' order, each with the relationships where it is the
+    // main group, in their order; a group with none gets an empty list, and a relationship whose
+    // main group is not listed is left out.
+    @isTest
+    static void buildWrappers_attachesEachGroupsMainRelationships() {
+        Id groupA = fakeId(BillingScheduleGroup.SObjectType, 1);
+        Id groupB = fakeId(BillingScheduleGroup.SObjectType, 2);
+        Id groupC = fakeId(BillingScheduleGroup.SObjectType, 3);
+        Id unlisted = fakeId(BillingScheduleGroup.SObjectType, 4);
+        Id relA1 = fakeId(BsgRelationship.SObjectType, 1);
+        Id relA2 = fakeId(BsgRelationship.SObjectType, 2);
+        Id relB = fakeId(BsgRelationship.SObjectType, 3);
+
+        Test.startTest();
+        List<RLM_BillingScheduleGroupController.BsgWrapper> wrappers = RLM_BillingScheduleGroupController.buildWrappers(
+            new List<BillingScheduleGroup>{ bsg(groupB, 'Beta'), bsg(groupA, 'Alpha'), bsg(groupC, 'Gamma') },
+            new List<BsgRelationship>{
+                relationship(relA2, groupA, groupC),
+                relationship(relB, groupB, groupA),
+                relationship(fakeId(BsgRelationship.SObjectType, 4), unlisted, groupA),
+                relationship(relA1, groupA, groupB)
+            });
+        Test.stopTest();
+
+        Assert.areEqual(3, wrappers.size(), 'One wrapper per group');
+        Assert.areEqual(groupB, wrappers[0].bsg.Id, 'Groups keep their query order, not name order');
+        Assert.areEqual('Beta', wrappers[0].bsg.ProductName, 'The group row is passed through');
+        Assert.areEqual(new List<Id>{ relB }, idsOf(wrappers[0].relationships), 'B gets only its own relationship');
+        Assert.areEqual(new List<Id>{ relA2, relA1 }, idsOf(wrappers[1].relationships),
+            'A gets both of its relationships, in their order');
+        Assert.isNotNull(wrappers[2].relationships, 'A group without relationships gets a list, not null');
+        Assert.isTrue(wrappers[2].relationships.isEmpty(), 'A group without relationships gets an empty list');
+    }
+
+    private static List<Id> idsOf(List<BsgRelationship> rels) {
+        List<Id> ids = new List<Id>();
+        for (BsgRelationship r : rels) {
+            ids.add(r.Id);
+        }
+        return ids;
+    }
+
+    // For groups with no relationships, the relationship query runs once and each group gets an
+    // empty list.
+    @isTest
+    static void wrappersWithRelationships_runsTheRelationshipQueryOnce() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        List<BillingScheduleGroup> groups = new List<BillingScheduleGroup>{
+            bsg(fakeId(BillingScheduleGroup.SObjectType, 1), 'Alpha'),
+            bsg(fakeId(BillingScheduleGroup.SObjectType, 2), 'Beta')
+        };
+        Integer ran;
+        List<RLM_BillingScheduleGroupController.BsgWrapper> wrappers;
+
+        Test.startTest();
+        System.runAs(u) {
+            Integer before = Limits.getQueries();
+            wrappers = RLM_BillingScheduleGroupController.wrappersWithRelationships(groups);
+            ran = Limits.getQueries() - before;
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, ran, 'The relationship query runs once for all the groups');
+        Assert.areEqual(2, wrappers.size(), 'One wrapper per group');
+        Assert.isTrue(wrappers[0].relationships.isEmpty() && wrappers[1].relationships.isEmpty(),
+            'Groups with no relationships get empty lists');
+    }
 }
