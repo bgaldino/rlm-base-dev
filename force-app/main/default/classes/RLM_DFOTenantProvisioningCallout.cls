@@ -27,69 +27,79 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
 
     global static industriesintegrationfwk.IntegrationCalloutResponse executeCallout(String requestGuid, String inputRecordId, String payload, Map<String, Object> attributes) {
         system.debug('input record id is ' + inputRecordId);
-        //Get Order
 
-        //determine SObject source type
-        Id sourceId = inputRecordId;
+        HttpResponse response;
+        try {
+            Id orderId = resolveOrderId(inputRecordId);
+            system.debug('Order to callout on is ' + orderId);
+            response = makeCallout(orderId);
+        } catch (TenantProvisioningException e) {
+            return failure(400, e.getMessage());
+        } catch (CalloutException e) {
+            return failure(503, 'The tenant callout failed: ' + e.getMessage());
+        }
+
+        // Success is the HTTP status of the tenant service, not the mere fact that a callout was made.
+        Integer statusCode = response.getStatusCode();
+        if (statusCode < 200 || statusCode >= 300) {
+            return failure(statusCode, 'The tenant service answered HTTP ' + statusCode + ': ' + bounded(response.getBody()));
+        }
+        industriesintegrationfwk.IntegrationCalloutResponse succeeded = new industriesintegrationfwk.IntegrationCalloutResponse(true);
+        succeeded.setResponseCode(statusCode);
+        return succeeded;
+    }
+
+    /**
+     * The order a tenant is created for: the order item's own order, or, for a fulfillment order line,
+     * the order of the order item it was sourced from. Anything else cannot provision a tenant.
+     */
+    private static Id resolveOrderId(String inputRecordId) {
+        if (String.isBlank(inputRecordId)) {
+            throw new TenantProvisioningException('The input record id is missing');
+        }
+        Id sourceId;
+        try {
+            sourceId = Id.valueOf(inputRecordId);
+        } catch (StringException e) {
+            throw new TenantProvisioningException('The input record id is not a valid id: ' + inputRecordId);
+        }
         String sourceObjectType = String.valueOf(sourceId.getSObjectType());
-
         system.debug('Source Object Type is ' + sourceObjectType);
 
-        HttpResponse response = new HttpResponse();
-
-        if(sourceObjectType == 'OrderItem'){
-            OrderItem oi = [SELECT Id, OrderId
-                                FROM OrderItem
-                                WHERE Id =: inputRecordId LIMIT 1];
-                                
-            system.debug('Order to callout on is ' + oi.OrderId);
-
-            response = makeCallout(oi.OrderId);
-        }else if(sourceObjectType == 'FulfillmentOrderLineItem'){
-            FulfillmentLineSourceRel lineSourceRel = [SELECT Id, SourceLineItemId, FulfilmentOrderLineId 
-                                                        FROM FulfillmentLineSourceRel 
-                                                        WHERE (SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId =: inputRecordId) LIMIT 1];
-            
-            OrderItem oi = [SELECT Id, OrderId
-                            FROM OrderItem
-                            WHERE Id =: lineSourceRel.SourceLineItemId LIMIT 1];
-                                                        
-            system.debug('Order to callout on is ' + oi.OrderId);
-                        
-            response = makeCallout(oi.OrderId);
-        }
-        
-        // Group response by groupId 
-        Map<String, Object> responseGroup = getResponseGroupAfterCallout(response);
-
-        // Create IntegrationCalloutResponse Response
-        industriesintegrationfwk.IntegrationCalloutResponse integrationCalloutResponse = new industriesintegrationfwk.IntegrationCalloutResponse(true);
-//        integrationCalloutResponse.setReturnValue(responseGroup);
-        return integrationCalloutResponse;
-        
-    }
-
-    private static Map<String, Object> getResponseGroupAfterCallout(HttpResponse response) {
-        Map<String, Object> responseGroup = new Map<String, Object>();
-        if (response.getStatusCode() == 200) {
-            responseGroup.put('isSuccess', true);
+        Id orderItemId;
+        if (sourceObjectType == 'OrderItem') {
+            orderItemId = sourceId;
+        } else if (sourceObjectType == 'FulfillmentOrderLineItem') {
+            List<FulfillmentLineSourceRel> lineSourceRels = [SELECT Id, SourceLineItemId, FulfilmentOrderLineId
+                                                              FROM FulfillmentLineSourceRel
+                                                              WHERE (SourceLineItem.Type = 'OrderItem' AND FulfilmentOrderLineId =: sourceId) LIMIT 1];
+            if (lineSourceRels.isEmpty()) {
+                throw new TenantProvisioningException('The fulfillment order line ' + sourceId + ' has no order item source');
+            }
+            orderItemId = lineSourceRels[0].SourceLineItemId;
         } else {
-            responseGroup.put('isSuccess', false);
+            throw new TenantProvisioningException('Unsupported source type ' + sourceObjectType + '; only order items and fulfillment order lines provision a tenant');
         }
-        responseGroup.put('response', getResponseMap(response.getBody()));
-        return responseGroup;
+
+        List<OrderItem> orderItems = [SELECT Id, OrderId
+                                      FROM OrderItem
+                                      WHERE Id =: orderItemId LIMIT 1];
+        if (orderItems.isEmpty()) {
+            throw new TenantProvisioningException('Order item ' + orderItemId + ' was not found');
+        }
+        return orderItems[0].OrderId;
     }
 
-    // Convert response string into Map 
-    private static Map<String,Object> getResponseMap(String responseBody) {
-        try {
-            Map<String,Object> responseBodyMap = (Map<String,Object>) JSON.deserializeUntyped(responseBody);
-            return responseBodyMap;
-        } catch (Exception e) {
-            Map<String, Object> responseMap = new Map<String,Object>();
-            responseMap.put('response', responseBody);
-            return responseMap;
-        }
+    private static industriesintegrationfwk.IntegrationCalloutResponse failure(Integer statusCode, String message) {
+        industriesintegrationfwk.IntegrationCalloutResponse failed = new industriesintegrationfwk.IntegrationCalloutResponse(false);
+        failed.setResponseCode(statusCode);
+        failed.setErrorMessage(message);
+        return failed;
+    }
+
+    /** The start of a response body, so a failed step says what the service answered without logging a whole page. */
+    private static String bounded(String body) {
+        return body == null ? '' : body.abbreviate(255);
     }
 
     public List<industriesintegrationfwk.ApexProviderAttr> getProviderAttributes(){
@@ -97,6 +107,8 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
 //        defaults.add(inputOrderIdTest);
         return defaults;
     }
+
+    public class TenantProvisioningException extends Exception {}
 
     public class TenantCreationInfo{
         public String orderId;

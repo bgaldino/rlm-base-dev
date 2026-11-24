@@ -1,24 +1,49 @@
 public class RLM_DetermineDROSourceType {
+    /**
+     * One output per input, in input order (the Flow bulk contract). A non-blank recordId wins when both
+     * inputs are set, even a malformed one; otherwise recordIds[0] alone decides, and the object name gets
+     * an "s" suffix. An input whose deciding id is missing or malformed gets a blank output instead of a
+     * platform exception.
+     * The calling flow's Check_Source_Data_Type decision matches only order items and fulfillment order
+     * lines and has no connector on its default outcome, so for a blank output, or the name of any
+     * other object (an Order id gives "Order", or "Orders" from recordIds), the flow ends without
+     * creating assets and without a fault. The flow ships as Draft; a Custom Error cannot stop it
+     * because that element needs a record-triggered flow.
+     */
     @InvocableMethod(label='Determine DRO Source Type' description='Returns string value of source object that initiated DRO Fulfillment' category='RLM SE TAT')
     public static List<String> returnDROSourceObjectType(List<droSourceInfo> sourceInfoArray){
-
-        droSourceInfo sourceInfo = sourceInfoArray.get(0);
-
-        List<String> sourceObjectType = new List<String>();
-
-        if(sourceInfo.recordId != null){
-            Id sourceId = sourceInfo.recordId;
-            sourceObjectType.add(String.valueOf(sourceId.getSObjectType()));
-
-            system.debug('Source Object Type is ' + sourceObjectType);
-        }else if(sourceInfo.recordIds != null){
-            Id sourceId = sourceInfo.recordIds.get(0);
-            sourceObjectType.add(String.valueOf(sourceId.getSObjectType())+'s');
-
-            system.debug('Source Object Type is ' + sourceObjectType);
+        List<String> sourceObjectTypes = new List<String>();
+        if(sourceInfoArray == null){
+            return sourceObjectTypes;
         }
 
-        return sourceObjectType;
+        for(droSourceInfo sourceInfo : sourceInfoArray){
+            sourceObjectTypes.add(resolveSourceType(sourceInfo));
+        }
+        return sourceObjectTypes;
+    }
+
+    private static String resolveSourceType(droSourceInfo sourceInfo){
+        if(sourceInfo == null){
+            return '';
+        }
+
+        try{
+            if(String.isNotBlank(sourceInfo.recordId)){
+                return objectName(sourceInfo.recordId, '');
+            }
+            if(sourceInfo.recordIds != null && !sourceInfo.recordIds.isEmpty() && String.isNotBlank(sourceInfo.recordIds[0])){
+                return objectName(sourceInfo.recordIds[0], 's');
+            }
+        }catch(StringException e){
+            system.debug('Not a valid record id: ' + e.getMessage());
+        }
+        return '';
+    }
+
+    private static String objectName(String recordId, String suffix){
+        Schema.SObjectType sourceType = Id.valueOf(recordId).getSObjectType();
+        return sourceType == null ? '' : String.valueOf(sourceType) + suffix;
     }
 
     public class droSourceInfo{
