@@ -405,6 +405,14 @@ def main():
           and sg.SiteGuideSnapshot._stored_section_ids(
               [dict(r, alt_ancestors="junk") for r in recs], ["a"]) == {"a", "x"}
           and sg._merge_paths("junk", [["p"], ["p"], "q"], ["z"]) == [["p"]])
+    stored = {"page_id": "x"}
+    for flt in (["b"], ["a"]):  # filtered discovers, one branch at a time, from a record with no alt paths
+        for d in sg.flatten_toc(twice, G, flt)[0]:
+            if d["page_id"] == "x":
+                sg._record_section_paths(stored, d)
+    check("filtered discovers of two branches in turn leave both paths, so capture agrees with a walk",
+          sg.SiteGuideSnapshot._stored_section_ids([stored], ["a"]) == {"x"}
+          and sg.SiteGuideSnapshot._stored_section_ids([stored], ["b"]) == {"x"})
     check("a non-string legacy_id_map value is ignored, not a crash",
           sg._legacy_map({"legacy_id_map": {"a.htm": ["x"], "b.htm": "b", 3: "c"}}) == {"b.htm": "b"}
           and sg._legacy_map({"legacy_id_map": "junk"}) == {})

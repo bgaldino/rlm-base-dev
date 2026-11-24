@@ -180,7 +180,7 @@ def flatten_toc(
 ) -> Tuple[List[Dict[str, Any]], int]:
     """Ordered, de-duplicated page records from the TOC tree, plus a skipped count.
 
-    Each record is ``{page_id, title, section, parent_page, ancestors}``; ``page_id`` is the
+    Each record is ``{page_id, title, section, parent_page, ancestors, alt_ancestors}``; ``page_id`` is the
     slug and ``section`` the top-level ancestor's label. With ``section_filters``
     only those subtrees (each matched by label or slug, ``_``/``-`` and the
     ``.htm`` suffix ignored, so an atlas id works) are returned. ``skipped`` counts
@@ -248,6 +248,15 @@ def _legacy_map(manifest) -> Dict[str, str]:
     """``legacy_id_map`` as {old id: slug}; a hand-edited non-string entry is ignored."""
     raw = manifest.get("legacy_id_map")
     return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)} if isinstance(raw, dict) else {}
+
+
+def _record_section_paths(rec, d) -> None:
+    """Fold a section walk's listing ``d`` of a page into its stored record: the first path stays
+    canonical and every other branch (this walk's own, then its alternates) accumulates, since a
+    section walk sees only the branches under its section."""
+    rec.setdefault("ancestors", d["ancestors"])
+    rec["alt_ancestors"] = _merge_paths(
+        rec.get("alt_ancestors"), [d["ancestors"]] + list(d.get("alt_ancestors") or []), rec["ancestors"])
 
 
 def _paths_of(rec) -> list:
@@ -908,9 +917,7 @@ class SiteGuideSnapshot:
             if o["section_filters"]:
                 if d["parent_page"]:
                     rec.setdefault("parent_page", d["parent_page"])
-                rec.setdefault("ancestors", d["ancestors"])  # a page listed twice keeps its first path
-                # other branches it is listed under accumulate: a section walk sees only its own
-                rec["alt_ancestors"] = _merge_paths(rec.get("alt_ancestors"), d.get("alt_ancestors"), rec["ancestors"])
+                _record_section_paths(rec, d)
             else:  # the whole TOC is authoritative: follow a restructure
                 rec["parent_page"] = d["parent_page"]
                 rec["section"] = d["section"]
