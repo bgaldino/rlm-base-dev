@@ -7,7 +7,7 @@ Suite Teardown    Close Browser After Setup
 *** Variables ***
 # Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended). Example: robot -v ORG_ALIAS:my-scratch ...
 ${ORG_ALIAS}             ${EMPTY}
-${REVENUE_SETTINGS_URL}   https://river-playground-9279.scratch.my.salesforce-setup.com/lightning/setup/RevenueSettings/home
+${REVENUE_SETTINGS_URL}                 ${EMPTY}
 ${MANUAL_LOGIN_WAIT}      90s
 # Set to a label (e.g. Revenue Management) to enable that toggle first; set to ${EMPTY} when prerequisites are already on.
 ${DOCUMENT_BUILDER_PREREQUISITE_LABEL}    ${EMPTY}

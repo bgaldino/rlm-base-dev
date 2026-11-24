@@ -66,14 +66,18 @@ robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_product_disco
 
 If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the target Setup page.
 
+## Session URLs are never logged
+
+With `ORG_ALIAS`, the suites log in through `sf org open --url-only`, whose frontdoor URL carries a live session. `resources/SessionUrlGuard.py` keeps that URL out of Robot entirely (no variable, argument, return value or failure text), so `output.xml`/`log.html` hold only the org alias and the setup path. After a live run, confirm with `python scripts/ai/check_robot_session_urls.py <results dir>` (default: `robot/rlm-base/results` and the build-harness `robot_results/` folders). `REVENUE_SETTINGS_URL` and other explicit URL variables are logged as given, so they must be plain page URLs.
+
 ## Variables
 
 ### Common Variables (all suites)
 
 | Variable | Description |
 |----------|-------------|
-| `ORG_ALIAS` | **Recommended.** Org username or alias for authenticated browser session via `sf org open --url-only`. |
-| `REVENUE_SETTINGS_URL` | Full URL to Revenue Settings when not using ORG_ALIAS. |
+| `ORG_ALIAS` | **Recommended.** Org username or alias for authenticated browser session via `sf org open --url-only` (the URL is never logged). |
+| `REVENUE_SETTINGS_URL` | Full plain URL to Revenue Settings when not using ORG_ALIAS (empty by default; no committed org host). |
 | `MANUAL_LOGIN_WAIT` | Wait time for manual login if no org alias (default: `90s`). |
 
 ### enable_document_builder.robot

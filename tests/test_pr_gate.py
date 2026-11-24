@@ -698,6 +698,139 @@ if os.path.exists(prepare):
 else:
     check("prepare-rlm-org.yml exists to compare pins against", False, "file missing")
 
+robot_requirements = os.path.join(REPO, "robot", "requirements.txt")
+if os.path.exists(robot_requirements):
+    with open(robot_requirements) as fh:
+        declared = {line.split(">")[0].split("=")[0].strip(): line.strip() for line in fh
+                    if line.strip() and not line.startswith("#")}
+    for package in ("robotframework", "robotframework-seleniumlibrary"):
+        check(f"the gate pins {package} exactly as robot/requirements.txt declares it",
+              pr_gate.PINS.get(package) == declared.get(package),
+              f"pr_gate={pr_gate.PINS.get(package)}, robot/requirements.txt={declared.get(package)}")
+else:
+    check("robot/requirements.txt exists to compare pins against", False, "file missing")
+
+# Install stages. CumulusCI 4.10.1 declares seleniumlibrary<6 and selenium<4, which the Robot suites
+# contradict, so one `pip install` of both is unresolvable; prepare-rlm-org.yml and the Dockerfile
+# install CumulusCI first and the Robot stack after, and the gate's CI step must do the same.
+def _gate_reqs(*extra):
+    out = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"),
+                          "--requirements", "--all", *extra],
+                         capture_output=True, text=True, cwd=REPO)
+    return out.stdout.split()
+
+_all = _gate_reqs()
+_s1, _s2 = _gate_reqs("--stage", "1"), _gate_reqs("--stage", "2")
+check("--requirements --all lists cumulusci before the Robot packages",
+      (pr_gate.PINS["cumulusci"] in _all
+                  and pr_gate.PINS["robotframework-seleniumlibrary"] in _all
+                  and _all.index(pr_gate.PINS["cumulusci"])
+                  < _all.index(pr_gate.PINS["robotframework-seleniumlibrary"])), _all)
+check("stage 1 carries CumulusCI and its setuptools floor, and no Robot package",
+      pr_gate.PINS["cumulusci"] in _s1 and "setuptools>=75.4" in _s1
+      and not any(x.startswith("robotframework") for x in _s1), _s1)
+check("stage 2 carries both Robot packages and no CumulusCI",
+      pr_gate.PINS["robotframework"] in _s2 and pr_gate.PINS["robotframework-seleniumlibrary"] in _s2
+      and pr_gate.PINS["cumulusci"] not in _s2, _s2)
+check("the stages together are exactly the unstaged list",
+      sorted(_s1 + _s2) == sorted(_all), (_s1, _s2, _all))
+_known = sorted(set(pr_gate.PINS.values()) | {x for v in pr_gate.CO_REQUIRES.values() for x in v})
+_per_stage = [_gate_reqs("--stage", str(n)) for n in range(1, pr_gate.STAGE_COUNT + 1)]
+check("every PINS and CO_REQUIRES spec appears in exactly one stage's output",
+      all(sum(spec in st for st in _per_stage) == 1 for spec in _known),
+      {spec: [i + 1 for i, st in enumerate(_per_stage) if spec in st] for spec in _known})
+check("stages are contiguous from 1 and each is non-empty under --all",
+      sorted(set(pr_gate.STAGE.values()) | {1}) == list(range(1, pr_gate.STAGE_COUNT + 1))
+      and all(_per_stage), (pr_gate.STAGE, _per_stage))
+with open(os.path.join(REPO, ".github", "workflows", "pr-checks.yml")) as _fh:
+    _wf_text = _fh.read()
+_n = pr_gate.STAGE_COUNT
+_seq = re.findall(r'^\s*(reqs="\$\(python scripts/ai/pr_gate\.py --requirements[^\n]*\)"'
+                  r'|python -m pip install --upgrade pip|python -m pip install \$\{reqs\})\s*$',
+                  _wf_text, re.M)
+_expect = (['reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+            "python -m pip install --upgrade pip"]
+           + sum(([f'reqs="$(python scripts/ai/pr_gate.py --requirements --stage {k} ${{SEL}})"',
+                   "python -m pip install ${reqs}"] for k in range(1, _n + 1)), []))
+check("the workflow upgrades pip once behind the unstaged check, then pairs each stage's assignment "
+      "with its own install, in order",
+      _seq == _expect, _seq)
+_blocks = re.findall(r'(if \[ -n "\$\{reqs\}" \]; then\n\s*python -m pip install[^\n]*\n\s*fi)',
+                     _wf_text)
+check("pip upgrade and every install sit inside a non-empty-reqs guard",
+      len(_blocks) == _n + 1, _blocks)
+
+# `--stage` selects among the lines `--requirements` prints, so on its own it must be refused rather
+# than silently ignored (a caller that dropped `--requirements` would otherwise run the whole gate).
+_bad = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"),
+                       "--stage", "1", "--all"], capture_output=True, text=True, cwd=REPO)
+check("--stage without --requirements is a usage error, not silently ignored",
+      _bad.returncode == 2 and "--stage only applies with --requirements" in _bad.stderr,
+      (_bad.returncode, _bad.stderr[-200:]))
+
+# Every statement that mentions `pr_gate.py ... --requirements` must run it one stage at a time: one
+# combined install of cumulusci and the Robot pins is ResolutionImpossible. No classification of what
+# a statement does with the output (a pip call, a redirect to a file, a `$(...)`) is attempted, because
+# every such classifier has a form that escapes it. Instead the rule is strict: in every tracked file
+# but a short allowlist of files that only DESCRIBE the flag, each logical statement (backslash
+# continuations joined) naming both must carry `--stage "$var"` inside an enclosing
+# `for var in 1..STAGE_COUNT; do` loop, i.e. no `done` between the loop header and the call. A lone
+# literal `--stage 1`, an unstaged call, or a call after the loop's `done` fails. A new installer
+# that mentions the flag in any other file fails here until it is staged or deliberately allowlisted.
+_stage_list = " ".join(str(n) for n in range(1, pr_gate.STAGE_COUNT + 1))
+_DESCRIBE_ONLY = {
+    "tests/test_pr_gate.py": "this suite",
+    "scripts/ai/pr_gate.py": "the flag's own definition and help",
+    "scripts/ai/README.md": "the option table and prose describing the flag",
+    ".github/workflows/pr-checks.yml": "pinned literal stage form, asserted by the workflow tests",
+}
+_tracked = [x for x in subprocess.run(["git", "ls-files", "-z"], capture_output=True,
+                                      cwd=REPO).stdout.decode("utf-8", "surrogateescape").split("\0") if x]
+_mentions, _unstaged, _unreadable = {}, [], []
+for _rel in _tracked:
+    if _rel in _DESCRIBE_ONLY:
+        continue
+    _path = os.path.join(REPO, _rel)
+    if not os.path.isfile(_path):  # a symlink to a directory, or a submodule
+        continue
+    try:
+        with open(_path, "rb") as _fh:
+            _raw = _fh.read()
+    except OSError as _exc:
+        _unreadable.append((_rel, str(_exc)))
+        continue
+    if b"--requirements" not in _raw or b"pr_gate.py" not in _raw:
+        continue
+    try:
+        _text = _raw.decode("utf-8")
+    except UnicodeDecodeError:
+        _unreadable.append((_rel, "mentions the flag but is not UTF-8"))
+        continue
+    _joined = re.sub(r"\\\n\s*", " ", _text)
+    for _m in re.finditer(r"^.*$", _joined, re.M):
+        _st = _m.group(0)
+        if "pr_gate.py" not in _st or "--requirements" not in _st:
+            continue
+        _mentions.setdefault(_rel, []).append(_st.strip())
+        _var = re.search(r'--stage\s+"?\$\{?(\w+)\}?"?', _st)
+        _ok = False
+        if _var:
+            _hdr = list(re.finditer(r"\bfor\s+" + _var.group(1) + r"\s+in\s+" + _stage_list
+                                    + r"\s*;?\s*do\b", _joined[:_m.end()]))
+            # the nearest header before the call, and no `done` between it and the call
+            _ok = bool(_hdr) and not re.search(r"\bdone\b", _joined[_hdr[-1].end():_m.start()
+                                                                    + _st.find("pr_gate.py")])
+        if not _ok:
+            _unstaged.append((_rel, _st.strip()[:160]))
+check("every tracked file that reads `--requirements` is readable (a file that cannot be read fails, "
+      "it is not skipped)", not _unreadable, _unreadable)
+check("every statement naming `pr_gate.py --requirements` outside the describe-only files sits in a "
+      f"`for var in {_stage_list}` loop and passes that variable as --stage", not _unstaged, _unstaged)
+check("the sweep found the installers it is about (so it is not passing on an empty set)",
+      {"docs/guides/local-installation.md", "docs/guides/dev-environment-setup.md",
+       "scripts/ai/gate_python.py", "scripts/bash/update-toolchain.sh"} <= set(_mentions),
+      sorted(_mentions))
+
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
 # tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
 print("\nThe workflow that runs the gate cannot be quietly defanged")
@@ -3056,6 +3189,8 @@ if os.path.exists(workflow):
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
         'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+        'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 1 ${SEL})"',
+        'reqs="$(python scripts/ai/pr_gate.py --requirements --stage 2 ${SEL})"',
         'node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"',)
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
     # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
@@ -6002,7 +6137,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 848
+EXPECTED = 865
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -6020,7 +6155,7 @@ _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: 
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
               27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
               31: "thirty-one", 32: "thirty-two", 33: "thirty-three",
-              34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven"}
+              34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT

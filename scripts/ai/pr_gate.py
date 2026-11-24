@@ -89,12 +89,15 @@ DEPS = {
     "pytest": "pytest",
     "textual": "textual",
     "requests": "requests",
+    "robotframework": "robot",
+    "robotframework-seleniumlibrary": "SeleniumLibrary",
 }
 
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
 # pinned to the version `prepare-rlm-org.yml` installs: two workflows resolving different
 # CumulusCI versions would let a flow-citation check pass here and fail there.
-PINS = {"cumulusci": "cumulusci==4.10.1"}
+PINS = {"cumulusci": "cumulusci==4.10.1", "robotframework": "robotframework>=7.5.1,<8",
+        "robotframework-seleniumlibrary": "robotframework-seleniumlibrary>=6.9.0,<7"}
 
 # Installed alongside a package. CumulusCI 4.8.1 needed setuptools for `fs` -> `pkg_resources`;
 # 4.10.1 dropped `fs`, so this is now only the same `setuptools>=75.4` floor that
@@ -102,6 +105,18 @@ PINS = {"cumulusci": "cumulusci==4.10.1"}
 # a modern setuptools). It is uncapped: a fresh CumulusCI 4.10.1 venv imports and runs `cci`
 # with setuptools 84, which has no `pkg_resources`. Emitting it here keeps the installs in step.
 CO_REQUIRES = {"cumulusci": ["setuptools>=75.4"]}
+
+# Install stages: `--requirements --stage N` prints only stage N, and CI runs one `pip install`
+# per stage, in order. CumulusCI 4.10.1 declares `robotframework-seleniumlibrary<6` and
+# `selenium<4`, while the Robot suites need seleniumlibrary>=6.9.0,<7 and selenium>=4.52
+# (robot/requirements.txt), so one `pip install` of both is ResolutionImpossible. Production
+# resolves it the same way this does: `prepare-rlm-org.yml` installs cumulusci, then
+# `-r robot/requirements.txt` in a second call, and docker/Dockerfile injects the Robot stack into
+# the CumulusCI pipx venv afterwards, accepting pip's post-install conflict warning. Staging
+# makes the gate test the environment those build. A package absent from STAGE is stage 1; plain
+# `--requirements` (no `--stage`) prints every stage in order.
+STAGE = {"robotframework": 2, "robotframework-seleniumlibrary": 2}
+STAGE_COUNT = max(STAGE.values(), default=1)
 
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing
@@ -815,6 +830,17 @@ CHECKS = [
         deps=["PyYAML"], gating=True,
     ),
     dict(
+        # Robot results must never hold a session URL: runs the real setup/E2E navigation
+        # keywords in a Robot process against a fake sf and a stub SeleniumLibrary, then scans
+        # output.xml/log.html (incl. log.html's compressed strings). No org or browser needed.
+        # The real SeleniumLibrary is a dependency so the suite can check its log-level slot
+        # table against the installed signatures (it fails, not skips, without it under CI).
+        name="robot_session_url_suite",
+        cmd=["python", "tests/test_robot_session_url_logging.py"],
+        triggers=["robot/", "tasks/", "scripts/ai/check_robot_session_urls.py", "tests/test_robot_session_url_logging.py"],
+        deps=["robotframework", "robotframework-seleniumlibrary"], gating=True,
+    ),
+    dict(
         name="docgen_suite",
         # The one pytest-style suite directly under tests/ (the harness directories below
         # hold ~30 more): pytest collects it and it has no __main__ block, so
@@ -872,8 +898,12 @@ CHECKS = [
         # guarantee has to hold from this side too: an edit to the workflow alone must run the
         # suite that judges it. The enumeration gate below demanded this trigger the moment the
         # assertion was written, which is the intended order.
+        #
+        # robot/requirements.txt is read by the suite, which asserts the Robot Framework and
+        # SeleniumLibrary pins here equal the ones declared there, so an edit to either side
+        # has to run it.
         triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml",
-                  ".github/workflows/pr-checks.yml"],
+                  ".github/workflows/pr-checks.yml", "robot/requirements.txt"],
         deps=[], gating=True,
     ),
     dict(
@@ -1400,11 +1430,15 @@ def main(reexec=False):
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--stage", type=int, choices=range(1, STAGE_COUNT + 1), metavar="N",
+                    help="with --requirements, print only install stage N (1..%d)" % STAGE_COUNT)
     ap.add_argument("--needs-node", action="store_true",
                     help="print `true` when a selected check needs Node packages, else `false`, then exit")
     ap.add_argument("--no-reexec", action="store_true",
                     help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
+    if args.stage and not args.requirements:
+        ap.error("--stage only applies with --requirements")
 
     if args.list:
         print(f"{'check':26} {'gating':7} {'deps':34} triggers")
@@ -1437,9 +1471,12 @@ def main(reexec=False):
         selected = [c for c in CHECKS if selects(c, files)]
 
     if args.requirements:
-        needed = sorted({d for c in selected for d in c["deps"]})
+        needed = sorted({d for c in selected for d in c["deps"]},
+                        key=lambda d: (STAGE.get(d, 1), d))
         emitted = []
         for pkg in needed:
+            if args.stage and STAGE.get(pkg, 1) != args.stage:
+                continue
             # Co-requirements first: pip installs in order, so the setuptools floor is in
             # place before the package it accompanies.
             for extra in CO_REQUIRES.get(pkg, ()):
