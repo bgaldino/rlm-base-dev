@@ -92,8 +92,11 @@ compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the
 picklist values before loading. Add a new Family value to the `Product2Family`
 standard value set (a metadata deploy) in the same change as the plan that uses it. In this
 repo that file is `force-app/main/default/standardValueSets/Product2Family.standardValueSet-meta.xml`;
-it lists the values the QuantumBit plan uses; the q3 and mfg PCM plans load values it does
-not list. [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
+it lists the values the QuantumBit plan uses and no `None` value; the q3 and mfg PCM plans load values it does
+not list. Deploying the set without a value removes that value from the picklist of an org that already has it,
+and a product holding it keeps the stored value: on a 264 scratch org with `None` listed, a deploy without it
+left `Product2.Family` offering only the other five values while a product set to `None` still read `None`.
+[Measured: 2026-11-24, 264 scratch org qb850] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
 
 ## From model to plan
 
