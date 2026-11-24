@@ -101,7 +101,7 @@ private class RLM_InvoiceAgingControllerTest {
     static void processInvoiceData_bucketsByAgeAndTotalsTheBalance() {
         List<Invoice> invoices = new List<Invoice>{
             invoice(100, 10, 0, 'EUR'),
-            invoice(50, 30, 5, 'EUR'),
+            invoice(50, 30, 5, 'GBP'),
             invoice(null, 60, null, null),
             invoice(25.5, null, -1, null)
         };
@@ -117,7 +117,7 @@ private class RLM_InvoiceAgingControllerTest {
         Assert.areEqual(2, data.lessThan30, 'Ages 10 and blank (0) are under 30 days');
         Assert.areEqual(1, data.days30To60, 'Age 30 starts the 30-60 bucket');
         Assert.areEqual(1, data.moreThan60, 'Age 60 starts the over-60 bucket');
-        Assert.areEqual('EUR', data.currencyCode, 'The currency comes from the invoices');
+        Assert.areEqual('GBP', data.currencyCode, 'The last invoice with a currency sets it; a blank one does not');
         Assert.areEqual(invoices, data.invoices, 'The invoices are returned for the table');
     }
 

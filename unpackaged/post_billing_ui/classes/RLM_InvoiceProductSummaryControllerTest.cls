@@ -476,7 +476,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
         };
         List<BillingPeriodItem> periods = new List<BillingPeriodItem>{
             periodItem(usageLine, d.addMonths(1), d.addMonths(2)),
-            periodItem(usageLine, d, d.addMonths(4)),
+            periodItem(usageLine, d, d.addMonths(1).addDays(14)),
+            periodItem(usageLine, d.addMonths(2), d.addMonths(5)),
             periodItem(usageLine, d.addMonths(3), d.addMonths(3).addDays(14))
         };
 
@@ -495,7 +496,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
         RLM_InvoiceProductSummaryController.InvoiceLineDetail usage = byName.get('Data');
         Assert.areEqual(d, usage.periodStartDate,
             'The earliest billing period start wins, not the first or last item\'s, nor the line\'s own date');
-        Assert.areEqual(d.addMonths(4), usage.periodEndDate, 'The latest billing period end wins, not the first or last item\'s');
+        Assert.areEqual(d.addMonths(5), usage.periodEndDate,
+            'The latest billing period end wins, not the first, last or earliest-starting item\'s');
         Assert.isTrue(usage.isUsage, 'The usage charge type matches in any case');
         Assert.areEqual(2, usage.overageQty, 'A usage line carries its overage');
         Assert.areEqual('GB', usage.unitOfMeasure, 'A usage line names its unit of measure');

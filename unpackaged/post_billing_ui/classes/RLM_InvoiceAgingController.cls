@@ -54,7 +54,7 @@ public with sharing class RLM_InvoiceAgingController {
         String currencyCode = 'USD';
         
         for (Invoice inv : invoices) {
-            // Get currency code from first invoice
+            // The last invoice with a currency sets it
             if (String.isNotBlank(inv.CurrencyIsoCode)) {
                 currencyCode = inv.CurrencyIsoCode;
             }
