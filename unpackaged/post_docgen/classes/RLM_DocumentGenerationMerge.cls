@@ -1,10 +1,17 @@
 public with sharing class RLM_DocumentGenerationMerge {
-    // Written for a user (it reaches any caller: another flow's fault message, an unhandled-fault
-    // email): no class name or request index. The detail goes to the debug log.
+    // The exception text reaches any caller (another flow's fault message, an unhandled-fault email),
+    // so every exception carries one of the fixed sentences below, including a refused insert (a
+    // missing permission, a validation rule): the platform's own message, which names objects and
+    // fields, goes to the debug log only.
     @TestVisible
     private static final String NO_REQUEST_MESSAGE = 'No merge request was given, so no documents were merged.';
     @TestVisible
     private static final String NO_PDFS_MESSAGE = 'Choose at least one PDF to merge.';
+    @TestVisible
+    private static final String MERGE_FAILED_MESSAGE =
+        'The documents could not be merged for this record. Check that you can open the record, or contact your administrator.';
+
+    public class DocumentMergeException extends Exception {}
 
     @InvocableMethod(label='Build a PDF file from Ids and return the merge id' description='Accepts a list of Ids and a DocTitle.' category='Document Generation')
     public static List<Response> MergeDocuments(List<Request> requests) {
@@ -47,7 +54,13 @@ public with sharing class RLM_DocumentGenerationMerge {
         // (ReferenceObject, RequestText, PdfDocIdentifiersList) are granted by the Sales
         // Representative set; Type, Status and DocGenApiVersionType are not permissionable. Every request is validated above
         // before anything is inserted; the responses follow request order.
-        insert as user processes;
+        try {
+            insert as user processes;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'RLM_DocumentGenerationMerge process insert refused: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            throw new DocumentMergeException(MERGE_FAILED_MESSAGE);
+        }
         for (DocumentGenerationProcess dgp : processes) {
             Response res = new Response();
             res.MergedRecordId = dgp.Id;

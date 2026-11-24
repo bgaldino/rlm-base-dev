@@ -1,7 +1,9 @@
 public with sharing class RLM_DocumentGenerationCreate {
     // The shipped flow shows its own fixed sentence on a fault, but the exception text still reaches
-    // any other caller (another flow's fault message, an unhandled-fault email), so it is written for
-    // a user: no class name, request index or field API name. The detail goes to the debug log.
+    // any other caller (another flow's fault message, an unhandled-fault email). Every exception this
+    // class throws carries one of the fixed sentences below, including a refused query or insert (a
+    // missing permission, a validation rule): the platform's own message, which names objects and
+    // fields, goes to the debug log only.
     @TestVisible
     private static final String NO_REQUEST_MESSAGE = 'No document request was given, so no document was generated.';
     @TestVisible
@@ -10,6 +12,11 @@ public with sharing class RLM_DocumentGenerationCreate {
     @TestVisible
     private static final String TEMPLATE_NOT_FOUND_MESSAGE =
         'The document template could not be found, or you do not have access to it.';
+    @TestVisible
+    private static final String CREATE_FAILED_MESSAGE =
+        'The document could not be generated for this record. Check that you can open the record, or contact your administrator.';
+
+    public class DocumentGenerationException extends Exception {}
 
     @InvocableMethod(
         label='Build a PDF file from an Object'
@@ -30,9 +37,14 @@ public with sharing class RLM_DocumentGenerationCreate {
 
         // USER_MODE: TokenMappingMethodType is field-level-security controlled (measured on a 264
         // org: it is permissionable, and RLM_QuantumBit_Sales_Representative grants it read).
-        Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
-            [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds WITH USER_MODE]
-        );
+        Map<Id, DocumentTemplate> templateMap;
+        try {
+            templateMap = new Map<Id, DocumentTemplate>(
+                [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds WITH USER_MODE]
+            );
+        } catch (Exception e) {
+            throw refused(TEMPLATE_NOT_FOUND_MESSAGE, 'template query', e);
+        }
         if (templateMap.size() != templateIds.size()) {
             throw rejected(TEMPLATE_NOT_FOUND_MESSAGE,
                 (templateIds.size() - templateMap.size()) + ' of ' + templateIds.size()
@@ -48,7 +60,11 @@ public with sharing class RLM_DocumentGenerationCreate {
         // source-controlled RLM_QuantumBit_Sales_Representative set grants both; Type, DocumentTemplateId, DocGenApiVersionType,
         // DocumentInputType, DocGenAdditionalInputType, DocGenAdditionalInput and DataRaptorInput are
         // not permissionable, so insert as user does not check them (measured on a 264 org).
-        insert as user processes;
+        try {
+            insert as user processes;
+        } catch (Exception e) {
+            throw refused(CREATE_FAILED_MESSAGE, 'process insert', e);
+        }
 
         List<Response> responses = new List<Response>();
         for (DocumentGenerationProcess process : processes) {
@@ -109,6 +125,12 @@ public with sharing class RLM_DocumentGenerationCreate {
         if (request.DocTemplateId == null) {
             throw rejected(INCOMPLETE_REQUEST_MESSAGE, 'DocTemplateId is null for request ' + index);
         }
+    }
+
+    private static DocumentGenerationException refused(String message, String step, Exception cause) {
+        System.debug(LoggingLevel.ERROR, 'RLM_DocumentGenerationCreate ' + step + ' refused: '
+            + cause.getTypeName() + ': ' + cause.getMessage());
+        return new DocumentGenerationException(message);
     }
 
     private static IllegalArgumentException rejected(String message, String detail) {

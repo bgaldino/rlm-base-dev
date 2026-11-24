@@ -64,12 +64,12 @@ private class RLM_DocumentGenerationCreateTest {
         );
     }
 
-    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
-    // (see RLM_DocGenTestUsers), creates the process for a quote on their own opportunity: the set
-    // carries every grant CreateDocument needs as the running user (template read, quote read,
-    // process create, and the field-level-security fields it sets).
+    // A Minimum Access user holding the Sales Representative set and the docgen runtime grant (see
+    // RLM_DocGenTestUsers) creates the process for a quote on their own opportunity. The runtime set
+    // overlaps some grants, so this shows the pair is enough; RLM_DocGenTestUsers checks that the
+    // Sales Representative set carries each grant itself.
     @IsTest
-    static void createDocumentRunsForASalesRepresentativeWithOnlyThatSet() {
+    static void createDocumentRunsForASalesRepresentative() {
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         Quote quote = createQuote(rep.Id);
         Id templateId = templatesByMethod().get('ContextService').Id;
@@ -163,6 +163,31 @@ private class RLM_DocumentGenerationCreateTest {
             Assert.areEqual(RLM_DocumentGenerationCreate.TEMPLATE_NOT_FOUND_MESSAGE, caughtException.getMessage(),
                 'The builder check uses the same user-facing sentence');
         }
+    }
+
+    // A user with no docgen grants gets the fixed sentence, not the platform's refusal (which names
+    // the object and field the query was refused on).
+    @IsTest
+    static void aRefusedTemplateQueryShowsAFixedSentence() {
+        User nobody = RLM_DocGenTestUsers.withNoGrants();
+        Quote quote = createQuote();
+        Id templateId = templatesByMethod().get('ContextService').Id;
+
+        Test.startTest();
+        System.runAs(nobody) {
+            try {
+                RLM_DocumentGenerationCreate.CreateDocument(
+                    new List<RLM_DocumentGenerationCreate.Request>{ requestFor(quote.Id, templateId, 'Refused') });
+                Assert.fail('Expected the template query to be refused for a user with no docgen grants.');
+            } catch (Exception caught) {
+                Assert.isInstanceOfType(caught, RLM_DocumentGenerationCreate.DocumentGenerationException.class,
+                    'The query itself was refused (not an empty result): ' + caught.getTypeName());
+                Assert.areEqual(RLM_DocumentGenerationCreate.TEMPLATE_NOT_FOUND_MESSAGE, caught.getMessage(),
+                    'The fixed sentence, not the platform message.');
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(0, [SELECT COUNT() FROM DocumentGenerationProcess], 'Nothing was created.');
     }
 
     private static Quote createQuote() {

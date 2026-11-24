@@ -69,11 +69,12 @@ private class RLM_DocumentGenerationMergeTest {
         Assert.isNull(plainText.get('title'), 'An omitted title serializes as null.');
     }
 
-    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
-    // (see RLM_DocGenTestUsers), creates the merge process for a quote on their own opportunity: the
-    // set carries quote read, the process create grant and the field-level-security fields Merge sets.
+    // A Minimum Access user holding the Sales Representative set and the docgen runtime grant (see
+    // RLM_DocGenTestUsers) creates the merge process for a quote on their own opportunity. The
+    // runtime set overlaps some grants, so this shows the pair is enough; RLM_DocGenTestUsers checks
+    // that the Sales Representative set carries each grant itself.
     @IsTest
-    static void mergeRunsForASalesRepresentativeWithOnlyThatSet() {
+    static void mergeRunsForASalesRepresentative() {
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         Quote quote = createQuote(rep.Id);
 
@@ -171,6 +172,32 @@ private class RLM_DocumentGenerationMergeTest {
             PathOnClient = pathOnClient,
             VersionData = Blob.valueOf('RLM merge test content for ' + pathOnClient)
         );
+    }
+
+    // A user who cannot create the process gets the fixed sentence, not the platform's refusal
+    // (which names the object and fields the insert was refused on).
+    @IsTest
+    static void aRefusedInsertShowsAFixedSentence() {
+        User nobody = RLM_DocGenTestUsers.withNoGrants();
+        Quote quote = createQuote();
+
+        Test.startTest();
+        System.runAs(nobody) {
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ Id.valueOf('068000000000001AAA') };
+            try {
+                RLM_DocumentGenerationMerge.MergeDocuments(new List<RLM_DocumentGenerationMerge.Request>{ request });
+                Assert.fail('Expected the insert to be refused for a user with no docgen grants.');
+            } catch (Exception caught) {
+                Assert.isInstanceOfType(caught, RLM_DocumentGenerationMerge.DocumentMergeException.class,
+                    'The insert itself was refused: ' + caught.getTypeName());
+                Assert.areEqual(RLM_DocumentGenerationMerge.MERGE_FAILED_MESSAGE, caught.getMessage(),
+                    'The fixed sentence, not the platform message.');
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(0, [SELECT COUNT() FROM DocumentGenerationProcess], 'Nothing was created.');
     }
 
     private static Quote createQuote() {

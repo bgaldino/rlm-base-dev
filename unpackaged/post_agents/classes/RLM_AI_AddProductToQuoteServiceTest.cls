@@ -170,6 +170,114 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         System.assertEquals('Managed add-line said no.', results[0].errorMessage);
     }
 
+    // The add-line action passes a validation rule's or trigger's own message back for the user;
+    // that text is shown as is. Measured shapes (a 264 org) are used verbatim below.
+    @isTest
+    static void refusalTextIsPassedThroughOnlyWhenItIsWrittenForTheUser() {
+        System.assertEquals('Quantity must be at least 5 for this product.',
+            RLM_AI_AddProductToQuoteService.userSafeRefusal('Quantity must be at least 5 for this product.'),
+            'A validation rule message is shown as written.');
+        String triggerFault = 'SomeTrigger: execution of BeforeInsert\n\ncaused by: '
+            + 'System.ListException: List index out of bounds: 3\n\nTrigger.SomeTrigger: line 3, column 1';
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+            RLM_AI_AddProductToQuoteService.userSafeRefusal(triggerFault),
+            'A trigger fault is replaced by the fixed sentence.');
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+            RLM_AI_AddProductToQuoteService.userSafeRefusal('FIELD_INTEGRITY_EXCEPTION: bad value'),
+            'A status-code style message is replaced by the fixed sentence.');
+        for (String fault : new List<String>{
+            'INSUFFICIENT_ACCESS_OR_READONLY, insufficient access rights on object id',
+            'Insert failed. First exception on row 0; first error: DUPLICATE_VALUE, duplicate value found',
+            'Apex CPU time limit exceeded',
+            'System.NullPointerException: Attempt to de-reference a null object'
+        }) {
+            System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+                RLM_AI_AddProductToQuoteService.userSafeRefusal(fault), 'Hidden: ' + fault);
+        }
+        System.assertEquals('Add this product only to quotes in USD.',
+            RLM_AI_AddProductToQuoteService.userSafeRefusal('Add this product only to quotes in USD.'),
+            'An acronym in a validation message is not a status code.');
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+            RLM_AI_AddProductToQuoteService.userSafeRefusal('  '),
+            'A blank message gets the fixed sentence.');
+    }
+
+    @isTest
+    static void hidesAManagedFaultFromTheUser() {
+        Fixture f = buildFixture('Quinn Faulting Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new FakeInvoker(false,
+            'SomeTrigger: execution of BeforeInsert\n\ncaused by: System.NullPointerException: '
+            + 'Attempt to de-reference a null object\n\nTrigger.SomeTrigger: line 7, column 1');
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Faulting Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE, results[0].errorMessage);
+    }
+
+    // Once the add-line action reports success the line exists, so a failure finding it afterwards
+    // must not report the add as failed (a retry would add it twice): success, with no line id.
+    @isTest
+    static void aFailedLineLookupAfterTheAddStaysASuccess() {
+        Fixture f = buildFixture('Quinn Lookup Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+        RLM_AI_AddProductToQuoteService.lineLookupFailure = new QueryException('lookup refused');
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Lookup Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals(1, fake.callCount);
+        System.assertEquals(null, results[0].quoteLineItemId, 'The id is left blank, not guessed.');
+        System.assertEquals(null, results[0].errorMessage);
+        System.assert(results[0].lineSummaryDisplay.contains('Quinn Lookup Product'));
+    }
+
+    // The add-line action did not run at all: the unexpected-error sentence, not the refusal one.
+    @isTest
+    static void anActionThatDidNotRunShowsTheUnexpectedErrorSentence() {
+        Fixture f = buildFixture('Quinn Unrun Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NotRunInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Unrun Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE, results[0].errorMessage);
+    }
+
+    private class NotRunInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            RLM_AI_AddProductToQuoteService.ManagedResult r =
+                new RLM_AI_AddProductToQuoteService.ManagedResult(false, null);
+            r.actionFailed = true;
+            return r;
+        }
+    }
+
     private class ThrowingInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
         public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
             Id quoteId, Id productId, Id sellingModelId,

@@ -36,38 +36,34 @@ private class RLM_ReturnPDFDocumentTest {
             'The PDF version\'s document is returned.');
     }
 
-    // A blank ResponseText still produces an output (with null ids) in request order,
-    // so a Flow never fails on a missing result; a later request is unaffected.
+    // A blank ResponseText means generation named no file: the same fixed sentence as an unusable
+    // ResponseText, not an empty output the flow would carry on with. A null request in the list is
+    // a missing request.
     @IsTest
-    static void returnsEmptyOutputsForBlankRequests_inRequestOrder() {
-        ContentVersion word = newVersion('Proposal.docx');
-        ContentVersion pdf = newVersion('Contract.pdf');
-        insert new List<ContentVersion>{ word, pdf };
-        Assert.areNotEqual('PDF',
-            [SELECT FileType FROM ContentVersion WHERE Id = :word.Id].FileType,
-            'PRECONDITION: the .docx version is not a PDF.');
-
+    static void throwsForANullRequestOrABlankResponseText() {
+        try {
+            RLM_ReturnPDFDocument.ReturnPDFDocumentId(new List<RLM_ReturnPDFDocument.InputVariable>{ null });
+            Assert.fail('Expected IllegalArgumentException for a null request.');
+        } catch (IllegalArgumentException caught) {
+            Assert.areEqual(RLM_ReturnPDFDocument.NO_REQUEST_MESSAGE, caught.getMessage(),
+                'The exact user-facing sentence');
+        }
         RLM_ReturnPDFDocument.InputVariable blank = new RLM_ReturnPDFDocument.InputVariable();
         blank.ResponseText = '   ';
-        RLM_ReturnPDFDocument.InputVariable withPdf = new RLM_ReturnPDFDocument.InputVariable();
-        withPdf.ResponseText = String.valueOf(pdf.Id);
-
+        RLM_ReturnPDFDocument.InputVariable empty = new RLM_ReturnPDFDocument.InputVariable();
         Test.startTest();
-        List<RLM_ReturnPDFDocument.OutputVariable> outputs =
-            RLM_ReturnPDFDocument.ReturnPDFDocumentId(
-                new List<RLM_ReturnPDFDocument.InputVariable>{ blank, withPdf }
-            );
+        for (RLM_ReturnPDFDocument.InputVariable request : new List<RLM_ReturnPDFDocument.InputVariable>{
+            blank, empty
+        }) {
+            try {
+                RLM_ReturnPDFDocument.ReturnPDFDocumentId(new List<RLM_ReturnPDFDocument.InputVariable>{ request });
+                Assert.fail('Expected PdfNotFoundException for a request that names no file.');
+            } catch (RLM_ReturnPDFDocument.PdfNotFoundException caught) {
+                Assert.areEqual(RLM_ReturnPDFDocument.NO_USABLE_IDS_MESSAGE, caught.getMessage(),
+                    'The exact user-facing sentence');
+            }
+        }
         Test.stopTest();
-
-        Assert.areEqual(2, outputs.size(), 'One output per request, in order.');
-        Assert.isNull(outputs[0].ContentVersionId, 'Blank ResponseText yields an empty output.');
-        Assert.isNull(outputs[0].ContentDocumentId);
-        Assert.areEqual(pdf.Id, outputs[1].ContentVersionId,
-            'A later request is unaffected by earlier empty ones.');
-        Assert.areEqual(
-            [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :pdf.Id].ContentDocumentId,
-            outputs[1].ContentDocumentId,
-            'The PDF request also carries its ContentDocument.');
     }
 
     // Ids were given but none is a PDF the user can read (here, Word only): a specific exception,
@@ -130,10 +126,11 @@ private class RLM_ReturnPDFDocumentTest {
         Assert.areEqual(1, used, 'One ContentVersion query for all five requests.');
     }
 
-    // A Minimum Access user holding only the Sales Representative set, plus the docgen runtime grant
-    // (see RLM_DocGenTestUsers), gets back the PDF they can read.
+    // A Minimum Access user holding the Sales Representative set and the docgen runtime grant gets
+    // back a PDF they uploaded. This shows only that a user can read their own file under USER_MODE;
+    // it says nothing about files another user generated, which follow file sharing.
     @IsTest
-    static void returnsThePdfForASalesRepresentativeWithOnlyThatSet() {
+    static void returnsTheirOwnPdfToASalesRepresentative() {
         User rep = RLM_DocGenTestUsers.salesRepresentative();
         List<RLM_ReturnPDFDocument.OutputVariable> outputs;
         ContentVersion pdf;
