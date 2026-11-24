@@ -422,6 +422,9 @@ class SiteGuideSnapshot:
                  sleep: Callable[[float], None] = time.sleep):
         self.options = dict(options)
         self.logger = logger or get_logger()
+        self._version_verified = False
+        self._switching = False
+        self._start_votes: Counter = Counter()
         self._fetch_once = fetcher or http_fetch
         self._redirect = redirect_resolver or http_redirect_target
         self._sleep = sleep
@@ -561,6 +564,12 @@ class SiteGuideSnapshot:
         return manifest
 
     def _save_manifest(self, path: Path, manifest: Dict[str, Any]) -> None:
+        if self._switching and not self._version_verified:
+            raise SnapshotError(
+                "switching an atlas capture to the site needs a confirmed API version, and "
+                "none was confirmed; the atlas manifest was kept. Rerun with --mode all or "
+                "refresh while the site is reachable (set probe_page if its pages show no version)."
+            )
         manifest["last_updated"] = utc_timestamp()
         manifest["stats"] = compute_stats(manifest, "pages")
         write_manifest(path, {k: v for k, v in manifest.items() if k != "_legacy_ids"})
@@ -600,6 +609,8 @@ class SiteGuideSnapshot:
         manifest = self._load_or_init_manifest(manifest_path)
         legacy_ids = manifest.get("_legacy_ids")
         self._version_verified = False
+        self._switching = bool(legacy_ids)
+        self._start_votes = Counter()
 
         if mode in ("discover", "all", "refresh"):
             self._discover(manifest, manifest_path, legacy_ids, save=mode == "discover")
@@ -612,11 +623,10 @@ class SiteGuideSnapshot:
             if to_capture:
                 failed, attempted = self._capture_pages(to_capture, output_dir, manifest, manifest_path)
 
-        if legacy_ids and not self._version_verified:
-            raise SnapshotError(
-                "the site's API version was never confirmed, so the atlas manifest was "
-                "kept and nothing was switched. Set probe_page and rerun with --mode refresh."
-            )
+        if not self._version_verified and self._start_votes:
+            # No capture verified (nothing queued): the start page still must not
+            # let a moved site's TOC be saved.
+            self._verify_version(self._start_votes, manifest, require=False)
         self._save_manifest(manifest_path, manifest)
         self._build_index(output_dir / "index.md", manifest)
         stats = manifest.get("stats", {})
@@ -634,6 +644,7 @@ class SiteGuideSnapshot:
         # Settle the API version before the manifest is touched or saved, so a
         # refusal leaves the corpus (and an atlas manifest being switched) intact.
         votes: Counter = Counter(set(api_versions(start["body"])))
+        self._start_votes = votes
         if save:
             # Discover-only: the start page decides. With a capture to follow, capture
             # settles the version over many pages before any save.
@@ -767,8 +778,8 @@ class SiteGuideSnapshot:
                 fetched[res["id"]] = res
             if start + o["concurrency"] < len(queue):
                 self._sleep(o["batch_delay_ms"] / 1000.0)
-        if fetched:
-            self._verify_version(votes, manifest)
+        # With nothing fetched, the start page's votes (if any) are the evidence.
+        self._verify_version(votes or self._start_votes, manifest, require=bool(fetched))
 
         extra = Counter(t for r in fetched.values() for t in unhandled_tags(r["body"]))
         if extra:

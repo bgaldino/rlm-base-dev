@@ -213,6 +213,20 @@ def main():
         raises(SnapshotError, snap(tmp, fetcher=only_start, mode="refresh").run)
         check("an unverified atlas switch keeps the atlas manifest",
               (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
+    with tempfile.TemporaryDirectory() as tmp:
+        old = json.dumps({"pages": [{"page_id": "rlm_get_started.htm", "status": "captured"}]})
+        (Path(tmp) / "manifest.json").write_text(old, encoding="utf-8")
+        raises(SnapshotError, snap(tmp, mode="discover").run)
+        check("a discover-only switch with no version evidence keeps the atlas manifest",
+              (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
+    with tempfile.TemporaryDirectory() as tmp:
+        v69 = make_fetcher()(START)[1].replace("</doc-content-layout>", "<p>/services/data/v69.0/x</p></doc-content-layout>")
+        s = snap(tmp, mode="all", fetcher=make_fetcher({START: (200, v69, START)}))
+        s.run()
+        s2 = snap(tmp, mode="all", api_version="68.0", fetcher=make_fetcher({START: (200, v69, START)}))
+        before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
+        check("an all-mode rerun with nothing pending still checks the start page's version",
+              raises(SnapshotError, s2.run) and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
     import http.client
     import urllib.request
     class _Boom:
