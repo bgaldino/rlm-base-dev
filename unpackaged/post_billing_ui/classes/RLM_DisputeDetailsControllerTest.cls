@@ -303,21 +303,14 @@ private class RLM_DisputeDetailsControllerTest {
     // gives null, which the save turns into a handled error.
     @isTest
     static void approvedAmountField_findsTheFieldByLabelOrReturnsNull() {
-        Schema.SObjectType itemType = Schema.getGlobalDescribe().get('DisputeItem');
-
         Test.startTest();
         String none = RLM_DisputeDetailsController.approvedAmountField(new Map<String, Schema.SObjectField>{
             'name' => Account.Name, 'industry' => Account.Industry });
-        String found = itemType == null ? null
-            : RLM_DisputeDetailsController.approvedAmountField(itemType.getDescribe().fields.getMap());
+        String found = RLM_DisputeDetailsController.approvedAmountField(
+            Schema.getGlobalDescribe().get('DisputeItem').getDescribe().fields.getMap());
         Test.stopTest();
 
         Assert.isNull(none, 'A field map with no approved field gives null');
-        if (itemType != null) {
-            Assert.isNotNull(found, 'DisputeItem has an approved-amount field');
-            String label = itemType.getDescribe().fields.getMap().get(found).getDescribe().getLabel().toLowerCase();
-            Assert.isTrue(label.contains('approved') && label.contains('amount'),
-                'The field is the one whose label names an approved amount. Got: ' + found + ' (' + label + ')');
-        }
+        Assert.areEqual('ApprovedAmount', found, 'On DisputeItem the approved amount is ApprovedAmount, the field the save writes');
     }
 }
