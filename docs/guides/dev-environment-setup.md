@@ -525,7 +525,7 @@ The script handles:
    is (old patch or old base) rather than cleared (rerun once the cause is fixed); it
    is rebuilt anyway only when that Python is already gone. Both of those also end
    the run nonzero, as does a rebuilt venv whose `home` still isn't pyenv's. Then it
-   reinstalls `pr_gate.py --requirements --all`, one `--stage` at a time (CumulusCI, then the Robot packages).
+   reinstalls `pr_gate.py --requirements --all`, one `--stage` at a time (CumulusCI, then the Robot packages; stage 1 downgrades the Robot packages on an existing venv and stage 2 restores them, so a failed stage 2 is reported by number and fixed by rerunning).
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)

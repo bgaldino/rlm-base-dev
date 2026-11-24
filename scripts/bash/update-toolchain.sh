@@ -441,17 +441,24 @@ elif [ -d "$GATE_VENV" ]; then
     # One stage at a time, CumulusCI first: its 4.10.1 metadata caps seleniumlibrary and
     # selenium below what the Robot packages need, so one combined install cannot resolve
     # (the same order as prepare-rlm-org.yml and the Docker image; pip's closing conflict
-    # warning is expected). Unquoted on purpose: one requirement per line, split into pip
-    # arguments.
-    gate_ok=1
+    # warning is expected). On an existing venv stage 1 downgrades the Robot stack to satisfy
+    # those caps and stage 2 puts it back, so a failed stage 2 leaves the downgraded stack;
+    # rerun once the cause is fixed (the same trade-off prepare-rlm-org.yml accepts). Globbing
+    # is off around the unquoted expansion so a spec with extras cannot be pathname-expanded;
+    # one requirement per line, split into pip arguments.
+    gate_failed_stage=""
+    set -f
     for stage in 1 2; do
       # shellcheck disable=SC2046
-      "$GATE_VENV/bin/python" -m pip install --upgrade \
-          $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all --stage "$stage") \
-        || gate_ok=0
+      if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
+          $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all --stage "$stage"); then
+        gate_failed_stage="$stage"
+        break
+      fi
     done
-    if [ "$gate_ok" = 0 ]; then
-      GATE_FAILED="pip install into $GATE_VENV failed"
+    set +f
+    if [ -n "$gate_failed_stage" ]; then
+      GATE_FAILED="pip install of stage $gate_failed_stage (1 = CumulusCI, 2 = Robot packages) into $GATE_VENV failed"
     # The same probe the Stop hook and validate_setup run: every pr_gate.py
     # dependency imports, and the Python is new enough for every check.
     elif ! gate_python >/dev/null; then

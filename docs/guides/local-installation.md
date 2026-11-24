@@ -225,7 +225,8 @@ This `.venv` is also the **gate interpreter**: the Python that runs the pre-merg
 # Install everything pr_gate.py needs to run all of its checks (including cumulusci), one
 # stage at a time: CumulusCI first, then the Robot packages, which CumulusCI 4.10.1's declared
 # caps on seleniumlibrary and selenium contradict. pip's closing conflict warning is expected
-# (prepare-rlm-org.yml and the Docker image install the same way).
+# (prepare-rlm-org.yml and the Docker image install the same way). On an existing venv, stage 1
+# downgrades the Robot packages and stage 2 restores them; if stage 2 fails, rerun it.
 for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done
 
 # Activate the venv

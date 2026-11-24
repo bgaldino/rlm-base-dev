@@ -766,37 +766,53 @@ check("--stage without --requirements is a usage error, not silently ignored",
       _bad.returncode == 2 and "--stage only applies with --requirements" in _bad.stderr,
       (_bad.returncode, _bad.stderr[-200:]))
 
-# Every caller that installs what `--requirements` prints must do it one stage at a time: one
-# combined install of cumulusci and the Robot pins is ResolutionImpossible. The sweep reads every
-# tracked text file (the rule cannot pass by looking at too few) and then requires each known
-# installer to be present and staged (it cannot pass by finding nothing).
-_tracked = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=REPO).stdout.split()
-_skip = {"tests/test_pr_gate.py", "scripts/ai/pr_gate.py"}
-_installs = {}
-for _rel in _tracked:
-    if _rel in _skip or not _rel.endswith((".md", ".py", ".sh", ".yml", ".yaml", ".toml", ".txt", ".mdc")):
+# Every caller that consumes what `--requirements` prints must do it one stage at a time: one combined
+# install of cumulusci and the Robot pins is ResolutionImpossible. The sweep reads every tracked file
+# that mentions pr_gate.py (extensionless ones too: Dockerfile, hook scripts), joins backslash
+# continuations so a pip install split from its `$(...)` is one statement, and for each statement that
+# consumes `--requirements` output (a pip call, a `$(...)` or a `reqs=` assignment) requires a
+# `--stage "$var"` whose `var` is the variable of a `for var in 1..STAGE_COUNT` loop just before it. A
+# lone literal `--stage 1`, an unstaged call, or a loop elsewhere in the file does not satisfy it.
+# pr-checks.yml is the one documented exception (literal stage assignments, one `pip install ${reqs}`
+# each); the workflow tests above and below pin its form.
+_stage_list = " ".join(str(n) for n in range(1, pr_gate.STAGE_COUNT + 1))
+_EXEMPT = {"tests/test_pr_gate.py", "scripts/ai/pr_gate.py", ".github/workflows/pr-checks.yml"}
+_DATA = (".csv", ".json", ".xml", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".ffxblob",
+         ".docx", ".lock", ".svg", ".ico", ".woff", ".woff2", ".html", ".htm", ".cls", ".trigger")
+_tracked = subprocess.run(["git", "ls-files"], capture_output=True, text=True, cwd=REPO).stdout.split("\n")
+_consumers, _unstaged = {}, []
+for _rel in filter(None, _tracked):
+    if _rel in _EXEMPT or _rel.lower().endswith(_DATA):
         continue
+    _path = os.path.join(REPO, _rel)
     try:
-        with open(os.path.join(REPO, _rel), encoding="utf-8") as _fh:
-            _lines = _fh.read().splitlines()
+        if os.path.islink(_path) or os.path.getsize(_path) > 2_000_000:
+            continue
+        with open(_path, encoding="utf-8") as _fh:
+            _text = _fh.read()
     except (OSError, UnicodeDecodeError):
         continue
-    for _ln in _lines:
-        if "pr_gate.py" in _ln and "--requirements" in _ln and "pip" in _ln and "install" in _ln:
-            _installs.setdefault(_rel, []).append(_ln)
-_unstaged = {f: [l for l in ls if "--stage" not in l] for f, ls in _installs.items()}
-_unstaged = {f: ls for f, ls in _unstaged.items() if ls}
-check("no caller installs `pr_gate.py --requirements` output in one unstaged pip install",
-      not _unstaged, _unstaged)
-_stages = " ".join(str(n) for n in range(1, pr_gate.STAGE_COUNT + 1))
-for _rel in ("docs/guides/local-installation.md", "docs/guides/dev-environment-setup.md",
-             "scripts/ai/gate_python.py", "scripts/bash/update-toolchain.sh"):
-    _txt = open(os.path.join(REPO, _rel), encoding="utf-8").read()
-    check(f"{_rel} installs the gate's requirements stage by stage (loop over {_stages})",
-          f"for n in {_stages};" in _txt or f"for stage in {_stages};" in _txt, _rel)
+    if "pr_gate.py" not in _text or "--requirements" not in _text:
+        continue
+    _joined = re.sub(r"\\\n\s*", " ", _text)
+    for _m in re.finditer(r"^.*$", _joined, re.M):
+        _st = _m.group(0)
+        if "pr_gate.py" not in _st or "--requirements" not in _st:
+            continue
+        if not (re.search(r"\bpip\s+install|-m pip", _st) or "$(" in _st or re.search(r"\breqs=", _st)):
+            continue  # prose or an example of the output, not a consumer
+        _consumers.setdefault(_rel, []).append(_st.strip())
+        _var = re.search(r'--stage\s+"?\$\{?(\w+)\}?"?', _st)
+        _before = _joined[max(0, _m.start() - 700):_m.end()]
+        if not (_var and re.search(r"\bfor\s+" + _var.group(1) + r"\s+in\s+" + _stage_list + r"\s*[;\n]",
+                                   _before)):
+            _unstaged.append((_rel, _st.strip()[:160]))
+check("every consumer of `pr_gate.py --requirements` output installs it through a stage loop over "
+      f"{_stage_list}, never as one install or a lone stage", not _unstaged, _unstaged)
 check("the sweep found the installers it is about (so it is not passing on an empty set)",
       {"docs/guides/local-installation.md", "docs/guides/dev-environment-setup.md",
-       "scripts/ai/gate_python.py"} <= set(_installs), sorted(_installs))
+       "scripts/ai/gate_python.py", "scripts/bash/update-toolchain.sh"} <= set(_consumers),
+      sorted(_consumers))
 
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
 # tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
@@ -6104,7 +6120,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 862
+EXPECTED = 858
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
