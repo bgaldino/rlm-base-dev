@@ -686,7 +686,9 @@ class SiteGuideSnapshot:
                 f"{len(manifest.get('pages', []))} page record(s) are dropped"
             )
             fresh = dict(base)
-            fresh["superseded_files"] = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
+            superseded = sorted(set(manifest.get("superseded_files") or []) | set(old_files))
+            if superseded:
+                fresh["superseded_files"] = superseded
             return fresh
         if changes:
             # Same guide, another release, deliverable or API version: nothing is current

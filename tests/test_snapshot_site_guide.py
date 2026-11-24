@@ -326,7 +326,7 @@ def main():
         mg["pages"] = [{"page_id": "start", "status": "captured"}]
         s3 = snap(tmp, mode="refresh", site_url=other)
         s3._save_manifest(Path(tmp) / "m2.json", mg)
-        sf = load_path = json.loads((Path(tmp) / "m2.json").read_text(encoding="utf-8")).get("superseded_files", [])
+        sf = json.loads((Path(tmp) / "m2.json").read_text(encoding="utf-8")).get("superseded_files", [])
         check("a superseded file the refresh recaptured is dropped from the list, others are kept",
               "articles/start.md" not in sf and "articles/keep-me.md" in sf)
 
