@@ -384,7 +384,7 @@ signs that the area has been updated.
 ```bash
 python tests/test_snapshot_help.py           # stdlib only
 python tests/test_snapshot_dev_guide.py      # stdlib only
-python tests/test_snapshot_guard.py          # stdlib only; fixtures in tests/fixtures/doc_snapshot_guard/
+python tests/test_snapshot_guard.py          # needs PyYAML; fixtures in tests/fixtures/doc_snapshot_guard/
 python tests/test_doc_snapshot_presets.py    # needs PyYAML
 ```
 

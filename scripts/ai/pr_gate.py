@@ -800,7 +800,7 @@ CHECKS = [
                   # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
                   # suites live here rather than in STDLIB_SUITES for that reason.
                   "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
-                  "tests/test_snapshot_guard.py",
+                  "tests/test_snapshot_guard.py", "tests/fixtures/doc_snapshot_guard/",
                   # The workflow security policy (SHA pins, allowed owners, permissions, no
                   # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
                   ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py",
