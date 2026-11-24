@@ -793,8 +793,8 @@ def _path_like_values(node: Any, where: str):
         # printed "all paths resolve".
         #
         # The skip bought nothing anyway: an entry declaring itself absent has its
-        # path/manifest keys REMOVED from the YAML, so there was never an absent path here to protect. Keep
-        # walking — what a not_captured entry still names, it still has to have.
+        # path/manifest keys REMOVED from the YAML, so there was never an absent
+        # path here to protect. Keep walking — what a not_captured entry still names, it still has to have.
         for key, value in node.items():
             yield from _path_like_values(value, f"{where}.{key}")
     elif isinstance(node, list):
