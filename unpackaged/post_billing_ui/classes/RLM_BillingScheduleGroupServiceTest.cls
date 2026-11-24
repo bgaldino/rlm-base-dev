@@ -241,7 +241,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     @isTest
     static void getAccountBillingInfo_junctionOnlyBillingAccount_isResolved() {
-        Account a = new Account(Name = 'BSG Junction Acct');
+        Account a = new Account(Name = 'BSG Junction Acct', BillingCity = 'Lisbon');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG Junction BA');
         insert ba;
@@ -258,6 +258,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(ba.Id, info.billingAccountId,
             'A billing account linked only through AccountBillingAccount is resolved.');
         Assert.areEqual('BSG Junction BA', info.billingAccountName);
+        Assert.areEqual('Lisbon', info.billingCity,
+            'The billing account has no owning account, so the city is the requesting account\'s; the modal sends it on create.');
     }
 
     // Among several billing accounts of the account, the one marked as the default billing profile wins

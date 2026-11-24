@@ -196,7 +196,19 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         BillingAccount ba = billingAccounts[0];
-        String city = ba.Account != null ? ba.Account.BillingCity : null;
+        String city;
+        if (ba.Account != null) {
+            city = ba.Account.BillingCity;
+        } else {
+            // A billing account linked only through AccountBillingAccount has no owning account, so
+            // its city is the requesting account's. The modal sends this city on create and has no
+            // city input, so a null here would refuse every create with "Billing City is required.".
+            try {
+                city = [SELECT BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].BillingCity;
+            } catch (QueryException qe) {
+                throw readRefused('the account', qe);
+            }
+        }
         return new AccountInfo(acc.Name, ba.Id, ba.Name, city);
     }
 
