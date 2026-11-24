@@ -26,6 +26,22 @@ sides run, and `_guards.py`, so both importers apply one multi-version rule.
 Everything else is separate; the validator is **vendored** here as `_schema.py` (a
 mirror of `tasks/expression_set_schema.py`) rather than imported.
 
+**Known, deliberate differences between the two adapters.** The engine runs the same
+state machine for both, but two behaviours differ by design:
+
+- **Failure recovery for a non-definition mutation.** The toolkit's Tooling
+  `Metadata` mutations (`relabel_expression_set.py`, `set_step_formula.py`, the
+  label auto-restore) call `run_mutation(reactivate_on_failure=True)`: when one
+  fails, the version and the cascaded plans are reactivated and the error is still
+  raised. The CCI task has no such path; every CCI mutation is a Connect PATCH, and
+  after a failed one it leaves the version off and fails loudly. After a failed
+  Connect PATCH the toolkit does the same.
+- **Label restore.** The CCI task sends the Connect PATCH with `enabled: false` and
+  restores step labels in the same inactive window, before reactivating; a restore
+  failure is logged and the task still succeeds. The toolkit reactivates first and
+  restores labels in a second deactivate → Tooling PATCH → reactivate cycle; a
+  restore failure makes the CLI exit 1 (`labelRestore.ok=false` in `--json`).
+
 **How these fit the lifecycle** (what to reach for, and when):
 
 | Lifecycle stage | Production path | These helpers |
