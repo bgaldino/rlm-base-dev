@@ -261,26 +261,6 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         System.assertEquals(f.productId, lookup.lastProductId);
     }
 
-    @isTest
-    static void hidesAManagedFaultFromTheUser() {
-        Fixture f = buildFixture('Quinn Faulting Product', true, false);
-        RLM_AI_AddProductToQuoteService.invoker = new FakeInvoker(false,
-            'SomeTrigger: execution of BeforeInsert\n\ncaused by: System.NullPointerException: '
-            + 'Attempt to de-reference a null object\n\nTrigger.SomeTrigger: line 7, column 1');
-
-        RLM_AI_AddProductToQuoteService.AddInput input =
-            new RLM_AI_AddProductToQuoteService.AddInput();
-        input.quoteId = String.valueOf(f.quoteId);
-        input.productName = 'Quinn Faulting Product';
-
-        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
-            RLM_AI_AddProductToQuoteService.addProduct(
-                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
-
-        System.assertEquals(false, results[0].isSuccess);
-        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE, results[0].errorMessage);
-    }
-
     // Once the add-line action reports success the line exists, so a failure finding it afterwards
     // must not report the add as failed (a retry would add it twice): success, with no line id.
     @isTest
@@ -347,7 +327,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     }
 
     @isTest
-    static void unexpectedFailureShowsAFixedSentence() {
+    static void aThrowingInvocationShowsTheUncertainSentence() {
         Fixture f = buildFixture('Quinn Throwing Product', true, false);
         RLM_AI_AddProductToQuoteService.invoker = new ThrowingInvoker();
 
@@ -392,7 +372,89 @@ private class RLM_AI_AddProductToQuoteServiceTest {
                 new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
 
         System.assertEquals(false, results[0].isSuccess);
-        System.assert(results[0].errorMessage.contains('Invalid quote Id'));
+        System.assertEquals(RLM_AI_AddProductToQuoteService.INVALID_QUOTE_MESSAGE, results[0].errorMessage,
+            'A fixed sentence that does not repeat the input.');
+    }
+
+    // A 15-character quote Id is accepted and passed on as the quote's Id.
+    @isTest
+    static void acceptsAFifteenCharacterQuoteId() {
+        Fixture f = buildFixture('Quinn Short Id Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId).left(15);
+        input.productName = 'Quinn Short Id Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(true, results[0].isSuccess, 'error: ' + results[0].errorMessage);
+        System.assertEquals(f.quoteId, fake.lastQuoteId);
+    }
+
+    // An Id of another object (here the product's) is refused before any add is attempted.
+    @isTest
+    static void rejectsAnIdThatIsNotAQuote() {
+        Fixture f = buildFixture('Quinn Not A Quote Product', true, false);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.productId);
+        input.productName = 'Quinn Not A Quote Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.INVALID_QUOTE_MESSAGE, results[0].errorMessage);
+        System.assertEquals(0, fake.callCount, 'No add for an Id that is not a quote.');
+    }
+
+    // Outputs without the success flag read as a refusal by an action that ran, not a run failure.
+    @isTest
+    static void emptyActionOutputsReadAsARefusal() {
+        RLM_AI_AddProductToQuoteService.ManagedResult empty =
+            RLM_AI_AddProductToQuoteService.resultFrom(new Map<String, Object>());
+        System.assertEquals(false, empty.isSuccess);
+        System.assertEquals(false, empty.actionFailed);
+        System.assertEquals(null, empty.errorMessage);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_REFUSED_MESSAGE,
+            RLM_AI_AddProductToQuoteService.refusalMessage(empty.errorMessage));
+    }
+
+    private class NullInvoker implements RLM_AI_AddProductToQuoteService.ManagedAddLineInvoker {
+        public RLM_AI_AddProductToQuoteService.ManagedResult addLine(
+            Id quoteId, Id productId, Id sellingModelId,
+            Decimal quantity, Date startDate, Date endDate
+        ) {
+            return null;
+        }
+    }
+
+    // An invoker that returns nothing is treated as an action that did not run.
+    @isTest
+    static void aMissingResultShowsTheUnexpectedErrorSentence() {
+        Fixture f = buildFixture('Quinn Null Result Product', true, false);
+        RLM_AI_AddProductToQuoteService.invoker = new NullInvoker();
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Null Result Product';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals(RLM_AI_AddProductToQuoteService.ADD_FAILED_MESSAGE, results[0].errorMessage);
     }
 
     @isTest

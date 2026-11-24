@@ -12,8 +12,9 @@
  * reimplement Revenue Cloud quote-line creation here.
  *
  * The managed invocation is isolated behind an injectable seam
- * (ManagedAddLineInvoker) so the resolver/validation logic is fully
- * unit-testable. The real managed call is exercised live in `sf agent preview`
+ * (ManagedAddLineInvoker), and the best-effort lookup of the new line behind
+ * another (NewLineLookup), so the resolver/validation logic and every outcome
+ * after the add are unit-testable. The real managed call is exercised live in `sf agent preview`
  * (managed actions are not invocable/mockable in @isTest).
  *
  * Names-only by contract: the agent surfaces `lineSummaryDisplay` /
@@ -38,7 +39,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
 
     public class AddInput {
         @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0) to add the product to.')
+            description='15- or 18-character Salesforce Id of the Quote (starts with 0Q0) to add the product to.')
         public String quoteId;
 
         @InvocableVariable(label='Product Id'
@@ -137,9 +138,13 @@ public with sharing class RLM_AI_AddProductToQuoteService {
     @TestVisible
     static final String ADD_REFUSED_MESSAGE =
         'The product was not added to the quote. Ask your administrator to check the quote and the product.';
+    // Also shown when the action cannot be created (createCustomAction throws): the invocation
+    // path does not tell that case apart, so the cautious sentence covers it.
     @TestVisible
     static final String ADD_UNCERTAIN_MESSAGE =
         'The product may not have been added to the quote because of an unexpected error. Check the quote before trying again.';
+    @TestVisible
+    static final String INVALID_QUOTE_MESSAGE = 'That is not a valid quote. Open the quote and try again.';
 
     private class PreparedAdd {
         Id quoteId;
@@ -156,6 +161,8 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         } catch (Exception e) {
             // An unexpected exception before the add (a refused read, a platform fault) carries
             // internal detail, so the user gets a fixed sentence and the detail goes to the debug log.
+            // No test reaches this branch: the class runs in system mode, so its reads cannot be
+            // refused in a test, and adding a seam only to throw here would test the seam.
             System.debug(LoggingLevel.ERROR, 'RLM_AI_AddProductToQuoteService preparing the add failed: '
                 + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             out.errorMessage = ADD_FAILED_MESSAGE;
@@ -189,7 +196,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             return out;
         }
 
-        // The line is committed. Nothing below can throw or flip isSuccess: a reported failure
+        // The line is committed. Nothing below can escape or flip isSuccess: a reported failure
         // after a committed add would invite a retry that adds the line twice.
         out.isSuccess = true;
         out.productNameAdded = prep.product.Name;
@@ -214,11 +221,13 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             return null;
         }
         PreparedAdd prep = new PreparedAdd();
-        prep.quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
-        if (prep.quoteId == null) {
-            out.errorMessage = 'Invalid quote Id: ' + input.quoteId;
+        // Only a quote Id is accepted; any other value (not an Id, or another object's Id) gets
+        // a fixed sentence that does not repeat the input.
+        if (!RLM_AI_ConfigServiceUtils.hasPrefix(input.quoteId, RLM_AI_ConfigServiceUtils.QUOTE_PREFIX)) {
+            out.errorMessage = INVALID_QUOTE_MESSAGE;
             return null;
         }
+        prep.quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
 
         // 1. Resolve the product (by Id, or by name with disambiguation).
         prep.product = resolveProduct(input, out);
