@@ -937,20 +937,23 @@ private without sharing class RLM_AccountUtilitiesTest {
         Id pricebookEntryId;
     }
 
-    // Codes and external order lines are unique across the org, and test methods can
-    // run in parallel, so each method's fixture carries its own token.
-    private static final String TOKEN = String.valueOf(Crypto.getRandomInteger()).remove('-');
+    private static final String USAGE_PRODUCT = 'RLM Reset Usage Product';
+    private static final String RESOURCE_CODE = 'RLM_AU_TEST_UR';
 
-    private static UsageFixture newUsageFixture() {
+    // Built once for the class: the unit of measure, usage resource, product and
+    // standard price book entry the usage records need. One price book entry for
+    // the whole class, rather than one per test method running in parallel.
+    @TestSetup
+    static void setupUsageFixture() {
         UnitOfMeasureClass uomClass = new UnitOfMeasureClass(
-            Name = 'RLM Reset Volume', Code = 'RLM_AU_TEST_UOMC_' + TOKEN, Type = 'Usage', Status = 'Draft'
+            Name = 'RLM Reset Volume', Code = 'RLM_AU_TEST_UOMC', Type = 'Usage', Status = 'Draft'
         );
         insert uomClass;
         uomClass.Status = 'Active';
         update uomClass;
 
         UnitOfMeasure uom = new UnitOfMeasure(
-            Name = 'RLM Reset Unit', UnitCode = 'RLMAUTU' + TOKEN, Type = 'Usage',
+            Name = 'RLM Reset Unit', UnitCode = 'RLMAUTU', Type = 'Usage',
             UnitOfMeasureClassId = uomClass.Id, Status = 'Draft'
         );
         insert uom;
@@ -958,26 +961,36 @@ private without sharing class RLM_AccountUtilitiesTest {
         update uom;
 
         UsageResource resource = new UsageResource(
-            Name = 'RLM Reset Resource', Code = 'RLM_AU_TEST_UR_' + TOKEN, Category = 'Usage', Status = 'Draft',
+            Name = 'RLM Reset Resource', Code = RESOURCE_CODE, Category = 'Usage', Status = 'Draft',
             DefaultUnitOfMeasureId = uom.Id, UnitOfMeasureClassId = uomClass.Id
         );
         insert resource;
         resource.Status = 'Active';
         update resource;
 
-        Product2 product = new Product2(Name = 'RLM Reset Usage Product', IsActive = true);
+        Product2 product = new Product2(Name = USAGE_PRODUCT, IsActive = true);
         insert product;
-        PricebookEntry entry = new PricebookEntry(
+        insert new PricebookEntry(
             Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1, IsActive = true
         );
-        insert entry;
+    }
 
+    private static UsageFixture newUsageFixture() {
+        UsageResource resource = [SELECT Id, DefaultUnitOfMeasureId FROM UsageResource WHERE Code = :RESOURCE_CODE];
+        Id standardPricebookId = Test.getStandardPricebookId();
         UsageFixture f = new UsageFixture();
         f.resourceId = resource.Id;
-        f.uomId = uom.Id;
-        f.pricebookEntryId = entry.Id;
+        f.uomId = resource.DefaultUnitOfMeasureId;
+        f.pricebookEntryId = [
+            SELECT Id FROM PricebookEntry
+            WHERE Product2.Name = :USAGE_PRODUCT AND Pricebook2Id = :standardPricebookId
+        ].Id;
         return f;
     }
+
+    // An entitlement's external order line must be unique, and test methods can run
+    // in parallel, so each method's entitlements carry their own token.
+    private static final String TOKEN = String.valueOf(Crypto.getRandomInteger()).remove('-');
 
     private static UsageEntitlementAccount newEntitlementAccount(Id accountId, UsageFixture f) {
         Datetime start = Datetime.now().addDays(-10);
@@ -1115,8 +1128,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The entitlement account must still exist');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
             'The bucket must still exist');
-        String kept = UsageEntitlementAccount.SObjectType.getDescribe().getLabelPlural()
-            + ': 1 (could not be deleted: ';
+        String kept = entry(UsageEntitlementAccount.SObjectType, 1) + ' (could not be deleted: ';
         Assert.isTrue(
             result.retainedSummary != null && result.retainedSummary.contains(kept),
             'The entitlement account must be reported kept, with the reason. Got: '
@@ -1218,18 +1230,13 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void activatedOrdersAreDeleted() {
         Account a = newAccount();
-        Product2 product = new Product2(Name = 'RLM Reset Order Product', IsActive = true);
-        insert product;
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 10, IsActive = true
-        );
-        insert pbe;
+        Id pricebookEntryId = newUsageFixture().pricebookEntryId;
         Order o = new Order(
             AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
             Pricebook2Id = Test.getStandardPricebookId()
         );
         insert o;
-        insert new OrderItem(OrderId = o.Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = 10);
+        insert new OrderItem(OrderId = o.Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1);
         o.Status = 'Activated';
         update o;
 
