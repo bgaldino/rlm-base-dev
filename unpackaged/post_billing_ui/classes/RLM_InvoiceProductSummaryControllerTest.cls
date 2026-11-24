@@ -409,6 +409,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
             line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2), 'Name' => 'Beta A',
                 'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
                 'RLM_Charge_Type__c' => 'Recurring', 'ChargeAmount' => 50, 'LineAmount' => 55 }),
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 6), 'Name' => 'Beta M',
+                'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
+                'RLM_Charge_Type__c' => 'One Time', 'ChargeAmount' => 0 }),
             line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 3), 'Name' => 'Alpha 1',
                 'Product2Id' => alpha, 'Product2' => new Map<String, Object>{ 'Name' => 'Alpha' },
                 'RLM_Charge_Type__c' => 'One Time', 'ChargeAmount' => 20, 'TaxAmount' => 2, 'LineAmount' => 22 }),
@@ -430,13 +433,13 @@ private class RLM_InvoiceProductSummaryControllerTest {
             'Products sort by name; a line without a product is "No Product", one whose product is not loaded "Unknown Product"');
         RLM_InvoiceProductSummaryController.ProductSummary betaSummary = productNamed(result, 'Beta');
         Assert.areEqual(beta, betaSummary.productId, 'The product id is the group key');
-        Assert.areEqual(2, betaSummary.lineCount, 'Both Beta lines are counted');
+        Assert.areEqual(3, betaSummary.lineCount, 'Every Beta line is counted');
         Assert.areEqual(150, betaSummary.subtotal, 'The subtotal adds the charges');
         Assert.areEqual(10, betaSummary.taxAmount, 'A blank tax counts as zero');
         Assert.areEqual(165, betaSummary.totalWithTax, 'Charge plus tax where the line amount is blank (110), else the line amount (55)');
-        Assert.areEqual('Recurring', betaSummary.chargeType, 'The first charge type found fills a blank one');
-        Assert.areEqual('NO_PRODUCT', productNamed(result, 'No Product').productId, 'Lines without a product share one group');
-        Assert.areEqual(5, result.totalLines, 'Every line is counted');
+        Assert.areEqual('Recurring', betaSummary.chargeType, 'The first charge type found fills a blank one; a later one does not replace it');
+        Assert.areEqual('NO_PRODUCT', productNamed(result, 'No Product').productId, 'A line without a product is keyed NO_PRODUCT');
+        Assert.areEqual(6, result.totalLines, 'Every line is counted');
         Assert.areEqual(175, result.grandSubtotal, 'The grand subtotal adds every product');
         Assert.areEqual(12, result.grandTax, 'The grand tax adds every product');
         Assert.areEqual(192, result.grandTotal, 'The grand total adds every product');
@@ -469,8 +472,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
         };
         List<BillingPeriodItem> periods = new List<BillingPeriodItem>{
             periodItem(usageLine, d.addMonths(1), d.addMonths(2)),
-            periodItem(usageLine, d.addMonths(3), d.addMonths(4)),
-            periodItem(usageLine, d, d.addMonths(1))
+            periodItem(usageLine, d, d.addMonths(4)),
+            periodItem(usageLine, d.addMonths(3), d.addMonths(3).addDays(14))
         };
 
         Test.startTest();
@@ -486,8 +489,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
             byName.put(ld.name, ld);
         }
         RLM_InvoiceProductSummaryController.InvoiceLineDetail usage = byName.get('Data');
-        Assert.areEqual(d, usage.periodStartDate, 'The earliest billing period start wins over the line\'s own date');
-        Assert.areEqual(d.addMonths(4), usage.periodEndDate, 'The latest billing period end wins, not the last item\'s');
+        Assert.areEqual(d, usage.periodStartDate,
+            'The earliest billing period start wins, not the first or last item\'s, nor the line\'s own date');
+        Assert.areEqual(d.addMonths(4), usage.periodEndDate, 'The latest billing period end wins, not the first or last item\'s');
         Assert.isTrue(usage.isUsage, 'The usage charge type matches in any case');
         Assert.areEqual(2, usage.overageQty, 'A usage line carries its overage');
         Assert.areEqual('GB', usage.unitOfMeasure, 'A usage line names its unit of measure');
