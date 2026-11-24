@@ -214,15 +214,15 @@ def main():
         check("an unverified atlas switch keeps the atlas manifest",
               (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
     with tempfile.TemporaryDirectory() as tmp:
-        old = json.dumps({"pages": [{"page_id": "rlm_get_started.htm", "status": "captured"}]})
+        old = json.dumps({"pages": [{"page_id": "rlm_get_started.htm", "status": "pending"}]})
         (Path(tmp) / "manifest.json").write_text(old, encoding="utf-8")
-        raises(SnapshotError, snap(tmp, mode="discover").run)
+        check("discover-only switch reaches the save guard",
+              raises(SnapshotError, snap(tmp, mode="discover").run))
         check("a discover-only switch with no version evidence keeps the atlas manifest",
               (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
     with tempfile.TemporaryDirectory() as tmp:
         v69 = make_fetcher()(START)[1].replace("</doc-content-layout>", "<p>/services/data/v69.0/x</p></doc-content-layout>")
-        s = snap(tmp, mode="all", fetcher=make_fetcher({START: (200, v69, START)}))
-        s.run()
+        snap(tmp, mode="all").run()
         s2 = snap(tmp, mode="all", api_version="68.0", fetcher=make_fetcher({START: (200, v69, START)}))
         before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
         check("an all-mode rerun with nothing pending still checks the start page's version",
@@ -242,6 +242,16 @@ def main():
           raises(OptionsError, lambda: snap("/tmp/x", batch_delay_ms=-1)))
     check("a site_url with an unsafe slug is an options error",
           raises(OptionsError, lambda: snap("/tmp/x", site_url=BASE + "a%20b.html")))
+
+    check("a version tie goes to the newer version, deterministically",
+          sg.observed_version(Counter({"v62.0": 1, "v68.0": 1})) == "68.0")
+    with tempfile.TemporaryDirectory() as tmp:
+        mixed = make_fetcher()(START)[1].replace(
+            "</doc-content-layout>", "<p>/services/data/v62.0/a /services/data/v68.0/b</p></doc-content-layout>")
+        snap(tmp, mode="all", fetcher=make_fetcher({START: (200, mixed, START)})).run()
+        st = snap(tmp, mode="all", fetcher=make_fetcher({START: (200, mixed, START)})).run()
+        check("a start page citing an older version beside the preset's does not refuse a rerun",
+              st["captured"] == 4)
 
     print("API version check")
     with tempfile.TemporaryDirectory() as tmp:

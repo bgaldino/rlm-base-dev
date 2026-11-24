@@ -312,7 +312,10 @@ def observed_version(votes: Counter) -> Optional[str]:
     """The dominant API version among ``votes``, as ``68.0``; None without votes."""
     if not votes:
         return None
-    return votes.most_common(1)[0][0].lstrip("v")
+    def rank(item):  # most pages first; a tie goes to the newer version (deterministic)
+        version, count = item
+        return count, tuple(int(n) for n in version.lstrip("v").split("."))
+    return max(votes.items(), key=rank)[0].lstrip("v")
 
 
 def guess_slug(legacy_id: str) -> str:
@@ -609,8 +612,10 @@ class SiteGuideSnapshot:
         manifest = self._load_or_init_manifest(manifest_path)
         legacy_ids = manifest.get("_legacy_ids")
         self._version_verified = False
-        self._switching = bool(legacy_ids)
+        self._switching = "_legacy_ids" in manifest
         self._start_votes = Counter()
+        self._toc_ids = None
+        self.refused, self.accepted, self.orphaned = [], [], []
 
         if mode in ("discover", "all", "refresh"):
             self._discover(manifest, manifest_path, legacy_ids, save=mode == "discover")
@@ -626,7 +631,7 @@ class SiteGuideSnapshot:
         if not self._version_verified and self._start_votes:
             # No capture verified (nothing queued): the start page still must not
             # let a moved site's TOC be saved.
-            self._verify_version(self._start_votes, manifest, require=False)
+            self._verify_version(self._start_votes, manifest, require=False, weak=True)
         self._save_manifest(manifest_path, manifest)
         self._build_index(output_dir / "index.md", manifest)
         stats = manifest.get("stats", {})
@@ -648,7 +653,7 @@ class SiteGuideSnapshot:
         if save:
             # Discover-only: the start page decides. With a capture to follow, capture
             # settles the version over many pages before any save.
-            self._verify_version(votes, manifest, require=False)
+            self._verify_version(votes, manifest, require=False, weak=True)
         toc = parse_toc(start["attrs"])
         discovered, skipped = flatten_toc(toc, self.guide_path, o["section_filters"])
         if skipped:
@@ -721,7 +726,8 @@ class SiteGuideSnapshot:
             pages = [p for p in pages if (p.get("section") or "").strip().lower() in wanted]
         return pages if mode == "refresh" else [p for p in pages if p.get("status") != "captured"]
 
-    def _verify_version(self, votes: Counter, manifest, require: bool = True) -> None:
+    def _verify_version(self, votes: Counter, manifest, require: bool = True,
+                        weak: bool = False) -> None:
         """Refuse unless the site's observed API version is the preset's.
 
         ``votes`` counts pages (not mentions) per ``/services/data/vNN.0``; when
@@ -730,6 +736,13 @@ class SiteGuideSnapshot:
         o = self.options
         votes = Counter(votes)
         seen = observed_version(votes)
+        if weak and votes:
+            # One page is thin evidence: it may cite older versions ("v62.0 and later").
+            # It refuses only when the preset's version is absent or a newer one appears.
+            want = tuple(int(n) for n in o["api_version"].split("."))
+            newer = any(tuple(int(n) for n in v.lstrip("v").split(".")) > want for v in votes)
+            if f"v{o['api_version']}" in votes and not newer:
+                seen = o["api_version"]
         if seen is None and o.get("probe_page"):
             probe = self._fetch_page(str(o["probe_page"]))
             if "error" not in probe:
@@ -779,7 +792,10 @@ class SiteGuideSnapshot:
             if start + o["concurrency"] < len(queue):
                 self._sleep(o["batch_delay_ms"] / 1000.0)
         # With nothing fetched, the start page's votes (if any) are the evidence.
-        self._verify_version(votes or self._start_votes, manifest, require=bool(fetched))
+        if fetched or self._switching:
+            self._verify_version(votes, manifest)  # a switch needs captured evidence
+        else:
+            self._verify_version(self._start_votes, manifest, require=False, weak=True)
 
         extra = Counter(t for r in fetched.values() for t in unhandled_tags(r["body"]))
         if extra:
