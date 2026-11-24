@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Compare ProductClassificationAttr values in an org against a PCM plan's CSV (read-only).
 
-Measures PCM load fact (a) in `product-catalog-modeling/catalogs-and-loading.md`: after a
-one-pass insert on a fresh org, classification attributes held the attribute definition's
-`AttributeNameOverride` and `IsRequired` instead of the plan's. A second pass applied the plan's
-values. This reads the org with one SOQL query (`sf data query`, no writes) and reports every
-row whose value differs from the plan CSV, so you can see whether a build needs a second load.
+Checks whether a one-pass load left classification attributes at their attribute definition's
+values instead of the plan's (PCM load fact (a) in `product-catalog-modeling/catalogs-and-loading.md`,
+observed on another plan: a second, update pass applied the plan's values). The QuantumBit qb-pcm
+plan matched 36 of 36 rows after one pass, so it needs no second load. This reads the org with one
+SOQL query (`sf data query`, no writes) and reports every row whose value differs from the plan
+CSV, so you can see whether a build needs a second load.
 
   python scripts/check_classification_attrs.py --target-org <sf alias or username> \
       [--plan datasets/sfdmu/qb/en-US/qb-pcm] [--json out.json]
 
 Exit 0 when every CSV row exists in the org and `AttributeNameOverride`, `IsRequired`,
 `DefaultValue`, `Description` and `HelpText` (the fields an insert copies from the attribute
-definition, per the trace in attributes-and-classifications.md, and an update does not) match the CSV. Exit 1 on a missing row or a difference in
+definition, per the trace in attributes-and-classifications.md, and an update does not) match the
+CSV. Exit 1 on a missing row or a difference in
 those fields. Exit 2 when the comparison can't be trusted: a query or `sf` error or unexpected
 payload, an unreadable CSV or unwritable --json file, a duplicate key in the CSV, or an org key
 held by more than one row (another plan's rows would make the match ambiguous). Rows are keyed
@@ -102,6 +104,8 @@ def read_csv(plan: Path) -> dict:
                 rows[key] = rec
     except (OSError, KeyError) as exc:
         raise Untrusted(f"can't read {path}: {exc!r}") from exc
+    if not rows:
+        raise Untrusted(f"{path} has no rows")
     return rows
 
 
@@ -141,9 +145,13 @@ def read_org(target: str, query: str) -> list:
     if payload.get("status") != 0:
         raise Untrusted(json.dumps(payload.get("message") or payload)[:2000])
     try:
-        return payload["result"]["records"]
-    except (KeyError, TypeError) as exc:
+        records = payload["result"]["records"]
+        total = payload["result"].get("totalSize", len(records))
+    except (KeyError, TypeError, AttributeError) as exc:
         raise Untrusted(f"unexpected sf payload: {json.dumps(payload)[:500]}") from exc
+    if total != len(records):
+        raise Untrusted(f"sf returned {len(records)} of {total} rows")
+    return records
 
 
 def compare(expected: dict, actual: dict) -> tuple[list, list, list]:

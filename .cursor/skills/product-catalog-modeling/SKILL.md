@@ -53,8 +53,8 @@ drop the `.md` suffix of the snapshot file name.
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
 8. **Load a PCM plan twice into a fresh org, unless `scripts/check_classification_attrs.py` shows one pass already
-   matches the CSV (it does for QuantumBit), and never extract from an org that had only
-   one pass**: on the measured plan, the first insert left classification attributes'
+   matches the CSV (it does for QuantumBit), and never extract from an org whose
+   one pass differs from the CSV**: on the measured plan, the first insert left classification attributes'
    `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT

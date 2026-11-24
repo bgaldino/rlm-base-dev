@@ -170,6 +170,9 @@ check("payload without result exits 2",
 check("blank Is* equals false", (M.norm("", "IsRequired"), M.norm(None, "IsRequired"), M.norm(False, "IsRequired")),
       ("false", "false", "false"))
 check("list payload exits 2", run(good, sf=Result(json.dumps([1]))), 2)
+check("header-only CSV exits 2", run(plan_dir(""), recs), 2)
+check("truncated result exits 2",
+      run(good, sf=Result(json.dumps({"status": 0, "result": {"records": recs, "totalSize": 99}}))), 2)
 _saved = M.subprocess.run
 M.subprocess.run = lambda *_a, **_k: Result(json.dumps({"status": 0, "result": {"records": recs}}))
 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
