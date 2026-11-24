@@ -75,6 +75,10 @@ class AnalyticsSetupHelper:
     BUTTON_WAIT_S = 30
     POST_CLICK_WAIT_S = 60
     POLL_S = 1
+    # An org with CRM Analytics already on renders the Enable button for ~0.5-1 s while
+    # the page loads, then replaces it with Launch CRM Analytics (measured 2026-11-24 on
+    # 264, every load, Chrome 157 and 158). Enable counts only once it has held this long.
+    ENABLE_SETTLE_S = 3
 
     @property
     def _driver(self):
@@ -98,53 +102,89 @@ class AnalyticsSetupHelper:
                 return state
             time.sleep(self.POLL_S)
 
+    def _settled_state(self, driver):
+        """'launch' as soon as the page shows it; 'enable' only once the Enable button has
+        stayed, with no Launch, for ENABLE_SETTLE_S; otherwise the last state read when
+        BUTTON_WAIT_S runs out. Only a non-Enable read checks the deadline, so an Enable first
+        read at or after it (up to the first read past it) still gets its full settle."""
+        deadline = time.monotonic() + self.BUTTON_WAIT_S
+        enable_since = None
+        while True:
+            state = self._page_state(driver)
+            now = time.monotonic()
+            if state == "launch":
+                return state
+            if state == "enable":
+                if enable_since is None:
+                    enable_since = now
+                if now - enable_since >= self.ENABLE_SETTLE_S:
+                    return state
+            else:
+                enable_since = None  # re-rendered: the Enable button must hold again
+                if now >= deadline:
+                    return state
+            time.sleep(self.POLL_S)
+
     @keyword
     def enable_crm_analytics_via_getting_started_page(self):
         """Click 'Enable CRM Analytics' on the Analytics Getting Started page.
 
-        Polls the page (main DOM and shadow DOM) until it shows either the Enable
-        button or the Launch CRM Analytics button that replaces it once CRM Analytics
-        is on.
+        Polls the page (main DOM and shadow DOM) until it shows the Launch CRM
+        Analytics button (already on) or the Enable button has held for
+        ENABLE_SETTLE_S, so the Enable button an enabled org renders while loading
+        is never clicked.
 
         Returns:
             'already_enabled'  — the page shows CRM Analytics is already on.
             'clicked'          — the button was clicked and the page confirmed it.
         Raises:
-            AssertionError     — the page showed neither state, or did not confirm
-                                 the click.
+            AssertionError     — the page showed neither state; the JS click found no
+                                 button although the page still shows one; or the
+                                 click (or a click the driver errored on) was not
+                                 confirmed by the page.
         """
         log = BuiltIn().log
         driver = self._driver
         driver.switch_to.default_content()
 
-        log(f"Waiting up to {self.BUTTON_WAIT_S}s for the Getting Started page...")
-        state = self._wait_for_state(driver, ("enable", "launch"), self.BUTTON_WAIT_S)
+        log(f"Waiting up to {self.BUTTON_WAIT_S}s (plus a {self.ENABLE_SETTLE_S}s settle) for the "
+            "Getting Started page...")
+        state = self._settled_state(driver)
         if state == "launch":
             log("CRM Analytics is already enabled (page offers Launch CRM Analytics).")
             return "already_enabled"
         if state != "enable":
             raise AssertionError(
-                f"The Analytics Getting Started page showed neither '{self.BUTTON_LABEL}' nor "
-                f"'Launch CRM Analytics' within {self.BUTTON_WAIT_S}s."
+                f"The Analytics Getting Started page neither held '{self.BUTTON_LABEL}' for "
+                f"{self.ENABLE_SETTLE_S}s nor showed 'Launch CRM Analytics' within {self.BUTTON_WAIT_S}s."
             )
 
-        log(f"'{self.BUTTON_LABEL}' found; clicking via JS...")
+        log(f"'{self.BUTTON_LABEL}' held for {self.ENABLE_SETTLE_S}s; clicking via JS...")
+        driver_error = ""
         try:
             clicked = driver.execute_script(_CLICK_ENABLE_JS)
-        except WebDriverException:
-            clicked = "not_found"
-        if clicked != "clicked":
+        except WebDriverException as exc:
+            # The script may have clicked before the driver failed: let the page decide below.
+            # Only the exception type is recorded: driver messages can echo page URLs.
+            clicked, driver_error = "unknown", type(exc).__name__
+            log(f"Driver raised {driver_error} during the click; checking the page.", "WARN")
+        if clicked == "not_found":
             # It re-rendered between the read and the click: read the page again.
-            state = self._wait_for_state(driver, ("enable", "launch"), self.BUTTON_WAIT_S)
+            state = self._settled_state(driver)
             if state == "launch":
                 log("CRM Analytics is already enabled (page offers Launch CRM Analytics).")
                 return "already_enabled"
+            if state == "enable":
+                raise AssertionError(f"'{self.BUTTON_LABEL}' is on the page but the JS click could not "
+                                     "find it (it re-rendered at click time).")
             raise AssertionError(f"'{self.BUTTON_LABEL}' disappeared before it could be clicked.")
 
         log(f"Waiting up to {self.POST_CLICK_WAIT_S}s for the page to confirm...")
         if self._wait_for_state(driver, ("launch",), self.POST_CLICK_WAIT_S) != "launch":
+            attempt = ("Clicked" if clicked == "clicked"
+                       else f"The driver raised {driver_error} while clicking")
             raise AssertionError(
-                f"Clicked '{self.BUTTON_LABEL}' but the page did not confirm within "
+                f"{attempt} '{self.BUTTON_LABEL}' and the page did not confirm within "
                 f"{self.POST_CLICK_WAIT_S}s (no 'Launch CRM Analytics')."
             )
         log("CRM Analytics enabled successfully.")

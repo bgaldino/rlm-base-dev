@@ -104,11 +104,13 @@ class FakeDriver:
     so any use of them fails the test.
     """
 
-    def __init__(self, states, after_click="launch", click_result="clicked"):
+    def __init__(self, states, after_click="launch", click_result="clicked", click_lands=False):
         self.states = list(states)
         self.after_click = after_click
         self.click_result = click_result
+        self.click_lands = click_lands  # with an exception click_result: did the click happen first
         self.clicks = 0
+        self.click_times = []
         self.switched_default = 0
         self.switch_to = types.SimpleNamespace(default_content=self._default_content)
 
@@ -125,8 +127,15 @@ class FakeDriver:
         if script is m._PAGE_STATE_JS:
             return self._next_state()
         if script is m._CLICK_ENABLE_JS:
+            if isinstance(self.click_result, Exception):
+                if self.click_lands:
+                    self.clicks += 1
+                    self.click_times.append(CLOCK.t)
+                    self.states = [self.after_click]
+                raise self.click_result
             if self.click_result == "clicked":
                 self.clicks += 1
+                self.click_times.append(CLOCK.t)
                 self.states = [self.after_click]
             return self.click_result
         raise AssertionError("unexpected script")
@@ -137,20 +146,36 @@ class FakeDriver:
     find_elements = find_element
 
 
+class FakeClock:
+    """Stands in for the helper's ``time`` module: sleep() advances monotonic()."""
+
+    def __init__(self):
+        self.t = 0.0
+
+    def monotonic(self):
+        return self.t
+
+    def sleep(self, seconds):
+        self.t += seconds
+
+
+CLOCK = FakeClock()
+
+
 def _run(driver, **overrides):
     _LOG.clear()
     _FakeBuiltIn.driver = driver
+    CLOCK.t = 0.0
     lib = m.AnalyticsSetupHelper()
-    lib.POLL_S = 0
+    lib.POLL_S = 0.25
     for k, v in overrides.items():
         setattr(lib, k, v)
-    sleeps = []
-    original = m.time.sleep
-    m.time.sleep = sleeps.append
+    original = m.time
+    m.time = types.SimpleNamespace(monotonic=CLOCK.monotonic, sleep=CLOCK.sleep)
     try:
         return lib.enable_crm_analytics_via_getting_started_page()
     finally:
-        m.time.sleep = original
+        m.time = original
 
 
 def test_clicks_enable_button_without_webdriver_lookups():
@@ -184,7 +209,8 @@ def test_page_never_renders_raises():
     try:
         result = _run(d, BUTTON_WAIT_S=0.05)
     except AssertionError as exc:
-        check("neither button nor enabled marker: fails loudly", "Getting Started" in str(exc), str(exc))
+        check("neither button nor enabled marker: fails loudly",
+              "Getting Started" in str(exc) and "held" in str(exc), str(exc))
     else:
         check("neither button nor enabled marker: fails loudly", False, f"returned {result!r}")
 
@@ -215,6 +241,79 @@ def test_button_vanishes_before_click_is_rechecked():
           result == "already_enabled" and d.clicks == 0, (result, d.clicks))
 
 
+def test_click_misses_but_button_stays_raises():
+    d = FakeDriver(["enable"], click_result="not_found")
+    try:
+        result = _run(d)
+    except AssertionError as exc:
+        check("JS click finds nothing but Enable is still there: fails naming the re-render",
+              "re-rendered at click time" in str(exc) and d.clicks == 0, str(exc))
+    else:
+        check("JS click finds nothing but Enable is still there: fails naming the re-render",
+              False, f"returned {result!r}")
+
+
+def test_driver_error_after_the_click_landed_is_confirmed_by_the_page():
+    d = FakeDriver(["enable"], click_result=WebDriverException("session hiccup"), click_lands=True)
+    result = _run(d)
+    check("driver errors after the JS click ran, page shows Launch: clicked",
+          result == "clicked" and d.clicks == 1, (result, d.clicks))
+
+
+def test_driver_error_with_no_click_fails_naming_the_error():
+    d = FakeDriver(["enable"], click_result=WebDriverException("session hiccup"), click_lands=False)
+    try:
+        result = _run(d, POST_CLICK_WAIT_S=1)
+    except AssertionError as exc:
+        check("driver errors and the page never confirms: fails naming the driver error",
+              "driver raised WebDriverException" in str(exc), str(exc))
+    else:
+        check("driver errors and the page never confirms: fails naming the driver error",
+              False, f"returned {result!r}")
+
+
+def test_transient_enable_on_enabled_org_is_not_clicked():
+    # Measured on 264 (both Chrome 157 and 158): an org with CRM Analytics already on renders
+    # "Enable CRM Analytics" for ~0.5-1 s while loading, then "Launch CRM Analytics".
+    d = FakeDriver(["none", "enable", "enable", "enable", "launch"])
+    result = _run(d)
+    check("Enable shown briefly, then Launch: already_enabled", result == "already_enabled", result)
+    check("no click on the loading-state Enable button", d.clicks == 0, d.clicks)
+
+
+def test_enable_must_hold_for_the_settle_window():
+    d = FakeDriver(["none", "enable"])
+    lib_settle = m.AnalyticsSetupHelper.ENABLE_SETTLE_S
+    result = _run(d)
+    check("Enable that stays: clicked", result == "clicked" and d.clicks == 1, (result, d.clicks))
+    first_enable = 0.25  # second read, one poll after the first
+    check("click waits for the settle window after Enable first appears",
+          d.click_times and d.click_times[0] >= first_enable + lib_settle, d.click_times)
+    check("settle window outlasts the measured ~1 s transient", lib_settle >= 2.5, lib_settle)
+
+
+def test_rerender_restarts_the_settle_window():
+    d = FakeDriver(["enable", "enable", "none", "enable"])
+    lib_settle = m.AnalyticsSetupHelper.ENABLE_SETTLE_S
+    result = _run(d)
+    check("Enable interrupted by a re-render: still clicked once it holds",
+          result == "clicked" and d.clicks == 1, (result, d.clicks))
+    restart = 0.75  # the read after the "none"
+    check("settle window restarts after the re-render",
+          d.click_times and d.click_times[0] >= restart + lib_settle, d.click_times)
+
+
+def test_enable_appearing_near_the_deadline_still_settles():
+    d = FakeDriver(["none"] * 4 + ["enable"])
+    result = _run(d, BUTTON_WAIT_S=1)
+    check("Enable first seen at the wait deadline: clicked after settling",
+          result == "clicked" and d.clicks == 1, (result, d.clicks))
+    first_enable = 1.0  # fifth read, at the deadline
+    check("the deadline does not cut the settle short",
+          d.click_times and d.click_times[0] >= first_enable + m.AnalyticsSetupHelper.ENABLE_SETTLE_S,
+          d.click_times)
+
+
 def test_never_uses_webdriver_element_lookups():
     # Code only: the module docstring names these APIs to explain why they are avoided.
     tree = ast.parse(open(_SRC, encoding="utf-8").read())
@@ -241,6 +340,13 @@ def main():
         test_page_never_renders_raises,
         test_click_without_confirmation_fails,
         test_button_vanishes_before_click_is_rechecked,
+        test_click_misses_but_button_stays_raises,
+        test_driver_error_after_the_click_landed_is_confirmed_by_the_page,
+        test_driver_error_with_no_click_fails_naming_the_error,
+        test_transient_enable_on_enabled_org_is_not_clicked,
+        test_enable_must_hold_for_the_settle_window,
+        test_rerender_restarts_the_settle_window,
+        test_enable_appearing_near_the_deadline_still_settles,
         test_never_uses_webdriver_element_lookups,
     ):
         test()
