@@ -133,8 +133,9 @@ private class RLM_InvoiceAgingControllerTest {
         Test.stopTest();
 
         Assert.areEqual(0, fromNull.totalInvoices, 'No invoices: zero count');
+        Assert.isNotNull(fromNull.invoices, 'A null input still returns a list, never null');
         Assert.areEqual(0, fromEmpty.totalAmount, 'No invoices: zero amount');
-        Assert.isTrue(fromEmpty.invoices.isEmpty(), 'No invoices: an empty list, never null');
+        Assert.isTrue(fromEmpty.invoices.isEmpty(), 'No invoices: an empty list');
         Assert.areEqual('USD', noCurrency.currencyCode, 'An invoice without a currency leaves the USD default');
         Assert.areEqual(5, noCurrency.averageAge, 'One invoice: its own age is the average');
     }

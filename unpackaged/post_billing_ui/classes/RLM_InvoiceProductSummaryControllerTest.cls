@@ -403,10 +403,10 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Id alpha = fakeId(Product2.SObjectType, 2);
         Id unnamed = fakeId(Product2.SObjectType, 3);
         List<InvoiceLine> lines = new List<InvoiceLine>{
-            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 1), 'Name' => 'Beta 1',
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 1), 'Name' => 'Beta Z',
                 'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
                 'ChargeAmount' => 100, 'TaxAmount' => 10 }),
-            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2), 'Name' => 'Beta 2',
+            line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 2), 'Name' => 'Beta A',
                 'Product2Id' => beta, 'Product2' => new Map<String, Object>{ 'Name' => 'Beta' },
                 'RLM_Charge_Type__c' => 'Recurring', 'ChargeAmount' => 50, 'LineAmount' => 55 }),
             line(new Map<String, Object>{ 'Id' => fakeId(InvoiceLine.SObjectType, 3), 'Name' => 'Alpha 1',
@@ -442,7 +442,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.areEqual(192, result.grandTotal, 'The grand total adds every product');
         Assert.areEqual('EUR', result.currencyCode, 'The currency is the invoice\'s');
         RLM_InvoiceProductSummaryController.InvoiceLineDetail first = betaSummary.lines[0];
-        Assert.areEqual('Beta 1', first.name, 'Lines keep their query order within a product');
+        Assert.areEqual('Beta Z', first.name, 'Lines keep their query order within a product, not name order');
         Assert.areEqual('EUR', first.currencyCode, 'Each line carries the invoice currency');
         Assert.isFalse(first.isUsage, 'A line without a usage charge type is not usage');
     }
@@ -462,6 +462,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
                 'InvoiceLineStartDate' => d.addYears(1), 'InvoiceLineEndDate' => d.addYears(1) }),
             line(new Map<String, Object>{ 'Id' => plainLine, 'Name' => 'Plain', 'Quantity' => 2, 'UnitPrice' => 4,
                 'ChargeAmount' => 8, 'Type' => 'Charge', 'Description' => 'A plain line',
+                'UnitOfMeasureId' => uom, 'UsageOverageQuantity' => 1,
                 'InvoiceLineStartDate' => d, 'InvoiceLineEndDate' => d.addDays(30) }),
             line(new Map<String, Object>{ 'Id' => noQuantityLine, 'Name' => 'Free data',
                 'RLM_Charge_Type__c' => 'Usage Resource', 'Quantity' => 0, 'ChargeAmount' => 1 })
@@ -501,7 +502,10 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.areEqual(8, plain.totalWithTax, 'No tax and no line amount: the total is the charge');
         Assert.areEqual('Charge', plain.type, 'The line type is kept');
         Assert.areEqual('A plain line', plain.description, 'The description is kept');
-        Assert.isNull(plain.unitOfMeasure, 'Only a usage line names a unit of measure');
+        Assert.isFalse(plain.isUsage, 'A line without the usage charge type is not usage');
+        Assert.isNull(plain.unitOfMeasure, 'Only a usage line names its unit of measure');
+        Assert.isNull(plain.overageQty, 'Only a usage line carries its overage');
+        Assert.isNull(plain.rate, 'Only a usage line gets a rate');
 
         Assert.isNull(byName.get('Free data').rate, 'A usage line with no quantity has no rate');
     }
@@ -568,9 +572,11 @@ private class RLM_InvoiceProductSummaryControllerTest {
         List<InvoiceLine> lines = new List<InvoiceLine>{
             line(new Map<String, Object>{ 'Id' => parent, 'Name' => 'office bundle', 'Product2Id' => bundleProduct,
                 'Product2' => bundleRef, 'ChargeAmount' => 100 }),
-            line(new Map<String, Object>{ 'Id' => middle, 'Name' => 'Suite', 'ChargeAmount' => 40 }),
+            line(new Map<String, Object>{ 'Id' => middle, 'Name' => 'Suite', 'Product2Id' => bundleProduct,
+                'Product2' => bundleRef, 'ChargeAmount' => 40 }),
             line(new Map<String, Object>{ 'Id' => leaf, 'Name' => 'Seat', 'ChargeAmount' => 10 }),
-            line(new Map<String, Object>{ 'Id' => sibling, 'Name' => 'Support', 'ChargeAmount' => 5 }),
+            line(new Map<String, Object>{ 'Id' => sibling, 'Name' => 'Support', 'Product2Id' => bundleProduct,
+                'Product2' => bundleRef, 'ChargeAmount' => 5 }),
             line(new Map<String, Object>{ 'Id' => otherParent, 'Name' => 'Kit', 'ChargeAmount' => 7 }),
             line(new Map<String, Object>{ 'Id' => otherChild, 'Name' => 'Cable', 'ChargeAmount' => 1 })
         };
@@ -601,6 +607,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
         for (RLM_InvoiceProductSummaryController.InvoiceLineDetail c : top.components) {
             if (c.name == 'Suite') suite = c;
         }
+        Assert.isNotNull(suite, 'The nested bundle line is among the parent\'s components');
         Assert.isTrue(suite.isParent && suite.isComponent, 'A nested bundle line is both a parent and a component');
         Assert.areEqual('Bundle Component', suite.bundleRole, 'A line that is both is labelled a component');
         Assert.areEqual('Seat', suite.components[0].name, 'Nesting goes more than one level deep');
@@ -664,9 +671,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Id otherPeriod = fakeId(AssetStatePeriod.SObjectType, 3);
         List<AssetStatePeriodAttribute> rows = new List<AssetStatePeriodAttribute>();
         for (List<Object> r : new List<List<Object>>{
-            new List<Object>{ periodA, 'Color', 'Red' },
-            new List<Object>{ periodB, 'Ports', '8' },
             new List<Object>{ periodA, 'Size', 'L' },
+            new List<Object>{ periodB, 'Ports', '8' },
+            new List<Object>{ periodA, 'Color', 'Red' },
             new List<Object>{ otherPeriod, 'Color', 'Green' }
         }) {
             rows.add((AssetStatePeriodAttribute) JSON.deserialize(JSON.serialize(new Map<String, Object>{
@@ -682,9 +689,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
 
         Assert.areEqual(new Set<Id>{ assetA, assetB }, result.keySet(), 'Only assets with a mapped period get an entry');
         Assert.areEqual(2, result.get(assetA).size(), 'Both of asset A\'s attributes are kept');
-        Assert.areEqual('Color', result.get(assetA)[0].label, 'Attributes keep their query order');
-        Assert.areEqual('Red', result.get(assetA)[0].value, 'The value comes with its label');
-        Assert.areEqual('Size', result.get(assetA)[1].label, 'Attributes keep their query order');
+        Assert.areEqual('Size', result.get(assetA)[0].label, 'Attributes keep their query order, not label order');
+        Assert.areEqual('L', result.get(assetA)[0].value, 'The value comes with its label');
+        Assert.areEqual('Color', result.get(assetA)[1].label, 'Attributes keep their query order, not label order');
         Assert.areEqual('8', result.get(assetB)[0].value, 'Asset B gets its own attribute');
     }
 }
