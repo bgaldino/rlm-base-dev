@@ -41,6 +41,18 @@ global class RLM_CalculateTaxService {
             return '{' + String.join(jsonResponse, ',') + '}';
         }
     
+    @TestVisible private static final String NO_RESPONSE_MESSAGE = 'The tax engine returned no response.';
+
+    @TestVisible
+    private static String bodyOrNull(HttpResponse response) {
+        return response == null ? null : response.getBody();
+    }
+
+    // The parser reads money as Decimal; the platform response setters take Double.
+    private static Double toDouble(Decimal value) {
+        return value == null ? null : value.doubleValue();
+    }
+
     public static commercetax.TaxEngineResponse getTax(commercetax.TaxEngineContext taxEngineContext) 
     { 
         commercetax.CalculateTaxRequest request = (commercetax.CalculateTaxRequest)taxEngineContext.getRequest();
@@ -48,7 +60,7 @@ global class RLM_CalculateTaxService {
         string referenceEntity = request.ReferenceEntityId;
         try{
             List<commercetax.TaxLineItemRequest> listOfLines = request.lineItems;
-            if(!listOfLines.isEmpty()){
+            if(listOfLines != null && !listOfLines.isEmpty()){
                 RLM_HttpService sendHttpRequest = new RLM_HttpService();
                 sendHttpRequest.addHeader('Content-type', 'application/json');
                 String requestBody = RLM_AvalaraJSONBuilder.getInstance().frameJsonForGetTaxOrderItem(request);
@@ -58,7 +70,11 @@ global class RLM_CalculateTaxService {
                 if(Test.isRunningTest()){
                     responseString = getTestResponseString();
                 } else{
-                    responseString = sendHttpRequest.getResponse().getBody();
+                    responseString = bodyOrNull(sendHttpRequest.getResponse());
+                }
+                if(responseString == null) {
+                    // RLM_HttpService swallows a failed callout and leaves no response.
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '503', NO_RESPONSE_MESSAGE);
                 }
                 //system.debug(sendHttpRequest.getResponse());
                 //system.debug('response'+responseString);
@@ -80,9 +96,9 @@ global class RLM_CalculateTaxService {
                     }
                     response.setTaxType(requestType);
                     commercetax.AmountDetailsResponse headerAmountResponse = new commercetax.AmountDetailsResponse();
-                    headerAmountResponse.setTotalAmountWithTax(jsonSuccessParserClass.totalAmount + jsonSuccessParserClass.totaltax);
-                    headerAmountResponse.setExemptAmount(jsonSuccessParserClass.totalExempt);
-                    headerAmountResponse.setTotalAmount(jsonSuccessParserClass.totalAmount);
+                    headerAmountResponse.setTotalAmountWithTax(toDouble(jsonSuccessParserClass.totalAmount) + jsonSuccessParserClass.totaltax);
+                    headerAmountResponse.setExemptAmount(toDouble(jsonSuccessParserClass.totalExempt));
+                    headerAmountResponse.setTotalAmount(toDouble(jsonSuccessParserClass.totalAmount));
                     headerAmountResponse.setTaxAmount(jsonSuccessParserClass.totalTax);
                     response.setAmountDetails(headerAmountResponse);
                     response.setStatusDescription(jsonSuccessParserClass.adjustmentReason);
@@ -95,13 +111,12 @@ global class RLM_CalculateTaxService {
                     for(RLM_JsonSuccessParser.Lines linesToProcess: jsonSuccessParserClass.lines)
                     {
                         commercetax.LineItemResponse lineItemResponse = new commercetax.LineItemResponse();
-                        Double rateCalculated = 0.0;
                         List<commercetax.TaxDetailsResponse> taxDetailsResponses = new List<commercetax.TaxDetailsResponse>();
                         for(RLM_JsonSuccessParser.details linesDetails : linesToProcess.details)
                         {
                             commercetax.TaxDetailsResponse taxDetailsResponse = new commercetax.TaxDetailsResponse();
                             if(linesDetails.exemptAmount != 0){
-                                taxDetailsResponse.setExemptAmount(linesDetails.exemptAmount);
+                                taxDetailsResponse.setExemptAmount(toDouble(linesDetails.exemptAmount));
                                 taxDetailsResponse.setExemptReason('Some reason we dont know');
                             }
                                 commercetax.ImpositionResponse imposition = new commercetax.ImpositionResponse();
@@ -117,10 +132,9 @@ global class RLM_CalculateTaxService {
                                     jurisdiction.setId(linesDetails.jurisCode);
                                     jurisdiction.setLevel(linesDetails.jurisType);
                                     taxDetailsResponse.setJurisdiction(jurisdiction);
-                                    rateCalculated += linesDetails.rate; 
-                                taxDetailsResponse.setRate(rateCalculated);
+                                taxDetailsResponse.setRate(linesDetails.rate); // each detail keeps its own rate
                                 taxDetailsResponse.setTax(linesDetails.taxCalculated);
-                                taxDetailsResponse.setTaxableAmount(linesDetails.taxableAmount);
+                                taxDetailsResponse.setTaxableAmount(toDouble(linesDetails.taxableAmount));
                                 taxDetailsResponse.setTaxAuthorityTypeId(String.valueOf(linesDetails.taxAuthorityTypeId));
                                 taxDetailsResponse.setTaxId(linesDetails.id);
                                 taxDetailsResponse.setTaxRegionId(linesDetails.region);
@@ -132,9 +146,9 @@ global class RLM_CalculateTaxService {
                             lineItemResponse.setIsTaxable(true);
                                 commercetax.AmountDetailsResponse amountResponse = new commercetax.AmountDetailsResponse();
                                 amountResponse.setTaxAmount(linesToProcess.taxCalculated);
-                                amountResponse.setTotalAmount(linesToProcess.lineAmount);
-                                amountResponse.setTotalAmountWithTax(linesToProcess.lineAmount+linesToProcess.taxCalculated);
-                                amountResponse.setExemptAmount(linesToProcess.exemptAmount);
+                                amountResponse.setTotalAmount(toDouble(linesToProcess.lineAmount));
+                                amountResponse.setTotalAmountWithTax(toDouble(linesToProcess.lineAmount)+linesToProcess.taxCalculated);
+                                amountResponse.setExemptAmount(toDouble(linesToProcess.exemptAmount));
                                 lineItemResponse.setAmountDetails(amountResponse);
                             lineItemResponse.setIsTaxable(linesToProcess.isItemTaxable);
                             lineItemResponse.setProductCode(linesToProcess.itemCode);

@@ -60,34 +60,30 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Map<String, Object> addresses = asMap(line.get('addresses'));
         Map<String, Object> shipFrom = asMap(addresses.get('ShipFrom'));
         Assert.areEqual('1 Market St', shipFrom.get('line1'), 'ShipFrom.line1 is the street.');
-        Assert.areEqual('1 Market St', shipFrom.get('line2'),
-            'Known gap: ShipFrom line2 repeats the street instead of a second address line. Update this test when it is fixed.');
+        Assert.isFalse(shipFrom.containsKey('line2'), 'line2 is not sent: the request has one street value only.');
         Assert.areEqual('San Francisco', shipFrom.get('city'), 'ShipFrom.city');
         Assert.areEqual('CA', shipFrom.get('region'), 'ShipFrom.region is the state.');
         Assert.areEqual('US', shipFrom.get('country'), 'ShipFrom.country');
         Assert.areEqual('94105', shipFrom.get('postalCode'), 'ShipFrom.postalCode');
         Map<String, Object> shipTo = asMap(addresses.get('ShipTo'));
-        Assert.areEqual('255 S King St', shipTo.get('line2'),
-            'Known gap: ShipTo line2 repeats the street instead of a second address line. Update this test when it is fixed.');
+        Assert.isFalse(shipTo.containsKey('line2'), 'line2 is not sent.');
         Assert.areEqual('Seattle', shipTo.get('city'), 'ShipTo.city');
         Assert.areEqual('WA', shipTo.get('region'), 'ShipTo.region');
         Map<String, Object> origin = asMap(addresses.get('pointOfOrderOrigin'));
         Assert.areEqual('Austin', origin.get('city'), 'The Sold To address is the point of order origin.');
         Assert.areEqual('78701', origin.get('postalCode'), 'pointOfOrderOrigin.postalCode');
-        Assert.areEqual('100 Congress Ave', origin.get('line2'),
-            'Known gap: pointOfOrderOrigin line2 repeats the street instead of a second address line. '
-            + 'Update this test when it is fixed.');
+        Assert.isFalse(origin.containsKey('line2'), 'line2 is not sent.');
         String payload = JSON.serialize(body);
         Assert.isFalse(payload.contains('Denver'), 'The Bill To address is not sent.');
         Assert.isFalse(payload.contains('Chicago'), 'The tax engine address is not sent.');
 
-        // Pins current behaviour: the builder writes taxOverride before closing the addresses
-        // object, so the block lands inside "addresses", not on the line itself.
-        Assert.isFalse(line.containsKey('taxOverride'),
-            'Known gap: taxOverride is not written at line level. Update this test when it is fixed.');
-        Map<String, Object> taxOverride = asMap(addresses.get('taxOverride'));
-        Assert.isNotNull(taxOverride,
-            'Known gap: taxOverride is written inside addresses. Update this test when it is fixed.');
+        // taxOverride is a line-level block (type TaxDate, with a reason), not part of addresses.
+        // Unit-tested only; not verified against an Avalara sandbox.
+        Assert.isFalse(addresses.containsKey('taxOverride'), 'taxOverride is not inside addresses.');
+        Map<String, Object> taxOverride = asMap(line.get('taxOverride'));
+        Assert.isNotNull(taxOverride, 'taxOverride is written at line level.');
+        Assert.areEqual('TaxDate', taxOverride.get('type'), 'The override type is TaxDate.');
+        Assert.isNotNull(taxOverride.get('reason'), 'Avalara requires a reason.');
         Assert.isTrue(String.valueOf(taxOverride.get('taxDate')).startsWith('2026-01-20'),
             'The taxOverride carries the line effective date: ' + taxOverride.get('taxDate'));
     }
@@ -187,11 +183,9 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: missing customer details are not guarded and throw a raw NullPointerException. '
-            + 'Update this test when it is fixed.');
+            'Accepted limitation: missing customer details throw a raw NullPointerException (the platform always supplies them).');
         Assert.isInstanceOfType(caught, NullPointerException.class,
-            'Known gap: missing customer details are not guarded and throw a raw NullPointerException. '
-            + 'Update this test when it is fixed. ' + caught);
+            'Accepted limitation: missing customer details throw a raw NullPointerException. ' + caught);
     }
 
     @IsTest
@@ -210,10 +204,8 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: a malformed account id is not validated and Id.valueOf throws a raw StringException. '
-            + 'Update this test when it is fixed.');
+            'Accepted limitation: a malformed account id throws a raw StringException (the platform supplies a valid Id).');
         Assert.isInstanceOfType(caught, StringException.class,
-            'Known gap: a malformed account id is not validated and Id.valueOf throws a raw StringException. '
-            + 'Update this test when it is fixed. ' + caught);
+            'Accepted limitation: a malformed account id throws a raw StringException. ' + caught);
     }
 }

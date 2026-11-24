@@ -41,7 +41,7 @@ global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter 
             response.setReferenceDocumentCode(request.referenceDocumentCode);
             response.setTaxType(type);
             response.setStatusDescription('statusDescription');
-            if(request.sellerDetails.code == 'testSellerCode') {
+            if(request.sellerDetails != null && request.sellerDetails.code == 'testSellerCode') {
                 response.setDescription('SellerCode fetched from TaxEngine entity');
             }
             else {
@@ -131,10 +131,11 @@ global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter 
 	                lineItemResponse.setAmountDetails(null);
             	}else{
 	                commercetax.AmountDetailsResponse amountResponse = new commercetax.AmountDetailsResponse();
-	                amountResponse.setTotalAmountWithTax(totalTax+totalAmount);
+	                // This line's own amounts (the running totals belong to the header below).
+	                amountResponse.setTotalAmountWithTax(totalLineTax + lineItem.amount);
 	                amountResponse.setExemptAmount(0);
-	                amountResponse.setTotalAmount(totalAmount);
-	                amountResponse.setTaxAmount(totalTax);
+	                amountResponse.setTotalAmount(lineItem.amount);
+	                amountResponse.setTaxAmount(totalLineTax);
 	                lineItemResponse.setAmountDetails(amountResponse);
 	            }
                 lineItemResponse.setEffectiveDate(system.now());
@@ -186,6 +187,8 @@ global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter 
 
     public static Integer getRandomInteger(Integer min, Integer max)
     {
-        return min + (Integer.valueOf(Math.random()) * (max - min));
+        // Uniform in [min, max]; the span is a Long so max = Integer max does not overflow.
+        Long span = (Long) max - min + 1;
+        return (min + Math.roundToLong(Math.floor(Math.random() * span))).intValue();
     }
 }

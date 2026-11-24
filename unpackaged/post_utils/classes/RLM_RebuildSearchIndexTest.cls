@@ -5,11 +5,10 @@
  * success body is tested on the LWC path only; the invocable reports it through the same
  * catch as a transport failure, which is tested.
  *
- * Known gap: the invocable sends one identical FULL deploy per request, not one per batch.
- * One callout per request also means a batch of more than 100 requests fails with an
- * uncatchable LimitException instead of returning per-request results.
- * Known gap: the buildType and activationType inputs are not forwarded; FULL/IMMEDIATE is
- * always sent.
+ * The invocable sends one deploy per distinct buildType (not one per request), so a batch of
+ * identical requests makes one callout and gets one result each. The request's buildType is
+ * forwarded; a blank value falls back to FULL, and an unknown value is rejected with a failed
+ * result and no callout. The activation type is always IMMEDIATE, the only documented value.
  *
  * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
  * Test.isRunningTest() makes unreachable.
@@ -180,11 +179,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
         Assert.areEqual(false, result.get('isSuccess'), 'A 500 is not a success');
         Assert.areEqual('500', result.get('statusCode'), 'The failing status code is reported');
-        Assert.areEqual(
-            'API call failed: Internal Server Error - [{"errorCode":"UNKNOWN_EXCEPTION"}]',
-            result.get('message'),
-            'The message carries the HTTP status text and the raw body'
-        );
+        Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_NOT_ACCEPTED_MESSAGE, result.get('message'),
+            'The message is a fixed sentence; the response body goes to the debug log only');
         Assert.isFalse(result.containsKey('snapshotId'), 'A failed call reports no snapshot');
     }
 
@@ -199,6 +195,9 @@ private with sharing class RLM_RebuildSearchIndexTest {
             RLM_RebuildSearchIndex.deployIndex();
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_FAILED_MESSAGE, e.getMessage(),
+                'The LWC gets a fixed sentence, not the callout exception text');
+            Assert.isNotNull(e.getCause(), 'The callout exception is kept as the cause');
         }
         Test.stopTest();
 
@@ -241,7 +240,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.areEqual(2, results.size(), 'One result per request');
-        Assert.areEqual(2, mock.received.size(), 'Known gap: one identical FULL deploy per request; update this test when the invocable sends one per batch');
+        Assert.areEqual(1, mock.received.size(), 'Identical requests share one deploy callout');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(true, r.isSuccess, 'Each request succeeds');
             Assert.areEqual('201', r.statusCode, 'Status code is mapped');
@@ -256,20 +255,15 @@ private with sharing class RLM_RebuildSearchIndexTest {
         }
     }
 
-    /**
-     * Records CURRENT behaviour, not the intended contract. PCMDeployRequest exposes Build Type
-     * and Activation Type as invocable inputs, but callPcmDeploy always sends FULL / IMMEDIATE,
-     * so the inputs are a known gap. When they are wired through, change this test to expect
-     * the request's values in the callout body.
-     */
+    // activationType has one documented value (IMMEDIATE), so forwarding it cannot be told apart
+    // from the fallback; only the build type is proven here.
     @IsTest
-    static void deployPcmIndexDoesNotYetForwardRequestBuildAndActivationType() {
+    static void deployPcmIndexForwardsRequestBuildType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
         RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
-        request.buildType = 'INCREMENTAL';
-        request.activationType = 'DEFERRED';
+        request.buildType = ' incremental ';
 
         Test.startTest();
         RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
@@ -277,16 +271,71 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
         Assert.areEqual(1, mock.received.size(), 'One callout for one request');
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
-        Assert.areEqual(
-            'FULL',
-            body.get('buildType'),
-            'Known gap: the request\'s buildType is not forwarded yet; update this test when it is fixed'
+        Assert.areEqual('INCREMENTAL', body.get('buildType'), 'The request\'s buildType is trimmed and upper-cased before it is sent');
+    }
+
+    // An undocumented buildType is rejected: a failed result and no callout, never a silent FULL.
+    @IsTest
+    static void deployPcmIndexRejectsAnUnknownBuildType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest bad = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        bad.buildType = 'PARTIAL';
+
+        Test.startTest();
+        List<RLM_RebuildSearchIndex.PCMDeployResult> results = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ bad, new RLM_RebuildSearchIndex.PCMDeployRequest() }
         );
-        Assert.areEqual(
-            'IMMEDIATE',
-            ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'Known gap: the request\'s activationType is not forwarded yet; update this test when it is fixed'
+        Test.stopTest();
+
+        Assert.areEqual(2, results.size(), 'One result per request');
+        Assert.areEqual(false, results[0].isSuccess, 'The unknown buildType is a failed result');
+        Assert.isTrue(results[0].message.contains('PARTIAL') && results[0].message.contains('FULL or INCREMENTAL'),
+            'The message names the rejected value and the allowed ones: ' + results[0].message);
+        Assert.areEqual(true, results[1].isSuccess, 'The valid request in the same batch still runs');
+        Assert.areEqual(1, mock.received.size(), 'Only the valid request makes a callout');
+    }
+
+    @IsTest
+    static void deployPcmIndexDefaultsBlankBuildType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        request.buildType = null;
+        request.activationType = 'DEFERRED';
+
+        Test.startTest();
+        RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
+        Assert.areEqual('FULL', body.get('buildType'), 'A blank buildType falls back to FULL');
+        Assert.areEqual('IMMEDIATE', ((Map<String, Object>) body.get('snapshot')).get('activationType'),
+            'Any activationType is sent as IMMEDIATE, the only documented value');
+    }
+
+    @IsTest
+    static void deployPcmIndexMakesOneCalloutPerDistinctBuildType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest incremental = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        incremental.buildType = 'INCREMENTAL';
+
+        Test.startTest();
+        List<RLM_RebuildSearchIndex.PCMDeployResult> results = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{
+                new RLM_RebuildSearchIndex.PCMDeployRequest(),
+                incremental,
+                new RLM_RebuildSearchIndex.PCMDeployRequest()
+            }
         );
+        Test.stopTest();
+
+        Assert.areEqual(3, results.size(), 'One result per request');
+        Assert.areEqual(2, mock.received.size(), 'FULL (twice) and INCREMENTAL: two callouts');
     }
 
     @IsTest
@@ -302,7 +351,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.areEqual(1, results.size(), 'One result for one request');
         Assert.areEqual(false, results[0].isSuccess, 'A 400 is a failed result');
         Assert.areEqual('400', results[0].statusCode, 'The failing status code is mapped');
-        Assert.areEqual('API call failed: Bad Request - bad request body', results[0].message, 'Error message is mapped');
+        Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_NOT_ACCEPTED_MESSAGE, results[0].message,
+            'A deploy that was not accepted maps to the fixed sentence, not the response body');
         Assert.isNull(results[0].snapshotId, 'No snapshot id on failure');
         Assert.isNull(results[0].indexId, 'No index id on failure');
     }
@@ -325,14 +375,8 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.areEqual(2, results.size(), 'Each request still yields its own result, not an exception');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(false, r.isSuccess, 'The result is marked failed');
-            Assert.isTrue(
-                r.message.startsWith('Exception occurred: '),
-                'The exception is reported in the message: ' + r.message
-            );
-            Assert.isTrue(
-                r.message.contains('Simulated transport failure'),
-                'The original exception text is preserved: ' + r.message
-            );
+            Assert.areEqual(RLM_RebuildSearchIndex.DEPLOY_FAILED_MESSAGE, r.message,
+                'The flow gets a fixed sentence; the exception text goes to the debug log');
             Assert.isNull(r.statusCode, 'No HTTP status when the callout itself failed');
         }
     }
@@ -350,5 +394,31 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
         Assert.isTrue(results.isEmpty(), 'No requests, no results');
         Assert.areEqual(0, mock.received.size(), 'No requests, no callouts');
+    }
+
+    @IsTest
+    static void deployPcmIndexGuardsANullListAndFailsNullElementsInPlace() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        List<RLM_RebuildSearchIndex.PCMDeployResult> fromNull = RLM_RebuildSearchIndex.deployPCMIndex(null);
+        List<RLM_RebuildSearchIndex.PCMDeployResult> fromMixed = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{
+                null,
+                new RLM_RebuildSearchIndex.PCMDeployRequest(),
+                null
+            }
+        );
+        Test.stopTest();
+
+        Assert.isTrue(fromNull.isEmpty(), 'A null request list yields no results and no exception');
+        Assert.areEqual(3, fromMixed.size(), 'One result per input, null elements included');
+        Assert.areEqual(false, fromMixed[0].isSuccess, 'The first null element gets a failed result');
+        Assert.areEqual(RLM_RebuildSearchIndex.NULL_REQUEST_MESSAGE, fromMixed[0].message, 'It says why');
+        Assert.areEqual(true, fromMixed[1].isSuccess, 'The real request keeps its own position and runs');
+        Assert.areEqual(false, fromMixed[2].isSuccess, 'The last null element gets a failed result');
+        Assert.areEqual(RLM_RebuildSearchIndex.NULL_REQUEST_MESSAGE, fromMixed[2].message, 'It says why');
+        Assert.areEqual(1, mock.received.size(), 'Only the real request makes a callout');
     }
 }

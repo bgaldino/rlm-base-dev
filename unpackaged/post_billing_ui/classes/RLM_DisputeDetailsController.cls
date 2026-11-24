@@ -60,13 +60,20 @@ public with sharing class RLM_DisputeDetailsController {
      * Save updated approved amounts on DisputeItem records.
      * Uses Schema describe to find the real API name for Approved Amount.
      */
+    @TestVisible
+    private static final String SAVE_UNAVAILABLE_MESSAGE =
+        'Approved amounts cannot be saved in this org. Contact your administrator.';
+    @TestVisible
+    private static final String SAVE_FAILED_MESSAGE =
+        'The approved amounts could not be saved. Check the amounts and your access, then try again.';
+
     @AuraEnabled
     public static void saveApprovedAmounts(List<Map<String, Object>> items) {
         if (items == null || items.isEmpty()) return;
 
         Schema.SObjectType diType = Schema.getGlobalDescribe().get('DisputeItem');
         if (diType == null) {
-            throw new AuraHandledException('DisputeItem object not found.');
+            throw RLM_AuraErrors.handled('DisputeItem object not found.');
         }
 
         // Find the approved amount field by scanning all fields.
@@ -100,7 +107,9 @@ public with sharing class RLM_DisputeDetailsController {
                 allFields.add(fieldMap.get(key).getDescribe().getName());
             }
             allFields.sort();
-            throw new AuraHandledException('Approved Amount field not found. All fields: ' + String.join(allFields, ', '));
+            System.debug(LoggingLevel.ERROR, 'RLM_DisputeDetailsController: no approved-amount field on DisputeItem. Fields: '
+                + String.join(allFields, ', '));
+            throw RLM_AuraErrors.handled(SAVE_UNAVAILABLE_MESSAGE);
         }
 
         // Collect IDs and amounts
@@ -115,15 +124,30 @@ public with sharing class RLM_DisputeDetailsController {
         }
 
         // Query and update using the discovered field name
+        List<SObject> records;
         try {
             String query = 'SELECT Id, ' + approvedFieldApi + ' FROM DisputeItem WHERE Id IN :itemIds';
-            List<SObject> records = Database.query(query, AccessLevel.USER_MODE);
+            records = Database.query(query, AccessLevel.USER_MODE);
+        } catch (Exception e) {
+            throw RLM_AuraErrors.failed(SAVE_FAILED_MESSAGE,
+                'RLM_DisputeDetailsController read of DisputeItem.' + approvedFieldApi, e);
+        }
+        // Report ids that did not resolve (missing, deleted or not visible) instead of
+        // silently saving a subset. Nothing is updated in that case.
+        if (records.size() != amountMap.size()) {
+            Integer missing = amountMap.size() - records.size();
+            String message = missing + ' of ' + amountMap.size()
+                + ' dispute items were not found or are not accessible; nothing was saved.';
+            throw RLM_AuraErrors.handled(message);
+        }
+        try {
             for (SObject rec : records) {
                 rec.put(approvedFieldApi, amountMap.get(rec.Id));
             }
             update as user records;
         } catch (Exception e) {
-            throw new AuraHandledException('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
+            throw RLM_AuraErrors.failed(SAVE_FAILED_MESSAGE,
+                'RLM_DisputeDetailsController update of DisputeItem.' + approvedFieldApi, e);
         }
     }
 }

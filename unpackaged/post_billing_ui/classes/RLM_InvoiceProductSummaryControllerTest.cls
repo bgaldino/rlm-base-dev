@@ -59,6 +59,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
             RLM_InvoiceProductSummaryController.getInvoiceProductSummary(fakeInvoiceId());
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual(RLM_InvoiceProductSummaryController.LOAD_FAILED_MESSAGE, e.getMessage(),
+                'The page gets a fixed sentence, not the query error');
         }
         Test.stopTest();
         System.assert(threw, 'A non-existent invoice should raise an AuraHandledException.');
@@ -280,6 +282,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
                 RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
             } catch (AuraHandledException e) {
                 saveThrew = true;
+                Assert.areEqual(RLM_InvoiceProductSummaryController.SAVE_FAILED_MESSAGE, e.getMessage(),
+                    'The page gets a fixed sentence, not the query error');
+                Assert.isNotNull(e.getCause(), 'The refused read is kept as the cause');
             }
         }
         Test.stopTest();

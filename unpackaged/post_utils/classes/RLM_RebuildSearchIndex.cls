@@ -1,28 +1,80 @@
 public with sharing class RLM_RebuildSearchIndex {
 
     private static final String PCM_INDEX_PATH = '/services/data/v68.0/connect/pcm/index/deploy';
+    private static final String DEFAULT_BUILD_TYPE = 'FULL';
+    private static final String DEFAULT_ACTIVATION_TYPE = 'IMMEDIATE';
+
+    @TestVisible
+    private static final String DEPLOY_FAILED_MESSAGE =
+        'The search index deployment could not be started. Try again; if it continues, contact your administrator.';
+    @TestVisible
+    private static final String DEPLOY_NOT_ACCEPTED_MESSAGE =
+        'The search index deployment was not accepted. Try again; if it continues, contact your administrator.';
+    @TestVisible
+    private static final String NULL_REQUEST_MESSAGE = 'No request was given, so no index was deployed.';
 
     @AuraEnabled
     public static Map<String, Object> deployIndex() {
         try {
-            HttpResponse httpRes = callPcmDeploy();
+            HttpResponse httpRes = callPcmDeploy(DEFAULT_BUILD_TYPE, DEFAULT_ACTIVATION_TYPE);
             return buildResultMap(httpRes);
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            throw RLM_UtilsAuraErrors.failed(DEPLOY_FAILED_MESSAGE, 'RLM_RebuildSearchIndex.deployIndex', e);
         }
     }
 
     @InvocableMethod(label='Deploy PCM Index' description='Calls the Connect API to deploy PCM index after Decision Table refresh')
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {
         List<PCMDeployResult> results = new List<PCMDeployResult>();
+        if (requests == null) {
+            return results;
+        }
+
+        // One deploy per distinct buildType, not one per request: identical requests share a
+        // single callout (a batch of 100+ would otherwise exceed the callout limit), and each
+        // request gets its own result copy. The activation type is not part of the key because
+        // IMMEDIATE is the only documented value and every request uses it.
+        Map<String, Map<String, Object>> parsedByKey = new Map<String, Map<String, Object>>();
+        Map<String, String> failureByKey = new Map<String, String>();
 
         for (PCMDeployRequest request : requests) {
+            if (request == null) {
+                // One output per input, in order: a null element gets a failed result in its place.
+                PCMDeployResult missing = new PCMDeployResult();
+                missing.isSuccess = false;
+                missing.message = NULL_REQUEST_MESSAGE;
+                results.add(missing);
+                continue;
+            }
+            String buildType = normalizeBuildType(request.buildType);
+            if (buildType == null) {
+                // An unknown build type is rejected, not silently run as a FULL rebuild.
+                PCMDeployResult rejected = new PCMDeployResult();
+                rejected.isSuccess = false;
+                rejected.message = 'Unsupported build type "' + request.buildType
+                    + '". Use FULL or INCREMENTAL.';
+                System.debug(LoggingLevel.WARN, 'RLM_RebuildSearchIndex: ' + rejected.message);
+                results.add(rejected);
+                continue;
+            }
+            String key = buildType;
+
+            if (!parsedByKey.containsKey(key) && !failureByKey.containsKey(key)) {
+                try {
+                    parsedByKey.put(key, buildResultMap(callPcmDeploy(buildType, DEFAULT_ACTIVATION_TYPE)));
+                } catch (Exception e) {
+                    System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex.deployPCMIndex ' + key + ': '
+                        + e.getTypeName() + ': ' + e.getMessage());
+                    failureByKey.put(key, DEPLOY_FAILED_MESSAGE);
+                }
+            }
+
             PCMDeployResult result = new PCMDeployResult();
-
-            try {
-                HttpResponse httpRes = callPcmDeploy();
-                Map<String, Object> parsed = buildResultMap(httpRes);
-
+            if (failureByKey.containsKey(key)) {
+                result.isSuccess = false;
+                result.message = failureByKey.get(key);
+            } else {
+                Map<String, Object> parsed = parsedByKey.get(key);
                 result.isSuccess      = (Boolean) parsed.get('isSuccess');
                 result.message        = (String)  parsed.get('message');
                 result.statusCode     = (String)  parsed.get('statusCode');
@@ -33,19 +85,24 @@ public with sharing class RLM_RebuildSearchIndex {
                 result.indexBuildType = (String)  parsed.get('indexBuildType');
                 result.indexType      = (String)  parsed.get('indexType');
                 result.lastBuildStatus = (String) parsed.get('lastBuildStatus');
-
-            } catch (Exception e) {
-                result.isSuccess = false;
-                result.message = 'Exception occurred: ' + e.getMessage();
             }
-
             results.add(result);
         }
 
         return results;
     }
 
-    private static HttpResponse callPcmDeploy() {
+    // Documented build types are FULL and INCREMENTAL. A blank value means the default (FULL);
+    // any other value returns null so the caller can reject it.
+    private static String normalizeBuildType(String value) {
+        if (String.isBlank(value)) {
+            return DEFAULT_BUILD_TYPE;
+        }
+        String candidate = value.trim().toUpperCase();
+        return (candidate == 'FULL' || candidate == 'INCREMENTAL') ? candidate : null;
+    }
+
+    private static HttpResponse callPcmDeploy(String buildType, String activationType) {
         HttpRequest httpReq = new HttpRequest();
         httpReq.setEndpoint(URL.getOrgDomainUrl().toExternalForm() + PCM_INDEX_PATH);
         httpReq.setMethod('POST');
@@ -53,8 +110,8 @@ public with sharing class RLM_RebuildSearchIndex {
         httpReq.setHeader('Authorization', 'Bearer ' + getApiSessionId());
 
         Map<String, Object> requestBody = new Map<String, Object>{
-            'snapshot' => new Map<String, Object>{ 'activationType' => 'IMMEDIATE' },
-            'buildType' => 'FULL'
+            'snapshot' => new Map<String, Object>{ 'activationType' => activationType },
+            'buildType' => buildType
         };
         httpReq.setBody(JSON.serialize(requestBody));
 
@@ -97,7 +154,11 @@ public with sharing class RLM_RebuildSearchIndex {
         } else {
             result.put('isSuccess', false);
             result.put('statusCode', String.valueOf(httpRes.getStatusCode()));
-            result.put('message', 'API call failed: ' + httpRes.getStatus() + ' - ' + httpRes.getBody());
+            // The response body is server detail, not text for the user: it goes to the debug log and
+            // the result carries a fixed sentence (the status code stays in statusCode).
+            System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex deploy not accepted: '
+                + httpRes.getStatusCode() + ' ' + httpRes.getStatus() + ' - ' + httpRes.getBody());
+            result.put('message', DEPLOY_NOT_ACCEPTED_MESSAGE);
         }
 
         return result;
@@ -108,7 +169,7 @@ public with sharing class RLM_RebuildSearchIndex {
         @InvocableVariable(label='Build Type' description='The build type for PCM index (default: FULL)')
         public String buildType = 'FULL';
         
-        @InvocableVariable(label='Activation Type' description='The activation type for PCM index (default: IMMEDIATE)')
+        @InvocableVariable(label='Activation Type' description='Reserved. IMMEDIATE is the only documented activation type and is always used, whatever is passed.')
         public String activationType = 'IMMEDIATE';
     }
     

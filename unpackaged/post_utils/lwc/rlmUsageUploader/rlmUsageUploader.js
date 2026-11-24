@@ -106,7 +106,7 @@ export default class RlmUsageUploader extends LightningElement {
             }));
             this.assetsLoaded = true;
         } else if (error) {
-            this.showToast('Error', 'Failed to load assets: ' + this.reduceErrors(error), 'error');
+            this.showToast('Error', this.reduceErrors(error), 'error');
             this.assetsLoaded = true;
         }
     }
@@ -540,7 +540,7 @@ export default class RlmUsageUploader extends LightningElement {
             this.csvHasErrors = results.some(r => !r.isValid);
 
         } catch (error) {
-            this.showToast('Error', 'Validation failed: ' + this.reduceErrors(error), 'error');
+            this.showToast('Error', this.reduceErrors(error), 'error');
         }
     }
 
@@ -567,6 +567,11 @@ export default class RlmUsageUploader extends LightningElement {
                     (result.errorCount > 0 ? ` ${result.errorCount} row(s) had errors.` : ''),
                     result.errorCount > 0 ? 'warning' : 'success'
                 );
+            } else if (result.errorCount > 0) {
+                this.showToast('Error',
+                    `No usage records were created. ${result.errorCount} row(s) had errors.`,
+                    'error'
+                );
             }
 
             if (result.errors && result.errors.length > 0) {
@@ -575,7 +580,7 @@ export default class RlmUsageUploader extends LightningElement {
 
             this.handleCsvCancel();
         } catch (error) {
-            this.showToast('Error', 'Bulk upload failed: ' + this.reduceErrors(error), 'error');
+            this.showToast('Error', this.reduceErrors(error), 'error');
         } finally {
             this.isCsvUploading = false;
         }

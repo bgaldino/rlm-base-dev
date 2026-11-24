@@ -16,8 +16,8 @@
  * assignment, though a failed @TestSetup assignment still fails them along with the rest of
  * the class.
  *
- * Known gap: a null recordId is not rejected; the query runs with filterField = null. On
- * UsageSummary and UsageBillingPeriodItem that is AssetId = null, which returns asset-less
+ * A null recordId is rejected before any query: it would otherwise run with filterField = null,
+ * which on UsageSummary and UsageBillingPeriodItem is AssetId = null and returns asset-less
  * rows across accounts.
  *
  * Not covered:
@@ -415,48 +415,28 @@ private with sharing class RLM_UsageDataControllerTest {
         }
     }
 
-    /**
-     * Pins current behaviour: a null recordId is not rejected, and the query still runs. On
-     * TransactionJournal it filters on AccountId = null, which no journal can match (insert
-     * rejects a null AccountId). The real risk is AssetId = null on UsageSummary and
-     * UsageBillingPeriodItem, where a null recordId returns asset-less rows across accounts;
-     * those rows are produced by usage orchestration and cannot be seeded here.
-     */
     @IsTest
-    static void nullRecordIdIsNotRejected() {
+    static void nullRecordIdIsRejectedBeforeAnyQuery() {
         System.runAs(runningUserHoldingUsageDatatables()) {
             assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
             assertFieldSetReadable(UsageSummary.SObjectType, new List<String>{ 'AssetId' });
 
             Test.startTest();
-            Integer before = Limits.getQueries();
-            try {
-                RLM_UsageDataController.getFieldSetData(null, 'AccountId', 'TransactionJournal', FIELD_SET);
-            } catch (AuraHandledException e) {
-                Assert.fail('Known gap: a null recordId is now rejected; update this test');
+            for (List<String> target : new List<List<String>>{
+                new List<String>{ 'AccountId', 'TransactionJournal' },
+                new List<String>{ 'AssetId', 'UsageSummary' }
+            }) {
+                Integer before = Limits.getQueries();
+                Boolean rejected = false;
+                try {
+                    RLM_UsageDataController.getFieldSetData(null, target[0], target[1], FIELD_SET);
+                } catch (AuraHandledException e) {
+                    rejected = true;
+                }
+                Assert.isTrue(rejected, 'A null recordId is rejected for ' + target[1]);
+                Assert.areEqual(before, Limits.getQueries(), 'No query runs for a null recordId on ' + target[1]);
             }
-            Integer journalQueries = Limits.getQueries() - before;
-
-            before = Limits.getQueries();
-            try {
-                RLM_UsageDataController.getFieldSetData(null, 'AssetId', 'UsageSummary', FIELD_SET);
-            } catch (AuraHandledException e) {
-                Assert.fail('Known gap: a null recordId is now rejected; update this test');
-            }
-            Integer summaryQueries = Limits.getQueries() - before;
             Test.stopTest();
-
-            Assert.areEqual(
-                1,
-                journalQueries,
-                'Known gap: a null recordId still runs the query; update this test when it is rejected'
-            );
-            Assert.areEqual(
-                1,
-                summaryQueries,
-                'Known gap: a null recordId still runs the UsageSummary AssetId = null query; ' +
-                'update this test when it is rejected'
-            );
         }
     }
 

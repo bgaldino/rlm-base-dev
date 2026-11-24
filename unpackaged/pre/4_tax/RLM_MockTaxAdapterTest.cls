@@ -101,16 +101,14 @@ private with sharing class RLM_MockTaxAdapterTest {
             'A seller other than testSellerCode gets the default description.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', '1', 1, 'Line 1 is answered.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', '2', 1, 'Line 2 is answered.');
-        // Lines of 100 and 250: line 1 reports 100.0; line 2 and the header both report 350.0.
+        // Lines of 100 and 250: line 1 reports 100.0, line 2 reports 250.0, the header 350.0.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '100.0', 1, 'Line 1 total.');
-        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '350.0', 2,
-            'Known gap: line amount details accumulate across lines instead of each line carrying its own '
-            + 'amount (line 2 reports 350.0, not 250.0). Update this test when it is fixed.');
-        // Tax at the adapter's 0.1 rate: line 1 10.0; line 2 (accumulated, see above) and the header 35.0.
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '250.0', 1, 'Line 2 total is its own amount.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '350.0', 1, 'The header total is the sum.');
+        // Tax at the adapter's 0.1 rate: line 1 10.0, line 2 25.0, the header 35.0.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '10.0', 1, 'Line 1 tax amount.');
-        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '35.0', 2,
-            'Known gap: line amount details accumulate across lines instead of each line carrying its own '
-            + 'amount (line 2 reports 35.0 tax, not 25.0). Update this test when it is fixed.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '25.0', 1, 'Line 2 tax amount is its own.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '35.0', 1, 'The header tax is the sum.');
     }
 
     @IsTest
@@ -199,23 +197,17 @@ private with sharing class RLM_MockTaxAdapterTest {
     }
 
     @IsTest
-    static void processRequest_nullSellerDetails_throwsNullPointer() {
+    static void processRequest_nullSellerDetails_getsTheDefaultDescription() {
         commercetax.CalculateTaxRequest request = requestFor('DOC-NO-SELLER');
         request.sellerDetails = null;
-        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
-        Exception caught;
+
         Test.startTest();
-        try {
-            new RLM_MockTaxAdapter().processRequest(context);
-        } catch (Exception e) {
-            caught = e;
-        }
+        commercetax.TaxEngineResponse response = process(request);
         Test.stopTest();
 
-        Assert.isNotNull(caught,
-            'Known gap: missing seller details are not guarded and throw a raw NullPointerException. Update this test when it is fixed.');
-        Assert.isInstanceOfType(caught, NullPointerException.class,
-            'Known gap: missing seller details are not guarded and throw a raw NullPointerException. Update this test when it is fixed. ' + caught);
+        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A missing seller is tolerated.');
+        RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',
+            'A missing seller gets the default description.');
     }
 
     @IsTest
@@ -233,9 +225,9 @@ private with sharing class RLM_MockTaxAdapterTest {
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed.');
+            'Accepted limitation: a null line list throws a raw NullPointerException (the platform always supplies a list).');
         Assert.isInstanceOfType(caught, NullPointerException.class,
-            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed. ' + caught);
+            'Accepted limitation: a null line list throws a raw NullPointerException. ' + caught);
     }
 
     @IsTest
@@ -249,15 +241,18 @@ private with sharing class RLM_MockTaxAdapterTest {
     }
 
     @IsTest
-    static void getRandomInteger_alwaysReturnsMin() {
+    static void getRandomInteger_staysWithinTheInclusiveRange() {
         Test.startTest();
-        Integer fromFive = RLM_MockTaxAdapter.getRandomInteger(5, 10);
-        Integer fromZero = RLM_MockTaxAdapter.getRandomInteger(0, 2147483647);
+        Boolean inRange = true;
+        for (Integer i = 0; i < 50; i++) {
+            Integer small = RLM_MockTaxAdapter.getRandomInteger(5, 10);
+            Integer wide = RLM_MockTaxAdapter.getRandomInteger(0, 2147483647);
+            inRange = inRange && small >= 5 && small <= 10 && wide >= 0;
+        }
+        Integer pinned = RLM_MockTaxAdapter.getRandomInteger(7, 7);
         Test.stopTest();
 
-        // Integer.valueOf(Math.random()) truncates a value in [0, 1) to 0 (anonymous Apex:
-        // Integer.valueOf(0.9d) and Integer.valueOf(0.999999d) both return 0), so the result is always min.
-        Assert.areEqual(5, fromFive, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
-        Assert.areEqual(0, fromZero, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
+        Assert.isTrue(inRange, 'Every value is within [min, max].');
+        Assert.areEqual(7, pinned, 'A one-value range returns that value.');
     }
 }

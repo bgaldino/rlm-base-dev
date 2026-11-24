@@ -13,23 +13,23 @@ private class RLM_BSGTimelineControllerTest {
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
     // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
-    // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
-    // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
-    // org, AuraHandledException.getMessage() returned "Script-thrown exception" for both a
-    // directly constructed one and this method's not-found error, so the text built for the
-    // LWC is the "Error retrieving Billing Schedule Group: " prefix plus that, not "Billing
-    // Schedule Group not found". The text the LWC receives is not readable from Apex.
+    // Fixed: the not-found AuraHandledException is no longer rewrapped, and every
+    // AuraHandledException built here calls setMessage, so the LWC receives
+    // "Billing Schedule Group not found" (readable from Apex via getMessage).
     @isTest
     static void getBillingScheduleGroupData_unknownBsg_throws() {
         Boolean threw = false;
+        String text;
         Test.startTest();
         try {
             RLM_BSGTimelineController.getBillingScheduleGroupData(fakeBsgId());
         } catch (AuraHandledException e) {
             threw = true;
+            text = e.getMessage();
         }
         Test.stopTest();
         System.assert(threw, 'A non-existent BSG should raise an AuraHandledException.');
+        System.assertEquals('Billing Schedule Group not found', text, 'The not-found text reaches the caller unwrapped.');
     }
 
     @isTest
@@ -40,6 +40,8 @@ private class RLM_BSGTimelineControllerTest {
             RLM_BSGTimelineController.getConsolidatedTimeline(fakeBsgId());
         } catch (AuraHandledException e) {
             threw = true;
+            Assert.areEqual('Billing Schedule Group not found', e.getMessage(),
+                'The not-found sentence from the group read reaches the caller unwrapped');
         }
         Test.stopTest();
         System.assert(threw, 'A non-existent BSG should raise an AuraHandledException for the timeline.');

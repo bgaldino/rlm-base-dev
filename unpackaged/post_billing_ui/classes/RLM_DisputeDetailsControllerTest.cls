@@ -45,11 +45,10 @@ private class RLM_DisputeDetailsControllerTest {
         System.assert(true, 'Null/empty input short-circuits without error.');
     }
 
-    // A save naming a real item and an unknown one saves the real item and skips the unknown
-    // one without reporting it. Run as a Billing Operations user (see billingUser). DisputeItem
+    // A save naming a real item and an unknown one is rejected and saves nothing. Run as a Billing Operations user (see billingUser). DisputeItem
     // and its ApprovedAmount are required by this bundle (RLM_BillingUIAccessTest checks them).
     @isTest
-    static void saveApprovedAmounts_withAnUnknownItem_savesTheKnownOneAndSkipsTheOther() {
+    static void saveApprovedAmounts_withAnUnknownItem_isRejectedAndSavesNothing() {
         User approver = billingUser();
         List<Id> itemIds = newDisputeItems(1, 5, approver.Id);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
@@ -75,10 +74,11 @@ private class RLM_DisputeDetailsControllerTest {
         }
         Test.stopTest();
 
-        Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success; '
-            + 'it threw here, so unknown ids may now be reported. Update this test when it is fixed. '
-            + 'Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
-        assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
+        Assert.isNotNull(caught, 'An unmatched item id must be reported.');
+        Assert.isTrue(caught instanceof AuraHandledException, 'Caught: ' + caught.getTypeName());
+        Assert.areEqual('1 of 2 dispute items were not found or are not accessible; nothing was saved.',
+            caught.getMessage(), 'The message states how many items are the problem');
+        assertAmount(20, approvedAmount(itemIds[0]), 'The known item is left unchanged (all-or-nothing).');
     }
 
     // Dispute and DisputeItem are createable (Invoice and InvoiceLine are not), so the save
@@ -133,10 +133,10 @@ private class RLM_DisputeDetailsControllerTest {
             try {
                 RLM_DisputeDetailsController.saveApprovedAmounts(items);
             } catch (AuraHandledException e) {
-                // The controller builds its message without setMessage, so in a test getMessage()
-                // returns only 'Script-thrown exception'; the describe-derived amount is the
-                // premise that ties the failure to the save.
                 rejected = true;
+                Assert.areEqual(RLM_DisputeDetailsController.SAVE_FAILED_MESSAGE, e.getMessage(),
+                    'The page gets a fixed sentence, not the DML error');
+                Assert.isInstanceOfType(e.getCause(), DmlException.class, 'The DML error is kept as the cause');
             }
         }
         Test.stopTest();

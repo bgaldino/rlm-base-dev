@@ -13,17 +13,10 @@ private class RLM_BSGContextControllerTest {
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
     // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
-    // Known gap (documented, not pinned; needs BSG records): getBSGContext reads
-    // bsBilledAmount and bsPendingAmount from one arbitrary BillingSchedule of the group
-    // (LIMIT 1, no ORDER BY), and the usage view's resource name likewise comes from one
-    // arbitrary schedule. Each usage sibling's resource name is also taken from whichever of
-    // its schedules the unordered query returns last (the last row wins). With several
-    // schedules the values shown are nondeterministic.
-    //
-    // Known gap (documented, not pinned; needs BSG records):
-    // ArrangementLineData.billingAccountName is never set. The arrangement-line query selects
-    // BillingAccountId but the controller never maps it, so the field always reaches the LWC
-    // as null.
+    // Fixed (live verification only; BillingScheduleGroup records are not insertable in Apex
+    // tests): groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
+    // TotalPendingAmount (no arbitrary single schedule), and the usage resource names come
+    // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'
@@ -315,11 +308,10 @@ private class RLM_BSGContextControllerTest {
         Assert.isTrue(result[1].isCurrent, 'b was passed as the current record.');
     }
 
-    // A cycle back to the root: collectChildComponents passes every parent in the map as a
-    // sub-bundle (the main BSG included) and starts with nothing emitted, so main -> a -> main
-    // emits the main BSG as a component of itself, at depth 2.
+    // A cycle back to the root: collectChildComponents seeds the emitted set with the main BSG,
+    // so main -> a -> main emits only a.
     @isTest
-    static void appendComponentsDfs_cycleToRoot_emitsTheMainBsgAsItsOwnComponent() {
+    static void appendComponentsDfs_cycleToRoot_neverEmitsTheMainBsgAsItsOwnComponent() {
         Id mainId = mintBsgId();
         Id a = mintBsgId();
         Map<Id, List<Id>> parentToChildren = new Map<Id, List<Id>>{
@@ -332,15 +324,11 @@ private class RLM_BSGContextControllerTest {
         RLM_BSGContextController.appendComponentsDfs(
             mainId, mainId, 1, parentToChildren, new Set<Id>(parentToChildren.keySet()),
             new Map<Id, BillingScheduleGroup>{ a => synthBsg(a, 'A'), mainId => synthBsg(mainId, 'Main') },
-            result, new Set<Id>()
+            result, new Set<Id>{ mainId }
         );
 
-        Assert.areEqual(2, result.size(),
-            'Known gap: a cycle back to the root emits the main BSG as its own component; update '
-            + 'this test when it is fixed.');
+        Assert.areEqual(1, result.size(), 'The main BSG is never emitted as its own component.');
         Assert.areEqual(a, result[0].bsgId);
-        Assert.areEqual(mainId, result[1].bsgId, 'The main BSG is emitted below its own child.');
-        Assert.areEqual(2, result[1].depth);
     }
 
     // At most five levels are emitted: a sixth level is never emitted.

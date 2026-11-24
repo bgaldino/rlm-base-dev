@@ -5,7 +5,8 @@
  * The tests that start a flow use RLM_AA_Set_Quote_Status, an autolaunched flow
  * in this module. Flows deploy inactive in production unless "Deploy processes
  * and flows as active" is on, so when it is not active those tests are skipped
- * visibly (a WARN debug line) instead of failing.
+ * visibly (a WARN debug line) instead of failing. Those tests are environment probes: in an org
+ * where the flow is inactive they prove nothing, and the debug line is the only sign.
  */
 @IsTest
 private class RLM_AA_Submit_ApprovalTest {
@@ -52,14 +53,12 @@ private class RLM_AA_Submit_ApprovalTest {
         Test.stopTest();
     }
 
-    // Known gap: the invocable reads only svcParameters[0]. A batch whose second
-    // request names a flow that does not exist succeeds today, because the
-    // second request is never tried. The pin detects a fix that starts every
-    // request and lets a failure propagate: the missing flow's TypeException
-    // then trips the assertion below. A fix that loops but swallows each
-    // request's failure would not trip it.
+    // Environment probe (skips when the flow is inactive, see the class comment). Every request in
+    // the batch is started: a second request naming a flow that does not
+    // exist fails the batch with the platform's TypeException naming that flow, proving the
+    // second request was tried (the first request's flow is active, so it started).
     @IsTest
-    static void knownGap_callFlowIgnoresRequestsAfterTheFirst_whenTheFlowIsActive() {
+    static void callFlowStartsEveryRequestInTheBatch_whenTheFlowIsActive() {
         if (!activeFlowAvailable()) {
             return;
         }
@@ -75,38 +74,26 @@ private class RLM_AA_Submit_ApprovalTest {
         }
         Test.stopTest();
 
-        // Any exception naming the missing flow, whatever its type, means the
-        // second request was tried: the fix. Matches only the flow API name the
-        // platform passes through, never its translated wording.
-        if (thrown != null && thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW)) {
-            Assert.fail('Known gap: only the first request was started; it now started the second request ('
-                + thrown.getTypeName() + '). Update this test.');
-        }
-        Assert.isNull(thrown, 'Unexpected exception starting the batch (not the known gap): '
-            + (thrown == null ? '' : thrown.getTypeName() + ': ' + thrown.getMessage()));
+        // Matches only the flow API name the platform passes through, never its
+        // translated wording.
+        Assert.isNotNull(thrown, 'The second request must be tried, so the missing flow fails the batch.');
+        Assert.isTrue(thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW),
+            'The failure names the second request\'s flow: ' + thrown.getTypeName() + ': ' + thrown.getMessage());
     }
 
-    // Known gap: with no guard on the list, an empty request list fails reading
-    // request 0. No flow is started.
+    // An empty or null request list starts nothing: no exception, and no SOQL or DML (a started
+    // flow interview would run elements that use them).
     @IsTest
-    static void knownGap_callFlowThrowsOnAnEmptyRequestList() {
-        Exception thrown = null;
+    static void callFlowStartsNothingForAnEmptyOrNullRequestList() {
         Test.startTest();
-        try {
-            RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
-        } catch (Exception caught) {
-            thrown = caught;
-        }
+        // Limits are read inside the start/stop block: they reset on entry and are restored on exit.
+        Integer queriesBefore = Limits.getQueries();
+        Integer dmlBefore = Limits.getDmlStatements();
+        RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
+        RLM_AA_Submit_Approval.callFlow(null);
+        Assert.areEqual(queriesBefore, Limits.getQueries(), 'No SOQL runs for an empty or null list');
+        Assert.areEqual(dmlBefore, Limits.getDmlStatements(), 'No DML runs for an empty or null list');
         Test.stopTest();
-
-        // Any outcome other than a raw ListException counts as the fix (for
-        // example an IllegalArgumentException, as the docgen invocables throw).
-        // Type only: platform exception text is translated into the running
-        // user's language, so it is not checked.
-        if (!(thrown instanceof ListException)) {
-            Assert.fail('Known gap: an empty request list throws a raw ListException; it now '
-                + (thrown == null ? 'returns' : 'throws ' + thrown.getTypeName()) + '. Update this test.');
-        }
     }
 
     // An unknown flow name cannot be started: the platform's TypeException

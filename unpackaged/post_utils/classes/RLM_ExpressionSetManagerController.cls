@@ -11,6 +11,18 @@
  * Composite subrequest failures throw so the AsyncApexJob is marked Failed
  * and the LWC poll loop terminates with a surfaced error.
  *
+ * Error text: every failure's own text reaches the screen, not only fixed sentences. A failed
+ * Queueable's exception message becomes AsyncApexJob.ExtendedStatus, getJobStatus returns it,
+ * and the component shows it in its error banner (setPreviousError). That covers the rethrown
+ * junction-delete and chunk errors, the partially-applied messages that append them, and the
+ * Composite messages built from the response ("HTTP <code>" plus the REST error text, which can
+ * name objects, fields and record ids). The synchronous methods let a user-mode query's
+ * exception through as well, and that text names the object or field the caller cannot read.
+ * This is kept on purpose: the component is an administrator tool. Its permission set carries
+ * ApiEnabled for the session loopback, and the build deliberately does not give it to the sales
+ * representative persona, so the people who see the text are the ones who can act on it. Do not
+ * assign the permission set to end users without first replacing that text with fixed sentences.
+ *
  * ⚠ Atomicity: a bulk action is NOT one transaction. Each Composite request is
  * sent with allOrNone=true, and each sObject-Collections delete batch likewise,
  * so an individual request rolls back on failure — but a selection that
@@ -223,7 +235,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         // its describe returns false for createable/deletable on every profile.
         if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
                 || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
-            throw new AuraHandledException('Insufficient access to deactivate Expression Sets.');
+            throw RLM_UtilsAuraErrors.handled('Insufficient access to deactivate Expression Sets.');
         }
         List<Id> validatedDefinitionIds = validateDefinitionIds(contextDefinitionId, definitionIds, OPERATION_MAKE_INACTIVE);
         String sessionId = getApiSessionId();
@@ -258,7 +270,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         // not Apex DML, so we only guard the field we actually update from Apex.
         if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
                 || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
-            throw new AuraHandledException('Insufficient access to activate Expression Sets.');
+            throw RLM_UtilsAuraErrors.handled('Insufficient access to activate Expression Sets.');
         }
         List<Id> validatedDefinitionIds = validateDefinitionIds(contextDefinitionId, definitionIds, OPERATION_MAKE_ACTIVE);
         String sessionId = getApiSessionId();
@@ -446,7 +458,7 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     private static List<Id> validateDefinitionIds(Id contextDefinitionId, List<Id> definitionIds, String operationMode) {
         if (contextDefinitionId == null) {
-            throw new AuraHandledException('Select a Context Definition before managing Expression Sets.');
+            throw RLM_UtilsAuraErrors.handled('Select a Context Definition before managing Expression Sets.');
         }
 
         List<Id> normalizedDefinitionIds = normalizeDefinitionIds(definitionIds);
@@ -458,14 +470,14 @@ public with sharing class RLM_ExpressionSetManagerController {
     @TestVisible
     private static List<Id> normalizeDefinitionIds(List<Id> definitionIds) {
         if (definitionIds == null || definitionIds.isEmpty()) {
-            throw new AuraHandledException('Select at least one Expression Set.');
+            throw RLM_UtilsAuraErrors.handled('Select at least one Expression Set.');
         }
 
         List<Id> normalizedDefinitionIds = new List<Id>();
         Set<Id> seen = new Set<Id>();
         for (Id definitionId : definitionIds) {
             if (definitionId == null) {
-                throw new AuraHandledException('Expression Set selection contains an empty id.');
+                throw RLM_UtilsAuraErrors.handled('Expression Set selection contains an empty id.');
             }
             if (!seen.contains(definitionId)) {
                 normalizedDefinitionIds.add(definitionId);
@@ -523,7 +535,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         for (Id definitionId : requestedDefinitionIds) {
             if (!allowedDefinitionIds.contains(definitionId)) {
                 String action = operationMode == OPERATION_MAKE_ACTIVE ? 'activate' : 'deactivate';
-                throw new AuraHandledException('You can only ' + action + ' Expression Sets available for the selected Context Definition.');
+                throw RLM_UtilsAuraErrors.handled('You can only ' + action + ' Expression Sets available for the selected Context Definition.');
             }
         }
     }

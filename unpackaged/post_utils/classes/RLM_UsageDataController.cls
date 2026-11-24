@@ -34,6 +34,15 @@ public with sharing class RLM_UsageDataController {
      *  When this limit is reached, the result includes truncated=true so the LWC can warn the user. */
     private static final Integer QUERY_LIMIT = 2000;
 
+    // The read itself failing (a query or access error whose text names objects and fields) is
+    // this fixed sentence, with the detail in the debug log. The configuration messages below echo
+    // the component's App Builder inputs (object, field set, filter field), not record data.
+    // The query runs in system mode on an allowlisted object and a validated field set, so the
+    // tests do not reach this; it guards any failure of the query or of stripInaccessible.
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The usage records could not be loaded. Refresh the page, or contact your administrator.';
+
     /** Maps Apex Schema.DisplayType values to lightning-datatable column type strings. */
     private static final Map<Schema.DisplayType, String> TYPE_MAP = new Map<Schema.DisplayType, String>{
         Schema.DisplayType.STRING => 'text',
@@ -75,7 +84,7 @@ public with sharing class RLM_UsageDataController {
         String fieldSetName
     ) {
         if (!ALLOWED_OBJECTS.contains(objectApiName)) {
-            throw new AuraHandledException('Invalid SObject: ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid SObject: ' + objectApiName);
         }
 
         // Use describeSObjects() instead of getGlobalDescribe() to avoid loading all SObject metadata
@@ -85,7 +94,7 @@ public with sharing class RLM_UsageDataController {
 
         Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(fieldSetName);
         if (fs == null) {
-            throw new AuraHandledException('Invalid FieldSet: ' + fieldSetName + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid FieldSet: ' + fieldSetName + ' on ' + objectApiName);
         }
 
         // Build SOQL field list and column definitions from the FieldSet
@@ -100,11 +109,16 @@ public with sharing class RLM_UsageDataController {
 
         // Validate filterField exists on the object and is explicitly allowlisted for this object
         if (!fieldMap.containsKey(filterField)) {
-            throw new AuraHandledException('Invalid filter field: ' + filterField + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid filter field: ' + filterField + ' on ' + objectApiName);
         }
         Set<String> allowedFilterFields = ALLOWED_FILTER_FIELDS.get(objectApiName);
         if (allowedFilterFields == null || !allowedFilterFields.contains(filterField)) {
-            throw new AuraHandledException('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
+        }
+        // A null recordId would run "<filterField> = null": on UsageSummary and
+        // UsageBillingPeriodItem that returns asset-less rows across accounts.
+        if (recordId == null) {
+            throw RLM_UtilsAuraErrors.handled('A record Id is required.');
         }
 
         for (Schema.FieldSetMember fsm : fs.getFields()) {
@@ -113,7 +127,7 @@ public with sharing class RLM_UsageDataController {
             String label = fsm.getLabel();
             Schema.SObjectField sObjField = fieldMap.get(fieldApiName);
             if (sObjField == null) {
-                throw new AuraHandledException(
+                throw RLM_UtilsAuraErrors.handled(
                     'FieldSet entry "' + fieldApiName + '" on ' + objectApiName +
                     ' is not a direct field on the object. Relationship paths and non-field entries are not supported.'
                 );
@@ -171,12 +185,12 @@ public with sharing class RLM_UsageDataController {
             ' WHERE ' + filterField + ' = :recordId ORDER BY Id ASC' +
             ' LIMIT :fetchLimit';
 
-        List<SObject> queriedRecords = Database.query(soql);
-        SObjectAccessDecision stripResult = Security.stripInaccessible(
-            AccessType.READABLE,
-            queriedRecords
-        );
-        List<SObject> records = stripResult.getRecords();
+        List<SObject> records;
+        try {
+            records = Security.stripInaccessible(AccessType.READABLE, Database.query(soql)).getRecords();
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_UsageDataController.getFieldSetData', e);
+        }
         Boolean truncated = records.size() > QUERY_LIMIT;
         Integer recordCount = truncated ? QUERY_LIMIT : records.size();
 

@@ -17,8 +17,8 @@
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
  * setTaxTransactionType(null) to throw System.NullPointerException. A release that changes
  * either fails those tests, and setterNullInput_matchesHelperPremise names the cause. That test
- * covers both directions. It holds every commercetax setter that RLM_MockAppAdapter,
- * RLM_MockTaxAdapter or RLM_CalculateTaxService calls with null in these tests: the two above
+ * covers both directions. It holds every commercetax setter that RLM_MockTaxAdapter or
+ * RLM_CalculateTaxService calls with null in these tests: the two above
  * reject null, and these accept it: CalculateTaxResponse setReferenceDocumentCode and
  * setReferenceEntityId; LineItemResponse setLineNumber and setAddresses; AddressesResponse
  * setShipFrom, setShipTO and setSoldTo; TaxDetailsResponse setImposition and setJurisdiction.

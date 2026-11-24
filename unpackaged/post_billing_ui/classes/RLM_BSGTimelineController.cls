@@ -1,4 +1,10 @@
 public with sharing class RLM_BSGTimelineController {
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The billing schedule group could not be loaded. Refresh the page; if it continues, contact your administrator.';
+    @TestVisible
+    private static final String TIMELINE_FAILED_MESSAGE =
+        'The consolidated timeline could not be loaded. Refresh the page; if it continues, contact your administrator.';
     
     /**
      * Wrapper class for Billing Schedule Group data
@@ -95,7 +101,7 @@ public with sharing class RLM_BSGTimelineController {
             ];
             
             if (bsgList.isEmpty()) {
-                throw new AuraHandledException('Billing Schedule Group not found');
+                throw RLM_AuraErrors.handled('Billing Schedule Group not found');
             }
             
             BillingScheduleGroup bsg = bsgList[0];
@@ -184,8 +190,10 @@ public with sharing class RLM_BSGTimelineController {
             
             return data;
             
+        } catch (AuraHandledException ae) {
+            throw ae; // already carries the user-facing text; do not wrap it
         } catch (Exception e) {
-            throw new AuraHandledException('Error retrieving Billing Schedule Group: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_BSGTimelineController.getBillingScheduleGroupData', e);
         }
     }
 
@@ -327,8 +335,10 @@ public with sharing class RLM_BSGTimelineController {
 
             return segments;
             
+        } catch (AuraHandledException ae) {
+            throw ae;
         } catch (Exception e) {
-            throw new AuraHandledException('Error calculating consolidated timeline: ' + e.getMessage());
+            throw RLM_AuraErrors.failed(TIMELINE_FAILED_MESSAGE, 'RLM_BSGTimelineController.getConsolidatedTimeline', e);
         }
     }
 }

@@ -13,8 +13,9 @@ public with sharing class RLM_BSGContextController {
         @AuraEnabled public BundleData bundle;
         @AuraEnabled public UsageData usage;
 
-        @AuraEnabled public Decimal bsBilledAmount;
-        @AuraEnabled public Decimal bsPendingAmount;
+        // Totals for the whole billing schedule group (TotalBilledAmount / TotalPendingAmount), not one schedule.
+        @AuraEnabled public Decimal groupBilledAmount;
+        @AuraEnabled public Decimal groupPendingAmount;
 
         // Billing Arrangement (applicable to any view type)
         @AuraEnabled public ArrangementData arrangement;
@@ -101,7 +102,6 @@ public with sharing class RLM_BSGContextController {
         @AuraEnabled public String lineId;
         @AuraEnabled public String lineName;
         @AuraEnabled public String accountName;
-        @AuraEnabled public String billingAccountName;
         @AuraEnabled public Decimal billingPercentage;
         @AuraEnabled public Boolean shouldBillRemainder;
     }
@@ -123,11 +123,13 @@ public with sharing class RLM_BSGContextController {
         }
 
         try {
+            // TotalBilledAmount and TotalPendingAmount are rollups that are not permissionable
+            // (measured on a 264 org): object read is the only gate, no field grant exists.
             List<BillingScheduleGroup> bsgList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id,
                        BillingType, BillingMethod, BillingTermUnit, BillingTerm,
                        AnchorProdtBillingSchdGrpId, BindingInstanceId,
-                       BillingArrangementId, TotalBilledAmount, EndDate
+                       BillingArrangementId, TotalBilledAmount, TotalPendingAmount, EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :bsgRecordId
                 WITH USER_MODE
@@ -146,18 +148,11 @@ public with sharing class RLM_BSGContextController {
             ctx.billingTermUnit = bsg.BillingTermUnit;
             ctx.billingTerm = bsg.BillingTerm;
 
-            // Fetch BS-level billed/pending for % calculation
-            List<BillingSchedule> bsForAmounts = [
-                SELECT BilledAmount, PendingAmount
-                FROM BillingSchedule
-                WHERE BillingScheduleGroupId = :bsgRecordId
-                WITH USER_MODE
-                LIMIT 1
-            ];
-            if (!bsForAmounts.isEmpty()) {
-                ctx.bsBilledAmount = bsForAmounts[0].BilledAmount;
-                ctx.bsPendingAmount = bsForAmounts[0].PendingAmount;
-            }
+            // Group-level billed/pending for the panel's % calculation. The group's own rollups
+            // are used (no extra query, record currency like the panel's formatting); a sum over
+            // schedules would be corporate-currency converted in a multi-currency org.
+            ctx.groupBilledAmount = bsg.TotalBilledAmount;
+            ctx.groupPendingAmount = bsg.TotalPendingAmount;
 
             // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
             // BillingMilestonePlan(Item) objects are license-gated billing extensions that are
@@ -396,7 +391,7 @@ public with sharing class RLM_BSGContextController {
         ]);
 
         appendComponentsDfs(mainBsgId, currentRecordId, startDepth, parentToChildren,
-                            subBundleIds, bsgById, result, new Set<Id>());
+                            subBundleIds, bsgById, result, new Set<Id>{ mainBsgId });
     }
 
     @TestVisible
@@ -479,6 +474,7 @@ public with sharing class RLM_BSGContextController {
             FROM BillingSchedule
             WHERE BillingScheduleGroupId = :recordId AND UsageResourceId != null
             WITH USER_MODE
+            ORDER BY CreatedDate, Id
             LIMIT 1
         ];
         if (!bsList.isEmpty()) {
@@ -518,8 +514,12 @@ public with sharing class RLM_BSGContextController {
                     FROM BillingSchedule
                     WHERE BillingScheduleGroupId IN :siblingIds AND UsageResourceId != null
                     WITH USER_MODE
+                    ORDER BY CreatedDate, Id
                 ]) {
-                    bsgToResourceName.put(bs.BillingScheduleGroupId, bs.UsageResource.Name);
+                    // The earliest schedule's resource wins, deterministically.
+                    if (!bsgToResourceName.containsKey(bs.BillingScheduleGroupId)) {
+                        bsgToResourceName.put(bs.BillingScheduleGroupId, bs.UsageResource.Name);
+                    }
                 }
             }
 
