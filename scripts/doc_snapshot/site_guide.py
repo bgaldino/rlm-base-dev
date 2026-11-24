@@ -214,9 +214,14 @@ def flatten_toc(
 
     if section_filters:
         for needle in section_filters:
-            node = _find_section(toc, needle, guide_path)
-            if node is None:
+            nodes = _find_sections(toc, needle, guide_path)
+            if not nodes:
                 raise OptionsError(f"section {needle!r} not found in the guide TOC")
+            if len(nodes) > 1:
+                raise OptionsError(
+                    f"section {needle!r} names {len(nodes)} different TOC nodes; name one by its page id"
+                )
+            node = nodes[0]
             walk([node], node.get("label") or needle, None, _ancestor_entries(toc, node, guide_path))
     else:
         walk(toc, None, None)
@@ -243,20 +248,24 @@ def _ancestor_entries(nodes, target, guide_path: str, anc=()) -> tuple:
     return None
 
 
-def _find_section(nodes, needle: str, guide_path: str) -> Optional[Dict[str, Any]]:
-    target = needle.strip().lower()
-    key = normalize_key(needle)
+def _entry_matches(label: str, slug_key: str, needle: str) -> bool:
+    """One matcher for a section filter: the node's label or its slug key (``_``/``-``, ``.htm`` ignored)."""
+    return (label or "").strip().lower() == needle.strip().lower() or (
+        bool(slug_key) and slug_key == normalize_key(needle))
+
+
+def _find_sections(nodes, needle: str, guide_path: str) -> List[Dict[str, Any]]:
+    """Every TOC node a filter names (a match's own subtree is not searched again)."""
+    found: List[Dict[str, Any]] = []
     for node in nodes or []:
         if not isinstance(node, dict):
             continue
-        label = (node.get("label") or "").strip().lower()
         slug = slug_of(node.get("name") or "", guide_path) or ""
-        if label == target or (slug and slug.lower() == key):
-            return node
-        found = _find_section(node.get("children"), needle, guide_path)
-        if found:
-            return found
-    return None
+        if _entry_matches(node.get("label") or "", normalize_key(slug) if slug else "", needle):
+            found.append(node)
+        else:
+            found.extend(_find_sections(node.get("children"), needle, guide_path))
+    return found
 
 
 def page_title(body: str, fallback: str) -> str:
@@ -747,13 +756,14 @@ class SiteGuideSnapshot:
             rec["title"] = rec.get("title") or d["title"]
             rec.setdefault("section", d["section"])
             rec["toc_label"] = d["title"]  # the title field becomes the page's H1 once captured
-            rec["ancestors"] = d["ancestors"]  # the full path from the top, also for a section walk
             if o["section_filters"]:
                 if d["parent_page"]:
                     rec.setdefault("parent_page", d["parent_page"])
+                rec.setdefault("ancestors", d["ancestors"])  # a page listed twice keeps its first path
             else:  # the whole TOC is authoritative: follow a restructure
                 rec["parent_page"] = d["parent_page"]
                 rec["section"] = d["section"]
+                rec["ancestors"] = d["ancestors"]
             rec["source_url"] = self._page_url(d["page_id"])
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         # The legacy map needs the whole guide's slugs, not just a section's.
@@ -810,12 +820,12 @@ class SiteGuideSnapshot:
         """
         ids: set = set()
         for f in filters:
-            wanted = {normalize_key(f), f.strip().lower()} - {""}
             hit, nodes = set(), set()
             for p in pages:
                 path = p.get("ancestors") or []
                 for i, entry in enumerate(path):
-                    if wanted & set(entry.split("\t")):
+                    label, _, slug_key = entry.partition("\t")
+                    if _entry_matches(label, slug_key, f):
                         hit.add(p["page_id"])
                         nodes.add(tuple(path[: i + 1]))  # the matched node's identity
                         break

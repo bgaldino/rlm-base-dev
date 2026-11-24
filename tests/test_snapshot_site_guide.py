@@ -310,6 +310,16 @@ def main():
     dp, _ = sg.flatten_toc(dup, G, ["b"])
     check("a filtered walk records the full path from the top of the TOC",
           [p["page_id"] for p in dp] == ["b", "b-ov"] and dp[1]["ancestors"][0].startswith("b\t") and len(dp[1]["ancestors"]) == 2)
+    check("a refresh/discover also refuses a label that names two TOC nodes",
+          raises(OptionsError, lambda: sg.flatten_toc(dup, G, ["Overview"])))
+    twice = [{"label": "A", "name": G + "a.html", "children": [{"label": "X", "name": G + "x.html", "children": []}]},
+             {"label": "B", "name": G + "b.html", "children": [{"label": "X", "name": G + "x.html", "children": []}]}]
+    first = sg.flatten_toc(twice, G, None)[0]
+    secondp = sg.flatten_toc(twice, G, ["b"])[0]
+    rec = {"page_id": "x", "ancestors": first[1]["ancestors"]}
+    check("a page listed twice keeps its first path through a sectioned walk's setdefault",
+          rec.setdefault("ancestors", secondp[1]["ancestors"]) == first[1]["ancestors"]
+          and first[1]["ancestors"] != secondp[1]["ancestors"])
     dpages = sg.flatten_toc(dup, G, None)[0]
     check("capture mode refuses a label that names two TOC nodes, accepts a page id",
           raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_section_ids(dpages, ["Overview"]))
