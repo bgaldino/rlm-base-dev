@@ -380,7 +380,7 @@ runs. `_objects_owing_root_csv` checks the flag before crediting a pass-2+ overr
 This is also the behaviour a plan sees when it repeats an object to get a second load. Seen on a PCM
 plan without the flag: pass 2 re-read the plan-root CSV of the same name, so the repeat gave pass 2 no
 data of its own. [Measured: 2026-11, 264, PCM plan load] Re-measure after a SFDMU upgrade. To run a plan
-twice for a platform reason (for example PCM's classification-attribute second pass, needed only where `scripts/check_classification_attrs.py` exits 1 (a missing row or a key-field difference; exit 2 means it could not compare, so fix and rerun first), which QuantumBit does not; owned by
+twice for a platform reason (for example PCM's classification-attribute second pass, needed only when `scripts/check_classification_attrs.py` exits 1, never for QuantumBit (exit 2 means it could not compare: see `catalogs-and-loading.md` step 5); owned by
 `product-catalog-modeling` -> `catalogs-and-loading.md`), run the whole plan again rather than add a
 second object set.
 

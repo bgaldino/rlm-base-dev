@@ -298,7 +298,7 @@ Review the CSVs for these, each a rule above:
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
-After a load into an org: run the plan's second pass only when `scripts/check_classification_attrs.py` exits 1 (fact a; exit 0 means one pass matches the CSV; exit 2, fix and rerun the check first), then the `refresh_all_decision_tables` flow and
+After a load into an org: run the plan's second pass only when `scripts/check_classification_attrs.py` exits 1 (fact a; exit 0: every row exists and its key fields match; exit 2: fix and rerun the check first; full rule in `catalogs-and-loading.md` step 5, including the recheck before any extract), then the `refresh_all_decision_tables` flow and
 the `rebuild_search_index` task, run **Validate Product
 Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_product_validations.htm`], and
 configure one bundle in the configurator with rules on.

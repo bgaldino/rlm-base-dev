@@ -123,8 +123,9 @@ inactive was not checked. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] 
 # ProrationPolicy, tolerate the platform-seeded duplicate as insert_quantumbit_pcm_data does;
 # otherwise drop the ignore_row_errors_for option.
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>
-python scripts/check_classification_attrs.py --target-org <sf_alias> --plan datasets/sfdmu/<shape>/<locale>/<plan>   # exit 0: one pass is enough; exit 1: a missing row or a key-field difference, so run the second pass; exit 2: could not compare, fix and rerun before deciding
+python scripts/check_classification_attrs.py --target-org <sf_alias> --plan datasets/sfdmu/<shape>/<locale>/<plan>   # exit 0: every row exists and its key fields match; exit 1: a missing row or a key-field difference, so run the second pass; exit 2: could not compare, fix and rerun before deciding (if unfixable, run the second pass anyway)
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass: only when the check above exits 1
+python scripts/check_classification_attrs.py --target-org <sf_alias> --plan datasets/sfdmu/<shape>/<locale>/<plan>   # recheck: must exit 0 before extracting; still 1 (e.g. a row pass 2 inserted): load again and recheck
 cci flow run refresh_all_decision_tables --org <cci_alias>
 cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, then retry Place until "Could not find product" stops
 ```
