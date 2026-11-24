@@ -774,6 +774,7 @@ CHECKS = [
              "tests/test_skill_manifest_audit.py",
              "tests/test_prepare_constraints_validation.py",
              "tests/test_doc_snapshot_presets.py",
+             "tests/test_snapshot_guard.py",
              "tests/test_workflow_policy.py",
              "tests/test_docker_publish.py",
              "tests/test_deploy_with_fragments.py",
@@ -797,8 +798,9 @@ CHECKS = [
                   # lives here rather than in STDLIB_SUITES; the module is covered by tasks/.
                   "tests/test_rlm_stamp_commit.py",
                   # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
-                  # suite lives here rather than in STDLIB_SUITES for that reason.
+                  # suites live here rather than in STDLIB_SUITES for that reason.
                   "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
+                  "tests/test_snapshot_guard.py", "tests/fixtures/doc_snapshot_guard/",
                   # The workflow security policy (SHA pins, allowed owners, permissions, no
                   # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
                   ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py",
@@ -993,7 +995,6 @@ STDLIB_SUITES = [
     "tests/test_sfdmu_id_lookups.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
-    "tests/test_snapshot_guard.py",
     "tests/test_snapshot_help.py",
     "tests/test_toolchain_audit.py",
     "tests/test_update_toolchain_sf.py",
