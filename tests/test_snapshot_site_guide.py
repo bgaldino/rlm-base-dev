@@ -304,7 +304,16 @@ def main():
         {"label": "Kid", "name": G + "kid.html", "children": []}]}]
     gp, _ = sg.flatten_toc(grouped, G, None)
     check("a label-only TOC node is named in its descendants' paths",
-          gp[0]["page_id"] == "kid" and "group" in gp[0]["ancestors"])
+          gp[0]["page_id"] == "kid" and any(e.startswith("group\t") for e in gp[0]["ancestors"]))
+    dup = [{"label": "A", "name": G + "a.html", "children": [{"label": "Overview", "name": G + "a-ov.html", "children": []}]},
+           {"label": "B", "name": G + "b.html", "children": [{"label": "Overview", "name": G + "b-ov.html", "children": []}]}]
+    dp, _ = sg.flatten_toc(dup, G, ["b"])
+    check("a filtered walk records the full path from the top of the TOC",
+          [p["page_id"] for p in dp] == ["b", "b-ov"] and dp[1]["ancestors"][0].startswith("b\t") and len(dp[1]["ancestors"]) == 2)
+    dpages = sg.flatten_toc(dup, G, None)[0]
+    check("capture mode refuses a label that names two TOC nodes, accepts a page id",
+          raises(OptionsError, lambda: sg.SiteGuideSnapshot._stored_section_ids(dpages, ["Overview"]))
+          and sg.SiteGuideSnapshot._stored_section_ids(dpages, ["b-ov"]) == {"b-ov"})
     with tempfile.TemporaryDirectory() as tmp:
         snap(tmp, mode="all").run()
         m = load(tmp)
@@ -332,7 +341,6 @@ def main():
         check("the next all run recaptures only the pages still pending",
               st["captured"] == 4 and not any(u.endswith("/deployment-considerations.html") for u in calls)
               and any(u.endswith("/deployment-overview.html") for u in calls) and len(done) == 4)
-        (Path(tmp) / "manifest.json").write_text(json.dumps(dict(load(tmp), api_version="67.0")), encoding="utf-8")
         check("capture mode resolves a missing section at preflight",
               raises(OptionsError, snap(tmp, mode="capture", sections=["nope"]).preflight))
 

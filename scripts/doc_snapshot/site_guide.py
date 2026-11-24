@@ -203,8 +203,7 @@ def flatten_toc(
             # Every way a section filter can name this node (label, slug key), kept
             # for the node and its ancestors so a later --mode capture can resolve
             # label-only and nested sections without a TOC walk.
-            keys = tuple(k for k in (label.strip().lower(), normalize_key(slug) if slug else "") if k)
-            here = anc + keys
+            here = anc + (_node_entry(label, slug),)
             if slug and slug not in seen:
                 seen.add(slug)
                 pages.append({
@@ -218,10 +217,30 @@ def flatten_toc(
             node = _find_section(toc, needle, guide_path)
             if node is None:
                 raise OptionsError(f"section {needle!r} not found in the guide TOC")
-            walk([node], node.get("label") or needle, None)
+            walk([node], node.get("label") or needle, None, _ancestor_entries(toc, node, guide_path))
     else:
         walk(toc, None, None)
     return pages, skipped
+
+
+def _node_entry(label: str, slug: Optional[str]) -> str:
+    """One TOC node as a path entry: its label and slug key (what a filter may name)."""
+    return f"{(label or '').strip().lower()}\t{normalize_key(slug) if slug else ''}"
+
+
+def _ancestor_entries(nodes, target, guide_path: str, anc=()) -> tuple:
+    """Path entries of ``target``'s ancestors from the top of the TOC (not ``target``)."""
+    for node in nodes or []:
+        if not isinstance(node, dict):
+            continue
+        if node is target:
+            return anc
+        slug = slug_of(node.get("name") or (node.get("link") or {}).get("href") or "", guide_path)
+        label = node.get("label") or slug or ""
+        found = _ancestor_entries(node.get("children"), target, guide_path, anc + (_node_entry(label, slug),))
+        if found is not None:
+            return found
+    return None
 
 
 def _find_section(nodes, needle: str, guide_path: str) -> Optional[Dict[str, Any]]:
@@ -728,14 +747,13 @@ class SiteGuideSnapshot:
             rec["title"] = rec.get("title") or d["title"]
             rec.setdefault("section", d["section"])
             rec["toc_label"] = d["title"]  # the title field becomes the page's H1 once captured
+            rec["ancestors"] = d["ancestors"]  # the full path from the top, also for a section walk
             if o["section_filters"]:
                 if d["parent_page"]:
                     rec.setdefault("parent_page", d["parent_page"])
-                rec.setdefault("ancestors", d["ancestors"])  # a section's path is partial
             else:  # the whole TOC is authoritative: follow a restructure
                 rec["parent_page"] = d["parent_page"]
                 rec["section"] = d["section"]
-                rec["ancestors"] = d["ancestors"]
             rec["source_url"] = self._page_url(d["page_id"])
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         # The legacy map needs the whole guide's slugs, not just a section's.
@@ -792,11 +810,22 @@ class SiteGuideSnapshot:
         """
         ids: set = set()
         for f in filters:
-            wanted = {normalize_key(f), f.strip().lower()}
-            hit = {p["page_id"] for p in pages if wanted & set(p.get("ancestors") or ())}
+            wanted = {normalize_key(f), f.strip().lower()} - {""}
+            hit, nodes = set(), set()
+            for p in pages:
+                path = p.get("ancestors") or []
+                for i, entry in enumerate(path):
+                    if wanted & set(entry.split("\t")):
+                        hit.add(p["page_id"])
+                        nodes.add(tuple(path[: i + 1]))  # the matched node's identity
+                        break
             if not hit:
                 raise OptionsError(
                     f"section {f!r} is not in the manifest; run --mode discover (or all) first"
+                )
+            if len(nodes) > 1:
+                raise OptionsError(
+                    f"section {f!r} names {len(nodes)} different TOC nodes; name one by its page id"
                 )
             ids |= hit
         return ids
