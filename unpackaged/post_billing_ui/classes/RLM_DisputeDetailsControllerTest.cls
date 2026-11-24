@@ -281,6 +281,10 @@ private class RLM_DisputeDetailsControllerTest {
     // Each line's balance is keyed by its id; a line without a balance is left out.
     @isTest
     static void balancesById_leavesOutLinesWithoutABalance() {
+        if (!InvoiceLine.SObjectType.getDescribe().fields.getMap().containsKey('Balance')) {
+            // No InvoiceLine.Balance in this org: getRelatedNames never reads balances here.
+            return;
+        }
         Id lineA = fakeId(InvoiceLine.SObjectType, 1);
         Id lineB = fakeId(InvoiceLine.SObjectType, 2);
 

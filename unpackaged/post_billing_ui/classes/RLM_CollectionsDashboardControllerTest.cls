@@ -774,15 +774,16 @@ private class RLM_CollectionsDashboardControllerTest {
     // each with its most overdue days and its collection plan.
     @isTest
     static void addHighValueDelinquents_keepsAccountsOwingTwoThousandOrMore() {
-        Account twoInvoices = newAccount('RLM High Value Two');
+        Account threeInvoices = newAccount('RLM High Value Three');
         Account justUnder = newAccount('RLM High Value Under');
         Account withPlan = newAccount('RLM High Value Plan');
         Date today = Date.newInstance(2026, 6, 30);
         CollectionPlan plan = newPlan(withPlan.Id, today.addDays(10));
         insert plan;
         List<Invoice> invoices = new List<Invoice>{
-            invoice(new Map<String, Object>{ 'Balance' => 600, 'DueDate' => today.addDays(-70), 'BillingAccountId' => twoInvoices.Id }),
-            invoice(new Map<String, Object>{ 'Balance' => 1400, 'DueDate' => today.addDays(-40), 'BillingAccountId' => twoInvoices.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 1000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => threeInvoices.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 600, 'DueDate' => today.addDays(-70), 'BillingAccountId' => threeInvoices.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 400, 'DueDate' => today.addDays(-50), 'BillingAccountId' => threeInvoices.Id }),
             invoice(new Map<String, Object>{ 'Balance' => 1999, 'DueDate' => today.addDays(-90), 'BillingAccountId' => justUnder.Id }),
             invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => withPlan.Id })
         };
@@ -798,11 +799,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(withPlan.Id, first.accountId, 'The largest balance comes first');
         Assert.areEqual(plan.Id, first.collectionPlanId, 'The account\'s collection plan is attached');
         Assert.areEqual(35, first.daysOverdue, 'Days overdue come from the due date');
-        Assert.areEqual(twoInvoices.Id, second.accountId, 'Two invoices adding up to exactly 2000 qualify');
+        Assert.areEqual(threeInvoices.Id, second.accountId, 'Invoices adding up to exactly 2000 qualify');
         Assert.areEqual(2000, second.balance, 'The account\'s invoices add up');
-        Assert.areEqual(70, second.daysOverdue, 'The most overdue invoice sets the days, not the last one');
+        Assert.areEqual(70, second.daysOverdue, 'The most overdue invoice sets the days, not the first or last one');
         Assert.isNull(second.collectionPlanId, 'An account without a plan has none');
-        Assert.areEqual('RLM High Value Two', second.accountName, 'The account name is looked up');
+        Assert.areEqual('RLM High Value Three', second.accountName, 'The account name is looked up');
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
@@ -829,6 +830,8 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, false, today);
         Test.stopTest();
 
+        Assert.areEqual(2, withFields.criticalFollowUpInvoices.size(), 'One row per invoice');
+        Assert.areEqual(2, withoutFields.criticalFollowUpInvoices.size(), 'One row per invoice, whatever fields the org has');
         RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem full = withFields.criticalFollowUpInvoices[0];
         Assert.areEqual(invoiceA, full.invoiceId, 'Rows keep the invoice order');
         Assert.areEqual('INV-1', full.invoiceNumber, 'The invoice number is shown');
