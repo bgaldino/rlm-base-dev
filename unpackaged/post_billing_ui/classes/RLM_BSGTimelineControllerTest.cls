@@ -167,7 +167,7 @@ private class RLM_BSGTimelineControllerTest {
     }
 
     // A group with no schedules, suspension or milestones: its own fields are mapped, the account
-    // name comes through the relationship, and the lists are empty or unset.
+    // name comes through the relationship, and the schedule list is empty.
     @isTest
     static void dataFor_mapsTheGroupsFields() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
@@ -202,7 +202,7 @@ private class RLM_BSGTimelineControllerTest {
     @isTest
     static void applySuspension_takesTheDatesThatAreSet() {
         Map<String, Schema.SObjectField> fields = BillingScheduleGroup.SObjectType.getDescribe().fields.getMap();
-        if (!fields.containsKey('BillingSuspensionDate')) {
+        if (!fields.containsKey('BillingSuspensionDate') || !fields.containsKey('BillingResumptionDate')) {
             // No suspension fields in this org: the timeline never reads them here.
             return;
         }
@@ -294,8 +294,10 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isFalse(result[1].isAccomplished, 'An open milestone is not accomplished');
         Assert.isNull(result[1].completionDate, 'An open milestone has no completion date');
         Assert.areEqual(done, result[0].completionDate, 'An accomplished milestone has its date');
-        Assert.areEqual(900, result[1].referenceAmount, 'Every item carries the plan\'s reference amount');
-        Assert.areEqual(270, result[1].billedAmount, 'Every item carries the group\'s billed amount');
+        for (RLM_BSGTimelineController.MilestoneChartItem item : result) {
+            Assert.areEqual(900, item.referenceAmount, 'Every item carries the plan\'s reference amount');
+            Assert.areEqual(270, item.billedAmount, 'Every item carries the group\'s billed amount');
+        }
     }
 
     private static RLM_BSGTimelineController.BillingScheduleData schedule(

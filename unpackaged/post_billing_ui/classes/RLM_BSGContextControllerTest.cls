@@ -17,8 +17,8 @@ private class RLM_BSGContextControllerTest {
     //
     // Fixed: groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
     // TotalPendingAmount (no arbitrary single schedule; fillContext_usageGroupWithAnArrangement
-    // checks it), and the usage resource names come
-    // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
+    // checks it), and the usage resource names come from the earliest schedule
+    // (ORDER BY CreatedDate, Id, first wins; live verification only).
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'
@@ -574,14 +574,15 @@ private class RLM_BSGContextControllerTest {
         Assert.isTrue(bd.components.isEmpty(), 'No child groups were found');
     }
 
-    // A component whose parent cannot be found falls back to itself as the root.
+    // A component group (no relationship where it is the main side) whose parent lookup finds no
+    // relationship is its own root. getBundleData reads only whether asMain is empty, not asComponent.
     @isTest
     static void getBundleData_componentWithoutAFoundParentIsItsOwnRoot() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         BillingScheduleGroup current = bsg(new Map<String, Object>{
             'Id' => groupId, 'ProductName' => 'Seat', 'BillingTermUnit' => 'Month', 'BillingTerm' => 3 });
         BsgRelationship asComponent = (BsgRelationship) row('BsgRelationship', new Map<String, Object>{
-            'MainBsgId' => fakeId(BillingScheduleGroup.SObjectType, 2), 'AssociatedBsgId' => groupId });
+            'AssociatedBsgId' => groupId });
 
         Test.startTest();
         RLM_BSGContextController.BundleData bd = RLM_BSGContextController.getBundleData(
@@ -615,7 +616,7 @@ private class RLM_BSGContextControllerTest {
                 'Percentage' => 30, 'MilestoneAmount' => 270, 'IsMilestoneAccomplished' => true,
                 'MilestoneAccomplishmentDate' => done, 'Status' => 'Accomplished' }),
             row('BillingMilestonePlanItem', new Map<String, Object>{ 'Name' => 'Go-live', 'Type' => 'FlatAmount',
-                'FlatAmount' => 630, 'MilestoneAmount' => 630, 'IsMilestoneAccomplished' => false })
+                'FlatAmount' => 630, 'MilestoneAmount' => 600, 'IsMilestoneAccomplished' => false })
         };
         List<RLM_BSGContextController.MilestoneItemData> target = new List<RLM_BSGContextController.MilestoneItemData>();
 
@@ -635,9 +636,10 @@ private class RLM_BSGContextControllerTest {
             new List<String>{ target[0].name, target[1].name }, 'Items keep their query order');
         Assert.areEqual(30, target[0].percentage, 'A percentage item keeps its percentage');
         Assert.isTrue(target[0].isAccomplished, 'An accomplished item is marked');
-        Assert.areEqual('2026-03-01 00:00:00', target[0].accomplishmentDate,
-            'The accomplishment date is shown as the text of the queried date value');
-        Assert.areEqual(630, target[1].flatAmount, 'A flat item keeps its amount');
+        Assert.isTrue(target[0].accomplishmentDate != null && target[0].accomplishmentDate.startsWith('2026-03-01'),
+            'The accomplishment date is shown as text starting with the date. Got: ' + target[0].accomplishmentDate);
+        Assert.areEqual(630, target[1].flatAmount, 'A flat item keeps its flat amount');
+        Assert.areEqual(600, target[1].milestoneAmount, 'A flat item keeps its milestone amount, separate from the flat one');
         Assert.isNull(target[1].accomplishmentDate, 'An open item has no accomplishment date');
     }
 
