@@ -234,3 +234,26 @@ releases:
         doc_version: "264.0"
         output_dir: docs/salesforce/264/dev-guide-industries
         sections: *industries_sections
+      # SITE SOURCES (pack 437). Salesforce moved these guides off atlas onto
+      # server-rendered sites that the atlas fetch above cannot read (empty or
+      # truncated pages). `source: site` reads them over plain HTTP; `api_version`
+      # is the API the release serves, and a capture refuses when the live site
+      # shows another (the site has no version selector, so after the next GA it
+      # serves that release). They write beside the atlas corpora, which stay the
+      # default until the re-capture switches them. `run --release 264` includes
+      # them; use `--only` to pick presets.
+      rlm_site:
+        source: site
+        site_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/rlm-get-started.html
+        api_version: "68.0"
+        probe_page: connect-resources-get-catalogs
+        deliverable: revenue_lifecycle_management_dev_guide
+        output_dir: docs/salesforce/264/dev-guide-site
+      industries_site:
+        source: site
+        site_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/business-rules-engine.html
+        api_version: "68.0"
+        probe_page: connect-resources-predictions-v2
+        deliverable: industries_reference
+        output_dir: docs/salesforce/264/dev-guide-industries-site
+        sections: *industries_sections

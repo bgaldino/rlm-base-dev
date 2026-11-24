@@ -5,7 +5,8 @@ in this repo, so people and AI agents can grep, diff, and cite it instead of
 working from PDFs or a browser. It covers two sources:
 
 - **Help** — articles on help.salesforce.com, release notes included.
-- **Developer guides** — the "atlas" guides on developer.salesforce.com.
+- **Developer guides** — the "atlas" guides on developer.salesforce.com, and
+  the newer server-rendered guides (`source: site`, see **Site guides**).
 
 It needs no Salesforce org and no CumulusCI. For how to *use* the saved docs
 when grounding product claims, see
@@ -55,8 +56,9 @@ pip install -r scripts/doc_snapshot/requirements.txt
 python -m playwright install chromium
 ```
 
-- `help` and `dev-guide` need `playwright`. Both sites render in the browser and
-  block plain HTTP clients, so the tool drives a real Chromium.
+- `help` and atlas `dev-guide` presets need `playwright`. Both sites render in
+  the browser and block plain HTTP clients, so the tool drives a real Chromium.
+  `source: site` dev-guide presets use plain HTTP and need no browser.
 - `markdownify` is optional. Without it, `dev-guide` falls back to a built-in
   converter whose tables and lists are less clean.
 - `PyYAML` reads `presets.yaml`. `check` needs neither PyYAML nor Playwright.
@@ -209,6 +211,61 @@ kept (a failed fetch never deletes it). The 264.0 guide dropped 18 asset and ord
 report is a lead: a page reached only through cross-reference following is also
 not in the TOC. Retire such a page or mark it moved by hand; the tool never
 deletes it.
+
+## Site guides (`source: site`)
+
+Salesforce is moving developer guides off atlas onto server-rendered sites
+(`/docs/revenue/revenue-management/guide/<slug>.html`,
+`/docs/industries/industries-common-dev/guide/<slug>.html`). Atlas URLs 301 to
+them, and the atlas content API serves the new guides empty or truncated, so the
+atlas fetcher cannot capture them. A dev-guide preset with `source: site` reads
+the site over plain HTTP (no browser) through `site_guide.py`:
+
+- **TOC** from the HTML-escaped JSON in the `sidebar-content` attribute of
+  `<doc-content-layout>`, the same on every page. `sections` filter it as for
+  atlas, by label or slug; an atlas page id such as `business_rules_engine` works.
+- **Body** is the markup inside `<doc-content-layout>`, converted by the same
+  HTML to markdown converter as atlas pages. `<doc-heading>` becomes a heading,
+  `<dx-code-block>` a code block, `<doc-content-callout>` a labelled paragraph; any
+  other `doc-*`/`dx-*` element is logged as unconverted.
+- **Files** are named by slug (`articles/rlm-get-started.md`); `page_id` is the
+  slug and `source_url` the new page URL. Intra-guide links point at sibling files
+  when the target was captured, else keep the online URL.
+- **API version check.** The site has no version selector: it serves one release
+  (API 68.0 is release 264) and older ones exist only as PDFs on the guide's
+  `*-pdf-archive.html` page. The capture counts the `/services/data/vNN.0`
+  versions in the fetched pages and **refuses before writing anything** when the
+  dominant one is not the preset's `api_version`. If the captured pages show no
+  version (a metadata-only section), it fetches `probe_page` for evidence, and
+  refuses when there is still none. The observed version and its votes are in the
+  manifest.
+- **Legacy ids.** The manifest's `legacy_id_map` maps old atlas page ids to
+  slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
+  neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.
+  The old ids come from an atlas manifest in the same `output_dir`; switching that
+  directory to the site needs `--mode refresh`, and the old articles are not
+  deleted (remove them in the same change).
+- Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
+  batches (default 500), three attempts with backoff on a failed connection, 429 or
+  5xx. The capture guard (not-found and stub) applies as for atlas.
+
+| Option | Default | Notes |
+|---|---|---|
+| `source` | `atlas` | `site` selects this fetcher. |
+| `site_url` | none | Required. Any page of the guide. |
+| `api_version` | none | Required at run time, for example `68.0`. Dropped by `bootstrap`. |
+| `probe_page` | none | Slug of a page that shows an API version. |
+| `deliverable` | the guide's path segment | The legacy atlas id; frontmatter and the redirect lookup use it. |
+| `sections`, `output_dir`, `mode`, `concurrency`, `batch_delay_ms`, `max_pages` | as for atlas | `doc_version` is rejected; `follow_links` does not apply. |
+
+The 264 presets `rlm_site` and `industries_site` write to
+`docs/salesforce/264/dev-guide-site` and `dev-guide-industries-site`; the atlas
+presets stay the defaults until a re-capture switches them. A sample run:
+
+```bash
+python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm_site \
+    --output-dir /tmp/rlm-sample --section connect-resources-get-catalogs
+```
 
 ## Reading the result
 
@@ -384,8 +441,9 @@ signs that the area has been updated.
 ```bash
 python tests/test_snapshot_help.py           # stdlib only
 python tests/test_snapshot_dev_guide.py      # stdlib only
+python tests/test_snapshot_site_guide.py     # stdlib only; fixtures in tests/fixtures/doc_snapshot_site/
 python tests/test_snapshot_guard.py          # needs PyYAML; fixtures in tests/fixtures/doc_snapshot_guard/
 python tests/test_doc_snapshot_presets.py    # needs PyYAML
 ```
 
-All four run offline without a browser. `scripts/ai/pr_gate.py` runs them.
+All five run offline without a browser. `scripts/ai/pr_gate.py` runs them.

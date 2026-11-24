@@ -67,6 +67,7 @@ SINGLE_TARGET_FLAGS = {
     "article_id_prefix": "--prefix",
     "output_dir": "--output-dir",
     "deliverable": "--deliverable",
+    "site_url": "--site-url",
     "sections": "--section",
 }
 
@@ -77,6 +78,15 @@ def _snapshot_class(kind: str):
         return HelpSnapshot
     from scripts.doc_snapshot.dev_guide import DevGuideSnapshot
     return DevGuideSnapshot
+
+
+def _class_for(kind: str, options: Dict[str, Any]):
+    """The snapshotter for a resolved preset: a ``source: site`` dev guide is read
+    over HTTP by ``site_guide``; every other preset keeps its ``_snapshot_class``."""
+    if kind == "dev_guide" and presets_mod.dev_guide_source(options) == "site":
+        from scripts.doc_snapshot.site_guide import SiteGuideSnapshot
+        return SiteGuideSnapshot
+    return _snapshot_class(kind)
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +160,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--doc-version", dest="doc_version",
                    help="atlas doc version, e.g. 264.0; without it the unversioned "
                         "endpoint may still serve the previous release")
+    p.add_argument("--source", choices=presets_mod.SOURCES,
+                   help="atlas (default) or site: a server-rendered guide read over HTTP")
+    p.add_argument("--site-url", dest="site_url",
+                   help="source=site: any page of the guide, e.g. "
+                        "https://developer.salesforce.com/docs/revenue/revenue-management/guide/rlm-get-started.html")
+    p.add_argument("--api-version", dest="api_version",
+                   help="source=site: the API version the release serves, e.g. 68.0; "
+                        "a capture refuses when the site shows another")
+    p.add_argument("--probe-page", dest="probe_page",
+                   help="source=site: slug of a page that shows /services/data/vNN.0, "
+                        "fetched only when the captured pages show no API version")
     p.add_argument("--section", dest="sections", action="append", metavar="SECTION",
                    help="TOC section title or page_id; repeat for several "
                         "(replaces the preset's sections)")
@@ -228,7 +249,7 @@ def run_targets(
     planned = []
     for release, kind, key in targets:
         options = presets_mod.resolve(releases, release, kind, key, overrides)
-        snapshot = _snapshot_class(kind)(options, logger=logger)
+        snapshot = _class_for(kind, options)(options, logger=logger)
         snapshot.preflight()
         planned.append((f"{release} {kind}.{key}", snapshot))
 
@@ -300,8 +321,12 @@ def cmd_list(args, releases, logger) -> int:
             floor = preset.get("expect_min_articles")
             note = f"min {floor}" if floor else ""
         else:
-            target = preset.get("deliverable", "(default)")
-            note = f"doc {preset['doc_version']}" if preset.get("doc_version") else ""
+            if preset.get("source") == "site":
+                target = preset.get("site_url", "")
+                note = f"site, API {preset.get('api_version', '?')}"
+            else:
+                target = preset.get("deliverable", "(default)")
+                note = f"doc {preset['doc_version']}" if preset.get("doc_version") else ""
         rows.append((release, kind, key, target, note))
     if not rows:
         print(f"No presets{' for release ' + args.release if args.release else ''}.")

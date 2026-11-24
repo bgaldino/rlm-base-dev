@@ -511,6 +511,33 @@ def main():
         rc = cli.main(["list", "--release", "264"])
     check("list prints the release's presets", rc == 0 and "release_notes" in out.getvalue())
 
+    # Site-source dev-guide presets (pack 437).
+    from scripts.doc_snapshot.site_guide import SiteGuideSnapshot
+    for key, sections in (("rlm_site", False), ("industries_site", True)):
+        opts = presets.resolve(releases, "264", "dev_guide", key)
+        check(f"{key} is a site preset on API 68.0 with its own output dir",
+              presets.dev_guide_source(opts) == "site" and opts["api_version"] == "68.0"
+              and opts["output_dir"].endswith(("dev-guide-site", "dev-guide-industries-site")))
+        check(f"{key} resolves to the site snapshotter and normalises",
+              cli._class_for("dev_guide", opts) is SiteGuideSnapshot
+              and SiteGuideSnapshot(opts).options["mode"] == "all")
+        check(f"{key} section filter is {'set' if sections else 'whole guide'}",
+              bool(opts.get("sections")) == sections)
+    check("atlas presets keep the atlas snapshotter",
+          cli._class_for("dev_guide", presets.resolve(releases, "264", "dev_guide", "rlm"))
+          is DevGuideSnapshot)
+    check("an unknown source is a usage error",
+          raises(OptionsError, presets.dev_guide_source, {"source": "pdf"}))
+    check("ad hoc site run needs only --site-url",
+          presets.overrides_complete("dev_guide", {"site_url": "https://x"}))
+    check("a site preset without api_version fails at run time, not at load",
+          raises(OptionsError, SiteGuideSnapshot, {
+              k: v for k, v in presets.resolve(releases, "264", "dev_guide", "rlm_site").items()
+              if k != "api_version"}))
+    boot = presets.bootstrap_block(releases, "264", "999", "Test")
+    check("bootstrap drops api_version from a site preset (a fact about the release)",
+          "rlm_site" in boot and "api_version" not in boot and "site_url" in boot)
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 
