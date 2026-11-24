@@ -68,6 +68,8 @@ SINGLE_TARGET_FLAGS = {
     "output_dir": "--output-dir",
     "deliverable": "--deliverable",
     "site_url": "--site-url",
+    "api_version": "--api-version",
+    "probe_page": "--probe-page",
     "sections": "--section",
 }
 

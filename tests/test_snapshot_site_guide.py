@@ -122,7 +122,8 @@ def main():
     code = sg.normalize_body(
         (FIX / "connect-resources-get-catalogs.html").read_text(encoding="utf-8"))
     check("dx-code-block attribute becomes pre/code", "<pre><code>https://{yourInstance}" in code
-          and "&amp;b=&quot;" not in code and "second line</code></pre>" in code)
+          and "second line</code></pre>" in code
+          and 'a=1&b="x"' in sg.html_to_markdown(code))
     md = sg.html_to_markdown(sg.rewrite_links(norm, G, {"deployment-considerations"}))
     check("links to captured pages are local, with fragment",
           "(./deployment-considerations.md#notes)" in md)
@@ -155,7 +156,7 @@ def main():
         check("whole guide: 4 pages captured, none errored",
               stats["captured"] == 4 and stats["errored"] == 0 and m["source"] == "site")
         check("observed API version recorded", m["observed_api_version"] == "68.0"
-              and m["api_version_votes"]["v68.0"] >= 3)
+              and m["api_version_votes"]["v68.0"] >= 1)
         art = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
         check("frontmatter carries slug, new source_url, api_version",
               "page_id: rlm-get-started" in art and f"source_url: {START}" in art
@@ -171,6 +172,48 @@ def main():
         s2.options["mode"] = "all"
         s2.run()
         check("a rerun fetches only the TOC page (idempotent)", len(calls) == 1)
+
+    print("review hardening")
+    tricky = ('<doc-content-layout class="x" sidebar-content="[]"><p>a</p>'
+              '<dx-code-block code-block="List&lt;String&gt; a -> b; &lt;a href=&quot;/docs/x.html&quot;&gt;" language="x"></dx-code-block>'
+              '<p>kept prose</p><dx-code-block code-block="second" language="x"/>'
+              '<p>after</p></doc-content-layout>')
+    tp = sg.parse_page(tricky)
+    tn = sg.normalize_body(tp["body"]) if tp else ""
+    check("a literal > inside an attribute value does not break the tag", tp is not None and "List&lt;String&gt; a -&gt; b" in tn)
+    check("an empty or self-closed code block does not swallow the prose after it",
+          "kept prose" in tn and "after" in tn and "<pre><code>second</code></pre>" in tn)
+    tmd = sg.html_to_markdown(sg.rewrite_links(tn, G, set()))
+    check("links inside a code sample are not rewritten", 'href="/docs/x.html"' in tmd)
+    with tempfile.TemporaryDirectory() as tmp:
+        s = snap(tmp, api_version="69.0", mode="all")
+        raises(SnapshotError, s.run)
+        check("a version refusal saves no manifest and writes no article",
+              not (Path(tmp) / "manifest.json").exists()
+              and not list((Path(tmp) / "articles").glob("*.md")))
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "articles").mkdir()
+        (Path(tmp) / "articles" / "rlm_get_started.htm.md").write_text("old", encoding="utf-8")
+        old = json.dumps({"pages": [{"page_id": "rlm_get_started.htm", "status": "captured"}]})
+        (Path(tmp) / "manifest.json").write_text(old, encoding="utf-8")
+        raises(SnapshotError, snap(tmp, api_version="69.0", mode="refresh").run)
+        check("a refused switch leaves the atlas manifest untouched",
+              (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == old)
+    import http.client
+    import urllib.request
+    class _Boom:
+        def __enter__(self): raise http.client.IncompleteRead(b"")
+        def __exit__(self, *a): return False
+    real = urllib.request.urlopen
+    urllib.request.urlopen = lambda *a, **k: _Boom()
+    try:
+        check("an IncompleteRead is a failed fetch, not a crash", sg.http_fetch(START)[0] == 0)
+    finally:
+        urllib.request.urlopen = real
+    check("a negative batch delay is an options error",
+          raises(OptionsError, lambda: snap("/tmp/x", batch_delay_ms=-1)))
+    check("a site_url with an unsafe slug is an options error",
+          raises(OptionsError, lambda: snap("/tmp/x", site_url=BASE + "a%20b.html")))
 
     print("API version check")
     with tempfile.TemporaryDirectory() as tmp:
@@ -255,6 +298,9 @@ def main():
               all(not p["page_id"].endswith(".htm") for p in m["pages"]))
         art = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
         check("frontmatter names the legacy id", "legacy_page_id: rlm_get_started.htm" in art)
+        check("the superseded atlas files are listed in the manifest",
+              load(tmp)["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md",
+                                                 "articles/rlm_get_started.htm.md"])
         snap(tmp).run()
         check("a rerun keeps the legacy map and the unmapped list",
               load(tmp)["legacy_id_map"]["rlm_get_started.htm"] == "rlm-get-started"

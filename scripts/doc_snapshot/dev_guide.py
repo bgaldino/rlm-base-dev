@@ -544,6 +544,15 @@ class DevGuideSnapshot:
             "snapshot_started": today(),
             "pages": [],
         }
+        try:
+            raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raw = None
+        if isinstance(raw, dict) and raw.get("source") == "site":
+            raise OptionsError(
+                f"{manifest_path.parent} holds a site capture (source: site); an atlas run "
+                "would mix atlas pages into it. Point the preset at its own output_dir."
+            )
         manifest = read_manifest(manifest_path, base, "pages", self.logger)
         # Label the manifest with the tool that last wrote it.
         manifest["capture_method"] = CAPTURE_METHOD

@@ -44,6 +44,7 @@ sets ``source: site``. scripts/doc_snapshot/README.md covers options.
 """
 
 import html as html_lib
+import http.client
 import json
 import re
 import time
@@ -90,20 +91,21 @@ CAPTURE_METHOD = "scripts/doc_snapshot dev-guide (server-rendered site, HTTP)"
 SITE_HOST = "https://developer.salesforce.com"
 USER_AGENT = "rlm-base-dev doc_snapshot (+https://github.com/bgaldino/rlm-base-dev)"
 
-# Versions counted before the API-version check may settle.
-MIN_VERSION_VOTES = 3
 # A page id (slug) is a bare filename: it names a local file.
 _SAFE_SLUG_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")
 _API_VERSION_RE = re.compile(r"/services/data/v(\d+\.\d+)")
-_CONTENT_RE = re.compile(r"<doc-content-layout\b([^>]*)>(.*)</doc-content-layout>", re.DOTALL)
+# Tag attributes, quote-aware: a literal ">" inside a quoted value (``Map<String>``,
+# ``->``) does not end the tag.
+_ATTRS = r"""((?:[^>"']|"[^"]*"|'[^']*')*)"""
+_CONTENT_RE = re.compile(r"<doc-content-layout\b" + _ATTRS + r">(.*)</doc-content-layout>", re.DOTALL)
 _ATTR_RE = re.compile(r'([\w:-]+)="([^"]*)"')
 _DOC_HEADING_RE = re.compile(
-    r"<doc-heading\b([^>]*)>(?:\s*</doc-heading>)?", re.DOTALL
+    r"<doc-heading\b" + _ATTRS + r">(?:\s*</doc-heading>)?", re.DOTALL
 )
 _CODE_BLOCK_RE = re.compile(
-    r"<dx-code-block\b([^>]*)>(?:.*?</dx-code-block>)?", re.DOTALL
+    r"<dx-code-block\b" + _ATTRS + r">(?:\s*</dx-code-block>)?", re.DOTALL
 )
-_CALLOUT_RE = re.compile(r"<doc-content-callout\b([^>]*)>(.*?)</doc-content-callout>", re.DOTALL)
+_CALLOUT_RE = re.compile(r"<doc-content-callout\b" + _ATTRS + r">(.*?)</doc-content-callout>", re.DOTALL)
 _CUSTOM_TAG_RE = re.compile(r"<((?:doc|dx)-[a-z0-9-]+)")
 _HREF_RE = re.compile(r'href="([^"]*)"')
 _H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.DOTALL)
@@ -257,17 +259,17 @@ def normalize_body(body: str) -> str:
         text = html_lib.unescape(attrs.get("header", "")).strip()
         level = attrs.get("aria-level", "2")
         level = level if level in ("1", "2", "3", "4", "5", "6") else "2"
-        return f"<h{level}>{html_lib.escape(text, quote=False)}</h{level}>" if text else ""
+        return f"<h{level}>{html_lib.escape(text, quote=True)}</h{level}>" if text else ""
 
     def code(m):
         attrs = dict(_ATTR_RE.findall(m.group(1)))
         text = html_lib.unescape(attrs.get("code-block", "")).strip("\n")
-        return f"<pre><code>{html_lib.escape(text, quote=False)}</code></pre>"
+        return f"<pre><code>{html_lib.escape(text, quote=True)}</code></pre>"
 
     def callout(m):
         attrs = dict(_ATTR_RE.findall(m.group(1)))
         label = html_lib.unescape(attrs.get("header") or attrs.get("variant") or "").strip()
-        lead = f"<p><strong>{html_lib.escape(label, quote=False)}:</strong></p>" if label else ""
+        lead = f"<p><strong>{html_lib.escape(label, quote=True)}:</strong></p>" if label else ""
         return lead + m.group(2)
 
     body = _CALLOUT_RE.sub(callout, body)
@@ -366,7 +368,7 @@ def http_fetch(url: str, timeout: int = 60) -> Tuple[int, str, str]:
             return resp.status, resp.read().decode("utf-8", "replace"), resp.geturl()
     except urllib.error.HTTPError as exc:
         return exc.code, "", url
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError):
         return 0, "", url
 
 
@@ -379,7 +381,7 @@ def http_redirect_target(url: str, timeout: int = 30) -> Optional[str]:
     except urllib.error.HTTPError as exc:
         if exc.code in (301, 302, 303, 307, 308):
             return exc.headers.get("Location")
-    except (urllib.error.URLError, TimeoutError, OSError):
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError):
         pass
     return None
 
@@ -454,6 +456,8 @@ class SiteGuideSnapshot:
             )
         self.guide_path = m.group(1)
         self.start_slug = slug_of(parsed.path, self.guide_path)
+        if not self.start_slug:
+            raise OptionsError(f"site_url does not name a guide page slug: {o['site_url']!r}")
         if not re.match(r"^\d+\.\d+$", o["api_version"]):
             raise OptionsError(f"api_version must look like '68.0', got {o['api_version']!r}")
         o["deliverable"] = o.get("deliverable") or self.guide_path.split("/")[3]
@@ -463,6 +467,8 @@ class SiteGuideSnapshot:
         o["batch_delay_ms"] = as_int(o.get("batch_delay_ms"), 500)
         o["max_pages"] = as_int(o.get("max_pages"), 5000)
         require_positive(o, "concurrency", "max_pages")
+        if o["batch_delay_ms"] < 0:
+            raise OptionsError(f"batch_delay_ms must be >= 0, got {o['batch_delay_ms']}")
         sections = o.get("sections")
         if sections is not None and not isinstance(sections, (list, tuple)):
             sections = [sections]
@@ -478,7 +484,6 @@ class SiteGuideSnapshot:
 
     def run(self) -> Dict[str, Any]:
         output_dir = resolve_output_dir(self.options["output_dir"])
-        (output_dir / "articles").mkdir(parents=True, exist_ok=True)
         return self._run(output_dir)
 
     # -- helpers ----------------------------------------------------------
@@ -538,6 +543,16 @@ class SiteGuideSnapshot:
             self.logger.info(f"Atlas manifest found: {len(legacy)} legacy page id(s) to map")
             fresh = dict(base)
             fresh["_legacy_ids"] = legacy
+            old_files = sorted(
+                f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
+                if p.get("status") == "captured" and str(p.get("page_id", "")).endswith(".htm")
+            )
+            if old_files:
+                fresh["superseded_files"] = old_files
+                self.logger.warning(
+                    f"  {len(old_files)} atlas article file(s) are superseded and stay on disk "
+                    "(listed under superseded_files in the manifest); remove them with the re-capture commit"
+                )
             return fresh
         manifest.update(
             api_version=o["api_version"], site_url=o["site_url"],
@@ -586,7 +601,8 @@ class SiteGuideSnapshot:
         legacy_ids = manifest.get("_legacy_ids")
 
         if mode in ("discover", "all", "refresh"):
-            self._discover(manifest, manifest_path, legacy_ids)
+            self._discover(manifest, manifest_path, legacy_ids, save=mode == "discover")
+        (output_dir / "articles").mkdir(parents=True, exist_ok=True)
         failed: List[str] = []
         attempted = 0
         if mode in ("capture", "all", "refresh"):
@@ -604,17 +620,22 @@ class SiteGuideSnapshot:
         )
         return stats
 
-    def _discover(self, manifest, manifest_path, legacy_ids) -> None:
+    def _discover(self, manifest, manifest_path, legacy_ids, save: bool = True) -> None:
         o = self.options
         start = self._fetch_page(self.start_slug)
         if "error" in start:
             raise SnapshotError(f"TOC fetch failed for {self._page_url(self.start_slug)}: {start['error']}")
+        # Settle the API version before the manifest is touched or saved, so a
+        # refusal leaves the corpus (and an atlas manifest being switched) intact.
+        votes: Counter = Counter(set(api_versions(start["body"])))
+        self._verify_version(votes, manifest, require=False)
         toc = parse_toc(start["attrs"])
         discovered, skipped = flatten_toc(toc, self.guide_path, o["section_filters"])
         if skipped:
             self.logger.warning(f"  {skipped} TOC node(s) point outside this guide and were skipped")
-        subtitle = re.search(r'<doc-header\b[^>]*?\bsubtitle="([^"]*)"', start["html"], re.DOTALL)
-        manifest["guide_title"] = html_lib.unescape(subtitle.group(1)) if subtitle and subtitle.group(1) else None
+        header = re.search(r"<doc-header\b" + _ATTRS + ">", start["html"], re.DOTALL)
+        subtitle = dict(_ATTR_RE.findall(header.group(1))).get("subtitle") if header else None
+        manifest["guide_title"] = html_lib.unescape(subtitle) if subtitle else None
         self.logger.info(
             f"TOC: {len(discovered)} page(s)"
             + (f" in section(s) {', '.join(o['section_filters'])}" if o["section_filters"] else "")
@@ -636,7 +657,8 @@ class SiteGuideSnapshot:
         all_slugs = {d["page_id"] for d in flatten_toc(toc, self.guide_path, None)[0]}
         if legacy_ids:
             self._map_legacy(manifest, legacy_ids, all_slugs)
-        self._save_manifest(manifest_path, manifest)
+        if save:  # with a capture to follow, the one save comes after the version check
+            self._save_manifest(manifest_path, manifest)
 
     def _map_legacy(self, manifest, legacy_ids: List[str], slugs: set) -> None:
         """Fill ``legacy_id_map``/``unmapped_legacy_ids`` for atlas ids ``legacy_ids``."""
@@ -679,47 +701,49 @@ class SiteGuideSnapshot:
             pages = [p for p in pages if (p.get("section") or "").strip().lower() in wanted]
         return pages if mode == "refresh" else [p for p in pages if p.get("status") != "captured"]
 
+    def _verify_version(self, votes: Counter, manifest, require: bool = True) -> None:
+        """Refuse unless the site's observed API version is the preset's.
+
+        ``votes`` counts pages (not mentions) per ``/services/data/vNN.0``; when
+        they show nothing, the preset's ``probe_page`` is fetched for evidence.
+        """
+        o = self.options
+        votes = Counter(votes)
+        seen = observed_version(votes)
+        if seen is None and o.get("probe_page"):
+            probe = self._fetch_page(str(o["probe_page"]))
+            if "error" not in probe:
+                votes.update(set(api_versions(probe["body"])))
+                seen = observed_version(votes)
+        if seen is None and not require:
+            return  # discover alone may lack evidence; capture settles it before writing
+        manifest["observed_api_version"] = seen
+        manifest["api_version_votes"] = dict(votes)
+        if seen is None:
+            raise SnapshotError(
+                "cannot confirm the site's API version: none of the fetched pages "
+                "(nor the preset's probe_page) shows a /services/data/vNN.0 version. "
+                "Nothing was written. Set probe_page to a REST or Connect page of the guide."
+            )
+        if seen != o["api_version"]:
+            raise SnapshotError(
+                f"the site now serves API {seen} ({dict(votes)}), but this preset is "
+                f"for API {o['api_version']}. Nothing was written: the site has moved "
+                "to a newer release and no per-release copy is served. Compare the "
+                "pages against the PDF archive, or update the preset on purpose."
+            )
+        self.logger.info(f"  API version check: site serves {seen} (matches the preset)")
+
     def _capture_pages(self, pages, output_dir: Path, manifest, manifest_path) -> Tuple[List[str], int]:
         o = self.options
         articles_dir = output_dir / "articles"
         fetched: Dict[str, Dict[str, Any]] = {}
         errors: Dict[str, str] = {}
         votes: Counter = Counter()
-        verified = False
         queue = [p["page_id"] for p in pages][: o["max_pages"]]
         capped = len(pages) - len(queue)
         if capped:
             self.logger.warning(f"  max_pages={o['max_pages']}: {capped} page(s) left pending")
-
-        def check_version(final: bool) -> None:
-            nonlocal verified
-            if verified or (sum(votes.values()) < MIN_VERSION_VOTES and not final):
-                return
-            seen = observed_version(votes)
-            manifest["observed_api_version"] = seen
-            manifest["api_version_votes"] = dict(votes)
-            if seen is None and o.get("probe_page"):
-                probe = self._fetch_page(str(o["probe_page"]))
-                if "error" not in probe:
-                    votes.update(api_versions(probe["body"]))
-                    seen = observed_version(votes)
-                    manifest["observed_api_version"] = seen
-                    manifest["api_version_votes"] = dict(votes)
-            if seen is None:
-                raise SnapshotError(
-                    "cannot confirm the site's API version: none of the fetched pages "
-                    "(nor the preset's probe_page) shows a /services/data/vNN.0 version. "
-                    "Nothing was written. Set probe_page to a REST or Connect page of the guide."
-                )
-            if seen != o["api_version"]:
-                raise SnapshotError(
-                    f"the site now serves API {seen} ({dict(votes)}), but this preset is "
-                    f"for API {o['api_version']}. Nothing was written: the site has moved "
-                    "to a newer release and no per-release copy is served. Compare the "
-                    "pages against the PDF archive, or update the preset on purpose."
-                )
-            verified = True
-            self.logger.info(f"  API version check: site serves {seen} (matches the preset)")
 
         for start in range(0, len(queue), o["concurrency"]):
             batch = queue[start:start + o["concurrency"]]
@@ -729,12 +753,12 @@ class SiteGuideSnapshot:
                 if "error" in res:
                     errors[res["id"]] = res["error"]
                     continue
-                votes.update(api_versions(res["body"]))
+                votes.update(set(api_versions(res["body"])))  # one vote per page
                 fetched[res["id"]] = res
-            check_version(final=False)
             if start + o["concurrency"] < len(queue):
                 self._sleep(o["batch_delay_ms"] / 1000.0)
-        check_version(final=True) if fetched else None
+        if fetched:
+            self._verify_version(votes, manifest)
 
         extra = Counter(t for r in fetched.values() for t in unhandled_tags(r["body"]))
         if extra:
@@ -752,7 +776,10 @@ class SiteGuideSnapshot:
             title = page_title(body, by_id.get(pid, {}).get("title") or pid)
             return title, html_to_markdown(body)
 
-        all_ids = set(fetched)
+        # Links to pages captured by an earlier run stay local.
+        earlier = {pid for pid, rec in by_id.items()
+                   if rec.get("status") == "captured" and (articles_dir / f"{pid}.md").is_file()}
+        all_ids = set(fetched) | earlier
         for pid in fetched:
             title, body_md = convert(pid, all_ids)
             if body_md and (reason := refusal_reason(
