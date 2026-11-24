@@ -357,6 +357,7 @@ def main():
         mg = snap(tmp, mode="refresh", site_url=other)._load_or_init_manifest(Path(tmp) / "manifest.json")
         mg["superseded_files"].append("articles/keep-me.md")
         mg["pages"] = [{"page_id": "start", "status": "captured"}]
+        (Path(tmp) / "articles" / "keep-me.md").write_text("old", encoding="utf-8")
         s3 = snap(tmp, mode="refresh", site_url=other)
         s3._save_manifest(Path(tmp) / "m2.json", mg)
         sf = json.loads((Path(tmp) / "m2.json").read_text(encoding="utf-8")).get("superseded_files", [])
@@ -495,7 +496,9 @@ def main():
 
     print("legacy ids")
     with tempfile.TemporaryDirectory() as tmp:
-        (Path(tmp)).mkdir(exist_ok=True)
+        (Path(tmp) / "articles").mkdir(parents=True, exist_ok=True)
+        for pid in ("rlm_get_started.htm", "odd_old_name.htm", "gone.htm"):
+            (Path(tmp) / "articles" / f"{pid}.md").write_text("# Old\n\nolder text\n", encoding="utf-8")
         (Path(tmp) / "manifest.json").write_text(json.dumps({"pages": [
             {"page_id": "rlm_get_started.htm", "status": "captured"},
             {"page_id": "odd_old_name.htm", "status": "captured"},
@@ -516,9 +519,8 @@ def main():
               all(not p["page_id"].endswith(".htm") for p in m["pages"]))
         art = (Path(tmp) / "articles" / "rlm-get-started.md").read_text(encoding="utf-8")
         check("frontmatter names the legacy id", "legacy_page_id: rlm_get_started.htm" in art)
-        check("the superseded atlas files are listed in the manifest",
-              load(tmp)["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md",
-                                                 "articles/rlm_get_started.htm.md"])
+        check("the replaced atlas files are listed superseded; an unmapped one is not offered for removal",
+              load(tmp)["superseded_files"] == ["articles/odd_old_name.htm.md", "articles/rlm_get_started.htm.md"])
         snap(tmp).run()
         check("a rerun keeps the legacy map and the unmapped list",
               load(tmp)["legacy_id_map"]["rlm_get_started.htm"] == "rlm-get-started"
@@ -552,20 +554,24 @@ def main():
               not (arts / "rlm-get-started.md").exists() and (arts / "rlm_get_started.htm.md").read_text(encoding="utf-8") == big
               and any(p["page_id"] == "rlm-get-started" and p["status"] == "error" and "refused" in p.get("error", "")
                       for p in m["pages"]))
-        check("the atlas article that is still the only copy is not listed superseded; the replaced ones are",
-              m["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md"])
+        check("the atlas article that is still the only copy, and an unmapped one, are not offered for removal",
+              m["superseded_files"] == ["articles/odd_old_name.htm.md"])
         check("no local link points at the refused page",
               all("./rlm-get-started.md" not in f.read_text(encoding="utf-8") for f in arts.glob("*.md")))
         snap(tmp, redirects=redir, mode="all", accept_shrinkage=["rlm-get-started"], probe_page="connect-resources-get-catalogs").run()
         check("once the replacement is accepted, the atlas article is listed superseded",
-              load(tmp)["superseded_files"] == ["articles/gone.htm.md", "articles/odd_old_name.htm.md",
-                                                 "articles/rlm_get_started.htm.md"])
+              load(tmp)["superseded_files"] == ["articles/odd_old_name.htm.md", "articles/rlm_get_started.htm.md"])
         later = {"https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/"
                  "revenue_lifecycle_management_dev_guide/gone.htm": G + "connect-resources-get-catalogs.html", **redir}
         snap(tmp, redirects=later, mode="all", probe_page="connect-resources-get-catalogs").run()
         m = load(tmp)
-        check("a rerun retries ids that stayed unmapped",
-              m["legacy_id_map"].get("gone.htm") == "connect-resources-get-catalogs" and not m["unmapped_legacy_ids"])
+        check("a rerun retries ids that stayed unmapped, and lists the file once its page has an article",
+              m["legacy_id_map"].get("gone.htm") == "connect-resources-get-catalogs" and not m["unmapped_legacy_ids"]
+              and "articles/gone.htm.md" in m["superseded_files"])
+        (arts / "odd_old_name.htm.md").unlink()
+        snap(tmp, redirects=later, mode="all", probe_page="connect-resources-get-catalogs").run()
+        check("an entry for a file the user already removed is pruned",
+              "articles/odd_old_name.htm.md" not in load(tmp).get("superseded_files", []))
     with tempfile.TemporaryDirectory() as tmp:
         snap(tmp, mode="all").run()
         mm = load(tmp)
@@ -576,11 +582,13 @@ def main():
         (Path(tmp) / "articles" / "a_b.htm.md").write_text("# s\n\nshort\n", encoding="utf-8")
         (Path(tmp) / "articles" / "a-b.htm.md").write_text(big, encoding="utf-8")
         try:
-            snap(tmp, mode="capture").run()
+            snap(tmp, mode="capture", probe_page="connect-resources-get-catalogs").run()
         except SnapshotError:
             pass
         check("two atlas ids mapped to one page: the longest article is the guard's prior",
-              not (Path(tmp) / "articles" / "rlm-get-started.md").exists())
+              not (Path(tmp) / "articles" / "rlm-get-started.md").exists()
+              and any(p["page_id"] == "rlm-get-started" and p["status"] == "error" and "refused" in p.get("error", "")
+                      for p in load(tmp)["pages"]))
 
     print(f"\n{_passed}/{_total} passed")
     return 0 if _passed == _total else 1

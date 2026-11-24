@@ -577,7 +577,7 @@ class SiteGuideSnapshot:
                 )
             return
         manifest = read_manifest(path, {"pages": []}, "pages")
-        if any(p.get("status") == "captured" for p in manifest.get("pages", [])):
+        if any(self._has_article(path, p) for p in manifest.get("pages", [])):
             raise OptionsError(
                 "the output directory holds an atlas capture; recording the site's "
                 "pages over it would orphan its files. Use --mode refresh to switch "
@@ -688,6 +688,12 @@ class SiteGuideSnapshot:
                 f"articles/{p['page_id']}.md" for p in manifest.get("pages", [])
                 if self._has_article(path, p)
             )
+            # Atlas files held back from the list (their page was never captured) belong to the
+            # old guide too: list every one still on disk.
+            old_files = sorted(set(old_files) | {
+                f for f in (f"articles/{o}.md" for o in
+                            list(manifest.get("legacy_id_map") or {}) + list(manifest.get("unmapped_legacy_ids") or {}))
+                if (path.parent / f).is_file()})
             self.logger.warning(
                 f"  the manifest describes a different guide ({self._describe(changes)}): "
                 f"{len(manifest.get('pages', []))} page record(s) are dropped"
@@ -717,21 +723,31 @@ class SiteGuideSnapshot:
 
     @staticmethod
     def _settle_superseded(path: Path, manifest: Dict[str, Any]) -> None:
-        """List an atlas article as superseded only once the site page it maps to is captured.
+        """List an atlas article as superseded only once the site page it maps to has an article.
 
         A refused, failed or not-yet-captured replacement leaves the atlas file as the only
-        copy, so it must not be offered for removal; it is listed again when its page is
-        captured. Atlas ids that map to nothing stay listed (no replacement will come).
+        copy, and an id that maps to nothing has no replacement at all, so neither is offered
+        for removal (unmapped ids are reported under ``unmapped_legacy_ids``). A file is
+        listed again when its page gets an article. Entries for files already removed are
+        pruned.
         """
-        pages = manifest.get("pages", [])
-        captured = {p["page_id"] for p in pages if p.get("status") == "captured"}
-        live = {f"articles/{pid}.md" for pid in captured}
-        replacement = {f"articles/{old}.md": slug
-                       for old, slug in (manifest.get("legacy_id_map") or {}).items()}
-        keep = {f for f in (manifest.get("superseded_files") or [])
-                if f not in live and (f not in replacement or replacement[f] in captured)}
-        for f, slug in replacement.items():  # (re)list a mapped atlas file whose page is now captured
-            if slug in captured and (path.parent / f).is_file():
+        pages = [p for p in manifest.get("pages", []) if isinstance(p, dict) and p.get("page_id")]
+        out = path.parent
+        have = {p["page_id"] for p in pages if p.get("status") == "captured"}
+        have |= {p["page_id"] for p in pages if (out / "articles" / f"{p['page_id']}.md").is_file()}
+        mapped = manifest.get("legacy_id_map")
+        mapped = mapped if isinstance(mapped, dict) else {}
+        unmapped = manifest.get("unmapped_legacy_ids")
+        unmapped = unmapped if isinstance(unmapped, dict) else {}
+        replacement = {f"articles/{old}.md": slug for old, slug in mapped.items()}
+        held = {f"articles/{old}.md" for old in unmapped}
+        stored = manifest.get("superseded_files")
+        stored = [f for f in stored if isinstance(f, str)] if isinstance(stored, list) else []
+        keep = {f for f in stored
+                if f not in {f"articles/{pid}.md" for pid in have} and f not in held
+                and (f not in replacement or replacement[f] in have) and (out / f).is_file()}
+        for f, slug in replacement.items():  # (re)list a mapped atlas file whose page has an article
+            if slug in have and (out / f).is_file():
                 keep.add(f)
         if keep:
             manifest["superseded_files"] = sorted(keep)

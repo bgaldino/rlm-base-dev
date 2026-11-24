@@ -260,9 +260,9 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   old articles are not deleted (remove them in the same change). The shrinkage guard
   compares a replacement with the page's atlas article (the longest, if several ids map
   to it) when no site article exists. An atlas article is listed under
-  `superseded_files` only once its page is captured (ids that map to nothing stay
-  listed); a refused or failed replacement leaves it as the only copy. A rerun retries
-  the ids that stayed unmapped.
+  `superseded_files` only once its page has an article; a refused or failed replacement,
+  and an id that maps to nothing (see `unmapped_legacy_ids`), leave it as the only copy
+  and it is not offered for removal. A rerun retries the ids that stayed unmapped.
 - Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
   batches (default 500), three attempts with backoff on a failed connection, 429 or
   5xx. The capture guard (not-found and stub) applies as for atlas.
