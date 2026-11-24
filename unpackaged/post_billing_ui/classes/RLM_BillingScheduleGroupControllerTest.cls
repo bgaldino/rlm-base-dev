@@ -128,8 +128,7 @@ private class RLM_BillingScheduleGroupControllerTest {
         Assert.areEqual(new List<Id>{ relB }, idsOf(wrappers[0].relationships), 'B gets only its own relationship');
         Assert.areEqual(new List<Id>{ relA2, relA1 }, idsOf(wrappers[1].relationships),
             'A gets both of its relationships, in their order');
-        Assert.isNotNull(wrappers[2].relationships, 'A group without relationships gets a list, not null');
-        Assert.isTrue(wrappers[2].relationships.isEmpty(), 'A group without relationships gets an empty list');
+        Assert.isTrue(wrappers[2].relationships.isEmpty(), 'A group without relationships gets an empty list, not null');
     }
 
     private static List<Id> idsOf(List<BsgRelationship> rels) {
