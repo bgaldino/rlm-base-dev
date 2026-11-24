@@ -7,7 +7,7 @@
   report nothing.
 - index_org: a key held by two org rows is reported, not overwritten.
 - build_query: scoped to the CSV's classification codes, with quotes escaped.
-- main exit codes: 0 clean, 1 a missing row or a difference in AttributeNameOverride/IsRequired,
+- main exit codes: 0 clean, 1 a missing row or a difference in a key field (AttributeNameOverride, IsRequired, DefaultValue, Description, HelpText),
   0 for a difference in any other field (printed as INFO), 2 duplicate CSV key, missing CSV, missing
   `sf`, a query error, non-JSON output, or an ambiguous org key. The real read_org runs against a
   patched subprocess.run.
@@ -158,6 +158,21 @@ check("and it is still reported", [d["field"] for d in d_other], ["DisplayType"]
 q = M.build_query(["PC-A", "O'Brien", ""])
 check("query scoped to the CSV's codes", "WHERE ProductClassification.Code IN ('O\\'Brien', 'PC-A')" in q, True)
 check("default plan is anchored to the repo", M.DEFAULT_PLAN.is_dir(), True)
+
+dv_exp = {("PC-A", "ATTR-1", ""): {"DefaultValue": "x"}}
+dv_org = org_rec("PC-A", "ATTR-1", "", "", None)
+dv_org["DefaultValue"] = "y"
+check("DefaultValue difference is a key difference",
+      [d["field"] for d in M.compare(dv_exp, M.index_org([dv_org])[0])[0] if d["field"] in M.KEY_FIELDS],
+      ["DefaultValue"])
+check("payload without result exits 2",
+      run(good, sf=Result(json.dumps({"status": 0}))), 2)
+_saved = M.subprocess.run
+M.subprocess.run = lambda *_a, **_k: Result(json.dumps({"status": 0, "result": {"records": recs}}))
+with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    json_code = M.main(["--target-org", "x", "--plan", good, "--json", "/nonexistent-dir/x.json"])
+M.subprocess.run = _saved
+check("unwritable --json exits 2", json_code, 2)
 
 print("=" * 60)
 if _failures:

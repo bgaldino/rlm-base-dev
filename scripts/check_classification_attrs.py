@@ -10,20 +10,21 @@ row whose value differs from the plan CSV, so you can see whether a build needs 
   python scripts/check_classification_attrs.py --target-org <sf alias or username> \
       [--plan datasets/sfdmu/qb/en-US/qb-pcm] [--json out.json]
 
-Exit 0 when every CSV row exists in the org and `AttributeNameOverride` and `IsRequired` (the
-fields the second pass is documented to fix) match the CSV. Exit 1 on a missing row or a
-difference in those two fields. Exit 2 when the comparison can't be trusted: a query or `sf`
-error, an unreadable CSV, a duplicate key in the CSV, or an org key held by more than one row
-(another plan's rows, or rows with a blank code, would make the match ambiguous). Rows are keyed
+Exit 0 when every CSV row exists in the org and `AttributeNameOverride`, `IsRequired`,
+`DefaultValue`, `Description` and `HelpText` (the fields an insert copies from the attribute
+definition and an update does not) match the CSV. Exit 1 on a missing row or a difference in
+those fields. Exit 2 when the comparison can't be trusted: a query or `sf` error or unexpected
+payload, an unreadable CSV or unwritable --json file, a duplicate key in the CSV, or an org key
+held by more than one row (another plan's rows would make the match ambiguous). Rows are keyed
 on classification code, attribute definition code and attribute category code (blank when the
 row has none).
 
 A difference in any other field is printed as INFO and does not fail the run: a field the CSV
-leaves blank (DisplayType, StepValue, Sequence, DefaultValue) may be filled by the platform from
-the attribute definition, which says nothing about a second load. Comparison is by value, not by
+leaves blank (DisplayType, StepValue, Sequence) may be filled by the platform from the attribute
+definition, which says nothing about a second load. Comparison is by value, not by
 Id: a blank CSV cell equals a null org value, Is* fields compare as true/false, and only the
 numeric fields compare numerically; text fields compare exactly after strip(). Org rows with no
-CSV row are reported as Info only.
+CSV row are counted in the summary line (org-only) and not listed.
 """
 from __future__ import annotations
 
@@ -41,8 +42,9 @@ FIELDS = [
     "MaximumValue", "MinimumCharacterCount", "MinimumValue", "Name", "Sequence", "Status",
     "StepValue", "ValueDescription",
 ]
-# Fields the second-pass trace names (fact a); a difference here is the signal that matters most.
-KEY_FIELDS = ("AttributeNameOverride", "IsRequired")
+# Fields an insert copies from the attribute definition and an update does not (fact a, traced in
+# attributes-and-classifications.md); a difference here is what a second load would correct.
+KEY_FIELDS = ("AttributeNameOverride", "IsRequired", "DefaultValue", "Description", "HelpText")
 # Integer-typed fields (sobject describe: int); the org returns 1.0 where the CSV holds 1.
 # MinimumValue, MaximumValue, StepValue and DefaultValue are strings, so they compare exactly.
 NUMERIC_FIELDS = frozenset({"Sequence", "MaximumCharacterCount", "MinimumCharacterCount"})
@@ -136,7 +138,10 @@ def read_org(target: str, query: str) -> list:
         raise Untrusted((proc.stdout + proc.stderr)[:2000]) from exc
     if payload.get("status") != 0:
         raise Untrusted(json.dumps(payload.get("message") or payload)[:2000])
-    return payload["result"]["records"]
+    try:
+        return payload["result"]["records"]
+    except (KeyError, TypeError) as exc:
+        raise Untrusted(f"unexpected sf payload: {json.dumps(payload)[:500]}") from exc
 
 
 def compare(expected: dict, actual: dict) -> tuple[list, list, list]:
@@ -195,9 +200,13 @@ def main(argv=None) -> int:
     if by_field:
         print("Differences by field: " + ", ".join(f"{k}={v}" for k, v in sorted(by_field.items())))
     if args.json:
-        Path(args.json).write_text(json.dumps(
-            {"missing": [list(k) for k in missing], "differences": diffs,
-             "org_only": [list(k) for k in extra]}, indent=2))
+        try:
+            Path(args.json).write_text(json.dumps(
+                {"missing": [list(k) for k in missing], "differences": diffs,
+                 "org_only": [list(k) for k in extra]}, indent=2))
+        except OSError as exc:
+            sys.stderr.write(f"cannot write {args.json}: {exc}\n")
+            return 2
     return 1 if (key_diffs or missing) else 0
 
 
