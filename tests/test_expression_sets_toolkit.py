@@ -1808,10 +1808,39 @@ def test_import_guards():
     from scripts.expression_sets._guards import executing_version, import_target_refusal
 
     running = executing_version(RAMP264_VERSIONS)
-    check("highest-numbered ACTIVE version executes (v40, not v1 or v30)",
+    check("no Rank read: the highest-numbered ACTIVE version executes (v40, not v1 or v30)",
           running and running["Id"] == "9QMv", running)
     check("no active version → no executing version",
           executing_version([dict(v, IsActive=False) for v in RAMP264_VERSIONS]) is None)
+
+    # The 264 object reference: among enabled versions whose windows overlap, the
+    # highest Rank runs. Tie-break and null-Rank order are unverified assumptions.
+    from datetime import datetime, timezone
+    from scripts.expression_sets._guards import rank_order_warning, VERSION_FIELDS
+    now = datetime(2026, 11, 24, tzinfo=timezone.utc)
+    ranked = [dict(v, Rank=v["VersionNumber"]) for v in RAMP264_VERSIONS]
+    ranked[0]["Rank"] = 9
+    check("the highest Rank wins over a higher VersionNumber",
+          executing_version(ranked, now)["Id"] == "9QM1")
+    check("…and the disagreement is warned about",
+          "disagree" in (rank_order_warning(ranked, now) or ""))
+    tied = [dict(v, Rank=5) for v in RAMP264_VERSIONS]
+    check("equal Ranks: the higher VersionNumber (unverified tie-break), with a warning",
+          executing_version(tied, now)["Id"] == "9QMv"
+          and "tie-break" in (rank_order_warning(tied, now) or ""))
+    nulls = [dict(v, Rank=None) for v in RAMP264_VERSIONS]
+    nulls[2]["Rank"] = 1
+    check("a null Rank sorts below any numeric Rank (unverified)",
+          executing_version(nulls, now)["Id"] == "9QM3")
+    windowed = [dict(v) for v in RAMP264_VERSIONS]
+    windowed[3]["StartDateTime"] = "2027-01-01T00:00:00.000+0000"
+    windowed[2]["EndDateTime"] = "2026-01-01T00:00:00Z"
+    check("a version whose window does not cover now is not a candidate",
+          executing_version(windowed, now)["Id"] == "9QM1")
+    check("a single running version gives no Rank warning",
+          rank_order_warning(RAMP264_VERSIONS[:1], now) is None)
+    check("the version queries select Rank and the date window",
+          all(f in VERSION_FIELDS for f in ("Rank", "StartDateTime", "EndDateTime")))
 
     def payload(api):
         return {"apiName": "RLM_DefaultPricingProcedure", "versions": [{"apiName": api}]}
@@ -1932,6 +1961,10 @@ def test_set_step_formula():
     # ---- pure helpers -------------------------------------------------
     check("default target is the executing version (v40)",
           mod.select_target_version(RAMP264_VERSIONS)["Id"] == "9QMv")
+    ranked = [dict(v, Rank=1) for v in RAMP264_VERSIONS]
+    ranked[0]["Rank"] = 2
+    check("the default target follows Rank (the shared resolver), not VersionNumber",
+          mod.select_target_version(ranked)["Id"] == "9QM1")
     check("an explicit version name wins",
           mod.select_target_version(RAMP264_VERSIONS, "RLM_DefaultPricingProcedure_V1")["Id"]
           == "9QM1")

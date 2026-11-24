@@ -78,7 +78,7 @@ from tasks.expression_set_schema import (
     validate_overlay_against_definition,
 )
 # Stdlib-only pure guards shared with the standalone toolkit (no CumulusCI import).
-from scripts.expression_sets._guards import import_target_refusal
+from scripts.expression_sets._guards import VERSION_FIELDS, import_target_refusal
 
 
 _REQUEST_TIMEOUT = 120
@@ -256,9 +256,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         return chosen
 
     def _list_versions(self, es_id: str) -> List[dict]:
-        """Every ExpressionSetVersion of an ExpressionSet, lowest number first."""
+        """Every ExpressionSetVersion of an ExpressionSet, lowest number first, with
+        the fields the shared executing-version resolver reads (Rank, date window)."""
         return self._soql_query(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
             f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
             "ORDER BY VersionNumber"
         )

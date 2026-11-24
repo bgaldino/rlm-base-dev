@@ -8,8 +8,11 @@ under base Python.
 Two facts drive these guards (todo packs 172 and 175):
 
 * **Which version runs.** An expression set can hold several versions, several of
-  them active at once (``ramp264``: v1, v3 and v4 active). The runtime executes the
-  highest-numbered ACTIVE one (:func:`executing_version`).
+  them active at once (``ramp264``: v1, v3 and v4 active; v4 ran). The 264 object
+  reference for ``ExpressionSetVersion.Rank`` says that when more than one enabled
+  version matches and their start/end windows overlap, the version with the
+  **highest Rank** is chosen. :func:`executing_version` applies that rule; its
+  tie-break and null-Rank handling are not documented (see the function).
 * **What a replace import can target.** A replace import is one full-graph Connect
   PATCH. It sends the payload's first version and rewrites that version's ``id`` to
   the org version the importer resolved (active first, then highest-numbered).
@@ -24,24 +27,107 @@ Two facts drive these guards (todo packs 172 and 175):
   and allows the second.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+# The ExpressionSetVersion fields executing_version reads. Every caller that resolves
+# the executing version selects these.
+VERSION_FIELDS = "Id, ApiName, VersionNumber, IsActive, Rank, StartDateTime, EndDateTime"
 
-def executing_version(versions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """The version that runs: the highest-numbered ACTIVE ``ExpressionSetVersion``.
 
-    Returns ``None`` when no version is active.
-    """
-    active = [v for v in versions if v.get("IsActive")]
-    if not active:
+def _parse_datetime(value: Any) -> Optional[datetime]:
+    """A Salesforce dateTime (``2020-01-01T08:00:00.000+0000`` or ``…Z``), or None."""
+    if not value or not isinstance(value, str):
         return None
-    return max(active, key=lambda v: v.get("VersionNumber") or 0)
+    text = value.strip().replace("Z", "+0000")
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def in_window(version: Dict[str, Any], now: Optional[datetime] = None) -> bool:
+    """Whether ``now`` lies in the version's StartDateTime/EndDateTime window.
+
+    A missing (or unread) bound is open. Whether the platform treats the end as
+    inclusive is not documented; this treats ``now == EndDateTime`` as inside.
+    """
+    now = now or datetime.now(timezone.utc)
+    start = _parse_datetime(version.get("StartDateTime"))
+    end = _parse_datetime(version.get("EndDateTime"))
+    return (start is None or start <= now) and (end is None or now <= end)
+
+
+def _rank_key(version: Dict[str, Any]):
+    # UNVERIFIED until the live check: the docs say the highest Rank wins among
+    # enabled versions whose windows overlap, but say nothing about a null Rank or
+    # equal Ranks. Here a null Rank sorts below every numeric Rank, and equal Ranks
+    # fall back to the higher VersionNumber.
+    rank = version.get("Rank")
+    has_rank = isinstance(rank, (int, float))
+    return (1 if has_rank else 0, rank if has_rank else 0, version.get("VersionNumber") or 0)
+
+
+def running_candidates(versions: List[Dict[str, Any]],
+                       now: Optional[datetime] = None) -> List[Dict[str, Any]]:
+    """The active versions whose date window covers ``now``."""
+    return [v for v in versions if v.get("IsActive") and in_window(v, now)]
+
+
+def executing_version(versions: List[Dict[str, Any]],
+                      now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
+    """The version that runs: among active versions whose window covers ``now``,
+    the highest ``Rank`` (264 object reference, ``ExpressionSetVersion.Rank``).
+
+    The tie-break (higher ``VersionNumber``) and the null-Rank order (below any
+    number) are NOT documented and are unverified until a live check. Rows read
+    without ``Rank``/``StartDateTime``/``EndDateTime`` (see :data:`VERSION_FIELDS`)
+    fall back to the highest-numbered active version. Returns ``None`` when no
+    active version covers ``now``.
+    """
+    candidates = running_candidates(versions, now)
+    if not candidates:
+        return None
+    return max(candidates, key=_rank_key)
+
+
+def rank_order_warning(versions: List[Dict[str, Any]],
+                       now: Optional[datetime] = None) -> Optional[str]:
+    """A warning when Rank and VersionNumber disagree about which version runs, or
+    when the choice rests on the undocumented tie-break; ``None`` otherwise."""
+    candidates = running_candidates(versions, now)
+    if len(candidates) < 2:
+        return None
+    by_rank = max(candidates, key=_rank_key)
+    by_number = max(candidates, key=lambda v: v.get("VersionNumber") or 0)
+    ranks = [v.get("Rank") for v in candidates]
+    top = _rank_key(by_rank)[:2]
+    tied = sum(1 for v in candidates if _rank_key(v)[:2] == top) > 1
+    if by_rank is not by_number:
+        return (
+            f"Rank and VersionNumber disagree among the {len(candidates)} active "
+            f"versions: {by_rank.get('ApiName')} has the highest Rank "
+            f"({by_rank.get('Rank')}) and is taken as the executing version, while "
+            f"{by_number.get('ApiName')} has the highest VersionNumber. Confirm which "
+            "one runs with a constant-control formula before relying on either."
+        )
+    if tied or any(r is None for r in ranks):
+        return (
+            f"{len(candidates)} active versions share the top Rank or have no Rank "
+            f"({', '.join(str(r) for r in ranks)}); {by_rank.get('ApiName')} is taken "
+            "as the executing version by the higher VersionNumber, a tie-break the "
+            "platform does not document. Confirm with a constant-control formula."
+        )
+    return None
 
 
 def version_rows(versions: List[Dict[str, Any]]) -> str:
-    """``"ApiName (vN, active), ..."``, lowest number first, for messages."""
+    """``"ApiName (vN, rank R, active), ..."``, lowest number first, for messages."""
     return ", ".join(
         f"{v.get('ApiName')} (v{v.get('VersionNumber')}"
+        f"{', rank ' + str(v.get('Rank')) if v.get('Rank') is not None else ''}"
         f"{', active' if v.get('IsActive') else ''})"
         for v in sorted(versions, key=lambda r: r.get("VersionNumber") or 0)
     )
@@ -93,10 +179,14 @@ def import_target_refusal(
     )
     active = [v for v in versions if v.get("IsActive")]
     if len(active) > 1:
+        runs = (
+            f"Only {running.get('ApiName')} executes (the highest Rank among the "
+            "active versions whose date window covers now)"
+            if running else "None of them has a date window covering now"
+        )
         return (
             f"Expression set '{api_name}' has {len(active)} active versions: {rows}. "
-            f"Only {running.get('ApiName')} executes (the highest-numbered active "
-            "version), and a whole-set import cannot tell which version it should "
+            f"{runs}, and a whole-set import cannot tell which version it should "
             "replace: on a version chain like this the platform rejected the PATCH on "
             "a version-name collision after partially applying. " + alternatives
         )

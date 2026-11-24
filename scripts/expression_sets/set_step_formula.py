@@ -11,12 +11,15 @@ at::
 
     Metadata.steps[N].customElement.parameters[name == "formula-section-<S>-input"].value
 
-**Which version.** By default the **executing** version: the highest-numbered
-ACTIVE ``ExpressionSetVersion``. Several versions can be active at once and only
-that one runs, so editing any other changes no price (todo pack 175: a constant
-written into ``_V1`` of a four-version chain changed nothing; written into the
-highest active version it changed every price). ``--version-api-name`` targets
-another version explicitly, with a warning when it is not the executing one.
+**Which version.** By default the **executing** version (``_guards.executing_version``):
+among the ACTIVE versions whose date window covers now, the highest ``Rank``, as
+the 264 object reference documents. The tie-break on equal or null Ranks (the
+higher ``VersionNumber``) is not documented and is unverified; the tool warns when
+the choice rests on it or when Rank and VersionNumber disagree. Several versions can
+be active at once and only one runs, so editing any other changes no price (todo
+pack 175: a constant written into ``_V1`` of a four-version chain changed nothing;
+written into the version that ran it changed every price). ``--version-api-name``
+targets another version explicitly, with a warning when it is not the executing one.
 
 **Which step.** ``--step NAME``, or ``--parent-step NAME`` to pick the one child
 of that parent that carries the formula parameter. The parent is version-stable
@@ -74,7 +77,10 @@ from scripts.expression_sets._client import (  # noqa: E402
     soql_literal,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
-from scripts.expression_sets._guards import executing_version  # noqa: E402
+from scripts.expression_sets._guards import (  # noqa: E402
+    executing_version,
+    rank_order_warning,
+)
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     list_versions,
@@ -123,8 +129,9 @@ def select_target_version(
     running = executing_version(versions)
     if running is None:
         raise StepFormulaError(
-            "No version of this expression set is active, so there is no executing "
-            "version to default to. Name one with --version-api-name."
+            "No active version of this expression set has a date window covering "
+            "now, so there is no executing version to default to. Name one with "
+            "--version-api-name."
         )
     return running
 
@@ -140,8 +147,10 @@ def version_table(versions: List[Dict[str, Any]], target: Dict[str, Any]) -> Lis
             marks.append("executes")
         if v.get("Id") == target.get("Id"):
             marks.append("target")
+        rank = v.get("Rank")
         lines.append(
             f"  v{v.get('VersionNumber')}  {'active  ' if v.get('IsActive') else 'inactive'}"
+            f"  rank {rank if rank is not None else '-'}"
             f"  {v.get('ApiName')}{'  <- ' + ', '.join(marks) if marks else ''}"
         )
     return lines
@@ -287,7 +296,8 @@ def main(argv=None) -> int:
                         help="ExpressionSetDefinition DeveloperName.")
     parser.add_argument("--version-api-name",
                         help="Edit this ExpressionSetVersion ApiName instead of the "
-                             "executing (highest-numbered active) version.")
+                             "executing version (highest Rank among active versions "
+                             "in their date window).")
     which = parser.add_mutually_exclusive_group(required=True)
     which.add_argument("--step", help="The step's name (spaceless API name).")
     which.add_argument("--parent-step",
@@ -336,6 +346,9 @@ def main(argv=None) -> int:
         eprint(f"Versions of '{args.es_api_name}':")
         for line in version_table(versions, esv):
             eprint(line)
+        rank_warning = rank_order_warning(versions)
+        if rank_warning:
+            eprint(f"WARNING: {rank_warning}")
         if running is None or running.get("Id") != esv.get("Id"):
             eprint(f"WARNING: {esv.get('ApiName')} is not the executing version; a "
                    "change to it does not affect pricing until it executes.")

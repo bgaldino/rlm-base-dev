@@ -328,12 +328,16 @@ source-controlled edit.
 
 ## <a name="multi-version-orgs"></a>Multi-version orgs
 
-An expression set can hold several versions, several of them **active at once**;
-the runtime executes the **highest-numbered active** one. Upgraded orgs carry
+An expression set can hold several versions, several of them **active at once**,
+and the runtime runs one: per the 264 object reference (`ExpressionSetVersion.Rank`),
+the **highest Rank** among enabled versions whose start/end windows overlap. The
+tools resolve it with `scripts/expression_sets/_guards.executing_version`; the
+tie-break on equal or null Ranks (the higher `VersionNumber`) is not documented and
+is unverified, and the tools warn when they rely on it. An upgraded org can carry
 `RLM_DefaultPricingProcedure` as such a chain (one 264 org: v1 to v4, v1, v3 and v4
 active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
 `CompoundUplift` in v4). Before any edit, list the versions:
-`SELECT ApiName, VersionNumber, IsActive FROM ExpressionSetVersion WHERE ExpressionSetId = '<9QL>'`.
+`SELECT ApiName, VersionNumber, IsActive, Rank, StartDateTime, EndDateTime FROM ExpressionSetVersion WHERE ExpressionSetId = '<9QL>'`.
 
 - **Edit the executing version.** A constant written into a lower version changed no
   price; written into the executing one it changed every price. Use

@@ -17,6 +17,7 @@ transport state beyond the ``target_org`` / ``api_version`` args.
 from typing import Any, Dict, List, Optional
 
 from . import _client
+from ._guards import VERSION_FIELDS
 
 
 class ResolveError(RuntimeError):
@@ -151,10 +152,11 @@ def list_expression_sets(
 def list_versions(
     es_id: str, *, target_org: str, api_version: str = _client.DEFAULT_API_VERSION
 ) -> List[Dict[str, Any]]:
-    """All ExpressionSetVersion rows for an ExpressionSet (active first)."""
+    """All ExpressionSetVersion rows for an ExpressionSet (active first), with the
+    fields ``_guards.executing_version`` needs (Rank and the date window)."""
     safe = _client.soql_literal(es_id)
     return _query(
-        "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+        f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
         f"WHERE ExpressionSetId = '{safe}' ORDER BY IsActive DESC, VersionNumber DESC",
         target_org=target_org, api_version=api_version,
     )
