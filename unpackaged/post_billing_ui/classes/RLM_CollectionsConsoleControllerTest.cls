@@ -199,24 +199,21 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.areEqual('Service', reasons.get(invoiceB), 'A blank subtype leaves the type alone');
     }
 
-    // For invoices with no schedules, plan items or disputes, the related-record lookups run
-    // (two queries, three where Dispute.InvoiceId exists) and leave every map empty.
+    // Smoke test: for an invoice with no schedules, plan items or disputes, the related-record
+    // lookups run without throwing and leave every map empty. The query count is not checked:
+    // the dispute lookup runs in user mode, so whether it runs depends on the test user's access.
     @isTest
-    static void loadRelatedRecords_runsTheLookupsAndFindsNothingForUnknownInvoices() {
+    static void loadRelatedRecords_findsNothingForUnknownInvoices() {
         Set<Id> invoiceIds = new Set<Id>{ mintId(Invoice.SObjectType) };
         Map<Id, Date> ptp = new Map<Id, Date>();
         Map<Id, String> planNames = new Map<Id, String>();
         Map<Id, Id> planIds = new Map<Id, Id>();
         Map<Id, String> reasons = new Map<Id, String>();
-        Integer expectedQueries = RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId') ? 3 : 2;
 
         Test.startTest();
-        Integer before = Limits.getQueries();
         RLM_CollectionsConsoleController.loadRelatedRecords(invoiceIds, ptp, planNames, planIds, reasons);
-        Integer ran = Limits.getQueries() - before;
         Test.stopTest();
 
-        Assert.areEqual(expectedQueries, ran, 'Each related-record lookup runs once');
         Assert.isTrue(ptp.isEmpty() && planNames.isEmpty() && planIds.isEmpty() && reasons.isEmpty(),
             'Nothing is found for an invoice with no related records');
     }
@@ -224,14 +221,12 @@ private class RLM_CollectionsConsoleControllerTest {
     // The dispute-field check is true only for a field the Dispute object has.
     @isTest
     static void disputeFieldAvailable_answersForTheDisputeObjectsOwnFields() {
-        Boolean hasDispute = Schema.getGlobalDescribe().containsKey('Dispute');
-
         Test.startTest();
         Boolean known = RLM_CollectionsConsoleController.disputeFieldAvailable('Id');
         Boolean unknown = RLM_CollectionsConsoleController.disputeFieldAvailable('RLM_No_Such_Field__c');
         Test.stopTest();
 
-        Assert.areEqual(hasDispute, known, 'Every Dispute has an Id, so the answer follows whether the object exists');
+        Assert.isTrue(known, 'Every Dispute has an Id');
         Assert.isFalse(unknown, 'A field Dispute does not have is not available');
     }
 

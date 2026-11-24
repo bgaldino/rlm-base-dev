@@ -299,10 +299,10 @@ private class RLM_DisputeDetailsControllerTest {
         Assert.isFalse(balances.containsKey(String.valueOf(lineB)), 'A line without a balance is left out');
     }
 
-    // On DisputeItem the approved-amount field is found by its label; a field map without one
-    // gives null, which the save turns into a handled error.
+    // On DisputeItem the approved-amount field found is ApprovedAmount; a field map with no
+    // approved field gives null, which the save turns into a handled error.
     @isTest
-    static void approvedAmountField_findsTheFieldByLabelOrReturnsNull() {
+    static void approvedAmountField_findsApprovedAmountOrReturnsNull() {
         Test.startTest();
         String none = RLM_DisputeDetailsController.approvedAmountField(new Map<String, Schema.SObjectField>{
             'name' => Account.Name, 'industry' => Account.Industry });
