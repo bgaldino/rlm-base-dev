@@ -24,7 +24,7 @@
  * Salesforce enforces 75% across ALL Apex in the org for a production deploy,
  * not per class, so this class's figure does not by itself block a deploy.
  * The usage tests build entitlement accounts, entitlements and buckets
- * (newEntitlementAccount, newEntitlement and newBucket, over newUsageFixture).
+ * (newEntitlementAccount, newEntitlement and newBucket, over usageFixture).
  * Among the paths these tests do not reach, and why:
  *  - Deletes of the other usage rows (entries, billing period items, summaries,
  *    journals, commitment junction rows), asset rate card entries and the
@@ -48,8 +48,9 @@
  * debit memo, which needs a tax treatment on every line, so keeping posted and
  * void debit memos is verified live too.
  *
- * The live verification that does cover the usage graph is
- * scripts/apex/validateRatedUsage.apex plus the usage-consumption skill; the
+ * The live verification that covers rated usage (summaries, entries,
+ * journals) is scripts/apex/validateRatedUsage.apex plus the usage-consumption
+ * skill; the
  * DeleteAssets gating below was additionally confirmed end-to-end against a
  * real rated asset with AssetRateCardEntry rows.
  */
@@ -227,7 +228,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // active standard price book, a unit of measure, a usage resource, a product
     // and its standard price book entry. None is linked to an account, so the
     // reset never touches them. The usage and order tests read them back with
-    // newUsageFixture.
+    // usageFixture.
     @TestSetup
     static void setupUsageFixture() {
         update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
@@ -262,7 +263,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
-    private static UsageFixture newUsageFixture() {
+    private static UsageFixture usageFixture() {
         UsageResource resource = [SELECT Id, DefaultUnitOfMeasureId FROM UsageResource WHERE Code = :RESOURCE_CODE];
         Id standardPricebookId = Test.getStandardPricebookId();
         UsageFixture f = new UsageFixture();
@@ -947,7 +948,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void phaseOneOutOfRowsKeepsWhatItDeleted() {
         Account a = newAccount();
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         // Two consecutive periods: policies for one object and resource may not overlap.
         Datetime start = Datetime.now().addDays(-10);
         insert new List<BindingObjUsageRsrcPlcy>{
@@ -1053,7 +1054,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved() {
         Account a = newAccount();
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         TransactionUsageEntitlement childTue = newEntitlement(a.Id, a.Id, null, f);
@@ -1105,7 +1106,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void rollbackRestoresPhaseOneRefusals() {
         Account a = newAccount();
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         // The loop deletes this bucket and its entitlement in phase 1. The bucket
         // with no entitlement keeps the entitlement account refused, so phase 2's
@@ -1154,7 +1155,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void phaseOneDeletesAnEntitlementAccountItEmptied() {
         Account a = newAccount();
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
@@ -1189,7 +1190,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner');
         insert previousOwner;
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         Asset asset = new Asset(Name = 'RLM Utilities Moved Asset', AccountId = a.Id);
         insert asset;
         // The entitlements still name the account the asset was granted on. The
@@ -1206,11 +1207,15 @@ private without sharing class RLM_AccountUtilitiesTest {
         // summary deletes, which run against empty sets.
         UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
         newBucket(ownUea.Id, null, f);
-        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byAsset.Id AND AssetId = :asset.Id],
-            'PRECONDITION: one entitlement must name the asset in AssetId');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement
+                WHERE Id = :byAsset.Id AND AccountId = :previousOwner.Id AND AssetId = :asset.Id
+                AND GrantBindingTargetId = :previousOwner.Id],
+            'PRECONDITION: one entitlement, on the previous owner, must name the asset only in AssetId');
         Assert.areEqual(1,
-            [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :byGrant.Id AND GrantBindingTargetId = :asset.Id AND AssetId = null],
-            'PRECONDITION: the other must name the asset only in GrantBindingTargetId');
+            [SELECT COUNT() FROM TransactionUsageEntitlement
+                WHERE Id = :byGrant.Id AND AccountId = :previousOwner.Id AND GrantBindingTargetId = :asset.Id
+                AND AssetId = null],
+            'PRECONDITION: the other, on the previous owner, must name the asset only in GrantBindingTargetId');
         Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:assetBucket.Id, :grantBucket.Id)],
             'PRECONDITION: both entitlements\' buckets must exist before the reset runs');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
@@ -1252,7 +1257,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Other Account');
         insert other;
-        UsageFixture f = newUsageFixture();
+        UsageFixture f = usageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         // A bucket under a bucket must hold an entitlement. This one holds another
         // account's, so the loop (which follows the reset account's entitlements)
@@ -1290,7 +1295,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     static void activatedOrdersAreDeleted() {
         Account a = newAccount();
         // The class-wide setup's standard price book entry.
-        Id pricebookEntryId = newUsageFixture().pricebookEntryId;
+        Id pricebookEntryId = usageFixture().pricebookEntryId;
         Order o = new Order(
             AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
             Pricebook2Id = Test.getStandardPricebookId()
