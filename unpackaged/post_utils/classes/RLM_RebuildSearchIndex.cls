@@ -8,8 +8,8 @@ public with sharing class RLM_RebuildSearchIndex {
     private static final String DEPLOY_FAILED_MESSAGE =
         'The search index deployment could not be started. Try again; if it continues, contact your administrator.';
     @TestVisible
-    private static final String DEPLOY_REFUSED_MESSAGE =
-        'The search index deployment was refused. Try again; if it continues, contact your administrator.';
+    private static final String DEPLOY_NOT_ACCEPTED_MESSAGE =
+        'The search index deployment was not accepted. Try again; if it continues, contact your administrator.';
     @TestVisible
     private static final String NULL_REQUEST_MESSAGE = 'No request was given, so no index was deployed.';
 
@@ -156,9 +156,9 @@ public with sharing class RLM_RebuildSearchIndex {
             result.put('statusCode', String.valueOf(httpRes.getStatusCode()));
             // The response body is server detail, not text for the user: it goes to the debug log and
             // the result carries a fixed sentence (the status code stays in statusCode).
-            System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex deploy refused: '
+            System.debug(LoggingLevel.ERROR, 'RLM_RebuildSearchIndex deploy not accepted: '
                 + httpRes.getStatusCode() + ' ' + httpRes.getStatus() + ' - ' + httpRes.getBody());
-            result.put('message', DEPLOY_REFUSED_MESSAGE);
+            result.put('message', DEPLOY_NOT_ACCEPTED_MESSAGE);
         }
 
         return result;

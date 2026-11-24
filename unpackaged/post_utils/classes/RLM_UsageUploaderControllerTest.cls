@@ -359,6 +359,247 @@ private with sharing class RLM_UsageUploaderControllerTest {
             RLM_UsageUploaderController.rowErrorText(new List<Database.Error>(), 1));
     }
 
+    private static List<Database.Error> saveErrors(String json) {
+        return (List<Database.Error>) System.JSON.deserialize(json, List<Database.Error>.class);
+    }
+
+    // A validation rule's message (or a trigger's addError text; the platform gives both this
+    // status) is shown as written.
+    @isTest
+    static void rowErrorText_showsAValidationMessage() {
+        System.assertEquals('Quantity is over the plan limit.', RLM_UsageUploaderController.rowErrorText(saveErrors(
+            '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"Quantity is over the plan limit.","fields":[]}]'
+        ), 1));
+    }
+
+    @isTest
+    static void rowErrorText_joinsTwoValidationMessages() {
+        System.assertEquals('First rule. Second rule.', RLM_UsageUploaderController.rowErrorText(saveErrors(
+            '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"First rule.","fields":[]},'
+            + '{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"Second rule.","fields":["Quantity"]}]'
+        ), 1));
+    }
+
+    // A shown message beside a hidden error keeps the message and adds the fixed sentence, so the
+    // hidden error is not silently dropped. The hidden texts are shapes measured on a 264 org.
+    @isTest
+    static void rowErrorText_showsTheMessageAndTheFixedSentenceWhenAnotherErrorIsHidden() {
+        System.assertEquals('First rule. ' + RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE,
+            RLM_UsageUploaderController.rowErrorText(saveErrors(
+                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"First rule.","fields":[]},'
+                + '{"statusCode":"FIELD_INTEGRITY_EXCEPTION","message":"Reference Record ID: id value of incorrect type: 001000000000001AAA","fields":["ReferenceRecordId"]}]'
+            ), 1));
+        System.assertEquals(RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE,
+            RLM_UsageUploaderController.rowErrorText(saveErrors(
+                '[{"statusCode":"CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY","message":"SomeTrigger: execution of BeforeInsert caused by: System.ListException","fields":[]}]'
+            ), 1), 'An unhandled trigger exception is hidden.');
+        System.assertEquals(RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE,
+            RLM_UsageUploaderController.rowErrorText(saveErrors(
+                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"  ","fields":[]}]'
+            ), 1), 'A blank validation message gets the fixed sentence.');
+    }
+
+    // An Asset id that resolves to no row the caller can read (deleted here; one hidden by sharing
+    // behaves the same) is a fixed sentence on every entry point, not "List has no rows".
+    @isTest
+    static void aMissingAssetIsAFixedSentenceOnEveryEntryPoint() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        UsageResource ur = getTestUsageResource();
+        Asset gone = new Asset(Name = 'Deleted Asset', AccountId = acc.Id, Product2Id = getTestAsset().Product2Id);
+        insert gone;
+        delete gone;
+
+        List<RLM_UsageUploaderController.UsageEntry> entries = new List<RLM_UsageUploaderController.UsageEntry>();
+        RLM_UsageUploaderController.UsageEntry e1 = new RLM_UsageUploaderController.UsageEntry();
+        e1.usageResourceId = ur.Id;
+        e1.quantity = 1;
+        e1.transactionDate = Date.today();
+        entries.add(e1);
+
+        Test.startTest();
+        List<String> messages = new List<String>();
+        try {
+            RLM_UsageUploaderController.getUsageResourcesForAsset(gone.Id);
+        } catch (AuraHandledException e) {
+            messages.add(e.getMessage());
+        }
+        try {
+            RLM_UsageUploaderController.uploadUsage(gone.Id, ur.Id, 1, Date.today(), null);
+        } catch (AuraHandledException e) {
+            messages.add(e.getMessage());
+        }
+        try {
+            RLM_UsageUploaderController.validateUsageEntries(gone.Id, entries);
+        } catch (AuraHandledException e) {
+            messages.add(e.getMessage());
+        }
+        try {
+            RLM_UsageUploaderController.bulkUploadUsage(gone.Id, entries);
+        } catch (AuraHandledException e) {
+            messages.add(e.getMessage());
+        }
+        Test.stopTest();
+
+        System.assertEquals(4, messages.size(), 'Every entry point refuses: ' + messages);
+        for (String m : messages) {
+            System.assertEquals(RLM_UsageUploaderController.ASSET_NOT_FOUND_MESSAGE, m);
+        }
+    }
+
+    // uploadUsage's validation-message branch (a DmlException carrying
+    // FIELD_CUSTOM_VALIDATION_EXCEPTION) is covered through rowErrorText's shared saveErrorText:
+    // a unit test cannot create a validation rule or a trigger, so the platform's mapping of those
+    // to that status was measured on a 264 org instead.
+    // A refused single save (an asset with no account: the platform's text names the field) is
+    // the fixed sentence, not the DML exception text.
+    @isTest
+    static void aRefusedSingleSaveIsAFixedSentence() {
+        Contact c = new Contact(LastName = 'Usage Contact', AccountId = [SELECT Id FROM Account LIMIT 1].Id);
+        insert c;
+        Asset contactAsset = new Asset(Name = 'Contact Asset', ContactId = c.Id, Product2Id = getTestAsset().Product2Id);
+        insert contactAsset;
+        System.assertEquals(null, [SELECT AccountId FROM Asset WHERE Id = :contactAsset.Id].AccountId,
+            'PRECONDITION: the asset has no account, so the usage record is refused');
+        UsageResource ur = getTestUsageResource();
+
+        Test.startTest();
+        String message;
+        try {
+            RLM_UsageUploaderController.uploadUsage(contactAsset.Id, ur.Id, 1, Date.today(), null);
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Test.stopTest();
+
+        System.assertEquals(RLM_UsageUploaderController.ROW_SAVE_FAILED_MESSAGE, message);
+        System.assertEquals(0, [SELECT COUNT() FROM TransactionJournal WHERE ReferenceRecordId = :contactAsset.Id]);
+    }
+
+    // A caller without read access to the usage objects gets each method's fixed sentence, not the
+    // user-mode query text that names the object or field.
+    @isTest
+    static void aCallerWithoutReadAccessGetsFixedSentences() {
+        Asset ast = getTestAsset();
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        User lowPermission = buildMinimalAccessUser();
+        Map<String, String> got = new Map<String, String>();
+
+        Boolean assetReadRefused = false;
+        System.runAs(lowPermission) {
+            try {
+                List<Asset> unused = [SELECT Id FROM Asset WITH USER_MODE LIMIT 1];
+            } catch (QueryException e) {
+                assetReadRefused = true;
+            }
+        }
+        System.assert(assetReadRefused,
+            'PRECONDITION: the least-privileged profile cannot read Asset, so every method fails at its first user-mode query');
+
+        Test.startTest();
+        System.runAs(lowPermission) {
+            try {
+                RLM_UsageUploaderController.getAssetsForAccount(acc.Id);
+            } catch (AuraHandledException e) {
+                got.put('assets', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.getUsageResourcesForAsset(ast.Id);
+            } catch (AuraHandledException e) {
+                got.put('resources', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.validateUsageEntries(ast.Id, new List<RLM_UsageUploaderController.UsageEntry>());
+            } catch (AuraHandledException e) {
+                got.put('validate', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.bulkUploadUsage(ast.Id, new List<RLM_UsageUploaderController.UsageEntry>());
+            } catch (AuraHandledException e) {
+                got.put('bulk', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.getRatesForAsset(ast.Id);
+            } catch (AuraHandledException e) {
+                got.put('rates', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.getGrantsForAsset(ast.Id);
+            } catch (AuraHandledException e) {
+                got.put('grants', e.getMessage());
+            }
+        }
+        Test.stopTest();
+
+        System.assertEquals(RLM_UsageUploaderController.ASSETS_LOAD_FAILED_MESSAGE, got.get('assets'));
+        System.assertEquals(RLM_UsageUploaderController.RESOURCES_LOAD_FAILED_MESSAGE, got.get('resources'));
+        System.assertEquals(RLM_UsageUploaderController.VALIDATE_FAILED_MESSAGE, got.get('validate'));
+        System.assertEquals(RLM_UsageUploaderController.BULK_UPLOAD_FAILED_MESSAGE, got.get('bulk'));
+        System.assertEquals(RLM_UsageUploaderController.RATES_LOAD_FAILED_MESSAGE, got.get('rates'));
+        System.assertEquals(RLM_UsageUploaderController.GRANTS_LOAD_FAILED_MESSAGE, got.get('grants'));
+    }
+
+    // The sales representative case: the caller can read the asset and create usage records but
+    // cannot read the usage resources. The read fails past the asset, and each method shows its
+    // own fixed sentence, not the user-mode query text.
+    @isTest
+    static void aCallerWhoCanReadTheAssetButNotTheResourcesGetsFixedSentences() {
+        Asset ast = getTestAsset();
+        UsageResource ur = getTestUsageResource();
+        User rep = buildMinimalAccessUser();
+        PermissionSet ps = new PermissionSet(Name = 'Usage_Asset_Reader', Label = 'Usage Asset Reader');
+        insert ps;
+        insert new List<ObjectPermissions>{
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Asset', PermissionsRead = true),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Product2', PermissionsRead = true),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'TransactionJournal',
+                PermissionsRead = true, PermissionsCreate = true)
+        };
+        insert new List<FieldPermissions>{
+            new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.AccountId', PermissionsRead = true),
+            new FieldPermissions(ParentId = ps.Id, SobjectType = 'Asset', Field = 'Asset.Product2Id', PermissionsRead = true)
+        };
+        insert new PermissionSetAssignment(AssigneeId = rep.Id, PermissionSetId = ps.Id);
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        acc.OwnerId = rep.Id;
+        update acc;
+
+        Map<String, String> got = new Map<String, String>();
+        Boolean resourceReadRefused = false;
+        Test.startTest();
+        System.runAs(rep) {
+            System.assertEquals(1, [SELECT COUNT() FROM Asset WHERE Id = :ast.Id WITH USER_MODE],
+                'PRECONDITION: the caller can read the asset');
+            try {
+                List<ProductUsageResource> unused = [SELECT Id FROM ProductUsageResource WITH USER_MODE LIMIT 1];
+            } catch (QueryException e) {
+                resourceReadRefused = true;
+            }
+            try {
+                RLM_UsageUploaderController.getUsageResourcesForAsset(ast.Id);
+            } catch (AuraHandledException e) {
+                got.put('resources', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.uploadUsage(ast.Id, ur.Id, 1, Date.today(), null);
+            } catch (AuraHandledException e) {
+                got.put('upload', e.getMessage());
+            }
+            try {
+                RLM_UsageUploaderController.bulkUploadUsage(ast.Id, new List<RLM_UsageUploaderController.UsageEntry>());
+            } catch (AuraHandledException e) {
+                got.put('bulk', e.getMessage());
+            }
+        }
+        Test.stopTest();
+
+        System.assert(resourceReadRefused, 'PRECONDITION: the caller cannot read the usage resources');
+        System.assertEquals(RLM_UsageUploaderController.RESOURCES_LOAD_FAILED_MESSAGE, got.get('resources'));
+        System.assertEquals(RLM_UsageUploaderController.UPLOAD_FAILED_MESSAGE, got.get('upload'));
+        System.assertEquals(RLM_UsageUploaderController.BULK_UPLOAD_FAILED_MESSAGE, got.get('bulk'));
+        System.assertEquals(0, [SELECT COUNT() FROM TransactionJournal WHERE ReferenceRecordId = :ast.Id]);
+    }
+
     // ─── getRatesForAsset Tests ──────────────────────────────────────
 
     @IsTest

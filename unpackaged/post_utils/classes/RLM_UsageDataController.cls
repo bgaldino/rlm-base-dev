@@ -34,6 +34,15 @@ public with sharing class RLM_UsageDataController {
      *  When this limit is reached, the result includes truncated=true so the LWC can warn the user. */
     private static final Integer QUERY_LIMIT = 2000;
 
+    // The read itself failing (a query or access error whose text names objects and fields) is
+    // this fixed sentence, with the detail in the debug log. The configuration messages below echo
+    // the component's App Builder inputs (object, field set, filter field), not record data.
+    // The query runs in system mode on an allowlisted object and a validated field set, so the
+    // tests do not reach this; it guards any failure of the query or of stripInaccessible.
+    @TestVisible
+    private static final String LOAD_FAILED_MESSAGE =
+        'The usage records could not be loaded. Refresh the page, or contact your administrator.';
+
     /** Maps Apex Schema.DisplayType values to lightning-datatable column type strings. */
     private static final Map<Schema.DisplayType, String> TYPE_MAP = new Map<Schema.DisplayType, String>{
         Schema.DisplayType.STRING => 'text',
@@ -176,12 +185,12 @@ public with sharing class RLM_UsageDataController {
             ' WHERE ' + filterField + ' = :recordId ORDER BY Id ASC' +
             ' LIMIT :fetchLimit';
 
-        List<SObject> queriedRecords = Database.query(soql);
-        SObjectAccessDecision stripResult = Security.stripInaccessible(
-            AccessType.READABLE,
-            queriedRecords
-        );
-        List<SObject> records = stripResult.getRecords();
+        List<SObject> records;
+        try {
+            records = Security.stripInaccessible(AccessType.READABLE, Database.query(soql)).getRecords();
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_UsageDataController.getFieldSetData', e);
+        }
         Boolean truncated = records.size() > QUERY_LIMIT;
         Integer recordCount = truncated ? QUERY_LIMIT : records.size();
 

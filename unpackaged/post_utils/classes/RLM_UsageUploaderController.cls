@@ -7,6 +7,12 @@
  *  - Upload single usage records as TransactionJournal entries
  *  - Bulk upload usage from parsed CSV data
  *  - Validate usage entries before committing
+ *
+ * Every failure the caller sees is a fixed sentence or the caller's own input; platform text goes
+ * to the debug log, with two exceptions. A validation rule's or addError message on a refused
+ * save is shown as written (see rowErrorText). An argument the platform cannot convert to the
+ * declared type (a malformed id or date, a wrong-shaped entry) is refused before the method runs,
+ * so its platform message, which echoes only the caller's own value, reaches the caller.
  */
 public with sharing class RLM_UsageUploaderController {
 
@@ -14,6 +20,36 @@ public with sharing class RLM_UsageUploaderController {
 
     private static final String USAGE_TYPE_MANAGEMENT = 'UsageManagement';
     private static final String STATUS_PENDING = 'Pending';
+
+    // Fixed sentences for failures whose own text can name objects, fields or record ids (a
+    // user-mode query the caller lacks access for, a refused save). The detail goes to the debug
+    // log. The sales representative persona holds RLM_UsageUploader, so these reach end users.
+    @TestVisible
+    private static final String ASSETS_LOAD_FAILED_MESSAGE =
+        'The assets for this account could not be loaded. Refresh the page, or contact your administrator.';
+    @TestVisible
+    private static final String ASSET_NOT_FOUND_MESSAGE = 'This asset was not found, or you do not have access to it.';
+    @TestVisible
+    private static final String RESOURCE_NOT_FOUND_MESSAGE =
+        'This usage resource was not found, or you do not have access to it.';
+    @TestVisible
+    private static final String RESOURCES_LOAD_FAILED_MESSAGE =
+        'The usage resources for this asset could not be loaded. Refresh the page, or contact your administrator.';
+    @TestVisible
+    private static final String VALIDATE_FAILED_MESSAGE =
+        'The usage entries could not be checked. Try again, or contact your administrator.';
+    @TestVisible
+    private static final String UPLOAD_FAILED_MESSAGE =
+        'The usage record could not be uploaded. Try again, or contact your administrator.';
+    @TestVisible
+    private static final String BULK_UPLOAD_FAILED_MESSAGE =
+        'The usage records could not be uploaded. Try again, or contact your administrator.';
+    @TestVisible
+    private static final String RATES_LOAD_FAILED_MESSAGE =
+        'The rates for this asset could not be loaded. Refresh the page, or contact your administrator.';
+    @TestVisible
+    private static final String GRANTS_LOAD_FAILED_MESSAGE =
+        'The grants for this asset could not be loaded. Refresh the page, or contact your administrator.';
 
     // ─── Inner Classes (Wrappers) ───────────────────────────────────────
 
@@ -107,6 +143,16 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled(cacheable=true)
     public static List<AssetOption> getAssetsForAccount(Id accountId) {
+        try {
+            return loadAssetsForAccount(accountId);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(ASSETS_LOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.getAssetsForAccount', e);
+        }
+    }
+
+    private static List<AssetOption> loadAssetsForAccount(Id accountId) {
         List<AssetOption> options = new List<AssetOption>();
 
         List<Asset> assets = [
@@ -137,14 +183,36 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled(cacheable=true)
     public static List<UsageResourceWrapper> getUsageResourcesForAsset(Id assetId) {
-        Asset ast = [
-            SELECT Id, Product2Id
+        try {
+            return loadUsageResourcesForAsset(assetId);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(RESOURCES_LOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.getUsageResourcesForAsset', e);
+        }
+    }
+
+    // The asset, read in user mode. No row (a wrong id, or one the caller cannot see) is a fixed
+    // sentence, not the platform's "List has no rows" text.
+    private static Asset readAsset(Id assetId) {
+        List<Asset> assets = [
+            SELECT Id, Product2Id, AccountId
             FROM Asset
             WHERE Id = :assetId
             WITH USER_MODE
             LIMIT 1
         ];
+        if (assets.isEmpty()) {
+            throw RLM_UtilsAuraErrors.handled(ASSET_NOT_FOUND_MESSAGE);
+        }
+        return assets[0];
+    }
 
+    private static List<UsageResourceWrapper> loadUsageResourcesForAsset(Id assetId) {
+        return loadUsageResourcesForAsset(readAsset(assetId));
+    }
+
+    private static List<UsageResourceWrapper> loadUsageResourcesForAsset(Asset ast) {
         if (ast.Product2Id == null) {
             throw RLM_UtilsAuraErrors.handled('This asset is not associated with a product.');
         }
@@ -222,6 +290,35 @@ public with sharing class RLM_UsageUploaderController {
         Date transactionDate,
         Id unitOfMeasureId
     ) {
+        try {
+            return saveUsage(assetId, usageResourceId, quantity, transactionDate, unitOfMeasureId);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (DmlException e) {
+            // A refused save: a validation rule's or addError message is shown, anything else
+            // becomes the fixed sentence (see saveErrorText).
+            List<StatusCode> codes = new List<StatusCode>();
+            List<String> messages = new List<String>();
+            List<String> details = new List<String>();
+            for (Integer i = 0; i < e.getNumDml(); i++) {
+                codes.add(e.getDmlType(i));
+                messages.add(e.getDmlMessage(i));
+                details.add(e.getDmlType(i) + ' ' + e.getDmlFieldNames(i) + ': ' + e.getDmlMessage(i));
+            }
+            throw RLM_UtilsAuraErrors.handled(saveErrorText(codes, messages, details, 'uploadUsage'));
+        } catch (Exception e) {
+            // Not a refused save: a user-mode read the caller lacks access for, or the access check.
+            throw RLM_UtilsAuraErrors.failed(UPLOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.uploadUsage', e);
+        }
+    }
+
+    private static Id saveUsage(
+        Id assetId,
+        Id usageResourceId,
+        Decimal quantity,
+        Date transactionDate,
+        Id unitOfMeasureId
+    ) {
         if (!Schema.sObjectType.TransactionJournal.isCreateable()) {
             throw RLM_UtilsAuraErrors.handled('You do not have permission to create usage records.');
         }
@@ -234,13 +331,7 @@ public with sharing class RLM_UsageUploaderController {
         }
 
         // Resolve the AccountId from the Asset
-        Asset ast = [
-            SELECT Id, Product2Id, AccountId
-            FROM Asset
-            WHERE Id = :assetId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Asset ast = readAsset(assetId);
 
         List<ProductUsageResource> purMatches = [
             SELECT Id
@@ -255,13 +346,17 @@ public with sharing class RLM_UsageUploaderController {
             throw RLM_UtilsAuraErrors.handled('This usage resource is not available for the asset\'s product.');
         }
 
-        UsageResource ur = [
+        List<UsageResource> resources = [
             SELECT Id, DefaultUnitOfMeasureId, UnitOfMeasureClassId
             FROM UsageResource
             WHERE Id = :usageResourceId
             WITH USER_MODE
             LIMIT 1
         ];
+        if (resources.isEmpty()) {
+            throw RLM_UtilsAuraErrors.handled(RESOURCE_NOT_FOUND_MESSAGE);
+        }
+        UsageResource ur = resources[0];
 
         // Determine which UoM to use and validate any client-provided UoM.
         Id resolvedUomId;
@@ -331,8 +426,25 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled
     public static List<ValidationResult> validateUsageEntries(Id assetId, List<UsageEntry> entries) {
+        try {
+            return checkUsageEntries(assetId, entries);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(VALIDATE_FAILED_MESSAGE, 'RLM_UsageUploaderController.validateUsageEntries', e);
+        }
+    }
+
+    private static List<ValidationResult> checkUsageEntries(Id assetId, List<UsageEntry> entries) {
+        return checkUsageEntries(readAsset(assetId), entries);
+    }
+
+    private static List<ValidationResult> checkUsageEntries(Asset ast, List<UsageEntry> entries) {
+        if (entries == null) {
+            entries = new List<UsageEntry>();
+        }
         // Build a map of resource name → resource info for this asset
-        List<UsageResourceWrapper> resources = getUsageResourcesForAsset(assetId);
+        List<UsageResourceWrapper> resources = loadUsageResourcesForAsset(ast);
         Map<String, UsageResourceWrapper> resourceByName = new Map<String, UsageResourceWrapper>();
         Map<Id, UsageResourceWrapper> resourceById = new Map<Id, UsageResourceWrapper>();
 
@@ -395,23 +507,30 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled
     public static BulkUploadResult bulkUploadUsage(Id assetId, List<UsageEntry> entries) {
+        try {
+            return saveUsageEntries(assetId, entries);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(BULK_UPLOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.bulkUploadUsage', e);
+        }
+    }
+
+    private static BulkUploadResult saveUsageEntries(Id assetId, List<UsageEntry> entries) {
         BulkUploadResult result = new BulkUploadResult();
         result.journalIds = new List<Id>();
         result.errors = new List<String>();
         result.successCount = 0;
         result.errorCount = 0;
 
+        if (entries == null) {
+            entries = new List<UsageEntry>();
+        }
         // Resolve AccountId from the Asset
-        Asset ast = [
-            SELECT Id, AccountId
-            FROM Asset
-            WHERE Id = :assetId
-            WITH USER_MODE
-            LIMIT 1
-        ];
+        Asset ast = readAsset(assetId);
 
         // Defensive validation (client validates before calling, but server re-validates for security)
-        List<ValidationResult> validations = validateUsageEntries(assetId, entries);
+        List<ValidationResult> validations = checkUsageEntries(ast, entries);
 
         List<TransactionJournal> toInsert = new List<TransactionJournal>();
         List<Integer> validIndices = new List<Integer>();
@@ -468,23 +587,45 @@ public with sharing class RLM_UsageUploaderController {
     private static final String ROW_SAVE_FAILED_MESSAGE =
         'This usage record could not be saved. Check the values and try again, or contact your administrator.';
 
-    // The text shown for a row that failed to save. Users of the Usage tab, sales representatives
-    // included, see it. A validation rule's message is written by an administrator for that user,
-    // so it is shown as it is; every other save error (a required field, a trigger, a platform
-    // fault) can name fields or carry internal detail, so it becomes a fixed sentence and the detail
-    // goes to the debug log.
+    // The text for a usage record that failed to save. bulkUploadUsage returns it in
+    // BulkUploadResult.errors and uploadUsage throws it to the caller. For a bulk upload the shipped
+    // component toasts the counts (including when no row was saved) and writes the row errors to
+    // the browser console; it toasts the single-upload message. But the method returns the text to
+    // any caller, including a custom component, so it is held to the user-facing standard.
+    //
+    // FIELD_CUSTOM_VALIDATION_EXCEPTION is the status the platform gives both a validation rule's
+    // message and the text a trigger passes to addError (both measured on a 264 org), so both are
+    // shown as written: an administrator or developer wrote that text for the person
+    // saving the record. A trigger that passes internal detail to addError would show it too; that
+    // is the trigger author's choice, and it cannot be told apart here. Every other save error
+    // becomes a fixed sentence, with the detail in the debug log. Measured for TransactionJournal on
+    // a 264 org, those carry field labels, a refused picklist value and a record id ("Reference
+    // Record ID: id value of incorrect type: <id>"); an unhandled trigger exception arrives as
+    // CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY with the trigger's name and line, and is hidden too.
     @TestVisible
     private static String rowErrorText(List<Database.Error> errors, Integer rowNumber) {
+        List<StatusCode> codes = new List<StatusCode>();
+        List<String> messages = new List<String>();
+        List<String> details = new List<String>();
+        for (Database.Error err : errors) {
+            codes.add(err.getStatusCode());
+            messages.add(err.getMessage());
+            details.add(err.getStatusCode() + ' ' + err.getFields() + ': ' + err.getMessage());
+        }
+        return saveErrorText(codes, messages, details, 'row ' + rowNumber);
+    }
+
+    private static String saveErrorText(
+        List<StatusCode> codes, List<String> messages, List<String> details, String context
+    ) {
         List<String> shown = new List<String>();
         Boolean hidden = false;
-        for (Database.Error err : errors) {
-            if (err.getStatusCode() == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION
-                    && String.isNotBlank(err.getMessage())) {
-                shown.add(err.getMessage());
+        for (Integer i = 0; i < codes.size(); i++) {
+            if (codes[i] == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION && String.isNotBlank(messages[i])) {
+                shown.add(messages[i]);
             } else {
                 hidden = true;
-                System.debug(LoggingLevel.ERROR, 'RLM_UsageUploaderController row ' + rowNumber + ' save failed: '
-                    + err.getStatusCode() + ' ' + err.getFields() + ': ' + err.getMessage());
+                System.debug(LoggingLevel.ERROR, 'RLM_UsageUploaderController ' + context + ' save failed: ' + details[i]);
             }
         }
         if (hidden || shown.isEmpty()) {
@@ -504,6 +645,16 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled(cacheable=true)
     public static List<RateInfoWrapper> getRatesForAsset(Id assetId) {
+        try {
+            return loadRatesForAsset(assetId);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(RATES_LOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.getRatesForAsset', e);
+        }
+    }
+
+    private static List<RateInfoWrapper> loadRatesForAsset(Id assetId) {
         List<AssetRateCardEntry> arces = [
             SELECT Id,
                    AssetId,
@@ -617,6 +768,16 @@ public with sharing class RLM_UsageUploaderController {
      */
     @AuraEnabled(cacheable=true)
     public static List<GrantInfoWrapper> getGrantsForAsset(Id assetId) {
+        try {
+            return loadGrantsForAsset(assetId);
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RLM_UtilsAuraErrors.failed(GRANTS_LOAD_FAILED_MESSAGE, 'RLM_UsageUploaderController.getGrantsForAsset', e);
+        }
+    }
+
+    private static List<GrantInfoWrapper> loadGrantsForAsset(Id assetId) {
         List<TransactionUsageEntitlement> tues = [
             SELECT Id,
                    Name,

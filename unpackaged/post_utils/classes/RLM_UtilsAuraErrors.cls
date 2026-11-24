@@ -14,7 +14,9 @@ public with sharing class RLM_UtilsAuraErrors {
     /**
      * For a caught exception whose text may name objects, fields or query parts: the user gets
      * the fixed sentence given, the detail goes to the debug log, and the caught exception stays
-     * on the result as its cause.
+     * on the result as its cause, for Apex callers and tests. Measured on a 264 org in the /aura
+     * ApexAction response, which LWC wire and imperative calls share, for a cacheable and an imperative
+     * call: the client's error carries only the fixed sentence, never the cause.
      */
     public static AuraHandledException failed(String message, String context, Exception cause) {
         System.debug(LoggingLevel.ERROR, context + ': ' + cause.getTypeName() + ': ' + cause.getMessage());
