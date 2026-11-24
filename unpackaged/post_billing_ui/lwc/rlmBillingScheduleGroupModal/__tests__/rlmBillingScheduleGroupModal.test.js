@@ -322,6 +322,23 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(createButton(element).disabled).toBe(true);
   });
 
+  it("forgets the billing account when the account info turns into an error", async () => {
+    const element = await mount();
+    const toasts = recordToasts(element);
+    await fillOneTime(element);
+    expect(createButton(element).disabled).toBe(false);
+
+    getAccountBillingInfo.error();
+    await flushPromises();
+
+    expect(toasts.map((toast) => [toast.title, toast.variant])).toEqual([
+      ["Error loading Account", "error"]
+    ]);
+    expect(element.shadowRoot.textContent).not.toContain("Acme BA");
+    expect(element.shadowRoot.textContent).not.toContain("Acme");
+    expect(createButton(element).disabled).toBe(true);
+  });
+
   it("sends a one-time charge with its total price and no end date", async () => {
     const element = await mount();
     await fillOneTime(element);

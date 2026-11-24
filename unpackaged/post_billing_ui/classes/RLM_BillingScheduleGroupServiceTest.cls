@@ -347,9 +347,12 @@ private class RLM_BillingScheduleGroupServiceTest {
             'The result says the billing account could not be read, not that there is none.');
     }
 
-    // A readable link to a billing account that sharing hides from the user: a billing account
-    // exists, so the result is flagged unreadable, not "none". Needs a Private org-wide default for
-    // billing accounts; where they are readable by default there is nothing hidden to test.
+    // A billing account that sharing hides from the user, linked to the account or owned by it: one
+    // exists, so the result is flagged unreadable, not "none". Billing accounts are private by default
+    // (measured on a fresh 264 org), but a test cannot change the org-wide default or remove a sharing
+    // rule. So each case branches on what the test user can actually read: a hidden billing account
+    // must be flagged unreadable, a readable one must be returned. Both are real outcomes, so no org
+    // passes the test without checking something.
     @isTest
     static void getAccountBillingInfo_linkToABillingAccountHiddenBySharing_flagsTheBillingAccountUnreadable() {
         Account a = new Account(Name = 'BSG Hidden BA Acct');
@@ -357,6 +360,104 @@ private class RLM_BillingScheduleGroupServiceTest {
         BillingAccount ba = new BillingAccount(Name = 'BSG Hidden BA');
         insert ba;
         insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+        assertHiddenOrReturned(a, ba, true);
+    }
+
+    @isTest
+    static void getAccountBillingInfo_ownBillingAccountHiddenBySharing_flagsTheBillingAccountUnreadable() {
+        Account a = new Account(Name = 'BSG Hidden Own BA Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Hidden Own BA', AccountId = a.Id);
+        insert ba;
+        assertHiddenOrReturned(a, ba, false);
+    }
+
+    // linked: the billing account reaches the account through an AccountBillingAccount link, which the
+    // user must be able to read (the service relies on the link following the account's sharing).
+    private static void assertHiddenOrReturned(Account a, BillingAccount ba, Boolean linked) {
+        String sharingModel = [
+            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'BillingAccount'
+        ].InternalSharingModel;
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+
+        RLM_BillingScheduleGroupService.AccountInfo info;
+        Test.startTest();
+        Boolean hidden;
+        System.runAs(u) {
+            if (linked) {
+                Assert.areEqual(1, [SELECT COUNT() FROM AccountBillingAccount WHERE AccountId = :a.Id WITH USER_MODE],
+                    'PRECONDITION: the user reads the link (it follows the account\'s sharing).');
+            }
+            hidden = [SELECT COUNT() FROM BillingAccount WHERE Id = :ba.Id WITH USER_MODE] == 0;
+            info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(a.Name, info.accountName, 'The account name is still shown.');
+        if (hidden) {
+            Assert.isNull(info.billingAccountId, 'The hidden billing account is not returned.');
+            Assert.isNull(info.billingAccountName, 'Nothing of the hidden billing account is returned.');
+            Assert.isTrue(info.billingLinkUnreadable,
+                'A billing account hidden by sharing (org-wide default ' + sharingModel + ') is not reported as none.');
+        } else {
+            Assert.areEqual(ba.Id, info.billingAccountId, 'A readable billing account is returned.');
+            Assert.isFalse(info.billingLinkUnreadable, 'A readable billing account is not flagged.');
+        }
+    }
+
+    // The account's own billing account comes before a linked one: when sharing hides the account's
+    // own, a readable linked billing account is not picked in its place (the hidden one may be the
+    // account's default billing profile). The linked one is shared with the user so it is readable
+    // whatever the org-wide default; the account's own is hidden only where billing accounts are
+    // private, and returned otherwise.
+    @isTest
+    static void getAccountBillingInfo_ownHiddenAndLinkedReadable_doesNotPickTheLinkedOne() {
+        Account a = new Account(Name = 'BSG Own Hidden Linked Readable Acct');
+        insert a;
+        BillingAccount own = new BillingAccount(Name = 'BSG Own Hidden', AccountId = a.Id);
+        BillingAccount linkedBa = new BillingAccount(Name = 'BSG Linked Readable');
+        insert new List<BillingAccount>{ own, linkedBa };
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = linkedBa.Id);
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        Boolean billingAccountsPrivate = [
+            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'BillingAccount'
+        ].InternalSharingModel == 'Private';
+        if (billingAccountsPrivate) {
+            insert new BillingAccountShare(ParentId = linkedBa.Id, UserOrGroupId = u.Id, AccessLevel = 'Read');
+        }
+
+        RLM_BillingScheduleGroupService.AccountInfo info;
+        Boolean ownHidden;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.areEqual(1, [SELECT COUNT() FROM BillingAccount WHERE Id = :linkedBa.Id WITH USER_MODE],
+                'PRECONDITION: the user reads the linked billing account.');
+            ownHidden = [SELECT COUNT() FROM BillingAccount WHERE Id = :own.Id WITH USER_MODE] == 0;
+            info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.areNotEqual(linkedBa.Id, info.billingAccountId,
+            'A linked billing account is not picked in place of the account\'s own.');
+        if (ownHidden) {
+            Assert.isNull(info.billingAccountId, 'The hidden billing account is not returned.');
+            Assert.isTrue(info.billingLinkUnreadable, 'The hidden billing account of the account is flagged.');
+        } else {
+            Assert.areEqual(own.Id, info.billingAccountId, 'The account\'s own billing account is returned.');
+            Assert.isFalse(info.billingLinkUnreadable, 'A readable billing account is not flagged.');
+        }
+    }
+
+    // The existence check past sharing only runs when the user's own read finds nothing: an account
+    // with no billing account at all is still "none" for a billing user.
+    @isTest
+    static void getAccountBillingInfo_noBillingAccountForTheBillingRole_isNone() {
+        Account a = new Account(Name = 'BSG No BA Role Acct');
+        insert a;
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
@@ -364,19 +465,12 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.AccountInfo info;
         Test.startTest();
         System.runAs(u) {
-            if ([SELECT COUNT() FROM BillingAccount WHERE Id = :ba.Id WITH USER_MODE] != 0) {
-                System.debug(LoggingLevel.WARN, 'Billing accounts are not private in this org; nothing is hidden by sharing.');
-                return;
-            }
-            Assert.areEqual(1, [SELECT COUNT() FROM AccountBillingAccount WHERE AccountId = :a.Id WITH USER_MODE],
-                'PRECONDITION: the user can read the link.');
             info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
         }
         Test.stopTest();
 
-        Assert.areEqual(a.Name, info.accountName, 'The account name is still shown.');
-        Assert.isNull(info.billingAccountId, 'The hidden billing account is not returned.');
-        Assert.isTrue(info.billingLinkUnreadable, 'A hidden billing account is not reported as none.');
+        Assert.isNull(info.billingAccountId, 'No billing account.');
+        Assert.isFalse(info.billingLinkUnreadable, 'No billing account is reported as none, not unreadable.');
     }
 
     private static Boolean userModeQueryFails(String soql) {

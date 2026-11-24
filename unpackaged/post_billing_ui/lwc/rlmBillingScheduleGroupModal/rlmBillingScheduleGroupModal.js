@@ -161,6 +161,13 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             }
             this.isLoading = false;
         } else if (error) {
+            // A refresh can follow a good result with an error: drop what the earlier result set, so
+            // the header and the Create button do not keep a billing account that is no longer known.
+            this.accountName = undefined;
+            this.billingAccountId = undefined;
+            this.billingAccountName = undefined;
+            this.billingCity = undefined;
+            this.billingLinkUnreadable = false;
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Error loading Account',
