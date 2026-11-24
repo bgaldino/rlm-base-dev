@@ -1,9 +1,10 @@
 /**
  * Tests for RLM_CollectionsDashboardController.
  *
- * Invoice is createable=false, so no unit test can hold an invoice: the invoice loops
- * (cards aging, critical follow-ups, high-value delinquents and the worklist fallbacks)
- * can only be verified live. What a test can build -- payments, payment schedule items,
+ * Invoice is createable=false, so no unit test can insert an invoice. The code that works on
+ * queried invoices (the card tally, critical follow-ups, high-value delinquents and the
+ * last-resort worklist) takes rows, and the tests pass invoices built with JSON.deserialize;
+ * the queries themselves, and the unified worklist fallback, are verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
  * Records are created in admin context. Three tests then run as other users: a collections
@@ -649,6 +650,199 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    // ─── Seams over queried invoices ─────────────────────────────────────────
+    // Invoice cannot be inserted in Apex, so these build invoices with JSON.deserialize, read-only
+    // fields included, and pass them to the methods the controller calls with the rows it queried.
+
+    private static Invoice invoice(Map<String, Object> fields) {
+        return (Invoice) JSON.deserialize(JSON.serialize(fields), Invoice.class);
+    }
+
+    private static Map<String, Object> amountsDue(Decimal balance, Decimal total, Date dueDate) {
+        return new Map<String, Object>{ 'Balance' => balance, 'TotalAmount' => total, 'DueDate' => dueDate };
+    }
+
+    // Each unpaid invoice adds its balance to the total and to one aging bucket by days past due
+    // (30, 60 and 90 close their buckets); one not yet due, or with no due date, is current. One
+    // with a balance below its total is partially settled; the rest count as not settled.
+    @isTest
+    static void tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement() {
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(amountsDue(100, 100, today.addDays(5))),
+            invoice(amountsDue(40, 100, today.addDays(-30))),
+            invoice(amountsDue(50, 50, today.addDays(-60))),
+            invoice(amountsDue(60, 0, today.addDays(-90))),
+            invoice(amountsDue(70, 80, today.addDays(-91))),
+            invoice(amountsDue(null, null, null))
+        };
+        RLM_CollectionsDashboardController.CollectionsDashboardData data =
+            new RLM_CollectionsDashboardController.CollectionsDashboardData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.tallyInvoices(data, invoices, today);
+        Test.stopTest();
+
+        Assert.areEqual(320, data.receivablesOutstanding, 'Every balance adds up; a blank one adds nothing');
+        Assert.areEqual(6, data.invoiceCount, 'Every invoice is counted');
+        Assert.areEqual(100, data.currentDue, 'Not yet due, or no due date, is current');
+        Assert.areEqual(220, data.overdue, 'Past due balances are overdue');
+        Assert.areEqual(2, data.partiallySettledCount, 'A balance below its total is partially settled');
+        Assert.areEqual(110, data.partiallySettledSum, 'The partially settled balances add up');
+        Assert.areEqual(4, data.notSettledCount, 'Full balances, a zero total and a blank balance are not settled');
+        Assert.areEqual(210, data.notSettledSum, 'The not-settled balances add up');
+        Map<String, Object> byKey = new Map<String, Object>();
+        List<String> keys = new List<String>();
+        for (Map<String, Object> bucket : data.agingBuckets) {
+            byKey.put((String) bucket.get('key'), bucket.get('amount'));
+            keys.add((String) bucket.get('key'));
+        }
+        Assert.areEqual(new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' }, keys, 'The buckets come in age order');
+        Assert.areEqual(100, (Decimal) byKey.get('current'), 'Current');
+        Assert.areEqual(40, (Decimal) byKey.get('1-30'), 'Thirty days past due is still 1-30');
+        Assert.areEqual(50, (Decimal) byKey.get('31-60'), 'Sixty days past due is still 31-60');
+        Assert.areEqual(60, (Decimal) byKey.get('61-90'), 'Ninety days past due is still 61-90');
+        Assert.areEqual(70, (Decimal) byKey.get('90+'), 'Ninety-one days past due is 90+');
+    }
+
+    // The last-resort worklist rolls balances up by account, keeps the five largest, and colours
+    // each by its most overdue invoice: over 30 days red, any days amber, none green.
+    @isTest
+    static void addLastResortDelinquents_keepsTheFiveLargestAccountBalances() {
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Account> accounts = new List<Account>();
+        for (Integer i = 1; i <= 6; i++) {
+            accounts.add(new Account(Name = 'RLM Last Resort ' + i));
+        }
+        insert accounts;
+        List<SObject> rows = new List<SObject>();
+        Decimal[] balances = new Decimal[]{ 10, 600, 300, 400, 500, 200 };
+        Date[] dueDates = new Date[]{ today, today.addDays(-31), today.addDays(-30), today.addDays(5), null, today.addDays(-1) };
+        for (Integer i = 0; i < 6; i++) {
+            rows.add(invoice(new Map<String, Object>{
+                'Balance' => balances[i], 'DueDate' => dueDates[i], 'BillingAccountId' => accounts[i].Id }));
+        }
+        // A second invoice on the smallest account lifts it past two others.
+        rows.add(invoice(new Map<String, Object>{ 'Balance' => 450, 'DueDate' => today, 'BillingAccountId' => accounts[0].Id }));
+        rows.add(invoice(new Map<String, Object>{ 'Balance' => 9999, 'DueDate' => today }));
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, rows, 'BillingAccountId', today);
+        Test.stopTest();
+
+        List<String> names = new List<String>();
+        List<String> health = new List<String>();
+        for (RLM_CollectionsDashboardController.WorklistItem item : wl.highValueDelinquents) {
+            names.add(item.accountName);
+            health.add(item.healthScore);
+        }
+        Assert.areEqual(new List<String>{ 'RLM Last Resort 2', 'RLM Last Resort 5', 'RLM Last Resort 1',
+            'RLM Last Resort 4', 'RLM Last Resort 3' }, names,
+            'The five largest account balances, largest first; an invoice without an account is left out');
+        Assert.areEqual(new List<String>{ 'red', 'green', 'green', 'green', 'amber' }, health,
+            '31 days red, no due date or not yet due green, 30 days amber');
+        Assert.areEqual(460, wl.highValueDelinquents[2].balance, 'An account\'s invoices add up');
+        Assert.areEqual('critical', wl.highValueDelinquents[0].segment, 'Last-resort rows are critical');
+    }
+
+    // The last resort only fills an empty list.
+    @isTest
+    static void addLastResortDelinquents_addsNothingOnceTheListHasRows() {
+        Account acc = newAccount('RLM Last Resort Kept');
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+        wl.highValueDelinquents.add(new RLM_CollectionsDashboardController.WorklistItem(acc.Id, 'Already listed', 1, 1, 'highValue'));
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, new List<SObject>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'BillingAccountId' => acc.Id }) },
+            'BillingAccountId', Date.today());
+        Test.stopTest();
+
+        Assert.areEqual(1, wl.highValueDelinquents.size(), 'Rows already listed are kept as they are');
+        Assert.areEqual('Already listed', wl.highValueDelinquents[0].accountName, 'The listed row is untouched');
+    }
+
+    // High-value delinquents are accounts whose balances add up to 2000 or more, largest first,
+    // each with its most overdue days and its collection plan.
+    @isTest
+    static void addHighValueDelinquents_keepsAccountsOwingTwoThousandOrMore() {
+        Account twoInvoices = newAccount('RLM High Value Two');
+        Account justUnder = newAccount('RLM High Value Under');
+        Account withPlan = newAccount('RLM High Value Plan');
+        CollectionPlan plan = newPlan(withPlan.Id, Date.today().addDays(10));
+        insert plan;
+        Date today = Date.today();
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 1500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => twoInvoices.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 600, 'DueDate' => today.addDays(-70), 'BillingAccountId' => twoInvoices.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 1999, 'DueDate' => today.addDays(-90), 'BillingAccountId' => justUnder.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => withPlan.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addHighValueDelinquents(wl, invoices, 'BillingAccountId');
+        Test.stopTest();
+
+        Assert.areEqual(2, wl.highValueDelinquents.size(), 'An account owing 1999 is left out');
+        RLM_CollectionsDashboardController.WorklistItem first = wl.highValueDelinquents[0];
+        RLM_CollectionsDashboardController.WorklistItem second = wl.highValueDelinquents[1];
+        Assert.areEqual(withPlan.Id, first.accountId, 'The largest balance comes first');
+        Assert.areEqual(plan.Id, first.collectionPlanId, 'The account\'s collection plan is attached');
+        Assert.areEqual(35, first.daysOverdue, 'Days overdue come from the due date');
+        Assert.areEqual(twoInvoices.Id, second.accountId, 'Two invoices adding up to 2100 qualify');
+        Assert.areEqual(2100, second.balance, 'The account\'s invoices add up');
+        Assert.areEqual(70, second.daysOverdue, 'The most overdue invoice sets the days');
+        Assert.isNull(second.collectionPlanId, 'An account without a plan has none');
+        Assert.areEqual('RLM High Value Two', second.accountName, 'The account name is looked up');
+        Assert.areEqual('red', second.healthScore, 'High-value rows are red');
+    }
+
+    // A critical follow-up row per invoice: days overdue from the field when the org has it and it
+    // is set, else from the due date; a blank invoice number or account name shows a dash.
+    @isTest
+    static void addCriticalFollowUps_buildsOneRowPerInvoice() {
+        Account acc = newAccount('RLM Critical Follow Up');
+        Id contactId = Id.valueOf(Contact.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+        Id invoiceA = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+        Id invoiceB = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
+        Date today = Date.today();
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Id' => invoiceA, 'InvoiceNumber' => 'INV-1', 'Balance' => 2500,
+                'DaysInvoiceOverdue' => 45, 'DueDate' => today.addDays(-10), 'BillingAccountId' => acc.Id,
+                'BillToContactId' => contactId }),
+            invoice(new Map<String, Object>{ 'Id' => invoiceB, 'DueDate' => today.addDays(-33) })
+        };
+        RLM_CollectionsDashboardController.WorklistData withFields = new RLM_CollectionsDashboardController.WorklistData();
+        RLM_CollectionsDashboardController.WorklistData withoutFields = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, true, true, true);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, false, false);
+        Test.stopTest();
+
+        RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem full = withFields.criticalFollowUpInvoices[0];
+        Assert.areEqual(invoiceA, full.invoiceId, 'Rows keep the invoice order');
+        Assert.areEqual('INV-1', full.invoiceNumber, 'The invoice number is shown');
+        Assert.areEqual(2500, full.balance, 'The balance is shown');
+        Assert.areEqual(45, full.daysInvoiceOverdue, 'The overdue-days field wins over the due date');
+        Assert.areEqual(acc.Id, full.billingAccountId, 'The billing account is shown');
+        Assert.areEqual('RLM Critical Follow Up', full.billingAccountName, 'The account name is looked up');
+        Assert.areEqual(contactId, full.billToContactId, 'The bill-to contact is shown');
+
+        RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem bare = withFields.criticalFollowUpInvoices[1];
+        Assert.areEqual(33, bare.daysInvoiceOverdue, 'With the field blank, days come from the due date');
+        Assert.areEqual(NO_VALUE, bare.invoiceNumber, 'A blank invoice number shows a dash');
+        Assert.areEqual(NO_VALUE, bare.billingAccountName, 'No account shows a dash');
+        Assert.areEqual(0, bare.balance, 'A blank balance shows zero');
+
+        RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem noFields = withoutFields.criticalFollowUpInvoices[0];
+        Assert.areEqual(10, noFields.daysInvoiceOverdue, 'Without the overdue-days field, days come from the due date');
+        Assert.isNull(noFields.billingAccountId, 'Without the billing account field, no account is shown');
+        Assert.isNull(noFields.billToContactId, 'Without the bill-to contact field, no contact is shown');
+    }
 
     private static Account newAccount(String name) {
         Account a = new Account(Name = name);

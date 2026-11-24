@@ -15,9 +15,8 @@ public with sharing class RLM_DisputeDetailsController {
         Map<String, String> invoiceNames = new Map<String, String>();
         if (invoiceIds != null && !invoiceIds.isEmpty()) {
             try {
-                for (Invoice inv : [SELECT Id, DocumentNumber FROM Invoice WHERE Id IN :invoiceIds WITH USER_MODE]) {
-                    invoiceNames.put(inv.Id, inv.DocumentNumber);
-                }
+                invoiceNames.putAll(namesById(
+                    [SELECT Id, DocumentNumber FROM Invoice WHERE Id IN :invoiceIds WITH USER_MODE], 'DocumentNumber'));
             } catch (Exception e) {
                 // If query fails, return empty map
             }
@@ -30,9 +29,8 @@ public with sharing class RLM_DisputeDetailsController {
         if (invoiceLineIds != null && !invoiceLineIds.isEmpty()) {
             // Always fetch Name
             try {
-                for (InvoiceLine il : [SELECT Id, Name FROM InvoiceLine WHERE Id IN :invoiceLineIds WITH USER_MODE]) {
-                    lineNames.put(il.Id, il.Name);
-                }
+                lineNames.putAll(namesById(
+                    [SELECT Id, Name FROM InvoiceLine WHERE Id IN :invoiceLineIds WITH USER_MODE], 'Name'));
             } catch (Exception e) {
                 // Name query failed – return empty maps
             }
@@ -40,12 +38,7 @@ public with sharing class RLM_DisputeDetailsController {
             // Attempt Balance separately via dynamic SOQL
             try {
                 List<SObject> lines = Database.query('SELECT Id, Balance FROM InvoiceLine WHERE Id IN :invoiceLineIds', AccessLevel.USER_MODE);
-                for (SObject il : lines) {
-                    Object balVal = il.get('Balance');
-                    if (balVal != null) {
-                        lineBalances.put(String.valueOf(il.get('Id')), (Decimal) balVal);
-                    }
-                }
+                lineBalances.putAll(balancesById(lines));
             } catch (Exception e) {
                 // Balance field not queryable in this org – leave map empty
             }
@@ -54,6 +47,31 @@ public with sharing class RLM_DisputeDetailsController {
         result.put('lineBalances', lineBalances);
 
         return result;
+    }
+
+    // Each row's field value keyed by its id. Takes rows so a test can pass invoices and invoice
+    // lines, which Apex cannot insert.
+    @TestVisible
+    private static Map<String, String> namesById(List<SObject> rows, String field) {
+        Map<String, String> names = new Map<String, String>();
+        for (SObject row : rows) {
+            names.put(row.Id, (String) row.get(field));
+        }
+        return names;
+    }
+
+    // Each line's balance keyed by its id; a line with no balance is left out. Takes rows so a
+    // test can pass invoice lines, which Apex cannot insert.
+    @TestVisible
+    private static Map<String, Decimal> balancesById(List<SObject> lines) {
+        Map<String, Decimal> balances = new Map<String, Decimal>();
+        for (SObject il : lines) {
+            Object balVal = il.get('Balance');
+            if (balVal != null) {
+                balances.put(String.valueOf(il.get('Id')), (Decimal) balVal);
+            }
+        }
+        return balances;
     }
 
     /**
@@ -76,39 +94,8 @@ public with sharing class RLM_DisputeDetailsController {
             throw RLM_AuraErrors.handled('DisputeItem object not found.');
         }
 
-        // Find the approved amount field by scanning all fields.
-        // Sort keys first so selection is deterministic across orgs.
-        Map<String, Schema.SObjectField> fieldMap = diType.getDescribe().fields.getMap();
-        List<String> sortedKeys = new List<String>(fieldMap.keySet());
-        sortedKeys.sort();
-        String approvedFieldApi = null;
-        for (String key : sortedKeys) {
-            Schema.DescribeFieldResult fd = fieldMap.get(key).getDescribe();
-            String label = fd.getLabel().toLowerCase();
-            if (label.contains('approved') && label.contains('amount')) {
-                approvedFieldApi = fd.getName();
-                break;
-            }
-        }
-
+        String approvedFieldApi = approvedAmountField(diType.getDescribe().fields.getMap());
         if (approvedFieldApi == null) {
-            // Fallback: search by API name pattern
-            for (String key : sortedKeys) {
-                if (key.contains('approved')) {
-                    approvedFieldApi = fieldMap.get(key).getDescribe().getName();
-                    break;
-                }
-            }
-        }
-
-        if (approvedFieldApi == null) {
-            List<String> allFields = new List<String>();
-            for (String key : fieldMap.keySet()) {
-                allFields.add(fieldMap.get(key).getDescribe().getName());
-            }
-            allFields.sort();
-            System.debug(LoggingLevel.ERROR, 'RLM_DisputeDetailsController: no approved-amount field on DisputeItem. Fields: '
-                + String.join(allFields, ', '));
             throw RLM_AuraErrors.handled(SAVE_UNAVAILABLE_MESSAGE);
         }
 
@@ -149,5 +136,46 @@ public with sharing class RLM_DisputeDetailsController {
             throw RLM_AuraErrors.failed(SAVE_FAILED_MESSAGE,
                 'RLM_DisputeDetailsController update of DisputeItem.' + approvedFieldApi, e);
         }
+    }
+
+    // The DisputeItem field that holds the approved amount: the first (by API name) whose label
+    // has both "approved" and "amount", else the first whose name has "approved", else null.
+    // Takes the field map so a test can pass one without such a field.
+    @TestVisible
+    private static String approvedAmountField(Map<String, Schema.SObjectField> fieldMap) {
+        // Find the approved amount field by scanning all fields.
+        // Sort keys first so selection is deterministic across orgs.
+        List<String> sortedKeys = new List<String>(fieldMap.keySet());
+        sortedKeys.sort();
+        String approvedFieldApi = null;
+        for (String key : sortedKeys) {
+            Schema.DescribeFieldResult fd = fieldMap.get(key).getDescribe();
+            String label = fd.getLabel().toLowerCase();
+            if (label.contains('approved') && label.contains('amount')) {
+                approvedFieldApi = fd.getName();
+                break;
+            }
+        }
+
+        if (approvedFieldApi == null) {
+            // Fallback: search by API name pattern
+            for (String key : sortedKeys) {
+                if (key.contains('approved')) {
+                    approvedFieldApi = fieldMap.get(key).getDescribe().getName();
+                    break;
+                }
+            }
+        }
+
+        if (approvedFieldApi == null) {
+            List<String> allFields = new List<String>();
+            for (String key : fieldMap.keySet()) {
+                allFields.add(fieldMap.get(key).getDescribe().getName());
+            }
+            allFields.sort();
+            System.debug(LoggingLevel.ERROR, 'RLM_DisputeDetailsController: no approved-amount field on DisputeItem. Fields: '
+                + String.join(allFields, ', '));
+        }
+        return approvedFieldApi;
     }
 }

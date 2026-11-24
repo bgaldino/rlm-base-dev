@@ -101,7 +101,7 @@ public with sharing class RLM_CollectionsDashboardController {
 
         // Base invoice filter: unpaid posted invoices only
         String invWhere = ' Balance > 0 AND Status = \'Posted\' ';
-        if (filterAccount && invAccountField != null) {
+        if (filterAccount) {
             invWhere += ' AND ' + invAccountField + ' = :accountId ';
         }
         if (filterCurrency && invoiceHasCurrencyField()) {
@@ -115,6 +115,34 @@ public with sharing class RLM_CollectionsDashboardController {
             return data;
         }
 
+        tallyInvoices(data, unpaidInvoices, Date.today());
+        Decimal sumUnpaidInvoiceBalance = data.receivablesOutstanding;
+
+        Decimal unappliedCredits = getUnappliedCreditsSum(accountId, currencyCode);
+        Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(accountId, currencyCode);
+        Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(accountId, currencyCode);
+        Integer unappliedPaymentCount = getUnappliedPaymentCount(accountId, currencyCode);
+
+        data.unappliedCredits = unappliedCredits;
+        data.unappliedPaymentBalance = unappliedPaymentBalance;
+        data.unappliedPaymentCount = unappliedPaymentCount;
+
+        data.totalBalance = sumUnpaidInvoiceBalance + debitMemoNotInvoiced - unappliedCredits - unappliedPaymentBalance;
+        data.totalOutstanding = sumUnpaidInvoiceBalance - unappliedPaymentBalance;
+
+        data.totalBalanceBreakdown = new List<Map<String, Object>>();
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unpaid Invoices', 'amount' => sumUnpaidInvoiceBalance, 'color' => 'blue' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memos', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => -unappliedCredits, 'color' => 'green' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Payments', 'amount' => -unappliedPaymentBalance, 'color' => 'red' });
+
+        return data;
+    }
+
+    // The invoice totals, settlement counts and aging buckets on the dashboard cards, from the
+    // queried unpaid invoices. Takes rows so a test can pass invoices, which Apex cannot insert.
+    @TestVisible
+    private static void tallyInvoices(CollectionsDashboardData data, List<Invoice> unpaidInvoices, Date today) {
         Decimal sumUnpaidInvoiceBalance = 0;
         Decimal sumCurrentDue = 0;
         Decimal sumOverdue = 0;
@@ -123,7 +151,6 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal partiallySettledSum = 0;
         Integer notSettledCount = 0;
         Decimal notSettledSum = 0;
-        Date today = Date.today();
 
         for (Invoice inv : unpaidInvoices) {
             Decimal bal = inv.Balance != null ? inv.Balance : 0;
@@ -163,32 +190,12 @@ public with sharing class RLM_CollectionsDashboardController {
         data.currentDue = sumCurrentDue;
         data.overdue = sumOverdue;
 
-        Decimal unappliedCredits = getUnappliedCreditsSum(accountId, currencyCode);
-        Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(accountId, currencyCode);
-        Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(accountId, currencyCode);
-        Integer unappliedPaymentCount = getUnappliedPaymentCount(accountId, currencyCode);
-
-        data.unappliedCredits = unappliedCredits;
-        data.unappliedPaymentBalance = unappliedPaymentBalance;
-        data.unappliedPaymentCount = unappliedPaymentCount;
-
-        data.totalBalance = sumUnpaidInvoiceBalance + debitMemoNotInvoiced - unappliedCredits - unappliedPaymentBalance;
-        data.totalOutstanding = sumUnpaidInvoiceBalance - unappliedPaymentBalance;
-
-        data.totalBalanceBreakdown = new List<Map<String, Object>>();
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unpaid Invoices', 'amount' => sumUnpaidInvoiceBalance, 'color' => 'blue' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memos', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => -unappliedCredits, 'color' => 'green' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Payments', 'amount' => -unappliedPaymentBalance, 'color' => 'red' });
-
         data.agingBuckets = new List<Map<String, Object>>();
         data.agingBuckets.add(new Map<String, Object>{ 'label' => 'Current', 'amount' => agingCurrent, 'key' => 'current' });
         data.agingBuckets.add(new Map<String, Object>{ 'label' => '1-30', 'amount' => aging1_30, 'key' => '1-30' });
         data.agingBuckets.add(new Map<String, Object>{ 'label' => '31-60', 'amount' => aging31_60, 'key' => '31-60' });
         data.agingBuckets.add(new Map<String, Object>{ 'label' => '61-90', 'amount' => aging61_90, 'key' => '61-90' });
         data.agingBuckets.add(new Map<String, Object>{ 'label' => '90+', 'amount' => aging90Plus, 'key' => '90+' });
-
-        return data;
     }
 
     @AuraEnabled(cacheable=true)
@@ -200,18 +207,12 @@ public with sharing class RLM_CollectionsDashboardController {
         Date today = Date.today();
         Date thirtyDaysAgo = today.addDays(-30);
 
-        if (invAccountField != null) {
-            try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
-            try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
-            try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { }
-            try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { }
-            if (wl.highValueDelinquents.isEmpty()) {
-                try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { }
-            }
-        } else {
-            buildDisputedFromCasesOnly(wl, filterAccount, accountId);
-            invAccountField = getInvoiceAccountFieldNameFromDescribe();
-            if (invAccountField != null) buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo);
+        try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
+        try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
+        try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { }
+        try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { }
+        if (wl.highValueDelinquents.isEmpty()) {
+            try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { }
         }
         addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
@@ -272,50 +273,45 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    private static String getInvoiceAccountFieldNameFromDescribe() {
-        try {
-            if (!Schema.getGlobalDescribe().containsKey('Invoice')) return null;
-            Map<String, Schema.SObjectField> f = Schema.getGlobalDescribe().get('Invoice').getDescribe().fields.getMap();
-            if (f != null && f.containsKey('BillingAccountId')) return 'BillingAccountId';
-            if (f != null && f.containsKey('BillToAccountId')) return 'BillToAccountId';
-            if (f != null && f.containsKey('AccountId')) return 'AccountId';
-        } catch (Exception e) { }
-        return null;
-    }
-
     private static void buildWorklistLastResort(WorklistData wl, String invAccountField, Date today, Date thirtyDaysAgo) {
         try {
             String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0 LIMIT 500';
-            List<SObject> rows = Database.query(soql, AccessLevel.USER_MODE);
-            Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
-            Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
-            for (SObject inv : rows) {
-                Id accId = (Id) inv.get(invAccountField);
-                if (accId == null) continue;
-                Decimal bal = inv.get('Balance') != null ? (Decimal) inv.get('Balance') : 0;
-                accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
-                Object dueObj = inv.get('DueDate');
-                Integer days = 0;
-                if (dueObj instanceof Date) {
-                    Date d = (Date) dueObj;
-                    if (d < today) days = d.daysBetween(today);
-                }
-                Integer existing = accountMaxDays.get(accId);
-                if (existing == null || days > existing) accountMaxDays.put(accId, days);
-            }
-            if (accountBalance.isEmpty()) return;
-            List<WorklistItem> items = new List<WorklistItem>();
-            Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
-            for (Id accId : accountBalance.keySet()) {
-                Integer days = accountMaxDays.get(accId);
-                String health = (days != null && days > 30) ? 'red' : (days != null && days > 0 ? 'amber' : 'green');
-                items.add(new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), days, 'critical', health, null, null));
-            }
-            sortByBalance(items);
-            if (wl.highValueDelinquents.isEmpty()) {
-                for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
-            }
+            addLastResortDelinquents(wl, Database.query(soql, AccessLevel.USER_MODE), invAccountField, today);
         } catch (Exception e) { }
+    }
+
+    // Rolls the queried invoices up by account and adds the five largest balances. Takes rows so
+    // a test can pass invoices, which Apex cannot insert.
+    @TestVisible
+    private static void addLastResortDelinquents(WorklistData wl, List<SObject> rows, String invAccountField, Date today) {
+        Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
+        Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
+        for (SObject inv : rows) {
+            Id accId = (Id) inv.get(invAccountField);
+            if (accId == null) continue;
+            Decimal bal = inv.get('Balance') != null ? (Decimal) inv.get('Balance') : 0;
+            accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
+            Object dueObj = inv.get('DueDate');
+            Integer days = 0;
+            if (dueObj instanceof Date) {
+                Date d = (Date) dueObj;
+                if (d < today) days = d.daysBetween(today);
+            }
+            Integer existing = accountMaxDays.get(accId);
+            if (existing == null || days > existing) accountMaxDays.put(accId, days);
+        }
+        if (accountBalance.isEmpty()) return;
+        List<WorklistItem> items = new List<WorklistItem>();
+        Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
+        for (Id accId : accountBalance.keySet()) {
+            Integer days = accountMaxDays.get(accId);
+            String health = (days != null && days > 30) ? 'red' : (days != null && days > 0 ? 'amber' : 'green');
+            items.add(new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), days, 'critical', health, null, null));
+        }
+        sortByBalance(items);
+        if (wl.highValueDelinquents.isEmpty()) {
+            for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
+        }
     }
 
     private static void buildWorklistUnifiedFallback(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date today, Date thirtyDaysAgo) {
@@ -346,29 +342,6 @@ public with sharing class RLM_CollectionsDashboardController {
             sortByBalance(items);
             if (wl.highValueDelinquents.isEmpty()) {
                 for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
-            }
-        } catch (Exception e) { }
-    }
-
-    private static void buildDisputedFromCasesOnly(WorklistData wl, Boolean filterAccount, Id accountId) {
-        try {
-            String caseWhere = ' IsClosed = false AND AccountId != null ';
-            if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
-            List<Case> openCases = Database.query('SELECT Id, AccountId, Subject, Description FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC LIMIT 200', AccessLevel.USER_MODE);
-            Set<Id> disputedAccountIds = new Set<Id>();
-            Map<Id, String> accountDisputeReason = new Map<Id, String>();
-            for (Case c : openCases) {
-                if (c.AccountId == null) continue;
-                disputedAccountIds.add(c.AccountId);
-                if (!accountDisputeReason.containsKey(c.AccountId)) {
-                    String reason = (c.Subject != null ? c.Subject : '') + (c.Description != null && c.Description.length() > 200 ? ' – ' + c.Description.substring(0, 200) + '...' : (c.Description != null ? ' – ' + c.Description : ''));
-                    accountDisputeReason.put(c.AccountId, String.isNotBlank(reason) ? reason : 'Open case');
-                }
-            }
-            if (disputedAccountIds.isEmpty()) return;
-            Map<Id, String> accountNames = getAccountNames(disputedAccountIds);
-            for (Id accId : disputedAccountIds) {
-                wl.disputedInvoices.add(new WorklistItem(accId, accountNames.get(accId), 0, null, 'disputed', 'amber', null, accountDisputeReason.get(accId)));
             }
         } catch (Exception e) { }
     }
@@ -416,50 +389,56 @@ public with sharing class RLM_CollectionsDashboardController {
 
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
-
-            Set<Id> billingAccountIds = new Set<Id>();
-            for (Invoice inv : invs) {
-                if (hasBillingAcct && inv.get('BillingAccountId') != null) {
-                    billingAccountIds.add((Id) inv.get('BillingAccountId'));
-                }
-            }
-            Map<Id, String> accountNames = getAccountNames(billingAccountIds);
-
-            Set<Id> invoiceIds = new Set<Id>();
-            for (Invoice inv : invs) {
-                if (inv.Id != null) invoiceIds.add(inv.Id);
-            }
-            Map<Id, Id> invoiceToCollectionPlan = new Map<Id, Id>();
-            if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
-                try {
-                    for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null WITH USER_MODE]) {
-                        if (!invoiceToCollectionPlan.containsKey(cpi.InvoiceId)) {
-                            invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
-                        }
-                    }
-                } catch (Exception ex) { }
-            }
-
-            Date today = Date.today();
-            for (Invoice inv : invs) {
-                Integer daysOverdue;
-                if (hasDaysField && inv.get('DaysInvoiceOverdue') != null) {
-                    daysOverdue = (Integer) inv.get('DaysInvoiceOverdue');
-                } else {
-                    daysOverdue = inv.DueDate != null ? inv.DueDate.daysBetween(today) : null;
-                }
-                String invNum = inv.InvoiceNumber != null ? inv.InvoiceNumber : '—';
-                Id billingAcctId = hasBillingAcct && inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
-                String billingAcctName = billingAcctId != null ? accountNames.get(billingAcctId) : null;
-                Id billToContactId = hasBillToContact && inv.get('BillToContactId') != null ? (Id) inv.get('BillToContactId') : null;
-                Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
-
-                wl.criticalFollowUpInvoices.add(new CriticalFollowUpInvoiceItem(
-                    inv.Id, invNum, inv.Balance != null ? inv.Balance : 0,
-                    daysOverdue, billingAcctId, billingAcctName, billToContactId, collectionPlanId
-                ));
-            }
+            addCriticalFollowUps(wl, invs, hasDaysField, hasBillingAcct, hasBillToContact);
         } catch (Exception e) { }
+    }
+
+    // One row per queried invoice, with its account name and collection plan. Takes rows so a
+    // test can pass invoices, which Apex cannot insert.
+    @TestVisible
+    private static void addCriticalFollowUps(WorklistData wl, List<Invoice> invs, Boolean hasDaysField, Boolean hasBillingAcct, Boolean hasBillToContact) {
+        Set<Id> billingAccountIds = new Set<Id>();
+        for (Invoice inv : invs) {
+            if (hasBillingAcct && inv.get('BillingAccountId') != null) {
+                billingAccountIds.add((Id) inv.get('BillingAccountId'));
+            }
+        }
+        Map<Id, String> accountNames = getAccountNames(billingAccountIds);
+
+        Set<Id> invoiceIds = new Set<Id>();
+        for (Invoice inv : invs) {
+            if (inv.Id != null) invoiceIds.add(inv.Id);
+        }
+        Map<Id, Id> invoiceToCollectionPlan = new Map<Id, Id>();
+        if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
+            try {
+                for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null WITH USER_MODE]) {
+                    if (!invoiceToCollectionPlan.containsKey(cpi.InvoiceId)) {
+                        invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
+                    }
+                }
+            } catch (Exception ex) { }
+        }
+
+        Date today = Date.today();
+        for (Invoice inv : invs) {
+            Integer daysOverdue;
+            if (hasDaysField && inv.get('DaysInvoiceOverdue') != null) {
+                daysOverdue = (Integer) inv.get('DaysInvoiceOverdue');
+            } else {
+                daysOverdue = inv.DueDate != null ? inv.DueDate.daysBetween(today) : null;
+            }
+            String invNum = inv.InvoiceNumber != null ? inv.InvoiceNumber : '—';
+            Id billingAcctId = hasBillingAcct && inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
+            String billingAcctName = billingAcctId != null ? accountNames.get(billingAcctId) : null;
+            Id billToContactId = hasBillToContact && inv.get('BillToContactId') != null ? (Id) inv.get('BillToContactId') : null;
+            Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
+
+            wl.criticalFollowUpInvoices.add(new CriticalFollowUpInvoiceItem(
+                inv.Id, invNum, inv.Balance != null ? inv.Balance : 0,
+                daysOverdue, billingAcctId, billingAcctName, billToContactId, collectionPlanId
+            ));
+        }
     }
 
     public class CriticalFollowUpInvoiceItem {
@@ -483,55 +462,7 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    private static void buildCriticalFollowUpsOverdueFallback(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date today) {
-        try {
-            String invWhere = ' Balance > 0 AND (DueDate < :today OR DueDate = null) ';
-            if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
-            if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> invs = new List<Invoice>();
-            try {
-                invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
-            } catch (Exception ex) { invs = new List<Invoice>(); }
-            if (invs.isEmpty()) {
-                invWhere = ' Balance > 0 ';
-                if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
-                if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-                try {
-                    invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
-                } catch (Exception ex2) { return; }
-            }
-            Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
-            Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
-            for (Invoice inv : invs) {
-                Id accId = (Id) inv.get(invAccountField);
-                if (accId == null) continue;
-                Decimal bal = inv.Balance != null ? inv.Balance : 0;
-                accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
-                Integer days = (inv.DueDate != null && inv.DueDate < today) ? inv.DueDate.daysBetween(today) : 0;
-                Integer existing = accountMaxDays.get(accId);
-                if (existing == null || days > existing) accountMaxDays.put(accId, days);
-            }
-            List<WorklistItem> items = new List<WorklistItem>();
-            Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
-            for (Id accId : accountBalance.keySet()) {
-                Integer days = accountMaxDays.get(accId);
-                String health = (days != null && days > 30) ? 'red' : 'amber';
-                items.add(new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), days, 'critical', health, null, null));
-            }
-            sortByBalance(items);
-        } catch (Exception e) { }
-    }
-
-    private static Decimal getAccountUnpaidBalance(Id accId, String invAccountField, Boolean filterCurrency, String currencyCode) {
-        String q = 'SELECT SUM(Balance) s FROM Invoice WHERE Balance > 0 AND ' + invAccountField + ' = :accId ';
-        if (filterCurrency && invoiceHasCurrencyField()) q += ' AND CurrencyIsoCode = :currencyCode ';
-        List<AggregateResult> ar = Database.query(q, AccessLevel.USER_MODE);
-        if (ar.isEmpty() || ar[0].get('s') == null) return 0;
-        return (Decimal) ar[0].get('s');
-    }
-
     private static void buildHighValueDelinquents(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
-        Decimal minBalanceThreshold = 2000;
         String invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
         if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
         if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
@@ -540,6 +471,15 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
         } catch (Exception e) { return; }
+        addHighValueDelinquents(wl, invs, invAccountField);
+    }
+
+    // Rolls the queried invoices up by account and adds the ten largest balances of 2000 or more,
+    // with each account's collection plan. Takes rows so a test can pass invoices, which Apex
+    // cannot insert.
+    @TestVisible
+    private static void addHighValueDelinquents(WorklistData wl, List<Invoice> invs, String invAccountField) {
+        Decimal minBalanceThreshold = 2000;
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
         Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
         for (Invoice inv : invs) {
@@ -586,15 +526,6 @@ public with sharing class RLM_CollectionsDashboardController {
             if (!Schema.SObjectType.Invoice.fields.getMap().containsKey('Status')) return '';
             return ' AND (Status = null OR Status NOT IN (\'Paid\', \'Closed\', \'Canceled\')) ';
         } catch (Exception e) { return ''; }
-    }
-
-    private static String getCollectionPlanNotesAndComments(SObject cp) {
-        String descr = '';
-        try { descr = String.valueOf(cp.get('Description')); } catch (Exception e) { }
-        try { descr += ' ' + String.valueOf(cp.get('Comments__c')); } catch (Exception e2) { }
-        try { descr += ' ' + String.valueOf(cp.get('Notes__c')); } catch (Exception e3) { }
-        try { descr += ' ' + String.valueOf(cp.get('Notes')); } catch (Exception e4) { }
-        return descr != null ? descr : '';
     }
 
     private static void buildDisputedFromCases(WorklistData wl, String invAccountField, Boolean filterAccount, Id accountId) {
@@ -740,21 +671,12 @@ public with sharing class RLM_CollectionsDashboardController {
         public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); }
     }
 
+    // Invoice.BillingAccountId always exists where this module deploys: other classes in it
+    // (RLM_InvoiceAgingController, for one) name the field in static SOQL, so the bundle does not
+    // compile without it. The describe probing this replaced always returned it, and the branches
+    // for an org without it could not run.
     private static String getInvoiceAccountFieldName() {
-        try {
-            Map<String, Schema.SObjectField> fMap = Schema.SObjectType.Invoice.fields.getMap();
-            if (fMap.containsKey('BillingAccountId')) return 'BillingAccountId';
-            if (fMap.containsKey('BillToAccountId')) return 'BillToAccountId';
-            if (fMap.containsKey('AccountId')) return 'AccountId';
-        } catch (Exception e) { }
-        try {
-            if (!Schema.getGlobalDescribe().containsKey('Invoice')) return null;
-            Map<String, Schema.SObjectField> flds = Schema.getGlobalDescribe().get('Invoice').getDescribe().fields.getMap();
-            if (flds != null && flds.containsKey('BillingAccountId')) return 'BillingAccountId';
-            if (flds != null && flds.containsKey('BillToAccountId')) return 'BillToAccountId';
-            if (flds != null && flds.containsKey('AccountId')) return 'AccountId';
-        } catch (Exception e2) { }
-        return null;
+        return 'BillingAccountId';
     }
 
     private static Boolean invoiceHasCurrencyField() {
