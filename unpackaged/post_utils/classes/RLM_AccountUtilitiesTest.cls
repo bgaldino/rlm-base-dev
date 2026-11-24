@@ -23,31 +23,21 @@
  * --------
  * Salesforce enforces 75% across ALL Apex in the org for a production deploy,
  * not per class, so this class's figure does not by itself block a deploy.
- * The usage-graph tests build real entitlement accounts, entitlements and
- * buckets (newUsageFixture). Those three objects run against rows that exist:
- * the teardown loop's drains of them, phase 2's bottom-up retry of buckets
- * under an entitlement account, and the asset step's cleanup of an entitlement
- * bound to the asset. What stays uncovered, and why:
- *  - The loop's other drains (usage entitlement entries, billing period items,
- *    usage and ratable summaries, transaction journals, commitment junction
- *    rows), deleteAssetRateCardEntries, the asset step's summary deletes and
- *    every fulfillment helper run, but only against empty sets: no fixtures.
+ * The usage tests build entitlement accounts, entitlements and buckets
+ * (newEntitlementAccount, newEntitlement and newBucket, over newUsageFixture).
+ * Not reached by these tests, and why:
+ *  - Deletes of the other usage rows (entries, billing period items, summaries,
+ *    journals, commitment junction rows), asset rate card entries and the
+ *    fulfillment records: no fixtures, so they run against empty sets.
  *  - The entitlement-side bottom-up retry (deleteTransactionUsageEntitlement
- *    with buckets). Any bucket under another bucket must hold an entitlement,
- *    so the loop finds and drains it. Among bucket constraints, an entitlement
- *    of the account survives the loop only when a bucket below it holds ANOTHER
- *    account's entitlement (rows the loop cannot reach for other reasons could
- *    also hold one). In that case the retry also tries to delete that other account's
- *    entitlement (heldTues takes no account filter; whether the platform
- *    refuses it while its bucket still holds it is untested). That is a scope
- *    question for the production class, not behavior to pin here.
- *  - Phase 2's other usage retries (the entitlement retry before and after the
- *    entitlement-account retry, the journal sweep) run only against empty sets.
- *  - The asset step's entitlement-account delete: phase 2's retry has already
- *    removed the account's entitlement accounts by the time it runs.
+ *    finding buckets). Its leaf step deletes the entitlements those buckets
+ *    hold with no account filter (heldTues), and the fixture found to reach it
+ *    gives a bucket another account's entitlement. Whether that delete is
+ *    right is a question for the production class, not one to pin here.
+ *  - The asset step's entitlement-account delete: in these fixtures phase 2's
+ *    entitlement-account retry has already removed them.
  *  - Running out of DML statements or queries partway through phase 2, and an
- *    unexpected exception in phase 1. The row-budget and query-reserve stops
- *    in phase 1 are covered.
+ *    unexpected exception in phase 1.
  *
  * Three objects cannot be created in a unit test at all: Invoice and
  * BillingScheduleGroup are createable=false, and a CreditMemo's required
@@ -889,7 +879,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(
             1,
             [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'Phase 2 must not start once phase 1 has stopped the run'
+            'The opportunity must survive a run that stopped in phase 1'
         );
     }
 
@@ -1038,7 +1028,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(
             0,
             [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id, :loose.Id)],
-            'Every bucket must go, including the ones the teardown loop cannot find'
+            'Every bucket must go, including the one with no entitlement, which the loop cannot find'
         );
         Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:tue.Id, :childTue.Id)],
             'The entitlements must go once their buckets have');
@@ -1106,8 +1096,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         UsageEntitlementBucket bucket = newBucket(othersUea.Id, tue.Id, f);
         // An entitlement account of the reset account's own, which the loop cannot
         // clear (its bucket has no entitlement). It keeps usageDrained false, so the
-        // asset step also runs its retry of the account's summaries; phase 2's
-        // entitlement retry removes it before the asset step starts.
+        // asset step also runs its retry of the account's summaries.
         UsageEntitlementAccount ownUea = newEntitlementAccount(a.Id, f);
         newBucket(ownUea.Id, null, f);
         Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id AND AssetId = :asset.Id],
@@ -1124,7 +1113,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :bucket.Id],
             'The entitlement\'s bucket must be deleted too');
         Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :ownUea.Id],
-            'The reset account\'s own entitlement account must be removed before the asset delete');
+            'The reset account\'s own entitlement account must be removed');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :othersUea.Id],
             'The other account\'s entitlement account is not bound to the asset and must be kept');
     }
@@ -1199,7 +1188,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(entry(BindingObjUsageRsrcPlcy.SObjectType, 1), result.removedSummary,
             'The policy that went must be reported');
         Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'Phase 2 must not start once phase 1 has stopped the run');
+            'The opportunity must survive a run that stopped in phase 1');
     }
 
     // ------------------------------------------------------------------ orders
@@ -1209,7 +1198,6 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
         Product2 product = new Product2(Name = 'RLM Reset Order Product', IsActive = true);
         insert product;
-        update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 10, IsActive = true
         );
