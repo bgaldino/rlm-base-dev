@@ -4,7 +4,7 @@
 Gate (``--release R`` or ``--active``): every ``docs/salesforce/R/*/articles/*.md`` that
 has frontmatter with a ``source_url`` must end with the source-attribution footer
 (``_core.attribution_state``, the same test the backfill uses). A missing footer, or a
-file that cannot be read or has a BOM, exits 1; fix with
+file that cannot be read, has a BOM or unterminated frontmatter, exits 1; fix with
 ``python -m scripts.doc_snapshot backfill-attribution --release R``. Files with no
 frontmatter or no ``source_url`` are listed, not failed. ``--active`` reads R from
 ``salesforce_release_active`` in ``.claude/skill-manifest.yml`` (pr_gate runs it).
@@ -35,10 +35,12 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.doc_snapshot._core import is_failure, scan_attribution  # noqa: E402
+from scripts.doc_snapshot._core import BOM_HINT, is_failure, scan_attribution  # noqa: E402
 
 MANIFEST = Path(".claude/skill-manifest.yml")
-ACTIVE_KEY = re.compile(r"^salesforce_release_active:\s*[\"']?(\d+)[\"']?", re.M)
+# Same pattern as scripts/ai/check_skill_staleness.py (not shared: that module is a gate script
+# with its own constants, and importing it here would couple two tools for one regex).
+ACTIVE_KEY = re.compile(r"^salesforce_release_active:[ \t]*[\"']?(\d+)[\"']?[ \t]*(?:#.*)?$", re.M)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_GLOB = "docs/salesforce/{release}/help/articles/*.md"
@@ -128,8 +130,10 @@ def footer_problems(release):
 
 
 def scan(release=None):
-    """Scan one release's Help corpus (or every release's); returns 1 when an article of the
-    named release lacks the attribution footer or cannot be read, else 0."""
+    """Scan one release's Help corpus (or every release's). Returns 1 when an article of the
+    named release lacks the attribution footer, or cannot be judged for a real reason
+    (unreadable, ``bom-frontmatter``, ``unterminated-frontmatter``); ``no-frontmatter`` and
+    ``no-source_url`` files are listed only. Else 0."""
     failed = False
     # Only for a named release: frozen snapshots (e.g. 262) predate the footer and are left as-is.
     if release:
@@ -138,11 +142,13 @@ def scan(release=None):
             print(f"{len(missing)} article(s) without the source-attribution footer:")
             for path, _ in missing:
                 print(f"  {path.relative_to(REPO_ROOT)}")
-            print("  Run `python -m scripts.doc_snapshot backfill-attribution --release R`.\n")
+            print(f"  Run `python -m scripts.doc_snapshot backfill-attribution --release {release}`.\n")
         if skipped:
             print(f"{len(skipped)} article(s) the footer check could not judge:")
             for path, reason in skipped:
                 print(f"  {path.relative_to(REPO_ROOT)}: {reason}")
+            if any(r == "bom-frontmatter" for _, r in skipped):
+                print(f"  bom-frontmatter: {BOM_HINT}.")
             print()
         failed = bool(missing) or any(is_failure(r) for _, r in skipped)
     else:

@@ -422,8 +422,7 @@ CHECKS = [
         # salesforce_release_active in the manifest, so a missing manifest or key fails the
         # check rather than skipping it. Triggers are the whole snapshot tree (not one release's
         # path, which would go stale at the next release), the tool, and the manifest.
-        triggers=["docs/salesforce/", "scripts/doc_snapshot/", ".claude/skill-manifest.yml",
-                  "tests/test_snapshot_attribution.py"],
+        triggers=["docs/salesforce/", "scripts/doc_snapshot/", ".claude/skill-manifest.yml"],
         deps=[], gating=True,
     ),
     dict(

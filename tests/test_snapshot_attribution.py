@@ -18,11 +18,11 @@ from scripts.doc_snapshot._core import (  # noqa: E402
 _passed = _total = 0
 
 
-def check(label, cond):
+def check(label, cond, detail=""):
     global _passed, _total
     _total += 1
     _passed += bool(cond)
-    print(f"  [{'PASS' if cond else 'FAIL'}] {label}")
+    print(f"  [{'PASS' if cond else 'FAIL'}] {label}" + ("" if cond or not detail else f"\n         {detail!r}"))
 
 
 URL = "https://developer.salesforce.com/docs/atlas.en-us.x.meta/x/a.htm"
@@ -108,7 +108,8 @@ with tempfile.TemporaryDirectory() as tmp:
           ch == [] and dict(sk) == {"nosrc.md": "no-source_url", "bin.md": "unreadable: UnicodeDecodeError"})
 
 # backfill-attribution exit code: unreadable fails, no source_url does not
-for bad_name, content, want in (("nosrc.md", "---\ntitle: T\n---\n\nbody\n", 0), ("bin.md", b"\xff\xfe\x00bad", 1)):
+for bad_name, content, want in (("nosrc.md", "---\ntitle: T\n---\n\nbody\n", 0), ("bin.md", b"\xff\xfe\x00bad", 1),
+                                ("bom.md", "\ufeff" + FM + BODY, 1), ("unterm.md", "---\ntitle: T\nbody\n", 1)):
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
@@ -191,8 +192,56 @@ with tempfile.TemporaryDirectory() as tmp:
         check("a missing manifest raises", False)
     except OSError:
         check("a missing manifest raises", True)
-rc, out = run_scan(Path(tempfile.gettempdir()) / "no-such-root-401", lambda: check_mod.main(["--active"]))
-check("check --active exits 1 (no traceback) when the manifest is missing", rc == 1)
+err = io.StringIO()
+with contextlib.redirect_stderr(err):
+    rc, out = run_scan(Path(tempfile.gettempdir()) / "no-such-root-401", lambda: check_mod.main(["--active"]))
+check("check --active exits 1 (no traceback) and names the missing manifest on stderr",
+      rc == 1 and "error:" in err.getvalue() and "skill-manifest.yml" in err.getvalue(), err.getvalue())
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    (root / ".claude").mkdir()
+    (root / ".claude" / "skill-manifest.yml").write_text("x: 1\n", encoding="utf-8")
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc, _ = run_scan(root, lambda: check_mod.main(["--active"]))
+    check("check --active exits 1 and names the missing key when the manifest lacks it",
+          rc == 1 and "salesforce_release_active not found" in err.getvalue(), err.getvalue())
+    (root / ".claude" / "skill-manifest.yml").write_text('salesforce_release_active: "999"\n', encoding="utf-8")
+    arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+    arts.mkdir(parents=True)
+    (arts / "bad.md").write_text(FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.main(["--active"]))
+    check("check --active gates the manifest's release: a missing footer exits 1", rc == 1 and "bad.md" in out, out)
+    backfill_attribution(arts)
+    rc, _ = run_scan(root, lambda: check_mod.main(["--active"]))
+    check("check --active passes once the footer is there", rc == 0)
+for txt, want_key in (("salesforce_release_active: 264a\n", False), ("salesforce_release_active:\n 264\n", False),
+                      ("salesforce_release_active: '264'  # now\n", True), ("salesforce_release_active: 264\n", True)):
+    m = check_mod.ACTIVE_KEY.search(txt)
+    check(f"the release key parser {'accepts' if want_key else 'rejects'} {txt.strip()!r}",
+          bool(m) == want_key and (m.group(1) == "264" if m else True))
+
+# the quoted note as the body's last line is not the footer; unterminated and BOM-only files
+quoted = FM + "Quote:\n\n" + note.splitlines()[-1] + "\n"
+check("a body whose last line quotes the note (no rule line) is missing, not ok",
+      not has_footer(quoted) and attribution_state(quoted) == ("missing", URL))
+check("the real footer, rule line included, still counts", has_footer(FM + BODY + "\n" + note + "\n"))
+check("frontmatter that never closes is a distinct failing reason",
+      attribution_state("---\ntitle: T\nbody\n")[0] == "unterminated-frontmatter"
+      and is_failure("unterminated-frontmatter"))
+check("a BOM before a file with no frontmatter is no-frontmatter, not a BOM failure",
+      attribution_state("\ufeff# plain\n")[0] == "no-frontmatter")
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+    arts.mkdir(parents=True)
+    (arts / "bom.md").write_text("\ufeff" + FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("check prints the strip-the-BOM hint and a real release in its fix line",
+          rc == 1 and "strip the UTF-8 BOM" in out)
+    (arts / "bad.md").write_text(FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("the fix line names the release, not a literal R", "backfill-attribution --release 999" in out)
 
 # the site guide's relink step runs the backfill and logs added and skipped files
 class _Log:

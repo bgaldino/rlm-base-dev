@@ -46,7 +46,8 @@ MANIFEST = Path(".claude/skill-manifest.yml")
 SKILLS = Path(".cursor/skills")
 SNAPSHOTS = Path("docs/salesforce")
 
-ACTIVE_KEY = re.compile(r"^salesforce_release_active:\s*[\"']?(\d+)[\"']?", re.MULTILINE)
+# Same pattern as scripts/doc_snapshot/check.py: one line, digits only, an optional trailing comment.
+ACTIVE_KEY = re.compile(r"^salesforce_release_active:[ \t]*[\"']?(\d+)[\"']?[ \t]*(?:#.*)?$", re.MULTILINE)
 SNAP_PATH = re.compile(r"docs/salesforce/(\d+)/([^\s)`'\"\]>#,;|:]+)")
 PIN = re.compile(r"\bverified\s+on\s+(?:release\s+)?(\d{3})\b", re.IGNORECASE)
 NOT_REVERIFIED = re.compile(r"\bnot\s+(?:yet\s+)?(?:been\s+)?re-?verified", re.IGNORECASE)

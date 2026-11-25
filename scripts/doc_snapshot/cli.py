@@ -398,7 +398,7 @@ def cmd_check(args, releases, logger) -> int:
 
 
 def cmd_backfill_attribution(args, releases, logger) -> int:
-    from scripts.doc_snapshot._core import backfill_attribution, is_failure
+    from scripts.doc_snapshot._core import BOM_HINT, backfill_attribution, is_failure
     from scripts.doc_snapshot.check import REPO_ROOT
     base = REPO_ROOT / "docs" / "salesforce" / args.release
     total, failed = 0, 0
@@ -411,6 +411,8 @@ def cmd_backfill_attribution(args, releases, logger) -> int:
             print(f"  skipped {articles.relative_to(REPO_ROOT)}/{name}: {reason}")
             # no frontmatter or source_url: nothing to build a footer from, not a failure
             failed += is_failure(reason)
+            if reason == "bom-frontmatter":
+                print(f"    {BOM_HINT}.")
     print(f"Release {args.release}: {total} article(s) updated.")
     return EXIT_FAILED if failed else 0
 

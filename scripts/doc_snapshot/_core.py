@@ -363,43 +363,56 @@ def attribution_note(source_url: str, content: str) -> str:
 _SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
 
 
-_ATTR_MARKER = "> **Source attribution and limited-use note.**"
-_ATTR_CLOSING = "confirming Salesforce's terms."
+def _footer_pattern():
+    """The footer exactly as ``attribution_note`` emits it, anchored to the end of the text:
+    ``\\n---\\n\\n> **Source attribution ...** ... confirming Salesforce's terms.`` with the
+    source URL and content label left open. Built from the note itself, so the two cannot
+    drift; ``guard._ATTRIBUTION`` strips from the same opening, so a footer matched here is
+    one the guard comparison ignores."""
+    note = attribution_note("URLTOKEN", "LABELTOKEN")
+    pat = re.escape(note).replace("URLTOKEN", r"[^)\s]+").replace("LABELTOKEN", r"[^\n(]+")
+    return re.compile(r"(?:\A|\n)" + pat + r"\s*\Z")
+
+
+_FOOTER_AT_END = _footer_pattern()
 
 
 def has_footer(text: str) -> bool:
-    """True when the text ENDS with the attribution footer: its last block is the one-line
-    note (marker first, fixed closing last). A mention of the marker elsewhere does not count."""
-    i = text.rfind(_ATTR_MARKER)
-    if i < 0:
-        return False
-    tail = text[i:].rstrip()
-    return "\n" not in tail and tail.endswith(_ATTR_CLOSING)
+    """True when the text ENDS with the attribution footer, rule line included. A body that
+    quotes the note as its last line (no rule line before it) does not count."""
+    return _FOOTER_AT_END.search(text) is not None
 
 
 def is_failure(reason: str) -> bool:
-    """A skip reason that is a real problem (unreadable, not writable, BOM) rather than a
-    file with nothing to build a footer from ("no-frontmatter", "no-source_url")."""
+    """A skip reason that is a real problem (unreadable, not writable, unterminated or BOM
+    frontmatter) rather than a file with nothing to build a footer from ("no-frontmatter",
+    "no-source_url")."""
     return not reason.startswith("no-")
+
+
+BOM_HINT = "strip the UTF-8 BOM (the first three bytes, EF BB BF) from the file, then rerun"
 
 
 def attribution_state(text: str) -> Tuple[str, str]:
     """Classify a captured article's footer: ``(state, source_url)``.
 
     ``state`` is "ok" (ends with the footer), "missing" (frontmatter with a source_url, no
-    footer), "bom-frontmatter" (a UTF-8 BOM before the frontmatter), "no-frontmatter" or
-    "no-source_url" (nothing to build a footer from). CRLF frontmatter cannot reach this:
-    files are read in text mode, which folds CRLF to LF. The one definition the backfill
-    and ``check`` share.
+    footer), "bom-frontmatter" (a UTF-8 BOM before frontmatter), "unterminated-frontmatter"
+    (opens with ``---`` and never closes), or "no-frontmatter" / "no-source_url" (nothing to
+    build a footer from). A BOM before a file with no frontmatter is "no-frontmatter". CRLF
+    frontmatter cannot reach this: files are read in text mode, which folds CRLF to LF. The
+    one definition the backfill and ``check`` share.
     """
     if text.startswith("\ufeff"):
-        return "bom-frontmatter", ""
+        return ("bom-frontmatter" if text[1:].startswith("---\n") else "no-frontmatter"), ""
     if not text.startswith("---\n"):
         return "no-frontmatter", ""
     if has_footer(text):
         return "ok", ""
     end = text.find("\n---\n", 4)
-    m = _SOURCE_URL_LINE.search(text[:end]) if end > 0 else None
+    if end < 0:
+        return "unterminated-frontmatter", ""
+    m = _SOURCE_URL_LINE.search(text[:end])
     if not m:
         return "no-source_url", ""
     return "missing", m.group(1).strip("'\"")
@@ -408,7 +421,8 @@ def attribution_state(text: str) -> Tuple[str, str]:
 def scan_attribution(articles: Path) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
     """``(missing, skipped)`` for ``articles/*.md``: ``(file name, source_url)`` of every
     article lacking the footer, and ``(file name, reason)`` of every file that cannot be
-    judged (unreadable, no frontmatter, no source_url). A missing directory is empty."""
+    judged: ``unreadable: <Exc>``, ``bom-frontmatter``, ``unterminated-frontmatter``
+    (failures, see ``is_failure``), ``no-frontmatter``, ``no-source_url``. A missing directory is empty."""
     missing: List[Tuple[str, str]] = []
     skipped: List[Tuple[str, str]] = []
     if not articles.is_dir():
