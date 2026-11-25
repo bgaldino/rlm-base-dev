@@ -132,8 +132,8 @@ chain = mod.version_findings([expected()], {PRICING: RAMP264}, NOW)
 check("ramp264 chain (no Rank read): _V1 is active but v40 executes → finding",
       len(chain) == 1 and "does not execute" in chain[0]
       and "Partner_Price_and_Ramp_v40 (v4)" in chain[0], chain)
-check("the chain finding points at set_step_formula.py and the warn option",
-      chain and "set_step_formula.py" in chain[0] and "version_check" in chain[0], chain)
+check("the chain finding points at editing or re-ranking the executing version",
+      chain and "set_step_formula.py" in chain[0] and "re-rank" in chain[0], chain)
 
 ranked = [dict(r, Rank=r["VersionNumber"]) for r in RAMP264]
 ranked[0]["Rank"] = 10
@@ -150,8 +150,9 @@ check("an active version whose window has ended does not execute → finding",
 
 noop = mod.version_findings(
     [expected()], {PRICING: [{"ApiName": V1, "VersionNumber": 2, "IsActive": True}]}, NOW)
-check("same DeveloperName under another VersionNumber is the silent no-op finding",
-      len(noop) == 1 and "silent" in noop[0] and "VersionNumber 2" in noop[0], noop)
+check("same DeveloperName under another VersionNumber is a finding, stated factually",
+      len(noop) == 1 and "is VersionNumber 2 in the org but 1 in the deployed package"
+      in noop[0] and "silent" not in noop[0], noop)
 missing = mod.version_findings([expected()], {PRICING: RAMP264[1:]}, NOW)
 check("a deployed version absent from the org is a finding",
       len(missing) == 1 and "no ExpressionSetVersion named" in missing[0], missing)
@@ -224,8 +225,9 @@ try:
 except mod.CumulusCIFailure as exc:
     raised = exc
 check("version_check fail raises on a chain", raised is not None, failing.logs)
-check("the failure says how to continue anyway",
-      raised is not None and "version_check warn" in str(raised), raised)
+check("the failure says the deploy is applied and not to re-run the step",
+      raised is not None and "already been applied" in str(raised)
+      and "do not re-run it" in str(raised), raised)
 check("each finding is logged as an error",
       any(level == "ERROR" and "does not execute" in m for level, m in failing.logs),
       failing.logs)
@@ -236,9 +238,13 @@ check("version_check warn logs the finding as a warning and continues",
       any(level == "WARNING" and "does not execute" in m for level, m in warning.logs)
       and not any(level == "ERROR" for level, _ in warning.logs), warning.logs)
 
-check("the failure names both remedies (the task and the flow option)",
-      raised is not None and "-o version_check warn" in str(raised)
-      and "activate_and_deploy_expression_sets__version_check warn" in str(raised), raised)
+check("the failure names the remedies: resume after the step, edit or re-rank the "
+      "executing version, and warn only for future builds",
+      raised is not None and "harness.py resume" in str(raised)
+      and "re-rank the executing version" in str(raised)
+      and "set_step_formula.py" in str(raised)
+      and "activate_and_deploy_expression_sets__version_check warn" in str(raised)
+      and "future builds" in str(raised), raised)
 
 
 class _BrokenSf(_FakeSf):

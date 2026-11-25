@@ -885,7 +885,7 @@
 
 ### `activate_and_deploy_expression_sets`
 
-**Description:** Activate and Deploy Expression Sets, then read back each deployed version: fail (version_check: fail, the default) or warn (version_check: warn) when it is missing, under a different VersionNumber (a silent no-op deploy), inactive, or not the version that executes (highest Rank among active versions in their date window)
+**Description:** Activate and Deploy Expression Sets, then read back each deployed version: fail (version_check: fail, the default) or warn (version_check: warn) when it is missing, under a different VersionNumber than deployed, inactive, or not the version that executes (highest Rank among active versions in their date window; earliest created among null Ranks)
 
 **Class:** `tasks.rlm_deploy_expression_sets.DeployExpressionSets`
 

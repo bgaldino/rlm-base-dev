@@ -3,7 +3,7 @@ Deploy the repo's expression sets, then read back which version each one execute
 
 ``activate_and_deploy_expression_sets`` deploys ``force-app/.../expressionSetDefinition``
 with the tracked Draft versions flipped to Active. A successful deploy does not prove
-the deployed version is the one pricing runs, for two reasons, both silent:
+the deployed version is the one pricing runs:
 
 - **A version chain.** An org can hold several versions of one definition, several of
   them active. The runtime runs one of them: the highest ``Rank`` among enabled
@@ -11,16 +11,19 @@ the deployed version is the one pricing runs, for two reasons, both silent:
   (``scripts/expression_sets/_guards.executing_version``, measured on 264). In an
   upgraded org (``ramp264``: v1 to v4, three active) the repo's
   ``_V1`` deploys and changes no price (todo packs 172, 175).
-- **A no-op deploy.** The Metadata API deploy handler matches payload versions to org
-  versions by VersionNumber. A payload version whose DeveloperName exists in the org
-  under a different VersionNumber is neither updated nor inserted, and the deploy still
-  succeeds (read from the Core deploy handler; not yet reproduced live).
+- **A VersionNumber mismatch.** The Metadata API deploy handler matches payload
+  versions to org versions by VersionNumber, and its code path suggests a payload
+  version whose DeveloperName exists in the org under another VersionNumber can be
+  skipped silently [Platform behaviour, traced]. The one construction measured (264,
+  2026-11-24: the lower version deleted, ``_V1`` redeployed at the freed number)
+  failed the deploy loudly instead ("We couldn't find a record with the ID …
+  (ExpressionSetDefinitionVersion)").
 
 So after the deploy this task reads every deployed procedure's ExpressionSetVersion
 rows and checks, for each version the deploy sent:
 
-- a version with that ApiName exists, under the deployed VersionNumber (catches the
-  no-op);
+- a version with that ApiName exists, under the deployed VersionNumber (reports any
+  VersionNumber mismatch, silent or not);
 - when the deploy activates it, it is active and it is the executing version
   (catches the version chain).
 
@@ -31,11 +34,14 @@ ignored, so it is never deployed) and after the task's ``transforms`` (which fli
 Draft to Active). Nothing here re-implements either.
 
 ``version_check`` decides what a finding does. ``fail`` (the default) fails the task:
-a deploy that changed nothing, or changed a version that does not run, produces
-plausible prices with no other signal, so the build is stopped at the step that caused
-it. ``warn`` logs the same findings and lets the build go on, for an org whose foreign
-version chain is known and accepted (edit the executing version with
-``scripts/expression_sets/set_step_formula.py``).
+a deployed change that pricing does not run produces plausible prices with no other
+signal, so the build is stopped at the step that found it. The deploy has already
+been applied by then, and re-running this step on a built org is refused by the
+platform (measured), so the remedy is to resume the build after this step and, if the
+wrong version executes, edit or re-rank the executing version
+(``scripts/expression_sets/set_step_formula.py`` for formulas). ``warn`` logs the same
+findings and lets the build go on; set it for future builds on an org whose version
+chain is known and accepted.
 """
 import base64
 import io
@@ -153,9 +159,9 @@ def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
                 row.get("VersionNumber") != version["versionNumber"]:
             findings.append(
                 f"{definition}: {api_name} is VersionNumber {row.get('VersionNumber')} in "
-                f"the org but {version['versionNumber']} in the deployed package. The "
-                "deploy matches versions by VersionNumber, so it did not update this "
-                f"version (a silent no-op). Versions in the org: {table}."
+                f"the org but {version['versionNumber']} in the deployed package; the "
+                "deploy matches versions by VersionNumber, so the repo's change may not "
+                f"have reached this version. Versions in the org: {table}."
             )
             continue
         if version.get("status") != _ACTIVE:
@@ -175,9 +181,8 @@ def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
             findings.append(
                 f"{definition}: the deployed {api_name} is active but does not execute; "
                 f"{runs}, so pricing runs it and the repo change has no effect. "
-                f"Versions in the org: {table}. Edit the executing version with "
-                "scripts/expression_sets/set_step_formula.py, or set version_check to "
-                "warn if this org's version chain is intended."
+                f"Versions in the org: {table}. Edit or re-rank the executing version "
+                "(scripts/expression_sets/set_step_formula.py for formulas)."
             )
     return findings
 
@@ -191,9 +196,11 @@ class DeployExpressionSets(Deploy):
             "description": (
                 "What a post-deploy version finding does: 'fail' (default) fails the "
                 "task, 'warn' logs it and continues. A finding is a deployed version "
-                "that is missing, under a different VersionNumber (a silent no-op), "
+                "that is missing, under a different VersionNumber than deployed, "
                 "inactive when the deploy activates it, or not the version that "
-                "executes (highest Rank among active versions in their date window)."
+                "executes (highest Rank among active versions in their date window; "
+                "earliest created among null Ranks). Set warn for future builds on an "
+                "org whose version chain is known and accepted."
             ),
             "required": False,
         },
@@ -258,10 +265,15 @@ class DeployExpressionSets(Deploy):
             log(finding)
         if self.version_check == "fail":
             raise CumulusCIFailure(
-                message + " To continue anyway: cci task run "
-                "activate_and_deploy_expression_sets -o version_check warn, or in the "
-                "build, cci flow run prepare_rlm_org -o "
-                "activate_and_deploy_expression_sets__version_check warn."
+                message + " The deploy has already been applied, and re-running this "
+                "step on a built org is refused by the platform, so do not re-run it: "
+                "resume the build after this step (python scripts/build_harness/harness.py "
+                "resume, or run the remaining prepare_rlm_org steps), and if the wrong "
+                "version executes, edit or re-rank the executing version "
+                "(scripts/expression_sets/set_step_formula.py for formulas). "
+                "version_check warn is for future builds on an org whose version chain "
+                "is known (cci flow run prepare_rlm_org -o "
+                "activate_and_deploy_expression_sets__version_check warn)."
             )
         self.logger.warning(message + " Continuing (version_check: warn).")
 
