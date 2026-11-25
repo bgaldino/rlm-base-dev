@@ -543,10 +543,9 @@ that already has it. `mfg-dro` has no conditions file yet, so a load of it (no c
 Set its provider attribute `Simulate_Failure` to `true` to fail every step that uses that definition, with
 response code 500. A `post_quantumbit` redeploy resets the attribute to `false`.
 
-**Credential access for callout steps.** Every callout through `BillingSystemNC`, `LogisticsSystemNC` or
-`OrderFulfillmentSystemNC` (the mock provider included) sends through one external credential,
-`BillingSystemExtCredentials`. Without principal access to it the send throws first with `SF_DRO_STEP_API_00124`
-[Measured: 2026-11-25, 264, scratch]. The `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed
+**Credential access for callout steps.** Every named credential in `unpackaged/post_quantumbit/namedCredentials/` (`BillingSystemNC`, `LogisticsSystemNC`, `OrderFulfillmentSystemNC`, `OrderFulfillmentSystemNCcanned` and `RLM_MockTax`; read from the files) uses one external credential,
+`BillingSystemExtCredentials`, so every DRO callout through them (the mock provider included) sends through it. Without principal access to it the send throws first with `SF_DRO_STEP_API_00124`
+[Measured: 2026-11-25, 264, scratch, DRO steps only]. `RLM_MockTax` tax callouts by a user without the set likely have the same gap [inferred; not run]. The `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed
 with the credential) grants that one principal and nothing else. `prepare_quantumbit` step 15 assigns it to the
 running user when `quantumbit` and `dro` are on, so a default build (tso off) needs no manual assignment. Personas are
 not covered on either build: `RLM_QuantumBit` is assigned only to the running user (`prepare_quantumbit` step 4). On a
@@ -563,8 +562,9 @@ tso build `deploy_post_tso` overwrites `RLM_QuantumBit` with a copy that adds th
   creates the credential, and builds without quantumbit never have it [Repo: `cumulusci.yml` step order].
 - The `SalesforceContractsExtCredentials` principal has the same default-build gap, since `DRO_Integrations` grants
   only Billing. Whether CLM callout steps fail without it is unverified.
-- On a default build only `mfg-dro` has callout steps through these credentials (eight `DFOApexMockService` steps).
-  `qb-dro` has none once its tenant step is dropped, so verifying qb means pointing one step definition at
+- Of the shipped plans only `mfg-dro` (not wired into the build) has callout steps through these credentials (eight
+  `DFOApexMockService` steps). `qb-dro`'s one callout step, the tenant step, uses the `RLM` credential and is dropped
+  on a build without it (`qb-dro/conditional_steps.json`), so verifying qb means pointing one step definition at
   `DFOApexMockService`. A temporary `Callout` step in group `Platform` with that provider, on a `QB-API-MGMT` order,
   reached `Completed` with the grant assigned by the build flow and no manual assignment [Measured: 2026-11-26, 264, scratch, one org].
 

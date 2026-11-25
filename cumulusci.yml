@@ -321,7 +321,7 @@ project:
 
     ps_dro_integrations: &ps_dro_integrations
       # Principal access to the BillingSystemExtCredentials external credential,
-      # which BillingSystemNC, LogisticsSystemNC and OrderFulfillmentSystemNC share.
+      # which every named credential in post_quantumbit shares.
       # The set lives in post_quantumbit beside the credential (it cannot deploy
       # before it), and grants nothing else. Todo 453.
       - DRO_Integrations
@@ -4009,16 +4009,10 @@ flows:
         options:
           api_names: *ps_renewal_quotes
       15:
-        # DRO callout steps send through named credentials that share the
-        # BillingSystemExtCredentials external credential (deployed by
-        # deploy_quantumbit, step 3). Without principal access the send fails
-        # with SF_DRO_STEP_API_00124. The step runs as the user who activates
-        # the order, so this reaches the RUNNING user only. Personas are not
-        # covered on either build: RLM_QuantumBit is assigned only to the running
-        # user (prepare_quantumbit step 4). On a tso build deploy_post_tso
-        # overwrites RLM_QuantumBit with a copy that adds the
-        # BillingSystemExtCredentials and SalesforceContractsExtCredentials
-        # principal grants, which the running user already holds from step 4.
+        # DRO callout steps send through named credentials that share
+        # BillingSystemExtCredentials; without principal access they fail with
+        # SF_DRO_STEP_API_00124. Reaches only the running user (the activator).
+        # Persona and tso coverage: docs/references/revenue-cloud-permissions.md.
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__dro
         options:
