@@ -3,6 +3,15 @@
     <active>true</active>
     <apexClass>DFOApexMockService</apexClass>
     <developerName>DFOApexMockService</developerName>
+    <integrationProviderAttributes>
+        <dataType>String</dataType>
+        <description>Set to true to make steps using this provider fail (response code 500), for example to show fallout handling. Any other value, or blank, means success.</description>
+        <developerName>Simulate_Failure</developerName>
+        <label>Simulate Failure</label>
+        <required>false</required>
+        <stringValue>false</stringValue>
+        <trueOrFalseValue>false</trueOrFalseValue>
+    </integrationProviderAttributes>
     <providerLabel>DFOApexMockService</providerLabel>
     <type>Apex</type>
 </IntegrationProviderDef>
