@@ -251,7 +251,8 @@ The TSO template already carries its overrides.
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
 - At step 30, `_assemble_profiles` reads the **base template** (full layout assignments +
-  app visibility) from `templates/profiles/base/` and applies feature patches:
+  app visibility) from `templates/profiles/base/` and applies feature patches. `RLM Sales Representative` is assembled only when `personas=true`
+(`_flags.PERSONAS_PROFILES`); the other two base profiles always are.
 
 | Patch file | Activates when | Effect |
 |---|---|---|
@@ -452,7 +453,7 @@ unpackaged/post_ux/
 ├── layouts/                   # assembled layouts (21 committed: 18 base + 3 billing; constraints overrides replace two base files)
 ├── applications/              # RLM_Revenue_Cloud plus the conditional apps for active flags
 ├── objects/                   # object UX bindings, compactLayouts + listViews organized by object
-└── profiles/                  # 3 assembled profiles
+└── profiles/                  # assembled profiles (3 in the committed output; RLM Sales Representative assembles only when personas=true, so 2 otherwise)
 ```
 
 ### assembly_manifest.json
@@ -467,14 +468,19 @@ Written on every run. Contains:
 ## `.forceignore` Entries
 
 `.forceignore` keeps the UX metadata that moved to `templates/` out of the early deploys
-(`deploy_full`, `deploy_pre` and the feature `deploy_post_*` tasks); it is deployed only by
-`prepare_ux`. Read the file itself for the authoritative list. In summary it excludes:
+(`deploy_full`, `deploy_pre` and the feature `deploy_post_*` tasks), so that metadata
+reaches an org only through `prepare_ux`. Read the file itself for the authoritative list.
+In summary it excludes:
 
 - `force-app/main/default/flexipages` and `force-app/main/default/layouts`
-- the object UX bindings, compact layouts and list views now under `templates/objects/base/`
-  (Asset, Contract, Quote, Product2, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem)
-- the two `EmailTemplatePage` approval flexipages in `unpackaged/post_approvals/flexipages/`
-  (a platform restriction; see below)
+- the object-meta bindings for Asset, Contract, Quote, Order, OrderItem, QuoteLineItem and
+  FulfillmentOrderLineItem, and the Asset, Contract and Quote compact layouts and the
+  Product2 list views, all now under `templates/objects/base/` (the Account, Contact,
+  Contract and Order list views there are not `.forceignore` entries)
+
+Separately, `.forceignore` also lists the two `EmailTemplatePage` approval flexipages in
+`unpackaged/post_approvals/flexipages/`. Those are never deployed by any path (a platform
+restriction; see below).
 
 The earlier per-feature `unpackaged/post_*/flexipages|layouts|applications` exclusions no
 longer apply: those directories were removed when their content moved to `templates/`.
@@ -501,14 +507,15 @@ assembled into `post_ux/objects/CollectionPlan/listViews/` only when `collection
 
 The `RLM_Revenue_Cloud` TSO application variant and the two `tso` flexipage patches
 (`RLM_Billing_Home_Page`, `RLM_Collections_Account_Record_Page`) live in `templates/`.
-This document records no live TSO run of them [inferred: no verification is recorded in
-the repo]. See the test plan below.
+This document records no live TSO run of them. See the test plan below.
 
 ---
 
 ## Test Plan
 
 ### Phase 1 — Baseline (tso=false) ✅ Completed
+
+*Results below were recorded when the phase ran; they were not re-measured on 2026-11-26, and the item counts predate later template changes.*
 
 | Test | Org | Result |
 |------|-----|--------|

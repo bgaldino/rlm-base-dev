@@ -7,7 +7,7 @@
 > implemented" status referred to the portal web app on the `feat/rlm-portal` branch, which is
 > not part of this repository [inferred: the branch is not in this clone]. Path 2 was never
 > built; its SObject name was never confirmed.
-> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (both outside this repo)
+> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (neither is in this repository; the branch's location is [inferred])
 > **Last updated:** 2026-03-21; status note 2026-11-26
 
 > **Read this before using the rest.** The 264 developer guide snapshot
@@ -17,8 +17,10 @@
 > used below. `load-instance` takes `transactionId` (required) and an **optional**
 > `contextMappingId`; `set-instance` requires `contextMappingId` and a `transaction` string.
 > The 404 root-cause explanation below (no product-level mapping association) is
-> **[inferred]**, never confirmed in a live org, and the product-level association object in
-> Path 2 is unverified. To run these APIs today, see the `rlm-business-apis` and
+> **[inferred]**, never confirmed in a live org. A second candidate, also **[inferred]**: the
+> original call went to `/configurator/load`, which is not a documented path, and a wrong
+> path alone could return the same 404. The product-level association object in Path 2 is
+> unverified. To run these APIs today, see the `rlm-business-apis` and
 > `context-service` skills.
 
 ---
@@ -31,7 +33,7 @@ The `ProductConfiguratorModal` calls `headlessConfigLoad(quoteId)` → `POST /co
 404 The requested resource does not exist
 ```
 
-The suspected root cause [inferred] is that `headlessConfigLoad` performs an **automatic context mapping lookup** — it queries the product on the QuoteLineItem to find its associated Configurator Context Mapping. If no such association exists for the product, the endpoint has nothing to load and returns 404.
+The suspected root cause [inferred] is that `headlessConfigLoad` performs an **automatic context mapping lookup** — it queries the product on the QuoteLineItem to find its associated Configurator Context Mapping, and that if no such association exists the endpoint has nothing to load and returns 404 [inferred, as above].
 
 This document describes:
 1. What a Configurator Context Mapping is and how it works
@@ -46,8 +48,8 @@ The headless configurator has two initialisation endpoints:
 
 | Endpoint | How it finds the context | When it works |
 |---|---|---|
-| `POST /connect/cpq/configurator/actions/load-instance` | Auto-discovers from the product on the QuoteLineItem → looks up that product's linked ContextMapping record | Only works if the product has a ContextMapping association set up in the org |
-| `POST /connect/cpq/configurator/actions/set-instance` | Caller provides `contextMappingId` + a `transaction` JSON seed | Works whenever a ContextMapping ID is known, regardless of product setup |
+| `POST /connect/cpq/configurator/actions/load-instance` | [inferred] Auto-discovers from the product on the QuoteLineItem → looks up that product's linked ContextMapping record. The 264 snapshot documents only an optional `contextMappingId` and a required `transactionId` | [inferred] Only works if the product has a ContextMapping association set up in the org; not confirmed |
+| `POST /connect/cpq/configurator/actions/set-instance` | Caller provides `contextMappingId` + a `transaction` JSON seed | [inferred] Works whenever a ContextMapping ID is known, regardless of product setup; not verified live |
 
 Both return `{ success: bool, contextId: string }` and the rest of the session lifecycle (Get, AddNodes, UpdateNodes, Save) is identical.
 
