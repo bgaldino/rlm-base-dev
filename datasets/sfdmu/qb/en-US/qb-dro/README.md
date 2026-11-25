@@ -76,8 +76,23 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   records rather than Flow Orchestration instances [inferred from the zero count], and the orders it used contained only `QB-API`/`QB-API-FLEX`.
   See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 
-What to do about the missing target (ship a credential and target, point the step at a mock, or remove or condition
-the step) is an open decision (todo 419, item 3).
+The step is now **conditional** (todo 419, item 3). `conditional_steps.json` names it with
+`"requires": {"namedCredential": "RLM"}`. When the target org has no unnamespaced `RLM` named credential
+record, the load (`LoadSFDMUData`, and the idempotency test's loads) removes the step's row from
+`FulfillmentStepDefinition.csv` and its two dependency rows from `FulfillmentStepDependencyDef.csv`. The check
+is that the credential exists, not that its endpoint answers. The removal happens in a temp copy, so the
+tracked CSVs stay whole. Receive Key + Assign to Asset (a Milestone step) and Provision Licensing/Features then
+have no predecessor (checked on a fresh org with no `RLM` credential) [Measured: 2026-11-25, 264, scratch, one org], so they start with the plan [inferred; no order was run]. An org that has the credential
+loads the step as before.
+
+The load never deletes anything, so an org that already holds the step keeps it. The load logs a warning
+naming the step; remove it by hand on that org. A plan that already lacks the step (for example, an
+extraction from such an org) loads without it when the credential is missing, and fails when the credential
+exists. Because no default build has the credential, an offline test
+(`tests/test_sfdmu_conditional_steps.py`) checks that every name in a tracked `conditional_steps.json` is in its
+plan's CSV, so a renamed step fails the gate. Only the plan-root CSVs are filtered: the load fails if
+`objectset_source/` holds a copy of either one. Do not extract with `copy_to_plan true` from an org without the
+credential: that writes CSVs without the step into the tracked plan. Logic: `scripts/sfdmu_conditional_steps.py`.
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`

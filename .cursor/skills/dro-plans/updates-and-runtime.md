@@ -531,8 +531,23 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
 - An earlier check concluded the step was "not wired" from Draft fulfillment orders and zero `FlowOrchestrationInstance`
   records. Both signals are uninformative here (see **Verify a DRO Step on a Fresh Build**, below).
 
-Open decision (todo 419, item 3): ship a credential and target, point the step at a mock provider, or
-remove or condition the step. This section records behaviour, not a fix.
+The step is now conditional (todo 419, item 3). qb-dro's `conditional_steps.json` drops it from a load
+when the target org has no unnamespaced `RLM` named credential record (it checks that the credential exists,
+not that it answers). The two steps that depended on it then have no predecessor
+(checked on a fresh org with no `RLM` credential) [Measured: 2026-11-25, 264, scratch, one org], so they start with the plan [inferred; no order was run]. Details are in the
+[qb-dro README](../../../datasets/sfdmu/qb/en-US/qb-dro/README.md). A load never deletes the step from an org
+that already has it. `mfg-dro` has no conditions file yet, so a load of it (no cumulusci.yml task runs one today) would carry both of its tenant steps, which have different names from qb-dro's.
+
+**Mock provider for callout steps.** `DFOApexMockService` (definition in
+`unpackaged/post_quantumbit/integrationProviderDefinitions/`) returns success, response code 200, by default.
+Set its provider attribute `Simulate_Failure` to `true` to fail every step that uses that definition, with
+response code 500. A `post_quantumbit` redeploy resets the attribute to `false`.
+
+The mock still sends through `BillingSystemNC`, so the activating user needs principal access to the
+`BillingSystemExtCredentials` external credential. Only the post_tso `DRO_Integrations` permission set grants
+that access, so on a default build (tso off) the send fails first with `SF_DRO_STEP_API_00124`
+[Measured: 2026-11-25, 264, scratch]. Todo 453 tracks this gap. It affects every callout through BillingSystemNC,
+LogisticsSystemNC and OrderFulfillmentSystemNC.
 
 ## Verify a DRO Step on a Fresh Build
 

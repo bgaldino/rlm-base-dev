@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {
+      "name": "Stage New Tenant for Provisioning - Platform",
+      "requires": {"namedCredential": "RLM"}
+    }
+  ]
+}

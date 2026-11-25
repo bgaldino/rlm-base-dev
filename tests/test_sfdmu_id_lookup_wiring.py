@@ -469,20 +469,31 @@ DRO = dro_root / "qb-dro"
 shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-dro", DRO, ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
 dro_before = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
 seen, user_queries = [], []
+has_credential = [True]
 
 
 def dro_run(cmd, *_a, **_k):
-    if isinstance(cmd, list):  # the User Name query
-        user_queries.append(cmd)
+    if isinstance(cmd, list):  # an `sf data query`: the conditional-step probe or the User Name
+        soql = cmd[cmd.index("-q") + 1]
+        if "FROM NamedCredential" in soql:  # with the RLM credential the plan keeps its step
+            records = [{"DeveloperName": "RLM"}] if has_credential[0] else []
+        elif "FROM FulfillmentStepDefinition" in soql:  # the stale-step probe: a fresh org
+            records = []
+        elif "FROM User" in soql:
+            user_queries.append(cmd)
+            records = [{"Name": "Admin User"}]
+        else:
+            raise AssertionError(soql)
         return type("R", (), {"returncode": 0, "stderr": "",
-                              "stdout": json.dumps({"result": {"records": [{"Name": "Admin User"}]}})})()
+                              "stdout": json.dumps({"status": 0, "result": {"records": records}})})()
     plan = pathlib.Path(cmd.split(" -p ", 1)[1].split(" ", 1)[0])
     seen.append((plan, (plan / "FulfillmentStepDefinition.csv").read_text(encoding="utf-8")))
     return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
 
-for option, want_name in ((True, True), ("false", False)):
+for option, want_name, credential in ((True, True, True), ("false", False, True), (True, True, False)):
     seen.clear(), user_queries.clear()
+    has_credential[0] = credential
     task = idem_task()
     task.options = {"dynamic_assigned_to_user": option}
     task.targetusername = "scratch@example.com"
@@ -493,8 +504,10 @@ for option, want_name in ((True, True), ("false", False)):
         task._run_load_once(str(DRO), strict=True)
     finally:
         rs.subprocess.run = saved_run
-    tag = f"dynamic_assigned_to_user={option!r}"
+    tag = f"dynamic_assigned_to_user={option!r}, credential={credential}"
     check(f"{tag}: both loads ran", len(seen), 2)
+    check(f"{tag}: both loads carry the tenant step only with the credential",
+          ["Stage New Tenant" in csv for _, csv in seen], [credential] * 2)
     if want_name:
         check(f"{tag}: both loads send the org user's Name",
               [("Admin User" in csv, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for _, csv in seen],
@@ -504,10 +517,12 @@ for option, want_name in ((True, True), ("false", False)):
         check(f"{tag}: the user Name is queried once, by username",
               [c[c.index("-o") + 1] for c in user_queries], ["scratch@example.com"])
     else:
-        check(f"{tag}: the plan loads in place, placeholder unchanged",
-              [(plan == DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
+        # qb-dro carries conditional_steps.json, so even without the user Name each load runs from a
+        # temp copy (the step is probed there); the placeholder is still sent raw.
+        check(f"{tag}: the placeholder is unchanged (a temp copy, for the conditional step)",
+              [(plan != DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
         check(f"{tag}: no user query", user_queries, [])
-    shutil.rmtree(DRO / "target", ignore_errors=True)  # the in-place run's (empty) output
+    shutil.rmtree(DRO / "target", ignore_errors=True)  # in case a run wrote output beside the plan
 dro_after = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
 check("qb-dro plan byte-for-byte unchanged", dro_after == dro_before, True)
 shutil.rmtree(dro_root, ignore_errors=True)
@@ -570,6 +585,84 @@ for label, option in (("a Readonly type (Product2) is refused, never deleted org
     except TaskOptionsError:
         got = "TaskOptionsError"
     check(f"named: {label}", got, "TaskOptionsError")
+
+print("LoadSFDMUData: conditional DRO steps are dropped in a temp copy (todo 419)")
+src_plan = REPO / "datasets/sfdmu/qb/en-US/qb-dro"
+tracked = {p.relative_to(src_plan): p.read_bytes() for p in src_plan.rglob("*")
+           if p.is_file() and not set(p.relative_to(src_plan).parts) & set(rs.SFDMU_RUNTIME_DIRS)}
+cond_queries = []
+
+
+def no_credential(org, soql):
+    cond_queries.append((org, soql))
+    return []
+
+
+cond = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+cond.org_config = scratch
+cond.options = {}
+cond.logger = type("L", (), {"info": lambda *_a, **_k: None})()
+cond.pathtoexportjson = str(src_plan)
+cond._temp_plan_dir = None
+saved_query = rs.sf_query_records
+rs.sf_query_records = no_credential
+try:
+    cond._apply_conditional_steps()
+finally:
+    rs.sf_query_records = saved_query
+cond_temp = pathlib.Path(cond.pathtoexportjson)
+try:
+    check("the run points at a temp copy", cond_temp != src_plan and cond_temp == pathlib.Path(cond._temp_plan_dir), True)
+    check("the CLI query used the scratch username, never the token",
+          {org for org, _ in cond_queries}, {"scratch@example.com"})
+    check("the step is gone from the temp definitions",
+          "Stage New Tenant" in (cond_temp / "FulfillmentStepDefinition.csv").read_text(), False)
+    check("the tracked plan is byte-for-byte unchanged",
+          {p.relative_to(src_plan): p.read_bytes() for p in src_plan.rglob("*")
+           if p.is_file() and not set(p.relative_to(src_plan).parts) & set(rs.SFDMU_RUNTIME_DIRS)}, tracked)
+finally:
+    if cond_temp != src_plan:
+        shutil.rmtree(cond_temp, ignore_errors=True)
+plain = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+plain.org_config = scratch
+plain.options = {}
+plain.logger = cond.logger
+plain.pathtoexportjson = str(REPO / "datasets/sfdmu/qb/en-US/qb-pricing")
+plain._temp_plan_dir = None
+plain._apply_conditional_steps()
+check("a plan without conditional_steps.json is left alone",
+      plain.pathtoexportjson, str(REPO / "datasets/sfdmu/qb/en-US/qb-pricing"))
+
+print("LoadSFDMUData: insert_qb_dro_data's options run the user Name and the condition together")
+# The load task as insert_qb_dro_data runs it (dynamic_assigned_to_user on): both temp-copy steps
+# share one copy, so the loaded CSV carries the user Name and, without the credential, no tenant step.
+for credential in (True, False):
+    seen.clear(), user_queries.clear()
+    has_credential[0] = credential
+    work = pathlib.Path(tempfile.mkdtemp())
+    shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-dro", work / "qb-dro",
+                    ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
+    load = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    load.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    load.options = {"pathtoexportjson": str(work / "qb-dro"), "dynamic_assigned_to_user": True}
+    load.logger = _Log()
+    load._load_keychain = lambda: None
+    saved_run = rs.subprocess.run
+    rs.subprocess.run = dro_run
+    try:
+        load._run_task()
+        error = None
+    except Exception as exc:  # asserted below
+        error = exc
+    finally:
+        rs.subprocess.run = saved_run
+        shutil.rmtree(work, ignore_errors=True)
+    tag = f"credential={credential}"
+    check(f"{tag}: the load completes", error, None)
+    check(f"{tag}: SFDMU ran once, from a temp copy", [plan != work / "qb-dro" for plan, _ in seen], [True])
+    check(f"{tag}: the loaded definitions carry the user Name, and the tenant step only with the credential",
+          [("Admin User" in csv, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv, "Stage New Tenant" in csv)
+           for _, csv in seen], [(True, False, credential)])
 
 print("=" * 60)
 if _failures:
