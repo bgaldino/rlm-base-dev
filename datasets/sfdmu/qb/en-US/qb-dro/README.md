@@ -82,7 +82,7 @@ record, the load (`LoadSFDMUData`, and the idempotency test's loads) removes the
 `FulfillmentStepDefinition.csv` and its two dependency rows from `FulfillmentStepDependencyDef.csv`. The check
 is that the credential exists, not that its endpoint answers. The removal happens in a temp copy, so the
 tracked CSVs stay whole. Receive Key + Assign to Asset (a Milestone step) and Provision Licensing/Features then
-have no predecessor [Measured: 2026-11-25, 264, scratch, one fresh org without the credential], so they start with the plan [inferred; no order was run]. An org that has the credential
+have no predecessor (checked on a fresh org with no `RLM` credential) [Measured: 2026-11-25, 264, scratch, one org], so they start with the plan [inferred; no order was run]. An org that has the credential
 loads the step as before.
 
 The load never deletes anything, so an org that already holds the step keeps it. The load logs a warning
