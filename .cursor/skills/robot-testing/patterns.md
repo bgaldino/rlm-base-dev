@@ -45,24 +45,24 @@ robot/rlm-base/
 
 | CCI Task | Python Class | Suite |
 |----------|-------------|-------|
-| `configure_revenue_settings` | `ConfigureRevenueSettings` | `tests/setup/configure_revenue_settings.robot` |
-| `configure_core_pricing_setup` | `ConfigureCorePricingSetup` | `tests/setup/configure_core_pricing_setup.robot` |
-| `configure_product_discovery_settings` | `ConfigureProductDiscoverySettings` | `tests/setup/configure_product_discovery_settings.robot` |
-| `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` (clicks "Enable CRM Analytics" on `InsightsSetupGettingStarted/home` via in-page JS that walks shadow roots; legacy `InsightsSetupSettings` VF iframe removed in 262+) |
-| `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `tests/setup/enable_document_builder.robot` |
-| `enable_constraints_settings` | `EnableConstraintsSettings` | `tests/setup/enable_constraints_settings.robot` |
-| `enable_timeline` | `EnableTimeline` | `tests/setup/enable_timeline.robot` |
-| `reorder_app_launcher` | `ReorderAppLauncher` | `tests/setup/reorder_app_launcher.robot` |
+| `configure_revenue_settings` | `ConfigureRevenueSettings` | `robot/rlm-base/tests/setup/configure_revenue_settings.robot` |
+| `configure_core_pricing_setup` | `ConfigureCorePricingSetup` | `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot` |
+| `configure_product_discovery_settings` | `ConfigureProductDiscoverySettings` | `robot/rlm-base/tests/setup/configure_product_discovery_settings.robot` |
+| `enable_analytics_replication` | `EnableAnalyticsReplication` | `robot/rlm-base/tests/setup/enable_analytics.robot` (clicks "Enable CRM Analytics" on `InsightsSetupGettingStarted/home` via in-page JS that walks shadow roots; legacy `InsightsSetupSettings` VF iframe removed in 262+) |
+| `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `robot/rlm-base/tests/setup/enable_document_builder.robot` |
+| `enable_constraints_settings` | `EnableConstraintsSettings` | `robot/rlm-base/tests/setup/enable_constraints_settings.robot` |
+| `enable_timeline` | `EnableTimeline` | `robot/rlm-base/tests/setup/enable_timeline.robot` |
+| `reorder_app_launcher` | `ReorderAppLauncher` | `robot/rlm-base/tests/setup/reorder_app_launcher.robot` |
 
 ### E2E tasks (run on demand)
 
 | CCI Task | Suite | Mode |
 |----------|-------|------|
-| `robot_e2e` | `tests/e2e/quote_to_order.robot` | Headless |
-| `robot_e2e_debug` | `tests/e2e/quote_to_order.robot` | Headed + CDP |
-| `robot_setup_quote` | `tests/e2e/setup_quote.robot` | Headed |
-| `robot_order_from_quote` | `tests/e2e/order_from_quote.robot` | Headed |
-| `robot_reset_account` | `tests/e2e/reset_account.robot` | Headed |
+| `robot_e2e` | `robot/rlm-base/tests/e2e/quote_to_order.robot` | Headless |
+| `robot_e2e_debug` | `robot/rlm-base/tests/e2e/quote_to_order.robot` | Headed + CDP |
+| `robot_setup_quote` | `robot/rlm-base/tests/e2e/setup_quote.robot` | Headed |
+| `robot_order_from_quote` | `robot/rlm-base/tests/e2e/order_from_quote.robot` | Headed |
+| `robot_reset_account` | `robot/rlm-base/tests/e2e/reset_account.robot` | Headed |
 
 ---
 
