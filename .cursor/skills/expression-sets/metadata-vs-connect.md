@@ -186,7 +186,7 @@ Tooling-set labels are therefore mutually exclusive on one version.
 - `relabel_expression_set.py` (write, via deactivate→PATCH→reactivate). Label
   source: `--auto` (lossy derive), `--labels-file` (`{name: label}` JSON), `--set
   NAME=LABEL`, or **`--from-metadata <xml>`** — read the authoritative map straight
-  from a source-controlled `force-app/…/expressionSetDefinition/*.expressionSetDefinition-meta.xml`.
+  from a source-controlled `force-app/main/default/expressionSetDefinition/*.expressionSetDefinition-meta.xml`.
 
 **Auto-preservation (default-on).** The two Connect mutators no longer *lose*
 labels: `import_expression_set` (replace) and `apply_expression_set_overlay`

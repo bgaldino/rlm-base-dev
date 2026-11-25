@@ -247,7 +247,7 @@ class RunE2ETests(BaseSalesforceTask):
             val = self.project_config.project__custom.get(flag, False)
             cmd.extend(["--variable", f"{flag.upper()}:{val}"])
 
-        cmd.append(self.options.get("suite", "robot/tests"))
+        cmd.append(self.options.get("suite", "robot/rlm-base/tests"))
         result = subprocess.run(cmd, cwd=str(Path.cwd()))
         if result.returncode != 0:
             raise CommandException(f"Robot exited with {result.returncode}")
