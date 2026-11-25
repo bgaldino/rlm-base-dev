@@ -244,41 +244,74 @@ private class RLM_CollectionsConsoleControllerTest {
             'Nothing is found for an invoice with no related records');
     }
 
-    // A billing operations user without the collections license cannot read collection plan items
-    // (the object reads as "not supported"). The delinquents list still loads for that user: the
-    // collection-plan and promise-to-pay columns are left empty instead of the call failing.
+    // A user who cannot read payment schedules or collection plan items (here, RLM_BillingUI and the
+    // Billing license without a billing role: both read as "not supported") still gets the related
+    // lookups: each refused query is caught on its own instead of failing the call.
     @isTest
-    static void loadRelatedRecords_withoutCollectionsAccess_leavesThoseColumnsEmpty() {
-        User billingOnly = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+    static void loadRelatedRecords_withoutAccess_skipsEachRefusedColumn() {
+        User noRole = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-        Set<Id> invoiceIds = new Set<Id>{ mintId(Invoice.SObjectType) };
         Map<Id, Date> ptp = new Map<Id, Date>();
         Map<Id, String> planNames = new Map<Id, String>();
         Map<Id, Id> planIds = new Map<Id, Id>();
         Map<Id, String> reasons = new Map<Id, String>();
-        String refused;
+        Boolean scheduleRefused = false;
+        Boolean planItemRefused = false;
         String failed;
 
         Test.startTest();
-        System.runAs(billingOnly) {
+        System.runAs(noRole) {
+            try { Database.query('SELECT Id FROM PaymentSchedule LIMIT 1', AccessLevel.USER_MODE); }
+            catch (QueryException e) { scheduleRefused = true; }
+            try { Database.query('SELECT Id FROM CollectionPlanItem LIMIT 1', AccessLevel.USER_MODE); }
+            catch (QueryException e) { planItemRefused = true; }
             try {
-                Database.query('SELECT InvoiceId FROM CollectionPlanItem LIMIT 1', AccessLevel.USER_MODE);
-            } catch (QueryException e) {
-                refused = e.getMessage();
-            }
-            try {
-                RLM_CollectionsConsoleController.loadRelatedRecords(invoiceIds, ptp, planNames, planIds, reasons);
+                RLM_CollectionsConsoleController.loadRelatedRecords(
+                    new Set<Id>{ mintId(Invoice.SObjectType) }, ptp, planNames, planIds, reasons);
             } catch (Exception e) {
                 failed = e.getTypeName() + ': ' + e.getMessage();
             }
         }
         Test.stopTest();
 
-        Assert.isNotNull(refused, 'PRECONDITION: this user cannot read CollectionPlanItem in user mode');
-        Assert.isNull(failed, 'The related lookups degrade instead of failing: ' + failed);
-        Assert.isTrue(ptp.isEmpty() && planNames.isEmpty() && planIds.isEmpty(),
-            'The promise-to-pay and collection-plan columns are left empty');
+        Assert.isTrue(scheduleRefused, 'PRECONDITION: this user cannot read PaymentSchedule in user mode');
+        Assert.isTrue(planItemRefused, 'PRECONDITION: this user cannot read CollectionPlanItem in user mode');
+        Assert.isNull(failed, 'Each refused lookup is skipped instead of failing the call: ' + failed);
+    }
+
+    // A billing operations user without the collections license can read payment schedules but not
+    // collection plan items. The refused collection-plan query does not stop the lookups after it:
+    // the dispute query still runs (where the org has Dispute.InvoiceId). A query refused as "not
+    // supported" does not count toward the query limit (measured on 264), so the count is the
+    // payment-schedule query plus the dispute query.
+    @isTest
+    static void loadRelatedRecords_refusedCollectionPlanStillRunsTheDisputeLookup() {
+        User billingOnly = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        Integer queries;
+        Integer expected;
+        String failed;
+
+        Test.startTest();
+        System.runAs(billingOnly) {
+            expected = 1 + (RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId') ? 1 : 0);
+            Integer before = Limits.getQueries();
+            try {
+                RLM_CollectionsConsoleController.loadRelatedRecords(
+                    new Set<Id>{ mintId(Invoice.SObjectType) }, new Map<Id, Date>(), new Map<Id, String>(),
+                    new Map<Id, Id>(), new Map<Id, String>());
+            } catch (Exception e) {
+                failed = e.getTypeName() + ': ' + e.getMessage();
+            }
+            queries = Limits.getQueries() - before;
+        }
+        Test.stopTest();
+
+        Assert.isNull(failed, 'The refused collection-plan lookup is skipped: ' + failed);
+        Assert.areEqual(expected, queries,
+            'The payment-schedule and (where available) dispute queries run after the refused collection-plan query');
     }
 
     // The dispute-field check is true only for a field the Dispute object has.

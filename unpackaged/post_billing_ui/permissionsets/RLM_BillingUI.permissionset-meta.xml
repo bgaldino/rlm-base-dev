@@ -498,10 +498,6 @@
     </objectPermissions>
     <userPermissions>
         <enabled>true</enabled>
-        <name>CoreCPQUser</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
         <name>RunFlow</name>
     </userPermissions>
 </PermissionSet>

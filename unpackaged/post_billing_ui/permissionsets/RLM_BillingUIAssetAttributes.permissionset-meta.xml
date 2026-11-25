@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Core CPQ User for the Billing UI&apos;s user-mode asset attribute query. Separate from RLM_BillingUI because it needs a license that allows it (Billing does), so RLM_BillingUI stays assignable to any user.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Billing UI Asset Attributes</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>CoreCPQUser</name>
+    </userPermissions>
+</PermissionSet>

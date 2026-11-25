@@ -219,11 +219,19 @@ private class RLM_BillingUIAccessTest {
     // operations user: the query failed with the billing license alone, and with read on every
     // attribute object; it succeeded once CoreCPQUser was granted, with or without the Revenue Cloud
     // User license. So the grant is pinned here.
+    // The permission is in its own set, RLM_BillingUIAssetAttributes, because it needs a license
+    // that allows it: in RLM_BillingUI it would make that set unassignable to a user without one.
     @IsTest
-    static void billingUiGrantsTheAssetAttributeReadPermission() {
-        PermissionSet billingUi = [SELECT PermissionsCoreCPQUser FROM PermissionSet WHERE Name = 'RLM_BillingUI'];
-        Assert.isTrue(billingUi.PermissionsCoreCPQUser,
-            'RLM_BillingUI grants Core CPQ User, which the user-mode asset attribute query needs');
+    static void assetAttributeSetGrantsCoreCpqUserAndBillingUiDoesNot() {
+        Map<String, Boolean> coreCpqBySet = new Map<String, Boolean>();
+        for (PermissionSet ps : [SELECT Name, PermissionsCoreCPQUser FROM PermissionSet
+                                 WHERE Name IN ('RLM_BillingUI', 'RLM_BillingUIAssetAttributes')]) {
+            coreCpqBySet.put(ps.Name, ps.PermissionsCoreCPQUser);
+        }
+        Assert.isTrue(coreCpqBySet.get('RLM_BillingUIAssetAttributes') == true,
+            'RLM_BillingUIAssetAttributes grants Core CPQ User, which the user-mode asset attribute query needs');
+        Assert.isTrue(coreCpqBySet.get('RLM_BillingUI') == false,
+            'RLM_BillingUI carries no license-gated user permission, so any user can be given it');
     }
 
     private static List<String> unreadable(Map<String, List<String>> manifest) {
