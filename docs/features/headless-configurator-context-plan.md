@@ -1,20 +1,37 @@
 # Headless Configurator Context Mapping — Setup Plan
 
-> **Status:** Path 1 implemented — pending scratch org validation of Path 2
-> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal
-> **Last updated:** 2026-03-21
+> **Status:** Historical design record (2026-03-21). Nothing in this document ships in this
+> repository. Checked 2026-11-26 against `main`: there is no `setup_configurator_context`
+> task in `cumulusci.yml`, no `scripts/apex/setupConfiguratorContext.apex`, no `rlm-webapp/`
+> directory and no `rlmApi.js` or `ProductConfiguratorModal.jsx`. The earlier "Path 1
+> implemented" status referred to the portal web app on the `feat/rlm-portal` branch, which is
+> not part of this repository [inferred: the branch is not in this clone]. Path 2 was never
+> built; its SObject name was never confirmed.
+> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (both outside this repo)
+> **Last updated:** 2026-03-21; status note 2026-11-26
+
+> **Read this before using the rest.** The 264 developer guide snapshot
+> (`docs/salesforce/264/dev-guide/articles/product-configurator-business-api-overview.md`)
+> lists the endpoints as `POST /connect/cpq/configurator/actions/load-instance` and
+> `.../actions/set-instance`, not the `/configurator/load` and `/configurator/set` shorthand
+> used below. `load-instance` takes `transactionId` (required) and an **optional**
+> `contextMappingId`; `set-instance` requires `contextMappingId` and a `transaction` string.
+> The 404 root-cause explanation below (no product-level mapping association) is
+> **[inferred]**, never confirmed in a live org, and the product-level association object in
+> Path 2 is unverified. To run these APIs today, see the `rlm-business-apis` and
+> `context-service` skills.
 
 ---
 
 ## Background
 
-The `ProductConfiguratorModal` calls `headlessConfigLoad(quoteId)` → `POST /connect/cpq/configurator/load` to initialise an interactive configuration session after a Quote is created via `placeSalesTransaction`. On the current development org this returns:
+The `ProductConfiguratorModal` calls `headlessConfigLoad(quoteId)` → `POST /connect/cpq/configurator/load` [path as written in 2026-03; the snapshot path is `/actions/load-instance`] to initialise an interactive configuration session after a Quote is created via `placeSalesTransaction`. On the current development org this returns:
 
 ```
 404 The requested resource does not exist
 ```
 
-The root cause is that `headlessConfigLoad` performs an **automatic context mapping lookup** — it queries the product on the QuoteLineItem to find its associated Configurator Context Mapping. If no such association exists for the product, the endpoint has nothing to load and returns 404.
+The suspected root cause [inferred] is that `headlessConfigLoad` performs an **automatic context mapping lookup** — it queries the product on the QuoteLineItem to find its associated Configurator Context Mapping. If no such association exists for the product, the endpoint has nothing to load and returns 404.
 
 This document describes:
 1. What a Configurator Context Mapping is and how it works
@@ -29,12 +46,12 @@ The headless configurator has two initialisation endpoints:
 
 | Endpoint | How it finds the context | When it works |
 |---|---|---|
-| `POST /connect/cpq/configurator/load` | Auto-discovers from the product on the QuoteLineItem → looks up that product's linked ContextMapping record | Only works if the product has a ContextMapping association set up in the org |
-| `POST /connect/cpq/configurator/set` | Caller provides `contextMappingId` + a `transaction` JSON seed | Works whenever a ContextMapping ID is known, regardless of product setup |
+| `POST /connect/cpq/configurator/actions/load-instance` | Auto-discovers from the product on the QuoteLineItem → looks up that product's linked ContextMapping record | Only works if the product has a ContextMapping association set up in the org |
+| `POST /connect/cpq/configurator/actions/set-instance` | Caller provides `contextMappingId` + a `transaction` JSON seed | Works whenever a ContextMapping ID is known, regardless of product setup |
 
 Both return `{ success: bool, contextId: string }` and the rest of the session lifecycle (Get, AddNodes, UpdateNodes, Save) is identical.
 
-The **existing repo infrastructure** already creates `QuoteEntitiesMapping` inside `RLM_SalesTransactionContext` via the `ConstraintEngineNodeStatus` context plan. That mapping ID is what both paths ultimately need.
+`QuoteEntitiesMapping` is the default quote mapping the `context-service` skill uses for persist [inferred: that the repo's `ConstraintEngineNodeStatus` context plan creates it, as originally written, was not re-verified]. That mapping ID is what both paths ultimately need.
 
 ---
 
@@ -47,7 +64,7 @@ Instead of `headlessConfigLoad(quoteId)`, query the `QuoteEntitiesMapping` conte
 > Path shorthand: `/connect/...` in this doc is the relative form of the full REST path `/services/data/v68.0/connect/...` (i.e. relative to the Salesforce REST API base, **not** the instance root). The architecture table above and the example below use this shorthand for brevity; prepend `/services/data/v68.0` when invoking against a 264 org.
 
 ```
-POST /connect/cpq/configurator/set
+POST /connect/cpq/configurator/actions/set-instance
 {
   "contextMappingId": "<QuoteEntitiesMapping ID>",
   "transaction": "{\"Quote\":[{\"businessObjectType\":\"Quote\",\"id\":\"<quoteId>\"}]}"
@@ -122,7 +139,7 @@ For `headlessConfigLoad` to auto-discover the context, each Bundle product needs
 
 The correct metadata/SObject approach needs to be confirmed against the actual org schema in the scratch org, since this area changed between Release 258 and 260.
 
-### Proposed CCI task: `setup_configurator_context`
+### Proposed CCI task: `setup_configurator_context` (never implemented)
 
 ```yaml
 # cumulusci.yml — under tasks:
@@ -138,7 +155,7 @@ setup_configurator_context:
     apex: scripts/apex/setupConfiguratorContext.apex
 ```
 
-### Proposed Apex script: `scripts/apex/setupConfiguratorContext.apex`
+### Proposed Apex script: `scripts/apex/setupConfiguratorContext.apex` (never created)
 
 ```apex
 // setupConfiguratorContext.apex
@@ -184,7 +201,7 @@ The script is intentionally left as a stub with the `System.debug` output until 
 
 ---
 
-## Build Flow Integration
+## Build Flow Integration (proposal only)
 
 Once the SObject name is confirmed and the Apex script is complete, the task fits into the build flow as follows:
 
@@ -231,4 +248,4 @@ And check that the product has a mapping association (SObject name TBD).
 | 2 | Whether `headlessConfigSet` with `QuoteEntitiesMapping` is sufficient for QB-COMPLETE, or whether a product-type-specific mapping is required | Test Path 1 in scratch org |
 | 3 | Whether QB-COMPLETE has `ProductRelatedComponent` records (bundle children) defined in the qb-pcm data plan | Review `datasets/sfdmu/qb/en-US/qb-pcm/` export.json and CSVs |
 | 4 | Whether bundle children appear in the configurator's component tree once a valid context is loaded | End-to-end test in scratch org |
-| 5 | `IndustriesConfiguratorPlatformApi` permission set — is it assigned to the running user in the portal? | Check `unpackaged/post_tso_*/` permission set assignments |
+| 5 | `IndustriesConfiguratorPlatformApi` permission set — is it assigned to the running user in the portal? | Check `unpackaged/post_tso/permissionsets/` and the permission set assignments in `cumulusci.yml` |

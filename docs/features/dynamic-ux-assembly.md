@@ -66,69 +66,69 @@ templates/
 │   │   ├── RLM_Quote_Record_Page.flexipage-meta.xml
 │   │   └── ... (24 others)
 │   ├── standalone/                     # Feature-specific pages (new pages or non-additive overrides)
-│   │   ├── approvals/                  # RLM_Quote_Discount_Approval_Template, RLM_Quote_Payment_Terms_Approval_Template
-│   │   ├── billing/                    # RLM_Invoice_Record_Page (billing-specific override)
-│   │   ├── collections/                # 4 collections flexipages
+│   │   ├── billing/                    # 17 billing pages (billing schedules, invoice, usage policies, utility bar)
+│   │   ├── billing_ui/                 # 10 pages for the custom billing console (billing_ui=true)
+│   │   ├── collections/                # 3 collections pages
 │   │   ├── constraints/                # RLM_Asset_Action_Source_Record_Page
-│   │   ├── docgen/                     # RLM_QuantumBit_Quote (ServiceDocument type)
-│   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 1 other
-│   │   ├── quantumbit/                 # 19 QB-specific pages (billing schedules, usage, etc.)
-│   │   ├── tso/                        # 6 TSO-specific overrides
-│   │   ├── utils/                      # RLM_Home_Page_Default
-│   │   └── prm_pricing/                # Channel Program record pages
+│   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 2 others
+│   │   ├── prm_pricing/                # 2 Channel Program record pages
+│   │   └── quantumbit/                 # 4 QB pages (Account override, default home page, transaction journal, usage summary)
 │   └── patches/                        # YAML patch files for additive/positional changes
-│       ├── approvals/
-│       │   └── RLM_Quote_Record_Page.yml
-│       ├── billing/
-│       │   └── RLM_Quote_Record_Page.yml
-│       ├── constraints/
-│       ├── docgen/
-│       │   └── RLM_Quote_Record_Page.yml
-│       ├── payments/
-│       ├── quantumbit/
-│       ├── tso/
-│       ├── utils/
-│       │   ├── RLM_Account_Record_Page.yml
-│       │   ├── RLM_Opportunity_Record_Page.yml
-│       │   └── RLM_Quote_Record_Page.yml
-│       └── prm_pricing/
-│           ├── RLM_Account_Record_Page.yml
-│           └── RLM_Quote_Record_Page.yml
+│       ├── approvals/                  # RLM_Quote_Record_Page
+│       ├── billing/                    # RLM_Account_Record_Page, RLM_Billing_Account_Record_Page
+│       ├── billing_ui/                 # 3 pages (billing account, collections account, order)
+│       ├── constraints/                # RLM_Product_Record_Page
+│       ├── docgen/                     # RLM_Quote_Record_Page
+│       ├── guidedselling/              # RLM_Product_Record_Page
+│       ├── large_stx/                  # Account, Order and Quote record pages
+│       ├── personas/                   # RLM_Quote_Record_Page
+│       ├── prm_pricing/                # RLM_Account_Record_Page, RLM_Quote_Record_Page
+│       ├── quantumbit/                 # RLM_Home_Page_Default
+│       ├── tso/                        # RLM_Billing_Home_Page, RLM_Collections_Account_Record_Page
+│       └── utils/                      # Account, Opportunity and Quote record pages
 ├── layouts/
-│   ├── base/                           # 17 base layouts (moved from force-app/main/default/layouts/)
+│   ├── base/                           # 18 base layouts (moved from force-app/main/default/layouts/)
 │   ├── billing/                        # 3 billing-specific layouts
 │   └── constraints/                    # 2 constraints overrides (OrderItem, QuoteLineItem)
 ├── applications/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
 │   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when quantumbit=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
+│   ├── patches/                        # actionOverrides patches: billing, payments, rates, prm_pricing
 │   └── conditional/
-│       ├── billing/                    # standard__BillingConsole (conditional)
+│       ├── billing/                    # standard__BillingConsole (billing=true)
+│       ├── billing_ui/                 # standard__BillingConsole variant (billing_ui=true)
 │       └── collections/                # CollectionConsole + Receivables Management (conditional)
 ├── objects/
-│   ├── base/                           # Compact layouts and list views from force-app
-│   │   ├── Asset/
-│   │   │   ├── compactLayouts/RLM_Asset_Compact_Layout.compactLayout-meta.xml
-│   │   │   └── listViews/All_Assets.listView-meta.xml
-│   │   ├── Product2/listViews/All_Products.listView-meta.xml
-│   │   └── Quote/compactLayouts/RLM_Quote_Compact_Layout.compactLayout-meta.xml
+│   ├── base/                           # Object UX bindings, compact layouts and list views from force-app
+│   │   ├── Asset/, Contract/, Order/, OrderItem/, Quote/, QuoteLineItem/,
+│   │   │   FulfillmentOrderLineItem/   # <Object>.object-meta.xml (actionOverrides, compactLayoutAssignment)
+│   │   ├── Asset/compactLayouts/, Contract/compactLayouts/, Quote/compactLayouts/
+│   │   └── Account/, Asset/, Contact/, Contract/, Order/, Product2/ listViews/
 │   ├── billing/                        # Billing-specific (active when billing=true)
 │   │   ├── Account/compactLayouts/RLM_Billing_Account_Compact_Layout.compactLayout-meta.xml
 │   │   ├── BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml
 │   │   ├── Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml
-│   │   └── TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml
+│   │   └── TransactionJournal/ (compact layout + object UX bindings)
 │   └── collections/                    # Collections (active when collections=true)
 │       └── CollectionPlan/listViews/RLM_All_Collection_Plans.listView-meta.xml
 └── profiles/
     ├── base/                           # Full canonical profiles with all layout assignments
     │   ├── Admin.profile-meta.xml
-    │   └── RLM Custom Partner Community User.profile-meta.xml
+    │   ├── RLM Custom Partner Community User.profile-meta.xml
+    │   └── RLM Sales Representative.profile-meta.xml
     └── patches/
         ├── billing/Admin.yml           # Adds billing layout assignments (billing=true)
         ├── constraints/Admin.yml       # No-op (layout content changes, names unchanged)
         └── prm/
             └── RLM Custom Partner Community User.yml   # Adds PRM layout assignments (prm=true)
 ```
+
+There is no `templates/flexipages/standalone/tso/`. The `tso` tier exists in the
+standalone order (`_STANDALONE_ORDER`) but no directory backs it, so it contributes
+nothing; the `utils` tier is in the order too (gated on `quantumbit`) with no
+directory. TSO flexipage behavior is the two patches in `patches/tso/` plus the TSO
+application template.
 
 ---
 
@@ -140,6 +140,7 @@ templates/
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
    `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`
+   (only tiers whose directory exists under `templates/flexipages/standalone/` contribute: today `payments`, `billing`, `billing_ui`, `quantumbit`, `constraints`, `collections`, `prm_pricing`)
    *(Canonical order defined in `scripts/ux/_flags._STANDALONE_ORDER`; assembly, retrieve, diff and writeback all use this shared constant)*
 
 **Patch application** (additive, in deploy order):
@@ -240,7 +241,7 @@ Non-TSO builds then apply the `actionOverrides` patches in
 The TSO template already carries its overrides.
 
 **Conditional standalone apps** (copied when their flag is active):
-- `standard__BillingConsole` — when `billing=true`
+- `standard__BillingConsole` — when `billing=true` (`conditional/billing/`) or `billing_ui=true` (`conditional/billing_ui/`)
 - `standard__CollectionConsole`, `RLM_Receivables_Management` — when `collections=true`
 
 ### Profiles
@@ -263,7 +264,7 @@ The TSO template already carries its overrides.
 Simple feature-conditional copy from `templates/objects/{feature}/` into
 `post_ux/objects/{ObjectName}/{subtype}/`. No patching.
 
-Copy order: `base` (always) → `billing` → `tso` → `collections`
+Copy order: `base` (always) → `billing` → `tso` → `collections` (there is no `templates/objects/tso/` today, so that tier adds nothing)
 
 > **Collections note**: The `RLM_All_Collection_Plans` list view lives at
 > `templates/objects/collections/CollectionPlan/listViews/` and targets the **native
@@ -447,11 +448,11 @@ before assembly). Do not hand-edit files here; edit the templates instead.
 unpackaged/post_ux/
 ├── assembly_manifest.json     # Assembly run metadata: timestamp, flags, all items
 ├── drift_report.json          # Drift analysis output (git-ignored)
-├── flexipages/                # ~53 assembled flexipages (EmailTemplatePage types excluded)
-├── layouts/                   # 19 assembled layouts (17 base + 2–3 feature variants)
-├── applications/              # 1–3 app files depending on active features
-├── objects/                   # compactLayouts + listViews organized by object
-└── profiles/                  # 2 assembled profiles
+├── flexipages/                # assembled flexipages (62 in the committed output; EmailTemplatePage types excluded)
+├── layouts/                   # assembled layouts (21 committed: 18 base + 3 billing; constraints overrides replace two base files)
+├── applications/              # RLM_Revenue_Cloud plus the conditional apps for active flags
+├── objects/                   # object UX bindings, compactLayouts + listViews organized by object
+└── profiles/                  # 3 assembled profiles
 ```
 
 ### assembly_manifest.json
@@ -465,40 +466,18 @@ Written on every run. Contains:
 
 ## `.forceignore` Entries
 
-The following paths are excluded from feature-package deploys. The files are preserved for
-reference but are deployed exclusively via `prepare_ux`:
+`.forceignore` keeps the UX metadata that moved to `templates/` out of the early deploys
+(`deploy_full`, `deploy_pre` and the feature `deploy_post_*` tasks); it is deployed only by
+`prepare_ux`. Read the file itself for the authoritative list. In summary it excludes:
 
-```
-# Flexipages
-unpackaged/post_billing/flexipages
-unpackaged/post_constraints/flexipages
-unpackaged/post_payments/flexipages
-unpackaged/post_utils/flexipages
-unpackaged/post_tso/flexipages
-unpackaged/post_docgen/flexipages
-unpackaged/post_quantumbit/flexipages
-unpackaged/post_collections/flexipages
+- `force-app/main/default/flexipages` and `force-app/main/default/layouts`
+- the object UX bindings, compact layouts and list views now under `templates/objects/base/`
+  (Asset, Contract, Quote, Product2, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem)
+- the two `EmailTemplatePage` approval flexipages in `unpackaged/post_approvals/flexipages/`
+  (a platform restriction; see below)
 
-# Layouts
-unpackaged/post_billing/layouts
-unpackaged/post_constraints/layouts
-
-# Applications
-unpackaged/post_billing/applications
-unpackaged/post_tso/applications
-unpackaged/post_quantumbit/applications
-unpackaged/post_collections/applications
-
-# Profiles
-unpackaged/post_quantumbit/profiles
-
-# Compact layouts and list views (moved to templates/objects/)
-unpackaged/post_billing/objects/Account/compactLayouts
-unpackaged/post_billing/objects/TransactionJournal/compactLayouts
-unpackaged/post_billing/objects/BillingScheduleGroup
-unpackaged/post_billing/objects/Invoice/listViews
-unpackaged/post_collections/objects/listViews
-```
+The earlier per-feature `unpackaged/post_*/flexipages|layouts|applications` exclusions no
+longer apply: those directories were removed when their content moved to `templates/`.
 
 ---
 
@@ -508,7 +487,7 @@ unpackaged/post_collections/objects/listViews
 
 `RLM_Quote_Discount_Approval_Template` and `RLM_Quote_Payment_Terms_Approval_Template` are
 `EmailTemplatePage` type and **cannot be deployed via Metadata API**. The assembly task
-detects this type and silently skips them. These pages are created at runtime by
+detects this type and skips them with a logged warning. These pages are created at runtime by
 `create_approval_email_templates` via SFDMU + REST API.
 
 ### Collections objects path
@@ -520,9 +499,10 @@ assembled into `post_ux/objects/CollectionPlan/listViews/` only when `collection
 
 ### tso=true not yet validated
 
-The `tso` flexipage standalone overrides and `RLM_Revenue_Cloud` TSO application variant have
-been moved to `templates/` but have not yet been tested in a live TSO org. See the test plan
-below.
+The `RLM_Revenue_Cloud` TSO application variant and the two `tso` flexipage patches
+(`RLM_Billing_Home_Page`, `RLM_Collections_Account_Record_Page`) live in `templates/`.
+This document records no live TSO run of them [inferred: no verification is recorded in
+the repo]. See the test plan below.
 
 ---
 
@@ -558,7 +538,9 @@ Verify that setting `ux=false` completely skips `prepare_ux` with no side effect
 TSO introduces:
 - `RLM_Revenue_Cloud.app-meta.xml` from `templates/applications/tso/` (different tab set,
   custom branding)
-- 6 standalone TSO flexipage overrides from `templates/flexipages/standalone/tso/`
+- 2 TSO flexipage patches from `templates/flexipages/patches/tso/` (the Billing Cases
+  components on `RLM_Billing_Home_Page` and the `RLM_Collections_Account_Record_Page`
+  Disputes tab), applied on top of the billing_ui pages
 - TSO-specific profile app visibility differences
 - App Launcher ordering handled dynamically by `reorder_app_launcher` (no static appMenu)
 
@@ -572,15 +554,18 @@ TSO introduces:
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
      `templates/applications/tso/` (not quantumbit variant)
-   - All 6 TSO flexipage variants are selected over their quantumbit counterparts
+   - The `tso` patches appear in the `patches` list of `RLM_Billing_Home_Page` and
+     `RLM_Collections_Account_Record_Page` in `assembly_manifest.json` (needs the
+     `billing_ui` flag too, since those pages come from the `billing_ui` tier)
    - Assembly manifest shows `tso: true` in `feature_flags`
 4. Deploy and verify in the org UI:
    - TSO-specific Lightning pages load without component errors
    - All record pages function correctly with TSO field/component additions
 
-**TSO flexipages to validate** (from `templates/flexipages/standalone/tso/`):
-Review each against the previous `unpackaged/post_tso/flexipages/` reference to ensure
-content parity.
+**TSO flexipages to validate** (needs a live TSO-shaped org, where the extended Dispute
+object with `InvoiceId`/`CaseId` exists): confirm the Billing Cases cards render on the
+Billing home page and the Disputes tab of the Collections account page without
+`ApiQueryException`. The patch files state this rationale in their headers.
 
 ---
 
@@ -658,7 +643,7 @@ python scripts/ux/ux_tool.py apply-drift --fail-on-drift
 
 1. Add or edit the YAML patch file in `templates/flexipages/patches/{feature}/`
 2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false` (dry-run; local, no org)
-3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
+3. Inspect the output file and compare to the page it patches in `templates/flexipages/base/` or the matching `standalone/` tier
 4. When satisfied, run without `-o deploy false` to deploy
 
 A new patch **type** is one `PatchOp` entry in `FLEXIPAGE_OPS`
