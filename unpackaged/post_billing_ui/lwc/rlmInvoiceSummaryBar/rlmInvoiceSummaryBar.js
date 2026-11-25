@@ -9,31 +9,43 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     data;
     billing;
     isLoading = true;
-    error;
-    billingFailed = false;
+    invoiceError;
+    billingError;
     _invoiceReady = false;
     _billingReady = false;
 
+    // One error state per wire: a success on a rerun (new recordId, refresh) clears its own error and
+    // an error drops its own stale data, so neither leaves the previous result on screen.
     @wire(getInvoiceSummary, { accountId: '$recordId' })
     wiredInvoice(result) {
         this._invoiceReady = true;
-        if (result.data) { this.data = result.data; }
-        else if (result.error) { this.error = result.error.body?.message || 'Error loading data'; }
+        if (result.data) {
+            this.data = result.data;
+            this.invoiceError = undefined;
+        } else if (result.error) {
+            this.data = undefined;
+            this.invoiceError = result.error.body?.message || 'Error loading data';
+        }
         this._checkReady();
     }
 
     @wire(getBillingSummary, { accountId: '$recordId' })
     wiredBilling(result) {
         this._billingReady = true;
-        if (result.data) { this.billing = result.data; }
-        else if (result.error) {
+        if (result.data) {
+            this.billing = result.data;
+            this.billingError = undefined;
+        } else if (result.error) {
             // No balances without the billing summary (e.g. its currency read was refused): show the
             // fixed message and hide the figures rather than a $0.00 that reads as a real balance.
-            this.billingFailed = true;
-            this.error = result.error.body?.message || 'Error loading billing data';
+            this.billing = undefined;
+            this.billingError = result.error.body?.message || 'Error loading billing data';
         }
         this._checkReady();
     }
+
+    get error() { return this.invoiceError || this.billingError; }
+    get billingFailed() { return this.billingError != null; }
 
     _checkReady() {
         if (this._invoiceReady && this._billingReady) this.isLoading = false;
