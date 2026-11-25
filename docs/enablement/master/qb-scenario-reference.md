@@ -178,7 +178,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv`
 
 ## 5. Multi–Legal Entity
 
-**4 Legal Entities provisioned:**
+**7 Legal Entities provisioned:**
 
 | Name | Region |
 |---|---|
@@ -186,8 +186,11 @@ Source: `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv`
 | Default Legal Entity - Canada | Canada |
 | Default Legal Entity - EU | European Union |
 | Default Legal Entity - UK | United Kingdom |
+| Default Legal Entity - Australia | Australia |
+| Default Legal Entity - Switzerland | Switzerland |
+| Default Legal Entity - Japan | Japan |
 
-**Per-LE Billing Treatments** (Advance + Arrears for each LE) — total 8 BillingTreatment records covering both advance-billing and arrears-billing patterns per region.
+**Per-LE Billing Treatments** (Advance + Arrears for each LE) — total 15 BillingTreatment records (including Milestone) covering both advance-billing and arrears-billing patterns per region.
 
 **Per-LE Tax Treatments** also provisioned via `qb-tax`.
 
@@ -323,7 +326,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-prm/`
 | `TaxEngineProvider` | 1 |
 | `TaxPolicy` | Default Tax Policy |
 | `TaxTreatment` | Per-LE treatments |
-| `LegalEntity` | Same 4 LEs as billing |
+| `LegalEntity` | Same 7 LEs as billing |
 | `NamedCredential` | Tax engine credential |
 
 Source: `datasets/sfdmu/qb/en-US/qb-tax/`
@@ -334,8 +337,8 @@ Source: `datasets/sfdmu/qb/en-US/qb-tax/`
 
 | Concept | Records |
 |---|---|
-| Legal Entities | 4 (US, Canada, EU, UK) |
-| Billing Treatments | 8 (Advance + Arrears per LE) |
+| Legal Entities | 7 (US, Canada, EU, UK, AU, CH, JP) |
+| Billing Treatments | 15 (Advance + Arrears per LE, plus Milestone) |
 | Billing Policies | 2 (Advance, Arrears) |
 | Payment Terms | Default Payment Term, Net 45 |
 | Billing Treatment Items | per-treatment line items |
@@ -447,7 +450,7 @@ The QB org is rich and well-constructed for workshops. With customers in `scratc
 - ✅ **End-customer accounts** — Infinitech (US, full billing setup) + Global Media (Canada) provisioned by `scratch_data`
 - ✅ **Partner channel** — Robot Resellers in `qb-prm` with 4-tier Reseller Program (Platinum / Gold / Silver / Bronze)
 - ✅ Multi-currency (7 currencies, USD corporate)
-- ✅ Multi-Legal-Entity (4 LEs covering NA + EU + UK with Advance + Arrears Billing Treatments per LE)
+- ✅ Multi-Legal-Entity (7 LEs covering NA + EU + UK + AU + CH + JP with Advance + Arrears Billing Treatments per LE)
 - ✅ Two CML constraint models active: QuantumBitBundle + Server2 with full Port/Type semantics 
 - ✅ Component groups with min/max quantity enforcement (QB-COMPLETE Usage = exactly 1, QB-BDL-R750 components each = exactly 1)
 - ✅ Nested component groups (QB-QRack-750: Computing → Cooling, Storage → Hard Drives, PCIe → GPUs / I/O / Networking)

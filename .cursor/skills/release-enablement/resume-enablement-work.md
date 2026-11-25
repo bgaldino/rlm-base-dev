@@ -69,7 +69,7 @@ Then ask the user what they'd like to do next. **Do not start authoring or editi
 | User intent | Where to start |
 |---|---|
 | "Continue with the next master exercise" | Read the master pilot files (PCM + Pricing). Apply the same structure to the next area. Use Pattern 9 (Scenario Threading) and Pattern 10 (Version-Aware Section Metadata). |
-| "Refine the pilots based on feedback" | Read the user's feedback. Update master files in place; bump `file_version` in frontmatter (0.1 → 0.2). |
+| "Refine the pilots based on feedback" | Read the user's feedback. Update master files in place; bump `document_version` in frontmatter (0.1 → 0.2). |
 | "Fill in `[NEEDS REVIEW]` items" | Search across `docs/enablement/master/` and `docs/enablement/260/` for `NEEDS REVIEW`. Each one has a context note explaining what's missing. |
 | "Add a customer-template data plan" | See `docs/enablement/master/qb-scenario-reference.md` § Gaps + Recommendations. Builds a new `qb-customer/` plan or extends `scratch_data`. |
 | "Generate per-release extracts from master" | The auto-gen render task isn't built yet. Manual extract is acceptable — see SKILL.md § Workflow B. |
