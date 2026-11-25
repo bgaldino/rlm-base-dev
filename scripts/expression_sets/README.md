@@ -251,7 +251,12 @@ v4, three active; v4 ran). Consequences:
   version a Rank first: `set_step_formula`, relabel and label restore, import,
   overlay, `activate_expression_set --activate`, and a whole-set delete (whose
   rollback reactivates), toolkit and CCI. `--no-activate` runs are allowed;
-  `activate_expression_set --deactivate` warns that the step is one-way.
+  `activate_expression_set --deactivate` warns that the step is one-way. To give a
+  version a Rank (measured on 264, 2026-11-25): an sObject update
+  (`sf data update record --sobject ExpressionSetVersion --record-id <Id> --values
+  Rank=<n>`) works on an inactive version; on an active one it is refused ("An
+  enabled Expression Set Version cannot be updated/deleted."), as is a redeploy, so
+  deactivate it, set the Rank and activate it again (it does not run while off).
 
 `apply_expression_set_overlay` is not guarded by the importer rule, and it does send
 every version of the set: it PATCHes the whole definition it read with a GET. An

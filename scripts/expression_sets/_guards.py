@@ -192,13 +192,24 @@ _NO_RANK_CAUSE = (
 _NO_ACTIVATION = "run without activation (--no-activate / activate_after false)"
 
 
-def _rank_remedy(alternative: Optional[str]) -> str:
-    return (
-        " Give it a Rank first with a Metadata API deploy (an sObject update of "
-        "ExpressionSetVersion.Rank may also work; that is not measured on an active "
-        "version), choosing a Rank that keeps the intended version executing"
-        + (f"; or {alternative}." if alternative else ".")
-    )
+def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
+    # Measured on Release 264 (2026-11-25): an sObject update of Rank works on an
+    # inactive version; on an active one it is refused ("An enabled Expression Set
+    # Version cannot be updated/deleted."), as is a Metadata API redeploy, so an
+    # active version is deactivated, ranked and activated again.
+    update = (f"sf data update record --sobject ExpressionSetVersion --record-id "
+              f"{esv.get('Id')} --values Rank=<n>")
+    if esv.get("IsActive"):
+        how = (" Give it a Rank first. No update of an active version is accepted "
+               "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
+               "measured), so: deactivate it (activate_expression_set.py --deactivate; "
+               "it does not run while off), set a Rank that keeps the intended version "
+               f"executing ({update}), and activate it again (activate_expression_set.py "
+               "--activate); each step was measured")
+    else:
+        how = (" Give it a Rank first, one that keeps the intended version executing "
+               f"({update}; measured on an inactive version)")
+    return how + (f"; or {alternative}." if alternative else ".")
 
 
 def null_rank_reactivation_refusal(
@@ -226,7 +237,7 @@ def null_rank_reactivation_refusal(
     else:
         what = (f"ExpressionSetVersion {name} has no Rank, so this run would write its "
                 "change and then fail to activate it")
-    return what + _NO_RANK_CAUSE + _rank_remedy(alternative)
+    return what + _NO_RANK_CAUSE + _rank_remedy(esv, alternative)
 
 
 def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
@@ -241,7 +252,7 @@ def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
     return (
         f"Delete refused: ExpressionSetVersion {name} is active with no Rank, so if the "
         "DELETE failed its rollback could not turn the version back on" + _NO_RANK_CAUSE
-        + _rank_remedy("deactivate it first and then delete the set")
+        + _rank_remedy(esv, "deactivate it first and then delete the set")
     )
 
 

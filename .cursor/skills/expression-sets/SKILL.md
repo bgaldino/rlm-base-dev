@@ -353,7 +353,10 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   without a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so
   every path that would activate a null-Rank version (mutators with activation on,
   `--activate`, a whole-set delete's rollback; toolkit and CCI) refuses before any
-  write. Give it a Rank first, or run without activation.
+  write. Give it a Rank first, or run without activation. An sObject update of
+  `Rank` works on an inactive version; an active one refuses every update ("An
+  enabled Expression Set Version cannot be updated/deleted."), so deactivate it, set
+  the Rank and activate it again (measured on 264, 2026-11-25).
 - **A whole-set import works in one shape only.** On a multi-version set both
   `import_expression_set` surfaces allow only a payload with exactly one version,
   the one the import targets, and no other version sharing its label; everything
