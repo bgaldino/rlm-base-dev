@@ -14,6 +14,7 @@ This utility updates Context Definitions using the Context Service `connect` API
 
 ### Options
 
+- `access_token` (optional): Access token for the org; defaults to the project's default org.
 - `context_definition_id` (optional): ContextDefinitionId to modify.
 - `developer_name` (optional): DeveloperName of the context definition.
 - `plan_file` (required): Path to JSON plan file (single plan or manifest).

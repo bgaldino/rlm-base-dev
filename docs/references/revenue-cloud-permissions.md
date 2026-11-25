@@ -74,7 +74,7 @@ Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` �
 | `EinsteinGPTCopilotPsl` | Einstein Copilot |
 | `EinsteinGPTPromptTemplatesPsl` | Prompt templates |
 
-> Several AI PSLs are commented out because they are unavailable on Enterprise dev scratch orgs (e.g., `EinsteinAnalyticsPlusPsl`, `RevenueIntelligencePsl`, `MySearchPsl`, `ScoringFrameworkPsl`).
+> Several AI PSLs are commented out because they are unavailable on Enterprise dev scratch orgs (e.g., `RevenueIntelligencePsl`, `MySearchPsl`, `ScoringFrameworkPsl`).
 
 ### TSO PSLs (`rlm_tso_psl_api_names`) -- `tso: true`
 
@@ -305,7 +305,7 @@ persona user instead. See the persona rows in the flow inventory below.
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (running user) · `prepare_personas` step 11 (salesrep user, when `personas` is on) | FLS on approval fields (read-only on both stored pricing outputs on quote lines and order products: the pricing engine writes them in system context, and user edit access would let a rep lower the level before submitting) + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
-| `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
+| `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 7 | FLS on partner/channel program fields |
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Billing_Employee_Assistance` |
@@ -409,7 +409,7 @@ The following table shows the sequence of all permission-related steps across th
 | 13.14 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI`, `RLM_BillingUIAssetAttributes` | `billing_ui` |
 | 14.5 | `prepare_collections` > `assign_permission_sets` | `RLM_CollectionsUI` | `collections` |
 | 20.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
-| 20.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (8) | `tso` |
+| 20.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (11) | `tso` |
 | 22.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 22.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
 | 23.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
@@ -485,7 +485,8 @@ than its org-wide default. Record access the build adds, and the one it delibera
 
 | Feature Flag | PSLs Assigned | PSGs Assigned | Permission Sets Assigned |
 |---|---|---|---|
-| *(always)* | Core RLM (25), `EinsteinAnalyticsPlusPsl` | 11 core PSGs | -- |
+| *(always)* | Core RLM (25) | 11 core PSGs | -- |
+| `analytics` | `EinsteinAnalyticsPlusPsl` | -- | -- |
 | `clm` | CLM (11) | -- | -- |
 | `einstein` | AI (3) | -- | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` |
 | `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `RLM_ExpressionSetManager`, `RLM_DecisionTableManager`, `RLM_RebuildSearchIndex`, `RLM_UsageUploader`, `RLM_UsageOrchestration`, `RLM_UsageDatatables`, `RLM_RenewalQuotes`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |

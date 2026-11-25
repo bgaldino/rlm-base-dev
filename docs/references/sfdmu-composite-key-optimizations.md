@@ -41,9 +41,9 @@ before reloading existing data.
 - **ProductComponentGroup** (Bug 4 fix): externalId simplified to `Code` (was `Code;ParentProduct.StockKeepingUnit`). Self-referential `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` replaced with `ParentGroup.Code`. Primary `$$Code$ParentProduct.StockKeepingUnit` column removed from CSV. SOQL updated to include `ParentGroup.Code` and `ParentGroup.ParentProduct.StockKeepingUnit` traversal fields for extraction.
 
 #### qb-pricing
-- **PriceAdjustmentSchedule**: externalId simplified to `Name;CurrencyIsoCode` (removed `Pricebook2.Name` — single pricebook in dataset)
+- **PriceAdjustmentSchedule**: externalId simplified to `Name` (was a composite including `Pricebook2.Name` — single pricebook in dataset; `CurrencyIsoCode` is not part of the key)
 - **PricebookEntry**: externalId simplified to `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` (removed `Pricebook2.Name`)
-- **PricebookEntryDerivedPrice**: excluded (2 records; problematic nested references)
+- **PricebookEntryDerivedPrice**: excluded at the time of the migration (2 records; problematic nested references); the current plan loads it as an `Upsert` on an all-traversal key
 - CSV headers and values updated to match simplified externalIds
 
 #### qb-billing
@@ -53,15 +53,15 @@ before reloading existing data.
 - **GeneralLedgerAcctAsgntRule**: externalId is `Name` (names are unique in this dataset; composite key caused duplicate inserts)
 - CSV references updated; `BillingPolicy.DefaultBillingTreatment` reference simplified
 - **Pass 3 objectset_source fix**: BillingPolicy and BillingTreatment CSVs updated to use simplified externalId formats
-- **LegalEntity**: changed to `Readonly` — qb-tax (runs first at step 13) is now the authoritative source for LegalEntity data; qb-billing only resolves IDs
+- **LegalEntity**: changed to `Readonly` — qb-tax (`prepare_tax`, step 12 of `prepare_rlm_org`, runs before `prepare_billing`, step 13) is now the authoritative source for LegalEntity data; qb-billing only resolves IDs
 - **SequencePolicy + SeqPolicySelectionCondition**: created via Connect API (`/connect/sequences/policy`) by `create_sequence_policies` task — standard REST/Bulk API silently fails for these objects (required fields `DateStampFormat` and `IncrementByNumber` are not createable via DML). Data sourced from `SequencePolicies.json` (policies with selection conditions inline); LegalEntity names are resolved to org IDs at task runtime. Not in SFDMU export.json.
-- **BillingTreatments expanded**: US/CA/EU/UK × Advance/Arrears (8 treatments); EU uses EUR, UK uses GBP
-- **LegalEntities expanded**: 4 entities (US, Canada, EU/France, UK/London) with corresponding LegalEntyAccountingPeriod coverage (336 rows, 2024–2030)
+- **BillingTreatments expanded**: Advance/Arrears pairs per legal entity region, plus a Milestone treatment (15 treatments in the current CSV)
+- **LegalEntities expanded**: 7 entities in the current qb-tax CSV (US, Canada, EU, UK, Australia, Switzerland, Japan) with corresponding LegalEntyAccountingPeriod coverage (588 rows)
 
 #### qb-tax
 - **TaxTreatment**: externalId simplified to `Name` (was `Name;LegalEntity.Name;TaxPolicy.Name`)
 - CSV references updated
-- **LegalEntity**: now the authoritative source (was shared with qb-billing); owns all 4 entities (US, Canada, EU, UK) with full address data; qb-billing defers to qb-tax via Readonly
+- **LegalEntity**: now the authoritative source (was shared with qb-billing); owns all 7 entities (US, Canada, EU, UK, Australia, Switzerland, Japan) with full address data; qb-billing defers to qb-tax via Readonly
 
 #### qb-clm
 - **ObjectStateActionDefinition**: externalId simplified to `Name` (was `Name;ReferenceObject.Name`); duplicate `Name` column removed from CSV

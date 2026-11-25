@@ -18,7 +18,7 @@ rlm-base-dev/
 │   │   ├── standalone/         # One canonical version per page, one feature dir per page
 │   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
-│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
+│   │   │   └── ...             # billing_ui, collections, constraints, payments, prm_pricing
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
 │   │   ├── base/               # Base layouts (moved from force-app)
@@ -96,6 +96,7 @@ rlm-base-dev/
 │   │   │   ├── qb-dro/
 │   │   │   ├── qb-transactionprocessingtypes/
 │   │   │   ├── qb-rating/
+│   │   │   ├── qb-rating-entitlements/
 │   │   │   ├── qb-rates/
 │   │   │   ├── qb-prm/
 │   │   │   ├── qb-prm-pricing/
@@ -117,7 +118,6 @@ rlm-base-dev/
 │       └── archive/            # Archived/previous context plans
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
-│   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
 │   ├── ux/                     # CCI-free UX assembly + drift tooling (ux_tool.py: assemble, retrieve, diff, writeback)
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
@@ -131,20 +131,26 @@ rlm-base-dev/
 ├── docs/                       # Documentation
 │   ├── index.md                # Documentation entry point
 │   ├── guides/                 # How-to setup and build process docs
+│   │   ├── agent-skill-discovery.md
 │   │   ├── build-harness.md
 │   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── contract-pricing.md
 │   │   ├── data-plans.md
 │   │   ├── local-installation.md
 │   │   ├── org-operations.md
 │   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
+│   │   ├── example-prompts.md
+│   │   ├── known-limitations-264.md
+│   │   ├── outcome-guide.md
 │   │   ├── post-billing-portal.md
 │   │   ├── prepare-rlm-org-build-guide.md
 │   │   ├── qb-consumption-demo-scenarios.md
 │   │   ├── txn-data-harness.md
 │   │   └── usage-consumption-runbook.md
 │   ├── references/             # Technical references and task/CLI examples
+│   │   ├── context-definitions/
 │   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
 │   │   ├── decision-table-api-reference.md
@@ -159,7 +165,6 @@ rlm-base-dev/
 │   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
 │   │   ├── sfdmu-data-shape-layering.md
 │   │   └── tooling-optimization-report.md
-│   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs
 │   │   ├── composable-quote-approvals.md
 │   │   ├── dynamic-ux-assembly.md  # Dynamic UX assembly architecture, template layout, patch format, test plan

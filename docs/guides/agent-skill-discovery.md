@@ -39,8 +39,8 @@ The following checks were run on macOS for this adapter change:
 
 | Client | Result |
 |--------|--------|
-| Codex CLI `0.154.0-alpha.6.2` | Native inventory found all 32 repository skills once each; explicit `$odt-authoring` invocation passed |
-| Claude Code `2.1.69` | Native inventory found all 32 repository skills once each; explicit `/odt-authoring` invocation passed |
+| Codex CLI `0.154.0-alpha.6.2` | Native inventory found all 32 repository skills (the count when tested; the library has since grown) once each; explicit `$odt-authoring` invocation passed |
+| Claude Code `2.1.69` | Native inventory found all 32 repository skills (the count when tested) once each; explicit `/odt-authoring` invocation passed |
 | Cursor Agent CLI `2026.05.01-eea359f` | Invocation could not run without authentication; discovery and duplicate handling remain unverified |
 | GitHub Copilot | No local client test; native discovery and duplicate handling remain unverified |
 

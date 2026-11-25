@@ -600,7 +600,7 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 For a clean macOS workstation, in order:
 
 1. **System bootstrap** — follow the [local installation guide](local-installation.md#macos-environment-setup-homebrew--pyenv--nvm), *macOS Environment Setup*,
-   Steps 1–11. That installs Homebrew, git, gh, GCM, nvm + Node LTS,
+   Steps 1–11. That installs Homebrew, git, gh, GCM, nvm + Node 24 (the line pinned in `.nvmrc`),
    pyenv + Python 3.13.x, the gate interpreter `.venv` (Step 6), pipx,
    CumulusCI, sf CLI, and SFDMU.
 2. **Add direnv** — `brew install direnv`.

@@ -14,7 +14,9 @@ Document Generation allows Quote and Invoice PDFs to be generated from Word `.do
 | Context Service | `RLM_QuoteDocGenContext` | `RLM_QuoteProposal_CS` | Context Service connect API |
 | Invoice (Server-Side) | `BillingDocumentGenerationGetInvoiceDetails` | `RLM_InvoiceTemplate` | OmniDataTransform (billing-managed) |
 
-Both Quote templates use the same Quick Action (`Quote.RLM_Create_Proposal`) and flow (`RLM_Quote_Doc_Gen_wAttachments`). The user picks the desired template from the flow's template selector.
+The repository also ships a fourth template, `RLM_Sales_Proposal_Document` (OmniDataTransform pair `RLMQuoteProposalExtract` / `RLMQuoteProposalTransform`, usage type `Revenue_Lifecycle_Management`; `unpackaged/post_docgen/documentTemplates/RLM_Sales_Proposal_Document_1.dt-meta.xml`). It has no seller tokens and is not described further here.
+
+Both Quote templates above use the same Quick Action (`Quote.RLM_Create_Proposal`) and flow (`RLM_Quote_Doc_Gen_wAttachments`). The user picks the desired template from the flow's template selector.
 
 ---
 
@@ -313,7 +315,7 @@ The Quote Proposal generation flow (`unpackaged/post_docgen/flows/RLM_Quote_Doc_
 5. **Status polling** — `rlmDocStatusMonitor` LWC subscribes to `DocGenProcStsChgEvent` platform event; wire-based polling fallback ensures flow advances even if EMP event is dropped
 6. **PDF extraction** — calls `RLM_ReturnPDFDocument` to get ContentDocumentId/ContentVersionId from the completed DGP
 7. **Merge** — calls `RLM_DocumentGenerationMerge` to merge generated PDF with attachments
-8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) injects a global `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer` to force `height: 500px` (see [Preview Height Fix](#preview-height-fix))
+8. **Preview** — `mulesoft_idp:configEditorPreviewPlayer` renders inline; `rlmDocPreview` LWC (invisible companion, `display:none`) injects a global `<style>` tag into `document.head` targeting `community_content-file-previewer .bodyContainer` to force `height: 100%` (see [Preview Height Fix](#preview-height-fix))
 
 ### Errors in the flow
 
@@ -331,17 +333,18 @@ These elements have a fault connector to the `Document_Generation_Error` screen:
 
 ```javascript
 connectedCallback() {
+    _instanceCount += 1;
     if (!document.getElementById(STYLE_ID)) {
         const style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent =
-            `community_content-file-previewer .bodyContainer { height: 500px !important; min-height: 500px !important; }`;
+            `community_content-file-previewer .bodyContainer { height: ${PREVIEW_HEIGHT} !important; }`;   // PREVIEW_HEIGHT = '100%'
         document.head.appendChild(style);
     }
 }
 ```
 
-This works because `community_content-file-previewer` (the inner renderer used by the preview player) uses **LWC synthetic shadow**, not native shadow DOM. Global CSS rules applied to `document.head` penetrate synthetic shadow boundaries, so `.bodyContainer` inside that component receives the height override. The `STYLE_ID` guard ensures the tag is injected only once even when the flow navigates back and re-mounts the component.
+This works because `community_content-file-previewer` (the inner renderer used by the preview player) uses **LWC synthetic shadow**, not native shadow DOM. Global CSS rules applied to `document.head` penetrate synthetic shadow boundaries, so `.bodyContainer` inside that component receives the height override. The `STYLE_ID` guard ensures the tag is injected only once even when several instances are mounted. A module-level instance count removes the tag when the last instance disconnects, so it does not affect file previewers on other pages.
 
 ---
 

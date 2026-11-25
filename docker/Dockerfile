@@ -2,10 +2,11 @@
 #
 # Revenue Cloud Base Foundations — self-contained build environment.
 #
-# Bakes the full local toolchain (Python 3.13 + CumulusCI, Node LTS + Salesforce
-# CLI + SFDMU v5, Robot Framework + headless Chromium) plus a snapshot of the
-# repo and the friendly `rlm` wrapper CLI and a bundled Claude Code agent, so a
-# user who knows nothing about git / cci / sf can connect orgs and build them.
+# Bakes the full local toolchain (Python 3.13 + CumulusCI, Node on the .nvmrc
+# major line + Salesforce CLI + SFDMU v5, Robot Framework + headless Chromium)
+# plus a snapshot of the repo and the friendly `rlm` wrapper CLI and a bundled
+# Claude Code agent, so a user who knows nothing about git / cci / sf can
+# connect orgs and build them.
 #
 # Build (from repo root):   docker build -f docker/Dockerfile -t rlm-base:latest .
 # Run:                      docker/rlm            (host launcher — see docker/README.md)
@@ -55,7 +56,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
-# Node.js LTS → Salesforce CLI (sf) + Claude Code, installed globally.
+# Node → Salesforce CLI (sf) + Claude Code, installed globally.
 # ---------------------------------------------------------------------------
 RUN set -eux; \
     curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -; \
