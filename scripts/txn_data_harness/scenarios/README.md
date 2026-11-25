@@ -451,10 +451,11 @@ value (null) means no payment, like leaving the key out.
 
 - **Order:** credit first, then payment, so `amount: exact` pays what is left
   after the credit.
-- **Application level:** at Line Level the credit and payment go to the
-  chosen invoice lines (one apply call per line); at Header Level the payment
-  goes to the invoice. `auto` reads the org's setting once per run; the
-  manifest records it. Header Level is **not live-verified**.
+- **Application level:** only the payment uses it. At Line Level the payment
+  goes to the chosen invoice lines (one apply call per line); at Header Level
+  to the invoice. The credit always names invoice lines and reads its rows
+  back from both junctions, so it needs no level. `auto` reads the org's
+  setting once, in the payment stage; the manifest records it. Header Level is **not live-verified**.
 - **Amounts** are computed against the open balance when the stage runs.
   `percent` on a credit is a share of the creditable pre-tax amount of the
   chosen lines; on a payment, of their open balance. A credit is capped per

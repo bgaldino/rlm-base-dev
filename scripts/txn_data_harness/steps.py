@@ -586,9 +586,18 @@ def _chosen_lines(
 
 
 def _record_applications(
-    manifest: Manifest, apps: dict, level: str, what: str
+    manifest: Manifest, apps: dict, level: Optional[str], what: str
 ) -> tuple[list[str], float]:
-    """Ids and total of the application rows at ``level``; warn on the other."""
+    """Ids and total of the application rows at both levels.
+
+    With a known ``level``, rows at the other level are recorded too, with a
+    warning. The credit passes ``None``: it reads both junctions by memo id
+    and needs no level at all.
+    """
+    if level is None:
+        rows = apps.get(lifecycle.LEVEL_LINE, []) + apps.get(lifecycle.LEVEL_HEADER, [])
+        total = sum(float(r.get("Amount") or 0) for r in rows)
+        return [r["Id"] for r in rows], lifecycle._money(total, _places(manifest))
     other = lifecycle.LEVEL_HEADER if level == lifecycle.LEVEL_LINE else lifecycle.LEVEL_LINE
     if apps.get(other):
         _warn(
@@ -633,6 +642,45 @@ def _find_memo(ctx: StepContext, manifest: Manifest, wait: bool = False) -> Opti
 def _step_command(ctx: StepContext, manifest: Manifest) -> str:
     stage = ctx.target_stage if ctx.target_stage in STAGES_SETTLEMENT else "credit_applied"
     return f"`cli step --manifest {manifest.run_id} --to-stage {stage}`"
+
+
+def _check_fixed_amounts(spec: SettlementSpec, manifest: Manifest, places: int) -> None:
+    """Refuse, before the first write, a fixed amount below one minor unit.
+
+    Both fixed amounts (``credit.amount``, ``payment.amount``) are known once
+    the invoice currency is; checking them here keeps a sub-unit payment from
+    being refused only after the credit memo was posted. Percent and computed
+    amounts are checked where they are computed.
+    """
+    for what, part in (("credit", spec.credit), ("payment", spec.payment)):
+        amount = getattr(part, "amount", None) if part is not None else None
+        if amount is not None and lifecycle._money(amount, places) <= 0:
+            raise _below_minor_unit(what, manifest, places)
+
+
+def _check_memo_applied(
+    manifest: Manifest, memo: Optional[dict], applied: float, places: int
+) -> None:
+    """Fail when the Posted memo was not applied as allocated.
+
+    A memo left with its balance unapplied settles the account's next posted
+    invoice. Applied 0, or below the allocated total by more than one minor
+    unit, while the memo still has a balance, fails the stage.
+    """
+    if memo is None or lifecycle._money(memo.get("Balance"), places) <= 0:
+        return
+    allocated = manifest.credit_amount_allocated
+    unit = 10 ** -places
+    short = applied <= 0 or (allocated is not None and applied < allocated - unit)
+    if short:
+        raise SettlementError(
+            "credit",
+            f"credit memo {memo['Id']} is Posted but applied {applied} of the "
+            f"{allocated if allocated is not None else 'credited'} amount, keeping "
+            f"{lifecycle._money(memo.get('Balance'), places)} unapplied; that balance would "
+            f"settle the account's next posted invoice. {lifecycle.CANNOT_SETTLE}",
+            record_id=memo["Id"],
+        )
 
 
 def _below_minor_unit(what: str, manifest: Manifest, places: int):
@@ -868,9 +916,11 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     if not manifest.invoice_id:
         raise SettlementError("credit", "invoice_id is required before credit")
     _settlement_account_id(ctx, manifest)
-    level = _ensure_application_level(ctx, manifest, spec)
+    # The credit needs no application level: the action targets invoice
+    # lines either way, and the read-back covers both junctions by memo id.
     _ensure_settlement_baseline(ctx, manifest)
     places = _places(manifest)
+    _check_fixed_amounts(spec, manifest, places)
 
     if not manifest.credit_memo_ids:
         memo = _find_memo(ctx, manifest)
@@ -896,6 +946,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 manifest.reached_stage = "credit_applied"
                 return manifest
             total = lifecycle._money(sum(a for _, a in allocations), places)
+            manifest.credit_amount_allocated = total
             if total < requested:
                 _warn(
                     manifest,
@@ -930,10 +981,11 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         ),
         ctx.poll_timeout,
     )
-    ids, applied = _record_applications(manifest, apps, level, "credit")
+    ids, applied = _record_applications(manifest, apps, None, "credit")
     manifest.credit_application_ids = ids
     manifest.credit_amount_applied = applied
     memo = _find_memo(ctx, manifest)
+    _check_memo_applied(manifest, memo, applied, places)
     if memo is not None and lifecycle._money(memo.get("Balance"), places) > 0:
         _warn(
             manifest,

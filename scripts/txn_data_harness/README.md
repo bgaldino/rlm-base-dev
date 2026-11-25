@@ -13,8 +13,9 @@ Every kind can continue past the Posted invoice into two **settlement**
 stages: `credit_applied` (a credit memo applied to the invoice) and
 `payment_applied` (a processed payment created after the invoice posts and
 applied to it), driven by a scenario `settlement:` block. The org's Credit,
-Payment and Refund Application Level is read once and decides whether
-applications go to invoice lines (Line Level) or the invoice (Header Level).
+Payment and Refund Application Level is read once by the payment stage and
+decides whether the payment is applied to invoice lines (Line Level) or the
+invoice (Header Level); the credit stage needs no level.
 Line Level is live-verified on 264; Header Level is not. Contract:
 [`docs/contracts-billing-settlement.md`](docs/contracts-billing-settlement.md);
 examples: [`scenarios/sales_txn_quote/17-settlement.yaml`](scenarios/sales_txn_quote/17-settlement.yaml),
@@ -282,7 +283,12 @@ count.
   transaction on an account need `--concurrency 1` (`cli run` refuses
   otherwise). `cli step --application-level line|header` sets the level
   until the payment is planned; at most one credit and one payment are
-  created per run, and a failed credit or payment needs a new run. The settlement block is
+  created per run. A refused write can be rerun (it is normally refused
+  again; new options need a new run) and a retryable 4xx (429, 420, a lock)
+  retries; these need a new run: a write whose outcome stayed unknown and
+  whose record never appeared, a memo in `Error` / `Canceled` / `Voided`, two
+  records under one tag, a reversed application, a Posted memo not applied
+  as allocated, and a `NetCreditsApplied` mismatch. The settlement block is
   fixed once a settlement step records it on the manifest; `cli step
   --config` supplies it only to a manifest without one. Amounts round to the
   invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →

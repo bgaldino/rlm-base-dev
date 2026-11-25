@@ -317,8 +317,11 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   network, CLI retrieve failure or timeout) and no invoice evidence exists.
   A refused read is deterministic: a 4xx, or a SOAP fault whose
   `faultcode` is `INVALID_SESSION_ID`, `INSUFFICIENT_ACCESS`, `INVALID_TYPE`
-  (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Both level
-  errors name `cli step --application-level line|header`. A level reached
+  (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Only the
+  payment stage resolves the level (the credit stage reads its application
+  rows back from both junctions by memo id and needs none), so both level
+  errors arise there and name `cli step --to-stage payment_applied
+  --application-level line|header`. A level reached
   through the invoice-evidence fallback after a transient settings read is
   not cached in the process: it is still recorded on the manifest (so the
   same run keeps it), but another manifest in the same process reads the
@@ -329,8 +332,15 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   --config` when the manifest has no block yet, else by starting a new run.
   A configured credit or payment that rounds to 0 in the invoice currency
   (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
-  currency and its decimal places; only lines with no open balance at all
-  skip the stage with a warning.
+  currency and its decimal places; fixed amounts are checked before the
+  first write of the run (so a sub-unit payment refuses before the credit
+  is sent), percents where they are computed. Only lines with no open
+  balance at all skip the stage with a warning.
+- **A Posted memo must be applied as allocated.** When the memo is Posted
+  with a balance left and it applied nothing, or less than the allocated
+  pre-tax total (`credit_amount_allocated`) by more than one minor unit, the
+  stage fails (memo id named; start a new run): that balance would settle
+  the account's next posted invoice.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without

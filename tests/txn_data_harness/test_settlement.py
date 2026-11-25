@@ -721,11 +721,33 @@ def test_credit_header_level_reads_invoice_applications(billable_account) -> Non
     assert m.settlement_warnings == []
 
 
-def test_rows_at_the_other_level_are_recorded_with_a_warning(billable_account) -> None:
-    org = SettleOrg("header")  # the org writes header rows...
-    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=10.0))  # ...pinned line
+@pytest.mark.parametrize("org_level", ["line", "header"])
+def test_credit_read_back_needs_no_level(org_level, billable_account, monkeypatch) -> None:
+    """The credit reads both junctions by memo id: rows at either level are
+    recorded, and the level is never resolved (or read from the org)."""
+    monkeypatch.setattr(lifecycle, "read_application_level",
+                        lambda c: pytest.fail("the credit must not need the level"))
+    org = SettleOrg(org_level)
+    spec = SettlementSpec(credit=CreditSpec(amount=10.0))  # application_level: auto
     m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
-    assert m.credit_application_ids == ["4sG1"]
+    assert m.credit_application_ids == ["4sG1"] and m.credit_amount_applied == 10.0
+    assert m.application_level is None and m.reached_stage == "credit_applied"
+
+
+def test_payment_rows_at_the_other_level_are_recorded_with_a_warning(billable_account) -> None:
+    org = SettleOrg("header")  # the org writes header rows...
+    org.payment_apps.append({"Id": "1AlH", "Amount": 5.0, "level": "header", "payment": "0aQ1",
+                             "invoice": "3ttINV"})
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 5.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=5.0))
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _posted_manifest(payment_ids=["0aQ1"], payment_amount=5.0,
+                                           payment_apply_target=5.0, payment_mode="partial",
+                                           application_level="line",
+                                           settlement_baseline={"balance": 250.0,
+                                                                "decimal_places": 2}))
+    assert "1AlH" in m.payment_application_ids
     assert any("found at header level" in w for w in m.settlement_warnings)
 
 
@@ -3288,3 +3310,63 @@ def test_sales_retry_clears_the_error_in_the_write_that_records_the_stage(
         None, org_context, "RUN", resolved, poll_timeout=1, max_retries=2, sleep=lambda s: None)
     after_retry = writes[writes.index(next(w for w in writes if w[1])) + 1:]
     assert next(w for w in after_retry if w[0] == "credit_applied") == ("credit_applied", None)
+
+
+# -- review round 12 (todo 275) -------------------------------------------------
+
+
+def test_credit_only_run_succeeds_when_the_level_cannot_be_read(billable_account, monkeypatch) -> None:
+    def unreadable(c):
+        raise lifecycle.SettlementError("settlement", "could not read the level")
+
+    monkeypatch.setattr(lifecycle, "read_application_level", unreadable)
+    org = SettleOrg("line")
+    spec = SettlementSpec(credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "credit_applied"
+    m = steps.run_credit(ctx, _posted_manifest())
+    assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0
+
+
+def test_fixed_sub_unit_payment_is_refused_before_the_credit_post(billable_account) -> None:
+    org = SettleOrg("line", places=0)
+    org.invoice["CurrencyIsoCode"] = "JPY"
+    spec = _pst(target_stage="payment_applied", settlement={
+        "application_level": "line", "credit": {"amount": 50}, "payment": {"amount": 0.4},
+    }).settlement
+    with pytest.raises(lifecycle.SettlementError, match="configured payment rounds to 0 in JPY"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert org.posts == [] and org.memos == []
+
+
+@pytest.mark.parametrize("applied_share", [0.0, 0.5])
+def test_posted_memo_not_applied_as_allocated_fails(applied_share, billable_account) -> None:
+    org = SettleOrg("line")
+    real = org._post_memo
+
+    def post_partially(memo):
+        allocs = memo.get("_allocs") or []
+        memo["_allocs"] = [(lid, amt * applied_share) for lid, amt in allocs if applied_share]
+        real(memo)
+        memo["Balance"] = 20.0 * (1 - applied_share)
+
+    org._post_memo = post_partially
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match="credit memo 50g1 is Posted but applied .* start a new run") as info:
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic" and m.reached_stage == "invoice_posted"
+
+
+def test_posted_memo_with_nothing_applied_fails_without_a_recorded_allocation(billable_account) -> None:
+    """A resumed manifest (submitted before the allocation was recorded): a
+    Posted memo that applied nothing still fails."""
+    org = SettleOrg("line")
+    org.memos.append({"Id": "50gONLY", "ReferenceEntityId": "3ttINV", "Description": "RUN credit",
+                      "Status": "Posted", "Balance": 20.0, "_statuses": ["Posted"]})
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _submitted()
+    assert m.credit_amount_allocated is None
+    with pytest.raises(lifecycle.SettlementError, match="50gONLY is Posted but applied 0"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)

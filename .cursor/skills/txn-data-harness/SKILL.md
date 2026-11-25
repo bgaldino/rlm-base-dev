@@ -75,8 +75,9 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     `settlement:` block (`credit: {amount | percent, lines?, tax_strategy?}`,
     `payment: {amount: exact | <n> | percent: <n>, lines?}`). The org's
     Credit, Payment and Refund Application Level is read once (Billing
-    Settings) and recorded on the manifest: Line Level applies to invoice
-    lines, Header Level to the invoice. **Only Line Level is live-verified**
+    Settings) by the payment stage and recorded on the manifest: Line Level
+    applies the payment to invoice lines, Header Level to the invoice (the
+    credit stage needs no level). **Only Line Level is live-verified**
     (264). Posting an invoice through the post action applied the account's open
     payment and credit balances to it, so the harness creates its payment
     after the post, records what was already applied in
