@@ -1,7 +1,7 @@
 # Billing Operations — Schedules and Invoicing
 
 Read this when choosing how invoices are produced or setting a run's dates. Parent:
-[SKILL.md](SKILL.md). A read of Help, except the dated live observation under *Invoice
+[SKILL.md](SKILL.md). A read of Help, except dated live observations under *Invoice
 documents and delivery*.
 
 ## Where billing schedules come from
