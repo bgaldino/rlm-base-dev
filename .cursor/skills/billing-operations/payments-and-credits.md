@@ -2,7 +2,8 @@
 
 Read this when configuring payment collection, application rules, refunds, credit or debit
 memos, write-offs or collections. Parent: [SKILL.md](SKILL.md). A read of Help, except
-the section *Measured: Line Level application*, which records dated live observations.
+the section *Measured: Line Level application* and the automatic payment schedule note under
+*Billing Settings that change behavior*, which record dated live observations.
 
 Licensing: Salesforce Payments (native or bring-your-own gateways) is part of the Revenue
 Cloud Billing license with a cost-per-transaction model, and orgs licensed on or before
@@ -17,6 +18,17 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
+  With it on (`BillingSettings.enablePaymentSchedulesAndItemsCreation` true), two invoices of
+  250 and 1,700, ingested and posted for one account within a second, produced one Draft
+  payment schedule of 1,950 with one Draft item of 1,950; its `ReferenceEntityId` was blank and
+  its `DefaultPaymentAccountId` was the account. A second payment schedule created with
+  `ReferenceEntityId` set to one of those invoices was refused:
+  INVALID_FIELD_FOR_INSERT_UPDATE "We can't create this Payment Schedule because its invoice is
+  associated with another Payment Schedule that's in Draft or Open status."
+  [Measured: 2026-11-24, 264, fresh build, API 68.0] So a script that creates its own schedule
+  after posting must deal with the automatic one first (find it by `DefaultPaymentAccountId`,
+  not `ReferenceEntityId`); canceling or reusing it was not tried, nor whether invoices posted
+  apart get separate schedules.
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
