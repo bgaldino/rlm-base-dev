@@ -24,6 +24,7 @@ configures handlers.
 """
 
 import logging
+from ._guards import select_version
 from ._schema import existing_step_differences
 from copy import deepcopy
 from typing import List, Optional
@@ -100,15 +101,18 @@ def overlay_labels(overlay: dict) -> dict:
 
 
 def find_version(
-    versions: list, version_api_name: Optional[str], *, error_cls=OverlayError
+    versions: list, version_api_name: Optional[str], *,
+    version_number: Optional[int] = None, error_cls=OverlayError,
 ) -> dict:
-    """Return the target version block (by apiName, else the first version)."""
-    if version_api_name:
-        for v in versions:
-            if v.get("apiName") == version_api_name:
-                return v
-        raise error_cls(f"Version '{version_api_name}' not found in definition.")
-    return versions[0]
+    """Return the target version block: by ``version_number`` (the GET's apiName
+    can be a stale clone name), then ``apiName``; a one-version definition gives its
+    only version. Several and nothing matching raises: never the first."""
+    version = select_version(versions, version_api_name, version_number)
+    if version is None:
+        raise error_cls(
+            f"Version '{version_api_name}' not found in definition." if version_api_name
+            else f"Definition has {len(versions)} versions; name the target version.")
+    return version
 
 
 def find_step_sequence(steps: list, name: str, *, error_cls=OverlayError) -> int:
@@ -328,12 +332,14 @@ def apply_overlay(
     overlay: dict,
     *,
     version_api_name: Optional[str] = None,
+    version_number: Optional[int] = None,
     logger=None,
     error_cls=OverlayError,
 ) -> dict:
     """Apply overlay transformations to a definition. Returns a modified copy.
 
-    ``version_api_name`` selects the version to mutate (default: the first). The
+    ``version_number`` / ``version_api_name`` select the version to mutate
+    (:func:`find_version`; a one-version definition needs neither). The
     order of operations mirrors the CCI task exactly: removeSteps → addSteps →
     updateSteps → reorderSteps, then removeVariables → addVariables.
     """
@@ -342,7 +348,8 @@ def apply_overlay(
     if not versions:
         raise error_cls("Expression set has no versions to modify.")
 
-    version = find_version(versions, version_api_name, error_cls=error_cls)
+    version = find_version(versions, version_api_name, version_number=version_number,
+                           error_cls=error_cls)
     steps = version.get("steps", [])
     variables = version.get("variables", [])
 

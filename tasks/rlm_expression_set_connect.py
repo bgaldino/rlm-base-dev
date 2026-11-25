@@ -51,6 +51,7 @@ carries HTML entities (i.e. un-normalized GET output). Pass
 """
 import html
 import json
+import tempfile
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -76,6 +77,22 @@ from tasks.expression_set_schema import (
     validate_definition,
     validate_overlay,
     validate_overlay_against_definition,
+)
+# Stdlib-only pure guards shared with the standalone toolkit (no CumulusCI import).
+from scripts.expression_sets._guards import (
+    NO_ACTIVATION_CCI_APPLY,
+    NO_ACTIVATION_CCI_IMPORT,
+    VERSION_FIELDS,
+    executing_version,
+    import_target_refusal,
+    null_rank_delete_refusal,
+    null_rank_reactivation_refusal,
+    other_active_versions_refusal,
+    relabel_command,
+    select_version,
+    version_name_collision_refusal,
+    rank_order_warning,
+    target_version_warning,
 )
 
 
@@ -227,15 +244,16 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         whose version identity can be a transiently stale clone name. We match
         on the ExpressionSetId FK rather than guessing by naming convention.
 
-        Prefer the ACTIVE version (the one actually executing) over a merely
-        higher VersionNumber: mutating/deactivating the latest-numbered draft
-        while a different version is live would target the wrong record. Order
-        by IsActive then VersionNumber so the active (or, absent any active one,
-        the highest-numbered) version is first.
+        Prefer the version actually executing (the shared
+        ``_guards.executing_version``: highest Rank among active versions whose
+        date window covers now) over a merely higher VersionNumber:
+        mutating/deactivating the latest-numbered draft while a different version
+        is live would target the wrong record. Absent an executing version, the
+        active (then highest-numbered) version comes first.
         """
         safe = self._soql_escape(es_id)
         records = self._soql_query(
-            "SELECT Id, ApiName, IsActive, VersionNumber "
+            f"SELECT {VERSION_FIELDS} "
             f"FROM ExpressionSetVersion WHERE ExpressionSetId = '{safe}' "
             "ORDER BY IsActive DESC, VersionNumber DESC"
         )
@@ -243,20 +261,40 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             raise TaskOptionsError(
                 f"No ExpressionSetVersion found for ExpressionSet {es_id}."
             )
-        chosen = records[0]
+        try:
+            running = executing_version(records)
+            note = rank_order_warning(records)
+        except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
+            raise TaskOptionsError(str(exc)) from exc
+        chosen = running or records[0]
         active = [r for r in records if r.get("IsActive")]
-        if len(active) > 1:
-            self.logger.warning(
-                "ExpressionSet %s has %d active versions; operating on the "
-                "highest-numbered active one (%s).",
-                es_id, len(active), chosen.get("ApiName"),
-            )
+        message = target_version_warning(es_id, active, running, chosen)
+        if message:
+            self.logger.warning(message)
+            if note:
+                self.logger.warning(note)
         return chosen
 
+    def _org_username(self) -> Optional[str]:
+        """The org's username, the ``--target-org`` a printed toolkit or ``sf``
+        command needs (never the access token); None when there is no org."""
+        return getattr(getattr(self, "org_config", None), "username", None)
+
+    def _definition_name(self, es_def_id: str) -> Optional[str]:
+        """The set's DeveloperName, for a printed command; None when unreadable."""
+        try:
+            rows = self._soql_query(
+                "SELECT DeveloperName FROM ExpressionSetDefinition "
+                f"WHERE Id = '{self._soql_escape(es_def_id)}'")
+        except Exception:  # noqa: BLE001 -- only fills a message
+            return None
+        return (rows[0].get("DeveloperName") if rows else None) or None
+
     def _list_versions(self, es_id: str) -> List[dict]:
-        """Every ExpressionSetVersion of an ExpressionSet, lowest number first."""
+        """Every ExpressionSetVersion of an ExpressionSet, lowest number first, with
+        the fields the shared executing-version resolver reads (Rank, date window)."""
         return self._soql_query(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
             f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
             "ORDER BY VersionNumber"
         )
@@ -295,11 +333,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if definition is None:
                 definition = self._get_expression_set_via_connect(es_id)
             versions = definition.get("versions", [])
-            get_api = versions[0].get("apiName") if versions else None
+            get_apis = [v.get("apiName") for v in versions if v.get("apiName")]
         except Exception:
             return
         sobject_api = esv.get("ApiName")
-        if get_api and sobject_api and get_api != sobject_api:
+        # On a multi-version set the GET lists every version, and the targeted one
+        # need not come first: warn only when none of them carries its name.
+        if get_apis and sobject_api and sobject_api not in get_apis:
+            get_api = get_apis[0] if len(get_apis) == 1 else ", ".join(get_apis)
             self.logger.warning(
                 "Connect GET version apiName '%s' disagrees with the "
                 "ExpressionSetVersion sObject ApiName '%s' (stale clone name). "
@@ -684,6 +725,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         elif dry_run and preserve_requested:
             self.logger.info("[dry-run] Would restore step labels after the PATCH.")
         self._labels_clobbered = False
+        # Each version's state once this run ends, for a printed relabel command:
+        # the cycled version ends active only with activate_after; the others keep
+        # their own state.
+        self._label_final_active = {
+            version.get("Id"): (bool(activate_after) if version.get("Id") == esv.get("Id")
+                                else bool(version.get("IsActive")))
+            for version, _ in captured
+        }
 
         def mutate_and_restore():
             mutate()
@@ -742,6 +791,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
         """
+        if null_rank_reactivation_refusal(esv, activate_after):
+            # Fill the remedy commands with this run's org and the set's name.
+            raise TaskOptionsError(null_rank_reactivation_refusal(
+                esv, activate_after, target_org=self._org_username(),
+                es_api_name=self._definition_name(es_def_id)))
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False
@@ -1002,6 +1056,38 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             return {}
         return {n: l for n, l in labels.items() if l and l != n}
 
+    def _relabel_hint(self, es_def_id: str, esv: dict, labels: Dict[str, str],
+                      current: Optional[Dict[str, str]]) -> str:
+        """How to restore ``labels`` on ``esv``, as a relabel_expression_set.py
+        command that runs as printed: the labels (only steps the version still has,
+        when known) go to a JSON file; the command names the org's username and the
+        set, and adds --no-activate when the version ends this run inactive, so it
+        does not switch it on."""
+        keep = {n: l for n, l in labels.items()
+                if l and (current is None or n in current)}
+        if not keep:
+            return (f"nothing to restore on {esv.get('ApiName')} (none of its labelled "
+                    "steps remain).")
+        final_active = getattr(self, "_label_final_active", {}).get(
+            esv.get("Id"), bool(esv.get("IsActive")))
+        try:
+            with tempfile.NamedTemporaryFile(
+                    "w", encoding="utf-8", suffix=".json", delete=False,
+                    prefix=f"relabel-{esv.get('ApiName')}-") as fh:
+                json.dump(keep, fh, indent=2, ensure_ascii=False)
+                path = fh.name
+        except OSError as exc:
+            return f"could not save the labels to a file ({exc})."
+        command = relabel_command(path, target_org=self._org_username(),
+                                  es_api_name=self._definition_name(es_def_id),
+                                  version_api_name=esv.get("ApiName"),
+                                  no_activate=not final_active)
+        if command is None:  # the org or the set name is unknown: describe it
+            return (f"run relabel_expression_set.py on {esv.get('ApiName')} with "
+                    f"--labels-file {path} (the labels saved)"
+                    + (", adding --no-activate." if not final_active else "."))
+        return "run " + command
+
     def _restore_step_labels(
         self,
         *,
@@ -1017,6 +1103,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         """
         if not labels:
             return True
+        current: Optional[Dict[str, str]] = None
         try:
             esdv_id = self._resolve_esdv_id(es_def_id, esv.get("VersionNumber"))
             metadata = self._get_step_metadata(esdv_id)
@@ -1044,8 +1131,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         except Exception as exc:  # noqa: BLE001 — only label work is cosmetic
             self.logger.warning(
                 "The Connect mutation succeeded, but restoring step labels "
-                "failed (%s). Re-run scripts/expression_sets/"
-                "relabel_expression_set.py to restore them.", exc,
+                "failed (%s). To restore them: %s", exc,
+                self._relabel_hint(es_def_id, esv, labels, current),
             )
             return False
         self.logger.info("Restored %d step label(s).", len(planned))
@@ -1442,7 +1529,8 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         },
         "version_api_name": {
             "description": (
-                "Override version API name (default: from overlay file)."
+                "Version API name to edit (default: the overlay's versionApiName, "
+                "else the executing version)."
             ),
             "required": False,
         },
@@ -1525,10 +1613,19 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         es_def_id = self._get_expression_set_definition_id(es_api_name)
         esv = self._resolve_version_by_es_id(es_id)
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
+        # With no version named, edit the version the lifecycle cycles: the
+        # executing one. The GET lists versions lowest first, so its first entry
+        # can be a draft (measured on 264, 2026-11-25: an overlay with no version
+        # edited the draft v1 while reporting the active v2).
+        self._executing_api_name = esv.get("ApiName")
+        version_api_name = self._overlay_version_api_name(overlay)
+        if version_api_name != esv.get("ApiName"):
+            self.logger.warning(
+                "The overlay edits %s, but %s is the executing version (highest Rank "
+                "among active versions in their date window; earliest created among "
+                "null Ranks), so pricing does not run the edited version.",
+                version_api_name, esv.get("ApiName"),
+            )
 
         # Fetch the live definition up front (before any deactivation) for the
         # read-only pre-flights: the overlay/definition cross-check — which
@@ -1537,12 +1634,22 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         # version-name consistency warning. The actual overlay is applied to a
         # fresh post-deactivation GET inside the mutate body below so the PATCH
         # payload reflects the deactivated state.
+        all_versions = self._list_versions(es_id)
+        # The GET's block is matched by VersionNumber: its apiName can be a stale
+        # clone name (see _find_version).
+        self._overlay_version_number = next(
+            (v.get("VersionNumber") for v in all_versions
+             if v.get("ApiName") == version_api_name), None)
         preflight_definition = self._get_expression_set_via_connect(es_id)
+        # Cross-check against exactly the block the run edits (found by number), so
+        # a stale GET name that repeats another version's cannot pick the wrong one.
         self._preflight_validate_overlay_against_definition(
-            overlay, preflight_definition, version_api_name
+            overlay,
+            dict(preflight_definition, versions=[self._find_version(
+                preflight_definition.get("versions") or [], version_api_name)]),
+            None,
         )
         self._check_version_name_consistency(es_id, esv, preflight_definition)
-        all_versions = self._list_versions(es_id)
         label_esv = self._resolve_label_version(esv, version_api_name, all_versions)
 
         # Simulate the merge on the preflight snapshot and validate the merged
@@ -1557,6 +1664,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         simulated = self._apply_overlay(preflight_definition, overlay)
         self._preflight_validate_definition(simulated, log_summary=False)
 
+        # Before any write: a null-Rank active version could not be reactivated,
+        # the PATCH must not rewrite another active version, and a PATCH whose
+        # versions' names are not unique is rejected.
+        refusal = (null_rank_reactivation_refusal(esv, activate_after,
+                                                  NO_ACTIVATION_CCI_APPLY,
+                                                  target_org=self._org_username(),
+                                                  es_api_name=es_api_name)
+                   or other_active_versions_refusal(es_api_name, all_versions, esv,
+                                                    target_org=self._org_username())
+                   or version_name_collision_refusal(es_api_name, all_versions, simulated))
+        if refusal:
+            raise TaskOptionsError(refusal)
         # Align ResourceInitializationType to the value the PATCH body will
         # carry (GET fabricates "Off" over a stored null), before touching
         # activation state.
@@ -1624,6 +1743,15 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             raise TaskOptionsError(f"Overlay file not found: {path}")
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def _overlay_version_api_name(self, overlay: dict) -> Optional[str]:
+        """The version the overlay edits: the option, the overlay's versionApiName,
+        else the executing version ``_run_task`` resolved."""
+        return (
+            self.options.get("version_api_name")
+            or overlay.get("versionApiName")
+            or getattr(self, "_executing_api_name", None)
+        )
+
     # -- Overlay transformation (pure function) ------------------------
 
     def _apply_overlay(self, definition: dict, overlay: dict) -> dict:
@@ -1633,11 +1761,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         if not versions:
             raise TaskOptionsError("Expression set has no versions to modify.")
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
-        version = self._find_version(versions, version_api_name)
+        version = self._find_version(versions, self._overlay_version_api_name(overlay))
         steps = version.get("steps", [])
         variables = version.get("variables", [])
 
@@ -1660,14 +1784,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         return result
 
     def _find_version(self, versions: list, version_api_name: Optional[str]) -> dict:
-        if version_api_name:
-            for v in versions:
-                if v.get("apiName") == version_api_name:
-                    return v
+        """The target version block: by the VersionNumber ``_run_task`` resolved (the
+        GET's apiName can be a stale clone name), then ``apiName``; a one-version
+        definition gives its only version. Never the first of several."""
+        version = select_version(versions, version_api_name,
+                                 getattr(self, "_overlay_version_number", None))
+        if version is None:
             raise TaskOptionsError(
                 f"Version '{version_api_name}' not found in definition."
+                if version_api_name else
+                f"Definition has {len(versions)} versions; name the target version."
             )
-        return versions[0]
+        return version
 
     @staticmethod
     def _overlay_change_summary(before: dict, after: dict) -> str:
@@ -1915,10 +2043,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         if not versions:
             raise TaskOptionsError("Verification failed: no versions found.")
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
+        version_api_name = self._overlay_version_api_name(overlay)
         version = self._find_version(versions, version_api_name)
         expected_version = self._find_version(expected.get("versions", []), version_api_name)
         errors = overlay_step_content_errors(overlay, expected_version, version)
@@ -2067,7 +2192,18 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             es_def_id = existing[0]["Id"]
             es_id = self._get_expression_set_id(api_name)
             self.logger.info("Expression set '%s' exists, updating...", api_name)
+            versions = self._list_versions(es_id)
             esv = self._resolve_version_by_es_id(es_id)
+            # On a multi-version set, refuse a PATCH that would rebind the
+            # payload's version onto another one, before ANY write (the
+            # ResourceInitializationType alignment below is a write too).
+            refusal = (import_target_refusal(api_name, versions, esv, payload)
+                       or null_rank_reactivation_refusal(esv, activate_after,
+                                                         NO_ACTIVATION_CCI_IMPORT,
+                                                         target_org=self._org_username(),
+                                                         es_api_name=api_name))
+            if refusal:
+                raise TaskOptionsError(refusal)
 
             # Align ResourceInitializationType to the value the PATCH body will
             # carry, before touching activation state.
@@ -2102,7 +2238,7 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 cascade=cascade,
                 verb="Import",
                 # The PATCH relabels every version of the set, not just esv.
-                label_versions=self._list_versions(es_id),
+                label_versions=versions,
             )
         else:
             self.logger.info("Expression set '%s' does not exist, creating...", api_name)
@@ -2223,6 +2359,12 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         # state the user saw before the delete attempt.
         es_def_id = self._get_expression_set_definition_id(api_name)
         esv = self._resolve_version_by_es_id(es_id)
+        # A failed DELETE is rolled back by reactivating the version, which the API
+        # refuses for a version with no Rank: refuse before any write.
+        refusal = null_rank_delete_refusal(esv, target_org=self._org_username(),
+                                           es_api_name=api_name)
+        if refusal:
+            raise TaskOptionsError(refusal)
         esv_was_active = bool(esv.get("IsActive"))
         cascaded_ppvs: List[str] = []
         esv_deactivated_by_us = False

@@ -263,8 +263,9 @@ built org: `cci task run deploy_expression_sets --org <cci_alias>`. It deploys t
 XML (not your clone) with placeholders resolved, so it cannot validate a clone or new
 version. It overwrites the org's copy, and an active version blocks the deploy: the
 `prepare_expression_sets` flow deactivates versions first and
-`activate_and_deploy_expression_sets` flips the tracked Drafts back to Active. Never run it
-to "check" a working org.
+`activate_and_deploy_expression_sets` flips the tracked Drafts back to Active and fails
+when a deployed version is not the one that executes (see the expression-sets skill →
+Multi-version orgs). Never run it to "check" a working org.
 
 Checklist:
 

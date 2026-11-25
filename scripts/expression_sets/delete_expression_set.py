@@ -53,6 +53,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
+from scripts.expression_sets._guards import null_rank_delete_refusal  # noqa: E402
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
@@ -109,6 +110,12 @@ def main(argv=None) -> int:
             )
             eprint(f"Delete WHOLE expression set '{args.es_api_name}' (es_id={es_id}), "
                    f"{'PREVIEW' if preview else 'CONFIRM'}")
+            # A failed DELETE is rolled back by reactivating the version, which the
+            # API refuses for a version with no Rank: refuse before any write.
+            refusal = null_rank_delete_refusal(esv, target_org=args.target_org,
+                                               es_api_name=args.es_api_name)
+            if refusal:
+                raise LifecycleError(refusal)
             result = engine.delete_expression_set(
                 es_id=es_id, es_def_id=es_def_id, esv=esv, api_name=args.es_api_name
             )

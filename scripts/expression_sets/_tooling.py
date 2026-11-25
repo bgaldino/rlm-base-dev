@@ -48,13 +48,16 @@ lifecycle (:class:`_lifecycle.LifecycleEngine`), exactly like a Connect mutation
 and, because a Connect mutation clobbers labels, a relabel must run **last**.
 """
 
+import json
 import re
+import tempfile
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from ._client import ExpressionSetClientError, soql_literal
+from ._guards import VERSION_FIELDS, relabel_command
 
 ESDV_SOBJECT = "ExpressionSetDefinitionVersion"
 
@@ -486,7 +489,7 @@ def restore_labels_after_clobber(
         return {"ok": True, "changed": [], "error": None}
     try:
         rows = engine.t.soql(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
             f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
             f"AND ApiName = '{soql_literal(version_api_name)}'"
         )
@@ -510,9 +513,67 @@ def restore_labels_after_clobber(
     except Exception as exc:  # noqa: BLE001 — report restore and lifecycle failures
         log(f"⚠ Connect mutation succeeded but label RESTORE failed ({exc}). The "
             f"readable labels may be stale. Check the version and referencing plan "
-            f"activation states; re-run relabel_expression_set.py --expression-set "
-            f"<name> to restore labels if needed.")
+            f"activation states; to restore the labels: "
+            + relabel_hint(engine, es_id=es_id, es_def_id=es_def_id,
+                           version_api_name=version_api_name,
+                           name_to_label=name_to_label))
         return {"ok": False, "changed": [], "error": str(exc)}
+
+
+def relabel_hint(engine, *, es_id: str, es_def_id: str, version_api_name: str,
+                 name_to_label: Dict[str, str], no_activate: Optional[bool] = None) -> str:
+    """How to restore ``name_to_label`` on one version, as a relabel_expression_set.py
+    command that runs as printed. It reads the version now: only labels for steps
+    it still has go to the JSON file (relabel refuses a named step the version
+    lacks), and ``--no-activate`` is added when it is inactive, so the command does
+    not switch it on (``no_activate`` overrides). The command names the run's org
+    (the transport's ``target_org``) and the set."""
+    if getattr(engine, "dry_run", False):
+        return "nothing to restore in a preview (no PATCH was sent)."
+    keep, active = dict(name_to_label), None
+    try:
+        rows = engine.t.soql(
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
+            f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
+            f"AND ApiName = '{soql_literal(version_api_name)}'"
+        )
+        if rows:
+            active = bool(rows[0].get("IsActive"))
+            esdv = resolve_esdv(engine.t, es_def_id=es_def_id,
+                                version_number=rows[0].get("VersionNumber"),
+                                version_api_name=version_api_name)
+            current = step_labels(fetch_metadata(engine.t, esdv["Id"]))
+            keep = {n: l for n, l in name_to_label.items() if l and n in current}
+    except Exception:  # noqa: BLE001 -- the read only narrows the command
+        pass
+    if not keep:
+        return f"nothing to restore on {version_api_name} (none of its labelled steps remain)."
+    if no_activate is None:
+        no_activate = active is False
+    try:
+        with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", suffix=".json", delete=False,
+                prefix=f"relabel-{version_api_name}-") as fh:
+            json.dump(keep, fh, indent=2, ensure_ascii=False)
+            path = fh.name
+    except OSError as exc:
+        return f"could not save the labels to a file for relabel_expression_set.py ({exc})."
+    try:
+        rows = engine.t.soql("SELECT DeveloperName FROM ExpressionSetDefinition "
+                             f"WHERE Id = '{soql_literal(es_def_id)}'")
+        set_name = (rows[0].get("DeveloperName") if rows else None) or None
+    except Exception:  # noqa: BLE001 -- only fills a message
+        set_name = None
+    command = relabel_command(path, target_org=getattr(engine.t, "target_org", None),
+                              es_api_name=set_name, version_api_name=version_api_name,
+                              no_activate=no_activate)
+    if command is None or (active is None and not no_activate):
+        # A value is unknown (the org, the set, or whether the version is active,
+        # which decides --no-activate): describe the step instead.
+        return (f"run relabel_expression_set.py on {version_api_name} with "
+                f"--labels-file {path} (the labels saved), adding --no-activate if "
+                "the version is inactive.")
+    return f"run {command}"
 
 
 def capture_version_labels(
@@ -566,6 +627,13 @@ def restore_version_labels(
     for api_name, version_id, name_to_label in restore_maps:
         if skip_version_id and version_id == skip_version_id:
             skipped = True
+            if not engine.dry_run:  # a preview patched nothing
+                engine.log(f"Labels on {api_name} are left as the PATCH set them "
+                           "(--no-activate); to restore them and keep it inactive: "
+                           + relabel_hint(engine, es_id=es_id, es_def_id=es_def_id,
+                                          version_api_name=api_name,
+                                          name_to_label=name_to_label,
+                                          no_activate=True))
             continue
         result = restore_labels_after_clobber(
             engine, es_id=es_id, es_def_id=es_def_id, version_api_name=api_name,

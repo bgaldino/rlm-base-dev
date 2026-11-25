@@ -51,6 +51,11 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
     soql_literal,
 )
+from scripts.expression_sets._guards import (  # noqa: E402
+    MEASURED_1125,
+    VERSION_FIELDS,
+    null_rank_reactivation_refusal,
+)
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
@@ -121,8 +126,13 @@ def main(argv=None) -> int:
                f"version {esv.get('ApiName')} (currently IsActive={current}), "
                f"cascade={cascade}, {'PREVIEW' if preview else 'CONFIRM'}")
 
+        no_rank = "Rank" in esv and esv.get("Rank") is None
         if current == desired_active:
             eprint(f"Version already IsActive={desired_active}; nothing to do.")
+        elif desired_active and no_rank:
+            raise LifecycleError(null_rank_reactivation_refusal(
+                esv, True, alternative=None, target_org=args.target_org,
+                es_api_name=args.es_api_name))
         elif desired_active:
             # Activate ES version first, then reactivate referencing plans.
             engine.set_version_active(esv["Id"], True)
@@ -131,6 +141,11 @@ def main(argv=None) -> int:
                 plan_versions = _referencing_plan_versions(engine, es_def_id)
                 engine.cascade_reactivate_procedure_plans(plan_versions)
         else:
+            if no_rank:
+                eprint(f"WARNING: {esv.get('ApiName')} has no Rank. The API refuses to "
+                       "activate a version without one (\"Enter a valid rank to enable "
+                       f"…\", {MEASURED_1125}), so once deactivated it cannot be turned "
+                       "back on this way until it has a Rank.")
             # Deactivate referencing plans first, then the ES version.
             if cascade:
                 engine.cascade_deactivate_procedure_plans(es_def_id)
@@ -155,7 +170,7 @@ def main(argv=None) -> int:
 
 def _list_versions(engine, es_id):
     return engine.t.soql(
-        "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+        f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
         f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
         "ORDER BY IsActive DESC, VersionNumber DESC"
     )

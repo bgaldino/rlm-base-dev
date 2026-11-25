@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Optional, Set
 # Reuse the package's own validator harvesters/detectors so scope logic never
 # drifts from the overlay cross-check. In-package import (the toolkit is
 # self-contained — it does NOT import from tasks/).
+from ._guards import select_version
 from ._schema import (
     _IDENTIFIER_RE,
     _is_custom_ref,
@@ -171,14 +172,19 @@ class Edge:
 
 
 def _version(definition: dict, version_api_name: Optional[str]) -> dict:
+    """The named version; a one-version definition gives its only version. A name
+    that matches nothing, or several versions and no name, raises ValueError: the
+    caller names the version (the executing one by default), never the first."""
     versions = definition.get("versions", []) if isinstance(definition, dict) else []
     if not versions:
         return {}
-    if version_api_name:
-        for v in versions:
-            if v.get("apiName") == version_api_name:
-                return v
-    return versions[0]
+    version = select_version(versions, version_api_name)
+    if version is None:
+        raise ValueError(
+            f"Version '{version_api_name}' not found in the definition."
+            if version_api_name else
+            f"The definition has {len(versions)} versions; name the version.")
+    return version
 
 
 def _formula_tokens(step: dict) -> Set[str]:

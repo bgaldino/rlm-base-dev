@@ -10,6 +10,10 @@ steps and variables. Each side is either a live org (``--developer-name`` +
 * **org vs file** — has the live procedure drifted from the exported snapshot?
 * **file vs file** — what changed between two exports?
 
+Each side is one version: an org side's ``--left-version`` / ``--right-version``,
+else the version that executes (never the GET's first); a file side's named
+version, else its only version (a file with several versions needs the option).
+
 Steps are keyed by ``name`` and compared field-by-field after HTML-unescaping
 both sides (so a GET-escaped left vs a clean right does not show phantom
 changes). ``sequenceNumber`` differences are reported (order changes) but flagged
@@ -48,10 +52,12 @@ from scripts.expression_sets._client import (  # noqa: E402
     ExpressionSetClientError,
     eprint,
 )
+from scripts.expression_sets._guards import select_version  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_expression_set_id,
+    resolve_target_row,
 )
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
@@ -59,24 +65,41 @@ from scripts.expression_sets.export_expression_set import fetch_definition  # no
 _IGNORE_STEP_FIELDS = {"id"}
 
 
-def _load_side(name: str, *, dev_name, org, file, api_version):
-    """Return an (unescaped) definition dict for one side of the diff."""
+def _load_side(name: str, *, dev_name, org, file, api_version, version=None) -> dict:
+    """Return the (unescaped) version block one side of the diff compares.
+
+    An org side uses ``version``, else the executing version (never the GET's
+    first), matched in the GET by VersionNumber. A file side uses ``version``; a
+    file with one version gives that version; a file with several and no
+    ``version`` is refused.
+    """
+    flag = f"--{name.lower()}-version"
     if file:
         data = json.loads(Path(file).read_text(encoding="utf-8"))
         if isinstance(data, list):
             data = data[0] if data else {}
-        return unescape_value(data)
+        versions = (data.get("versions") or []) if isinstance(data, dict) else []
+        block = select_version(versions, version)
+        if block is None:
+            raise ExpressionSetClientError(
+                f"{name} file {file} has no version '{version}'." if version else
+                f"{name} file {file} has {len(versions)} versions; name one with {flag}.")
+        return unescape_value(block)
     if not dev_name:
         raise ExpressionSetClientError(
             f"{name} side needs either a --*-file or a --developer-name + org."
         )
     es_id = resolve_expression_set_id(dev_name, target_org=org, api_version=api_version)
-    return unescape_value(fetch_definition(es_id, org, api_version))
-
-
-def _first_version(defn: dict) -> dict:
-    versions = defn.get("versions") or []
-    return versions[0] if versions and isinstance(versions[0], dict) else {}
+    definition = fetch_definition(es_id, org, api_version)
+    row = resolve_target_row(es_id, version, target_org=org, api_version=api_version,
+                             logger=eprint)
+    block = select_version(definition.get("versions") or [], row.get("ApiName"),
+                           row.get("VersionNumber"))
+    if block is None:
+        raise ExpressionSetClientError(
+            f"{name} side: version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) "
+            "not found in the definition.")
+    return unescape_value(block)
 
 
 def _steps_by_name(version: dict) -> Dict[str, dict]:
@@ -96,8 +119,8 @@ def _changed_fields(left: dict, right: dict) -> List[str]:
     return changed
 
 
-def diff_definitions(left: dict, right: dict) -> dict:
-    lv, rv = _first_version(left), _first_version(right)
+def diff_versions(lv: dict, rv: dict) -> dict:
+    """Diff two version blocks (steps and variables)."""
     lsteps, rsteps = _steps_by_name(lv), _steps_by_name(rv)
     lvars, rvars = _vars_by_name(lv), _vars_by_name(rv)
 
@@ -170,6 +193,12 @@ def main(argv=None) -> int:
                         help="RIGHT-side SF CLI alias (defaults to --target-org).")
     parser.add_argument("--left-file", help="LEFT side from a JSON export file instead of an org.")
     parser.add_argument("--right-file", help="RIGHT side from a JSON export file instead of an org.")
+    parser.add_argument("--left-version",
+                        help="LEFT version apiName (org default: the executing version; "
+                             "required for a file with several versions).")
+    parser.add_argument("--right-version",
+                        help="RIGHT version apiName (org default: the executing version; "
+                             "required for a file with several versions).")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit the diff as JSON.")
@@ -185,15 +214,17 @@ def main(argv=None) -> int:
 
     try:
         left = _load_side("LEFT", dev_name=args.developer_name, org=args.target_org,
-                          file=args.left_file, api_version=args.api_version)
+                          file=args.left_file, api_version=args.api_version,
+                          version=args.left_version)
         right = _load_side("RIGHT", dev_name=args.developer_name,
                            org=args.right_org or args.target_org,
-                           file=args.right_file, api_version=args.api_version)
+                           file=args.right_file, api_version=args.api_version,
+                           version=args.right_version)
     except (ExpressionSetClientError, ResolveError, ValueError, OSError) as exc:
         eprint(f"Error: {exc}")
         return 1
 
-    result = diff_definitions(left, right)
+    result = diff_versions(left, right)
     left_label = args.left_file or f"{args.developer_name}@{args.target_org}"
     right_label = args.right_file or f"{args.developer_name}@{args.right_org or args.target_org}"
 

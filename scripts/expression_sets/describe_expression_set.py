@@ -46,7 +46,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.expression_sets._client import (  # noqa: E402
@@ -55,11 +55,13 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
+from scripts.expression_sets._guards import relabel_command, select_version  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
+    resolve_target_row,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
     ToolingError,
@@ -70,18 +72,20 @@ from scripts.expression_sets._tooling import (  # noqa: E402
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
 
-def _pick_version(definition: dict, version_api_name: Optional[str]) -> dict:
+def _pick_version(definition: dict, row: Dict[str, Any]) -> dict:
+    """The GET's block for ``row`` (an ExpressionSetVersion row): by VersionNumber,
+    then ApiName (the GET can serve a stale clone name); a one-version GET gives
+    its only version."""
     versions = definition.get("versions") or []
     if not versions:
         return {}
-    if version_api_name:
-        for v in versions:
-            if v.get("apiName") == version_api_name:
-                return v
+    version = select_version(versions, row.get("ApiName"), row.get("VersionNumber"))
+    if version is None:
         raise ExpressionSetClientError(
-            f"Version '{version_api_name}' not found in the definition."
+            f"Version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) not found "
+            "in the definition."
         )
-    return versions[0]
+    return version
 
 
 def _action_type(step: dict) -> str:
@@ -201,7 +205,8 @@ def main(argv=None) -> int:
     ident.add_argument("--developer-name", help="ExpressionSetDefinition DeveloperName.")
     ident.add_argument("--expression-set-id", help="Runtime ExpressionSet Id (prefix 9QL).")
     parser.add_argument("--version", dest="version_api_name",
-                        help="Version apiName to describe (default: first).")
+                        help="Version apiName to describe (default: the executing "
+                             "version).")
     parser.add_argument("--params", action="store_true",
                         help="Show each step's parameters and filter criteria.")
     parser.add_argument("--labels", action="store_true",
@@ -221,7 +226,12 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
-        version = _pick_version(definition, args.version_api_name)
+        # The named version, else the one that executes; never the GET's first
+        # (which can be a draft on a multi-version set).
+        row = resolve_target_row(es_id, args.version_api_name,
+                                 target_org=args.target_org,
+                                 api_version=args.api_version, logger=eprint)
+        version = _pick_version(definition, row)
     except (ExpressionSetClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1
@@ -294,7 +304,22 @@ def main(argv=None) -> int:
         if drifted:
             print(f"\n  ⚠ {len(drifted)} step(s) have no readable label "
                   f"(label missing or == name): {', '.join(drifted)}")
-            print("    Set readable labels with relabel_expression_set.py.")
+            # Relabelling cycles the version; keep an inactive one inactive. When its
+            # state is unknown the step is described rather than printed.
+            # --version is the sObject row's real ApiName: the GET block's apiName
+            # can be a stale clone name, which relabel would not find. A name with no
+            # sObject row (no VersionNumber) gets no command.
+            enabled = version.get("enabled", version.get("isActive"))
+            command = relabel_command(
+                target_org=args.target_org,
+                es_api_name=args.developer_name or definition.get("apiName"),
+                version_api_name=row.get("ApiName"),
+                no_activate=enabled is False
+            ) if (isinstance(enabled, bool) and row.get("ApiName")
+                  and row.get("VersionNumber") is not None) else None
+            print("    Set readable labels with relabel_expression_set.py"
+                  + (", for example best-effort labels derived from the step names: "
+                     + command if command else "."))
         else:
             print(f"\n  ✓ all {len(ordered)} step(s) have a readable label.")
 

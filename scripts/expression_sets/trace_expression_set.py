@@ -86,10 +86,12 @@ from scripts.expression_sets._client import (  # noqa: E402
 )
 from scripts.expression_sets._client import Transport  # noqa: E402
 from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
+from scripts.expression_sets._guards import select_version  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
+    resolve_target_row,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
     ToolingError,
@@ -273,7 +275,7 @@ def main(argv=None) -> int:
                           help="Consumed-no-producer / dead-output / undeclared-custom.")
 
     parser.add_argument("--version", dest="version_api_name",
-                        help="Version apiName to trace (default: first).")
+                        help="Version apiName to trace (default: the executing version).")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit the result as JSON.")
@@ -305,11 +307,23 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
+        # The named version, else the one that executes; never the GET's first.
+        # The GET's block is found by VersionNumber (its apiName can be stale).
+        row = resolve_target_row(es_id, args.version_api_name,
+                                 target_org=args.target_org,
+                                 api_version=args.api_version, logger=eprint)
+        block = select_version(definition.get("versions") or [], row.get("ApiName"),
+                               row.get("VersionNumber"))
+        if block is None:
+            raise ExpressionSetClientError(
+                f"Version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) not found "
+                "in the definition.")
     except (ExpressionSetClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1
 
-    graph = ExpressionSetGraph(definition, args.version_api_name)
+    # Exactly the block found by number (a stale name could repeat another's).
+    graph = ExpressionSetGraph(dict(definition, versions=[block]))
 
     if args.mermaid:
         title = f"{args.developer_name or es_id} — version {graph.version_api_name}"

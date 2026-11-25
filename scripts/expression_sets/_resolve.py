@@ -17,6 +17,12 @@ transport state beyond the ``target_org`` / ``api_version`` args.
 from typing import Any, Dict, List, Optional
 
 from . import _client
+from ._guards import (
+    VERSION_FIELDS,
+    executing_version,
+    rank_order_warning,
+    target_version_warning,
+)
 
 
 class ResolveError(RuntimeError):
@@ -86,29 +92,53 @@ def resolve_version_by_es_id(
 ) -> Dict[str, Any]:
     """Resolve the ``ExpressionSetVersion`` from the ExpressionSet Id.
 
-    Prefers the ACTIVE version (the one actually executing) over a merely
-    higher-numbered draft — mutating the wrong version would target a record
-    that isn't live. Orders by IsActive then VersionNumber so the active (or,
-    absent any active one, the highest-numbered) version is first.
+    Prefers the version actually executing (``_guards.executing_version``: the
+    highest Rank among active versions whose date window covers now) over a merely
+    higher-numbered draft — mutating the wrong version would target a record that
+    isn't live. Absent an executing version, the active (then highest-numbered)
+    version comes first.
     """
     log = logger or _client.eprint
     safe = _client.soql_literal(es_id)
     records = _query(
-        "SELECT Id, ApiName, IsActive, VersionNumber "
+        f"SELECT {VERSION_FIELDS} "
         f"FROM ExpressionSetVersion WHERE ExpressionSetId = '{safe}' "
         "ORDER BY IsActive DESC, VersionNumber DESC",
         target_org=target_org, api_version=api_version,
     )
     if not records:
         raise ResolveError(f"No ExpressionSetVersion found for ExpressionSet {es_id}.")
-    chosen = records[0]
+    try:
+        running = executing_version(records)
+        note = rank_order_warning(records)
+    except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
+        raise ResolveError(str(exc)) from exc
+    chosen = running or records[0]
     active = [r for r in records if r.get("IsActive")]
-    if len(active) > 1:
-        log(
-            f"WARNING: ExpressionSet {es_id} has {len(active)} active versions; "
-            f"operating on the highest-numbered active one ({chosen.get('ApiName')})."
-        )
+    message = target_version_warning(es_id, active, running, chosen)
+    if message:
+        log(f"WARNING: {message}")
+        if note:
+            log(f"WARNING: {note}")
     return chosen
+
+
+def resolve_target_row(
+    es_id: str, version_api_name: Optional[str] = None, *, target_org: str,
+    api_version: str = _client.DEFAULT_API_VERSION, logger=None,
+) -> Dict[str, Any]:
+    """The ``ExpressionSetVersion`` row a read tool works on: the one named by
+    ``version_api_name``, else the executing one (:func:`resolve_version_by_es_id`),
+    never the Connect GET's first. Pair it with ``_guards.select_version`` to find
+    the GET's block by VersionNumber. A name with no sObject row is returned as
+    ``{"ApiName": name}`` so a GET-only (stale clone) name still matches by name."""
+    if not version_api_name:
+        return resolve_version_by_es_id(es_id, target_org=target_org,
+                                        api_version=api_version, logger=logger)
+    rows = [r for r in list_versions(es_id, target_org=target_org,
+                                     api_version=api_version)
+            if r.get("ApiName") == version_api_name]
+    return rows[0] if rows else {"ApiName": version_api_name}
 
 
 def list_expression_sets(
@@ -151,10 +181,11 @@ def list_expression_sets(
 def list_versions(
     es_id: str, *, target_org: str, api_version: str = _client.DEFAULT_API_VERSION
 ) -> List[Dict[str, Any]]:
-    """All ExpressionSetVersion rows for an ExpressionSet (active first)."""
+    """All ExpressionSetVersion rows for an ExpressionSet (active first), with the
+    fields ``_guards.executing_version`` needs (Rank and the date window)."""
     safe = _client.soql_literal(es_id)
     return _query(
-        "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+        f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
         f"WHERE ExpressionSetId = '{safe}' ORDER BY IsActive DESC, VersionNumber DESC",
         target_org=target_org, api_version=api_version,
     )

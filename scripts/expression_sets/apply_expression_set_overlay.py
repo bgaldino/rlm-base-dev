@@ -55,6 +55,12 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
+from scripts.expression_sets._guards import (  # noqa: E402
+    NO_ACTIVATION_CLI,
+    null_rank_reactivation_refusal,
+    other_active_versions_refusal,
+    version_name_collision_refusal,
+)
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._overlay import (  # noqa: E402
     OverlayError,
@@ -110,7 +116,7 @@ def main(argv=None) -> int:
                              "the overlay's expressionSetApiName).")
     parser.add_argument("--version", dest="version_api_name",
                         help="Target version apiName (else the overlay's versionApiName, "
-                             "else the active version).")
+                             "else the executing version).")
     parser.add_argument("--no-verify", action="store_true",
                         help="Skip the post-PATCH verification re-GET.")
     parser.add_argument("--no-preserve-labels", action="store_true",
@@ -171,14 +177,38 @@ def main(argv=None) -> int:
         esv = resolve_version_by_es_id(
             es_id, target_org=args.target_org, api_version=args.api_version, logger=eprint
         )
+        # With no version named, edit the version the lifecycle cycles: the
+        # executing one. The GET lists versions lowest first, so its first entry
+        # can be a draft (measured on 264, 2026-11-25: an overlay with no version
+        # edited the draft v1 while reporting the active v2).
+        if not version_api_name:
+            version_api_name = esv.get("ApiName")
+        elif version_api_name != esv.get("ApiName"):
+            eprint(f"WARNING: the overlay edits {version_api_name}, but "
+                   f"{esv.get('ApiName')} is the executing version (highest Rank among "
+                   "active versions in their date window; earliest created among null "
+                   "Ranks), so pricing does not run the edited version.")
+
+        versions = list_versions(es_id, target_org=args.target_org,
+                                 api_version=args.api_version) or [esv]
+        # The GET's block is matched by VersionNumber: its apiName can be a stale
+        # clone name.
+        version_number = next((v.get("VersionNumber") for v in versions
+                               if v.get("ApiName") == version_api_name), None)
 
         # ---- local pre-flights (BEFORE any deactivation) ----------------- #
         preflight_def = engine.get_definition(es_id)
-        cross = validate_overlay_against_definition(overlay, preflight_def, version_api_name)
+        # Cross-check against exactly the block the run edits (found by number), so a
+        # stale GET name that repeats another version's cannot pick the wrong one.
+        preflight_block = find_version(
+            preflight_def.get("versions") or [], version_api_name,
+            version_number=version_number, error_cls=OverlayError)
+        cross = validate_overlay_against_definition(
+            overlay, dict(preflight_def, versions=[preflight_block]))
         if not _report(cross, "Overlay cross-check"):
             return 1
-        simulated = apply_overlay(preflight_def, overlay,
-                                  version_api_name=version_api_name, error_cls=OverlayError)
+        simulated = apply_overlay(preflight_def, overlay, version_api_name=version_api_name,
+                                  version_number=version_number, error_cls=OverlayError)
         # Validate the merge in the SAME shape it will be sent — normalized
         # (HTML-unescaped). Validating the raw GET here instead would emit an
         # HTML-entity warning for every pre-existing escaped value in the
@@ -199,8 +229,6 @@ def main(argv=None) -> int:
         # go only to the version it edits: --version can name a draft while
         # another version is active, and esv (active-first) is only the version
         # the lifecycle toggles. --no-preserve-labels opts out.
-        versions = list_versions(es_id, target_org=args.target_org,
-                                 api_version=args.api_version) or [esv]
         label_esv = esv
         if version_api_name and version_api_name != esv.get("ApiName"):
             label_esv = next((v for v in versions
@@ -220,8 +248,21 @@ def main(argv=None) -> int:
                    f"version. --no-preserve-labels to skip.")
         elif not preserve_labels:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
-                   "will NOT be restored (run relabel_expression_set.py to fix).")
+                   "will NOT be restored. Set them afterwards per version with "
+                   "relabel_expression_set.py (--auto derives best-effort labels from "
+                   "the step names; add --no-activate for an inactive version).")
 
+        # Before any write: a null-Rank active version could not be reactivated, the
+        # PATCH must not rewrite another active version, and the versions it sends
+        # need unique names.
+        refusal = (null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
+                                                  target_org=args.target_org,
+                                                  es_api_name=es_api_name)
+                   or other_active_versions_refusal(es_api_name, versions, esv,
+                                                    target_org=args.target_org)
+                   or version_name_collision_refusal(es_api_name, versions, simulated))
+        if refusal:
+            raise LifecycleError(refusal)
         engine.ensure_resource_initialization_type(
             es_id, preflight_def.get("resourceInitializationType")
         )
@@ -231,7 +272,8 @@ def main(argv=None) -> int:
             # state; re-merge + re-validate as a last guard against drift.
             definition = engine.get_definition(es_id)
             modified = apply_overlay(definition, overlay,
-                                     version_api_name=version_api_name, error_cls=OverlayError)
+                                     version_api_name=version_api_name,
+                                     version_number=version_number, error_cls=OverlayError)
             merged = validate_definition(modified)
             if not merged.passed:
                 raise LifecycleError(
@@ -242,7 +284,8 @@ def main(argv=None) -> int:
             engine.patch_definition(es_id, patch_payload)
             engine.log(f"PATCHed expression set {es_id}.")
             if verify and not preview:
-                _verify(engine, es_id, overlay, version_api_name, patch_payload)
+                _verify(engine, es_id, overlay, version_api_name, patch_payload,
+                        version_number=version_number)
 
         engine.run_mutation(
             es_def_id=es_def_id, esv=esv, mutate=mutate,
@@ -262,9 +305,9 @@ def main(argv=None) -> int:
             engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
             skip_version_id=None if activate_after else esv.get("Id"),
         )
-        if restore_result.pop("skipped"):
-            eprint("Note: --no-activate set — leaving labels un-restored (relabel "
-                   "needs to reactivate). Run relabel_expression_set.py when ready.")
+        if restore_result.pop("skipped") and not preview:
+            eprint("Note: --no-activate set — the toggled version's labels were left "
+                   "un-restored; the relabel command printed above restores them.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, OverlayError) as exc:
         eprint(f"\nFAILED: {exc}")
@@ -278,8 +321,8 @@ def main(argv=None) -> int:
     else:
         eprint(f"\nApplied overlay {args.overlay} to {es_api_name}, but step-label "
                f"RESTORE FAILED ({restore_result.get('error')}). Check version and "
-               f"procedure-plan activation states, then re-run "
-               f"relabel_expression_set.py --expression-set {es_api_name} if needed.")
+               f"procedure-plan activation states, then run the relabel command "
+               f"printed above for each version whose restore failed.")
     if args.json:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,
@@ -287,14 +330,17 @@ def main(argv=None) -> int:
     return 0 if restore_ok else 1
 
 
-def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected):
+def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected,
+            version_number=None):
     """Verify the full step graph in the target version, rejecting unexpected steps."""
     definition = engine.get_definition(es_id)
     versions = definition.get("versions") or []
     if not versions:
         raise LifecycleError("Verification failed: post-PATCH definition returned no versions.")
-    version = find_version(versions, version_api_name, error_cls=LifecycleError)
+    version = find_version(versions, version_api_name, version_number=version_number,
+                           error_cls=LifecycleError)
     expected_version = find_version(expected.get("versions", []), version_api_name,
+                                    version_number=version_number,
                                     error_cls=LifecycleError)
     errors = overlay_step_content_errors(overlay, expected_version, version)
     if errors:
