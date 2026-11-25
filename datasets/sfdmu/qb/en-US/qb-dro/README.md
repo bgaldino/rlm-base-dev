@@ -48,11 +48,12 @@ target. The step is reached by products decomposed to
 callout on its tenant-provisioning steps [inferred from its step definitions; not run].
 
 Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and ran at order activation on new-sale orders that contain `QB-API-MGMT`. It has no
+- The step is wired and ran when the order was activated (its start time equalled plan creation; that this was
+  synchronous is inferred) on new-sale orders that contain `QB-API-MGMT`. It has no
   condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to
   `QB-DRO-APIPLAT` decomposition rule. Orders with only `QB-API` or `QB-API-FLEX` did not reach it. Amend, renew and
   cancel orders (the scenario lists them) were not run.
-- It fails at once: the debug log shows the callout throwing `CalloutException` (no `RLM` named credential), and the
+- It failed on its first attempt, straight away: the debug log shows the callout throwing `CalloutException` (no `RLM` named credential), and the
   step goes `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
   [inferred from the class]). The 0 retries are attributed to the missing decision tables below [inferred]: the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied, and their effect once the tables exist was not measured.

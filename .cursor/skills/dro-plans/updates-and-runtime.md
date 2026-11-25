@@ -500,23 +500,24 @@ these conditions; rerun the amendment and cancel checks there.
   Nothing reacts to a step's completion: a describe of `FulfillmentStep` returns `triggerable`
   false [Measured: 2026-11-18, 264, scratch]. Put follow-on work in a later step, or leave it to a person.
 
-## Tenant Callout Step (qb-dro) and DFO Callout
+## Tenant Provisioning Callout Step (qb-dro)
 
 `qb-dro` ships the Callout step `Stage New Tenant for Provisioning - Platform`
 (`RLM_DFOTenantProvisioningCallout`, posting to `callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`).
 This repo ships neither the `RLM` named credential nor the REST resource. On a fresh 264 `dro` build
 [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and ran at order activation on new-sale orders containing `QB-API-MGMT`
+- The step is wired and ran when the order was activated (its start time equalled plan creation; that this was
+  synchronous is inferred) on new-sale orders containing `QB-API-MGMT`
   (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group `Platform`). Neither the
   rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders did not reach it.
-- It fails at once. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
+- It failed on its first attempt, straight away. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
   `System.CalloutException: ... the named credential "RLM" might not exist`. The step is `FatallyFailed` with
   `RetryAttempts` 0. The class returns `isSuccess=false` (code 503) on that path [inferred from the class]; the log does
   not show the returned value. The 0 retries are attributed to the missing decision tables below [inferred]: the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied, and their effect once the tables exist was not measured.
 - It stalls the billing chain. Receive Key + Assign to Asset and Provision Licensing/Features depend on it;
-  Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), then Post Invoice, then
-  Receive Payment. All stayed `Pending` and the plan stayed `InProgress`.
+  Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), which gates Post Invoice,
+  which gates Receive Payment. All stayed `Pending` and the plan stayed `InProgress`.
 - `ExecutionMessage` showed `Fallout Rule is misconfigured: Specify valid name for Data set Link`, not the exception text,
   because that build had no fallout or jeopardy decision tables (see **Fallout and jeopardy rules** above). The exception
   text was visible only in the debug log. Whether it surfaces with the tables present was not measured.
@@ -542,7 +543,8 @@ remove or condition the step. This section records behaviour, not a fix.
    builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start). A direct
    `OrderItem` create could not set `ProductSellingModelId` [Measured: 2026-11-25, 264, scratch, one org].
 3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` there; a plan
-   sourced from order items would carry an OrderItem id, so then use `SourceIdentifier IN ('<orderId>', <orderItemIds>)`):
+   sourced from order items would carry an OrderItem id [inferred from `RLM_AccountUtilities`, which queries both
+   source types], so then use `SourceIdentifier IN ('<orderId>', <orderItemIds>)`):
 
    ```bash
    sf data query --target-org "<sf_alias>" --query "SELECT Id, Name, State, SourceType FROM FulfillmentPlan WHERE SourceIdentifier = '<orderId>'"
