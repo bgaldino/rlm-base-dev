@@ -60,7 +60,7 @@ description: >-
   audit's least-privilege lens flags over-grants too. (A field touched only in a
   *system-mode* query does not need FLS.)
 
-## Admin-only raw diagnostics (owner decision, 2026-11-25)
+## Admin and back-office raw diagnostics (owner decision, 2026-11-25)
 
 Raw text is kept where the audience is admin or back-office: ExpressionSetManager errors (its banner shows
 every failure's text), `RLM_DFOTenantProvisioningCallout` failures (the DRO step's error: exception text, record
