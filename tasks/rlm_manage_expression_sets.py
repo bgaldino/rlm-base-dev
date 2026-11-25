@@ -55,7 +55,7 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": True
         },
         "developer_names": {
-            "description": "Expression Set DeveloperNames to operate on (comma-separated string or list). If not provided, queries all expression sets. Used by list, query and list_versions only; version operations ignore it: activate_version and deactivate_version read version_full_name; activate_versions and deactivate_versions read version_full_names, else every version under metadata_path (default force-app/main/default/expressionSetDefinition).",
+            "description": "Expression Set DeveloperNames to operate on (comma-separated string or list). If not provided, queries all expression sets. Used by list, query and list_versions only; version operations ignore it: activate_version and deactivate_version read version_full_name; activate_versions and deactivate_versions read version_full_names, else every version in the metadata_path directory (default force-app/main/default/expressionSetDefinition).",
             "required": False
         },
         "status": {
