@@ -4763,8 +4763,9 @@ flows:
             - RLM_CollectionsUI
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the two apps (the standard__CollectionConsole
-    # override and RLM_Receivables_Management) are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
-    # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
+    # override and RLM_Receivables_Management) are assembled + deployed by
+    # assemble_and_deploy_ux (prepare_ux flow, step 30), gated on the same collections flag.
+    # The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
   prepare_revenue_settings:
