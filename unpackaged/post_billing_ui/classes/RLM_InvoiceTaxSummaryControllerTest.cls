@@ -64,8 +64,9 @@ private class RLM_InvoiceTaxSummaryControllerTest {
 
     // Industry stands in for the currency column, so two groups share a name: toRows keeps every
     // group as its own row and never merges rows by name. AVG(NumberOfEmployees) stands in for
-    // the total: A's 1 and 2 average 1.5, so a toRows that rounds fails, and a number field (not
-    // a currency) is never rounded to the corporate currency's decimal places (0 for JPY).
+    // the total: A's 1 and 2 average 1.5, so a toRows that rounds to a whole number fails, and a
+    // number field (not a currency) is never rounded to the corporate currency's decimal places
+    // (0 for JPY).
     @isTest
     static void toRows_buildsOneRowPerGroupInTheGivenOrder() {
         insertAccounts();
