@@ -55,6 +55,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
+from scripts.expression_sets._guards import relabel_command  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
@@ -294,7 +295,12 @@ def main(argv=None) -> int:
         if drifted:
             print(f"\n  ⚠ {len(drifted)} step(s) have no readable label "
                   f"(label missing or == name): {', '.join(drifted)}")
-            print("    Set readable labels with relabel_expression_set.py.")
+            print("    Set readable labels with relabel_expression_set.py, for example "
+                  "best-effort labels derived from the step names: "
+                  + relabel_command(target_org=args.target_org,
+                                    es_api_name=args.developer_name
+                                    or definition.get("apiName"),
+                                    version_api_name=version.get("apiName")))
         else:
             print(f"\n  ✓ all {len(ordered)} step(s) have a readable label.")
 

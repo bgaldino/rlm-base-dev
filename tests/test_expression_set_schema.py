@@ -2220,6 +2220,60 @@ def test_overlay_multi_version_target_and_name_guard():
           "--confirm" in both["error"] and "NOT-THIS" not in both["error"])
 
 
+def test_label_restore_failure_prints_a_runnable_relabel_command():
+    # A failed CCI label restore prints a relabel_expression_set.py command that
+    # runs as printed: the org's username, the set, the version, and a labels file
+    # holding only the steps the version still has.
+    import json as _json
+    import logging
+    import re as _re
+    from pathlib import Path
+
+    warnings = []
+    task = object.__new__(ApplyExpressionSetOverlay)
+    task.logger = logging.getLogger("test_label_restore_hint")
+    task.logger.warning = lambda msg, *args: warnings.append(msg % args)
+    task.org_config = type("Org", (), {"username": "user@org.test",
+                                       "access_token": "NOT-THIS"})()
+    task._soql_query = lambda q: ([{"DeveloperName": "ESX"}]
+                                  if "FROM ExpressionSetDefinition" in q else [])
+    task._resolve_esdv_id = lambda es_def_id, number: "9QBx"
+    task._get_step_metadata = lambda esdv_id: {
+        "steps": [{"name": "A", "label": "A"}, {"name": "B", "label": "B"}]}
+
+    def fail(*a, **k):
+        raise RuntimeError("tooling boom")
+
+    task._tooling_request = fail
+    # The cycled version ends active (activate_after), a draft stays inactive.
+    task._label_final_active = {"9QMv": True, "9QMd": False}
+    ok = task._restore_step_labels(
+        es_def_id="9QAx", esv={"Id": "9QMv", "ApiName": "ESX_V1", "VersionNumber": 1,
+                               "IsActive": True},
+        labels={"A": "A Label", "Gone": "Gone Label"})
+    hint = warnings[0] if warnings else ""
+    found = _re.search(r"relabel_expression_set\.py --target-org user@org\.test "
+                       r"--expression-set ESX --version ESX_V1 --labels-file (\S+) "
+                       r"--confirm", hint)
+    saved = _json.loads(Path(found.group(1)).read_text()) if found else None
+    check("CCI label-restore failure prints a complete relabel command with the "
+          "surviving labels, and never the token",
+          ok is False and saved == {"A": "A Label"} and "NOT-THIS" not in hint)
+    if found:
+        Path(found.group(1)).unlink()
+    task._restore_step_labels(
+        es_def_id="9QAx", esv={"Id": "9QMd", "ApiName": "ESX_V2", "VersionNumber": 2,
+                               "IsActive": False},
+        labels={"A": "A Label"})
+    draft_hint = warnings[1] if len(warnings) > 1 else ""
+    found_draft = _re.search(r"--version ESX_V2 --labels-file (\S+) --no-activate "
+                             r"--confirm", draft_hint)
+    check("CCI: a failed restore on a version that ends inactive adds --no-activate",
+          found_draft is not None)
+    if found_draft:
+        Path(found_draft.group(1)).unlink()
+
+
 def test_import_replace_restores_every_version():
     # A replace import PATCHes the full graph, which relabels every version of
     # the set, so the task hands all of them to _run_connect_mutation.

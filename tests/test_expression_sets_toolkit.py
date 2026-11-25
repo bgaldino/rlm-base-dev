@@ -816,10 +816,17 @@ def test_label_preservation():
     logs6 = []
     t6 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True,
                             is_active=True)
+    t6.target_org = "org-alias"  # the --target-org the run used
+    plain_soql = t6.soql
+    t6.soql = lambda q, *a, **k: ([{"DeveloperName": "TEST"}]
+                                  if "FROM ExpressionSetDefinition" in q
+                                  else plain_soql(q, *a, **k))
     engine6 = LifecycleEngine(t6, logger=lambda *a, **k: None)
     r6 = restore_labels_after_clobber(
         engine6, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
-        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        # "RemovedStep" was captured before the PATCH but the version no longer has it.
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override",
+                       "RemovedStep": "Removed Step"},
         logger=logs6.append,
     )
     check("restore swallows PATCH failure (ok=False, no raise)", r6["ok"] is False, r6)
@@ -828,6 +835,74 @@ def test_label_preservation():
           t6.is_active is True, t6.is_active)
     check("restore logs a fix hint on failure",
           any("relabel_expression_set.py" in m for m in logs6), logs6)
+    import re as _re
+    hint = next((m for m in logs6 if "relabel_expression_set.py" in m), "")
+    found = _re.search(r"relabel_expression_set\.py --target-org org-alias "
+                       r"--expression-set TEST --version TEST_V1 --labels-file (\S+) "
+                       r"--confirm", hint)
+    saved = json.loads(Path(found.group(1)).read_text()) if found else None
+    check("the fix hint is a complete relabel command on the run's org and set (no "
+          "--no-activate for an active version), its file holding only steps the "
+          "version still has",
+          saved == {"ApplyHeaderPriceOverride": "Apply Header Price Override"}, hint)
+    if found:
+        Path(found.group(1)).unlink()
+
+    # The same failure on an inactive version adds --no-activate, so running the
+    # command does not switch the draft on.
+    logs8 = []
+    t8 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True,
+                            is_active=False)
+    t8.target_org = "org-alias"
+    restore_labels_after_clobber(
+        LifecycleEngine(t8, logger=lambda *a, **k: None), es_id="9QLx",
+        es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        logger=logs8.append)
+    hint8 = next((m for m in logs8 if "relabel_expression_set.py" in m), "")
+    found8 = _re.search(r"--version TEST_V1 --labels-file (\S+) --no-activate --confirm",
+                        hint8)
+    check("a failed restore on an inactive version prints --no-activate",
+          found8 is not None and t8.is_active is False, hint8)
+    if found8:
+        Path(found8.group(1)).unlink()
+
+    # --no-activate: the toggled version is skipped, with a command that restores
+    # its surviving labels and keeps it inactive.
+    from scripts.expression_sets._tooling import restore_version_labels
+    logs7 = []
+    t7 = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    t7.target_org = "org-alias"
+    engine7 = LifecycleEngine(t7, logger=logs7.append)
+    r7 = restore_version_labels(
+        engine7, [("TEST_V1", "9QMv", {"ApplyHeaderPriceOverride": "Apply Header",
+                                       "RemovedStep": "Removed Step"})],
+        es_id="9QLx", es_def_id="9QAx", skip_version_id="9QMv")
+    skip_hint = next((m for m in logs7 if "relabel_expression_set.py" in m), "")
+    found7 = _re.search(r"--target-org org-alias --expression-set \S+ --version TEST_V1 "
+                        r"--labels-file (\S+) --no-activate --confirm", skip_hint)
+    check("a version skipped under --no-activate gets a runnable relabel command that "
+          "keeps it inactive, with only its surviving steps",
+          r7["skipped"] is True and found7 is not None
+          and json.loads(Path(found7.group(1)).read_text())
+          == {"ApplyHeaderPriceOverride": "Apply Header"}, skip_hint)
+    if found7:
+        Path(found7.group(1)).unlink()
+
+    # A preview patched nothing: no file and no command for the skipped version.
+    logs9 = []
+    t9 = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    t9.dry_run = True
+    import tempfile as _tempfile
+    before = set(Path(_tempfile.gettempdir()).glob("relabel-TEST_V1-*.json"))
+    r9 = restore_version_labels(
+        LifecycleEngine(t9, logger=logs9.append),
+        [("TEST_V1", "9QMv", {"ApplyHeaderPriceOverride": "Apply Header"})],
+        es_id="9QLx", es_def_id="9QAx", skip_version_id="9QMv")
+    after = set(Path(_tempfile.gettempdir()).glob("relabel-TEST_V1-*.json"))
+    check("a preview skip prints no relabel command and writes no labels file",
+          r9["skipped"] is True and after == before
+          and not any("relabel_expression_set.py" in m for m in logs9), logs9)
 
 
 # --------------------------------------------------------------------------- #
@@ -2631,6 +2706,30 @@ def test_client_auth_hint():
     check("an auth code alongside a payload code keeps the hint", "sf org login web" in mixed, mixed)
     cli = failure("", stderr="No authorization information found for rlm-base__t.")
     check("CLI-level failure (no error code) keeps the auth hint", "sf org login web" in cli and "No authorization" in cli, cli)
+
+    # No sf on PATH: the login command names the org the call targeted.
+    real_run = subprocess.run
+
+    def missing(*a, **k):
+        raise FileNotFoundError("sf")
+
+    subprocess.run = missing
+    try:
+        _client._run_sf(["api", "request", "rest", "/x", "--target-org", "rlm-base__t"])
+        not_found = ""
+    except _client.ExpressionSetClientError as exc:
+        not_found = str(exc)
+    finally:
+        subprocess.run = real_run
+    check("sf not found: the login command names the call's org",
+          "sf org login web --alias rlm-base__t" in not_found, not_found)
+
+    # relabel_command: complete either way (labels file, or --auto when none).
+    from scripts.expression_sets._guards import relabel_command
+    check("relabel_command with no labels file is a complete --auto command",
+          relabel_command(target_org="o", es_api_name="S", version_api_name="S_V1")
+          == "python scripts/expression_sets/relabel_expression_set.py --target-org o "
+             "--expression-set S --version S_V1 --auto --confirm")
 
 
 def main():

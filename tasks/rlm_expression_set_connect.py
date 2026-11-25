@@ -51,6 +51,7 @@ carries HTML entities (i.e. un-normalized GET output). Pass
 """
 import html
 import json
+import tempfile
 import time
 from copy import deepcopy
 from pathlib import Path
@@ -87,6 +88,7 @@ from scripts.expression_sets._guards import (
     null_rank_delete_refusal,
     null_rank_reactivation_refusal,
     other_active_versions_refusal,
+    relabel_command,
     version_name_collision_refusal,
     rank_order_warning,
     target_version_warning,
@@ -722,6 +724,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         elif dry_run and preserve_requested:
             self.logger.info("[dry-run] Would restore step labels after the PATCH.")
         self._labels_clobbered = False
+        # Each version's state once this run ends, for a printed relabel command:
+        # the cycled version ends active only with activate_after; the others keep
+        # their own state.
+        self._label_final_active = {
+            version.get("Id"): (bool(activate_after) if version.get("Id") == esv.get("Id")
+                                else bool(version.get("IsActive")))
+            for version, _ in captured
+        }
 
         def mutate_and_restore():
             mutate()
@@ -1045,6 +1055,33 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             return {}
         return {n: l for n, l in labels.items() if l and l != n}
 
+    def _relabel_hint(self, es_def_id: str, esv: dict, labels: Dict[str, str],
+                      current: Optional[Dict[str, str]]) -> str:
+        """How to restore ``labels`` on ``esv``, as a relabel_expression_set.py
+        command that runs as printed: the labels (only steps the version still has,
+        when known) go to a JSON file; the command names the org's username and the
+        set, and adds --no-activate when the version ends this run inactive, so it
+        does not switch it on."""
+        keep = {n: l for n, l in labels.items()
+                if l and (current is None or n in current)}
+        if not keep:
+            return (f"nothing to restore on {esv.get('ApiName')} (none of its labelled "
+                    "steps remain).")
+        final_active = getattr(self, "_label_final_active", {}).get(
+            esv.get("Id"), bool(esv.get("IsActive")))
+        try:
+            with tempfile.NamedTemporaryFile(
+                    "w", encoding="utf-8", suffix=".json", delete=False,
+                    prefix=f"relabel-{esv.get('ApiName')}-") as fh:
+                json.dump(keep, fh, indent=2, ensure_ascii=False)
+                path = fh.name
+        except OSError as exc:
+            return f"could not save the labels to a file ({exc})."
+        return "run " + relabel_command(path, target_org=self._org_username(),
+                                        es_api_name=self._definition_name(es_def_id),
+                                        version_api_name=esv.get("ApiName"),
+                                        no_activate=not final_active)
+
     def _restore_step_labels(
         self,
         *,
@@ -1060,6 +1097,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         """
         if not labels:
             return True
+        current: Optional[Dict[str, str]] = None
         try:
             esdv_id = self._resolve_esdv_id(es_def_id, esv.get("VersionNumber"))
             metadata = self._get_step_metadata(esdv_id)
@@ -1087,8 +1125,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         except Exception as exc:  # noqa: BLE001 — only label work is cosmetic
             self.logger.warning(
                 "The Connect mutation succeeded, but restoring step labels "
-                "failed (%s). Re-run scripts/expression_sets/"
-                "relabel_expression_set.py to restore them.", exc,
+                "failed (%s). To restore them: %s", exc,
+                self._relabel_hint(es_def_id, esv, labels, current),
             )
             return False
         self.logger.info("Restored %d step label(s).", len(planned))

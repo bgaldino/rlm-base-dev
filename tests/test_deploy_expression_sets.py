@@ -191,6 +191,7 @@ def make_task(mode, rows, package_b64):
     task.logger.setLevel(logging.INFO)
     task.logger.propagate = False
     task.options = {"version_check": mode}
+    task.org_config = type("Org", (), {"name": "tk-org", "username": "u@x.test"})()
     task.version_check = mode
     task._deployed_package = package_b64
     task._sf_client = _FakeSf(
@@ -245,8 +246,11 @@ check("the failure names the remedies: run the steps after this one (a harness r
       and "re-rank the executing version" in str(raised)
       and "set_step_formula.py" in str(raised)
       and "activate_and_deploy_expression_sets__version_check warn" in str(raised)
-      and "cci task run activate_and_deploy_expression_sets -o version_check warn"
-      in str(raised)
+      and "cci task run activate_and_deploy_expression_sets --org tk-org -o "
+      "version_check warn" in str(raised)
+      and "cci flow run prepare_rlm_org --org tk-org -o "
+      "activate_and_deploy_expression_sets__version_check warn" in str(raised)
+      and "<org>" not in str(raised)
       and "future builds" in str(raised), raised)
 
 

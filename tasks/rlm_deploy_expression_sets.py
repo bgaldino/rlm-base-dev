@@ -274,6 +274,8 @@ class DeployExpressionSets(Deploy):
         for finding in findings:
             log(finding)
         if self.version_check == "fail":
+            # The CCI org this task ran against, so the printed commands run as is.
+            org = getattr(getattr(self, "org_config", None), "name", None) or "<org>"
             raise CumulusCIFailure(
                 message + " The deploy has already been applied, and re-running this "
                 "step on a built org is refused by the platform, so do not re-run it "
@@ -283,8 +285,8 @@ class DeployExpressionSets(Deploy):
                 "version executes, edit or re-rank the executing version "
                 "(scripts/expression_sets/set_step_formula.py for formulas). "
                 "version_check warn is for future builds on an org whose version chain "
-                "is known (cci task run activate_and_deploy_expression_sets -o "
-                "version_check warn, or cci flow run prepare_rlm_org -o "
+                f"is known (cci task run activate_and_deploy_expression_sets --org {org} "
+                f"-o version_check warn, or cci flow run prepare_rlm_org --org {org} -o "
                 "activate_and_deploy_expression_sets__version_check warn).\n"
                 + READBACK_FAILURE_SIGNATURE
             )

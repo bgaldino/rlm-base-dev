@@ -215,6 +215,22 @@ def _activate_cmd(esv: Dict[str, Any], flag: str, target_org: Optional[str] = No
             f"--version {esv.get('ApiName') or '<ApiName>'} {flag} --confirm")
 
 
+def relabel_command(labels_path: Optional[str] = None, *,
+                    target_org: Optional[str] = None,
+                    es_api_name: Optional[str] = None,
+                    version_api_name: Optional[str] = None,
+                    no_activate: bool = False) -> str:
+    """A relabel_expression_set.py command for one version, filled with the run's
+    org and set so it runs as printed. It restores ``labels_path`` (a JSON
+    ``{step name: label}`` file), or with none derives labels from the step names
+    (``--auto``, best-effort). ``no_activate`` keeps an inactive version inactive."""
+    source = f"--labels-file {labels_path}" if labels_path else "--auto"
+    return ("python scripts/expression_sets/relabel_expression_set.py --target-org "
+            f"{target_org or '<alias>'} --expression-set {es_api_name or '<name>'} "
+            + (f"--version {version_api_name} " if version_api_name else "")
+            + f"{source} " + ("--no-activate " if no_activate else "") + "--confirm")
+
+
 def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str],
                  target_org: Optional[str] = None,
                  es_api_name: Optional[str] = None) -> str:

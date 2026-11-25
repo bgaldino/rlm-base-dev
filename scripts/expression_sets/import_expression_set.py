@@ -76,6 +76,7 @@ from scripts.expression_sets._guards import (  # noqa: E402
     NO_ACTIVATION_CLI,
     import_target_refusal,
     null_rank_reactivation_refusal,
+    relabel_command,
 )
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
@@ -231,7 +232,10 @@ def main(argv=None) -> int:
                        f"--no-preserve-labels to skip.")
             elif not preserve_labels:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
-                       "restored (run relabel_expression_set.py to fix).")
+                       "restored. To set best-effort labels derived from the step "
+                       "names afterwards, run: "
+                       + relabel_command(target_org=args.target_org, es_api_name=api_name,
+                                         version_api_name=esv.get("ApiName")))
             # Before any write: a null-Rank active version could not be reactivated.
             refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
                                                      target_org=args.target_org,
@@ -264,10 +268,10 @@ def main(argv=None) -> int:
                 cascade=cascade,
                 skip_version_id=None if activate_after else esv.get("Id"),
             )
-            if restore_result.pop("skipped"):
-                eprint("Note: --no-activate set — leaving labels un-restored "
-                       "(relabel needs to reactivate). Run relabel_expression_set.py "
-                       "when ready.")
+            if restore_result.pop("skipped") and not preview:
+                eprint("Note: --no-activate set — the toggled version's labels were "
+                       "left un-restored; the relabel command printed above restores "
+                       "them.")
             result["expressionSetId"] = es_id
             result["versionId"] = esv["Id"]
         else:  # create
@@ -308,8 +312,8 @@ def main(argv=None) -> int:
     else:
         eprint(f"\nImport applied for '{api_name}', but step-label RESTORE FAILED "
                f"({restore_result.get('error')}). Check version and procedure-plan "
-               f"activation states, then re-run relabel_expression_set.py "
-               f"--expression-set {api_name} if needed.")
+               f"activation states, then run the relabel command printed above for "
+               f"each version whose restore failed.")
     if args.json:
         print(json.dumps(result, indent=2))
     return 0 if restore_ok else 1

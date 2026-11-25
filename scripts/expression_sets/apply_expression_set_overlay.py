@@ -59,6 +59,7 @@ from scripts.expression_sets._guards import (  # noqa: E402
     NO_ACTIVATION_CLI,
     null_rank_reactivation_refusal,
     other_active_versions_refusal,
+    relabel_command,
     version_name_collision_refusal,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
@@ -237,7 +238,10 @@ def main(argv=None) -> int:
                    f"version. --no-preserve-labels to skip.")
         elif not preserve_labels:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
-                   "will NOT be restored (run relabel_expression_set.py to fix).")
+                   "will NOT be restored. To set best-effort labels derived from the "
+                   "step names afterwards, run (per version): "
+                   + relabel_command(target_org=args.target_org, es_api_name=es_api_name,
+                                     version_api_name=version_api_name))
 
         # Before any write: a null-Rank active version could not be reactivated, the
         # PATCH must not rewrite another active version, and the versions it sends
@@ -290,9 +294,9 @@ def main(argv=None) -> int:
             engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
             skip_version_id=None if activate_after else esv.get("Id"),
         )
-        if restore_result.pop("skipped"):
-            eprint("Note: --no-activate set — leaving labels un-restored (relabel "
-                   "needs to reactivate). Run relabel_expression_set.py when ready.")
+        if restore_result.pop("skipped") and not preview:
+            eprint("Note: --no-activate set — the toggled version's labels were left "
+                   "un-restored; the relabel command printed above restores them.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, OverlayError) as exc:
         eprint(f"\nFAILED: {exc}")
@@ -306,8 +310,8 @@ def main(argv=None) -> int:
     else:
         eprint(f"\nApplied overlay {args.overlay} to {es_api_name}, but step-label "
                f"RESTORE FAILED ({restore_result.get('error')}). Check version and "
-               f"procedure-plan activation states, then re-run "
-               f"relabel_expression_set.py --expression-set {es_api_name} if needed.")
+               f"procedure-plan activation states, then run the relabel command "
+               f"printed above for each version whose restore failed.")
     if args.json:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,
