@@ -96,18 +96,20 @@ ProductCategoryProduct.csv               # 72 records
   source org kept both from before the rule existed (todo 319, owner decision).
 - The source org's `Unit` UnitOfMeasureClass had no `Type`, which 264 requires. Nothing references
   it, so it was dropped (todo 319).
-- **Product images use one shipped placeholder (todo 416).** The 39 products that carry a
-  `DisplayUrl` point at `/resource/RLM_product_placeholder`, a neutral 200x200 image in
-  `force-app/main/default/staticresources/` that `deploy_full` deploys on every build; the other 39
-  have none. They used to hotlink images on 18 third-party hosts, which break without notice and
-  which the repo has no license to use. To give a product its own image, ship it as a static
-  resource and point the row at `/resource/<name>`. To move an org loaded before this change,
-  deploy the `RLM_product_placeholder` static resource first, then reload this plan; until the
-  resource is in the org, the 39 rows point at an image that does not resolve.
-- **The trusted sites added for those images are gone from the repo.** `unpackaged/post_quantumbit`
-  used to deploy 16 CSP trusted sites (`img-src` only) that were added for those images; nothing
-  else in the repo used them, so they were removed. Metadata deploys don't delete, so an org built before this change keeps
-  the 16 records until they are deleted by hand in Setup → Trusted URLs: `amazon_media`,
-  `apjonlinecdn`, `bruneau`, `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`,
-  `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
-  `shutterstock`, `unsplash`.
+- **Product images use one shipped placeholder (todo 416).** All 78 products point
+  `DisplayUrl` at `/resource/RLM_product_placeholder`, a neutral 200x200 image in
+  `force-app/main/default/staticresources/` that `deploy_full` deploys on every build. That is
+  one deliberate fallback image, as the product-catalog-modeling skill asks, rather than a split
+  by whichever rows happened to have an address. 39 of them used to hotlink images on 18
+  third-party hosts, which break without notice and which the repo has no license to use; the
+  other 39 had none. To give a product its own image, ship it as a static resource and point the
+  row at `/resource/<name>`. To move an org loaded before this change, deploy the
+  `RLM_product_placeholder` static resource first, then reload this plan; until the resource is
+  in the org, the 78 rows point at an image that does not resolve.
+- **The trusted sites added for the hotlinked images are gone from the repo.**
+  `unpackaged/post_quantumbit` used to deploy 16 CSP trusted sites (`img-src` only) that were
+  added for those images; nothing else in the repo used them, so they were removed. Metadata
+  deploys don't delete, so an org built before this change keeps the 16 records until they are
+  deleted by hand in Setup → Trusted URLs: `amazon_media`, `apjonlinecdn`, `bruneau`,
+  `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`, `gstatic`, `imagesgoogle`,
+  `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`, `shutterstock`, `unsplash`.
