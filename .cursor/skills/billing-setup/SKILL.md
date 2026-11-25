@@ -49,7 +49,7 @@ What happens after setup (invoice runs, tax, payments, credits, ledger) is in
    Changing a Term Defined Annual line to Monthly was refused until the line had one
    [Measured: M3]. Help also requires that treatment to have Change Billing Frequency
    (`CanChangeBillingFrequency`) selected [Help: `ind.billing_change_billing_pricing_frequencies`]. The flag
-   defaults to false [Dev guide: `sforce_api_objects_billingtreatment`].
+   defaults to false [Dev guide: `sforce-api-objects-billingtreatment`].
    The complete rule: a treatment on the quote or order line is required only when the
    line's frequency differs from the pricing term unit of its selling model (Annual on a Months
    model); a frequency equal to the term unit, or a milestone plan, needs none for this check
@@ -241,7 +241,7 @@ Accomplishment until someone selects Milestone accomplished on it
 Invoicing, and after activation that field is the only one you can edit on event items [Help:
 `ind.billing_milestone_usecase`, `ind.billing_milestone_create`,
 `ind.billing_milestone_treatment_and_item_create`] [Dev guide:
-`sforce_api_objects_billingmilestoneplanitem`]. The invoice run's target date then decides which
+`sforce-api-objects-billingmilestoneplanitem`]. The invoice run's target date then decides which
 accomplished milestones are invoiced [Help:
 `ind.billing_understand_target_date_and_billing_period_count`]. Help names no link from
 fulfillment steps to billing milestones [inferred from Help's silence], so a source milestone tied

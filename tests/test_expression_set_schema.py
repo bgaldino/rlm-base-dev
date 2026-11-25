@@ -2133,6 +2133,161 @@ def test_connect_mutation_labels_follow_requested_version():
                              (2, {"A": "A Label", "New": "New Step"})])
 
 
+def test_overlay_multi_version_target_and_name_guard():
+    # Todo pack 172, live round 3 (264, 2026-11-25): with no version named, the
+    # overlay edited the GET's first (draft) version while the lifecycle cycled the
+    # executing one; and a PATCH whose versions share a name is rejected.
+    import logging
+    from copy import deepcopy
+    from tasks.rlm_expression_set_connect import TaskOptionsError
+
+    def run(v1_name, options=None, v1_active=False, v2_get_api="C_V2"):
+        rows = [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "IsActive": v1_active,
+                 "VersionNumber": 1, "Rank": 1},
+                {"Id": "9QM2", "ApiName": "C_V2", "Name": "C V2", "IsActive": True,
+                 "VersionNumber": 2, "Rank": 2}]
+        get_names = {"C_V1": "C V2" if v1_name == "C V2" else "C V1", "C_V2": "C V2"}
+        # v2_get_api: the apiName the GET serves for V2 (a stale clone name when it
+        # differs from the sObject ApiName).
+        definition = {"apiName": "C", "versions": [
+            {"apiName": get_api, "name": get_names[api], "id": rid, "versionNumber": n,
+             "steps": [{"name": "S", "description": "old"}], "variables": []}
+            for api, get_api, rid, n in (("C_V1", "C_V1", "9QM1", 1),
+                                         ("C_V2", v2_get_api, "9QM2", 2))]}
+        seen = {"writes": [], "edited": [], "warnings": []}
+        task = object.__new__(ApplyExpressionSetOverlay)
+        task.logger = logging.getLogger("test_overlay_multi_version")
+        task.logger.warning = lambda msg, *args: seen["warnings"].append(msg % args)
+        task.org_config = type("Org", (), {"username": "user@org.test",
+                                           "access_token": "NOT-THIS"})()
+        task.options = {"overlay_file": "unused", **(options or {})}
+        task._load_overlay = lambda: {"expressionSetApiName": "C",
+                                      "updateSteps": [{"name": "S", "description": "new"}]}
+        task._preflight_validate_overlay = lambda overlay: None
+        task._get_expression_set_id = lambda name: "9QLx"
+        task._get_expression_set_definition_id = lambda name: "9QAx"
+        task._resolve_version_by_es_id = lambda es_id: dict(rows[1])
+        task._get_expression_set_via_connect = lambda es_id: deepcopy(definition)
+        task._preflight_validate_overlay_against_definition = lambda *a: None
+        task._list_versions = lambda es_id: [dict(r) for r in rows]
+        task._preflight_validate_definition = lambda *a, **k: None
+        task._ensure_resource_initialization_type = (
+            lambda *a: seen["writes"].append("resourceInitializationType"))
+        task._run_connect_mutation = lambda **kw: seen["writes"].append("mutation")
+        real_apply = task._apply_overlay
+
+        def recording_apply(defn, overlay):
+            out = real_apply(defn, overlay)
+            seen["edited"] = [v["apiName"] for v in out["versions"]
+                              if v["steps"][0]["description"] == "new"]
+            seen["edited_numbers"] = [v.get("versionNumber") for v in out["versions"]
+                                      if v["steps"][0]["description"] == "new"]
+            return out
+
+        task._apply_overlay = recording_apply
+        try:
+            task._run_task()
+            seen["error"] = None
+        except TaskOptionsError as exc:
+            seen["error"] = str(exc)
+        return seen
+
+    ok = run("C V1")
+    check("CCI overlay with no version edits the executing version, not the GET's first",
+          ok["error"] is None and ok["edited"] == ["C_V2"]
+          and ok["writes"] == ["resourceInitializationType", "mutation"])
+    check("CCI overlay: the executing version listed second in the GET is not a "
+          "stale-name warning, and no version warning when it is the target",
+          ok["warnings"] == [])
+    named = run("C V1", {"version_api_name": "C_V1"})
+    check("CCI overlay edits an explicitly named version, warning that it does not run",
+          named["error"] is None and named["edited"] == ["C_V1"]
+          and any("C_V2 is the executing version" in w for w in named["warnings"]))
+    stale = object.__new__(ApplyExpressionSetOverlay)
+    stale_warnings = []
+    stale.logger = logging.getLogger("test_overlay_stale_name")
+    stale.logger.warning = lambda msg, *args: stale_warnings.append(msg % args)
+    stale._check_version_name_consistency(
+        "9QLx", {"ApiName": "C_V3"}, {"versions": [{"apiName": "C_V1"}, {"apiName": "C_V2"}]})
+    check("a GET that lacks the target's apiName still warns of a stale clone name",
+          len(stale_warnings) == 1 and "C_V3" in stale_warnings[0])
+    clash = run("C V2")
+    check("CCI overlay refuses versions sharing a name before any write",
+          clash["error"] is not None and "both carry the name" in clash["error"]
+          and clash["writes"] == [])
+    stale = run("C V1", v2_get_api="C_OLD_CLONE")
+    check("CCI overlay finds the executing version by VersionNumber when the GET "
+          "serves a stale clone name",
+          stale["error"] is None and stale["edited"] == ["C_OLD_CLONE"])
+    # A stale name that repeats another version's apiName: still the block by number.
+    dup = run("C V1", v2_get_api="C_V1")
+    check("CCI overlay edits the executing version's block by number even when its "
+          "stale GET name repeats another version's",
+          dup["error"] is None and dup["edited_numbers"] == [2])
+    both = run("C V1", v1_active=True)
+    check("CCI overlay refuses before any write while another version is active",
+          both["error"] is not None and "rewrite C_V1 while active" in both["error"]
+          and both["writes"] == [])
+    check("CCI overlay: the deactivate command names the org's username, never the token",
+          both["error"] is not None and "activate_expression_set.py --target-org "
+          "user@org.test --expression-set C --version C_V1 --deactivate --no-cascade "
+          "--confirm" in both["error"] and "NOT-THIS" not in both["error"])
+
+
+def test_label_restore_failure_prints_a_runnable_relabel_command():
+    # A failed CCI label restore prints a relabel_expression_set.py command that
+    # runs as printed: the org's username, the set, the version, and a labels file
+    # holding only the steps the version still has.
+    import json as _json
+    import logging
+    import re as _re
+    from pathlib import Path
+
+    warnings = []
+    task = object.__new__(ApplyExpressionSetOverlay)
+    task.logger = logging.getLogger("test_label_restore_hint")
+    task.logger.warning = lambda msg, *args: warnings.append(msg % args)
+    task.org_config = type("Org", (), {"username": "user@org.test",
+                                       "access_token": "NOT-THIS"})()
+    task._soql_query = lambda q: ([{"DeveloperName": "ESX"}]
+                                  if "FROM ExpressionSetDefinition" in q else [])
+    task._resolve_esdv_id = lambda es_def_id, number: "9QBx"
+    task._get_step_metadata = lambda esdv_id: {
+        "steps": [{"name": "A", "label": "A"}, {"name": "B", "label": "B"}]}
+
+    def fail(*a, **k):
+        raise RuntimeError("tooling boom")
+
+    task._tooling_request = fail
+    # The cycled version ends active (activate_after), a draft stays inactive.
+    task._label_final_active = {"9QMv": True, "9QMd": False}
+    ok = task._restore_step_labels(
+        es_def_id="9QAx", esv={"Id": "9QMv", "ApiName": "ESX_V1", "VersionNumber": 1,
+                               "IsActive": True},
+        labels={"A": "A Label", "Gone": "Gone Label"})
+    hint = warnings[0] if warnings else ""
+    found = _re.search(r"relabel_expression_set\.py --target-org user@org\.test "
+                       r"--expression-set ESX --version ESX_V1 --labels-file (\S+) "
+                       r"--no-cascade --confirm", hint)
+    saved = _json.loads(Path(found.group(1)).read_text()) if found else None
+    check("CCI label-restore failure prints a complete relabel command with the "
+          "surviving labels, and never the token",
+          ok is False and saved == {"A": "A Label"} and "NOT-THIS" not in hint)
+    if found:
+        Path(found.group(1)).unlink()
+    task._restore_step_labels(
+        es_def_id="9QAx", esv={"Id": "9QMd", "ApiName": "ESX_V2", "VersionNumber": 2,
+                               "IsActive": False},
+        labels={"A": "A Label"})
+    draft_hint = warnings[1] if len(warnings) > 1 else ""
+    found_draft = _re.search(r"--version ESX_V2 --labels-file (\S+) --no-activate "
+                             r"--no-cascade --confirm", draft_hint)
+    check("CCI: a failed restore on a version that ends inactive adds --no-activate",
+          found_draft is not None)
+    if found_draft:
+        Path(found_draft.group(1)).unlink()
+
+
 def test_import_replace_restores_every_version():
     # A replace import PATCHes the full graph, which relabels every version of
     # the set, so the task hands all of them to _run_connect_mutation.
@@ -2141,8 +2296,10 @@ def test_import_replace_restores_every_version():
     import tempfile as _tempfile
     from tasks.rlm_expression_set_connect import ImportExpressionSet
 
-    versions = [{"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1},
-                {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}]
+    versions = [{"Id": "9QMa", "ApiName": "V1", "Name": "V1", "IsActive": True,
+                 "VersionNumber": 1},
+                {"Id": "9QMd", "ApiName": "V2", "Name": "V2", "IsActive": False,
+                 "VersionNumber": 2}]
     seen = {}
     task = object.__new__(ImportExpressionSet)
     task.logger = logging.getLogger("test_import_replace")
@@ -2160,6 +2317,231 @@ def test_import_replace_restores_every_version():
     os.unlink(fh.name)
     check("import replace passes every version for label restore",
           seen.get("label_versions") == versions)
+
+
+# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175): three
+# versions active at once; the highest-numbered active one (v40) executes.
+RAMP264_VERSIONS = [
+    {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1", "IsActive": True, "VersionNumber": 1},
+    {"Id": "9QM2", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Promo_Price_Proc_v20",
+     "IsActive": False, "VersionNumber": 2},
+    {"Id": "9QM3", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Partner_Price_Proc_v30",
+     "IsActive": True, "VersionNumber": 3},
+    {"Id": "9QM4", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40",
+     "IsActive": True, "VersionNumber": 4},
+]
+
+
+def test_resolve_version_targets_the_executing_version():
+    # Todo pack 172: the CCI tasks' default target is the executing version (the
+    # shared resolver: highest Rank among active versions in their date window),
+    # not merely the highest-numbered active one.
+    import logging
+
+    rows = [dict(v, Rank=r) for v, r in zip(RAMP264_VERSIONS, (9, 2, 3, 4))]
+    queries, logs = [], []
+    task = object.__new__(Connect)
+    task.logger = logging.getLogger("test_resolve_executing")
+    task.logger.handlers[:] = []
+
+    class _Capture(logging.Handler):
+        def emit(handler, record):
+            logs.append(record.getMessage())
+    task.logger.addHandler(_Capture())
+    task.logger.propagate = False
+    task._soql_query = lambda q: (queries.append(q), rows)[1]
+    chosen = task._resolve_version_by_es_id("9QLx")
+    check("CCI: the default target follows Rank (v1 with Rank 9, not v40)",
+          chosen["Id"] == "9QM1" and "Rank" in queries[0])
+    check("CCI: several active versions and the Rank/VersionNumber disagreement are warned",
+          any("the executing one" in m for m in logs)
+          and any("highest VersionNumber" in m for m in logs))
+    task._soql_query = lambda q: [dict(RAMP264_VERSIONS[0], EndDateTime="soon")]
+    try:
+        task._resolve_version_by_es_id("9QLx")
+        bad = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        bad = exc
+    check("CCI: an unreadable version date fails with a clear error",
+          bad is not None and "soon" in str(bad))
+
+
+def test_null_rank_active_version_is_not_cycled():
+    # Todo pack 172: activating a version through the API needs a Rank ("Enter a
+    # valid rank to enable …", measured on 264), so the CCI activation cycle
+    # refuses an active null-Rank version before any write.
+    task = _MutationTask({"PPV_A": True})
+    calls = []
+    try:
+        task._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True, "Rank": None},
+            mutate=lambda: calls.append("mutate"), dry_run=False,
+            activate_after=True, cascade=True, verb="Import",
+        )
+        error = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        error = exc
+    check("CCI: an active null-Rank version is refused before any write",
+          error is not None and "Enter a valid rank" in str(error)
+          and calls == [] and task.patch_calls == []
+          and task.states == {"PPV_A": True, "ESV": True})
+    ok = _MutationTask({"PPV_A": True})
+    ok._run_connect_mutation(
+        es_def_id="ESD", esv={"Id": "ESV", "IsActive": True, "Rank": 1},
+        mutate=lambda: None, dry_run=False, activate_after=True, cascade=True,
+        verb="Import",
+    )
+    check("CCI: a ranked active version cycles as before",
+          ok.states == {"PPV_A": True, "ESV": True} and ok.patch_calls != [])
+
+
+def test_delete_refuses_an_active_null_rank_version():
+    # Todo pack 172: a failed whole-set DELETE rolls back by reactivating the
+    # version, which the platform refuses without a Rank, so the task refuses an
+    # active null-Rank version before any write.
+    import logging
+
+    from tasks.rlm_expression_set_connect import TaskOptionsError
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_null_rank")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {"expression_set_api_name": "ESX", "confirm": True,
+                            "dry_run": False}
+            self.org_config = type("Org", (), {"username": "user@org.test",
+                                               "access_token": "NOT-THIS"})()
+            self.calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "ApiName": "ESX_V1", "IsActive": True, "Rank": None}
+
+        def __getattr__(self, name):
+            # Any other task method reached would be a write path.
+            if name.startswith("_"):
+                return lambda *a, **k: self.calls.append(name)
+            raise AttributeError(name)
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+        error = None
+    except TaskOptionsError as exc:
+        error = exc
+    check("CCI delete: an active null-Rank version is refused before any write",
+          error is not None and "Delete refused" in str(error)
+          and "Enter a valid rank" in str(error) and task.calls == [])
+    check("CCI delete: the remedy commands name the org's username, never the token",
+          error is not None and "--target-org user@org.test --expression-set ESX "
+          "--version ESX_V1 --deactivate --no-cascade --confirm" in str(error)
+          and "NOT-THIS" not in str(error) and "<" not in str(error))
+
+    # The lifecycle's own check (a caller that skipped its pre-check) fills them too,
+    # reading the set's DeveloperName from the definition.
+    cycle = _MutationTask({"PPV_A": True})
+    cycle.org_config = type("Org", (), {"username": "user@org.test"})()
+    plain_query = cycle._soql_query
+    cycle._soql_query = lambda q: ([{"DeveloperName": "ESX_Set"}]
+                                   if "FROM ExpressionSetDefinition" in q else plain_query(q))
+    try:
+        cycle._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "ApiName": "ESX_V1", "IsActive": True,
+                                  "Rank": None},
+            mutate=lambda: None, dry_run=False, activate_after=True, cascade=True,
+            verb="Import")
+        backstop = ""
+    except TaskOptionsError as exc:
+        backstop = str(exc)
+    check("CCI lifecycle refusal: commands carry the org's username and the set's name",
+          "--target-org user@org.test --expression-set ESX_Set --version ESX_V1 "
+          "--deactivate --no-cascade --confirm" in backstop
+          and "sf data update" not in backstop)
+
+
+def test_import_replace_refuses_a_version_rebind():
+    # Todo pack 172: on a multi-version set the CCI task imports only a one-version
+    # payload for the targeted version whose label no other version shares — the
+    # one shape that succeeded live on 264 (2026-11-24) — and refuses the rest
+    # before any write.
+    import json as _json
+    import logging
+    import tempfile as _tempfile
+    from tasks.rlm_expression_set_connect import ImportExpressionSet
+
+    def run(versions, payload_version, target=None):
+        target = target or sorted(
+            versions, key=lambda v: (not v["IsActive"], -v["VersionNumber"]))[0]
+        payload_versions = (payload_version if isinstance(payload_version, list)
+                            else [{"apiName": payload_version}])
+        writes = []
+        task = object.__new__(ImportExpressionSet)
+        task.logger = logging.getLogger("test_import_refusal")
+        task.org_config = type("Org", (), {"username": "user@org.test",
+                                           "access_token": "NOT-THIS"})()
+        task._preflight_validate_definition = lambda payload: None
+        task._soql_query = lambda q: [{"Id": "9QAx"}]
+        task._get_expression_set_id = lambda name: "9QLx"
+        task._resolve_version_by_es_id = lambda es_id: target
+        task._ensure_resource_initialization_type = lambda *a: writes.append("rit")
+        task._list_versions = lambda es_id: [dict(v) for v in versions]
+        task._run_connect_mutation = lambda **kw: writes.append("mutation")
+        with _tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+            _json.dump({"apiName": "RLM_DefaultPricingProcedure",
+                        "versions": payload_versions}, fh)
+        task.options = {"input_file": fh.name}
+        try:
+            task._run_task()
+            error = None
+        except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+            error = exc
+        finally:
+            os.unlink(fh.name)
+        return error, writes
+
+    ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
+            for v in RAMP264_VERSIONS]
+    error, writes = run(ramp, "RLM_DefaultPricingProcedure_V1", target=ramp[3])
+    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+          error is not None and "rebinding" in str(error))
+    check("ramp264: the refusal points to set_step_formula.py",
+          "set_step_formula.py" in str(error))
+    check("ramp264: nothing is written before the refusal", writes == [])
+
+    single = [{"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1", "Name": "P",
+               "IsActive": True, "VersionNumber": 1, "Rank": None}]
+    error, writes = run(single, "RLM_DefaultPricingProcedure_V1")
+    check("CCI import: a null-Rank refusal names the org's username, the set and "
+          "activate_after_import, before any write",
+          error is not None and writes == []
+          and "--target-org user@org.test --expression-set RLM_DefaultPricingProcedure "
+          "--version RLM_DefaultPricingProcedure_V1" in str(error)
+          and "activate_after_import false" in str(error)
+          and "NOT-THIS" not in str(error))
+
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "Name": "X", "IsActive": True,
+              "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "Name": "X draft", "IsActive": False,
+              "VersionNumber": 2}]
+    error, writes = run(draft, "X_V1")
+    check("active+draft, distinct labels: importing the active version runs",
+          error is None and writes == ["rit", "mutation"])
+    error, writes = run(draft, "X_V2")
+    check("active+draft: a payload for the draft is refused (it would rebind onto X_V1)",
+          error is not None and "payload's version is X_V2" in str(error) and writes == [])
+    error, writes = run(draft, [{"apiName": "X_V1", "name": "X"},
+                                {"apiName": "X_V2", "name": "X draft"}])
+    check("a two-version payload is refused (measured to fail on 264)",
+          error is not None and "carries 2 versions" in str(error) and writes == [])
+    shared = [dict(draft[0]), dict(draft[1], Name="X")]
+    error, writes = run(shared, [{"apiName": "X_V1", "name": "X"}])
+    check("a one-version payload is refused when another version shares its label",
+          error is not None and "share the label" in str(error) and writes == [])
 
 
 def test_resolve_label_version():

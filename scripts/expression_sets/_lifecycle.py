@@ -51,6 +51,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 from ._client import CONNECT_BASE, ExpressionSetClientError, soql_literal
+from ._guards import null_rank_reactivation_refusal
 
 
 class LifecycleError(RuntimeError):
@@ -343,6 +344,15 @@ class LifecycleEngine:
 
     # -- The deactivate → mutate → reactivate sequencer ----------------
 
+    def _definition_name(self, es_def_id: str) -> Optional[str]:
+        """The set's DeveloperName, for a printed command; None when unreadable."""
+        try:
+            rows = self.t.soql("SELECT DeveloperName FROM ExpressionSetDefinition "
+                               f"WHERE Id = '{soql_literal(es_def_id)}'")
+        except Exception:  # noqa: BLE001 -- only fills a message
+            return None
+        return (rows[0].get("DeveloperName") if rows else None) or None
+
     def run_mutation(
         self,
         *,
@@ -371,6 +381,11 @@ class LifecycleEngine:
         failure never knocks a live procedure offline. The failure is still raised.
         Default False preserves the strict Connect-PATCH safety.
         """
+        if null_rank_reactivation_refusal(esv, activate_after):
+            # Fill the remedy commands with this run's org and the set's name.
+            raise LifecycleError(null_rank_reactivation_refusal(
+                esv, activate_after, target_org=getattr(self.t, "target_org", None),
+                es_api_name=self._definition_name(es_def_id)))
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False
@@ -422,9 +437,10 @@ class LifecycleEngine:
                     )
                 elif failure and not (mutate_succeeded or self.dry_run):
                     self.log(
-                        f"{verb} failed, but it is a non-corrupting (label-only) "
-                        f"mutation, so reactivating ExpressionSetVersion {esv_id} "
-                        f"rather than leaving it offline. The failure is still reported."
+                        f"{verb} failed, but it is a non-corrupting mutation (an "
+                        f"atomic Tooling Metadata PATCH, so nothing was half-written), "
+                        f"so reactivating ExpressionSetVersion {esv_id} rather than "
+                        f"leaving it offline. The failure is still reported."
                     )
                 # The version and the plans are restored independently, so a
                 # failed version reactivation can't leave the plans offline.
@@ -625,9 +641,13 @@ class LifecycleEngine:
                         "reactivating it."
                     )
                     continue
+                org = getattr(self.t, "target_org", None)
                 lines.append(
-                    f"  {record}: sf data update record --target-org <org> "
-                    f"--sobject {sobject} --record-id {record_id} --values \"IsActive=true\""
+                    "  {}: sf data update record --target-org {} --sobject {} "
+                    "--record-id {} --values \"IsActive=true\"".format(
+                        record, org, sobject, record_id)
+                    if org else
+                    f"  {record}: set IsActive true on it in the org this run used"
                 )
             if (f"ExpressionSetVersion {esv_id}" in left_off
                     and not version_may_be_half_written):

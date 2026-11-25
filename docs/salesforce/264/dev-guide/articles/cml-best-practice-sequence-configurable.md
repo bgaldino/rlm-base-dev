@@ -1,0 +1,68 @@
+---
+page_id: cml-best-practice-sequence-configurable
+title: Sequence and Configurable
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/cml-best-practice-sequence-configurable.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Product Configurator
+parent_page: cml-cml-best-practices
+legacy_page_id: cml_best_practice_sequence_configurable.htm
+fetched_at: 2026-11-25
+---
+
+# Sequence and Configurable
+
+Using the configurable property with the sequence variable affects how the solver handles attributes and whether it overrides user input.
+
+Using the `configurable` property with the `sequence` variable affects how the solver handles attributes. When configurable is set to `true`, the user can set attribute values, and the solver doesn’t override user input unless no other solution exists. When `configurable` is set to `false`, the solver sets attribute values.
+
+In this example for type A, `attribute1` is set to `configurable = true`. The user can set the value, and the solver doesn’t override the user input unless no other solution exists. When the left-hand side of the rule is true, the constraint doesn’t change `attribute1` to “`Enum3`”.
+
+```
+type A : System {
+    @(defaultValue = "Enum1", domainComputation = "true", configurable = true, sequence = 48)
+    string attribute1 = ["Enum1", "Enum2", "Enum3"];
+
+  @(configurable = false, defaultValue = "0", sequence = 30)
+    decimal(2) attribute2 = f(x, y, z);
+    constraint((attribute2 > 3 && attribute2 <= 5) -> attribute1 == "Enum3", "message");
+}
+```
+
+In this example for type B, `attribute1` is set to `configurable = false`. The solver propagates values to satisfy constraints. When the left-hand side of the rule is true, the constraint automatically sets `attribute1` to “`Enum3`”.
+
+```
+type B : System {
+    @(defaultValue = "Enum1", domainComputation = "true", configurable = false, sequence = 48)
+    string attribute1 = ["Enum1", "Enum2", "Enum3"];
+
+  @(configurable = false, defaultValue = "0", sequence = 30)
+    decimal(2) attribute2 = f(x, y, z);
+    constraint((attribute2 > 3 && attribute2 <= 5) -> attribute1 == "Enum3", "message");
+```
+
+Use mindful sequencing in CML to avoid backtracking by the solver when looking for a solution, as in this example.
+
+```
+type LaptopProBundle {
+
+    //relation mouse : Mouse[1..20];
+    //The relation mouse has the highest sequence
+    relation warranty : Warranty[0..10];
+    relation software : Software;
+    relation printerBundle : PrinterBundle;
+    relation laptop : Laptop[1..10];
+    relation mouse : Mouse[1..20];
+    //Put highest sequence last to avoid backtracking
+
+    int mouseQty = laptop[Laptop] + warranty[Warranty];
+
+    constraint(mouse[Mouse] > 0 -> mouse[Mouse] == mouseQty,
+               "mouse[Mouse] = laptop[Laptop] + warranty[Warranty]");
+```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/cml-best-practice-sequence-configurable.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

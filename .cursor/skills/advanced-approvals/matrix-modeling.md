@@ -42,7 +42,7 @@ the contract value after it.
 - **The quote holds no contract-value field.** Its fields in the repo's ERD include
   `ContractId` but no contract value [Repo: `python scripts/ai/query_erd.py describe Quote`];
   `OriginalActionType` says which action created it (`Amend`, `Cancel`, `Renew`, `Transfer`)
-  [Dev guide: `quote_and_order_capture_fields_on_quote`]. Swap, upgrade and downgrade quotes
+  [Dev guide: `quote-and-order-capture-fields-on-quote`]. Swap, upgrade and downgrade quotes
   leave it blank [Repo: `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`], so
   a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
   change has to be computed in the approval data flow. One route worked: the contract value after
@@ -247,7 +247,7 @@ computes reach the level after it runs (§1, amendments).
   it to lines after the level is set (above). A discount on a group row is unsettled. Help
   applies one to all the lines of a group [Help: `ind.qocal_basic_example_ramp_deals_for_groups`]
   but doesn't say whether it stays on the group's `Discount` field
-  [Dev guide: `sforce_api_objects_quotelinegroup`] or is written to each line's `Discount`,
+  [Dev guide: `sforce-api-objects-quotelinegroup`] or is written to each line's `Discount`,
   which the shipped level reads. Don't count on a group discount to keep a round's discount
   out of the level until that is measured ([limitations.md](limitations.md)).
 - A pass-through line resold at or near cost trips a below-cost guard only
@@ -369,7 +369,7 @@ computes reach the level after it runs (§1, amendments).
 - In a fresh scratch org those groups have no members. An org admin who wasn't a member
   could still review those items with `reviewApprovalWorkItem` [Measured: 2026-11-10, 264].
   The dev guide requires the reviewer to be the assignee, a group or queue member, a delegate
-  or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`], and
+  or above in the role hierarchy [Dev guide: `actions-obj-review-approval-work-item`], and
   the Help gives an approval administrator the right to "review or override any work item"
   [Help: `ind.approvals_personas`]. The admin held Approval Admin (through its profile and the
   `RLM_CLM` permission set group) [Measured: 2026-11-10, 264], which fits the Help. Don't rely on it for ordinary reviewers: give the groups members.

@@ -4,6 +4,9 @@
  * generation runtime grant (the DocGenDesignerPsl license plus the standard DocGenUser set);
  * withNoGrants() adds nothing, for the tests of a refused query or insert.
  *
+ * Owner decision (todo 433, B5, 2026-11-25): no code change. A rep cannot hold DocGenRuntimeUser without
+ * the DocGenDesignerPsl licence, whichever set carries it, so a rep needs a separately licensed DocGen set.
+ *
  * The runtime grant is added because the Sales Representative set cannot carry it: the
  * DocGenRuntimeUser user permission needs that license, and a set with no license is refused it.
  * Without it DocumentTemplate is not visible to the user at all. The persona gets it the same way,

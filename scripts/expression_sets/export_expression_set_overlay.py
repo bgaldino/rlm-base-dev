@@ -53,11 +53,13 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
 )
 from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
+from scripts.expression_sets._guards import select_version  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
+    resolve_target_row,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
 from scripts.expression_sets._tooling import capture_labels  # noqa: E402
@@ -80,12 +82,14 @@ def build_overlay(
     become ``addVariables``; custom-scoped become ``externalDependencies``.
     """
     versions = definition.get("versions") or []
-    if version_api_name:
-        version = next((v for v in versions if v.get("apiName") == version_api_name), None)
-    else:
-        version = versions[0] if versions else None
+    # The named version; a one-version definition gives its only version. With
+    # several and none named, refuse rather than slice from the first.
+    version = select_version(versions, version_api_name)
     if not version:
-        raise ExpressionSetClientError("Definition has no matching version.")
+        raise ExpressionSetClientError(
+            "Definition has no matching version." if version_api_name or not versions
+            else f"Definition has {len(versions)} versions; name the source version.")
+    version_api_name = version.get("apiName")
 
     steps_by_name: Dict[str, dict] = {
         s.get("name"): s for s in (version.get("steps") or []) if isinstance(s, dict)
@@ -157,7 +161,7 @@ def main(argv=None) -> int:
     parser.add_argument("--after", help="Place the first sliced step after this step "
                                         "(placement.afterStep) in the target.")
     parser.add_argument("--version", dest="version_api_name",
-                        help="Source version apiName (default: first).")
+                        help="Source version apiName (default: the executing version).")
     parser.add_argument("--no-variables", action="store_true",
                         help="Do NOT emit version-scoped deps into addVariables.")
     parser.add_argument("--with-labels", action="store_true",
@@ -182,24 +186,33 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
+        # The named version, else the one that executes; never the GET's first
+        # (which can be a draft on a multi-version set). The GET's block is found by
+        # VersionNumber, as its apiName can be a stale clone name.
+        row = resolve_target_row(es_id, args.version_api_name,
+                                 target_org=args.target_org,
+                                 api_version=args.api_version, logger=eprint)
+        block = select_version(definition.get("versions") or [], row.get("ApiName"),
+                               row.get("VersionNumber"))
+        if block is None:
+            raise ExpressionSetClientError(
+                f"Version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) not found "
+                "in the definition.")
+        # Slice exactly the block found by number (a stale name could repeat
+        # another version's), the same block the labels come from.
         overlay = build_overlay(
-            definition, args.steps,
-            version_api_name=args.version_api_name,
+            dict(definition, versions=[block]), args.steps,
             after=args.after,
             include_variables=not args.no_variables,
         )
         if args.with_labels:
             # Labels live only in the Tooling Metadata (Connect can't serialize
-            # them). Resolve the version (explicit or the first) and capture its
+            # them). Use the source version (explicit or the executing one) and capture its
             # readable labels via the STABLE ExpressionSetDefinitionId (9QA) +
             # versionNumber — the ESDV DeveloperName is rewritten by a Connect PATCH,
             # so an ApiName lookup can miss a Connect-mutated set. Then keep only the
             # sliced steps' labels.
-            versions = definition.get("versions") or []
-            version = next(
-                (v for v in versions if v.get("apiName") == args.version_api_name),
-                versions[0] if versions else {},
-            ) if args.version_api_name else (versions[0] if versions else {})
+            version = block
             version_api_name = version.get("apiName")
             version_number = version.get("versionNumber")
             transport = Transport(

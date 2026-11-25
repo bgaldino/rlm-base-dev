@@ -632,6 +632,8 @@ class _StatefulTransport:
             return [row]
         if "FROM ExpressionSet " in query:
             return [{"Id": "9QLx", "ResourceInitializationType": "Off"}]
+        if "FROM ExpressionSetDefinition" in query:
+            return [{"DeveloperName": "TEST"}]
         return []
 
 
@@ -816,10 +818,17 @@ def test_label_preservation():
     logs6 = []
     t6 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True,
                             is_active=True)
+    t6.target_org = "org-alias"  # the --target-org the run used
+    plain_soql = t6.soql
+    t6.soql = lambda q, *a, **k: ([{"DeveloperName": "TEST"}]
+                                  if "FROM ExpressionSetDefinition" in q
+                                  else plain_soql(q, *a, **k))
     engine6 = LifecycleEngine(t6, logger=lambda *a, **k: None)
     r6 = restore_labels_after_clobber(
         engine6, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
-        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        # "RemovedStep" was captured before the PATCH but the version no longer has it.
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override",
+                       "RemovedStep": "Removed Step"},
         logger=logs6.append,
     )
     check("restore swallows PATCH failure (ok=False, no raise)", r6["ok"] is False, r6)
@@ -828,6 +837,76 @@ def test_label_preservation():
           t6.is_active is True, t6.is_active)
     check("restore logs a fix hint on failure",
           any("relabel_expression_set.py" in m for m in logs6), logs6)
+    import re as _re
+    hint = next((m for m in logs6 if "relabel_expression_set.py" in m), "")
+    found = _re.search(r"relabel_expression_set\.py --target-org org-alias "
+                       r"--expression-set TEST --version TEST_V1 --labels-file (\S+) "
+                       r"--no-cascade --confirm", hint)
+    saved = json.loads(Path(found.group(1)).read_text()) if found else None
+    check("the fix hint is a complete relabel command on the run's org and set (no "
+          "--no-activate for an active version), its file holding only steps the "
+          "version still has",
+          saved == {"ApplyHeaderPriceOverride": "Apply Header Price Override"}, hint)
+    if found:
+        Path(found.group(1)).unlink()
+
+    # The same failure on an inactive version adds --no-activate, so running the
+    # command does not switch the draft on.
+    logs8 = []
+    t8 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True,
+                            is_active=False)
+    t8.target_org = "org-alias"
+    restore_labels_after_clobber(
+        LifecycleEngine(t8, logger=lambda *a, **k: None), es_id="9QLx",
+        es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        logger=logs8.append)
+    hint8 = next((m for m in logs8 if "relabel_expression_set.py" in m), "")
+    found8 = _re.search(r"--version TEST_V1 --labels-file (\S+) --no-activate "
+                        r"--no-cascade --confirm",
+                        hint8)
+    check("a failed restore on an inactive version prints --no-activate",
+          found8 is not None and t8.is_active is False, hint8)
+    if found8:
+        Path(found8.group(1)).unlink()
+
+    # --no-activate: the toggled version is skipped, with a command that restores
+    # its surviving labels and keeps it inactive.
+    from scripts.expression_sets._tooling import restore_version_labels
+    logs7 = []
+    t7 = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    t7.target_org = "org-alias"
+    engine7 = LifecycleEngine(t7, logger=logs7.append)
+    r7 = restore_version_labels(
+        engine7, [("TEST_V1", "9QMv", {"ApplyHeaderPriceOverride": "Apply Header",
+                                       "RemovedStep": "Removed Step"})],
+        es_id="9QLx", es_def_id="9QAx", skip_version_id="9QMv")
+    skip_hint = next((m for m in logs7 if "relabel_expression_set.py" in m), "")
+    found7 = _re.search(r"--target-org org-alias --expression-set \S+ --version TEST_V1 "
+                        r"--labels-file (\S+) --no-activate --no-cascade --confirm",
+                        skip_hint)
+    check("a version skipped under --no-activate gets a runnable relabel command that "
+          "keeps it inactive, with only its surviving steps",
+          r7["skipped"] is True and found7 is not None
+          and json.loads(Path(found7.group(1)).read_text())
+          == {"ApplyHeaderPriceOverride": "Apply Header"}, skip_hint)
+    if found7:
+        Path(found7.group(1)).unlink()
+
+    # A preview patched nothing: no file and no command for the skipped version.
+    logs9 = []
+    t9 = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    t9.dry_run = True
+    import tempfile as _tempfile
+    before = set(Path(_tempfile.gettempdir()).glob("relabel-TEST_V1-*.json"))
+    r9 = restore_version_labels(
+        LifecycleEngine(t9, logger=logs9.append),
+        [("TEST_V1", "9QMv", {"ApplyHeaderPriceOverride": "Apply Header"})],
+        es_id="9QLx", es_def_id="9QAx", skip_version_id="9QMv")
+    after = set(Path(_tempfile.gettempdir()).glob("relabel-TEST_V1-*.json"))
+    check("a preview skip prints no relabel command and writes no labels file",
+          r9["skipped"] is True and after == before
+          and not any("relabel_expression_set.py" in m for m in logs9), logs9)
 
 
 # --------------------------------------------------------------------------- #
@@ -844,7 +923,9 @@ class _FakeEngine:
         self.log = lambda *a, **k: None
 
     def get_definition(self, es_id):
-        return {"versions": [{"apiName": "TEST_V1", "steps": [], "variables": []}]}
+        return {"versions": [
+            {"apiName": "TEST_V1", "versionNumber": 1, "steps": [], "variables": []},
+            {"apiName": "TEST_V2", "versionNumber": 2, "steps": [], "variables": []}]}
 
     def ensure_resource_initialization_type(self, *a, **k):
         return None
@@ -970,8 +1051,15 @@ def test_cli_restore_boundary():
             u = _patch_cli(
                 apply_mod, restore_labels_after_clobber=record_restore,
                 list_versions=lambda *a, **k: [
-                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
-                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "Name": "Test V1",
+                     "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "Name": "Test V2",
+                     "IsActive": False, "VersionNumber": 2}],
+                # The PATCH sends both versions, each under its own name.
+                apply_overlay=lambda *a, **k: {"versions": [
+                    {"apiName": "TEST_V1", "name": "Test V1", "steps": [], "variables": []},
+                    {"apiName": "TEST_V2", "name": "Test V2", "steps": [],
+                     "variables": []}]},
                 capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
             )
             rc_draft = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
@@ -995,7 +1083,8 @@ def test_cli_restore_boundary():
             resolve_expression_set_id=lambda *a, **k: "9QLx",
             resolve_definition_id=lambda *a, **k: "9QAx",  # found → replace mode
             resolve_version_by_es_id=lambda *a, **k: {
-                "Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                "Id": "9QMv", "ApiName": "TEST_V1", "Name": "TEST", "IsActive": True,
+                "VersionNumber": 1},
             validate_definition=lambda *a, **k: _passing_validation(),
             capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
             strip_readonly_fields=lambda p, **k: p,
@@ -1028,8 +1117,10 @@ def test_cli_restore_boundary():
             u = _patch_cli(
                 import_mod, restore_labels_after_clobber=record_restore,
                 list_versions=lambda *a, **k: [
-                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
-                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "Name": "TEST", "IsActive": True,
+                     "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "Name": "TEST draft",
+                     "IsActive": False, "VersionNumber": 2}],
                 capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
             )
             rc_multi = import_mod.main(["--target-org", "x", "--input-file",
@@ -1040,6 +1131,39 @@ def test_cli_restore_boundary():
                   restores == [("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
                                ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
                   restores)
+
+            # A version chain (ramp264: the importer targets the executing v40, the
+            # payload is TEST_V1) is refused before ANY write (todo pack 172): no
+            # ResourceInitializationType alignment, no mutation, no restore — in
+            # preview as well as with --confirm.
+            calls = []
+
+            class _RecordingEngine(_FakeEngine):
+                def ensure_resource_initialization_type(self, *a, **k):
+                    calls.append("rit")
+
+                def run_mutation(self, *a, **k):
+                    calls.append("mutation")
+
+            def record_restore(engine, **kw):
+                calls.append("restore")
+                return {"ok": True, "changed": [], "error": None}
+
+            for confirm in (["--confirm"], []):
+                u = _patch_cli(
+                    import_mod, LifecycleEngine=_RecordingEngine,
+                    restore_labels_after_clobber=record_restore,
+                    list_versions=lambda *a, **k: [dict(v) for v in RAMP264_VERSIONS],
+                    resolve_version_by_es_id=lambda *a, **k: dict(RAMP264_VERSIONS[3]),
+                )
+                rc_multi = import_mod.main(["--target-org", "x", "--input-file",
+                                            str(import_path), *confirm])
+                u()
+                mode = "confirm" if confirm else "preview"
+                check(f"import ({mode}): multi-version set refused → exit 1",
+                      rc_multi == 1, rc_multi)
+                check(f"import ({mode}): nothing written before the refusal",
+                      calls == [], calls)
         finally:
             undo()
 
@@ -1064,6 +1188,8 @@ def test_export_overlay_with_labels():
             exp_mod,
             resolve_expression_set_id=lambda *a, **k: "9QLx",
             resolve_definition_id_by_es_id=lambda *a, **k: "9QAx",
+            resolve_target_row=lambda *a, **k: {"ApiName": "TEST_Proc_V1",
+                                                "VersionNumber": 1},
             fetch_definition=lambda *a, **k: defn,
             Transport=lambda **k: None,
             capture_labels=lambda *a, **k: dict(all_labels),
@@ -1080,6 +1206,232 @@ def test_export_overlay_with_labels():
               written.get("labels") == {"GetPrice": "Get Price"}, written.get("labels"))
         check("export --with-labels drops non-sliced steps' labels",
               "ApplyMarkup" not in written.get("labels", {}), written.get("labels"))
+
+
+def test_version_selection_never_takes_the_first():
+    """Every tool that picks a version without being told one resolves the executing
+    version, and finds the GET's block by VersionNumber (its apiName can be a stale
+    clone name); a single version is used as is; several with nothing named refuse
+    (todo pack 172, final round)."""
+    print("test_version_selection_never_takes_the_first")
+    import io
+    from contextlib import redirect_stdout
+
+    import scripts.expression_sets.diff_expression_set as diff_mod
+    import scripts.expression_sets.trace_expression_set as trace_mod
+    from scripts.expression_sets._graph import ExpressionSetGraph
+    from scripts.expression_sets._guards import select_version
+    from scripts.expression_sets._overlay import apply_overlay
+    from scripts.expression_sets.export_expression_set_overlay import build_overlay
+
+    base = _sample_definition()["versions"][0]
+    draft = dict(deepcopy(base), apiName="P_V1", versionNumber=1,
+                 steps=[s for s in base["steps"] if s["name"] != "GetPrice"])
+    running = dict(deepcopy(base), apiName="P_OLD_CLONE", versionNumber=2)  # stale name
+    chain = dict(_sample_definition(), versions=[draft, running])  # draft first
+
+    check("select_version: by VersionNumber despite a stale apiName",
+          select_version(chain["versions"], "P_V2", 2) is chain["versions"][1])
+    check("select_version: by apiName when no number is given",
+          select_version(chain["versions"], "P_V1") is chain["versions"][0])
+    check("select_version: several versions and nothing to match gives None",
+          select_version(chain["versions"]) is None
+          and select_version(chain["versions"], "P_V9", 9) is None)
+    check("select_version: a one-version GET gives its only version when none is named",
+          select_version([running]) is running)
+    check("select_version: a name or number matching nothing is None even on a "
+          "one-version GET (a typo never edits another version)",
+          select_version([running], "P_TYPO", 7) is None
+          and select_version([running], "P_TYPO") is None)
+
+    edited = apply_overlay(chain, {"updateSteps": [{"name": "GetPrice",
+                                                    "description": "x"}]},
+                           version_api_name="P_V2", version_number=2)
+    check("apply_overlay edits the block whose VersionNumber matches (stale apiName)",
+          next(s for s in edited["versions"][1]["steps"]
+               if s["name"] == "GetPrice").get("description") == "x")
+    try:
+        ExpressionSetGraph(chain, None)
+        graph_error = None
+    except ValueError as exc:
+        graph_error = exc
+    check("the graph refuses to pick a version of several when none is named",
+          graph_error is not None)
+    try:
+        build_overlay(chain, ["GetPrice"])
+        build_error = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        build_error = exc
+    check("build_overlay refuses to pick a version of several when none is named",
+          build_error is not None and "name the source version" in str(build_error))
+
+    row = {"ApiName": "P_V2", "VersionNumber": 2}  # the executing version's sObject row
+    common = dict(resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  fetch_definition=lambda *a, **k: deepcopy(chain),
+                  resolve_target_row=lambda es_id, name=None, **k: (
+                      {"ApiName": name} if name else dict(row)))
+
+    out = io.StringIO()
+    undo = _patch(trace_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = trace_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    traced = json.loads(out.getvalue() or "{}")
+    check("trace defaults to the executing version, found by VersionNumber",
+          rc == 0 and traced.get("version") == "P_OLD_CLONE", (rc, traced))
+
+    # A stale name that repeats the draft's apiName: still the executing block.
+    dup_chain = dict(chain, versions=[draft, dict(running, apiName="P_V1")])
+    out = io.StringIO()
+    undo = _patch(trace_mod, **dict(common,
+                                    fetch_definition=lambda *a, **k: deepcopy(dup_chain)))
+    try:
+        with redirect_stdout(out):
+            rc = trace_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    traced = json.loads(out.getvalue() or "{}")
+    check("trace traces the executing block by number even when its stale name repeats "
+          "the draft's",
+          rc == 0 and traced.get("steps") == len(running["steps"])
+          and len(running["steps"]) != len(draft["steps"]), (rc, traced))
+
+    import scripts.expression_sets.describe_expression_set as desc_mod
+    out = io.StringIO()
+    undo = _patch(desc_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = desc_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    described = json.loads(out.getvalue() or "{}")
+    check("describe finds the executing version by VersionNumber despite a stale name",
+          rc == 0 and any(s.get("name") == "GetPrice"
+                          for s in described.get("steps", [])), described)
+    labelled = dict(chain, versions=[draft, dict(running, enabled=True)])
+    out = io.StringIO()
+    undo = _patch(desc_mod, **dict(common, _fetch_labels=lambda *a, **k: {},
+                                   fetch_definition=lambda *a, **k: deepcopy(labelled)))
+    try:
+        with redirect_stdout(out):
+            desc_mod.main(["--target-org", "x", "--developer-name", "P", "--labels"])
+    finally:
+        undo()
+    check("describe's relabel command names the version's real ApiName, not the GET's "
+          "stale clone name",
+          "--version P_V2 " in out.getvalue() and "P_OLD_CLONE --auto" not in out.getvalue(),
+          out.getvalue())
+
+    with tempfile.TemporaryDirectory() as td:
+        two_file = Path(td) / "two.json"
+        two_file.write_text(json.dumps(chain))
+        one_file = Path(td) / "one.json"
+        one_file.write_text(json.dumps(dict(chain, versions=[running])))
+        logs = []
+        undo = _patch(diff_mod, eprint=logs.append, **common)
+        try:
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc_org = diff_mod.main(["--developer-name", "P", "--target-org", "x",
+                                        "--right-file", str(one_file), "--json"])
+            org_vs_file = json.loads(out.getvalue() or "{}")
+            rc_refused = diff_mod.main(["--left-file", str(two_file),
+                                        "--right-file", str(one_file)])
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc_named = diff_mod.main(["--left-file", str(two_file), "--left-version",
+                                          "P_V1", "--right-file", str(one_file), "--json"])
+            named = json.loads(out.getvalue() or "{}")
+        finally:
+            undo()
+        check("diff: an org side uses the executing version (no difference from it)",
+              rc_org == 0 and org_vs_file.get("diff", {}).get("addedSteps") == [],
+              org_vs_file)
+        check("diff: a file side with several versions and no --left-version is refused",
+              rc_refused == 1 and any("--left-version" in m for m in logs), logs)
+        check("diff: --left-version picks that version of a multi-version file",
+              rc_named == 0 and named["diff"]["addedSteps"] == ["GetPrice"], named)
+
+
+def test_read_tools_default_to_the_executing_version():
+    """describe and export_overlay default to the executing version, not the GET's
+    first, which on a multi-version set can be a draft (todo pack 172)."""
+    print("test_read_tools_default_to_the_executing_version")
+    import io
+    from contextlib import redirect_stdout
+
+    import scripts.expression_sets.describe_expression_set as desc_mod
+    import scripts.expression_sets.export_expression_set_overlay as exp_mod
+
+    draft = deepcopy(_sample_definition()["versions"][0])
+    draft.update(apiName="TEST_Proc_V1", versionNumber=1, enabled=False,
+                 steps=[s for s in draft["steps"] if s["name"] != "GetPrice"])
+    running = deepcopy(_sample_definition()["versions"][0])
+    running.update(apiName="TEST_Proc_V2", versionNumber=2, enabled=True)
+    defn = dict(_sample_definition(), versions=[draft, running])  # GET order: draft first
+    common = dict(resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  fetch_definition=lambda *a, **k: deepcopy(defn),
+                  # The named version's row, else the executing one (V2).
+                  resolve_target_row=lambda es_id, name=None, **k: (
+                      {"ApiName": name, "VersionNumber": int(name[-1])} if name
+                      else {"ApiName": "TEST_Proc_V2", "VersionNumber": 2}))
+
+    out = io.StringIO()
+    undo = _patch(desc_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = desc_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                                "--json"])
+    finally:
+        undo()
+    described = json.loads(out.getvalue())
+    check("describe defaults to the executing version (GetPrice exists only there)",
+          rc == 0 and any(s.get("name") == "GetPrice"
+                          for s in described.get("steps", [])), described)
+
+    # describe --labels: the relabel hint keeps an inactive version inactive, and is
+    # described in words when the version's state is unknown.
+    def describe_labels(version_name, state):
+        target = deepcopy(defn)
+        for v in target["versions"]:
+            v.pop("enabled", None)
+            if v["apiName"] == version_name and state is not None:
+                v["enabled"] = state
+        out = io.StringIO()
+        undo = _patch(desc_mod, **dict(
+            common, fetch_definition=lambda *a, **k: deepcopy(target),
+            _fetch_labels=lambda *a, **k: {}))  # every step drifts
+        try:
+            with redirect_stdout(out):
+                desc_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                               "--version", version_name, "--labels"])
+        finally:
+            undo()
+        return out.getvalue()
+
+    inactive = describe_labels("TEST_Proc_V1", False)
+    check("describe --labels on an inactive version prints --no-activate --no-cascade",
+          "relabel_expression_set.py --target-org x --expression-set TEST_Proc --version "
+          "TEST_Proc_V1 --auto --no-activate --no-cascade --confirm" in inactive, inactive)
+    unknown = describe_labels("TEST_Proc_V1", None)
+    check("describe --labels with the version's state unknown prints no command",
+          "relabel_expression_set.py --target-org" not in unknown
+          and "Set readable labels with relabel_expression_set.py." in unknown, unknown)
+
+    with tempfile.TemporaryDirectory() as td:
+        out_path = Path(td) / "ov.json"
+        undo = _patch(exp_mod, **common)
+        try:
+            rc = exp_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                               "--step", "GetPrice", "--out", str(out_path)])
+        finally:
+            undo()
+        check("export_overlay slices from the executing version, not the draft first",
+              rc == 0 and out_path.exists()
+              and any(s.get("name") == "GetPrice"
+                      for s in json.loads(out_path.read_text()).get("addSteps", [])), rc)
 
 
 # --------------------------------------------------------------------------- #
@@ -1164,14 +1516,33 @@ def test_overlay_content_verification():
         except cli.LifecycleError as exc:
             check(f"CLI rejects unexpected step case {index}", "unexpected step" in str(exc))
 
+    # Several versions and a name that matches none: refused, never the first.
+    two = {"versions": [dict(version, apiName="TEST_V1", versionNumber=1),
+                        dict(version, apiName="TEST_V2", versionNumber=2)]}
+
     class Engine:
-        def get_definition(self, _): return definition
+        def get_definition(self, _): return two
         def log(self, _): pass
     try:
-        cli._verify(Engine(), "9QLx", {}, "missing", definition)
+        cli._verify(Engine(), "9QLx", {}, "missing", two)
         check("verification refuses wrong-version fallback", False)
     except cli.LifecycleError:
         check("verification refuses wrong-version fallback", True)
+
+    # A stale clone name in the GET: the version is matched by VersionNumber.
+    stale = {"versions": [dict(version, apiName="TEST_V1", versionNumber=1),
+                          dict(version, apiName="OLD_CLONE_NAME", versionNumber=2)]}
+
+    class StaleEngine:
+        def get_definition(self, _): return stale
+        def log(self, _): pass
+    try:
+        cli._verify(StaleEngine(), "9QLx", {}, "TEST_V2", stale, version_number=2)
+        check("verification matches the GET's version by VersionNumber despite a stale "
+              "apiName", True)
+    except cli.LifecycleError as exc:
+        check("verification matches the GET's version by VersionNumber despite a stale "
+              "apiName", False, exc)
     try:
         cli._verify(Engine(), "9QLx", {"updateSteps": [changed]}, "TEST_V1",
                     {"versions": [expected]})
@@ -1237,6 +1608,8 @@ class _PlanTransport:
     Enough to drive run_mutation's cascade and failure paths offline. ``plans``
     maps ProcedurePlanDefinitionVersion Id -> IsActive.
     """
+
+    target_org = "org-alias"  # the --target-org a real Transport carries
 
     def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
                  esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False,
@@ -1524,6 +1897,7 @@ def test_failed_mutation_keeps_plans_online():
     logs16 = []
     t16 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
     t16.fail_plan_deactivate_ids = {"1Cv2"}
+    t16.target_org = "org-alias"  # the --target-org the run used
     engine16 = LifecycleEngine(t16, logger=logs16.append, poll_interval_seconds=1)
     raised16 = None
     try:
@@ -1532,12 +1906,27 @@ def test_failed_mutation_keeps_plans_online():
     except Exception as exc:
         raised16 = exc
     check("a failed cascade rollback still raises", raised16 is not None, raised16)
-    check("a plan the failed cascade left off gets a restore command",
+    check("a plan the failed cascade left off gets a restore command, on the run's org",
           any("ProcedurePlanDefinitionVersion 1Cv1" in m and "IsActive=true" in m
-              for m in logs16), logs16)
+              and "--target-org org-alias " in m for m in logs16), logs16)
     check("nothing was written, so the report doesn't warn of a half-written version",
           any("Restore the plan before reading" in m for m in logs16)
           and not any("NOT confirmed inactive" in m for m in logs16), logs16)
+    # Without a known org the restore step is described, not printed.
+    logs16b = []
+    t16b = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    t16b.fail_plan_deactivate_ids = {"1Cv2"}
+    t16b.target_org = None
+    try:
+        LifecycleEngine(t16b, logger=logs16b.append, poll_interval_seconds=1).run_mutation(
+            es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True}, mutate=boom,
+            activate_after=True, cascade=True)
+    except Exception:  # noqa: BLE001 -- the report is what is checked
+        pass
+    check("with no org known, the restore step is described in words, no command",
+          any("ProcedurePlanDefinitionVersion 1Cv1: set IsActive true" in m
+              for m in logs16b)
+          and not any("sf data update" in m for m in logs16b), logs16b)
     # A transient rollback failure is retried by recovery, so the plan comes back.
     t17 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
     t17.fail_plan_deactivate_ids = {"1Cv2"}
@@ -1731,6 +2120,850 @@ def test_failed_mutation_keeps_plans_online():
           not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
 
 
+# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
+# three versions active at once; the highest-numbered active one (v40) executes.
+RAMP264_VERSIONS = [
+    {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1",
+     "VersionNumber": 1, "IsActive": True},
+    {"Id": "9QM2", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Promo_Price_Proc_v20",
+     "VersionNumber": 2, "IsActive": False},
+    {"Id": "9QM3", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_and_Partner_Price_Proc_v30",
+     "VersionNumber": 3, "IsActive": True},
+    {"Id": "9QMv", "ApiName": "RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40",
+     "VersionNumber": 4, "IsActive": True},
+]
+
+_RAMP_PARENT = "Applyupliftstorampedsubscriptionsitemsduringamendment"
+
+
+def _formula_metadata(child="CompoundUplift", formula="ItemUnitPrice * 1"):
+    """A Tooling Metadata blob shaped like v40: the ramp-uplift ListGroup with a
+    filter child (no formula) and a formula child, plus an unrelated formula step."""
+    return {
+        "steps": [
+            {"name": "Getbaseprices", "stepType": "BusinessKnowledgeModel"},
+            {"name": _RAMP_PARENT, "stepType": "ListGroup"},
+            {"name": "Filterrampedlines", "parentStep": _RAMP_PARENT,
+             "stepType": "AdvancedListFilter"},
+            {"name": child, "parentStep": _RAMP_PARENT, "stepType": "BusinessKnowledgeModel",
+             "customElement": {"parameters": [
+                 {"name": "selectedFunction", "value": "Get"},
+                 {"name": "formula-section-0-input", "value": formula, "type": "Formula"},
+                 {"name": "formula-section-1-input", "value": "S1", "type": "Formula"}]}},
+            {"name": "Calculatemargin", "stepType": "BusinessKnowledgeModel",
+             "customElement": {"parameters": [
+                 {"name": "formula-section-0-input", "value": "A - B", "type": "Formula"}]}},
+        ],
+        "urls": {"self": "x"},
+    }
+
+
+def test_import_guards():
+    """_guards: executing_version and import_target_refusal over ramp264's version
+    chain (refused) and an active+draft set (proceeds when the payload names the
+    target) — todo pack 172."""
+    print("test_import_guards")
+    from scripts.expression_sets._guards import executing_version, import_target_refusal
+
+    running = executing_version(RAMP264_VERSIONS)
+    check("no Rank read: the highest-numbered ACTIVE version executes (v40, not v1 or v30)",
+          running and running["Id"] == "9QMv", running)
+    check("no active version → no executing version",
+          executing_version([dict(v, IsActive=False) for v in RAMP264_VERSIONS]) is None)
+
+    # Measured on 264 (2026-11-24/25) by invoking disposable sets directly, 3/3 each.
+    from datetime import datetime, timezone
+    from scripts.expression_sets._guards import rank_order_warning, VERSION_FIELDS
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+
+    def probe(*specs):
+        """(ApiName, VersionNumber, Rank, CreatedDate) → active version rows."""
+        return [{"Id": f"9QM{i}", "ApiName": a, "VersionNumber": n, "Rank": r,
+                 "CreatedDate": c, "IsActive": True}
+                for i, (a, n, r, c) in enumerate(specs)]
+
+    t1, t2 = "2026-11-24T23:52:00.000+0000", "2026-11-25T00:02:14.000+0000"
+    t3 = "2026-11-25T00:02:32.000+0000"
+    rank_a = probe(("A_V1", 1, 2, t1), ("A_V2", 2, 1, t1))
+    check("measured TK226_RankA: Rank 2 (v1) runs over Rank 1 (v2)",
+          executing_version(rank_a, now)["ApiName"] == "A_V1")
+    warn = rank_order_warning(rank_a, now) or ""
+    check("…noted: it is not the highest-numbered version",
+          "highest VersionNumber" in warn and "A_V2" in warn, warn)
+    mix = probe(("M_V1", 1, 1, t1), ("M_V2", 2, None, t1))
+    check("measured TK226_RankMix: a numeric Rank runs over a null one",
+          executing_version(mix, now)["ApiName"] == "M_V1")
+    null_pair = [dict(r, Id=i) for r, i in zip(
+        probe(("N_V1", 1, None, t1), ("N_V2", 2, None, t1)), ("9QMxt", "9QMxu"))]
+    check("measured TK226_RankNull: null Ranks, same deploy → the first created (v1) runs",
+          executing_version(null_pair, now)["ApiName"] == "N_V1")
+    order = probe(("O_V2", 2, None, t2), ("O_V1", 1, None, t3))
+    check("measured TK226_RankOrder: null Ranks → the earliest created runs (v2, created "
+          "before v1), not the lower VersionNumber",
+          executing_version(order, now)["ApiName"] == "O_V2")
+    warn = rank_order_warning(order, now) or ""
+    check("…noted as measured, without calling it unverified",
+          "earliest created" in warn and "measured" in warn and "unverified" not in warn,
+          warn)
+    equal = probe(("E_V1", 1, 5, t3), ("E_V2", 2, 5, t2))
+    warn = rank_order_warning(equal, now) or ""
+    check("equal numeric Ranks (refused by the platform): earliest created, flagged unmeasured",
+          executing_version(equal, now)["ApiName"] == "E_V2"
+          and "refuses" in warn and "not measured" in warn, warn)
+    check("rows read without a Rank field keep the highest-numbered fallback",
+          executing_version([{k: v for k, v in r.items() if k != "Rank"} for r in rank_a],
+                            now)["ApiName"] == "A_V2")
+    ranked = [dict(v, Rank=v["VersionNumber"]) for v in RAMP264_VERSIONS]
+    ranked[0]["Rank"] = 9
+    windowed = [dict(v) for v in RAMP264_VERSIONS]
+    windowed[3]["StartDateTime"] = "2027-01-01T00:00:00.000+0000"
+    windowed[2]["EndDateTime"] = "2026-01-01T00:00:00Z"
+    check("a version whose window does not cover now is not a candidate",
+          executing_version(windowed, now)["Id"] == "9QM1")
+    ends_now = [dict(RAMP264_VERSIONS[0], EndDateTime="2026-11-24T00:00:00.000+0000")]
+    check("EndDateTime is when a version becomes inactive: now == end is outside",
+          executing_version(ends_now, now) is None)
+    try:
+        executing_version([dict(RAMP264_VERSIONS[0], StartDateTime="24/11/2026")], now)
+        bad_date = None
+    except ValueError as exc:
+        bad_date = exc
+    check("an unreadable date raises instead of being treated as an open window",
+          bad_date is not None and "24/11/2026" in str(bad_date), bad_date)
+
+    # The mutators' default target (resolve_version_by_es_id) uses the same resolver.
+    import scripts.expression_sets._resolve as resolve_mod
+    seen, logs = [], []
+    undo = _patch(resolve_mod, _query=lambda soql, **k: (seen.append(soql), ranked)[1])
+    try:
+        chosen = resolve_mod.resolve_version_by_es_id("9QLx", target_org="x",
+                                                      logger=logs.append)
+        undo_bad = _patch(resolve_mod, _query=lambda soql, **k: [
+            dict(RAMP264_VERSIONS[0], StartDateTime="garbage")])
+        try:
+            resolve_mod.resolve_version_by_es_id("9QLx", target_org="x", logger=logs.append)
+            bad = None
+        except resolve_mod.ResolveError as exc:
+            bad = exc
+        finally:
+            undo_bad()
+    finally:
+        undo()
+    check("resolve_version_by_es_id targets the executing version by Rank",
+          chosen["Id"] == "9QM1" and "Rank" in seen[0], (chosen, seen))
+    check("…warning that several are active and that Rank and VersionNumber disagree",
+          any("operating on RLM_DefaultPricingProcedure_V1, the executing one" in m
+              for m in logs) and any("highest VersionNumber" in m for m in logs), logs)
+    check("…and an unreadable date is a ResolveError", bad is not None, bad)
+
+    from scripts.expression_sets._guards import target_version_warning
+    expired = [dict(v, EndDateTime="2026-01-01T00:00:00Z") for v in RAMP264_VERSIONS]
+    logs = []
+    undo = _patch(resolve_mod, _query=lambda soql, **k: [dict(v) for v in expired])
+    try:
+        chosen = resolve_mod.resolve_version_by_es_id("9QLx", target_org="x",
+                                                      logger=logs.append)
+    finally:
+        undo()
+    check("no active version covers now: the fallback is not called the executing one",
+          any("none is running" in m and "not the executing version" in m for m in logs)
+          and not any("the executing one" in m for m in logs), logs)
+    check("one active, running version needs no target warning",
+          target_version_warning("9QLx", [RAMP264_VERSIONS[0]], RAMP264_VERSIONS[0],
+                                 RAMP264_VERSIONS[0]) is None)
+    check("a single running version gives no Rank warning",
+          rank_order_warning(RAMP264_VERSIONS[:1], now) is None)
+    check("the version queries select Rank and the date window",
+          all(f in VERSION_FIELDS for f in ("Rank", "StartDateTime", "EndDateTime")))
+
+    # The import rule, one check per row measured on 264: TK172_Chain (2026-11-24)
+    # and TK172_ChainD (2026-11-25), V1 an inactive draft, V2 the active target.
+    # Then the guard-only rows, which the importer refuses before the platform sees
+    # them.
+    def payload(*versions):
+        return {"apiName": "TK172_Chain",
+                "versions": [{"apiName": a, "name": n} for a, n in versions]}
+
+    def chain(v1_label):
+        return [{"Id": "9QMa", "ApiName": "TK172_Chain_V1", "Name": v1_label,
+                 "IsActive": False, "VersionNumber": 1},
+                {"Id": "9QMb", "ApiName": "TK172_Chain_V2", "Name": "TK172 Chain",
+                 "IsActive": True, "VersionNumber": 2}]
+
+    shared, distinct = chain("TK172 Chain"), chain("TK172 Chain V1 draft")
+    pv1, pv2 = ("TK172_Chain_V1", "TK172 Chain"), ("TK172_Chain_V2", "TK172 Chain")
+    pv1_distinct = ("TK172_Chain_V1", "TK172 Chain V1 draft")
+    # TK172_Chain's versions were deployed under one label; "renamed" is V1's Name
+    # changed by an sObject update (the label the GET returns stayed shared).
+    # TK172_ChainD's versions were deployed with their own labels (2026-11-25).
+    own = [{"Id": "9QMc", "ApiName": "TK172_ChainD_V1", "Name": "TK172 ChainD V1",
+            "IsActive": False, "VersionNumber": 1},
+           {"Id": "9QMe", "ApiName": "TK172_ChainD_V2", "Name": "TK172 ChainD V2",
+            "IsActive": True, "VersionNumber": 2}]
+    od1, od2 = ("TK172_ChainD_V1", "TK172 ChainD V1"), ("TK172_ChainD_V2", "TK172 ChainD V2")
+    rows = [
+        ("shared labels, payload V1 then V2", shared, payload(pv1, pv2), "carries 2 versions"),
+        ("shared labels, payload V2 then V1", shared, payload(pv2, pv1), "carries 2 versions"),
+        ("V1 renamed, payload V2 then V1 (V1 renamed in it)", distinct,
+         payload(pv2, pv1_distinct), "carries 2 versions"),
+        ("V1 renamed, payload V2 only", distinct, payload(pv2), None),
+        ("shared labels, payload V2 only", shared, payload(pv2), "share the label"),
+        ("own labels, payload V2 only", own, payload(od2), None),
+    ]
+    for label, versions, body, expected_text in rows:
+        msg = import_target_refusal(versions[1]["ApiName"].rsplit("_", 1)[0], versions,
+                                    versions[1], body)
+        check(f"measured row — {label}: "
+              + ("proceeds" if expected_text is None else "refused"),
+              msg is None if expected_text is None else expected_text in (msg or ""), msg)
+    msg = import_target_refusal("TK172_ChainD", own, own[1], payload(od1, od2)) or ""
+    check("guard-only row — own labels, payload V1 then V2: refused, saying the platform's "
+          "response to it is not measured",
+          "carries 2 versions" in msg and "not measured" in msg, msg)
+    msg = import_target_refusal("TK172_Chain", shared, shared[1], payload(pv2)) or ""
+    check("the refusal names the condition, cites the measurement, points to "
+          "set_step_formula.py and says nothing was written",
+          "TK172_Chain_V1 share the label" in msg and "2026-11-24" in msg
+          and "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
+
+    # ramp264: every version carried the same label; the importer targeted v40.
+    ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
+            for v in RAMP264_VERSIONS]
+    v1, v40 = ramp[0], ramp[3]
+    label = "RLM Revenue Management Default Pricing Procedure"
+    msg = import_target_refusal("RLM_DefaultPricingProcedure", ramp, v40,
+                                payload((v1["ApiName"], label))) or ""
+    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+          "rebinding" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg, msg)
+    check("ramp264: a payload for v40 is refused too (its label is shared)",
+          "share the label" in (import_target_refusal(
+              "RLM_DefaultPricingProcedure", ramp, v40,
+              payload((v40["ApiName"], label))) or ""))
+
+    single = [dict(v1)]
+    check("a single-version set is never refused here (even on a name mismatch)",
+          import_target_refusal("X", single, single[0], payload(("Other", "x"))) is None)
+    check("an empty version list is not refused",
+          import_target_refusal("X", [], {}, payload(("A", "a"))) is None)
+
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "Name": "X", "IsActive": True,
+              "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "Name": "X draft", "IsActive": False,
+              "VersionNumber": 2}]
+    check("active+draft, distinct labels: a one-version payload for the active target proceeds",
+          import_target_refusal("X", draft, draft[0], payload(("X_V1", "X"))) is None)
+    check("active+draft, distinct labels: a payload without a name uses the target's label",
+          import_target_refusal("X", draft, draft[0],
+                                {"versions": [{"apiName": "X_V1"}]}) is None)
+    rebind = import_target_refusal("X", draft, draft[0], payload(("X_V2", "X draft"))) or ""
+    check("active+draft: a payload for the draft is refused as a rebind onto X_V1",
+          "payload's version is X_V2" in rebind and "X_V1 (v1)" in rebind, rebind)
+    check("a payload version without apiName is refused on a multi-version set",
+          "(no apiName)" in (import_target_refusal("X", draft, draft[0],
+                                                    {"versions": [{}]}) or ""))
+    loose = [dict(draft[0]), dict(draft[1], Name="  x ")]
+    check("labels are compared ignoring case and spacing (fail closed)",
+          "share the label" in (import_target_refusal(
+              "X", loose, loose[0], payload(("X_V1", "X"))) or ""))
+    unlabelled = [{k: v for k, v in r.items() if k != "Name"} for r in draft]
+    check("no label on the payload or the org row: refused, naming the missing label",
+          "carries a label" in (import_target_refusal(
+              "X", unlabelled, unlabelled[0], {"versions": [{"apiName": "X_V1"}]}) or ""))
+    check("a non-dict payload entry still counts as a version (refused as two)",
+          "carries 2 versions" in (import_target_refusal(
+              "X", draft, draft[0], {"versions": [None, {"apiName": "X_V1"}]}) or ""))
+    check("payload versions that are not a list: refused as zero versions",
+          "carries 0 versions" in (import_target_refusal(
+              "X", draft, draft[0], {"versions": "X_V1"}) or ""))
+    shared_draft = [dict(draft[0]), dict(draft[1], Name="X")]
+    check("active+draft with a shared label: refused even for the target",
+          "share the label" in (import_target_refusal(
+              "X", shared_draft, shared_draft[0], payload(("X_V1", "X"))) or ""))
+
+
+class _FormulaTransport(_PlanTransport):
+    """_PlanTransport plus the Tooling ESDV record set_step_formula edits.
+
+    The Tooling PATCH is refused while the version is active, as the platform
+    refuses it (INVALID_ID_FIELD: LatestVersionSnapshotId not found).
+    """
+
+    def __init__(self, *, metadata, versions=None, store_formula=None, patch_error=None, **kw):
+        super().__init__(**kw)
+        self.metadata = metadata
+        self.versions = [dict(v) for v in (versions or RAMP264_VERSIONS)]
+        self.store_formula = store_formula
+        self.patch_error = patch_error
+        self.events = []
+
+    def connect(self, method, path, body=None, **kw):
+        if self.dry_run and method != "GET":
+            self.events.append(("dry-run", method))
+            return {}
+        if path.startswith("tooling/query"):
+            self.events.append(("esdv-query", path))
+            return {"records": [{"Id": "9QBv", "DeveloperName": "x", "VersionNumber": 4}]}
+        if method == "GET":
+            return {"Metadata": deepcopy(self.metadata)}
+        self.events.append(("tooling-patch", self.esv_active))
+        from scripts.expression_sets._client import ExpressionSetClientError
+        if self.esv_active:
+            raise ExpressionSetClientError("INVALID_ID_FIELD: LatestVersionSnapshotId not found")
+        if self.patch_error:
+            raise ExpressionSetClientError(self.patch_error)
+        if "urls" in body["Metadata"]:
+            raise RuntimeError("urls must be stripped")
+        self.metadata = deepcopy(body["Metadata"])
+        if self.store_formula is not None:
+            for step in self.metadata["steps"]:
+                for p in (step.get("customElement") or {}).get("parameters") or []:
+                    if p["name"] == "formula-section-0-input" and step["name"] == "CompoundUplift":
+                        p["value"] = self.store_formula
+        return {}
+
+    def sobject(self, method, sobject, record_id=None, body=None, **kw):
+        if self.dry_run:
+            self.events.append(("dry-run", sobject))
+            return {}
+        return super().sobject(method, sobject, record_id, body, **kw)
+
+
+def _run_set_formula(transport, argv):
+    import scripts.expression_sets.set_step_formula as mod
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    logs = []
+
+    def make_transport(**kw):
+        transport.dry_run = kw.get("dry_run", False)
+        return transport
+
+    undo = _patch(
+        mod, Transport=make_transport, eprint=logs.append,
+        LifecycleEngine=lambda t, **k: LifecycleEngine(t, logger=logs.append,
+                                                       max_wait_seconds=0, poll_interval_seconds=1),
+        resolve_expression_set_id=lambda *a, **k: "9QLx",
+        resolve_definition_id=lambda *a, **k: "9QAx",
+        list_versions=lambda *a, **k: [dict(v) for v in transport.versions],
+    )
+    try:
+        rc = mod.main(["--target-org", "x", "--expression-set", "RLM_DefaultPricingProcedure",
+                       *argv])
+    finally:
+        undo()
+    return rc, logs
+
+
+def test_set_step_formula():
+    """set_step_formula.py: executing-version default, step selection, lifecycle,
+    read-back and plan checks (todo pack 172)."""
+    print("test_set_step_formula")
+    import scripts.expression_sets.set_step_formula as mod
+
+    # ---- pure helpers -------------------------------------------------
+    check("default target is the executing version (v40)",
+          mod.select_target_version(RAMP264_VERSIONS)["Id"] == "9QMv")
+    ranked = [dict(v, Rank=1) for v in RAMP264_VERSIONS]
+    ranked[0]["Rank"] = 2
+    check("the default target follows Rank (the shared resolver), not VersionNumber",
+          mod.select_target_version(ranked)["Id"] == "9QM1")
+    check("an explicit version name wins",
+          mod.select_target_version(RAMP264_VERSIONS, "RLM_DefaultPricingProcedure_V1")["Id"]
+          == "9QM1")
+    for label, args in (("an unknown version name", (RAMP264_VERSIONS, "Nope")),
+                        ("no active version and no name",
+                         ([dict(v, IsActive=False) for v in RAMP264_VERSIONS],))):
+        try:
+            mod.select_target_version(*args)
+            check(f"{label} raises", False)
+        except mod.StepFormulaError:
+            check(f"{label} raises", True)
+    table = mod.version_table(RAMP264_VERSIONS, RAMP264_VERSIONS[0])
+    check("version table marks the executing and the target version",
+          table[0].endswith("<- target") and table[3].endswith("<- executes")
+          and len(table) == 4, table)
+
+    md = _formula_metadata()
+    path, step = mod.locate_step(md, parent_step=_RAMP_PARENT)
+    check("--parent-step picks the formula child, skipping the filter child",
+          step["name"] == "CompoundUplift" and path == "Metadata.steps[3]", (path, step))
+    check("--parent-step finds a renamed child the same way",
+          mod.locate_step(_formula_metadata(child="Uplift"),
+                          parent_step=_RAMP_PARENT)[1]["name"] == "Uplift")
+    check("--step selects by name",
+          mod.locate_step(md, step="Calculatemargin")[0] == "Metadata.steps[4]")
+    check("--section selects another formula parameter",
+          mod.locate_step(md, parent_step=_RAMP_PARENT,
+                          param_name=mod.formula_parameter_name(1))[1]["name"] == "CompoundUplift")
+    nested = {"steps": [{"name": "Outer", "steps": [
+        {"name": "Inner", "customElement": {"parameters": [
+            {"name": "formula-section-0-input", "value": "1"}]}}]}]}
+    check("the step search is recursive",
+          mod.locate_step(nested, step="Inner")[0] == "Metadata.steps[0].steps[0]")
+    dup = {"steps": md["steps"] + [dict(md["steps"][3], name="Second")]}
+    for label, kwargs, metadata in (
+            ("an unknown step", {"step": "Nope"}, md),
+            ("a step without the formula parameter", {"step": "Getbaseprices"}, md),
+            ("a parent with no formula child", {"parent_step": "Getbaseprices"}, md),
+            ("a parent with two formula children", {"parent_step": _RAMP_PARENT}, dup),
+            ("both --step and --parent-step", {"step": "A", "parent_step": "B"}, md)):
+        try:
+            mod.locate_step(metadata, **kwargs)
+            check(f"{label} raises", False)
+        except mod.StepFormulaError:
+            check(f"{label} raises", True)
+    new = mod.with_formula(md, "CompoundUplift", "formula-section-0-input", "777")
+    check("with_formula sets only the target parameter",
+          mod.current_formula(new, "CompoundUplift", "formula-section-0-input") == "777"
+          and mod.current_formula(new, "CompoundUplift", "formula-section-1-input") == "S1"
+          and mod.current_formula(new, "Calculatemargin", "formula-section-0-input") == "A - B")
+    check("with_formula does not mutate its input",
+          mod.current_formula(md, "CompoundUplift", "formula-section-0-input")
+          == "ItemUnitPrice * 1")
+    check("plans active before and not confirmed active after are reported",
+          mod.plans_left_inactive({"A": True, "B": True, "C": False, "D": True},
+                                  {"A": True, "B": False, "C": False, "D": None})
+          == ["B", "D"])
+
+    parent = ["--parent-step", _RAMP_PARENT]
+
+    # ---- --show is read-only -------------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--show"])
+    check("--show exits 0 and writes nothing",
+          rc == 0 and not any(e[0] in ("tooling-patch", "dry-run") for e in t.events), t.events)
+    check("--show prints the executing version's current formula",
+          any("'ItemUnitPrice * 1'" in m for m in logs)
+          and any("Partner_Price_and_Ramp_v40" in m and "executes, target" in m for m in logs),
+          logs)
+    rc_bad, _ = _run_set_formula(t, [*parent, "--show", "--formula", "1"])
+    check("--show with --formula is a usage error", rc_bad == 2, rc_bad)
+    rc_none, _ = _run_set_formula(t, [*parent])
+    check("no --formula and no --show is a usage error", rc_none == 2, rc_none)
+
+    # ---- preview writes nothing -------------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777"])
+    check("preview exits 0", rc == 0, logs)
+    check("preview performs no write",
+          t.metadata == _formula_metadata() and t.plans == {"1Cv1": True}
+          and t.esv_active is True and not any(e[0] == "tooling-patch" for e in t.events),
+          t.events)
+    check("preview still logs the lifecycle it would run",
+          ("dry-run", "PATCH") in t.events and ("dry-run", "ProcedurePlanDefinitionVersion")
+          in t.events, t.events)
+
+    # ---- confirm: deactivate → PATCH → reactivate, read-back passes -------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True, "1Cv2": False})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("confirm exits 0 when the read-back matches", rc == 0, logs)
+    check("the formula landed on the executing version's step",
+          mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input") == "777")
+    check("the Tooling PATCH ran while the version was inactive",
+          ("tooling-patch", False) in t.events, t.events)
+    check("the version and the active plan are reactivated; the inactive plan is left as found",
+          t.esv_active is True and t.plans == {"1Cv1": True, "1Cv2": False}, (t.esv_active, t.plans))
+    check("a plan already inactive before the run is warned about",
+          any("already inactive" in m and "1Cv2" in m for m in logs), logs)
+    check("the success line reports the read-back",
+          any("live == intended: True" in m for m in logs), logs)
+
+    # ---- a formula already in place is a no-op -----------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(formula="777"), plans={"1Cv1": True})
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("an unchanged formula writes nothing and exits 0",
+          rc == 0 and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True}, t.events)
+
+    # ---- read-back mismatch exits 1 -----------------------------------------
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          store_formula="something else")
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a read-back mismatch exits 1", rc == 1, logs)
+    check("the mismatch names the live value",
+          any("FAILED read-back" in m and "'something else'" in m for m in logs), logs)
+
+    # ---- a rejected PATCH reactivates (atomic Tooling write) and exits 1 ----
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          patch_error="FIELD_INTEGRITY_EXCEPTION")
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a rejected PATCH exits 1", rc == 1, logs)
+    check("a rejected PATCH leaves the version and the plan active",
+          t.esv_active is True and t.plans == {"1Cv1": True}, (t.esv_active, t.plans))
+    check("a rejected PATCH leaves the stored formula unchanged",
+          mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input")
+          == "ItemUnitPrice * 1")
+
+    # ---- a plan the run could not restore exits 1 with its restore command ---
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          fail_plan_reactivate=True)
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm"])
+    check("a plan left inactive fails the run", rc == 1 and t.plans["1Cv1"] is False, logs)
+    check("the plan left inactive gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs), logs)
+
+    # ---- an inactive explicit target stays inactive -------------------------
+    versions = [dict(v) for v in RAMP264_VERSIONS]
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          versions=versions, esv_active=False)
+    t.versions[3]["IsActive"] = False  # v40 is "9QMv"; make it an inactive draft
+    rc, logs = _run_set_formula(t, [*parent, "--formula", "777", "--confirm",
+                                    "--version-api-name", versions[3]["ApiName"]])
+    check("an inactive target is edited in place and left inactive",
+          rc == 0 and t.esv_active is False and t.plans == {"1Cv1": True}
+          and mod.current_formula(t.metadata, "CompoundUplift", "formula-section-0-input")
+          == "777", (rc, logs))
+    check("editing a non-executing version warns that pricing is unaffected",
+          any("is not the executing version" in m for m in logs), logs)
+
+
+def test_null_rank_guard():
+    """An active version with a null Rank cannot be reactivated through the API
+    ("Enter a valid rank to enable …", measured on 264): every deactivate → mutate →
+    reactivate path refuses it before any write (todo pack 172)."""
+    print("test_null_rank_guard")
+    import scripts.expression_sets.set_step_formula as sf_mod
+    from scripts.expression_sets._guards import null_rank_reactivation_refusal
+    from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError
+    from scripts.expression_sets._tooling import relabel_version
+
+    null_active = {"Id": "9QMv", "ApiName": "X_V1", "IsActive": True, "Rank": None}
+    msg = null_rank_reactivation_refusal(null_active, True) or ""
+    check("an active null-Rank version that would be reactivated is refused, naming the "
+          "cause and the remedy",
+          "Enter a valid rank" in msg and "Nothing was written" in msg
+          and "could not turn it back on" in msg and "cannot be updated/deleted" in msg
+          and "X_V1" in msg, msg)
+    # A command is printed only when every value is known and it is safe: the Rank
+    # is a choice, so it is described; deactivate/activate carry --no-cascade.
+    check("without the org and set, the Rank remedy is described, with no command",
+          "python " not in msg and "sf data update" not in msg and "<" not in msg
+          and "deactivate X_V1 with activate_expression_set.py --deactivate --no-cascade"
+          in msg and "set a numeric Rank" in msg and "refuses equal Ranks" in msg, msg)
+    filled = null_rank_reactivation_refusal(null_active, True, target_org="o",
+                                            es_api_name="X") or ""
+    activate = ("python scripts/expression_sets/activate_expression_set.py --target-org "
+                "o --expression-set X --version X_V1 {} --no-cascade --confirm")
+    check("with the org and set, deactivate and activate are complete --no-cascade "
+          "commands, and the Rank is described, not printed",
+          activate.format("--deactivate") in filled and activate.format("--activate")
+          in filled and "sf data update" not in filled and "Rank=" not in filled, filled)
+    check("with no alternative given, no run-without-activation option is named",
+          "--no-activate" not in msg and "activate_after" not in msg, msg)
+    from scripts.expression_sets._guards import (
+        NO_ACTIVATION_CCI_APPLY, NO_ACTIVATION_CCI_IMPORT, NO_ACTIVATION_CLI,
+        null_rank_delete_refusal)
+    for alternative, option in ((NO_ACTIVATION_CLI, "--no-activate"),
+                                (NO_ACTIVATION_CCI_APPLY, "-o activate_after_apply false"),
+                                (NO_ACTIVATION_CCI_IMPORT, "-o activate_after_import false")):
+        text = null_rank_reactivation_refusal(null_active, True, alternative) or ""
+        check(f"the alternative names the caller's real option ({option})",
+              option in text, text)
+    delete_msg = null_rank_delete_refusal(null_active, target_org="o",
+                                          es_api_name="X") or ""
+    check("the delete refusal's alternative is a complete --no-cascade deactivate command",
+          "deactivate it first (" + activate.format("--deactivate") + ")" in delete_msg,
+          delete_msg)
+    draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
+    check("a null-Rank draft the run would activate is refused too, the Rank described",
+          "fail to activate it" in draft_msg and "set a numeric Rank" in draft_msg
+          and "python " not in draft_msg, draft_msg)
+
+    # relabel_expression_set: refused before any write, naming its own --no-activate.
+    import scripts.expression_sets.relabel_expression_set as relabel_mod
+    relabels, rlogs = [], []
+    undo = _patch(relabel_mod, Transport=lambda **k: None,
+                  LifecycleEngine=lambda *a, **k: None, eprint=rlogs.append,
+                  resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  resolve_definition_id=lambda *a, **k: "9QAx",
+                  _resolve_target_version=lambda *a, **k: dict(null_active, VersionNumber=1),
+                  resolve_esdv=lambda *a, **k: {"Id": "9QBx"},
+                  fetch_metadata=lambda *a, **k: {},
+                  step_labels=lambda md: {"S": "S"},
+                  relabel_version=lambda *a, **k: relabels.append(k))
+    try:
+        rc = relabel_mod.main(["--target-org", "x", "--expression-set", "X",
+                               "--set", "S=New S", "--confirm"])
+    finally:
+        undo()
+    check("relabel refuses a null-Rank active version before any write, offering "
+          "--no-activate",
+          rc == 1 and relabels == []
+          and any("Enter a valid rank" in m and "--no-activate" in m
+                  and "--target-org x --expression-set X --version X_V1" in m
+                  and "<alias>" not in m for m in rlogs),
+          (rc, rlogs))
+    for label, esv, activate_after in (
+            ("a numeric Rank", dict(null_active, Rank=1), True),
+            ("a row read without Rank", {k: v for k, v in null_active.items() if k != "Rank"},
+             True),
+            ("a draft that stays a draft", dict(null_active, IsActive=False), False),
+            ("no reactivation requested", null_active, False)):
+        check(f"not refused: {label}", null_rank_reactivation_refusal(esv, activate_after) is None)
+
+    # activate_expression_set: --activate refused up front; --deactivate warns.
+    import scripts.expression_sets.activate_expression_set as act_mod
+
+    def run_activate(flag, esv):
+        t = _PlanTransport(plans={"1Cv1": True}, esv_active=bool(esv["IsActive"]))
+        logs = []
+        undo = _patch(act_mod, Transport=lambda **k: t, eprint=logs.append,
+                      resolve_expression_set_id=lambda *a, **k: "9QLx",
+                      resolve_definition_id=lambda *a, **k: "9QAx",
+                      resolve_version_by_es_id=lambda *a, **k: dict(esv))
+        try:
+            rc = act_mod.main(["--target-org", "x", "--expression-set", "X", flag,
+                               "--confirm"])
+        finally:
+            undo()
+        return rc, logs, t
+
+    rc, logs, t = run_activate("--activate", dict(null_active, IsActive=False))
+    check("activate --activate refuses a null-Rank version before any write",
+          rc == 1 and t.esv_active is False and any("Enter a valid rank" in m for m in logs)
+          and not any("--no-activate" in m for m in logs)
+          and any("set a numeric Rank" in m and "<" not in m for m in logs),
+          (rc, logs))
+    rc, logs, t = run_activate("--deactivate", null_active)
+    check("activate --deactivate on a null-Rank version warns that it is one-way",
+          rc == 0 and t.esv_active is False
+          and any("cannot be turned back on" in m for m in logs), (rc, logs))
+
+    # delete_expression_set (whole set): the rollback after a failed DELETE would
+    # reactivate, so an active null-Rank version is refused up front.
+    import scripts.expression_sets.delete_expression_set as del_mod
+    t = _PlanTransport(plans={"1Cv1": True})
+    logs = []
+    undo = _patch(del_mod, Transport=lambda **k: t, eprint=logs.append,
+                  resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  resolve_definition_id=lambda *a, **k: "9QAx",
+                  resolve_version_by_es_id=lambda *a, **k: dict(null_active))
+    try:
+        rc = del_mod.main(["--target-org", "x", "--expression-set", "X", "--confirm"])
+    finally:
+        undo()
+    check("delete refuses a whole set whose active version has no Rank, before any write",
+          rc == 1 and t.esv_active is True and t.plans == {"1Cv1": True}
+          and any("Delete refused" in m and "deactivate it first" in m
+                  and "--target-org x --expression-set X --version X_V1 --deactivate" in m
+                  and "<alias>" not in m and "<name>" not in m for m in logs),
+          (rc, logs))
+
+    t = _PlanTransport(plans={"1Cv1": True})
+    calls = []
+    try:
+        LifecycleEngine(t, logger=lambda *a: None).run_mutation(
+            es_def_id="9QAx", esv=null_active, mutate=lambda: calls.append("mutate"),
+            activate_after=True, cascade=True)
+        raised = None
+    except LifecycleError as exc:
+        raised = exc
+    check("run_mutation refuses it before cascading, deactivating or mutating",
+          raised is not None and calls == [] and t.plans == {"1Cv1": True}
+          and t.esv_active is True, (raised, calls, t.plans, t.esv_active))
+
+    # relabel: the shared relabel core runs the same cycle.
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    engine = LifecycleEngine(t, logger=lambda *a: None)
+    try:
+        relabel_version(engine, es_def_id="9QAx",
+                        esv=dict(null_active, VersionNumber=4),
+                        name_to_label={"Getbaseprices": "Get base prices"})
+        raised = None
+    except LifecycleError as exc:
+        raised = exc
+    check("relabel refuses a null-Rank active version before any write",
+          raised is not None and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True} and t.esv_active is True, (raised, t.events))
+
+    # The lifecycle's own check fills the commands with the transport's org and the
+    # set's DeveloperName, read from the definition.
+    class _NamedTransport:
+        target_org = "org-alias"
+        dry_run = False
+
+        def soql(self, query):
+            return ([{"DeveloperName": "X_Set"}]
+                    if "FROM ExpressionSetDefinition" in query else [])
+
+    try:
+        LifecycleEngine(_NamedTransport(), logger=lambda *a: None).run_mutation(
+            es_def_id="9QAx", esv=null_active, mutate=lambda: None, activate_after=True,
+            cascade=True)
+        backstop = ""
+    except LifecycleError as exc:
+        backstop = str(exc)
+    check("the lifecycle refusal's commands carry the run's org and the set's name",
+          "activate_expression_set.py --target-org org-alias --expression-set X_Set "
+          "--version X_V1 --deactivate --no-cascade --confirm" in backstop
+          and "sf data update" not in backstop, backstop)
+
+    # set_step_formula: the executing (default) target has a null Rank.
+    versions = [dict(v) for v in RAMP264_VERSIONS]
+    for v in versions:
+        v["Rank"] = None
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          versions=versions)
+    rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--formula", "777",
+                                    "--confirm", "--version-api-name",
+                                    versions[3]["ApiName"]])
+    check("set_step_formula refuses a null-Rank active target before any write (exit 1)",
+          rc == 1 and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True} and t.esv_active is True
+          and any("Enter a valid rank" in m for m in logs), (rc, t.events, logs))
+    check("set_step_formula's refusal prints commands filled with its org and set",
+          any("activate_expression_set.py --target-org x --expression-set "
+              "RLM_DefaultPricingProcedure --version" in m and "--no-cascade" in m
+              and "<" not in m for m in logs), logs)
+    rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--show",
+                                    "--version-api-name", versions[3]["ApiName"]])
+    check("--show still reads a null-Rank version", rc == 0, logs)
+
+
+def test_overlay_multi_version():
+    """Todo pack 172, live round 3 (264, 2026-11-25): an overlay sends every version.
+    It succeeded when each version carried its own name and was rejected on the
+    version-name collision when two carried one; with no version named it edited the
+    GET's first (draft) version while the lifecycle cycled the executing one."""
+    print("test_overlay_multi_version")
+    from scripts.expression_sets._guards import version_name_collision_refusal
+    import scripts.expression_sets.apply_expression_set_overlay as apply_mod
+
+    def org(v1_name, v2_name):
+        return [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "VersionNumber": 1,
+                 "IsActive": False, "Rank": 1},
+                {"Id": "9QM2", "ApiName": "C_V2", "Name": v2_name, "VersionNumber": 2,
+                 "IsActive": True, "Rank": 2}]
+
+    def sent(*names):
+        return {"versions": [{"apiName": f"C_V{i}", "name": n, "versionNumber": i}
+                             for i, n in enumerate(names, start=1)]}
+
+    rows = (
+        # (label, org rows, payload, refused) -- the first three are the live rows.
+        ("a1: org Names distinct by an sObject rename, GET names shared",
+         org("C draft", "C"), sent("C", "C"), True),
+        ("a2: org Names and GET names shared", org("C", "C"), sent("C", "C"), True),
+        ("a3: each version deployed with its own label", org("C V1", "C V2"),
+         sent("C V1", "C V2"), False),
+        ("names differing only in case and spacing", org("C V1", "C V2"),
+         sent("c  v1", "C V1"), True),
+        ("a one-version payload carrying another version's Name", org("C", "C"),
+         {"versions": [{"apiName": "C_V2", "name": "C"}]}, True),
+        ("a payload version with no name", org("C V1", "C V2"),
+         {"versions": [{"apiName": "C_V1"}, {"apiName": "C_V2", "name": "C V2"}]}, True),
+        ("a single-version set", org("C", "C")[:1], sent("C"), False),
+    )
+    for label, versions, payload, refused in rows:
+        msg = version_name_collision_refusal("C", versions, payload)
+        check(f"overlay name guard: {label} -> {'refused' if refused else 'allowed'}",
+              bool(msg) == refused, msg)
+    msg = version_name_collision_refusal("C", org("C draft", "C"), sent("C", "C"))
+    check("the refusal names the collision, the measurement and nothing written",
+          "C_V1 and C_V2 both carry the name 'C'" in msg and "C_V1 carries the name 'C', "
+          "which C_V2 holds" in msg and "2026-11-25" in msg and "Nothing was written" in msg,
+          msg)
+
+    # The CLI: default target and the refusal before any write.
+    with tempfile.TemporaryDirectory() as td:
+        overlay_path = Path(td) / "ov.json"
+        overlay_path.write_text(json.dumps({"updateSteps": [{"name": "S", "description": "x"}]}))
+        targets, writes, numbers = [], [], []
+
+        class _RecordingEngine(_FakeEngine):
+            def ensure_resource_initialization_type(self, *a, **k):
+                writes.append("resourceInitializationType")
+
+            def run_mutation(self, *a, **k):
+                writes.append("run_mutation")
+
+        def run(org_rows, payload, extra=()):
+            targets.clear()
+            numbers.clear()
+            writes.clear()
+            logs = []
+
+            def record_apply(definition, overlay, version_api_name=None,
+                             version_number=None, **k):
+                targets.append(version_api_name)
+                numbers.append(version_number)
+                return payload
+
+            undo = _patch_cli(
+                apply_mod, LifecycleEngine=_RecordingEngine, Transport=lambda **k: None,
+                eprint=logs.append,
+                resolve_expression_set_id=lambda *a, **k: "9QLx",
+                resolve_definition_id=lambda *a, **k: "9QAx",
+                resolve_version_by_es_id=lambda *a, **k: dict(org_rows[1]),
+                validate_overlay_against_definition=lambda *a, **k: _passing_validation(),
+                apply_overlay=record_apply,
+                validate_definition=lambda *a, **k: _passing_validation(),
+                normalize_html_entities=lambda p, **k: p,
+                list_versions=lambda *a, **k: [dict(r) for r in org_rows],
+                capture_labels=lambda *a, **k: {},
+            )
+            try:
+                rc = apply_mod.main(["--target-org", "x", "--expression-set", "C",
+                                     "--overlay", str(overlay_path), "--confirm", *extra])
+            finally:
+                undo()
+            return rc, logs
+
+        rc, logs = run(org("C V1", "C V2"), sent("C V1", "C V2"))
+        check("overlay with no version edits the executing version, not the GET's first",
+              rc == 0 and targets and set(targets) == {"C_V2"}
+              and writes == ["resourceInitializationType", "run_mutation"], (rc, targets, logs))
+        check("overlay selects the GET's block by the executing version's VersionNumber "
+              "(the GET's apiName can be a stale clone name)",
+              numbers and set(numbers) == {2}, numbers)
+        rc, logs = run(org("C V1", "C V2"), sent("C V1", "C V2"), ("--version", "C_V1"))
+        check("an explicit non-executing version is edited, with a warning",
+              rc == 0 and set(targets) == {"C_V1"}
+              and any("C_V2 is the executing version" in m for m in logs), (rc, logs))
+        rc, logs = run(org("C draft", "C"), sent("C", "C"))
+        check("overlay refuses colliding version names before any write",
+              rc == 1 and writes == [] and any("both carry the name" in m for m in logs),
+              (rc, writes, logs))
+        unranked = org("C V1", "C V2")
+        unranked[1]["Rank"] = None
+        rc, logs = run(unranked, sent("C V1", "C V2"))
+        check("overlay: a null-Rank refusal names the run's org, the set and "
+              "--no-activate, before any write",
+              rc == 1 and writes == []
+              and any("--target-org x --expression-set C --version C_V2" in m
+                      and "--no-activate" in m and "<alias>" not in m for m in logs),
+              (rc, writes, logs))
+        both_active = [dict(r, IsActive=True) for r in org("C V1", "C V2")]
+        rc, logs = run(both_active, sent("C V1", "C V2"))
+        check("overlay refuses before any write while another version is active",
+              rc == 1 and writes == []
+              and any("rewrite C_V1 while active" in m and "set_step_formula.py" in m
+                      and "activate_expression_set.py --target-org x --expression-set C "
+                      "--version C_V1 --deactivate --no-cascade --confirm" in m
+                      for m in logs),
+              (rc, writes, logs))
+
+    from scripts.expression_sets._guards import other_active_versions_refusal
+    two = org("C V1", "C V2")
+    check("other-active guard: an inactive draft beside the target is allowed",
+          other_active_versions_refusal("C", two, two[1]) is None)
+    check("other-active guard: a single active version is allowed",
+          other_active_versions_refusal("C", two[1:], two[1]) is None)
+    three = two + [{"Id": "9QM3", "ApiName": "C_V3", "Name": "C V3", "VersionNumber": 3,
+                    "IsActive": True, "Rank": 3}]
+    msg = other_active_versions_refusal("C", three, three[2], target_org="o") or ""
+    check("other-active guard: names each other active version with a deactivate "
+          "command that leaves the procedure plans on, and only those",
+          "rewrite C_V2 while active" in msg and "--target-org o --expression-set C "
+          "--version C_V2 --deactivate --no-cascade --confirm" in msg
+          and "--version C_V1" not in msg and "Nothing was written" in msg
+          and "backdated or future-dated" in msg, msg)
+    words = other_active_versions_refusal("C", three, three[2]) or ""
+    check("other-active guard: without the org, the step is described, no command",
+          "deactivate C_V2 with activate_expression_set.py --deactivate --no-cascade"
+          in words and "python " not in words, words)
+
+
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""
     import subprocess
@@ -1761,14 +2994,45 @@ def test_client_auth_hint():
     cli = failure("", stderr="No authorization information found for rlm-base__t.")
     check("CLI-level failure (no error code) keeps the auth hint", "sf org login web" in cli and "No authorization" in cli, cli)
 
+    # No sf on PATH: the login command names the org the call targeted.
+    real_run = subprocess.run
+
+    def missing(*a, **k):
+        raise FileNotFoundError("sf")
+
+    subprocess.run = missing
+    try:
+        _client._run_sf(["api", "request", "rest", "/x", "--target-org", "rlm-base__t"])
+        not_found = ""
+    except _client.ExpressionSetClientError as exc:
+        not_found = str(exc)
+    finally:
+        subprocess.run = real_run
+    check("sf not found: the login command names the call's org",
+          "sf org login web --alias rlm-base__t" in not_found, not_found)
+
+    # relabel_command: complete either way (labels file, or --auto when none).
+    from scripts.expression_sets._guards import relabel_command
+    check("relabel_command with no labels file is a complete --auto command",
+          relabel_command(target_org="o", es_api_name="S", version_api_name="S_V1")
+          == "python scripts/expression_sets/relabel_expression_set.py --target-org o "
+             "--expression-set S --version S_V1 --auto --no-cascade --confirm")
+    check("relabel_command prints nothing when the org or set is unknown",
+          relabel_command(es_api_name="S") is None
+          and relabel_command(target_org="o") is None)
+
 
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
+               test_read_tools_default_to_the_executing_version,
+               test_version_selection_never_takes_the_first,
                test_overlay_content_verification, test_empty_description_reads_back_null,
-               test_shipped_fixtures, test_client_auth_hint):
+               test_shipped_fixtures, test_client_auth_hint,
+               test_import_guards, test_set_step_formula, test_null_rank_guard,
+               test_overlay_multi_version):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

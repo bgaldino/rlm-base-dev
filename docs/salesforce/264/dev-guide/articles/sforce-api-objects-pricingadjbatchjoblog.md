@@ -1,0 +1,127 @@
+---
+page_id: sforce-api-objects-pricingadjbatchjoblog
+title: PricingAdjBatchJobLog
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-objects-pricingadjbatchjoblog.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Salesforce Pricing
+parent_page: pricing-std-objects-parent
+legacy_page_id: sforce_api_objects_pricingadjbatchjoblog.htm
+fetched_at: 2026-11-25
+---
+
+# PricingAdjBatchJobLog
+
+Represents the report that contains a list of failed adjustment requests along with an error message that describes the reason for failure. This object is available in API version 62.0 and later.
+
+**Important:**
+
+Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.
+
+## Supported Calls
+
+`create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `search()`, `undelete()`, `update()`, `upsert()`
+
+## Fields
+
+### AdjustedValue
+
+- **Type**: double
+
+- **Properties**: Create, Filter, Nillable, Sort, Update
+
+- **Description**: The adjusted value of a record. The stored value is used even if another pricing adjustment batch job is triggered again.
+
+### EffectiveFrom
+
+- **Type**: dateTime
+
+- **Properties**: Create, Filter, Nillable, Sort, Update
+
+- **Description**: The date and time when the failed versioned record is generated. This is only applicable for Price Adjustment records.
+
+### EffectiveTo
+
+- **Type**: dateTime
+
+- **Properties**: Create, Filter, Nillable, Sort, Update
+
+- **Description**: The date and time until when the failed versioned record is available. This is applicable only for Price Adjustment records.
+
+### ErrorCode
+
+- **Type**: string
+
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+
+- **Description**: The error code for the failure during the record update process.
+
+### ErrorMessage
+
+- **Type**: textarea
+
+- **Properties**: Create, Update
+
+- **Description**: The error message that’s generated for the failure during the record update process.
+
+### LastReferencedDate
+
+- **Type**: dateTime
+
+- **Properties**: Filter, Nillable, Sort
+
+- **Description**: Indicates whether the pricing adjustment batch job has been archived (`true`) or not (`false`). This field is read-only.
+
+### LastViewedDate
+
+- **Type**: dateTime
+
+- **Properties**: Filter, Nillable, Sort
+
+- **Description**: The timestamp for when the current user last viewed this record. If this value is null, it’s possible that this record was referenced (`LastReferencedDate`) and not viewed.
+
+### Name
+
+- **Type**: string
+
+- **Properties**: Autonumber, Defaulted on create, Filter, idLookup, Sort
+
+- **Description**: Required. The name of the pricing adjustment batch job.
+
+### PricingAdjBatchJobId
+
+- **Type**: reference
+
+- **Properties**: Create, Filter, Group, Sort
+
+- **Description**: The pricing adjustment batch job associated with the pricing adjustment batch job log.
+
+This field is a relationship field.
+
+- **Relationship Name**: PricingAdjBatchJob
+
+- **Relationship Type**: Master-detail
+
+- **Refers To**: PricingAdjBatchJob (the master object)
+
+### TargetRecord
+
+- **Type**: string
+
+- **Properties**: Create, Filter, Group, idLookup, Sort, Update
+
+- **Description**: The ID of the record for which a pricing adjustment error was generated.
+
+## Associated Objects
+
+This object has the following associated objects. If the API version isn’t specified, they’re available in the same API versions as this object. Otherwise, they’re available in the specified API version and later.
+
+**[PricingAdjBatchJobLogFeed](./sforce-api-associated-objects-feed.md):** Feed tracking is available for the object.
+
+**[PricingAdjBatchJobLogHistory](./sforce-api-associated-objects-history.md):** History is available for tracked fields of the object.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-objects-pricingadjbatchjoblog.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

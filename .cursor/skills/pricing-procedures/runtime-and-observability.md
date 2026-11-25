@@ -34,8 +34,8 @@ the context, prices it and returns `pricingResult` in the same request, so the d
 scope is enough (`businessObjectType` in `pricingData` must be the SObject the mapping uses). Or
 use one Flow that builds the context, runs `runSalesforcePricing` (Flow-only) with its
 `contextInstanceId` and `pricingProcedureName`, and reads the tags in the same transaction
-[Dev guide `pricing_invocable_actions_parent.htm`, `actions_obj_run_salesforce_headless_pricing.htm`,
-`actions_obj_run_salesforce_pricing.htm`]. The multi-call REST path works only with
+[Dev guide `pricing-invocable-actions-parent.md`, `actions-obj-run-salesforce-headless-pricing.md`,
+`actions-obj-run-salesforce-pricing.md`]. The multi-call REST path works only with
 SESSION scope or context reuse enabled, plus the query pilot. Which path fits which org:
 [`../context-service/runtime-and-persistence.md`](../context-service/runtime-and-persistence.md).
 
@@ -67,7 +67,7 @@ QuantumBit scratch org; worked example in
   `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
   `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.
   Try again later or contact your Salesforce admin for help.` [Dev guide:
-  `actions_obj_run_salesforce_headless_pricing.htm` shows that sample].
+  `actions-obj-run-salesforce-headless-pricing.md` shows that sample].
 - Response: `outputValues.pricingResult` (and `contextDetails`, `pricingProcessErrors`) come back
   as **JSON strings**, not the nested objects the dev guide sample shows. `pricingResult` is keyed
   by context attribute name (`NetUnitPrice`, `NetTotalPrice`, `PricingTermCount`, `TotalAmount`,
@@ -193,7 +193,7 @@ distribution, compound uplift in Price Revision) [Platform behaviour, traced]. T
 in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and
 `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, including shapes
 whose definition does not set it, so an org built by `prepare_rlm_org` has it on [Repo]. Its
-documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that does
+documented default is false [Metadata API: `meta-revenuemanagementsettings`], so an org that does
 not set it has it off. When it applies, the run mode (set through configuration overrides; the
 waterfall reports execution mode "Delta Pricing") starts all non-deleted lines skipped, updated
 lines become roots of the dependency graph, and lines derived from them are found and repriced: a

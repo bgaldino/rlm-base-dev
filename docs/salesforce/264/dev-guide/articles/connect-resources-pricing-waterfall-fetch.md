@@ -1,0 +1,58 @@
+---
+page_id: connect-resources-pricing-waterfall-fetch
+title: Pricing Waterfall (GET)
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-resources-pricing-waterfall-fetch.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Salesforce Pricing
+parent_page: pricing-business-apis-rest-references
+legacy_page_id: connect_resources_pricing_waterfall_fetch.htm
+fetched_at: 2026-11-25
+---
+
+# Pricing Waterfall (GET)
+
+Get the persisted price waterfall that stores the process logs. Price waterfall provides insights into every step of the pricing process.
+
+If price waterfall persistence is disabled from Salesforce Pricing Setup in your org, this API doesn’t return the waterfall details. You can view the waterfall details in the [Pricing API](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_headless.htm) or [Price Context API](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_price_context.htm) response if price waterfall is enabled in Salesforce Pricing Setup.
+
+## Advanced Price Logs
+
+You can set up advanced price logs to capture exception details for complex pricing elements. The API response captures input and output values to trace any exceptions. Refer to the diagnostic data available in the price waterfall details to identify and fix performance issues. See [Advanced Price Logs](https://help.salesforce.com/s/articleView?id=ind.pricing_advanced_price_log_settings.htm).
+
+## Resource
+
+```
+/connect/core-pricing/waterfall/{lineItemId}/{executionId}
+```
+
+## Resource Example
+
+```
+https://{yourInstance}.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall/{Gold}/{2yHdNNEFOZr9jAe4gHS7}?tagsToFilter=UnitPrice
+```
+
+## Available Version
+
+60.0
+
+## HTTP Methods
+
+GET
+
+## Query Parameters
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `tagsTo​Filter` | String | Comma-separated tags to filter. | Optional | 61.0 |
+| `usage​Type` | String | Usage type of the waterfall log record. Valid values are `Pricing`; `Discovery`; or `Rating`—Specifies that the record type is `Rating`. If this value is specified, the API creates a log of rating waterfall. See [Rating Waterfall](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_rating_waterfall_post.htm). The default value is `Pricing`. | Optional | 62.0 |
+
+## Response Body for GET
+
+[Line Item Waterfall Response](./connect-responses-line-item-waterfall-response.md)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-resources-pricing-waterfall-fetch.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

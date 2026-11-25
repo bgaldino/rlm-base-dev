@@ -1,0 +1,62 @@
+---
+page_id: connect-requests-category-details-input
+title: Category Details Input
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-category-details-input.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Product Catalog Management
+parent_page: product-discovery-api-requests
+legacy_page_id: connect_requests_category_details_input.htm
+fetched_at: 2026-11-25
+---
+
+# Category Details Input
+
+Input representation of the request to get category details.
+
+## JSON Example
+
+```
+{
+  "correlationId": "9cbb9650-48c5-11ed-96d1-0afcf185843b",
+  "userContext": {
+      "accountId": "001xx0000000001AAA",
+      "contactId": "003xx00000000D7AAI"
+  }
+}
+```
+
+This example shows a sample request to get category details with eligible promotions.
+
+```
+{
+  "correlationId": "9cbb9650-48c5-11ed-96d1-0afcf185843b",
+  "userContext": {
+    "accountId": "001xx0000000001AAA",
+    "contactId": "003xx00000000D7AAI"
+  },
+  "usePromotions": true
+}
+```
+
+## Properties
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `additional​ContextData` | [Context Data Input](./connect-requests-context-data-input.md) | Additional nodes that are added to the custom or default context definition. The maximum number of supported nodes is 10. | Optional | 60.0 |
+| `catalog​Id` | String | ID of the catalog. If the catalog ID is specified, then the API returns the list of offers from the catalog with the pricing details related to the catalog. | Optional | 60.0 |
+| `context​Definition` | String | API name of the custom context definition that’s sent for context creation. If this property isn’t specified, then the default context definition is used. | Optional | 60.0 |
+| `context​Mapping` | String | Default context mapping of the context definition. If a context mapping is specified, then the API checks whether the mapping belongs to the specified context definition to process the details for hydration. | Optional | 60.0 |
+| `customFields` | String[] | List of category fields to retrieve in the response. | Optional | 60.0 |
+| `correlation​Id` | String | Unique identifier value that’s attached to the requests and messages, and accepts references to a particular transaction or event chain. | Optional | 60.0 |
+| `enable​Qualification` | Boolean | Indicates whether to enable qualification rules for the categories ( `true` ) or not ( `false` ). The default value is `true`. The **Qualification Procedure** toggle from the Product Discovery Settings page from Setup overrides this property. For example, if the **Qualification Procedure** toggle is disabled, then setting the `enableQualification` property to `true` has no effect and the `qualificationContext` property in the API response isn’t returned. | Optional | 60.0 |
+| `filter` | [Filter Input](./connect-requests-filter-input.md) | Filters records based on supported criteria. The supported property is `name`. The supported operators are `eq`; `in`; `contains`; `gt`—Specifies a greater than criteria. Available from API version 63.0 and later for Number, Date, and Datetime data types only; `lt`—Specifies a less than criteria. Available from API version 63.0 and later for Number, Date, and Datetime data types only; `gte`—Specifies a greater than or equal to criteria. Available from API version 63.0 and later for Number, Date, and Datetime data types only; or `lte`—Specifies a less than or equal to criteria. Available from API version 63.0 and later for Number, Date, and Datetime data types only. If multiple criteria are specified, then the resultant criteria are combined by using the `and` operator. | Optional | 60.0 |
+| `qualification​Procedure` | String | API name of the custom qualification procedure that’s used for the qualification process. If this property isn’t specified, then the default qualification procedure is executed. | Optional | 60.0 |
+| `user​Context` | [User Context Input](./connect-requests-user-context-input.md) | User context details. For example, account ID or contact ID. | Optional | 60.0 |
+| `usePromotions` | Boolean | Indicates whether to fetch eligible promotions from Global Promotion Management (GPM) for the requested category and its products (`true`) or not (`false`). If Promotion feature is enabled in the org and this property isn’t specified, then the default value is `true`. If the Promotion feature isn’t enabled, the default value is `false`. | Optional | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-category-details-input.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

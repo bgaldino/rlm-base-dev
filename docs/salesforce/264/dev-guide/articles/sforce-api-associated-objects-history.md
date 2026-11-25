@@ -1,0 +1,75 @@
+---
+page_id: sforce-api-associated-objects-history
+title: StandardObjectName History
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-associated-objects-history.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Revenue Management Associated Objects
+parent_page: sforce-api-associated-objects-list
+legacy_page_id: sforce_api_associated_objects_history.htm
+fetched_at: 2026-11-25
+---
+
+# *StandardObjectName* History
+
+*StandardObjectName* History is the model for all history objects associated with standard objects. These objects represent the history of changes to the values in the fields of a standard object.
+
+The object name is variable and uses *StandardObjectName* History syntax. For example, AccountHistory represents the history of changes to the values of an account record’s fields. We list the available associated history objects at the end of this topic. For specific version information, see the documentation for the standard object.
+
+## Supported Calls
+
+`describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`
+
+You can also enable `delete()` in API version 42.0 and later. See [Enable delete of Field History and Field History Archive](https://help.salesforce.com/articleView?id=000321814&type=1&mode=1).
+
+## Special Access Rules
+
+For specific special access rules, if any, see the documentation for the standard object. For example, for AccountHistory, see the special access rules for Account.
+
+## Fields
+
+### StandardObjectNameId
+
+- **Type**: reference
+
+- **Properties**: Filter, Group, Sort
+
+- **Description**: ID of the standard object.
+
+### DataType
+
+- **Type**: picklist
+
+- **Properties**: Filter, Group, Nillable, Restricted picklist, Sort
+
+- **Description**: Data type of the field that was changed.
+
+### Field
+
+- **Type**: picklist
+
+- **Properties**: Filter, Group, Restricted picklist, Sort
+
+- **Description**: Name of the field that was changed.
+
+### NewValue
+
+- **Type**: anyType
+
+- **Properties**: Nillable, Sort
+
+- **Description**: New value of the field that was changed.
+
+### OldValue
+
+- **Type**: anyType
+
+- **Properties**: Nillable, Sort
+
+- **Description**: Old value of the field that was changed.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-associated-objects-history.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

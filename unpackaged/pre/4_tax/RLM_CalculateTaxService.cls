@@ -5,6 +5,10 @@ global class RLM_CalculateTaxService {
     private static final String AVALARA_ENDPOINT_URL_SANDBOX = 'https://sandbox-rest.avatax.com/api/v2';
     // Avalara Endpoint URL Production
     private static final String AVALARA_ENDPOINT_URL_PRODUCTION = 'https://rest.avatax.com/api/v2';
+    // The adapter's own error codes are RLM_TAX_500 (adapter fault), RLM_TAX_501 (engine error body),
+    // RLM_TAX_502 (unreadable, incomplete or invalid response) and RLM_TAX_503 (no response). They sit
+    // outside the HTTP range on purpose (owner decision, todo 433 B8): a non-2xx engine answer is returned
+    // with its real HTTP status as the code, so anything routing on the code can tell the two apart.
     @TestVisible private static final String NO_RESPONSE_MESSAGE = 'The tax engine returned no response.';
 
     @TestVisible
@@ -75,7 +79,9 @@ global class RLM_CalculateTaxService {
     // message of an ErrorResponse is shown as written: the Connect calculate tax API returns it to the
     // caller, and the tax engine interaction log stores it. So every error return logs its detail here
     // for the administrator instead: what went wrong and, for an engine error, the engine's error codes.
-    // No response body is logged: a success body echoes the transaction back, customer address
+    // The engine's transaction status of a success body is logged only when it is not mapped, and only if
+    // it has the shape of a code (Saved, Posted); otherwise the log says it was missing or not a string,
+    // too long, or not a code. No response body is logged: a success body echoes the transaction back, customer address
     // included, and an error body's message text can quote the request's values. The codes (the
     // error's code and each detail's code and refersTo) name the kind of error and the request field it
     // concerns, not a value. An unreadable body is logged only as unreadable.
@@ -227,7 +233,7 @@ global class RLM_CalculateTaxService {
                 if(httpResponse == null) {
                     // RLM_HttpService swallows a failed callout and leaves no response (it logs only the exception type).
                     debugEngineDetail('no response');
-                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '503', NO_RESPONSE_MESSAGE);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_503', NO_RESPONSE_MESSAGE);
                 }
                 String responseString = bodyOrNull(httpResponse);
                 system.debug('Heap size used ' +Limits.getHeapSize());
@@ -242,7 +248,7 @@ global class RLM_CalculateTaxService {
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, String.valueOf(statusCode), HTTP_ERROR_PREFIX + statusCode + '.');
                 }
                 // A 2xx body that is empty, not a JSON object, or whose fields do not fit the success parser
-                // (for example "totalAmount":"abc"), returns the 502 unreadable response. That includes a
+                // (for example "totalAmount":"abc"), returns the RLM_TAX_502 unreadable response. That includes a
                 // 204 No Content on purpose: a tax calculation that returns no result has not calculated
                 // the tax, so it is a failure, not a success with nothing in it.
                 // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
@@ -250,7 +256,7 @@ global class RLM_CalculateTaxService {
                 Object parsedBody = parseBodyOrNull(responseString);
                 if(!(parsedBody instanceof Map<String, Object>)) {
                     debugEngineDetail('response is not a JSON object');
-                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_502', UNREADABLE_RESPONSE_MESSAGE);
                 }
                 Object errorValue = ((Map<String, Object>) parsedBody).get('error');
                 if(errorValue == null)
@@ -258,7 +264,7 @@ global class RLM_CalculateTaxService {
                     String misshapen = misshapenResponseField((Map<String, Object>) parsedBody);
                     if(misshapen != null) {
                         debugEngineDetail('response field not a list of objects: ' + misshapen);
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_502', UNREADABLE_RESPONSE_MESSAGE);
                     }
                     commercetax.CalculateTaxResponse response = new commercetax.CalculateTaxResponse();
                     RLM_JsonSuccessParser jsonSuccessParserClass;
@@ -268,17 +274,17 @@ global class RLM_CalculateTaxService {
                         // Only the type is logged: a platform JSONException message can quote the token
                         // it refused, which is a value from the response.
                         debugEngineDetail('response does not fit the success parser: ' + e.getTypeName());
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', UNREADABLE_RESPONSE_MESSAGE);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_502', UNREADABLE_RESPONSE_MESSAGE);
                     }
                     String missing = missingResponseValue(jsonSuccessParserClass);
                     if(missing != null) {
                         debugEngineDetail('response value missing: ' + missing);
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INCOMPLETE_RESPONSE_MESSAGE);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_502', INCOMPLETE_RESPONSE_MESSAGE);
                     }
                     String invalidDate = invalidResponseDate(jsonSuccessParserClass);
                     if(invalidDate != null) {
                         debugEngineDetail('response value not a date: ' + invalidDate);
-                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '502', INVALID_DATE_MESSAGE);
+                        return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_502', INVALID_DATE_MESSAGE);
                     }
                     response.setTaxTransactionType(request.taxTransactionType);
                     response.setDocumentCode(jsonSuccessParserClass.code);
@@ -291,6 +297,11 @@ global class RLM_CalculateTaxService {
                     }
                     if(jsonSuccessParserClass.status == 'Committed') {
                         response.setStatus(commercetax.TaxTransactionStatus.Committed);
+                    }
+                    if(jsonSuccessParserClass.status != 'Temporary' && jsonSuccessParserClass.status != 'Committed') {
+                        // Owner decision (todo 433, B8): no platform status is invented for an unmapped
+                        // engine status; the engine's own status is logged so it can be traced.
+                        debugEngineDetail('engine status not mapped, status left unset: ' + codeText(jsonSuccessParserClass.status));
                     }
                     response.setTaxType(requestType);
                     commercetax.AmountDetailsResponse headerAmountResponse = new commercetax.AmountDetailsResponse();
@@ -361,7 +372,7 @@ global class RLM_CalculateTaxService {
                 {
                     // As for a non-2xx status above, the engine's error codes go to the debug log.
                     debugEngineDetail('engine error; ' + engineErrorCodes(parsedBody));
-                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '501', ENGINE_ERROR_MESSAGE);
+                    return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_501', ENGINE_ERROR_MESSAGE);
                 }
             }else return null;
         }
@@ -373,7 +384,7 @@ global class RLM_CalculateTaxService {
             // thrown go to the debug log; its message does not, as some messages quote the value they
             // refused. A limit exception cannot be caught and still ends the transaction.
             debugEngineDetail('adapter error: ' + e.getTypeName() + ' at ' + e.getStackTraceString());
-            return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '500', ADAPTER_ERROR_MESSAGE);
+            return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, 'RLM_TAX_500', ADAPTER_ERROR_MESSAGE);
         }
     }
 }

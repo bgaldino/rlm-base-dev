@@ -23,9 +23,9 @@ The Product Configurator APIs enable interactive configuration of complex produc
   - `contextResponseType` (String, Optional — 65.0+): Controls response payload size for large transactions. Values: `Delta`, `Full`, `None`, `Product`. Required when the transaction has more than 1,000 and fewer than 15,000 line items.
   - `qualificationContext` (Object, Optional): User context used for qualification rules — `accountId`, `contactId`, `contextId`.
   - `transactionContextId` (String, Optional): Context ID of an existing transaction session.
-  - `addedNodes` (Array, Optional): Nodes to add — each with `path` (String[]) and `addedObject` (Object). See [Configurator Added Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_added_node_input.htm.md).
-  - `updatedNodes` (Array, Optional): Nodes to update — each with `path` (String[]) and `updatedAttributes` (Object). See [Configurator Updated Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_updated_node_input.htm.md).
-  - `deletedNodes` (Array, Optional): Nodes to delete — each with `path` (String[]). See [Configurator Deleted Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_deleted_node_input.htm.md).
+  - `addedNodes` (Array, Optional): Nodes to add — each with `path` (String[]) and `addedObject` (Object). See [Configurator Added Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-added-node-input.md).
+  - `updatedNodes` (Array, Optional): Nodes to update — each with `path` (String[]) and `updatedAttributes` (Object). See [Configurator Updated Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-updated-node-input.md).
+  - `deletedNodes` (Array, Optional): Nodes to delete — each with `path` (String[]). See [Configurator Deleted Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-deleted-node-input.md).
 
 ---
 
@@ -150,7 +150,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Available Version:** 60.0
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
-  - `addedNodes` (Array, Required): Nodes to add — each with `path` (String[]: location within the configuration tree) and `addedObject` (Object: the node payload to add). See [Configurator Added Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_added_node_input.htm.md).
+  - `addedNodes` (Array, Required): Nodes to add — each with `path` (String[]: location within the configuration tree) and `addedObject` (Object: the node payload to add). See [Configurator Added Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-added-node-input.md).
   - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
@@ -164,7 +164,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Available Version:** 60.0
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
-  - `deletedNodes` (Array, Required): Nodes to delete — each with `path` (String[]: location of the node to remove). See [Configurator Deleted Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_deleted_node_input.htm.md).
+  - `deletedNodes` (Array, Required): Nodes to delete — each with `path` (String[]: location of the node to remove). See [Configurator Deleted Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-deleted-node-input.md).
   - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 
@@ -178,7 +178,7 @@ Nodes represent individual components within a configuration — products, bundl
 - **Available Version:** 60.0
 - **Request Body Fields:**
   - `contextId` (String, Required): Context ID of the active configuration instance.
-  - `updatedNodes` (Array, Required): Nodes to update — each with `path` (String[]: location of the node to update) and `updatedAttributes` (Object: key-value pairs of attributes to change). See [Configurator Updated Node Input](../../docs/salesforce/264/dev-guide/articles/connect_requests_configurator_updated_node_input.htm.md).
+  - `updatedNodes` (Array, Required): Nodes to update — each with `path` (String[]: location of the node to update) and `updatedAttributes` (Object: key-value pairs of attributes to change). See [Configurator Updated Node Input](../../docs/salesforce/264/dev-guide/articles/connect-requests-configurator-updated-node-input.md).
   - `configuratorOptions` (Object, Optional): See item 1 (Configure)'s `configuratorOptions` sub-fields above.
   - `qualificationContext` (Object, Optional): `accountId`, `contactId`, `contextId` used for qualification rules.
 

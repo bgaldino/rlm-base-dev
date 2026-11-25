@@ -62,7 +62,7 @@ Buckets PC,false,Allowed,This rugged bucket offers weld-on or bolt-on cutting ed
 #N/A,false,Allowed,Fluid Analysis for Heavy Equipment,/resource/1743026407000/FluidAnalysis?,#N/A,true,true,true,Fluid Analysis,FA-Entitlement,#N/A,#N/A,FA-Entitlement,#N/A,#N/A
 Model PC,false,#N/A,#N/A,#N/A,Hardware,true,true,false,FESBA 1200kW,FESBA_1200,#N/A,#N/A,FESBA_1200,#N/A,#N/A
 Model PC,false,Allowed,#N/A,#N/A,Hardware,true,true,false,FESBA 1500kW,FESBA_1500,#N/A,#N/A,FESBA_1500,#N/A,#N/A
-Model PC,false,Allowed,"The  FESBA Series generator set performs at the highest level, featuring a robust design and optimal fuel consumption. A perfect solution for mission-critical applications.",https://velocedev--c.test1.vf.pc-rnd.force.com/resource/1736281665000/generators/3000kw.png,Hardware,true,true,false,FESBA 1750kW,FESBA_1750,#N/A,#N/A,FESBA_1750,#N/A,#N/A
+Model PC,false,Allowed,"The  FESBA Series generator set performs at the highest level, featuring a robust design and optimal fuel consumption. A perfect solution for mission-critical applications.",/resource/1736281665000/generators/3000kw.png,Hardware,true,true,false,FESBA 1750kW,FESBA_1750,#N/A,#N/A,FESBA_1750,#N/A,#N/A
 Model PC,false,#N/A,#N/A,#N/A,Hardware,true,true,false,FESBA 2500kW,FESBA_2500,#N/A,#N/A,FESBA_2500,#N/A,#N/A
 #N/A,false,#N/A,#N/A,#N/A,Hardware,true,true,false,Engine - QSK60-G6,FESBA_2940,#N/A,#N/A,FESBA_2940,#N/A,#N/A
 #N/A,false,#N/A,#N/A,#N/A,Hardware,true,true,false,"Fuel Filters-Engine, Standard",FESBA_3090,#N/A,#N/A,FESBA_3090,#N/A,#N/A

@@ -32,7 +32,7 @@ path or consequence was not established (the text says what is missing).
    [Help: `ind.qocal_clone_quotes_and_orders`; Measured: 2026-11-10, 264]. Details and
    the measured carry-over table: [deep-clone.md](deep-clone.md).
 2. **Clone headlessly with the Connect API**, `POST /connect/rev/sales-transaction/actions/clone`
-   [Dev guide: `connect_resources_clone_sales_transaction`]. For a whole quote, pass the quote
+   [Dev guide: `connect-resources-clone-sales-transaction`]. For a whole quote, pass the quote
    id as both `recordIds[0]` and `salesTransactionId` [Measured: 2026-11-10, 264]. The invocable
    `deepCloneSalesTransaction` was not available on the org measured
    [Measured: 2026-11-10, 264].
@@ -84,7 +84,7 @@ path or consequence was not established (the text says what is missing).
   round's submission when a new round supersedes it (actions in `advanced-approvals` →
   `actions-and-objects.md`).
 - **DO NOT** use `/connect/pcm/deep-clone` for quotes; it clones products
-  [Dev guide: `connect_resources_deep_clone`].
+  [Dev guide: `connect-resources-deep-clone`].
 - **DO NOT** restate line-editor or approval mechanics here. Link `transaction-line-editor`
   and `advanced-approvals`.
 
@@ -177,7 +177,7 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
    quote to opportunity only, flattens bundles and drops attributes (same article). With
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
-   [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
+   [Dev guide: `actions-obj-sync-quote-opportunity`]. The repo's quote page has the
    `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`],
    but the platform hides it while Asynchronous Opportunity Sync is on, which `post_utils` turns
    on: the record actions API offered it with the setting off and not with it on, on the same org
@@ -215,8 +215,8 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`); on an org built
    another way, read that setting.
 2. Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
-   `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
-   `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
+   `createOrdersFromQuote` with `quoteId` [Dev guide: `actions-obj-create-orders-from-quote`].
+   `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions-obj-create-order-from-quote`].
    The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
    not the quote's start date (a start date in the future) [Measured: 2026-11-12, 264]. Traced
    in the header-creation logic for a single order: `EffectiveDate` is the earlier of the

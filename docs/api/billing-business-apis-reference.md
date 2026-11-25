@@ -56,7 +56,7 @@ Endpoints 5–10 are new to this doc (not present in the v260/v66.0 extraction);
 - Endpoint 3 (Void a Posted Invoice) has no request body by design — only the `invoiceId` path parameter
 - Endpoint 10 (Void Posted Credit Memo) has no request body by design — only the `creditMemoId` path parameter
 
-Sources: `connect_resources_credit_memo_apply.htm.md`, `connect_requests_credit_memo_apply_application_input.htm.md`, `connect_resources_create_a_standalone_credit_memo.htm.md`, `connect_requests_standalone_credit_memo_charge_input.htm.md`, `connect_resources_void_a_posted_invoice.htm.md`, `connect_resources_post_draft_credit_memo.htm.md`, `connect_resources_credit_memo_invoice_application_unapply.htm.md`, `connect_requests_credit_memo_unapply_input.htm.md`, `connect_resources_credit_memo_line_level_apply.htm.md`, `connect_requests_credit_memo_line_apply_input.htm.md`, `connect_resources_credit_memo_line_level_unapply.htm.md`, `connect_requests_credit_memo_line_unapply_input.htm.md`, `connect_resources_convert_negative_invoice_lines_to_credit.htm.md`, `connect_requests_convert_negative_invoice_lines_input.htm.md`, `connect_resources_create_and_apply_a_credit_memo.htm.md`, `connect_requests_credit_invoice_input.htm.md`, `connect_resources_void_posted_credit_memo.htm.md`, `connect_requests_void_posted_credit_memo_input.htm.md`.
+Sources: `connect-resources-credit-memo-apply.md`, `connect-requests-credit-memo-apply-application-input.md`, `connect-resources-create-a-standalone-credit-memo.md`, `connect-requests-standalone-credit-memo-charge-input.md`, `connect-resources-void-a-posted-invoice.md`, `connect-resources-post-draft-credit-memo.md`, `connect-resources-credit-memo-invoice-application-unapply.md`, `connect-requests-credit-memo-unapply-input.md`, `connect-resources-credit-memo-line-level-apply.md`, `connect-requests-credit-memo-line-apply-input.md`, `connect-resources-credit-memo-line-level-unapply.md`, `connect-requests-credit-memo-line-unapply-input.md`, `connect-resources-convert-negative-invoice-lines-to-credit.md`, `connect-requests-convert-negative-invoice-lines-input.md`, `connect-resources-create-and-apply-a-credit-memo.md`, `connect-requests-credit-invoice-input.md`, `connect-resources-void-posted-credit-memo.md`, `connect-requests-void-posted-credit-memo-input.md`.
 
 ---
 
@@ -70,9 +70,9 @@ Sources: `connect_resources_credit_memo_apply.htm.md`, `connect_requests_credit_
 | 4 | POST | `/commerce/invoicing/standalone/billing-schedules/actions/create` | Generate billing schedules from any internal or external transaction by using context service. | v64.0 |
 | 5 | POST | `/commerce/invoicing/billing-schedules/collection/actions/recover` | Recover the latest generated invoice associated with billing schedules in the `Error` or `Processing` status. | v62.0 |
 
-Endpoints 4 and 5 are new to this doc. Endpoint 4's request body (`connect_requests_context_aware_standalone_billing_schedule_input.htm.md`) takes `transactionContextDetails` (Standalone Billing Schedule Metadata Input, Required — nested fields `contextDefinitionName` Required v64.0, `intraContextCustomMappingName` Optional v65.0, `readContextMappingName` Required v64.0, `saveContextMappingName` Required v64.0) and `transactionDetails` (String, Required v64.0 — a JSON-string transaction payload). Endpoint 5's request body (`connect_requests_billing_schedule_recovery_input.htm.md`) takes `billingScheduleIds` (String[], Required; the article notes only one billing schedule is recovered per API request despite the array type).
+Endpoints 4 and 5 are new to this doc. Endpoint 4's request body (`connect-requests-context-aware-standalone-billing-schedule-input.md`) takes `transactionContextDetails` (Standalone Billing Schedule Metadata Input, Required — nested fields `contextDefinitionName` Required v64.0, `intraContextCustomMappingName` Optional v65.0, `readContextMappingName` Required v64.0, `saveContextMappingName` Required v64.0) and `transactionDetails` (String, Required v64.0 — a JSON-string transaction payload). Endpoint 5's request body (`connect-requests-billing-schedule-recovery-input.md`) takes `billingScheduleIds` (String[], Required; the article notes only one billing schedule is recovered per API request despite the array type).
 
-**Note on the `billing_schedule_input_for_*` article family**: `connect_requests_billing_schedule_input_for_{amendment, bundled_products_new_sale, cancellation, early_renewal, evergreen_new_sale, one_time_new_sale, ramps_new_sale, renewal, termed_new_sale, usage_new_sale}.htm.md` are **not separate endpoints** — they document the internal shape of the `transactionDetails` JSON string passed to endpoint 4 (Create Standalone Billing Schedules), discriminated inside that string by `SellingModelType__std` (`OneTime`/`TermDefined`/`Evergreen`) and `BillingActionType__std`. No endpoint rows were added for this family per the grounding rules (add endpoints only, not request-body variants).
+**Note on the `billing_schedule_input_for_*` article family**: `connect-requests-billing-schedule-input-for-{amendment, bundled-products-new-sale, cancellation, early-renewal, evergreen-new-sale, one-time-new-sale, ramps-new-sale, renewal, termed-new-sale, usage-new-sale}.md` are **not separate endpoints** — they document the internal shape of the `transactionDetails` JSON string passed to endpoint 4 (Create Standalone Billing Schedules), discriminated inside that string by `SellingModelType__std` (`OneTime`/`TermDefined`/`Evergreen`) and `BillingActionType__std`. No endpoint rows were added for this family per the grounding rules (add endpoints only, not request-body variants).
 
 **Common Request Body Fields**:
 - `billingTransactionIds` (String[], Required — endpoint 1)
@@ -81,7 +81,7 @@ Endpoints 4 and 5 are new to this doc. Endpoint 4's request body (`connect_reque
 - `transactionContextDetails`, `transactionDetails` (endpoint 4)
 - `billingScheduleIds` (String[], Required — endpoint 5; the article notes only one billing schedule is recovered per API request despite the array type)
 
-Sources: `connect_resources_create_billing_schedules.htm.md`, `connect_resources_suspend_billing.htm.md`, `connect_requests_suspend_billing_entity_input.htm.md`, `connect_resources_resume_billing.htm.md`, `connect_requests_resume_billing_entity_input.htm.md`, `connect_resources_create_billing_schedules_from_any_transaction.htm.md`, `connect_requests_context_aware_standalone_billing_schedule_input.htm.md`, `connect_requests_context_aware_standalone_billing_schedule_metadata_input.htm.md`, `connect_resources_recover_billing_schedules.htm.md`, `connect_requests_billing_schedule_recovery_input.htm.md`, `connect_requests_billing_schedule_input_for_one_time_new_sale.htm.md` (representative variant, confirmed by skimming termed_new_sale/renewal/amendment/cancellation).
+Sources: `connect-resources-create-billing-schedules.md`, `connect-resources-suspend-billing.md`, `connect-requests-suspend-billing-entity-input.md`, `connect-resources-resume-billing.md`, `connect-requests-resume-billing-entity-input.md`, `connect-resources-create-billing-schedules-from-any-transaction.md`, `connect-requests-context-aware-standalone-billing-schedule-input.md`, `connect-requests-context-aware-standalone-billing-schedule-metadata-input.md`, `connect-resources-recover-billing-schedules.md`, `connect-requests-billing-schedule-recovery-input.md`, `connect-requests-billing-schedule-input-for-one-time-new-sale.md` (representative variant, confirmed by skimming termed_new_sale/renewal/amendment/cancellation).
 
 ---
 
@@ -101,7 +101,7 @@ Sources: `connect_resources_create_billing_schedules.htm.md`, `connect_resources
 | 10 | POST | `/commerce/billing/invoices/invoice-batch-docgen/invoiceBatchRunId/actions/actionName` | Asynchronously generate PDF documents for invoices in Draft or Posted status associated with an invoice batch run record (`actionName` = `run`). | v63.0 |
 | 11 | POST | `/commerce/billing/invoices/invoice-batch-docgen/invoiceBatchRunId/actions/actionName` | Asynchronously regenerate PDF documents for invoices in Draft or Posted status that failed in an earlier invoice batch run (same URI template, `actionName` = `retry`). | v63.0 |
 
-Endpoints 9–11 are new to this doc. Endpoint 9 (`connect_resources_batch_draft_invoices_to_posted.htm.md`) documents no request body — only the `invoiceBatchRunId` path parameter. Endpoints 10 and 11 share one URI template distinguished by the `actionName` path segment (`run` vs `retry`); neither documents a request body (`connect_resources_invoice_batch_docgen.htm.md`, `connect_resources_invoice_batch_docgen_retry.htm.md`); the response shape for both is `connect_responses_batch_invoice_doc_gen_output.htm.md`.
+Endpoints 9–11 are new to this doc. Endpoint 9 (`connect-resources-batch-draft-invoices-to-posted.md`) documents no request body — only the `invoiceBatchRunId` path parameter. Endpoints 10 and 11 share one URI template distinguished by the `actionName` path segment (`run` vs `retry`); neither documents a request body (`connect-resources-invoice-batch-docgen.md`, `connect-resources-invoice-batch-docgen-retry.md`); the response shape for both is `connect-responses-batch-invoice-doc-gen-output.md`.
 
 **Common Request Body Fields**:
 - `correlationId` (String, Optional — endpoints 1, 6)
@@ -117,7 +117,7 @@ Endpoints 9–11 are new to this doc. Endpoint 9 (`connect_resources_batch_draft
 - `invoiceDate`, `targetDate` (String, Required, v62.0 — endpoint 6)
 - `actionName` (URI parameter, endpoints 10, 11)
 
-Sources: `connect_resources_draft_to_posted_invoice.htm.md`, `connect_resources_preview_invoices.htm.md`, `connect_resources_invoices_ingestion.htm.md`, `connect_resources_write_off_invoices.htm.md`, `connect_resources_send_email_for_invoice_batch_run.htm.md`, `connect_resources_create_invoices_from_billing_schedules.htm.md`, `connect_resources_batch_draft_invoices_to_posted.htm.md`, `connect_resources_invoice_batch_docgen.htm.md`, `connect_resources_invoice_batch_docgen_retry.htm.md`, `connect_responses_batch_invoice_doc_gen_output.htm.md`, `connect_resources_rules_application.htm.md`, `connect_resources_generate_documents.htm.md`.
+Sources: `connect-resources-draft-to-posted-invoice.md`, `connect-resources-preview-invoices.md`, `connect-resources-invoices-ingestion.md`, `connect-resources-write-off-invoices.md`, `connect-resources-send-email-for-invoice-batch-run.md`, `connect-resources-create-invoices-from-billing-schedules.md`, `connect-resources-batch-draft-invoices-to-posted.md`, `connect-resources-invoice-batch-docgen.md`, `connect-resources-invoice-batch-docgen-retry.md`, `connect-responses-batch-invoice-doc-gen-output.md`, `connect-resources-rules-application.md`, `connect-resources-generate-documents.md`.
 
 ---
 
@@ -129,7 +129,7 @@ Sources: `connect_resources_draft_to_posted_invoice.htm.md`, `connect_resources_
 | 2 | PUT | `/commerce/invoicing/invoice-schedulers/billingBatchSchedulerId` | Update an invoice scheduler. PUT is supported only for invoice schedulers in `Draft` or `Inactive` status. | v63.0 |
 | 3 | POST | `/commerce/invoicing/invoice-batch-runs/invoiceBatchRunId/actions/recover` | Recover records associated with a failed invoice run. Recovery is required only when billing schedules remain in the Processing, Void In Progress, or Error status. | v62.0 |
 
-Endpoints 2 and 3 are new to this doc. Endpoint 2 (PUT) shares the same resource family and request body shape as endpoint 1 (POST) — both are documented under the single "Batch Invoice Scheduler (POST, PUT)" article (`connect_resources_create_an_invoice_scheduler.htm.md`); PUT is available from v63.0 and only accepted while the scheduler's `status` is `Draft` or `Inactive`. Endpoint 3 documents no request body — only the `invoiceBatchRunId` path parameter (`connect_resources_recover_errored_invoices_batch_run.htm.md`); response shape is `connect_responses_invoice_batch_run_recovery_output.htm.md`.
+Endpoints 2 and 3 are new to this doc. Endpoint 2 (PUT) shares the same resource family and request body shape as endpoint 1 (POST) — both are documented under the single "Batch Invoice Scheduler (POST, PUT)" article (`connect-resources-create-an-invoice-scheduler.md`); PUT is available from v63.0 and only accepted while the scheduler's `status` is `Draft` or `Inactive`. Endpoint 3 documents no request body — only the `invoiceBatchRunId` path parameter (`connect-resources-recover-errored-invoices-batch-run.md`); response shape is `connect-responses-invoice-batch-run-recovery-output.md`.
 
 **Common Request Body Fields** (endpoints 1 and 2):
 - `billingBatchSchedulerId` (URI parameter, endpoint 2 only)
@@ -159,7 +159,7 @@ Endpoints 2 and 3 are new to this doc. Endpoint 2 (PUT) shares the same resource
 | 3 | POST | `/connect/sequences/actions/assign` | Assign sequence pattern values to objects based on the configured sequence policy. | v65.0 |
 | 4 | POST | `/connect/sequences/gap-reconciliation` | Restore a missing sequence value identified by using this API in gapless-enabled sequences. This sequence value can be used later in the subsequent sequence policy numbering, ensuring there are no gaps. | v65.0 |
 
-Sources: `connect_resources_create_sequence_policy.htm.md`, `connect_resources_update_sequence_policies.htm.md`, `connect_resources_sequences_assignment.htm.md`, `connect_resources_sequences_gap_reconciliation.htm.md` — paths and Available Version confirmed unchanged vs. the v260 extraction; the Common Request Body Fields list below was rewritten against these four articles (the prior field list was fabricated).
+Sources: `connect-resources-create-sequence-policy.md`, `connect-resources-update-sequence-policies.md`, `connect-resources-sequences-assignment.md`, `connect-resources-sequences-gap-reconciliation.md` — paths and Available Version confirmed unchanged vs. the v260 extraction; the Common Request Body Fields list below was rewritten against these four articles (the prior field list was fabricated).
 
 **Common Request Body Fields**:
 - `sequencePolicyId` (URI parameter for PATCH, endpoint 2)
@@ -185,7 +185,7 @@ Sources: `connect_resources_create_sequence_policy.htm.md`, `connect_resources_u
 |---|---|---|---|---|
 | 1 | POST | `/revenue/billing/accounts/accountId/statement` | Generate comprehensive financial statements with transaction history and balance information. | v66.0 |
 
-Source: `connect_resources_generate_account_statement.htm.md`.
+Source: `connect-resources-generate-account-statement.md`.
 
 **Common Request Body Fields**:
 - `accountId` (URI parameter)
@@ -209,7 +209,7 @@ Source: `connect_resources_generate_account_statement.htm.md`.
 | 2 | POST | `/commerce/billing/refunds/refundId/actions/apply` | Make a refund transaction against a payment. | v64.0 |
 | 3 | POST | `/commerce/billing/payments/paymentId/paymentlines/paymentLineId/actions/unapply` | Revert the application of a payment line from an invoice, and return the payment and invoices to their pre-application state. | v64.0 |
 
-Endpoint 3 is new to this doc. Path parameters `paymentId` and `paymentLineId` (both Required). Body: `comments` (String, Optional), `effectiveDate` (String, Optional). Sources: `connect_resources_payment_line_apply.htm.md`, `connect_resources_apply_refund_to_payment.htm.md`, `connect_resources_payment_line_unapply.htm.md`, `connect_requests_payment_line_unapply_input.htm.md`.
+Endpoint 3 is new to this doc. Path parameters `paymentId` and `paymentLineId` (both Required). Body: `comments` (String, Optional), `effectiveDate` (String, Optional). Sources: `connect-resources-payment-line-apply.md`, `connect-resources-apply-refund-to-payment.md`, `connect-resources-payment-line-unapply.md`, `connect-requests-payment-line-unapply-input.md`.
 
 **Common Request Body Fields**:
 - `paymentId` (URI parameter, endpoints 1, 3)
@@ -231,7 +231,7 @@ Endpoint 3 is new to this doc. Path parameters `paymentId` and `paymentLineId` (
 | 1 | POST | `/commerce/taxes/actions/calculate` | Calculate tax for a transaction. | v62.0 |
 | 2 | POST | `/commerce/invoicing/invoices/collection/actions/calculate-estimated-tax` | Calculate estimated tax for invoices with invoice lines that have the TaxProcessingStatus as either Pending or Estimated. | v63.0 |
 
-Sources: `connect_resources_calculate_taxes.htm.md`, `connect_resources_calculate_estimated_tax.htm.md`.
+Sources: `connect-resources-calculate-taxes.md`, `connect-resources-calculate-estimated-tax.md`.
 
 **Common Request Body Fields**:
 - `lineItems` (array of Line Item Input, Required — endpoint 1)
@@ -276,7 +276,7 @@ Sources: `connect_resources_calculate_taxes.htm.md`, `connect_resources_calculat
 |---|---|---|---|---|
 | 1 | GET | `/revenue/billing/billing-arrangement/billingArrangementId` | Retrieve a billing arrangement and its associated billing arrangement lines. | v66.0 |
 
-No request body (GET). Path parameter `billingArrangementId` (Required). Response shape: `connect_responses_billing_arrangement_output.htm.md` / `connect_responses_billing_arrangement_line.htm.md`. Source: `connect_resources_get_billing_arrangement.htm.md`. This resource is listed in the 264 dev-guide's flat Resources index but was not grouped into one of the overview page's named sections — added here as its own section rather than folded into an existing one.
+No request body (GET). Path parameter `billingArrangementId` (Required). Response shape: `connect-responses-billing-arrangement-output.md` / `connect-responses-billing-arrangement-line.md`. Source: `connect-resources-get-billing-arrangement.md`. This resource is listed in the 264 dev-guide's flat Resources index but was not grouped into one of the overview page's named sections — added here as its own section rather than folded into an existing one.
 
 ---
 
@@ -299,7 +299,7 @@ No request body (GET). Path parameter `billingArrangementId` (Required). Respons
 - `status` (Required; valid values `Active`/`Canceled`/`Draft`/`Inactive` — both endpoints)
 - `billingBatchSchedulerId` (URI parameter, endpoint 2)
 
-Distinct from the existing "Invoice Scheduler" section (section 4) — this is a separate Payment Scheduler resource family under `/commerce/payments/`. Sources: `connect_resources_create_payment_scheduler.htm.md`, `connect_requests_payment_scheduler_input.htm.md`, `connect_resources_update_payment_scheduler.htm.md`, `connect_requests_payment_scheduler_update_input.htm.md`.
+Distinct from the existing "Invoice Scheduler" section (section 4) — this is a separate Payment Scheduler resource family under `/commerce/payments/`. Sources: `connect-resources-create-payment-scheduler.md`, `connect-requests-payment-scheduler-input.md`, `connect-resources-update-payment-scheduler.md`, `connect-requests-payment-scheduler-update-input.md`.
 
 ---
 
@@ -334,7 +334,7 @@ Distinct from the existing "Invoice Scheduler" section (section 4) — this is a
 > - **Repeat lines.** Re-running the same account and product combination failed with "We can't create billing schedules … same as the initial sale transaction that already has billing schedules."
 > - **Unexplained race.** On an account that already had another unapplied Payment, a `paymentId`-only checkout posted the invoice, but the *other* Payment was applied to it. The checkout's own application step then failed ("Payment line invoice amount can't be greater than the invoice's balance") and the tracker ended `Failure`. The cause was not isolated. It is consistent with an org-level auto-apply acting before the checkout's application step, so do not assume the requested `paymentId` is the one applied on accounts with open payments.
 
-Sources: `connect_resources_billing_checkout.htm.md`, `connect_requests_billing_checkout_input.htm.md`, `connect_requests_billing_checkout_line_item_input.htm.md`, `connect_requests_billing_checkout_customer_details_input.htm.md`, `connect_requests_billing_checkout_billing_contact_input.htm.md`, `connect_requests_billing_checkout_payment_details_input.htm.md`, `connect_requests_billing_checkout_saved_payment_method_details_input.htm.md`, `connect_requests_billing_checkout_ramp_input.htm.md`, `connect_requests_billing_checkout_bundle_product_details_input.htm.md`, `connect_responses_billing_checkout_output.htm.md`, `connect_responses_billing_checkout_error.htm.md`.
+Sources: `connect-resources-billing-checkout.md`, `connect-requests-billing-checkout-input.md`, `connect-requests-billing-checkout-line-item-input.md`, `connect-requests-billing-checkout-customer-details-input.md`, `connect-requests-billing-checkout-billing-contact-input.md`, `connect-requests-billing-checkout-payment-details-input.md`, `connect-requests-billing-checkout-saved-payment-method-details-input.md`, `connect-requests-billing-checkout-ramp-input.md`, `connect-requests-billing-checkout-bundle-product-details-input.md`, `connect-responses-billing-checkout-output.md`, `connect-responses-billing-checkout-error.md`.
 
 ---
 
@@ -351,7 +351,7 @@ Sources: `connect_resources_billing_checkout.htm.md`, `connect_requests_billing_
   - `initialDueAmount` (Double, Optional), `collectionPlanSegment` (String, Optional — org-defined dynamic value), `overdueRiskIndicator` (String, Optional; valid values `High`/`Low`/`Medium`)
   - `collectionPlanItems` (Collection Plan Item Input[], Optional): `invoiceId` (String, Required if `collectionPlanItems` is present — the invoice must be `Posted` and not `Settled`; all invoices in a plan must share a currency), `collectionPlanId` (String, Optional — defaults to the parent plan when nested)
 
-Sources: `connect_resources_collections_composite_collection_plan.htm.md`, `connect_requests_composite_collection_plan_input.htm.md`, `connect_requests_collection_plan_input.htm.md`, `connect_requests_collection_plan_item_input.htm.md`, `connect_responses_composite_collection_plan_output.htm.md`, `connect_responses_collection_plan_output.htm.md`, `connect_responses_collection_plan_error.htm.md`.
+Sources: `connect-resources-collections-composite-collection-plan.md`, `connect-requests-composite-collection-plan-input.md`, `connect-requests-collection-plan-input.md`, `connect-requests-collection-plan-item-input.md`, `connect-responses-composite-collection-plan-output.md`, `connect-responses-collection-plan-output.md`, `connect-responses-collection-plan-error.md`.
 
 ---
 
@@ -369,7 +369,7 @@ Sources: `connect_resources_collections_composite_collection_plan.htm.md`, `conn
 - `currencyIsoCode` (String, Required if multi-currency is enabled — must match the credit memo's currency)
 - `refundNotes` (String, Optional)
 
-Sources: `connect_resources_refund_credit_memo.htm.md`, `connect_requests_refund_credit_memo_input.htm.md`, `connect_responses_refund_credit_memo_output.htm.md`, `connect_responses_refund_error_output.htm.md`, `connect_responses_refund_application_output.htm.md`.
+Sources: `connect-resources-refund-credit-memo.md`, `connect-requests-refund-credit-memo-input.md`, `connect-responses-refund-credit-memo-output.md`, `connect-responses-refund-error-output.md`, `connect-responses-refund-application-output.md`.
 
 ---
 
@@ -407,8 +407,8 @@ Sources: `connect_resources_refund_credit_memo.htm.md`, `connect_requests_refund
 
 ## Additional Resources
 
-- **Request Body Details**: `docs/salesforce/264/dev-guide/articles/billing_business_apis_requests.htm.md` (the 264 dev-guide snapshot is HTML-derived, not paginated — the v260-era page-number citation below is retained for the pre-264 print edition and is unverified against 264)
-- **Response Body Details**: `docs/salesforce/264/dev-guide/articles/billing_business_apis_responses.htm.md`
+- **Request Body Details**: `docs/salesforce/264/dev-guide/articles/billing-business-apis-requests.md` (the 264 dev-guide snapshot is HTML-derived, not paginated — the v260-era page-number citation below is retained for the pre-264 print edition and is unverified against 264)
+- **Response Body Details**: `docs/salesforce/264/dev-guide/articles/billing-business-apis-responses.md`
 - **Apex Reference**: ConnectApi, InvoiceWriteOff, RulesAppln namespaces (unverified against 264 for this pass — flagged, not re-confirmed)
 - **Platform Events** (unverified against 264 for this pass — flagged, not re-confirmed):
   - BillingScheduleCreatedEvent

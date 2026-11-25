@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Owner decision (todo 433, B5, 2026-11-25): this set deliberately does NOT carry DocGenRuntimeUser. That
+         user permission needs the DocGenDesignerPsl licence, so a rep cannot hold it through any set without
+         the licence. A rep who generates documents needs a separately licensed DocGen set (DocGenUser). -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Account.BillingAddress</field>

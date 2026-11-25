@@ -46,14 +46,14 @@ scratch org built by this repo.
    steps that never started [Help: `ind.approvals_use_the_stage_exit_condition`].
 5. **Submit by starting the approval flow.** The approval invocable actions are cancel,
    override, reassign, recall, review and `getPreviousRelaRecDetails`; none submits
-   [Dev guide: `advanced_approvals_invocable_actions_parent`].
+   [Dev guide: `advanced-approvals-invocable-actions-parent`].
     - The repo uses the invocable Apex `RLM_AA_Submit_Approval`.
     - Review, override, reassign, recall and cancel have standard actions
       ([actions-and-objects.md](actions-and-objects.md)).
     - The Help says standard fields on approval objects can't be written through the sObject
       APIs [Help: `ind.approvals_design_build_activation`], but the dev guide lists `update()`
       on `ApprovalWorkItem` for a few fields
-      [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. A direct update of the
+      [Dev guide: `adv-approvals-capture-fields-on-approvalworkitem`]. A direct update of the
       standard fields is refused; custom fields you add can be updated [Platform behaviour,
       traced, not run live]. Use the actions ([limitations.md](limitations.md)).
 6. **Extend the shipped workflow rather than adding a second one.** Follow the nine-step

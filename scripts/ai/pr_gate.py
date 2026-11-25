@@ -738,6 +738,9 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   # tests/test_collection_plan_page_fields.py reads this page template.
                   "templates/flexipages/standalone/collections/",
+                  # tests/test_deploy_expression_sets.py reads it: what it excludes
+                  # is never deployed, so the read-back must not expect it.
+                  ".forceignore",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
                   # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
@@ -1007,6 +1010,7 @@ STDLIB_SUITES = [
     "tests/test_context_runtime.py",
     "tests/test_decision_tables_client.py",
     "tests/test_decision_tables_toolkit.py",
+    "tests/test_deploy_expression_sets.py",
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",

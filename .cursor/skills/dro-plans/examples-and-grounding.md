@@ -151,22 +151,22 @@ the active release from `.claude/skill-manifest.yml` (`salesforce_release_active
 
 | Topic | Local source |
 | --- | --- |
-| Deployment object sequence and lookups | [DRO objects](../../../docs/salesforce/264/dev-guide/articles/deployment_dynamic_revenue_orchestrator_objects.htm.md) |
-| Settings, context nodes and permissions | [DRO metadata](../../../docs/salesforce/264/dev-guide/articles/deployment_dynamic_revenue_orchestrator_metadata.htm.md) |
-| Condition lifecycle, library versioning, migration, DT refresh | [Additional deployment information](../../../docs/salesforce/264/dev-guide/articles/deployment_dynamic_revenue_orchestrator_additional_info.htm.md) |
-| Step types, scope, execution user | [Define a step](../../../docs/salesforce/264/help/articles/ind.dro_define_a_fulfillment_step.htm.md), [step object fields](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_fulfillmentstepdefinition.htm.md) |
-| Dependency direction/scope and propagation | [Dependencies](../../../docs/salesforce/264/help/articles/ind.dro_set_dependencies_between_fulfillment_steps.htm.md), [dependency object](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_fulfillmentstepdependencydef.htm.md) |
+| Deployment object sequence and lookups | [DRO objects](../../../docs/salesforce/264/dev-guide/articles/deployment-dynamic-revenue-orchestrator-objects.md) |
+| Settings, context nodes and permissions | [DRO metadata](../../../docs/salesforce/264/dev-guide/articles/deployment-dynamic-revenue-orchestrator-metadata.md) |
+| Condition lifecycle, library versioning, migration, DT refresh | [Additional deployment information](../../../docs/salesforce/264/dev-guide/articles/deployment-dynamic-revenue-orchestrator-additional-info.md) |
+| Step types, scope, execution user | [Define a step](../../../docs/salesforce/264/help/articles/ind.dro_define_a_fulfillment_step.htm.md), [step object fields](../../../docs/salesforce/264/dev-guide/articles/sforce-api-objects-fulfillmentstepdefinition.md) |
+| Dependency direction/scope and propagation | [Dependencies](../../../docs/salesforce/264/help/articles/ind.dro_set_dependencies_between_fulfillment_steps.htm.md), [dependency object](../../../docs/salesforce/264/dev-guide/articles/sforce-api-objects-fulfillmentstepdependencydef.md) |
 | Product/classification/order scenarios | [Configure scenarios](../../../docs/salesforce/264/help/articles/ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm.md) |
 | Decomposition priorities and naming | [Product decomposition](../../../docs/salesforce/264/help/articles/ind.dro_define_how_a_product_decomposes.htm.md) |
 | Technical catalog, activation, assetizability and quantity | [Model technical products](../../../docs/salesforce/264/help/articles/ind.dro_technical_product_in_dro.htm.md), [create a technical product](../../../docs/salesforce/264/help/articles/ind.dro_creating_a_technical_product.htm.md) |
 | Grouping generated fulfillment lines | [Decomposition scope](../../../docs/salesforce/264/help/articles/ind.dro_decomposition_scope.htm.md) |
 | Fulfillment line actions (Add, Amend, No Change, Cancel) | [Fulfillment order line item actions](../../../docs/salesforce/264/help/articles/ind.dro_fulfillment_order_line_item_actions.htm.md) |
-| Linking generated lines to their source | [Fulfillment line source relationship](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_fulfillmentlinesourcerel.htm.md) |
-| Enrichment fields and calculation dependencies | [Enrichment object](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_productdecompenrichmentrule.htm.md) |
+| Linking generated lines to their source | [Fulfillment line source relationship](../../../docs/salesforce/264/dev-guide/articles/sforce-api-objects-fulfillmentlinesourcerel.md) |
+| Enrichment fields and calculation dependencies | [Enrichment object](../../../docs/salesforce/264/dev-guide/articles/sforce-api-objects-productdecompenrichmentrule.md) |
 | Custom scope tags, mappings, datatype and fallback | [Custom scopes](../../../docs/salesforce/264/help/articles/ind.dro_create_custom_scope_config.htm.md) |
 | Condition evaluation/branch skip | [Step conditions](../../../docs/salesforce/264/help/articles/ind.dro_define_conditions_for_a_fulfillment_step_to_run.htm.md) |
-| Submission | [Submit Sales Transaction action](../../../docs/salesforce/264/dev-guide/articles/actions_obj_submit_sales_transaction.htm.md) |
-| Freeze/unfreeze | [Freeze action](../../../docs/salesforce/264/dev-guide/articles/actions_obj_freeze_sales_transaction.htm.md), [unfreeze action](../../../docs/salesforce/264/dev-guide/articles/actions_obj_unfreeze_sales_transaction.htm.md) |
+| Submission | [Submit Sales Transaction action](../../../docs/salesforce/264/dev-guide/articles/actions-obj-submit-sales-transaction.md) |
+| Freeze/unfreeze | [Freeze action](../../../docs/salesforce/264/dev-guide/articles/actions-obj-freeze-sales-transaction.md), [unfreeze action](../../../docs/salesforce/264/dev-guide/articles/actions-obj-unfreeze-sales-transaction.md) |
 | Compensation, PONR and Frozen requirements | [In-flight considerations](../../../docs/salesforce/264/help/articles/ind.dro_considerations_for_changing_in_flight_orders.htm.md), [step settings](../../../docs/salesforce/264/help/articles/ind.dro_configure_inflight_plan_settings.htm.md) |
 | Runtime monitoring, completion and retry | [Plan actions](../../../docs/salesforce/264/help/articles/ind.dro_fulfillment_plan_actions_and_information.htm.md) |
 | Future-dated step execution | [Steps for future execution](../../../docs/salesforce/264/help/articles/ind.dro_configure_steps_for_future_execution.htm.md), [turn on future-dated steps](../../../docs/salesforce/264/help/articles/ind.dro_turn_on_future_dated_steps.htm.md) |

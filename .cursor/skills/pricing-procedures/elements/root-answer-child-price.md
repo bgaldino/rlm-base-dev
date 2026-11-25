@@ -2,8 +2,8 @@
 
 > Pattern file under `elements/`, like [`commitment-term-discount.md`](commitment-term-discount.md):
 > it combines existing elements (and a constraint model) rather than documenting a new one.
-> Release 264 / API v68.0. Sources: dev guide `cml_using_proxy_variables_constraints.htm`
-> (*Parent*), `cml_best_practice_parent_products.htm`; Help
+> Release 264 / API v68.0. Sources: dev guide `cml-using-proxy-variables-constraints.md`
+> (*Parent*), `cml-best-practice-parent-products.md`; Help
 > `ind.pricing_attribute_based_pricing_limits.htm`,
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; shipped
 > `RLM_PRM_DISTI_Pricing_Procedure` and `datasets/context_plans/PartnerAccount/contexts/partner_account.json`.
@@ -22,10 +22,10 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
   `parent(<attribute>, <level>)` an ancestor further up. Reusing the parent's variable name on the
   child is the documented way to cascade a bundle-level choice to every child; the dev guide's
   example does exactly that and notes the inherited value can affect price
-  [Dev guide: `cml_using_proxy_variables_constraints.htm`, *Parent*]. For the example, the child
+  [Dev guide: `cml-using-proxy-variables-constraints.md`, *Parent*]. For the example, the child
   type declares `string ClimateZone = parent(ClimateZone);`. Under a Product Component Group the group is an
   intermediate parent, so reach the root with `parent(ClimateZone, 1)` or dot notation from the bundle
-  [Dev guide: `cml_best_practice_parent_products.htm`]; the dev guide contradicts itself here, see
+  [Dev guide: `cml-best-practice-parent-products.md`]; the dev guide contradicts itself here, see
   [`../../constraint-models/quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md)
   → Scope. Live, `parent(ClimateZone)` with no level reached the root in a model that declares no
   group types ([Route 1 measured](#route-1-measured)). Authoring and deployment: [`../../constraint-models/SKILL.md`](../../constraint-models/SKILL.md).

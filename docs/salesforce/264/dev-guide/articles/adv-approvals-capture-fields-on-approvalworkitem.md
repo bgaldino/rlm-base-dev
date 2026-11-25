@@ -1,0 +1,105 @@
+---
+page_id: adv-approvals-capture-fields-on-approvalworkitem
+title: Advanced Approvals Fields on Approval Work Item
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/adv-approvals-capture-fields-on-approvalworkitem.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Advanced Approvals
+parent_page: advanced-approval-fields-on-standard-objects
+legacy_page_id: adv_approvals_capture_fields_on_approvalworkitem.htm
+fetched_at: 2026-11-25
+---
+
+# Advanced Approvals Fields on Approval Work Item
+
+Standard and custom fields extend the standard Approval Work Item object for use in Advanced Approvals.
+
+## Supported Calls
+
+`describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `update()`
+
+## Special Access Rules
+
+This object is available in Enterprise, Unlimited, and Developer Editions.
+
+## Fields
+
+### ApprovalChainName
+
+**Type:** string
+
+**Properties:** Filter, Group, Nillable, Sort, Update
+
+**Description:** The name of the related approval chain. This field is populated when there are multiple approval chains that are run in parallel. This field is only available with Advanced Approvals enabled.
+
+### CurrencyIsoCode
+
+**Type:** picklist
+
+**Properties:** Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update
+
+**Description:** Available only for organizations with the multicurrency feature enabled. Contains the ISO code for any currency allowed by the organization.
+
+Valid values are:
+
+- `AED`—UAE Dirham
+
+- `AUD`—Australian Dollar
+
+- `BRL`—Brazilian Real
+
+- `CAD`—Canadian Dollar
+
+- `EUR`—Euro
+
+- `GBP`—British Pound
+
+- `INR`—Indian Rupee
+
+- `JPY`—Japanese Yen
+
+- `SEK`—Swedish Krona
+
+- `USD`—U.S. Dollar
+
+The default value is `USD`.
+
+### IsAutoReviewed
+
+**Type:** boolean
+
+**Properties:** Defaulted on create, Filter, Group, Sort, Update
+
+**Description:** Indicates whether the approval work item is eligible for smart approval (true) or not (false).
+
+The default value is `false`.
+
+### IsEligibleForSmartApproval
+
+**Type:** boolean
+
+**Properties:** Defaulted on create, Filter, Group, Sort, Update
+
+**Description:** Indicates whether the approval work item is eligible for smart approval ( `true`) or not ( `false`).
+
+The default value is `false`.
+
+### SmartApprovalBasisWorkItemId
+
+**Type:** reference
+
+**Properties:** Filter, Group, Nillable, Sort, Update
+
+**Description:** The previous approval work item used as a reference for the auto-approval evaluation.
+
+This field is a relationship field.
+
+**Relationship Name:** SmartApprovalBasisWorkItem
+
+**Refers To:** ApprovalWorkItem
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/adv-approvals-capture-fields-on-approvalworkitem.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

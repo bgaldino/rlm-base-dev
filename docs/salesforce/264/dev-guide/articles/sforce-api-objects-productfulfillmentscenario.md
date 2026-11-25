@@ -1,0 +1,177 @@
+---
+page_id: sforce-api-objects-productfulfillmentscenario
+title: ProductFulfillmentScenario
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-objects-productfulfillmentscenario.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Dynamic Revenue Orchestrator
+parent_page: dynamic-revenue-orchestrator-std-objects-parent
+legacy_page_id: sforce_api_objects_productfulfillmentscenario.htm
+fetched_at: 2026-11-25
+---
+
+# ProductFulfillmentScenario
+
+Represents a link between a product and the corresponding group of fulfillment steps that’s necessary to fulfill that product. This object is available in API version 61.0 and later.
+
+## Supported Calls
+
+`create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `search()`, `undelete()`, `update()`, `upsert()`
+
+## Fields
+
+### Action
+
+- **Type**: multipicklist
+
+- **Properties**: Create, Filter, Nillable, Update
+
+- **Description**: For internal use only.
+
+Valid values are `Add`, `Amend`, `Cancel`, `NoChange`, or `Renew`.
+
+### ConditionData
+
+- **Type**: textarea
+
+- **Properties**: Create, Nillable, Update
+
+- **Description**: The condition for executing the product fulfillment scenario. The condition is defined as a rule or a set of rules in JSON format. This field is available in API version 66.0 and later.
+
+### FulfillmentStepDefnGroupId
+
+- **Type**: reference
+
+- **Properties**: Create, Filter, Group, Sort, Update
+
+- **Description**: The fulfillment step definition group associated with the product fulfillment scenario.
+
+This field is a relationship field.
+
+- **Relationship Name**: FulfillmentStepDefnGroup
+
+- **Relationship Type**: Lookup
+
+- **Refers To**: FulfillmentStepDefinitionGroup
+
+### LastReferencedDate
+
+- **Type**: dateTime
+
+- **Properties**: Filter, Nillable, Sort
+
+- **Description**: For internal use only.
+
+### LastViewedDate
+
+- **Type**: dateTime
+
+- **Properties**: Filter, Nillable, Sort
+
+- **Description**: For internal use only.
+
+### Name
+
+- **Type**: string
+
+- **Properties**: Create, Filter, Group, idLookup, Sort, Update
+
+- **Description**: The name of the product fulfillment scenario.
+
+### OwnerId
+
+- **Type**: reference
+
+- **Properties**: Create, Defaulted on create, Filter, Group, Sort, Update
+
+- **Description**: For internal use only.
+
+This field is a polymorphic relationship field.
+
+- **Relationship Name**: Owner
+
+- **Relationship Type**: Lookup
+
+- **Refers To**: Group, User
+
+### ProductClassificationId
+
+- **Type**: reference
+
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+
+- **Description**: The product classification associated with the product fulfillment scenario.
+
+This field is a relationship field.
+
+- **Relationship Name**: ProductClassification
+
+- **Relationship Type**: Lookup
+
+- **Refers To**: ProductClassification
+
+### ProductId
+
+- **Type**: reference
+
+- **Properties**: Create, Filter, Group, Sort, Update, Nillable (Available in API version 64.0 and later)
+
+- **Description**: The product associated with the product fulfillment scenario.
+
+This field is a relationship field.
+
+- **Relationship Name**: Product
+
+- **Relationship Type**: Lookup
+
+- **Refers To**: Product2
+
+### SourceClassIdentifier
+
+- **Type**: string
+
+- **Properties**: Create, Filter, Group, idLookup, Nillable, Sort, Update
+
+- **Description**: The source classification entity in the product fulfillment scenario. This field can store a Salesforce Product Class ID or an external identifier. This field is available in API version 65.0 and later.
+
+### SourceIdentifier
+
+- **Type**: string
+
+- **Properties**: Create, Filter, Group, idLookup, Nillable, Sort, Update
+
+- **Description**: The source entity in the product fulfillment scenario. This field can store a Salesforce product ID or an external identifier. This field is available in API version 65.0 and later.
+
+### UsageType
+
+- **Type**: picklist
+
+- **Properties**: Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update
+
+- **Description**: Name of the usage type. This field is available in API version 66.0 and later.
+
+Possible values are:
+
+- `Fulfillment`
+
+- `Generic`
+
+- `InsuranceRuleAction`—Insurance Rule Action
+
+- `IntegrationOrchestrator`—Integration Orchestrator
+
+- `StageManagement`—Stage Management
+
+The default value is `Fulfillment`.
+
+## Associated Objects
+
+This object has the following associated objects. If the API version isn’t specified, they’re available in the same API versions as this object. Otherwise, they’re available in the specified API version and later.
+
+**[ProductFulfillmentScenarioShare](./sforce-api-associated-objects-share.md):** Sharing is available for the object.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/sforce-api-objects-productfulfillmentscenario.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
