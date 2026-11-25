@@ -14,8 +14,8 @@ Product2 (PCM) is referenced by objects in every other domain:
 | AttributeAdjustmentCondition | ProductId | Pricing |
 | BundleBasedAdjustment | ProductId, ParentProductId, RootBundleId | Pricing |
 | RateCardEntry | ProductId | Rates |
-| ProductConfigurationFlow | ReferenceObjectId | Configurator |
-| ProductConfigurationRule | ProductId | Configurator |
+| ProductConfigFlowAssignment | ProductId | Configurator |
+| ExpressionSetConstraintObj | ReferenceObjectId (polymorphic) | Configurator |
 | QuoteLineItem | Product2Id | Transactions |
 | OrderItem | Product2Id | Transactions |
 | Asset | Product2Id | Transactions |
@@ -58,9 +58,9 @@ Account (Transactions) is referenced by most transactional and billing objects:
 | Asset | AccountId | Transactions |
 | FulfillmentOrder | AccountId | DRO |
 | BillingAccount | AccountId | Billing |
-| BillingSchedule | AccountId | Billing |
-| Invoice | AccountId | Billing |
-| CreditMemo | AccountId | Billing |
+| BillingSchedule | BillingAccountId (→ Account) | Billing |
+| Invoice | BillingAccountId (→ Account) | Billing |
+| CreditMemo | BillingAccountId (→ Account) | Billing |
 | Payment | AccountId | Billing |
 
 ## PriceBook2 Cross-Domain Links
@@ -92,7 +92,6 @@ LegalEntity (Billing) anchors tax, GL, and invoicing:
 |--------------|-------|--------|
 | TaxTreatment | LegalEntityId | Billing |
 | TaxRate | LegalEntityId | Billing |
-| TaxPolicy | LegalEntityId | Billing |
 | BillingScheduleGroup | LegalEntityId | Billing |
 | GeneralLedgerAccount | LegalEntityId | Billing |
 | GeneralLedgerAcctAsgntRule | LegalEntityId | Billing |
@@ -142,7 +141,7 @@ Asset.ParentId → Asset (bundle hierarchy)
 
 AssetAction.AssetId → Asset
 AssetActionSource.AssetActionId → AssetAction
-AssetActionSource.OrderItemId → OrderItem
+AssetActionSource.ReferenceEntityItemId → OrderItem, OrderItemDetail or WorkOrderLineItem (polymorphic)
 ```
 
 ## Fulfillment Bridge (DRO ↔ Transactions)
@@ -161,6 +160,7 @@ FulfillmentOrderLineItem.Product2Id → Product2
 scratch_data (Account, Contact)
     └→ qb-pcm (Product2, attributes, bundles, categories — ROOT)
         ├→ qb-pricing (PriceBook2, PriceBookEntry, adjustments)
+        │   └→ qb-price-revision (IndexRate, PriceRevisionPolicy; no product dependency; flow order only: step 3 of prepare_pricing_data, after qb-pricing)
         ├→ qb-billing (BillingPolicy, treatments, PaymentTerm, LegalEntity)
         │   └→ qb-accounting (GL accounts and rules)
         ├→ qb-tax (TaxPolicy, TaxTreatment, TaxEngine)

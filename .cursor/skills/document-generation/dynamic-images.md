@@ -12,7 +12,7 @@ Dynamic images in `.docx` templates require:
 4. The image file must be accessible to the **Integration User** (e.g., in a
    Content Library that grants the Integration User access)
 5. `DocGenApiVersionType` must be `'Advanced'` on the DocumentGenerationProcess record
-6. Server-side support requires org Release 256+ (Spring '24)
+6. Server-side support requires org Release 256+ (Summer '25) `[inferred: the 256 threshold is not in the 264 snapshot]`
 
 ---
 

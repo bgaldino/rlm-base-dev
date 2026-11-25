@@ -239,7 +239,7 @@ class RunE2ETests(BaseSalesforceTask):
 
     def _run_task(self):
         cmd = ["python", "-m", "robot"]
-        cmd.extend(["--variable", f"ORG:{self.org_config.username}"])
+        cmd.extend(["--variable", f"ORG_ALIAS:{self.org_config.username}"])
         cmd.extend(["--outputdir", self.options.get("outputdir", "results")])
 
         # Pass feature flags as Robot variables
@@ -409,6 +409,8 @@ tasks:
 | `UX Personalization` | Flexipage/layout/profile assembly |
 | `E2E Testing` | Robot Framework UI tests |
 | `Partner Relationship Management` | PRM-specific tasks |
+| `Data Management - Currency` | Currency rate updates |
+| `RLM Administration` | Flow group for the `stamp_git_commit` flow |
 
 ---
 
@@ -441,7 +443,7 @@ tasks:
 | `rlm_apex_file.py` | `FileBasedAnonymousApexTask` | Run Apex from file (handles large scripts) |
 | `rlm_docgen.py` | `FixDocumentTemplateBinaries` | Fix DocumentTemplate content binaries |
 | `rlm_create_approval_email_templates.py` | `CreateApprovalEmailTemplates` | Create Lightning Email Templates via REST |
-| `rlm_create_procedure_plan_def.py` | `CreateProcedurePlanDefinition`, `ActivateProcedurePlanVersion` | Procedure Plan via Connect API |
+| `rlm_create_procedure_plan_def.py` | `CreateProcedurePlanDefinition`, `ActivateProcedurePlanVersion`, `DeactivateProcedurePlanVersion` | Procedure Plan via Connect API |
 | `rlm_apply_procedure_plan_overlay.py` | `ApplyProcedurePlanOverlay` | JSON-driven procedure-plan overlays with guarded activation |
 | `rlm_repair_pricing_schedules.py` | `EnsurePricingSchedules` | Ensure pricing schedules exist |
 | `rlm_recalculate_permission_set_groups.py` | `RecalculatePermissionSetGroups` | PSG recalculation + polling; `force_recalc` recomputes a stale "Updated" group via an empty probe component |
@@ -454,9 +456,20 @@ tasks:
 | `rlm_bre.py` | `ExportBRE` | BRE Rule Library export (SOQL → CSV + metadata retrieve) |
 | `rlm_manage_fulfillment_scope_cnfg.py` | `ManageFulfillmentScopeCnfg` | CustomFulfillmentScopeCnfg CRUD via Tooling API |
 | `rlm_billing.py` | `CreateSequencePolicies` | Create/configure billing sequence policies via Connect API |
-| `rlm_currency.py` | `EnableMultiCurrency`, `SetCorporateCurrency` | Multi-currency enablement and corporate currency setup |
+| `rlm_currency.py` | `UpdateCurrencyRatesCsv`, `UpdateCurrencyRates` | Fetch live USD rates and update the qb-pricing `CurrencyType.csv`, or patch `CurrencyType.ConversionRate` in a running org |
 | `rlm_enable_timeline.py` | `EnableTimeline` | Enable Timeline for RLM objects |
-| `rlm_modify_context.py` | (legacy) | Context modification helpers |
+| `rlm_modify_context.py` | `ModifyContextDefinition` | Context definition modification; no task in `cumulusci.yml` registers it |
+| `rlm_expression_set_connect.py` | `ExportExpressionSet`, `ApplyExpressionSetOverlay`, `ImportExpressionSet`, `DeleteExpressionSet`, `ValidateExpressionSet` | Expression set export, overlay, import, delete and validation via the BRE Connect API (`expression_set_schema.py` holds the validation types) |
+| `rlm_activate_agents.py`, `rlm_deactivate_agents.py`, `rlm_publish_agents.py`, `rlm_test_agents.py`, `rlm_agents_common.py` | `ActivateAgents`, `DeactivateAgents`, `PublishAgents`, `TestAgents` | Agentforce agent publish, activate, deactivate and CLI Testing Center runs through `sf agent`; `rlm_agents_common.py` holds the shared discovery and JSON-envelope helpers |
+| `rlm_activate_rates.py` | `ActivateRateCardEntries` | Activate rate card entries |
+| `rlm_configure_core_pricing_setup.py`, `rlm_configure_product_discovery_settings.py` | `ConfigureCorePricingSetup`, `ConfigureProductDiscoverySettings` | Robot wrappers for the Pricing Setup default procedure and the Product Discovery default catalog |
+| `rlm_configure_search_index.py`, `rlm_rebuild_search_index.py` | `ConfigureSearchIndex`, `RebuildSearchIndex`, `CheckSearchIndexReadiness` | PCM search index configure, rebuild and readiness check via the Connect API |
+| `rlm_enable_change_data_capture.py` | `EnableChangeDataCapture` | Select Quote and Order for Change Data Capture |
+| `rlm_create_persona_user.py` | `CreatePersonaUser` | Create a persona user |
+| `rlm_fix_scratch_identity.py` | `FixScratchOrgIdentity` | Repair `isScratch` in the local SF CLI auth file for Enterprise-Edition scratch orgs |
+| `rlm_mcp.py` | `ConfigureMcpServers` | Activate hosted MCP servers and build the custom sales-transactions server |
+| `rlm_sharing.py` | `SetOrgWideDefaultsSharingOnly`, `AssertSObjectOWDs` | Set the sharing-only org-wide defaults, and assert sObject OWDs |
+| `rlm_validate_keys.py` | `ValidateSourceDataKeys` | Pre-extraction check of a plan's externalId key fields |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
 ---

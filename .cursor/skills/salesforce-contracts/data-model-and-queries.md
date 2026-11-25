@@ -57,7 +57,7 @@ re-describe the target org before querying because feature visibility differs.
 
 ### Connected-org schema observation
 
-A read-only `sf sobject describe` against `rlm-base__ent_1002` on 2026-10-13
+A read-only `sf sobject describe` against a 264 org on 2026-10-13
 confirmed the following org-specific shape. This is a live-org observation,
 not a replacement for the release-matched canonical ERD or a promise that other
 orgs expose the same schema:
@@ -112,7 +112,7 @@ choosing what to describe:
 
 | Object | Documented inventory fields | Relationship or access note |
 |---|---|---|
-| [`ContractType`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttype.htm.md) | `Name`, `IsDefault`, `SubTypes` | Contract-type configuration object. |
+| [`ContractType`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttype.htm.md) | `Name` (the 264 org observed above exposes `MasterLabel` and `DeveloperName` instead), `IsDefault`, `SubTypes` | Contract-type configuration object. |
 | [`ContractTypeConfig`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttypeconfig.htm.md) | `ConfigType`, `ConfigValue`, `ContractTypeId`, `UsageType` | `ContractTypeId` relates to `ContractType`. |
 | [`DocumentClauseSet`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_documentclauseset.htm.md) | `Name`, `Status`, `Category`, `CategoryReferenceId`, `DefaultLanguage` | `CategoryReferenceId` relates to `ClauseCatgConfiguration`. |
 | [`DocumentClause`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_documentclause.htm.md) | `Name`, `Status`, `Language`, `Version`, `IsAlternateClause`, `DocumentClauseSetId` | `DocumentClauseSetId` relates to `DocumentClauseSet`; access requires the documented ClauseManagement entitlement. |
@@ -132,7 +132,7 @@ sf data query --target-org <sf_alias> --query \
 sf data query --target-org <sf_alias> --query \
   "SELECT Id, MasterLabel, DeveloperName, IsDefault, SubTypes FROM ContractType LIMIT 50"
 sf data query --target-org <sf_alias> --query \
-  "SELECT Id, ContractType.Name, ConfigType, ConfigValue, UsageType FROM ContractTypeConfig LIMIT 200"
+  "SELECT Id, ContractType.DeveloperName, ConfigType, ConfigValue, UsageType FROM ContractTypeConfig LIMIT 200"
 
 # Shipped state-model seed records and their transitions
 sf data query --target-org <sf_alias> --query \
@@ -154,7 +154,7 @@ sf data query --target-org <sf_alias> --query \
 sf data query --target-org <sf_alias> --query \
   "SELECT Id, Name, Status, IsActive, Type, UsageType, VersionNumber, TokenMappingType FROM DocumentTemplate LIMIT 100"
 
-# Context Service shape confirmed in rlm-base__ent_1002; re-describe first
+# Context Service shape confirmed in a 264 org; re-describe first
 sf data query --target-org <sf_alias> --query \
   "SELECT Id, DeveloperName, MasterLabel FROM ContextDefinition LIMIT 100"
 sf data query --target-org <sf_alias> --query \

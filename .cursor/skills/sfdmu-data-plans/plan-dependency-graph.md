@@ -13,25 +13,26 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-pricing (16 objects)
             │       PriceBook2, PBE, PAS, PAT, adjustments
             │
-            ├──→ qb-billing (18 object entries, 3 passes)
-            │       BillingPolicy, treatments, PaymentTerm, LegalEntity (Readonly), GL accounts,
-            │       PaymentRetryRuleSet/Rule, SequencePolicy, SeqPolicySelectionCondition
+            ├──→ qb-billing (16 object entries, 3 passes)
+            │       AccountingPeriod, LegalEntity (Readonly), BillingPolicy, treatments, PaymentTerm,
+            │       GL accounts and assignment rules, PaymentRetryRuleSet/Rule
             │       │
             │       └──→ qb-accounting (4 objects)
-            │               GeneralLedgerAccount, GL rules, journal entry rules
+            │               GeneralLedgerAccount, GL assignment rules, journal entry rules,
+            │               BillingBatchFilterCriteria
             │
-            ├──→ qb-tax (8 objects, 2 passes)
-            │       TaxPolicy, TaxTreatment, TaxEngine
+            ├──→ qb-tax (9 object entries, 2 passes)
+            │       TaxPolicy, TaxTreatment, TaxEngine, TaxEngineProvider (NamedCredential Readonly)
             │       Also creates LegalEntity (idempotent with qb-billing)
             │
-            ├──→ qb-rating (12 objects, 2 passes)
+            ├──→ qb-rating (17 object entries, 2 passes)
             │       UoM, UoMClass, UsageResource, UsageResourceBillingPolicy, PUR, usage policies
             │       Pass 2 updates existing rows without Status; activateRatingRecords.apex activates
             │       │
-            │       ├──→ qb-rating-entitlements (12 objects: PURP + PUG, 10 Readonly; 2 passes)
+            │       ├──→ qb-rating-entitlements (24 object entries, 2 passes; each pass: PURP + PUG plus 10 Readonly)
             │       │       Matches PURP and PUG on ProductUsageResourceId, resolved on the target org
             │       │
-            │       └──→ qb-rates (5 objects)
+            │       └──→ qb-rates (8 object entries, 2 passes)
             │               RateCard, RateCardEntry, RABT, PriceBookRateCard
             │               MUST load after qb-rating (RCE and RABT → UsageResource)
             │               Upstream: qb-pricing (PriceBook2)
@@ -48,7 +49,11 @@ scratch_data (Account, Contact, BillingAccount)
             │       Decorator plan loaded by prepare_guidedselling in org builds
             │
             ├──→ qb-prm (5 objects, 2 passes)
-            │       Account (partner), ChannelProgram, ChannelProgramMember
+            │       Account (partner), ChannelProgram, ChannelProgramLevel, ChannelProgramMember
+            │
+            ├──→ qb-prm-pricing (6 object entries, 3 passes)
+            │       Overlay that runs after qb-prm (prepare_prm_pricing); Account, ChannelProgram,
+            │       ChannelProgramLevel, ChannelProgramMember
             │
             ├──→ qb-approvals (2 objects)
             │       ApprovalAlertContentDef (requires EmailTemplate metadata)

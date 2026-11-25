@@ -30,7 +30,7 @@ The org ships a predefined Standard Price Book; you can create any number of cus
 
 | UI label | API name | Rules |
 |---|---|---|
-| Price Book | `Pricebook2` (fields `Name`, `IsStandard`, `IsActive`, `ValidFrom`, `ValidTo`, `CostBookId`) | Validity range and Active are Help-documented; API names from the ERD |
+| Price Book | `Pricebook2` (fields `Name`, `IsStandard`, `IsActive`, `ValidFrom`, `ValidTo`, `CostBookId`) | Validity range and Active are Help-documented; API names from the 264 dev guide (`Pricebook2` fields) and the QB plan query (`CostBookId`) |
 | Price book entry | `PricebookEntry` (`Pricebook2Id`, `Product2Id`, `ProductSellingModelId`, `UnitPrice`, `CurrencyIsoCode` (multicurrency orgs only), `IsActive`, `IsDerived`, `UseStandardPrice`) | `UnitPrice`, product and book are required |
 | Product selling model | `ProductSellingModelId` | **Cannot be changed once set on a PBE**; migrating orgs need a support ticket to fix an existing entry [Help] |
 | Currency | `CurrencyIsoCode` | One PBE per currency in a multicurrency org [Repo] |

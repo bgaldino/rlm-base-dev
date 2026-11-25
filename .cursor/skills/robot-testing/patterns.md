@@ -25,7 +25,7 @@ robot/rlm-base/
 │       └── reorder_app_launcher.robot
 ├── resources/
 │   ├── E2ECommon.robot               # main E2E keywords
-│   ├── SetupToggles.robot            # ~380 lines — setup toggle keywords
+│   ├── SetupToggles.robot            # ~320 lines — setup toggle keywords
 │   ├── SalesforceAPI.py              # REST API keywords (SOQL, DML)
 │   ├── ChromeOptionsHelper.py        # Headless Chrome options
 │   ├── ChromeDebugHelper.py          # Headed Chrome + CDP
@@ -402,4 +402,4 @@ processing makes `/\s+/` ambiguous. Prefer a `charCodeAt`-based whitespace check
 | Lightning Setup, JS only | `enable_analytics` | In-page shadow-DOM JavaScript polled from Python; no WebDriver element lookups |
 | Aura Framework API | `reorder_app_launcher` | Synchronous XHR to `/aura` |
 | Salesforce REST API | E2E verification | `SalesforceAPI.py` via `sf org display` |
-| SF CLI (`sf`) | Auth + navigation | `Run Process sf org open/display` |
+| SF CLI (`sf`) | Auth + navigation | `SessionUrlGuard.py` runs `sf org open --url-only`; `SalesforceAPI.py` runs `sf org display` (falling back to `sf org auth show-access-token`) |

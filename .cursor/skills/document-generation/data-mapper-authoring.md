@@ -9,7 +9,8 @@ Salesforce REST API.
 > operations." The REST approach below is for **scratch-org experimentation,
 > repair, and debugging**. For committed assets, author Metadata API XML under
 > `unpackaged/post_docgen/omniDataTransforms/` and deploy via `prepare_docgen`.
-> See the parent skill's "Supported Paths" section.
+> See the parent skill's "Metadata API (Primary)" and "SObject REST API (ODT
+> Experimentation Only)" sections.
 
 ## DO NOT
 
@@ -207,8 +208,8 @@ To verify a formula function is supported, query back the item after creation
 and check that `FormulaConverted` is non-null. If it's null, the function is
 not recognized and will silently produce no output at runtime.
 
-See the parent skill's "Formula Function Catalog" for the supported function
-list.
+See "Formula Function Catalog" in `extract-engine-reference.md` for the supported
+function list.
 
 ---
 

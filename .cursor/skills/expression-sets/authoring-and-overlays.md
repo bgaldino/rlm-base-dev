@@ -183,7 +183,7 @@ INVALID_INPUT: A context variable with the name '<Name>' already exists.
 carry. Rule of thumb: if a name appears as a step's `output` param, it belongs
 **only** to that step, not to `addVariables`.
 
-`validate_overlay` now enforces this: any `addVariables[].name` that collides
+`validate_overlay` enforces this: any `addVariables[].name` that collides
 with an `addSteps` step-output variable is a hard error, caught at authoring
 time instead of at apply. (This is one of the deliberate divergences the toolkit
 copy of the validator, `scripts/expression_sets/_schema.py`, carries over the

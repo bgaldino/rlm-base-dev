@@ -43,9 +43,10 @@ one nearly every additive plan in this repo targets:
 ### Which do I add?
 
 - **New value on an entity that is already a node → add an *attribute* (+ tag +
-  mapping).** This is the overwhelmingly common case. Example: the **RampMode**
-  plan adds `RampMode__c` to the *existing* `SalesTransactionItem` node — **no new
-  node**. You almost never add a node to Sales Transaction; its entity hierarchy
+  mapping).** This is the overwhelmingly common case. Example: the former
+  **RampMode** plan (removed with the custom Ramp Builder in #291; kept here as the
+  illustration) added `RampMode__c` to the *existing* `SalesTransactionItem` node —
+  **no new node**. You almost never add a node to Sales Transaction; its entity hierarchy
   already models the whole quote/order/agreement/asset/contract surface.
 - **New entity / hierarchy level not yet modeled → add a *node*** (nested via
   `parentNodeName` for a child), **then** its attributes + tags + node/attribute
@@ -55,7 +56,7 @@ one nearly every additive plan in this repo targets:
 - **Make an existing attribute referenceable by an engine → add a *tag*** on it.
   An untagged attribute is invisible to expression sets / docgen.
 - **Populate an attribute from org data → add a *mapping rule*** — **one per lens
-  (mapping) you want it hydrated in.** RampMode adds `RampMode__c` twice: to
+  (mapping) you want it hydrated in.** The RampMode plan added `RampMode__c` twice: to
   `QuoteEntitiesMapping` → `QuoteLineItem.RLM_RampMode__c` **and** to
   `OrderEntitiesMapping` → `OrderItem.RLM_RampMode__c`. Same attribute, two
   lenses, because a quote line and an order line are different SObjects.
@@ -90,7 +91,7 @@ The blocks are independent, so a partial combo is the usual reason a change
 | Attribute only | Inert — declared, but never hydrated and not referenceable |
 | Attribute + mapping, **no tag** | Hydrated into the cache but **unreachable** by the expression set (no name to bind) |
 | Attribute + tag, **no mapping** | Referenceable but **never populated** from data (runtime-input only) |
-| **Attribute + tag + mapping (× each lens)** | ✅ Working recipe for *"surface a new field to pricing / docgen"* — what **RampMode** does |
+| **Attribute + tag + mapping (× each lens)** | ✅ Working recipe for *"surface a new field to pricing / docgen"* — what the former **RampMode** plan did |
 | **Node + its attributes + tags + node-mapping + attribute-mappings** | ✅ Working recipe for *"model a new (child) entity"* — what **DocGen's `Line`** does |
 
 **On the parent-child linkage:** the node **hierarchy** itself lives in Layer 1

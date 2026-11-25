@@ -132,6 +132,7 @@ Route by the prefix of a 264 Help article id (`docs/salesforce/264/help/articles
 | `ind.dro_` | [dro-plans] |
 | `ind.approvals_` | [advanced-approvals] |
 | `ind.sf_contracts_` | [salesforce-contracts] |
+| `ind.collections_` (Collections and Recovery; not Billing's `ind.billing_collections_*`, which belongs to [billing-operations]) | No owner yet; see revenue-cloud-docs |
 | `ind.rev_agent_` (Agentforce for Revenue Cloud) | No owner yet; see revenue-cloud-docs |
 | Configurator customization (beyond CML rules) | No owner yet; see revenue-cloud-docs |
 
