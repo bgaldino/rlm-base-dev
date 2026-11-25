@@ -13,7 +13,8 @@
  * same kind of no-access user, for whom getAccountOptions returns only the sentinel and the
  * worklist builders keep their rows without account names. The specialist
  * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
- * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
+ * getMyCollectionPlans keeping plans without names when Account is refused needs a user who owns a
+ * plan but cannot read Account, so it is verified live only. The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
  * list cannot show a refusal.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
