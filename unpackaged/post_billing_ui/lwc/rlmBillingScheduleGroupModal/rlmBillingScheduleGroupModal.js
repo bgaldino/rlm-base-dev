@@ -23,8 +23,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     productOptions = [];
 
     billingTermUnitPicklist; // BillingScheduleGroup.BillingTermUnitPicklist
-    billingTerm; // BillingScheduleGroup.BillingTerm (numeric; required for Month/Year)
-    billingTypePicklistTiming;
+    billingTypePicklistTiming; // Advance or Arrears; the service maps it to the legal entity's billing treatment
     legalEntityId;
 
     quantity = 1; // BillingSchedule.Quantity - defaults to 1
@@ -79,7 +78,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         { label: 'GBP - British Pound', value: 'GBP' },
         { label: 'CAD - Canadian Dollar', value: 'CAD' },
         { label: 'AUD - Australian Dollar', value: 'AUD' },
-        { label: 'JPY - Japanese Yen', value: 'JPY' }
+        { label: 'JPY - Japanese Yen', value: 'JPY' },
+        { label: 'CHF - Swiss Franc', value: 'CHF' }
     ];
 
     get currencyFormatter() {
@@ -89,7 +89,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             GBP: { currency: 'GBP', symbol: '\u00A3', decimals: 2 },
             CAD: { currency: 'CAD', symbol: 'C$', decimals: 2 },
             AUD: { currency: 'AUD', symbol: 'A$', decimals: 2 },
-            JPY: { currency: 'JPY', symbol: '\u00A5', decimals: 0 }
+            JPY: { currency: 'JPY', symbol: '\u00A5', decimals: 0 },
+            CHF: { currency: 'CHF', symbol: 'CHF', decimals: 2 }
         };
         return formatters[this.currencyIsoCode] || formatters.USD;
     }
@@ -316,6 +317,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         this.chargeType = event.detail.value;
         if (this.chargeType === 'OneTime') {
             this.billingTermUnitPicklist = 'OneTime';
+            // A one-time charge offers no timing: drop one chosen earlier so it is not sent.
+            this.billingTypePicklistTiming = undefined;
         } else {
             this.billingTermUnitPicklist = undefined;
         }
@@ -539,7 +542,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             const result = await createBillingScheduleGroupAndScheduleViaAPI({
                 billingAccountId: this.billingAccountId,
                 billingTermUnitPicklist: this.billingTermUnitPicklist,
-                billingTerm: this.billingTerm,
+                // The modal has no billing term input; the service accepts one, but this modal does not use it.
+                billingTerm: null,
                 billingTypePicklistTiming: this.billingTypePicklistTiming,
                 quantity: this.quantity,
                 legalEntityId: this.legalEntityId,
@@ -554,7 +558,10 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
                 billingDayOfMonth: this.billingDayOfMonth,
                 billingStartMonth: this.billingStartMonth,
                 termSetting: this.termSetting,
-                endDate: this.endDate
+                endDate: this.endDate,
+                // The account page this modal opened on: the service sends it as the account when it is
+                // linked to the billing account, instead of the billing account's oldest link.
+                pageAccountId: this.recordId
             });
 
             const reference = result && result.requestId ? ` (request ${result.requestId})` : '';

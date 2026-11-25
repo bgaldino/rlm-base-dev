@@ -44,6 +44,67 @@ that fails the build on any >40 value), so the map and the shipped class now agr
   `RLM_InvoiceBatchRunMonitorController`, `RLM_InvoiceSummaryController`,
   `RLM_OnAccountBillingController`.
 
+## Create Billing Schedule Group modal
+
+`rlmBillingScheduleGroupModal` calls `RLM_BillingScheduleGroupService`, which invokes
+the standard `createBillingSchedulesFromTrxn` action. The payload carries the chosen
+legal entity (`LegalEntityId__std`), the billing treatment of that entity for the chosen
+Advance or Arrears timing, or for a one-time charge the entity's treatment in the
+charge's currency (`BillingTreatmentId__std`; the timing tags themselves are rejected by
+the action), a billing term when a caller gives one (`BillingTerm__std`; the modal has
+no input for it) and a shipping city (`ShippingCity__std`: the account's `ShippingCity`,
+else the `billingCity` the caller submitted, which create requires). The account sent
+(`AccountId__std`) is the account page the modal opened on (`pageAccountId`) when it is
+the billing account's own or is linked to it through `AccountBillingAccount`; with no
+page account, the billing account's own account, else its oldest link (create refuses
+when it has neither). `getAccountBillingInfo` returns the billing city of that same
+account (the page account's when the billing account is reached through a link), so the
+submitted city matches the account sent. Treatments considered are the oldest-first
+active, non-milestone, billable ones of the legal entity in the charge's currency,
+counting only their active items typed Advance or Arrears (a None-type item is ignored;
+several items of one timing are fine). A recurring charge takes the first treatment
+whose items all bill in the chosen timing; one with items in both timings is ambiguous
+and skipped (when it is the only match the refusal says it has items in both timings and
+must be split into one treatment per timing, naming it when readable). A one-time charge
+(billing term unit OneTime) offers no timing and ignores one if sent, so ambiguity does
+not apply: a treatment is still sent (measured: left to itself the platform picked a JPY
+treatment of the legal entity for a EUR charge): the first Advance-only treatment, else
+the first Arrears-only one, else (last, since what the platform bills for it on a
+one-time charge is unmeasured) the first with both timings. The charge currency must be
+an active `CurrencyType`, and the legal entity active and visible to the user (as the
+picker offers them), or create refuses before the lookup. The treatment read filters on
+the charge currency and is capped at 1000 items, oldest first; one row past the cap
+shows the read was cut off, and the last treatment read is then dropped when the extra
+row belongs to it (it may be cut short). When the page account differs from the billing
+account's own, it must be readable (Account read in USER_MODE) and linked to the billing
+account; if it is not found, not readable, not linked (link deleted, or a stale cached
+`getAccountBillingInfo`) or its link read is refused, create refuses instead of falling
+back to the owner (an account that is not linked says to open the billing screen from a
+linked account; a read the user is not allowed says to contact an administrator; one not
+found or not visible says so). If the treatment read runs past the cap and nothing fits,
+the message says the lookup was cut off; a one-time charge also refuses a cut-off read
+whose choice is not Advance-only, since an Advance-only treatment may lie past the cap.
+It reads `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity`, `CurrencyType` and
+`Account.ShippingCity` in USER_MODE. `RLM_BillingUI` grants object read on
+`BillingTreatment` and `LegalEntity` (the item follows its master, below) and field read
+on the shipping city through the `Account.ShippingAddress` compound grant; the treatment
+and item fields it reads (`Status`, `LegalEntityId`, `IsMilestoneBilling`,
+`ExcludeFromBilling`, `CurrencyIsoCode`, `CreatedDate`, `BillingType`,
+`BillingTreatmentId`) are not permissionable (measured on a 264 scratch org,
+2026-11-26), so no `fieldPermissions` rows exist or are possible. The module needs a
+multi-currency org: the service reads `CurrencyType` and
+`BillingTreatment.CurrencyIsoCode`, which exist only there. `CurrencyType` needs no
+grant (`RLM_BillingUIAccessTest` asserts it is readable on a multi-currency org). The
+service refuses, with a message naming currency and legal entity (and the timing, in
+lower case, for a recurring charge), a charge with no such treatment, including one
+whose only treatments are in another currency, before calling the action; it never sends
+a treatment of another currency. `BillingTreatmentItem` has no grant of its own: it is a
+master-detail child, so its read follows `BillingTreatment` (a grant on it is dropped on
+deploy, measured). Sharing cannot hide a treatment from the read: on 264
+`BillingTreatment`'s organization-wide default is public (`BillingTreatmentItem` is
+controlled by its parent, `LegalEntity` is private), so "no treatment" means none
+exists. The modal's currency list is hardcoded (USD, EUR, GBP, CAD, AUD, JPY, CHF).
+
 ## Do not
 
 - Do **not** add `classes/` to `.prettierignore` — it would exempt the 25 hand-authored

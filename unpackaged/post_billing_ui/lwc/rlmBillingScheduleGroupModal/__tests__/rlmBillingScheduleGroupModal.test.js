@@ -174,6 +174,7 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     const args = createBillingScheduleGroupAndScheduleViaAPI.mock.calls[0][0];
     expect(args.totalPrice).toBe(10);
     expect(args.endDate).toBeNull();
+    expect(args.pageAccountId).toBe("001000000000001AAA");
   });
 
   it("allows a termed charge with an end date and a total price", async () => {
@@ -264,6 +265,21 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(args.billingTermUnitPicklist).toBe("OneTime");
     expect(args.totalPrice).toBe(10);
     expect(args.endDate).toBeNull();
+    expect(args.billingTypePicklistTiming).toBeUndefined();
+  });
+
+  it("sends the chosen legal entity and timing of a recurring charge", async () => {
+    const element = await mount();
+    await fillRecurring(element, "Evergreen");
+    change(element, 'lightning-radio-group[name="billingTiming"]', "Arrears");
+    await flushPromises();
+
+    createButton(element).click();
+    await flushPromises();
+
+    const args = createBillingScheduleGroupAndScheduleViaAPI.mock.calls[0][0];
+    expect(args.legalEntityId).toBe("0le000000000001AAA");
+    expect(args.billingTypePicklistTiming).toBe("Arrears");
   });
 
   it("recomputes a hidden total price when switching from a termed charge with a cleared total to one time", async () => {

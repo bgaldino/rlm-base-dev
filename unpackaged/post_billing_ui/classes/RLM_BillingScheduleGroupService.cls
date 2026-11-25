@@ -13,6 +13,62 @@
  * is asynchronous: it returns requestId + statusUrl (AsyncOperationTracker),
  * which are surfaced back to the LWC.
  *
+ * What the payload sends from the modal's choices (measured on a 264 org by
+ * calling the action directly): LegalEntityId__std sets the group's legal
+ * entity; BillingTreatmentId__std sets the group's billing type (Advance or
+ * Arrears) through the treatment's item, which is the only way to carry timing
+ * because BillingType__std and BillingTypePicklistTiming__std are rejected
+ * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term
+ * is given (the modal sends none; it has no input). A shipping address tag is
+ * required: ShippingCity__std (the account's ShippingCity, else the billingCity
+ * the caller submitted, which create requires).
+ *
+ * The account: the modal passes the id of the account page it opened on
+ * (pageAccountId). When that account is the billing account's own, or is linked
+ * to it through AccountBillingAccount, it is the account sent (AccountId__std)
+ * and read for the shipping city; with no page account, the billing account's
+ * own account is used, else its oldest link (create refuses when it has
+ * neither). When the page account differs from the billing account's own it
+ * must be readable by the user (an Account read in USER_MODE) and linked to the
+ * billing account; if it is not found, not readable, or not linked (the link
+ * was deleted, or the cached getAccountBillingInfo is stale), or the link read
+ * is refused, create refuses rather than fall back to the owner, since the city
+ * the modal submitted came from the page account. getAccountBillingInfo returns
+ * the billing city of the requested account, which is the account create sends,
+ * so the city the modal submits matches it. It reads BillingCity in the same
+ * query as the account (covered by the compound BillingAddress grant
+ * RLM_BillingUI holds), not after a billing account is resolved: one read, one
+ * refusal message. No billing treatment read can be hidden by sharing:
+ * BillingTreatment's organization-wide default is public (measured on a 264
+ * org; BillingTreatmentItem is controlled by its parent), so "no treatment"
+ * means none exists, not that sharing hid one.
+ *
+ * Treatment selection (one wording; chooseTreatment implements it). Candidates
+ * are the oldest-first active, non-milestone, billable treatments of the legal
+ * entity, in the charge's currency, counting only their active items typed
+ * Advance or Arrears (a None-type item is ignored; several items of the same
+ * timing are fine). The read filters on the charge's currency and is capped at
+ * 1000 items, oldest treatment first; one row past the cap shows the read was
+ * cut off, the last treatment read is then dropped when the extra row belongs
+ * to it (it may be cut short), and treatments beyond the cap are not
+ * considered. A cut-off read that yields no choice, or (one-time charge) a
+ * choice that is not Advance-only, is refused with a message saying the lookup
+ * was cut off. Recurring charge: the first treatment whose items all bill in
+ * the chosen timing; a treatment with items in both timings is ambiguous and
+ * skipped. One-time charge (the billing term unit is OneTime): timing is moot,
+ * so ambiguity does not apply. A treatment is still sent (measured: left to
+ * itself the platform picked a JPY treatment of the legal entity for a EUR
+ * charge): the first Advance-only treatment, else the first Arrears-only one,
+ * else (last, because what the platform bills for it on a one-time charge is
+ * unmeasured) the first treatment with both timings. A valid Advance or Arrears
+ * sent with a one-time charge is ignored (the modal never sends one). When none
+ * fits, create refuses with a message before calling the action: it names the
+ * timing only for a recurring charge, and when the only candidates were skipped
+ * as ambiguous it says that treatment has items in both timings and must be
+ * split, instead of saying none exists. The charge currency must be an active
+ * CurrencyType, and the legal entity active and visible to the user (as the
+ * picker offers them), or create refuses before any treatment lookup.
+ *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are
  * platform-provided with the Revenue Cloud Billing license — they are not custom
@@ -31,6 +87,40 @@ public with sharing class RLM_BillingScheduleGroupService {
     // without enqueuing a real async billing-schedule job.
     @TestVisible
     private static Map<String, Object> mockActionOutputs = null;
+
+    private static final String TIMING_ADVANCE = 'Advance';
+    private static final String TIMING_ARREARS = 'Arrears';
+
+    // One active item of a billable treatment of the legal entity: the treatment, the timing the
+    // item bills in and the treatment's currency. A treatment with several items has several rows.
+    // The query already filters on currency; the currency is kept so mock candidates can test it.
+    @TestVisible
+    private class TreatmentCandidate {
+        public Id treatmentId;
+        public String billingType;
+        public String currencyIsoCode;
+
+        public TreatmentCandidate(Id treatmentId, String billingType, String currencyIsoCode) {
+            this.treatmentId = treatmentId;
+            this.billingType = billingType;
+            this.currencyIsoCode = currencyIsoCode;
+        }
+    }
+
+    // The outcome of chooseTreatment: the treatment chosen, or none; when none, the first treatment that
+    // would have matched but was skipped as ambiguous (items in both timings), so the refusal can say so.
+    @TestVisible
+    private class TreatmentChoice {
+        public Id chosen;
+        public Id skippedAmbiguous;
+    }
+
+    // Test seams: candidates stand in for the treatment query, and the payload handed to the action is
+    // kept so a test can read what the create path really sends.
+    @TestVisible
+    private static List<TreatmentCandidate> mockTreatmentCandidates = null;
+    @TestVisible
+    private static String lastTransactionDetails = null;
 
     public class LegalEntityOption {
         @AuraEnabled public Id id;
@@ -139,7 +229,7 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         List<Account> accounts;
         try {
-            accounts = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+            accounts = [SELECT Id, Name, BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
         } catch (QueryException qe) {
             throw readRefused('the account', qe);
         }
@@ -167,7 +257,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         List<BillingAccount> billingAccounts;
         try {
             billingAccounts = [
-                SELECT Id, Name, Account.BillingCity
+                SELECT Id, Name
                 FROM BillingAccount
                 WHERE AccountId = :accountId
                 WITH USER_MODE
@@ -212,10 +302,9 @@ public with sharing class RLM_BillingScheduleGroupService {
                 return billingAccountUnreadable(acc.Name);
             }
             if (!links.isEmpty()) {
-                // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
                 try {
                     billingAccounts = [
-                        SELECT Id, Name, Account.BillingCity
+                        SELECT Id, Name
                         FROM BillingAccount
                         WHERE Id = :links[0].BillingAccountId
                         WITH USER_MODE
@@ -240,19 +329,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         BillingAccount ba = billingAccounts[0];
-        String city;
-        if (ba.Account != null) {
-            city = ba.Account.BillingCity;
-        } else {
-            // A billing account linked only through AccountBillingAccount has no owning account, so
-            // its city is the requesting account's. The modal sends this city on create and has no
-            // city input, so a null here would refuse every create with "Billing City is required.".
-            try {
-                city = [SELECT BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].BillingCity;
-            } catch (QueryException qe) {
-                throw readRefused('the account', qe);
-            }
-        }
+        // The city is the requested account's: create sends the page account when it is linked, and a
+        // billing account's own account when the page is that account, so both match this read.
+        String city = acc.BillingCity;
         return new AccountInfo(acc.Name, ba.Id, ba.Name, city);
     }
 
@@ -373,7 +452,8 @@ public with sharing class RLM_BillingScheduleGroupService {
         Integer billingDayOfMonth,
         Integer billingStartMonth,
         String termSetting,
-        Date endDate
+        Date endDate,
+        Id pageAccountId
     ) {
         if (billingAccountId == null) {
             throw RLM_AuraErrors.handled('Billing account is required.');
@@ -398,6 +478,37 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         Id accountId = billingAccounts[0].AccountId;
 
+        // The account page the modal opened on, when it differs from the billing account's own (when it
+        // is the own account, accountId already is it). The city the modal submitted came from the page
+        // account, so it must be the account sent: it has to be readable and linked to the billing
+        // account through AccountBillingAccount, or create refuses (never a silent fallback to the owner).
+        if (pageAccountId != null && pageAccountId != accountId) {
+            List<Account> pageAccounts;
+            try {
+                pageAccounts = [SELECT Id FROM Account WHERE Id = :pageAccountId WITH USER_MODE LIMIT 1];
+            } catch (QueryException qe) {
+                // Defensive: without Account read the billing account read above (it selects AccountId) is
+                // refused first (createViaAPI_noAccountRead_isRefusedAtTheBillingAccount).
+                throw readRefused('the account', qe);
+            }
+            if (pageAccounts.isEmpty()) {
+                throw RLM_AuraErrors.handled('The account you opened this from was not found or is not visible to you.');
+            }
+            List<AccountBillingAccount> pageLinks;
+            try {
+                pageLinks = [SELECT Id FROM AccountBillingAccount
+                    WHERE BillingAccountId = :billingAccountId AND AccountId = :pageAccountId
+                    WITH USER_MODE LIMIT 1];
+            } catch (QueryException qe) {
+                throw readRefused('the account links', qe);
+            }
+            if (pageLinks.isEmpty()) {
+                throw RLM_AuraErrors.handled(
+                    'The account you opened this from is not linked to the billing account. Open the billing screen from a linked account and try again.');
+            }
+            accountId = pageAccountId;
+        }
+
         if (accountId == null) {
             List<AccountBillingAccount> accountBillingAccounts;
             try {
@@ -406,6 +517,7 @@ public with sharing class RLM_BillingScheduleGroupService {
                     FROM AccountBillingAccount
                     WHERE BillingAccountId = :billingAccountId
                     WITH USER_MODE
+                    ORDER BY CreatedDate, Id
                     LIMIT 1
                 ];
             } catch (QueryException qe) {
@@ -459,11 +571,33 @@ public with sharing class RLM_BillingScheduleGroupService {
         if (termSetting == 'Termed' && billingTermUnitPicklist != 'OneTime' && endDate == null) {
             throw RLM_AuraErrors.handled('End Date is required for a termed charge.');
         }
+        if (billingTerm != null && billingTerm < 1) {
+            throw RLM_AuraErrors.handled('Billing Term must be 1 or greater.');
+        }
+        String timing = String.isBlank(billingTypePicklistTiming) ? null : billingTypePicklistTiming;
+        if (timing != null && timing != TIMING_ADVANCE && timing != TIMING_ARREARS) {
+            throw RLM_AuraErrors.handled('Billing Timing must be Advance or Arrears.');
+        }
+        if (timing == null && billingTermUnitPicklist != 'OneTime') {
+            throw RLM_AuraErrors.handled('Billing Timing is required for a recurring charge.');
+        }
+
+        requireActiveCurrency(currencyIsoCode);
+        String legalEntityName = readActiveLegalEntityName(legalEntityId);
+
+        // Timing travels only through a billing treatment (see the class header), chosen for the
+        // legal entity and currency. A one-time charge gets the treatment the one-time rule picks (any
+        // timing sent with it is ignored), so it is not left to the platform's currency-blind choice.
+        Boolean isOneTime = billingTermUnitPicklist == 'OneTime';
+        Id billingTreatmentId = findBillingTreatmentId(
+            legalEntityId, legalEntityName, isOneTime, timing, currencyIsoCode);
+        String shippingCity = readShippingCity(accountId, billingCity);
 
         String transactionDetailsJson = buildTransactionDetailsJson(
             accountId, billingAccountId, billingTermUnitPicklist, quantity, legalEntityId,
             taxTreatmentId, currencyIsoCode, unitPrice, totalPrice, billingCity, productId,
-            productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate
+            productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate,
+            billingTerm, billingTreatmentId, shippingCity
         );
 
         Map<String, Object> outputs = invokeStandaloneBillingScheduleCreate(transactionDetailsJson);
@@ -491,7 +625,10 @@ public with sharing class RLM_BillingScheduleGroupService {
         Integer billingDayOfMonth,
         Integer billingStartMonth,
         String termSetting,
-        Date endDate
+        Date endDate,
+        Integer billingTerm,
+        Id billingTreatmentId,
+        String shippingCity
     ) {
         String transactionId = 'txn_' + String.valueOf(System.currentTimeMillis());
 
@@ -525,9 +662,13 @@ public with sharing class RLM_BillingScheduleGroupService {
             'UnitPrice__std' => unitPrice,
             'Quantity__std' => quantity,
             'TaxTreatmentId__std' => taxTreatmentId,
+            'LegalEntityId__std' => legalEntityId,
             'AccountId__std' => accountId,
             'BillingProfileId__std' => billingAccountId,
             'BillingCity__std' => billingCity,
+            // Any one shipping address tag satisfies the action's shipping address requirement
+            // (measured: ShippingCity__std alone clears REQUIRED_FIELD_MISSING for shippingAddress).
+            'ShippingCity__std' => shippingCity,
             'BillingTermUnit__std' => billingTermUnitPicklist,
             'BillingActionType__std' => 'Add',
             'CurrencyIsoCode__std' => currencyIsoCode,
@@ -536,6 +677,14 @@ public with sharing class RLM_BillingScheduleGroupService {
             // so it must be sent for every selling model — not just Termed.
             'TotalPrice__std' => totalPrice
         };
+
+        // The chosen treatment is sent when there is one; an omitted term leaves the org default.
+        if (billingTreatmentId != null) {
+            transactionData.put('BillingTreatmentId__std', billingTreatmentId);
+        }
+        if (billingTerm != null) {
+            transactionData.put('BillingTerm__std', billingTerm);
+        }
 
         // EndDate applies only to a fixed-term (TermDefined) schedule; OneTime and
         // Evergreen have no end date.
@@ -547,6 +696,250 @@ public with sharing class RLM_BillingScheduleGroupService {
             'Transaction' => new List<Object>{ transactionData }
         };
         return JSON.serialize(transactionWrapper);
+    }
+
+    // The charge currency must be an active currency of the org, or the lookups below would only say
+    // that no treatment bills in it.
+    private static void requireActiveCurrency(String currencyIsoCode) {
+        List<CurrencyType> active;
+        try {
+            active = [SELECT Id FROM CurrencyType WHERE IsoCode = :currencyIsoCode AND IsActive = true WITH USER_MODE LIMIT 1];
+        } catch (QueryException qe) {
+            throw readRefused('the currencies', qe);
+        }
+        if (active.isEmpty()) {
+            throw RLM_AuraErrors.handled('Currency ' + currencyIsoCode + ' is not an active currency in this org. Choose another currency.');
+        }
+    }
+
+    // The shipping city for the action: the account's, else the billing city the caller submitted
+    // (create already requires it to be non-blank).
+    @TestVisible
+    private static String readShippingCity(Id accountId, String billingCity) {
+        List<Account> accounts;
+        try {
+            accounts = [SELECT ShippingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+        } catch (QueryException qe) {
+            throw readRefused('the account', qe);
+        }
+        // An account hidden by sharing returns no row: that is not a refused read, so fall back.
+        return resolveShippingCity(accounts.isEmpty() ? null : accounts[0].ShippingCity, billingCity);
+    }
+
+    @TestVisible
+    private static String resolveShippingCity(String accountShippingCity, String billingCity) {
+        if (String.isNotBlank(accountShippingCity)) {
+            return accountShippingCity;
+        }
+        return billingCity;
+    }
+
+    // Cap on treatment items read (a test lowers it).
+    @TestVisible
+    private static Integer ITEM_READ_CAP = 1000;
+
+    // The billing treatment of the legal entity chosen by the rule in the class header, in the charge's
+    // currency (a treatment item's BillingType is where Advance or Arrears lives). timing is not used for
+    // a one-time charge. Both timings are read so a recurring charge can skip a treatment carrying both.
+    @TestVisible
+    private static Id findBillingTreatmentId(
+            Id legalEntityId, String legalEntityName, Boolean isOneTime, String timing, String currencyIsoCode) {
+        List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
+        Boolean truncated = false;
+        Integer readLimit = ITEM_READ_CAP + 1;
+        if (Test.isRunningTest() && mockTreatmentCandidates != null) {
+            candidates = mockTreatmentCandidates;
+        } else {
+            try {
+                for (BillingTreatmentItem item : [
+                    SELECT BillingTreatmentId, BillingType, BillingTreatment.CurrencyIsoCode
+                    FROM BillingTreatmentItem
+                    WHERE BillingType IN (:TIMING_ADVANCE, :TIMING_ARREARS)
+                    AND Status = 'Active'
+                    AND BillingTreatment.Status = 'Active'
+                    AND BillingTreatment.LegalEntityId = :legalEntityId
+                    AND BillingTreatment.IsMilestoneBilling = false
+                    AND BillingTreatment.ExcludeFromBilling = 'No'
+                    AND BillingTreatment.CurrencyIsoCode = :currencyIsoCode
+                    WITH USER_MODE
+                    ORDER BY BillingTreatment.CreatedDate, BillingTreatmentId
+                    LIMIT :readLimit
+                ]) {
+                    candidates.add(new TreatmentCandidate(
+                        item.BillingTreatmentId, item.BillingType, item.BillingTreatment.CurrencyIsoCode));
+                }
+            } catch (QueryException qe) {
+                throw readRefused('the billing treatments', qe);
+            }
+            // One row past the cap shows the read was cut off (exactly the cap is a complete read). Drop the
+            // extra row; if it belongs to the last treatment kept, that treatment may be cut short.
+            truncated = candidates.size() > ITEM_READ_CAP;
+            if (truncated) {
+                Id extraTreatmentId = candidates.remove(candidates.size() - 1).treatmentId;
+                if (!candidates.isEmpty() && candidates[candidates.size() - 1].treatmentId == extraTreatmentId) {
+                    candidates = dropTreatment(candidates, extraTreatmentId);
+                }
+            }
+        }
+        TreatmentChoice choice = chooseTreatment(candidates, isOneTime, timing, currencyIsoCode);
+        // A one-time charge prefers an Advance-only treatment, which may lie past the cap: a cut-off read
+        // accepts only an Advance-only choice.
+        Boolean acceptable = choice.chosen != null
+            && !(truncated && isOneTime && !isAdvanceOnly(candidates, choice.chosen));
+        if (acceptable) {
+            return choice.chosen;
+        }
+        if (truncated) {
+            throw RLM_AuraErrors.handled(
+                'The billing treatment lookup for legal entity ' + legalEntityName + ' in ' + currencyIsoCode
+                + ' was cut off at ' + ITEM_READ_CAP + (ITEM_READ_CAP == 1 ? ' item' : ' items')
+                + (choice.chosen == null
+                    ? ', so a matching treatment may not have been seen'
+                    : ', and an Advance-only treatment, which a one-time charge prefers, may lie past it')
+                + (choice.skippedAmbiguous == null ? '' : ' (a treatment with items in both advance and arrears was also skipped)')
+                + '. Ask your administrator to consolidate or deactivate treatments, or choose another legal entity or currency.');
+        }
+        String lowerTiming = isOneTime ? null : timing.toLowerCase();
+        if (choice.skippedAmbiguous != null) {
+            throw RLM_AuraErrors.handled(
+                'The billing treatment ' + treatmentPhrase(choice.skippedAmbiguous, legalEntityName)
+                + ' has items in both advance and arrears, so it cannot be matched to ' + lowerTiming
+                + ' in ' + currencyIsoCode + '. Split it into one treatment per timing, or choose another legal entity or currency.');
+        }
+        throw RLM_AuraErrors.handled(
+            'No active billing treatment bills ' + (isOneTime ? '' : 'in ' + lowerTiming + ' ')
+            + 'in ' + currencyIsoCode + ' for legal entity ' + legalEntityName + '. '
+            + (isOneTime
+                ? 'Choose another legal entity or currency, or ask your administrator to set one up.'
+                : 'Choose another legal entity, timing or currency, or ask your administrator to set one up.'));
+    }
+
+    // The item read is capped. Rows come treatment by treatment, so when the extra row past the cap belongs
+    // to the last treatment kept, that treatment may be cut short (a mixed treatment would look Advance-only
+    // or Arrears-only): drop every row of it.
+    @TestVisible
+    private static List<TreatmentCandidate> dropTreatment(List<TreatmentCandidate> candidates, Id treatmentId) {
+        List<TreatmentCandidate> kept = new List<TreatmentCandidate>();
+        for (TreatmentCandidate c : candidates) {
+            if (c.treatmentId != treatmentId) {
+                kept.add(c);
+            }
+        }
+        return kept;
+    }
+
+    // True when every row read for the treatment is Advance.
+    private static Boolean isAdvanceOnly(List<TreatmentCandidate> candidates, Id treatmentId) {
+        for (TreatmentCandidate c : candidates) {
+            if (c.treatmentId == treatmentId && c.billingType != TIMING_ADVANCE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Applies the selection rule in the class header to candidates in the order given (the query's:
+    // oldest treatment first); no treatment chosen when none fits (skippedAmbiguous then says whether a
+    // treatment was passed over for carrying both timings).
+    @TestVisible
+    private static TreatmentChoice chooseTreatment(
+            List<TreatmentCandidate> candidates, Boolean isOneTime, String timing, String currencyIsoCode) {
+        TreatmentChoice choice = new TreatmentChoice();
+        if (isOneTime) {
+            // Advance-only first, then Arrears-only, then a treatment with both timings last: what the
+            // platform bills for a mixed treatment on a one-time charge is unmeasured.
+            Set<Id> hasAdvance = new Set<Id>();
+            Set<Id> hasArrears = new Set<Id>();
+            List<Id> order = new List<Id>();
+            for (TreatmentCandidate c : candidates) {
+                if (c.currencyIsoCode != currencyIsoCode) {
+                    continue;
+                }
+                if (!hasAdvance.contains(c.treatmentId) && !hasArrears.contains(c.treatmentId)) {
+                    order.add(c.treatmentId);
+                }
+                if (c.billingType == TIMING_ADVANCE) {
+                    hasAdvance.add(c.treatmentId);
+                } else {
+                    hasArrears.add(c.treatmentId);
+                }
+            }
+            Id firstArrearsOnly = null;
+            for (Id treatmentId : order) {
+                Boolean adv = hasAdvance.contains(treatmentId);
+                Boolean arr = hasArrears.contains(treatmentId);
+                if (adv && !arr) {
+                    choice.chosen = treatmentId;
+                    return choice;
+                }
+                if (arr && !adv && firstArrearsOnly == null) {
+                    firstArrearsOnly = treatmentId;
+                }
+            }
+            choice.chosen = firstArrearsOnly != null ? firstArrearsOnly : (order.isEmpty() ? null : order[0]);
+            return choice;
+        }
+        Map<Id, String> firstType = new Map<Id, String>();
+        Set<Id> bothTimings = new Set<Id>();
+        List<Id> inTiming = new List<Id>();
+        for (TreatmentCandidate c : candidates) {
+            if (c.currencyIsoCode != currencyIsoCode) {
+                continue;
+            }
+            String seen = firstType.get(c.treatmentId);
+            if (seen == null) {
+                firstType.put(c.treatmentId, c.billingType);
+                if (c.billingType == timing) {
+                    inTiming.add(c.treatmentId);
+                }
+            } else if (seen != c.billingType) {
+                bothTimings.add(c.treatmentId);
+            }
+        }
+        for (Id treatmentId : inTiming) {
+            if (!bothTimings.contains(treatmentId)) {
+                choice.chosen = treatmentId;
+                return choice;
+            }
+        }
+        // Nothing fits. A treatment that bills in this timing but also in the other is why, when there is one.
+        for (TreatmentCandidate c : candidates) {
+            if (c.currencyIsoCode == currencyIsoCode && bothTimings.contains(c.treatmentId)) {
+                choice.skippedAmbiguous = c.treatmentId;
+                break;
+            }
+        }
+        return choice;
+    }
+
+    // For the ambiguous-treatment refusal: "'<name>'" when the treatment is readable, else "of legal entity <name>".
+    private static String treatmentPhrase(Id treatmentId, String legalEntityName) {
+        try {
+            List<BillingTreatment> found = [SELECT Name FROM BillingTreatment WHERE Id = :treatmentId WITH USER_MODE LIMIT 1];
+            if (!found.isEmpty() && String.isNotBlank(found[0].Name)) {
+                return '\'' + found[0].Name + '\'';
+            }
+        } catch (QueryException qe) {
+            System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService treatment name not readable: ' + qe.getMessage());
+        }
+        return 'of legal entity ' + legalEntityName;
+    }
+
+    // The legal entity sent must be one the picker could offer (getLegalEntities: active and visible
+    // to the user), so an id from elsewhere is refused before the treatment lookup. Its name is
+    // returned for the treatment refusals.
+    private static String readActiveLegalEntityName(Id legalEntityId) {
+        List<LegalEntity> les;
+        try {
+            les = [SELECT Name FROM LegalEntity WHERE Id = :legalEntityId AND Status = 'Active' WITH USER_MODE LIMIT 1];
+        } catch (QueryException qe) {
+            throw readRefused('the legal entity', qe);
+        }
+        if (les.isEmpty()) {
+            throw RLM_AuraErrors.handled(
+                'The legal entity was not found, is not active, or is not visible to you. Choose another legal entity.');
+        }
+        return les[0].Name;
     }
 
     @TestVisible
@@ -562,6 +955,9 @@ public with sharing class RLM_BillingScheduleGroupService {
      */
     @TestVisible
     private static Map<String, Object> invokeStandaloneBillingScheduleCreate(String transactionDetailsJson) {
+        if (Test.isRunningTest()) {
+            lastTransactionDetails = transactionDetailsJson;
+        }
         if (Test.isRunningTest() && mockActionOutputs != null) {
             return mockActionOutputs;
         }

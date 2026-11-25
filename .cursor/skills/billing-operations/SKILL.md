@@ -78,6 +78,25 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 - **DO NOT** use the Create Standalone Billing Schedules API for a billing schedule group
   linked to an asset; amend, renew and cancel from the order or asset and use the
   order-to-schedule flow or the orders API [Help: `ind.billing_schedules_standalone_api`].
+- **DO NOT** expect `BillingType__std` or `BillingTypePicklistTiming__std` to set Advance or
+  Arrears in a Create Standalone Billing Schedules payload: the action rejects both
+  (`Invalid tag attribute name key`) [Measured: 2026-11-26, 264, scratch]. Timing comes only
+  from the billing treatment sent as `BillingTreatmentId__std`, which also sets the group's
+  Billing Type [Measured: 2026-11-26, 264, scratch]. `LegalEntityId__std` sets the group's
+  legal entity and `BillingTerm__std` is accepted, and a shipping address tag
+  (`ShippingCity__std` alone suffices) is required or the action fails with
+  `REQUIRED_FIELD_MISSING: shippingAddress` [Measured: 2026-11-26, 264, scratch]. The
+  Billing UI's Create Billing Schedule Group modal sends the legal entity, the treatment
+  (the legal entity's treatment in the charge currency for the chosen timing; one-time: see
+  [billing-setup](../billing-setup/SKILL.md#billing-policies-and-treatments)) and the
+  shipping city, but no billing term (it has no input for one). Account sent: the account
+  page the modal opened on when it is the billing account's own or is linked to it through
+  `AccountBillingAccount`; a page account that is not found, unreadable, not linked (link
+  deleted) or whose link read is refused refuses create; with no page account, the billing
+  account's own account, else its oldest link (create refuses when it has neither).
+  Shipping city: that account's shipping city, else the billing city the caller submitted,
+  which the modal reads from that same account [Repo:
+  `unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`].
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
   is designed for simple calculations and may not suit tax compliance needs; it calculates,
   and might round, at line level [Help: `ind.billing_standard_tax_rate`].
