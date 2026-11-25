@@ -14,24 +14,24 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `BillingSchedule` | Schedule linking orders to billing | ReferenceEntityId (→ Order), AccountId, BillingTreatmentItemId, TaxTreatmentId, OriginalBillingScheduleId |
+| `BillingSchedule` | Schedule linking orders to billing | ReferenceEntityId (→ Order), BillingAccountId, BillingTreatmentItemId, TaxTreatmentId, OriginalBillingScheduleId |
 | `BillingScheduleGroup` (BSG) | Groups billing schedules | BillingArrangementId, BillingTreatmentId, LegalEntityId, PaymentTermId, TaxTreatmentId |
 | `BillingPeriodItem` | Period within a billing schedule | BillingScheduleGroupId, InvoiceBatchRunId, InvoiceId, InvoiceLineId |
 | `BillingArrangement` | Arrangement container | — |
 | `BillingArrangementLine` | Lines within an arrangement | — |
 | `BsgRelationship` | Relationships between BSGs | AssociatedBsgId |
 | `BillingMilestonePlan` | Milestone-based billing plan | BillingTreatmentId |
-| `BillingMilestonePlanItem` | Items within a milestone plan | BillingScheduleGroupId, ReferenceItemId (→ BillingSchedule) |
+| `BillingMilestonePlanItem` | Items within a milestone plan | BillingMilestonePlanId, BillingScheduleGroupId |
 
 ## Invoice Objects
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `Invoice` | Invoice record | AccountId, BillingAccountId, LegalEntityId, PaymentTermId, InvoiceBatchRunId |
+| `Invoice` | Invoice record | BillingAccountId, LegalEntityId, PaymentTermId, InvoiceBatchRunId |
 | `InvoiceLine` | Line item on an invoice | InvoiceId, Product2Id, BillingScheduleId, BillingScheduleGroupId, LegalEntityId, TaxTreatmentId |
 | `InvoiceLineTax` | Tax detail on an invoice line | — |
 | `InvoiceAddressGroup` | Address grouping for invoices | — |
-| `InvoiceLineRelationship` | Relationships between invoice lines | AssociatedInvoiceLineId, UsageProductBillSchdGrpId |
+| `InvoiceLineRelationship` | Relationships between invoice lines | MainInvoiceLineId, AssociatedInvoiceLineId, InvoiceId |
 | `InvoiceDocument` | Generated invoice document | — |
 | `InvoiceBatchRun` | Batch invoice generation run | BillingBatchSchedulerId |
 | `InvoiceBatchRunCriteria` | Criteria for batch runs | — |
@@ -42,12 +42,12 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `CreditMemo` | Credit memo | AccountId, LegalEntityId, ReferenceEntityId (→ Order) |
+| `CreditMemo` | Credit memo | BillingAccountId, LegalEntityId, ReferenceEntityId (→ Order) |
 | `CreditMemoLine` | Line on a credit memo | CreditMemoId |
 | `CreditMemoLineTax` | Tax on a credit memo line | LegalEntityId |
 | `CreditMemoAddressGroup` | Address grouping | — |
-| `CreditMemoInvApplication` | Application of credit to invoice | CreditMemoId, CreditMemoLineId |
-| `CreditMemoLineInvoiceLine` | Junction: credit memo line ↔ invoice line | CreditMemoLineId, TaxTreatmentId, LegalEntityId |
+| `CreditMemoInvApplication` | Application of credit to invoice | CreditMemoId, InvoiceId |
+| `CreditMemoLineInvoiceLine` | Junction: credit memo line ↔ invoice line | CreditMemoLineId, InvoiceLineId, InvoiceLineTaxId, LegalEntityId |
 | `DebitMemo` | Debit memo | — |
 | `DebitMemoLine` | Line on a debit memo | LegalEntityId, TaxTreatmentId, BillingAddressId |
 | `DebitMemoLineTax` | Tax on a debit memo line | BillingAddressId |
@@ -78,7 +78,7 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `TaxPolicy` | Tax policy (linked to Product2.TaxPolicyId) | Name, DefaultTaxTreatmentId, LegalEntityId, GeneralLedgerAcctAsgntRuleId |
+| `TaxPolicy` | Tax policy (linked to Product2.TaxPolicyId) | Name, DefaultTaxTreatmentId, Status, TreatmentSelection |
 | `TaxTreatment` | Treatment within a tax policy | Name, LegalEntityId, TaxEngineId, TaxPolicyId |
 | `TaxEngine` | External tax engine config | TaxEngineName, TaxEngineProviderId, MerchantCredentialId, Status |
 | `TaxEngineProvider` | Tax engine provider | DeveloperName |
@@ -125,7 +125,7 @@ Product2.BillingPolicyId → BillingPolicy
 Product2.TaxPolicyId → TaxPolicy
 Order ← BillingSchedule (ReferenceEntityId)
 Order ← Invoice, CreditMemo (ReferenceEntityId)
-Account ← Invoice, CreditMemo, Payment, BillingAccount (AccountId)
+Account ← BillingSchedule, Invoice, CreditMemo (BillingAccountId); Account ← Payment, BillingAccount (AccountId)
 BillingSchedule ← InvoiceLine (BillingScheduleId)
 PaymentTerm ← Invoice, BillingAccount, BillingScheduleGroup (PaymentTermId)
 TaxTreatment ← BillingScheduleGroup, InvoiceLine, BillingSchedule (TaxTreatmentId)
@@ -133,6 +133,6 @@ TaxTreatment ← BillingScheduleGroup, InvoiceLine, BillingSchedule (TaxTreatmen
 
 ## SFDMU Data Plans
 
-- `qb-billing` — 14 objects across 3 passes (draft insert → activate treatment items → activate treatments/policies). Upstream: `qb-pcm`
-- `qb-tax` — 8 objects across 2 passes. Upstream: `qb-pcm`, metadata (tax adapter)
+- `qb-billing` — 13 objects across 3 passes (draft upsert → activate treatment items → activate treatments/policies). Upstream: `qb-pcm`
+- `qb-tax` — 7 objects across 2 passes. Upstream: `qb-pcm`, metadata (tax adapter)
 - `qb-accounting` — 4 objects (GL accounts and rules). Upstream: LegalEntity from `qb-billing`/`qb-tax`

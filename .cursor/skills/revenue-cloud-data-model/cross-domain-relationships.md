@@ -14,8 +14,8 @@ Product2 (PCM) is referenced by objects in every other domain:
 | AttributeAdjustmentCondition | ProductId | Pricing |
 | BundleBasedAdjustment | ProductId, ParentProductId, RootBundleId | Pricing |
 | RateCardEntry | ProductId | Rates |
-| ProductConfigurationFlow | ReferenceObjectId | Configurator |
-| ProductConfigurationRule | ProductId | Configurator |
+| ProductConfigFlowAssignment | ProductId | Configurator |
+| ExpressionSetConstraintObj | ReferenceObjectId (polymorphic) | Configurator |
 | QuoteLineItem | Product2Id | Transactions |
 | OrderItem | Product2Id | Transactions |
 | Asset | Product2Id | Transactions |
@@ -58,9 +58,9 @@ Account (Transactions) is referenced by most transactional and billing objects:
 | Asset | AccountId | Transactions |
 | FulfillmentOrder | AccountId | DRO |
 | BillingAccount | AccountId | Billing |
-| BillingSchedule | AccountId | Billing |
-| Invoice | AccountId | Billing |
-| CreditMemo | AccountId | Billing |
+| BillingSchedule | BillingAccountId | Billing |
+| Invoice | BillingAccountId | Billing |
+| CreditMemo | BillingAccountId | Billing |
 | Payment | AccountId | Billing |
 
 ## PriceBook2 Cross-Domain Links
@@ -92,7 +92,6 @@ LegalEntity (Billing) anchors tax, GL, and invoicing:
 |--------------|-------|--------|
 | TaxTreatment | LegalEntityId | Billing |
 | TaxRate | LegalEntityId | Billing |
-| TaxPolicy | LegalEntityId | Billing |
 | BillingScheduleGroup | LegalEntityId | Billing |
 | GeneralLedgerAccount | LegalEntityId | Billing |
 | GeneralLedgerAcctAsgntRule | LegalEntityId | Billing |
@@ -142,7 +141,7 @@ Asset.ParentId → Asset (bundle hierarchy)
 
 AssetAction.AssetId → Asset
 AssetActionSource.AssetActionId → AssetAction
-AssetActionSource.OrderItemId → OrderItem
+AssetActionSource.ReferenceEntityItemId → OrderItem
 ```
 
 ## Fulfillment Bridge (DRO ↔ Transactions)
@@ -172,5 +171,6 @@ scratch_data (Account, Contact)
         ├→ qb-guidedselling-products (Product2 guided-selling attributes)
         ├→ qb-prm (Partner accounts, channel programs)
         ├→ qb-approvals (approval alert content)
-        └→ qb-transactionprocessingtypes (standalone)
+        ├→ qb-transactionprocessingtypes (standalone)
+        └→ qb-price-revision (IndexRate, PriceRevisionPolicy; no product dependency)
 ```
