@@ -347,7 +347,7 @@ python scripts/context_service/definition/delete_context.py --target-org rlm-bas
 # one custom attribute + its dependent tag/attr-mapping
 python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --delete-artifact attribute SalesTransactionItem.ConstraintEngineNodeStatus__c \
+  --delete-artifact attribute SalesTransactionItem.<CustomAttr>__c \
   --cascade --deactivate-first --confirm-delete
 
 # whole definition (platform cascade)
@@ -392,7 +392,7 @@ Five mutually-exclusive ops; previews unless `--confirm`:
 # flip a custom attribute's IsTransient (a modify → deactivate first, reactivate after)
 python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --set-transient SalesTransactionItem.ConstraintEngineNodeStatus__c true \
+  --set-transient SalesTransactionItem.<CustomAttr>__c true \
   --deactivate-first --reactivate --confirm
 
 # re-designate the default context mapping (a modify → deactivate first)

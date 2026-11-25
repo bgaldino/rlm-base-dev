@@ -29,7 +29,7 @@ scratch_data (Account, Contact, BillingAccount)
             │       UoM, UoMClass, UsageResource, UsageResourceBillingPolicy, PUR, usage policies
             │       Pass 2 updates existing rows without Status; activateRatingRecords.apex activates
             │       │
-            │       ├──→ qb-rating-entitlements (12 objects: PURP + PUG, 10 Readonly; 2 passes)
+            │       ├──→ qb-rating-entitlements (24 object entries, 12 per pass, 2 passes: PURP + PUG, 10 Readonly)
             │       │       Matches PURP and PUG on ProductUsageResourceId, resolved on the target org
             │       │
             │       └──→ qb-rates (8 object entries, 2 passes)

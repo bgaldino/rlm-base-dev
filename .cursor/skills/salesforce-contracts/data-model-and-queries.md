@@ -112,7 +112,7 @@ choosing what to describe:
 
 | Object | Documented inventory fields | Relationship or access note |
 |---|---|---|
-| [`ContractType`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttype.htm.md) | `Name` (the org exposes `MasterLabel` and `DeveloperName` instead; see below), `IsDefault`, `SubTypes` | Contract-type configuration object. |
+| [`ContractType`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttype.htm.md) | `Name` (the 264 org observed above exposes `MasterLabel` and `DeveloperName` instead), `IsDefault`, `SubTypes` | Contract-type configuration object. |
 | [`ContractTypeConfig`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_contracttypeconfig.htm.md) | `ConfigType`, `ConfigValue`, `ContractTypeId`, `UsageType` | `ContractTypeId` relates to `ContractType`. |
 | [`DocumentClauseSet`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_documentclauseset.htm.md) | `Name`, `Status`, `Category`, `CategoryReferenceId`, `DefaultLanguage` | `CategoryReferenceId` relates to `ClauseCatgConfiguration`. |
 | [`DocumentClause`](../../../docs/salesforce/264/dev-guide-contracts/articles/sforce_api_objects_documentclause.htm.md) | `Name`, `Status`, `Language`, `Version`, `IsAlternateClause`, `DocumentClauseSetId` | `DocumentClauseSetId` relates to `DocumentClauseSet`; access requires the documented ClauseManagement entitlement. |

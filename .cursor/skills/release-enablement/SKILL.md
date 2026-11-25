@@ -191,7 +191,7 @@ The auto-gen uses the H2 + H3 structure literally. Section headers must match th
 |---|---|---|
 | 260 (Spring '26) | Earlier GA; index no longer in-tree (see note below) | n/a | <!-- staleness: allow -->
 | 262 (Summer '26) | Prior GA reference | [`docs/salesforce/262/feature-index.md`](../../../docs/salesforce/262/feature-index.md) | <!-- staleness: allow -->
-| 264 (Winter '27) | Current line (`main`; see README Branch Information) | [`docs/salesforce/264/feature-index.md`](../../../docs/salesforce/264/feature-index.md) |
+| 264 (Winter '27) | Current release (`salesforce_release_active` in `.claude/skill-manifest.yml`) | [`docs/salesforce/264/feature-index.md`](../../../docs/salesforce/264/feature-index.md) |
 
 The repo keeps the current and previous release's corpora only, so the 260 feature index and release notes were removed; the 260 exercises under `docs/enablement/260/` stay as historical extracts. The 260 billing Help preset still exists (`python -m scripts.doc_snapshot list`).
 
