@@ -53,8 +53,9 @@ public without sharing class RLM_AccountUtilities {
     // (a ratable summary can be held by a usage summary and vice versa), so the
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
-    // spin. In practice QUERY_RESERVE ends a run first, after five rounds, and the
-    // next run carries on.
+    // spin. In practice QUERY_RESERVE ends a run first, after four or five rounds
+    // (phase 1's lookups before the loop take 4 to 6 of the 100 queries, and a round
+    // needs 59 left to start), and the next run carries on.
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
@@ -65,18 +66,21 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 42 (counted from the code, with every option on and
-    // data in every branch: order data 10, collections 5, schedule groups 1, billing 8,
-    // fulfillment 2, contracts 2, journal 1, the asset step's other lookups 8, quotes and
-    // opportunities 5); 29 is what an account with no such data measures. QUERY_RESERVE
-    // covers the 42 and the usage retries. A round starts only while both are left;
+    // fixed queries total at most 43 (counted from the code, with every option on and
+    // data in every branch): 28 before the asset step (order data 10, collections 5,
+    // schedule groups 1, billing 8, fulfillment 2, contracts 2), the asset step's lookup
+    // of entitlements bound to the assets 1 and its other lookups 8, quotes and
+    // opportunities 5 = 42 on the drained path, plus the journal query, which only the
+    // undrained path runs = 43. 29 is what an account with no such data measures.
+    // QUERY_RESERVE covers the 43 and the usage retries. A round starts only while both
+    // are left;
     // otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 42.
+    // LimitException. A test holds the measured 29 and the reserve against the 43.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 42;
+    private static final Integer PHASE_TWO_FIXED_MAX = 43;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
@@ -230,7 +234,8 @@ public without sharing class RLM_AccountUtilities {
     private static Exception phaseTwoFailureForTest;
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
-    // always ends the loop first (a round needs 59 queries left, and 100 allow five), so
+    // always ends the loop first (a round needs 59 queries left, and 100 allow four or five, depending on the
+    // 4 to 6 queries phase 1 spends on assets and contracts before the loop), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
     @TestVisible
@@ -238,9 +243,13 @@ public without sharing class RLM_AccountUtilities {
 
     // Lets a test cap the queries the rollback's bucket listing may spend (the two
     // lookups included), which a real run reaches only after phase 2 has spent nearly
-    // all of them: under 4 stops it up front, 3 stops it part way down a deep tree.
+    // all of them: under 4 stops it before any lookup; 4 lets the two lookups and two
+    // levels of a deep tree through and stops the walk part way.
     @TestVisible
     private static Integer unseenQueriesForTest;
+    // Queries the last rollback listing spent, so a test can tell which way it stopped.
+    @TestVisible
+    private static Integer unseenListQueriesSpentForTest;
 
     // Queries phase 2 spent in the last run, for a test to hold against PHASE_TWO_FIXED_MAX.
     @TestVisible
@@ -653,6 +662,8 @@ public without sharing class RLM_AccountUtilities {
                 removed++;
             } else if (results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
                 report.refused.put(rowId, results[i].getErrors()[0].getMessage());
+                // Refused is the reason now; a bucket is never reported under both.
+                report.foreignBuckets.remove(rowId);
                 continue;
             }
             gone.add(rowId);
@@ -1144,6 +1155,7 @@ public without sharing class RLM_AccountUtilities {
         }
         Integer unseen = 0;
         Integer foreign = 0;
+        Integer queriesAtStart = Limits.getQueries();
         try {
             Integer left = Limits.getLimitQueries() - Limits.getQueries();
             Integer allowance = unseenQueriesForTest != null ? unseenQueriesForTest : left;
@@ -1159,18 +1171,19 @@ public without sharing class RLM_AccountUtilities {
             // A completed run would keep these too, so they are not "rolled back" rows.
             Set<Id> foreignIds = foreignBucketIds(tree, tueIds);
             for (Id bucketId : tree.keySet()) {
-                if (report.refused.containsKey(bucketId)) {
-                    continue;
-                }
                 if (foreignIds.contains(bucketId)) {
+                    // One chain gets one reason: a refused bucket above a foreign child
+                    // is reported with the child, not with the platform's error.
+                    report.refused.remove(bucketId);
                     foreign++;
-                } else {
+                } else if (!report.refused.containsKey(bucketId)) {
                     unseen++;
                 }
             }
         } catch (ResetStoppedException e) {
             report.incompleteBuckets = true;
         }
+        unseenListQueriesSpentForTest = Limits.getQueries() - queriesAtStart;
         recordRetained(UsageEntitlementBucket.SObjectType, foreign, ROLLED_BACK_FOREIGN_BUCKET);
         recordRetained(UsageEntitlementBucket.SObjectType, unseen,
             'not deleted: the run was rolled back');

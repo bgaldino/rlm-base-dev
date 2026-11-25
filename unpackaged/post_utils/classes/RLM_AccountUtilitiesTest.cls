@@ -1405,6 +1405,77 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
+    // The asset step marks a bucket foreign (retries, against the account's own TUEs) and
+    // then sees it as the account's (the TUE is bound to the asset) and tries to delete
+    // it. When that delete is refused, the TUE stays, the asset cannot go, and the run
+    // rolls back: deleteRows drops the foreign mark when a delete is refused, and the
+    // rollback listing then reports the chain once. Phase 2's own report is discarded by
+    // the rollback, so only the listing's rows can be observed here.
+    @IsTest
+    static void aRefusedBucketDeleteInTheAssetStepLeavesOneRowPerBucketAfterTheRollback() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438b');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Moved Asset 438b', AccountId = a.Id);
+        insert asset;
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        TransactionUsageEntitlement movedTue = newEntitlement(previousOwner.Id, asset.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        UsageEntitlementBucket child = newBucket(held.Id, movedTue.Id, f);
+        // A usage summary of the previous owner's holds the child bucket, and no step of
+        // the reset deletes it (the loop and the asset step find summaries through the
+        // reset account or its assets), so the asset step's delete of the bucket is refused.
+        insert new UsageSummary(
+            UsageEntitlementBucketId = child.Id, AccountId = previousOwner.Id, UomId = f.uomId,
+            StartDateTime = Datetime.now().addDays(-5), EndDateTime = Datetime.now().addDays(-1),
+            DebitedUnits = 0, ConsumptionUnits = 0, OverageUnits = 0, Status = 'New'
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The asset cannot go while its entitlement stays');
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
+            'Both buckets must survive the rolled-back run');
+        Assert.isNotNull(result.retainedSummary, 'The kept buckets must be reported');
+        Assert.areEqual(1, result.retainedSummary.split(
+            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': ').size() - 1,
+            'The two buckets must be one row. Got: ' + result.retainedSummary);
+        Assert.isTrue(result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)
+            + ' (not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement)'),
+            'Both buckets get the same reason. Got: ' + result.retainedSummary);
+    }
+
+    @IsTest
+    static void rollbackGivesOneReasonToARefusedBucketAboveAForeignChild() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Rollback Chain 438');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        newBucket(held.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)
+                + ' (not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement)'),
+            'The loop-refused bucket and its foreign child are one chain with one reason. Got: ' + result.retainedSummary
+        );
+        Assert.isFalse(result.retainedSummary.contains('could not be deleted: ') && result.retainedSummary.contains(
+            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': 1 (could'),
+            'The refused bucket must not also get the platform error. Got: ' + result.retainedSummary);
+    }
+
     @IsTest
     static void rollbackReportsABucketTheLoopNeverSaw() {
         Account a = newAccount();
@@ -1442,6 +1513,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         RLM_AccountUtilities.unseenQueriesForTest = 0;
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
+        Assert.areEqual(0, RLM_AccountUtilities.unseenListQueriesSpentForTest, 'Stopped before any lookup');
 
         Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
         Assert.isTrue(
@@ -1458,12 +1530,14 @@ private without sharing class RLM_AccountUtilitiesTest {
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
 
         Test.startTest();
-        // The two lookups and the first level fit; the second level does not.
-        RLM_AccountUtilities.unseenQueriesForTest = 3;
+        // The two lookups and two levels of the tree fit (4 queries); the third level does not.
+        RLM_AccountUtilities.unseenQueriesForTest = 4;
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
 
         Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.areEqual(4, RLM_AccountUtilities.unseenListQueriesSpentForTest,
+            'The listing must have run its lookups and part of the walk, not stopped up front');
         Assert.isTrue(
             result.retainedSummary != null && result.retainedSummary.contains('may be incomplete'),
             'A walk cut short part way must say so. Got: ' + result.retainedSummary
@@ -1563,9 +1637,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 42 is counted from the code with data in every branch (see the constants in
+    // The 43 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 42 and the measurement against both, but it cannot catch
+    // the reserve against the 43 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
