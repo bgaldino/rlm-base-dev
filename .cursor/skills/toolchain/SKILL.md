@@ -2,8 +2,8 @@
 name: toolchain
 description: >-
   Set up, audit, update and verify a local rlm-base-dev developer toolchain (Homebrew,
-  pyenv Python 3.13, nvm Node (the line in `.nvmrc`), pipx CumulusCI, sf CLI and SFDMU, direnv, the gate
-  interpreter .venv, Chrome for Testing) without breaking the workstation. Use when
+  pyenv Python 3.13, nvm Node on the .nvmrc line, pipx CumulusCI, sf CLI and SFDMU,
+  direnv, the gate interpreter .venv, Chrome for Testing) without breaking the workstation. Use when
   setting up or replicating a workstation, running or debugging update-toolchain.sh,
   checking shell config or PATH order, handling a managed workstation's corporate CA
   or tool-managed shell blocks, or verifying a setup on several workstations. For a
