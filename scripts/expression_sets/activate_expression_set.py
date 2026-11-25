@@ -52,6 +52,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     soql_literal,
 )
 from scripts.expression_sets._guards import (  # noqa: E402
+    MEASURED_1125,
     VERSION_FIELDS,
     null_rank_reactivation_refusal,
 )
@@ -143,7 +144,7 @@ def main(argv=None) -> int:
             if no_rank:
                 eprint(f"WARNING: {esv.get('ApiName')} has no Rank. The API refuses to "
                        "activate a version without one (\"Enter a valid rank to enable "
-                       "…\", measured on 264), so once deactivated it cannot be turned "
+                       f"…\", {MEASURED_1125}), so once deactivated it cannot be turned "
                        "back on this way until it has a Rank.")
             # Deactivate referencing plans first, then the ES version.
             if cascade:

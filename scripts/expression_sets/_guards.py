@@ -47,6 +47,7 @@ VERSION_FIELDS = ("Id, ApiName, Name, VersionNumber, IsActive, Rank, StartDateTi
                   "EndDateTime, CreatedDate")
 
 MEASURED = "measured on Release 264, 2026-11-24"
+MEASURED_1125 = "measured on Release 264, 2026-11-25"
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -148,7 +149,7 @@ def rank_order_warning(versions: List[Dict[str, Any]],
     if len(tier) > 1 and not any(_has_rank(v) for v in tier):
         notes.append(
             f"none of the top candidates has a Rank, so {chosen.get('ApiName')}, the "
-            f"earliest created, runs ({MEASURED})"
+            f"earliest created, runs ({MEASURED_1125})"
         )
     elif len(tier) > 1:
         notes.append(
@@ -194,7 +195,7 @@ def target_version_warning(es_id: str, active: List[Dict[str, Any]],
 
 _NO_RANK_CAUSE = (
     ": the platform refuses to activate a version through the API without a Rank "
-    "(\"Enter a valid rank to enable …\", measured on Release 264, 2026-11-25). "
+    f"(\"Enter a valid rank to enable …\", {MEASURED_1125}). "
     "Nothing was written."
 )
 # The run-without-activation remedy, in each surface's own option name.
@@ -384,8 +385,8 @@ def import_target_refusal(
             "with their own labels this guard refuses them, and the platform's response "
             "is not measured). An overlay "
             "(apply_expression_set_overlay.py) sends every version under its own id, "
-            "which succeeded when each version carried its own label (measured on "
-            "Release 264, 2026-11-25). " + alternatives
+            f"which succeeded when each version carried its own label ({MEASURED_1125}). "
+            + alternatives
         )
     incoming = payload_versions[0] if isinstance(payload_versions[0], dict) else {}
     incoming_api = incoming.get("apiName")
@@ -511,8 +512,8 @@ def version_name_collision_refusal(
         f"Expression set '{api_name}' has {len(versions)} versions: "
         f"{version_rows(versions)}. The PATCH sends every version, and the platform "
         "rejects it when a version's name is not unique in the set (\"An expression "
-        "set version with the name … exists in this expression set\", measured on "
-        f"Release 264, 2026-11-25): {'; '.join(problems)}. Nothing was written. "
+        f"set version with the name … exists in this expression set\", {MEASURED_1125}"
+        f"): {'; '.join(problems)}. Nothing was written. "
         "Versions deployed with their own <label> got distinct names (measured), but "
         "an sObject update of ExpressionSetVersion.Name did not change the name the "
         "GET returns (measured) and a deploy over an active version is refused, so on "
