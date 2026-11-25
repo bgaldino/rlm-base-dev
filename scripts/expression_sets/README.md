@@ -319,7 +319,10 @@ version found under another number can be skipped silently [Platform behaviour,
 traced]; the one construction measured (lower version deleted, `_V1` redeployed at
 the freed number) failed the deploy loudly instead [Measured: 2026-11-24, 264, QB
 scratch build, disposable sets]. The read-back reports any VersionNumber mismatch
-either way. It runs only after a successful deploy, and that step cannot be re-run
+either way. Its two read-only queries are retried on a transient error (HTTP 5xx, a
+connection reset, a timeout; up to 3 attempts), while an auth or SOQL error fails at
+once; a failure then says the deploy succeeded and the read-back could not run. It
+runs only after a successful deploy, and that step cannot be re-run
 in place on a built org: the redeploy is refused ("You can't update the expression
 set version … because it's active") [Measured: 2026-11-24, 264, QB scratch build].
 When it fails, run the build's remaining steps after it, in order (`cci flow info

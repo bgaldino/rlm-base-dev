@@ -48,6 +48,7 @@ chain is known and accepted.
 import base64
 import io
 import sys
+import time
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
@@ -85,6 +86,29 @@ from scripts.expression_sets._guards import (  # noqa: E402
 # enough not to wrap, so the step is never retried whatever the message above it
 # says (a read-back error can quote "timed out" or "503").
 READBACK_FAILURE_SIGNATURE = "Expression set read-back failed: validation error."
+
+# The read-back's two read-only queries are retried on a transient error (HTTP 5xx,
+# a connection reset, a timeout), waiting 2 then 4 seconds; an auth or SOQL error
+# fails at once.
+READBACK_QUERY_ATTEMPTS = 3
+_TRANSIENT_ERROR_TYPES = {
+    "ConnectionError", "ConnectionResetError", "ConnectionAbortedError",
+    "Timeout", "TimeoutError", "ConnectTimeout", "ReadTimeout",
+    "ChunkedEncodingError", "ProtocolError", "RemoteDisconnected",
+}
+
+
+def is_transient_query_error(exc: BaseException) -> bool:
+    """True for a failure worth retrying a read-only query: an HTTP 5xx response
+    (``status`` on simple_salesforce errors), or a connection reset or timeout
+    (``requests``, ``urllib3`` and builtin types, matched by class name so this
+    module needs neither). Auth (401/403) and SOQL (400) errors are not."""
+    status = getattr(exc, "status", None)
+    if isinstance(status, int):
+        return status >= 500
+    return any(cls.__name__ in _TRANSIENT_ERROR_TYPES for cls in type(exc).__mro__)
+
+
 MDAPI_SUFFIX = ".expressionSetDefinition"
 _MD_NS = "{http://soap.sforce.com/2006/04/metadata}"
 VERSION_CHECK_MODES = ("fail", "warn")
@@ -259,11 +283,12 @@ class DeployExpressionSets(Deploy):
                 target_org=getattr(getattr(self, "org_config", None), "username", None))
             notes = {d: rank_order_warning(org_versions.get(d) or []) for d in definitions}
         except Exception as exc:  # noqa: BLE001 — a query or an unreadable version date
-            # The read-back could not run: same fail/warn decision as a finding, so
-            # warn mode never fails the build on the check itself.
+            # The read-back could not run (a persisting transient error after the
+            # retries, or any other error at once): same fail/warn decision as a
+            # finding, so warn mode never fails the build on the check itself.
             self._conclude([f"Version read-back could not run: {exc}"],
-                           "The version read-back could not run; the deployed change "
-                           "is unverified.")
+                           "The deploy succeeded, but the version read-back could not "
+                           "run, so the deployed change is unverified.")
             return
         for definition, note in notes.items():
             if note:
@@ -304,10 +329,27 @@ class DeployExpressionSets(Deploy):
             )
         self.logger.warning(message + " Continuing (version_check: warn).")
 
+    def _query_all(self, soql: str) -> Dict:
+        """``query_all``, retried on a transient error (``is_transient_query_error``)
+        up to ``READBACK_QUERY_ATTEMPTS`` times, waiting 2 then 4 seconds. The sleep is
+        ``self._sleep`` when set (tests), else ``time.sleep`` looked up at call time."""
+        for attempt in range(1, READBACK_QUERY_ATTEMPTS + 1):
+            try:
+                return self._sf.query_all(soql)
+            except Exception as exc:  # noqa: BLE001 -- classified, then re-raised
+                if attempt == READBACK_QUERY_ATTEMPTS or not is_transient_query_error(exc):
+                    raise
+                wait = 2 * attempt
+                self.logger.warning(
+                    f"Version read-back query failed ({exc}); retrying in {wait}s "
+                    f"(attempt {attempt}/{READBACK_QUERY_ATTEMPTS}).")
+                (getattr(self, "_sleep", None) or time.sleep)(wait)
+        raise AssertionError("unreachable")  # pragma: no cover
+
     def _org_versions(self, definitions: List[str]) -> Dict[str, List[Dict]]:
         """``{definition DeveloperName: [ExpressionSetVersion rows]}``, two queries."""
         names = "', '".join(d.replace("\\", "\\\\").replace("'", "\\'") for d in definitions)
-        sets = self._sf.query_all(
+        sets = self._query_all(
             "SELECT Id, ExpressionSetDefinition.DeveloperName FROM ExpressionSet "
             f"WHERE ExpressionSetDefinition.DeveloperName IN ('{names}')"
         ).get("records", [])
@@ -319,7 +361,7 @@ class DeployExpressionSets(Deploy):
         if not by_set:
             return out
         ids = "', '".join(by_set)
-        rows = self._sf.query_all(
+        rows = self._query_all(
             f"SELECT {VERSION_FIELDS}, ExpressionSetId "
             f"FROM ExpressionSetVersion WHERE ExpressionSetId IN ('{ids}')"
         ).get("records", [])

@@ -307,16 +307,28 @@ def cci_output(message, width):
     return lines
 
 
+class _ServerError(Exception):
+    """Stands in for simple_salesforce's SalesforceGeneralError: carries ``status``."""
+
+    def __init__(self, status, text):
+        super().__init__(text)
+        self.status = status
+
+
 class _TransientSf(_FakeSf):
+    """A transient error on every query: retried, then it persists."""
+
     def query_all(self, soql):
-        raise RuntimeError("HTTPSConnectionPool: Read timed out. (read timeout=30); "
-                           "503 Service Unavailable; connection reset")
+        self.queries.append(soql)
+        raise _ServerError(503, "HTTPSConnectionPool: Read timed out. (read timeout=30); "
+                                "503 Service Unavailable; connection reset")
 
 
 read_failures = [("a finding", raised)]
 for sf_class in (_BrokenSf, _TransientSf):
     task_ = make_task("fail", deployed_rows(), package)
     task_._sf_client = sf_class([], [])
+    task_._sleep = lambda seconds: None
     try:
         task_._check_versions()
     except mod.CumulusCIFailure as exc:
@@ -332,6 +344,87 @@ for name, exc in read_failures:
               "deterministic, so it is not retried",
               signature == mod.READBACK_FAILURE_SIGNATURE
               and classify_signature(signature) == "deterministic", signature)
+
+# Transient query errors are retried inside the task (2, then 4 s), so a blip does
+# not fail a build whose deploy already succeeded; anything else fails at once.
+class _FlakyOnceSf(_FakeSf):
+    """The first query hits a connection reset; every later one succeeds."""
+
+    def query_all(self, soql):
+        if not self.queries:
+            self.queries.append(soql)
+            raise ConnectionResetError("connection reset by peer")
+        return super().query_all(soql)
+
+
+flaky = make_task("fail", deployed_rows(), package)
+flaky._sf_client = _FlakyOnceSf(flaky._sf_client.sets, flaky._sf_client.versions)
+waits = []
+flaky._sleep = waits.append
+try:
+    flaky._check_versions()
+    flaky_raised = None
+except mod.CumulusCIFailure as exc:
+    flaky_raised = exc
+check("a transient error on the first query is retried and the read-back passes",
+      flaky_raised is None and waits == [2] and len(flaky._sf_client.queries) == 3
+      and any("retrying in 2s" in m for _, m in flaky.logs), (flaky_raised, waits))
+
+persisting = make_task("fail", deployed_rows(), package)
+persisting._sf_client = _TransientSf([], [])
+waits = []
+persisting._sleep = waits.append
+try:
+    persisting._check_versions()
+    persisting_raised = None
+except mod.CumulusCIFailure as exc:
+    persisting_raised = exc
+check("a transient error on every attempt fails after the retries, with the signature",
+      persisting_raised is not None
+      and len(persisting._sf_client.queries) == mod.READBACK_QUERY_ATTEMPTS
+      and waits == [2, 4]
+      and "The deploy succeeded, but the version read-back could not run"
+      in str(persisting_raised)
+      and "run the prepare_rlm_org steps after this one" in str(persisting_raised)
+      and str(persisting_raised).splitlines()[-1] == mod.READBACK_FAILURE_SIGNATURE,
+      (persisting_raised, waits))
+
+
+class _AuthErrorSf(_FakeSf):
+    def query_all(self, soql):
+        self.queries.append(soql)
+        raise _ServerError(401, "INVALID_SESSION_ID: Session expired or invalid")
+
+
+class _SoqlErrorSf(_FakeSf):
+    def query_all(self, soql):
+        self.queries.append(soql)
+        raise _ServerError(400, "MALFORMED_QUERY: unexpected token")
+
+
+for label, sf in (("an auth error (401)", _AuthErrorSf([], [])),
+                  ("a SOQL error (400)", _SoqlErrorSf([], [])),
+                  ("an error with no status", _BrokenSf([], []))):
+    once = make_task("fail", deployed_rows(), package)
+    once._sf_client = sf
+    waits = []
+    once._sleep = waits.append
+    try:
+        once._check_versions()
+        once_raised = None
+    except mod.CumulusCIFailure as exc:
+        once_raised = exc
+    check(f"{label} is not retried: the read-back fails at once",
+          once_raised is not None and waits == []
+          and "could not run" in str(once_raised), (once_raised, waits))
+check("transient classification: 5xx, resets and timeouts yes; 4xx and others no",
+      mod.is_transient_query_error(_ServerError(503, "x"))
+      and mod.is_transient_query_error(ConnectionResetError())
+      and mod.is_transient_query_error(TimeoutError())
+      and mod.is_transient_query_error(type("ReadTimeout", (OSError,), {})())
+      and not mod.is_transient_query_error(_ServerError(400, "MALFORMED_QUERY"))
+      and not mod.is_transient_query_error(_ServerError(401, "INVALID_SESSION_ID"))
+      and not mod.is_transient_query_error(RuntimeError("timed out")))
 
 empty = make_task("fail", {}, None)
 empty._check_versions()
