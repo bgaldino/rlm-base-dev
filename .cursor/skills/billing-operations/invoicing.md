@@ -238,13 +238,16 @@ Completed non-recalculate run with 0 lines found nothing `PendingForecast` to fo
 ```sql
 SELECT Id, Status, JobType, CreatedDate, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId FROM InvoiceBatchRun WHERE JobType = 'Forecast' ORDER BY CreatedDate
 SELECT Name, BillingSchedule.BillingScheduleNumber, Category, BillingTermUnit, BillingPeriodStartDate, BillingPeriodEndDate, ChargeAmount, InvoiceBatchRunId FROM BillingForecast ORDER BY Name
-SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate, ForecastBatchRunId FROM BillingSchedule ORDER BY BillingScheduleNumber
+SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM BillingSchedule ORDER BY BillingScheduleNumber
 ```
 
 Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query. Schedules
 created after the run should show `PendingForecast` until a later run whose filters include
 them picks them up [inferred]. The third query lists every schedule in the org, including
-milestone and usage ones that Help excludes from forecasting.
+milestone and usage ones that Help excludes from forecasting. An org with more schedules
+than the three measured shows the extras as `PendingForecast`. `ForecastBatchRunId` read
+null even on `Forecasted` schedules, so link a schedule to its run through
+`BillingForecast.InvoiceBatchRunId`.
 
 [Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
 
