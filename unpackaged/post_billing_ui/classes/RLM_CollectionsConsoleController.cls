@@ -82,10 +82,10 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, Id> collectionPlanIdByInvoice,
         Map<Id, String> disputeReasonByInvoice
     ) {
-        // Each column's query is guarded on its own: a user who cannot read payment schedules (for
-        // example, without a billing role's permissions) or collection plan items (without the
-        // collections license), where the object reads as "not supported", still gets the
-        // delinquent rows, without that column.
+        // Each column's query is guarded on its own, so a column whose object the user cannot read
+        // is skipped and the rest still load. The case seen live: a billing user without the
+        // collections license reads collection plan items as "not supported", and gets the
+        // delinquent rows without the collection-plan column.
         try {
             List<PaymentSchedule> schedules = [
                 SELECT Id, ReferenceEntityId,
