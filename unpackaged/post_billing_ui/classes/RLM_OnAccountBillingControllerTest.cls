@@ -124,8 +124,8 @@ private class RLM_OnAccountBillingControllerTest {
 
     // When the account and the payment share a non-corporate currency, correctConversion
     // returns early (the currencies match), so the corporate-converted SUM is shown as if it
-    // were in the account's currency. This pins today's behaviour; the expected value changes
-    // to the payment's own amount when the controller is fixed.
+    // were in the account's currency. This pins accepted behaviour (owner decision 2026-11-25, pack
+    // 433); the expected value changes only if the controller is deliberately changed.
     // SUM() converts at the STANDARD rate, so the currency is picked by standard rate: a
     // currency whose standard rate equals the corporate one would make the pin vacuous.
     @isTest
@@ -161,8 +161,8 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.areEqual(foreign, (String) result.get('currencyIsoCode'),
             'PRECONDITION: the summary is labelled in the account\'s (non-corporate) currency.');
         Assert.isTrue(Math.abs(actual - corporateSum) <= tolerance,
-            'Known gap: correctConversion returns the corporate-converted SUM when the account and payment '
-            + 'share a non-corporate currency; update this test when it is fixed. Expected ~' + corporateSum
+            'Accepted behaviour: correctConversion returns the corporate-converted SUM when the account and payment '
+            + 'share a non-corporate currency; update this test only if that is changed. Expected ~' + corporateSum
             + ' (100 ' + foreign + ' in ' + corporate + '), got ' + actual + ' ' + foreign);
     }
 

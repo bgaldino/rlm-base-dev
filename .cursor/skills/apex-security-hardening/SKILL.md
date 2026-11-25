@@ -73,6 +73,27 @@ sentence with the response body in the debug log (tested). Tax adapter error cod
 `RLM_TAX_503`, outside the HTTP range; a non-2xx engine response keeps its real HTTP status as the code and unmapped engine
 transaction statuses (Saved, Posted, ...) are logged when code-shaped, not mapped.
 
+## User-facing error text: what may be echoed (owner decisions, 2026-11-25)
+
+- **Echoing the user's own input is fine.** Sentences about, or repeating, what the user typed or chose
+  ("Quote Id is required.", "Invalid quote Id: <the id they gave>") leak nothing; keep them.
+- **Echoing admin-authored configuration is fine.** `RLM_UsageDataController` repeats App Builder config text
+  (property values an admin typed); keep it.
+- **Never echo** platform exception text, record data, or another user's data to a user who is not an admin. Known
+  exception, not covered by these decisions: `RLM_AI_UpdateRecordFieldsService` still returns `e.getMessage()` and
+  per-row DML error text; treat it as a defect to fix, not a pattern to copy.
+- **Add-line refusals stay a fixed sentence** (`RLM_AI_AddProductToQuoteService.refusalMessage`). The managed
+  add-line action's `errorMessage` carries validation-rule text and platform text in one field with no marker to tell
+  them apart, so a rule's wording cannot be passed through as provably user-authored.
+- **Platform text from argument conversion** of an `Id`-typed (or other non-String) invocable input (a malformed id)
+  is accepted: it is raised before the method body runs, so the method cannot catch or replace it. A `String` input
+  parsed in the body is not covered; catch it there (the add-line service's `quoteId` and `productId` are Strings
+  handled in the body).
+- **No `outcomeUnknown` output** on the add-line action: the planner is told an add may not have happened through
+  the Quoting Assistant's topic instructions (`RLM_Quoting_Assistant.agent`, Add_Product_To_Quote guidance) and
+  `ADD_UNCERTAIN_MESSAGE`. Revisit only if live tests show the planner mishandling an
+  uncertain add.
+
 ## Entry Conditions
 
 | Situation | Use this skill? |
