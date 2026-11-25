@@ -218,6 +218,10 @@ class Manifest:
     # Payment ids created by payment_applied, and the application records
     # (PaymentLineInvoiceLine / PaymentLineInvoice) read back for them.
     payment_ids: list[str] = field(default_factory=list)
+    # Set (and checkpointed) just before the run's one Payment insert, as for
+    # the credit: a retry looks the payment up by its tag instead of
+    # inserting again. Only a 4xx (nothing created) clears it.
+    payment_submitted: bool = False
     payment_application_ids: list[str] = field(default_factory=list)
     # Payment.Amount, the amount the stage meant to apply (open balance capped
     # at the payment), and the amount the application records add up to.

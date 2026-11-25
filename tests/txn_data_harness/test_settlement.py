@@ -432,6 +432,30 @@ def _eq(soql: str, field: str) -> Optional[str]:
     return None if m is None else m.group(1)
 
 
+class _Row(dict):
+    """A record holding only the selected fields; any other read fails."""
+
+    @classmethod
+    def project(cls, row: dict, soql: str) -> "_Row":
+        select = soql[len("SELECT "):soql.index(" FROM ")]
+        fields = {f.strip().split(".")[0] for f in select.split(",")}
+        out = cls({f: row.get(f) for f in fields})
+        out._fields = fields
+        return out
+
+    def _check(self, key):
+        if key not in self._fields:
+            raise AssertionError(f"field {key!r} read but not selected ({sorted(self._fields)})")
+
+    def get(self, key, default=None):
+        self._check(key)
+        return super().get(key, default)
+
+    def __getitem__(self, key):
+        self._check(key)
+        return super().__getitem__(key)
+
+
 class SettleOrg:
     """In-memory org for the settlement steps.
 
@@ -502,6 +526,11 @@ class SettleOrg:
                                      "invoice": line["InvoiceId"]})
 
     def query(self, soql: str):
+        """Rows carrying only the fields the SOQL selects; reading any other
+        field fails the test (like a real org's response)."""
+        return [_Row.project(r, soql) for r in self._query(soql)]
+
+    def _query(self, soql: str):
         if soql.startswith("SELECT DecimalPlaces FROM CurrencyType"):
             return [{"DecimalPlaces": self.places}]
         if soql.startswith("SELECT DefaultCurrencyIsoCode FROM Organization"):
@@ -1329,8 +1358,15 @@ def test_cli_step_resolves_the_manifests_account_by_id(monkeypatch) -> None:
     m = Manifest(run_id="R", account_id="001REC", account_name="Infinitech")
     acct = cli_mod._resolve_step_account(None, SimpleNamespace(account=None), m)
     assert acct.id == "001REC" and seen[-1] == ("Infinitech", "001REC")
+    from scripts.txn_data_harness import discovery
+
+    monkeypatch.setattr(discovery, "account_ids_named", lambda c, name: ["001BYNAME"])
     with pytest.raises(LifecycleError, match="--account 'Infinitech' resolves to 001BYNAME"):
         cli_mod._resolve_step_account(None, SimpleNamespace(account="Infinitech"), m)
+    # Names are not unique: the manifest's account among them is accepted.
+    monkeypatch.setattr(discovery, "account_ids_named", lambda c, name: ["001OTHER", "001REC"])
+    acct = cli_mod._resolve_step_account(None, SimpleNamespace(account="Infinitech"), m)
+    assert acct.id == "001REC" and seen[-1] == ("Infinitech", "001REC")
     # Old manifests without an account_id still resolve by name.
     acct = cli_mod._resolve_step_account(
         None, SimpleNamespace(account=None), Manifest(run_id="R", account_name="Infinitech")
@@ -1420,8 +1456,9 @@ def test_refusals_are_told_from_server_errors_on_both_transports(transport, monk
 
     body_400 = _CLI_400.split("\n", 4)[-1].strip()
     respond(400, _CLI_400, body_400)
-    with pytest.raises(LifecycleError, match="credit refused: INVALID_FIELD"):
+    with pytest.raises(SfApiError) as info:
         lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []})
+    assert info.value.status == 400 and lifecycle.is_api_refusal(info.value)
     with pytest.raises(LifecycleError, match="application level is likely wrong"):
         lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "3ttINV", "amount": 1})
 
@@ -1662,7 +1699,8 @@ def test_refused_credit_says_options_are_fixed(billable_account) -> None:
                                     "POST", "/credit")
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _posted_manifest()
-    with pytest.raises(LifecycleError, match="fixed once recorded.*start a new run") as info:
+    with pytest.raises(LifecycleError, match="Nothing was created. Rerunning sends the same "
+                                             "credit again.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic"
     assert m.credit_submitted is False
@@ -1772,6 +1810,8 @@ def test_payment_plan_is_checkpointed_before_the_payment_insert(billable_account
 
 
 def test_payment_create_that_committed_then_failed_is_not_created_twice(billable_account) -> None:
+    """A 5xx after the insert committed: the payment is looked up by its tag
+    (short wait) instead of inserted again."""
     from scripts.txn_data_harness.auth import SfApiError
 
     org = SettleOrg("line")
@@ -1779,13 +1819,8 @@ def test_payment_create_that_committed_then_failed_is_not_created_twice(billable
     exc._commit_first = True
     org.fail_next_post = exc
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
-    ctx = _settle_ctx(org, billable_account, spec)
-    m = _posted_manifest()
-    with pytest.raises(SfApiError):
-        steps.run_payment(ctx, m)
-    assert m.payment_ids == [] and len(org.payments) == 1
-    m = steps.run_payment(ctx, m)
-    assert len(org.payments) == 1 and m.payment_ids == ["0aQ1"]
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert len(org.payments) == 1 and m.payment_ids == ["0aQ1"] and m.payment_submitted
     assert m.payment_amount_applied == 250.0
 
 
@@ -2482,30 +2517,37 @@ def test_step_to_a_reached_target_clears_the_error(monkeypatch, billable_account
     assert ran == [] and m.error is None and m.failure_class is None
 
 
-@pytest.mark.parametrize("status, wrapped", [(400, True), (503, False)])
-def test_settlement_4xx_is_wrapped_at_the_step_boundary(status, wrapped, billable_account) -> None:
+@pytest.mark.parametrize("status, body, expected", [
+    (400, '[{"errorCode":"INVALID_QUERY_FILTER_OPERATOR","message":"total 1503.50"}]',
+     "deterministic"),
+    (400, '[{"errorCode":"UNABLE_TO_LOCK_ROW","message":"busy"}]', "transient"),
+    (503, "unavailable", "transient"),
+    (-1, "exhausted retries: timed out", "transient"),
+    (1, "Error: No authorization information found", "deterministic"),  # cli, no HTTP status
+])
+def test_settlement_api_errors_are_pinned_at_the_step_boundary(
+    status, body, expected, billable_account
+) -> None:
+    """Every SfApiError leaving a settlement step is classified from its status
+    and errorCode only -- never from text such as a run id holding "503"."""
     from scripts.txn_data_harness.auth import SfApiError
     from scripts.txn_data_harness.failure import classify_exception
 
     org = SettleOrg("line")
-    real = org._do_post
+    real = org.query
 
-    def post(path, body):
-        if path.endswith("/sobjects/Payment"):
-            raise SfApiError(status, '[{"errorCode":"X","message":"m"}]', "POST",
-                             "/services/data/v68.0/sobjects/Payment?run=DEMO-20261125T150342Z")
-        return real(path, body)
+    def query(soql):
+        if "FROM PaymentLineInvoiceLine" in soql:
+            raise SfApiError(status, body, "GET", "/query?q=...DEMO-20261125T150342Z-PAY")
+        return real(soql)
 
-    org._do_post = post
+    org.query = query
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
-    with pytest.raises(Exception) as info:
+    with pytest.raises(lifecycle.SettlementError) as info:
         steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec),
                            _posted_manifest())
-    exc = info.value
-    assert isinstance(exc, lifecycle.SettlementError) is wrapped
-    assert classify_exception(exc) == ("deterministic" if wrapped else "transient")
-    if wrapped:
-        assert "503" in str(exc)  # the run id, which must not make it transient
+    assert "503" in str(info.value)  # the run id, which must not decide
+    assert classify_exception(info.value) == expected
 
 
 # -- review round 7 (todo 275) --------------------------------------------------
@@ -2579,10 +2621,15 @@ def test_429_on_the_payment_insert_stays_transient(billable_account) -> None:
 
     org._do_post = post
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
-    with pytest.raises(SfApiError) as info:
-        steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec),
-                           _posted_manifest())
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError) as info:
+        steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec), m)
     assert classify_exception(info.value) == "transient"
+    # Nothing was created: the flag is cleared, so the retry inserts once.
+    assert m.payment_submitted is False and org.payments == []
+    org._do_post = real
+    m = steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec), m)
+    assert len(org.payments) == 1 and m.reached_stage == "payment_applied"
 
 
 def test_lock_error_on_a_settlement_query_stays_transient(billable_account) -> None:
@@ -2600,7 +2647,7 @@ def test_lock_error_on_a_settlement_query_stays_transient(billable_account) -> N
 
     org.query = query
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
-    with pytest.raises(SfApiError) as info:
+    with pytest.raises(lifecycle.SettlementError) as info:
         steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec),
                            _posted_manifest())
     assert classify_exception(info.value) == "transient"
@@ -2710,3 +2757,127 @@ def test_baseline_counts_only_applied_rows(billable_account) -> None:
     steps._ensure_settlement_baseline(_settle_ctx(org, billable_account, None), m)
     assert m.settlement_baseline["foreign_payment_application_ids"] == []
     assert m.settlement_baseline["foreign_credit_application_ids"] == []
+
+
+# -- review round 8 (todo 275): one write rule for credit and payment ------------
+
+
+def test_two_payments_under_the_tag_fail_naming_the_stray(billable_account) -> None:
+    org = SettleOrg("line")
+    for pid in ("0aQA", "0aQB"):
+        org.payments.append({"Id": pid, "AccountId": billable_account.id,
+                             "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(lifecycle.SettlementError, match="2 payments.*first 0aQA; stray 0aQB.*"
+                                                         "start a new run") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _payment_planned_manifest())
+    assert info.value.failure_class == "deterministic" and len(org.payments) == 2
+
+
+def test_payment_never_appearing_after_an_unknown_insert_fails(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(502, "bad gateway", "POST", "/sobjects/Payment")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError, match="payment outcome unknown") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic" and m.payment_submitted
+    # A resume never inserts again.
+    with pytest.raises(lifecycle.SettlementError, match="payment outcome unknown"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert org.payments == []
+
+
+def test_payment_refusal_clears_and_a_rerun_inserts_once(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(400, '[{"errorCode":"FIELD_INTEGRITY_EXCEPTION",'
+                                    '"message":"amount 1503.50 too large"}]',
+                                    "POST", "/sobjects/Payment")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError, match="payment refused.*Nothing was created"
+                                                         ".*Rerunning sends the same payment") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic"  # "1503.50" does not read as a 503
+    assert m.payment_submitted is False and org.payments == []
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert len(org.payments) == 1 and m.reached_stage == "payment_applied"
+
+
+def test_payment_submitted_is_on_disk_before_the_insert(tmp_path, billable_account) -> None:
+    from scripts.txn_data_harness.manifests import load_manifest, write_manifest
+
+    org = SettleOrg("line")
+    org.fail_next_post = KeyboardInterrupt()
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.checkpoint = lambda mm: write_manifest(mm, manifest_dir=tmp_path)
+    with pytest.raises(KeyboardInterrupt):
+        steps.run_payment(ctx, _posted_manifest())
+    assert load_manifest(str(tmp_path / "RUN.json")).payment_submitted is True
+
+
+def test_429_on_the_credit_post_clears_and_is_retried(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.failure import classify_exception
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(429, "slow down", "POST", "/credit")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError, match="nothing was created") as info:
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert classify_exception(info.value) == "transient" and m.credit_submitted is False
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert len(org.memos) == 1 and m.reached_stage == "credit_applied"
+
+
+@pytest.mark.parametrize("status, body, refusal", [
+    (400, '[{"errorCode":"INVALID_API_INPUT","message":"total 1503.50 exceeds 429"}]', True),
+    (400, '{"message":"x","output":{"errors":[{"errorCode":"UNABLE_TO_LOCK_ROW"}]}}', False),
+    (404, "not json 503", True),
+    (429, '[{"errorCode":"INVALID_API_INPUT"}]', False),
+    (420, "", False),
+])
+def test_refusal_is_decided_by_status_and_error_code_only(status, body, refusal) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    exc = SfApiError(status, body, "POST", "/x")
+    assert lifecycle.is_api_refusal(exc) is refusal
+    assert lifecycle.is_client_error(exc)
+
+
+@pytest.mark.parametrize("obj, level, flag", [
+    ("credit", "line", "UnappliedStatus"),
+    ("credit", "header", "HasBeenUnapplied"),
+    ("payment", "line", "UnappliedStatus"),
+    ("payment", "header", "HasBeenUnapplied"),
+])
+def test_reversal_flag_is_read_from_each_objects_own_field(obj, level, flag, billable_account) -> None:
+    """Each junction carries its own flag (describe on 264); the fake returns
+    only selected fields, so a swapped or unselected flag fails."""
+    org = SettleOrg(level)
+    if obj == "credit":
+        real = org._post_memo
+
+        def post_then_reverse(memo):
+            real(memo)
+            if org.credit_apps:
+                org.credit_apps[0][flag] = "Yes"
+
+        org._post_memo = post_then_reverse
+        spec = SettlementSpec(application_level=level, credit=CreditSpec(amount=20.0))
+        with pytest.raises(lifecycle.SettlementError, match=f"reversed outside the harness.*{flag} Yes"):
+            steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    else:
+        spec = SettlementSpec(application_level=level, payment=PaymentSpec(amount=100.0))
+        ctx = _settle_ctx(org, billable_account, spec)
+        m = steps.run_payment(ctx, _posted_manifest())
+        org.payment_apps[0][flag] = "Yes"
+        m.reached_stage = "credit_applied"
+        with pytest.raises(lifecycle.SettlementError, match=f"reversed outside the harness.*{flag} Yes"):
+            steps.run_payment(ctx, m)

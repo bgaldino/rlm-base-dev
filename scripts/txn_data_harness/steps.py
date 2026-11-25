@@ -632,17 +632,57 @@ def _step_command(ctx: StepContext, manifest: Manifest) -> str:
     return f"`cli step --manifest {manifest.run_id} --to-stage {stage}`"
 
 
+def _client_error(what: str, exc, manifest: Manifest, detail: str):
+    """The ``SettlementError`` for a 4xx: the server created nothing.
+
+    Retryable (420/429, or a retryable ``errorCode``): transient -- a retry
+    sends the same write again, which is safe because nothing exists yet.
+    Otherwise a refusal: deterministic.
+    """
+    codes = ", ".join(lifecycle.api_error_codes(exc.body)) or "no errorCode"
+    if lifecycle.is_retryable_client_error(exc):
+        return SettlementError(
+            what,
+            f"{what} not accepted for now (HTTP {exc.status}, {codes}); nothing was "
+            "created, so a retry sends it again",
+            record_id=manifest.invoice_id,
+            failure_class="transient",
+        )
+    return SettlementError(
+        what,
+        f"{what} refused: {lifecycle.api_error_text(exc.body)}. Nothing was created. "
+        f"{detail}",
+        record_id=manifest.invoice_id,
+    )
+
+
+_REFUSED_AGAIN = (
+    "Rerunning sends the same {what} again and will normally be refused again; to "
+    "change the options, start a new run."
+)
+
+
+def _unknown_outcome(what: str, failure: str, ctx: StepContext, manifest: Manifest, tag: str):
+    return SettlementError(
+        what,
+        f"{what} outcome unknown ({failure}) and nothing with tag '{tag}' appeared yet; it "
+        f"is never sent again. Rerun {_step_command(ctx, manifest)} to keep looking for "
+        f"it; if it never appears, "
+        f"{lifecycle.CANNOT_SETTLE[0].lower()}{lifecycle.CANNOT_SETTLE[1:]}",
+        record_id=manifest.invoice_id,
+    )
+
+
 def _submit_credit_once(ctx: StepContext, manifest: Manifest, body: dict) -> None:
-    """Send the run's one credit POST.
+    """Send the run's one credit POST (the write rule shared with the payment).
 
     The ``NetCreditsApplied`` baseline and ``credit_submitted`` are
     checkpointed before the POST, so a crash or an unknown outcome leaves a
-    manifest that polls by the tag instead of POSTing again. Only a confirmed
-    refusal (HTTP 4xx: nothing was created) clears ``credit_submitted``, and
-    it fails the stage: the options are fixed, so a new run is needed.
-    Anything else -- a 5xx, a transport failure, a 2xx without ``success`` --
-    waits briefly for the memo; if none shows up the stage fails, naming the
-    command that keeps waiting for it.
+    manifest that looks the memo up by its tag instead of POSTing again. Any
+    HTTP 4xx means nothing was created: it clears ``credit_submitted`` and
+    fails the stage (transient when retryable, else a refusal). Anything else
+    -- a 5xx, a transport failure, a 2xx without ``success`` -- waits briefly
+    for the memo; if none shows up the stage fails for good.
     """
     from .auth import SfApiError
 
@@ -653,30 +693,77 @@ def _submit_credit_once(ctx: StepContext, manifest: Manifest, body: dict) -> Non
     try:
         lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
         return
-    except LifecycleError as exc:
-        if not lifecycle.is_api_refusal(exc.__cause__):
-            failure, cause = exc.detail, exc
-        else:
+    except SfApiError as exc:
+        if lifecycle.is_client_error(exc):
             manifest.credit_submitted = False
             _checkpoint(ctx, manifest)
-            raise SettlementError(
-                exc.step,
-                f"{exc.detail}. Nothing was created. The settlement options are fixed "
-                f"once recorded on the manifest. {lifecycle.CANNOT_SETTLE}",
-                record_id=exc.record_id,
+            raise _client_error(
+                "credit", exc, manifest, _REFUSED_AGAIN.format(what="credit")
             ) from exc
-    except SfApiError as exc:
-        failure, cause = f"{type(exc).__name__}, HTTP {exc.status}", exc
+        failure, cause = f"HTTP {exc.status}", exc
+    except LifecycleError as exc:  # a 2xx without success
+        failure, cause = exc.detail, exc
     if _find_memo(ctx, manifest, wait=True) is not None:
         return
-    raise SettlementError(
-        "credit",
-        f"credit POST outcome unknown ({failure}) and no memo appeared yet; it is never "
-        f"sent again. Rerun {_step_command(ctx, manifest)} to keep waiting for its memo "
-        f"(Description '{lifecycle.credit_tag(ctx.run_id)}'); if none ever appears, "
-        f"{lifecycle.CANNOT_SETTLE[0].lower()}{lifecycle.CANNOT_SETTLE[1:]}",
-        record_id=manifest.invoice_id,
+    raise _unknown_outcome(
+        "credit", failure, ctx, manifest, lifecycle.credit_tag(ctx.run_id)
     ) from cause
+
+
+def _find_payment(
+    ctx: StepContext, manifest: Manifest, account_id: str, wait: bool = False
+) -> Optional[str]:
+    deadline = time.monotonic() + min(_CREDIT_LOOKUP_WINDOW, ctx.poll_timeout)
+    while True:
+        payment_id = lifecycle.find_payment(ctx.client, account_id, ctx.run_id)
+        if payment_id is not None or not wait or time.monotonic() >= deadline:
+            return payment_id
+        time.sleep(lifecycle._POLL_INTERVAL)
+
+
+def _insert_payment_once(
+    ctx: StepContext, manifest: Manifest, account_id: str, places: int
+) -> str:
+    """The run's one Payment: found by its tag, else inserted once.
+
+    Same write rule as the credit: ``payment_submitted`` is checkpointed
+    before the insert; any 4xx (nothing was created) clears it; anything else
+    keeps it and the payment is looked up by its ``GatewayRefNumber`` tag
+    (short wait) instead of being inserted again. Two payments under the tag
+    fail (``lifecycle.find_payment``); none ever appearing after an unknown
+    outcome fails too.
+    """
+    from .auth import SfApiError
+
+    payment_id = _find_payment(ctx, manifest, account_id, wait=manifest.payment_submitted)
+    if payment_id is not None:
+        return payment_id
+    tag = lifecycle.payment_tag(ctx.run_id)
+    if manifest.payment_submitted:
+        raise _unknown_outcome("payment", "an earlier insert", ctx, manifest, tag)
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    body = lifecycle.build_payment_record(
+        account_id, manifest.payment_amount, ctx.run_id,
+        currency=header.get("CurrencyIsoCode"), places=places,
+    )
+    manifest.payment_submitted = True
+    _checkpoint(ctx, manifest)
+    try:
+        return lifecycle.create_payment(ctx.client, body)
+    except SfApiError as exc:
+        if lifecycle.is_client_error(exc):
+            manifest.payment_submitted = False
+            _checkpoint(ctx, manifest)
+            raise _client_error(
+                "payment", exc, manifest, _REFUSED_AGAIN.format(what="payment")
+            ) from exc
+        failure, cause = f"HTTP {exc.status}", exc
+    except LifecycleError as exc:  # a 2xx without an id
+        failure, cause = exc.detail, exc
+    payment_id = _find_payment(ctx, manifest, account_id, wait=True)
+    if payment_id is not None:
+        return payment_id
+    raise _unknown_outcome("payment", failure, ctx, manifest, tag) from cause
 
 
 def _check_no_other_credit(manifest: Manifest, header: dict) -> None:
@@ -711,12 +798,13 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     balance, so the memo is fully applied (a memo with an unapplied balance
     would settle the account's next posted invoice).
 
-    What is guaranteed: the credit POST goes out at most once per run.
-    ``credit_submitted`` is checkpointed before it; after that neither a
-    scenario retry nor a ``cli step`` resume POSTs again -- they poll for the
-    memo by the tag. A refused POST, a memo that ends in Error, Canceled or
-    Voided, two memos under the tag, or a ``NetCreditsApplied`` gain the memo
-    does not explain fail the stage for good: start a new run.
+    What is guaranteed: at most one credit memo is created per run.
+    ``credit_submitted`` is checkpointed before the POST; after that neither
+    a scenario retry nor a ``cli step`` resume POSTs again -- they look the
+    memo up by the tag. Only a 4xx (nothing created) clears it, so a rerun
+    after a refusal sends the same credit again. A memo that ends in Error,
+    Canceled or Voided, two memos under the tag, or a ``NetCreditsApplied``
+    gain the memo does not explain fail the stage for good: start a new run.
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.credit is None:
@@ -849,10 +937,10 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     platform. At Line Level the amount is spread over the chosen lines (each
     up to its balance, one apply call per line); at Header Level it is applied
     to the invoice. Whatever the payment holds beyond the open balance
-    (``over``) stays unapplied on the payment. Retry-safe: each write is sent
-    once; the payment is found by its GatewayRefNumber tag, and only the part
-    not yet applied to this invoice (read back from the application records)
-    is applied again.
+    (``over``) stays unapplied on the payment. At most one payment is created
+    per run (:func:`_insert_payment_once`, the credit's write rule); each
+    apply is sent once, and a retry applies only the part not yet applied to
+    this invoice (read back from the application records).
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.payment is None:
@@ -902,19 +990,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         _checkpoint(ctx, manifest)
 
     if not manifest.payment_ids:
-        payment_id = lifecycle.find_payment(ctx.client, account_id, ctx.run_id)
-        if payment_id is None:
-            header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-            payment_id = lifecycle.create_payment(
-                ctx.client,
-                lifecycle.build_payment_record(
-                    account_id,
-                    manifest.payment_amount,
-                    ctx.run_id,
-                    currency=header.get("CurrencyIsoCode"),
-                    places=places,
-                ),
-            )
+        payment_id = _insert_payment_once(ctx, manifest, account_id, places)
         manifest.payment_ids = [payment_id]
         _checkpoint(ctx, manifest)
     payment_id = manifest.payment_ids[0]
@@ -1067,16 +1143,13 @@ def execute_step(name: str, ctx: StepContext, manifest: Manifest) -> Manifest:
     try:
         return spec.handler(ctx, manifest)
     except SfApiError as exc:
-        # A settlement call the API refused for good (a 4xx that is not
-        # 420/429 or a transient body such as UNABLE_TO_LOCK_ROW): never let
-        # the message text (run ids hold digits like "503") make it look
-        # transient. Everything else stays an SfApiError and is classified
-        # by status and body.
-        if not lifecycle.is_api_refusal(exc):
-            raise
+        # Every SfApiError leaving a settlement step is pinned from its
+        # structured fields (status, errorCode), so failure.py's text
+        # matching never classifies it -- run ids hold digits like "503".
         raise SettlementError(
             name,
-            f"{exc.method} {exc.path} refused (HTTP {exc.status}): "
+            f"{exc.method} {exc.path} failed (HTTP {exc.status}): "
             f"{lifecycle.api_error_text(exc.body)}",
             record_id=manifest.invoice_id,
+            failure_class=lifecycle.settlement_failure_class(exc),
         ) from exc

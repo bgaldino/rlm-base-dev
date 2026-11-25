@@ -473,7 +473,7 @@ value (null) means no payment, like leaving the key out.
   `application_level_source`, `settlement_baseline`, `credit_memo_ids`,
   `credit_application_ids`, `credit_submitted`, `credit_baseline`,
   `credit_amount_requested`, `credit_amount_applied`,
-  `payment_ids`, `payment_application_ids`, `payment_amount`,
+  `payment_ids`, `payment_submitted`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
   (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`.
 - **Amounts** are rounded to the invoice currency's
@@ -497,13 +497,17 @@ value (null) means no payment, like leaving the key out.
   with `settlement.application_level` pinned). The recipe is "run to `invoice_posted`, then `cli
   step --to-stage payment_applied --config <file>`"; a run that stopped at
   `credit_applied` recorded no payment and cannot be given one.
-- **One credit per run.** `credit_submitted` and the `NetCreditsApplied`
-  baseline are recorded before the one POST (memo tagged `<run> credit`); a
-  5xx or lost response fails the stage (not retried) and every later resume
-  only polls for the memo by the tag. A 4xx refusal, a memo in `Error`,
-  `Canceled` or `Voided`, two memos under the tag, an application reversed
-  in the org, or a `NetCreditsApplied` gain the memo does not explain fail
-  the stage for good: recovering a failed credit needs a new run.
+- **At most one credit and one payment per run.** `credit_submitted` (with
+  the `NetCreditsApplied` baseline) or `payment_submitted` is recorded
+  before the write (memo tagged `<run> credit`, payment `<run>-PAY`). Any
+  HTTP 4xx created nothing and clears it: a throttle or lock (429, 420,
+  `UNABLE_TO_LOCK_ROW`, ...) is retried; a refusal fails the stage, and
+  rerunning sends the same write again (normally refused again; to change
+  options, start a new run). A 5xx or lost response keeps it: the stage
+  fails, not retried, and every resume looks the record up by its tag. A
+  memo in `Error`, `Canceled` or `Voided`, two records under a tag, an
+  application reversed in the org, or a `NetCreditsApplied` gain the memo
+  does not explain fail for good: this run cannot settle; start a new run.
 
 ## What makes an account / product a valid target
 

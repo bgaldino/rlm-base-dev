@@ -340,11 +340,13 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   --application-level line|header`. Once the payment is planned the level is
   fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
   run with `settlement.application_level` pinned).
-- One credit per run: the POST goes out at most once. A lost response fails
-  the stage (not retried) and a `cli step` resume polls for the memo. A
-  refused credit, a memo in `Error` / `Canceled` / `Voided`, two memos under
-  the run's tag, a reversed application, or a `NetCreditsApplied` mismatch
-  mean the run cannot settle: report it; a new run is the only recovery.
+- At most one credit and one payment are created per run. A lost response
+  fails the stage (not retried) and a `cli step` resume looks the record up
+  by its tag. A refused write created nothing; rerunning sends the same
+  write again and will normally be refused again (new options need a new
+  run). A memo in `Error` / `Canceled` / `Voided`, two records under a tag,
+  a reversed application, or a `NetCreditsApplied` mismatch mean the run
+  cannot settle: report it; a new run is the only recovery.
 - The settlement block is fixed once recorded (when the first settlement
   step starts). A `--config` that differs from it is refused, naming the
   keys: different options need a new run. `payment_applied` refuses a block

@@ -85,10 +85,12 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     `--concurrency 1` (`cli run` refuses otherwise). Amounts round to the
     invoice currency's decimal places; the credit and payment use the
     invoice's account (`cli step` refuses an `--account` with another Id).
-    One credit per run: its POST goes out at most once (`credit_submitted` is
-    recorded first; a lost response fails, not retried). A failed credit, a
-    reversed application or a `NetCreditsApplied` gain other than the run's
-    memo fails the stage; recovering needs a new run.
+    At most one credit and one payment are created per run (the submitted
+    flag is recorded first; any 4xx clears it, a lost response fails and is
+    not retried). A refused write is resent by a rerun and normally refused
+    again; a failed memo, two records under a tag, a reversed application or
+    a `NetCreditsApplied` gain other than the run's memo fail the stage;
+    recovering needs a new run.
     The settlement block is fixed once a settlement step records it; `cli
     step --config` supplies it only to a manifest without one and is refused
     if it differs (new options = a new run). Contract:

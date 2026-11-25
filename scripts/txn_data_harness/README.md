@@ -281,8 +281,8 @@ count.
   anything the platform applied at post. Settlement batches with more than one
   transaction on an account need `--concurrency 1` (`cli run` refuses
   otherwise). `cli step --application-level line|header` sets the level
-  until the payment is planned; the run's one credit POST goes out at most
-  once, and a failed credit needs a new run. The settlement block is
+  until the payment is planned; at most one credit and one payment are
+  created per run, and a failed credit or payment needs a new run. The settlement block is
   fixed once a settlement step records it on the manifest; `cli step
   --config` supplies it only to a manifest without one. Amounts round to the
   invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →

@@ -205,11 +205,11 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   call (`SfRestClient.post(..., retry=False)`; `sf api request rest` does not
   retry POST either): none has an idempotency key, so a transport-level retry
   after a 5xx the server had committed would credit, pay or apply twice.
-  Recovery is by read-back: the payment is found by its `GatewayRefNumber`
-  tag, and a retry applies only what is not yet applied to this invoice. The
-  credit follows the stricter rule below.
-- A 4xx from the credit action or the apply becomes a `LifecycleError` with the
-  API's own messages. An apply `INVALID_FIELD` on `appliedToId` is reported as a
+  At most one credit and one payment are created per run: the credit and
+  the Payment insert follow the write rule below. Each apply is sent once,
+  and a retry applies only what is not yet applied to this invoice (read
+  back from the application records).
+- A refused apply becomes a `SettlementError` with the API's own messages. An apply `INVALID_FIELD` on `appliedToId` is reported as a
   likely wrong application level: the payment is then Processed and unapplied
   (and may be absorbed by the account's next posted invoice). The level cannot
   change once the payment is planned (amount and apply target are fixed
@@ -238,19 +238,28 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `account_id`; an `--account` resolving to another Id, or a manifest whose
   `account_id` differs from the invoice's, is refused before any write, so a
   resume can never find-or-create a second payment under another account.
-- **One credit per run, never re-sent automatically.** The credit memo is
-  tagged `<run> credit` (its `Description`). Just before the one POST the
-  harness checkpoints `credit_submitted` and `credit_baseline` (the invoice's
-  `NetCreditsApplied`). From then on neither a scenario retry nor a `cli
-  step` resume POSTs again: they poll for the memo by the tag. A confirmed
-  refusal (HTTP 4xx: nothing was created) clears `credit_submitted` and fails
-  the stage: the options are fixed, so start a new run. A 2xx without
-  `success: true` (or a body that is not JSON), a 5xx or a transport failure
-  counts as accepted: the step waits up to 15 s for the memo (a convenience,
-  not a safety measure) and otherwise fails naming the `cli step` command
-  that keeps waiting. A memo that ends in `Error`, `Canceled` or `Voided`, or
-  two memos under the tag, fails the stage for good: this run cannot settle;
-  start a new run. Recovering a failed credit needs a new run.
+- **The write rule (credit and payment).** At most one credit memo and one
+  payment are created per run. The memo is tagged `<run> credit` (its
+  `Description`), the payment `<run>-PAY` (`GatewayRefNumber`). Just before
+  the write the harness checkpoints `credit_submitted` (with `credit_baseline`,
+  the invoice's `NetCreditsApplied`) or `payment_submitted`. From then on
+  neither a scenario retry nor a `cli step` resume writes again: they look
+  the record up by its tag.
+  - **Any HTTP 4xx** means nothing was created: the flag is cleared. A
+    retryable 4xx -- status 420/429, or an `errorCode` such as
+    `UNABLE_TO_LOCK_ROW`, `REQUEST_LIMIT_EXCEEDED`, `QUERY_TIMEOUT` -- fails
+    the stage as transient (a retry sends the same write again, which is safe).
+    Any other 4xx is a refusal: deterministic. Rerunning sends the same write
+    again and will normally be refused again; to change the options, start a
+    new run.
+  - **Anything else** -- a 5xx, a transport failure, a 2xx without `success`
+    (or a body that is not JSON) -- keeps the flag: the step waits up to 15 s
+    for the record (a convenience, not a safety measure) and otherwise fails
+    for good, naming the `cli step` command that keeps looking.
+  - A memo that ends in `Error`, `Canceled` or `Voided`, two memos under the
+    credit tag, or two payments under the payment tag (the stray's id is
+    named so it can be canceled) fail the stage for good: this run cannot
+    settle; start a new run.
 - **Double-credit check.** After the credit stage the invoice's
   `NetCreditsApplied` gain since `credit_baseline` must equal what the run's
   memo applied; any difference (another credit, a reversal) fails the stage
@@ -270,18 +279,19 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   resolves to the manifest's `account_id`. The check runs before the
   "already reached" check, so a differing `--config` is never ignored; a
   manifest that reached its target never reruns a stage.
-- **Settlement failures are classified by cause, not by text.** Every
-  settlement error is a `SettlementError`, pinned `deterministic` (its text
-  holds run and record ids whose digits, `...T150342Z` holds "503", would
-  match the transient patterns), and a raw 4xx `SfApiError` from a settlement
-  query or write is wrapped into one at the step boundary -- except 420/429
-  and 4xx bodies `failure.py` reads as transient (`UNABLE_TO_LOCK_ROW`,
-  `QUERY_TIMEOUT`, `REQUEST_LIMIT_EXCEEDED`, ...), which are not refusals
-  (`lifecycle.is_api_refusal` uses failure.py's own lists). Also transient: a
-  5xx / transport `SfApiError`, and an application level that could not be
-  read because the BillingSettings read failed in a way that may clear (5xx,
-  420/429, network, CLI retrieve failure or timeout) with no invoice
-  evidence. A refused read is deterministic: a 4xx, or a SOAP fault whose
+- **Settlement failures are classified from structured fields only.** Every
+  settlement error is a `SettlementError` with a pinned class, so
+  `failure.py`'s text matching never sees one (run and record ids hold digits:
+  `...T150342Z` holds "503"; an amount may read "1503.50"). Every
+  `SfApiError` leaving a settlement step is wrapped at the step boundary and
+  classed from its HTTP status and the body's `errorCode` fields
+  (`lifecycle.settlement_failure_class`): a retryable 4xx (above) and a 5xx
+  or `-1` (timeout, exhausted retries) are transient; a refusal, and a CLI
+  failure with no HTTP status (expired auth), are deterministic. An
+  application level that could not be read is transient when the
+  BillingSettings read failed in a way that may clear (5xx, 420/429,
+  network, CLI retrieve failure or timeout) and no invoice evidence exists.
+  A refused read is deterministic: a 4xx, or a SOAP fault whose
   `faultcode` is `INVALID_SESSION_ID`, `INSUFFICIENT_ACCESS`, `INVALID_TYPE`
   (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Both level
   errors name `cli step --application-level line|header`. A successful `cli

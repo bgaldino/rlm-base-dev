@@ -275,19 +275,23 @@ def _resolve_step_account(client: SfRestClient, args: argparse.Namespace, manife
 
     The manifest's ``account_id`` is used when it has one (looked up by Id, so
     a rename or a duplicate name cannot redirect a resume). ``--account``
-    must then resolve to that same Id; a different account is refused before
-    anything is written.
+    must then name that account: names are not unique, so it is accepted when
+    the manifest's Id is among the accounts with that name; otherwise it is
+    refused before anything is written.
     """
-    if args.account:
-        account = resolve_account(client, args.account)
-        if manifest.account_id and account.id != manifest.account_id:
+    from .discovery import account_ids_named
+
+    if args.account and manifest.account_id:
+        ids = account_ids_named(client, args.account)
+        if manifest.account_id not in ids:
             raise LifecycleError(
                 "step",
-                f"--account '{args.account}' resolves to {account.id}, but manifest "
-                f"{manifest.run_id} belongs to account {manifest.account_id} "
+                f"--account '{args.account}' resolves to {', '.join(ids) or 'no account'}, "
+                f"but manifest {manifest.run_id} belongs to account {manifest.account_id} "
                 f"('{manifest.account_name}'); omit --account to use the manifest's",
             )
-        return account
+    elif args.account:
+        return resolve_account(client, args.account)
     if manifest.account_id:
         return resolve_account(
             client, manifest.account_name or manifest.account_id,

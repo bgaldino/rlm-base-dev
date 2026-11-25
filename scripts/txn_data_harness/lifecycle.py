@@ -1226,26 +1226,79 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
         return level, source
 
 
-def is_api_refusal(exc: BaseException) -> bool:
-    """True when ``exc`` is the API refusing the request for good (HTTP 4xx).
+# 4xx answers that clear on a retry: by HTTP status, or by the errorCode in
+# the JSON body. Structured fields only -- never the raw body or message text.
+_RETRYABLE_CLIENT_STATUS = frozenset({420, 429})
+_RETRYABLE_ERROR_CODES = frozenset({
+    "UNABLE_TO_LOCK_ROW", "REQUEST_LIMIT_EXCEEDED", "QUERY_TIMEOUT",
+    "TOO_MANY_CONCURRENT_REQUESTS",
+})
 
-    Both transports carry the HTTP status on ``SfApiError.status`` (the cli
-    transport reads it from ``sf api request rest --include``). Not refusals:
-    a 5xx, a transport failure or a CLI failure that never reached the API
-    (the outcome of a write is then unknown), and a 4xx that clears on retry
-    -- 420/429, or a body ``failure.classify_signature`` reads as transient
-    (``UNABLE_TO_LOCK_ROW``, ``QUERY_TIMEOUT``, ``REQUEST_LIMIT_EXCEEDED``...).
-    One source of truth: failure.py's own lists.
+
+def api_error_codes(body: str) -> list[str]:
+    """The ``errorCode`` fields of a Connect/REST error body (both shapes)."""
+    import json as _json
+
+    try:
+        data = _json.loads(body or "")
+    except (TypeError, ValueError):
+        return []
+    errors: list = []
+    if isinstance(data, list):
+        errors = data
+    elif isinstance(data, dict):
+        errors = [data]
+        out = data.get("output") or {}
+        if isinstance(out, dict):
+            errors += out.get("errors") or []
+            for ref in out.get("referenceLineErrorResults") or []:
+                errors += (ref or {}).get("errors") or []
+    return [e["errorCode"] for e in errors if isinstance(e, dict) and e.get("errorCode")]
+
+
+def is_client_error(exc: BaseException) -> bool:
+    """HTTP 4xx: the server created nothing (a refusal or a throttle)."""
+    from .auth import SfApiError
+
+    return isinstance(exc, SfApiError) and 400 <= exc.status < 500
+
+
+def is_retryable_client_error(exc: BaseException) -> bool:
+    """A 4xx that clears on a retry: 420/429, or a retryable ``errorCode``."""
+    return is_client_error(exc) and (
+        exc.status in _RETRYABLE_CLIENT_STATUS
+        or any(c in _RETRYABLE_ERROR_CODES for c in api_error_codes(exc.body))
+    )
+
+
+def is_api_refusal(exc: BaseException) -> bool:
+    """A 4xx the API will answer the same way again (not retryable).
+
+    Classified from the HTTP status and the body's ``errorCode`` fields only
+    (:func:`is_retryable_client_error`); a 5xx, a transport failure or a CLI
+    failure that never reached the API is not a refusal.
+    """
+    return is_client_error(exc) and not is_retryable_client_error(exc)
+
+
+def settlement_failure_class(exc: BaseException) -> str:
+    """Retry class of an ``SfApiError`` leaving a settlement step.
+
+    4xx: transient when retryable (nothing was created, so a retry re-sends
+    safely), else deterministic. 5xx and ``-1`` (timeout, exhausted retries,
+    a CLI retrieve that failed): transient. Any other status is a CLI exit
+    code from a call that never reached the API (expired auth, CLI error):
+    deterministic.
     """
     from .auth import SfApiError
-    from .failure import _TRANSIENT_STATUS, classify_signature
 
-    return (
-        isinstance(exc, SfApiError)
-        and 400 <= exc.status < 500
-        and exc.status not in _TRANSIENT_STATUS
-        and classify_signature(exc.body or "") != "transient"
-    )
+    if not isinstance(exc, SfApiError):
+        return "deterministic"
+    if is_client_error(exc):
+        return "transient" if is_retryable_client_error(exc) else "deterministic"
+    if exc.status >= 500 or exc.status == -1:
+        return "transient"
+    return "deterministic"
 
 
 def is_missing_column(exc: BaseException, name: str) -> bool:
@@ -1614,27 +1667,15 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
     """POST the credit action once. Async: success + requestIdentifier, empty statusURL.
 
     Sent without transport retries: the action has no idempotency key, so a
-    5xx after the server committed would credit twice. A refusal (HTTP 4xx,
-    on either transport -- see :func:`is_api_refusal`) becomes a
-    ``LifecycleError`` with the API's message; a 5xx or transport failure
-    propagates as ``SfApiError`` and the caller looks for the memo before
-    trying again.
+    5xx after the server committed would credit twice. Any ``SfApiError``
+    propagates; the caller classifies it (a 4xx created nothing).
     """
-    from .auth import SfApiError
-
-    try:
-        result = client.post(
-            f"/services/data/v{client.api_version}/commerce/invoicing/invoices/"
-            f"{invoice_id}/actions/credit",
-            body,
-            retry=False,
-        )
-    except SfApiError as exc:
-        if is_api_refusal(exc):
-            raise SettlementError(
-                "credit", f"credit refused: {api_error_text(exc.body)}", record_id=invoice_id
-            ) from exc
-        raise
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/"
+        f"{invoice_id}/actions/credit",
+        body,
+        retry=False,
+    )
     if not isinstance(result, dict) or not result.get("success"):
         # A 2xx is never a refusal: the action may have been accepted. The
         # caller keeps credit_submitted and looks for the memo by its tag.
@@ -1745,18 +1786,30 @@ def build_payment_record(
 
 
 def find_payment(client: SfRestClient, account_id: str, run_id: str) -> Optional[str]:
+    """This run's payment (``GatewayRefNumber`` tag), or ``None``.
+
+    A run creates one payment; two under the tag fail, naming the later
+    one(s) so the operator can cancel them.
+    """
     rows = client.query(
         f"SELECT Id FROM Payment WHERE AccountId = '{account_id}' "
-        f"AND GatewayRefNumber = '{payment_tag(run_id)}' ORDER BY CreatedDate LIMIT 1"
+        f"AND GatewayRefNumber = '{payment_tag(run_id)}' ORDER BY CreatedDate"
     )
+    if len(rows) > 1:
+        stray = ", ".join(r["Id"] for r in rows[1:])
+        raise SettlementError(
+            "payment",
+            f"{len(rows)} payments carry this run's tag '{payment_tag(run_id)}' "
+            f"(first {rows[0]['Id']}; stray {stray}: cancel it in the org). {CANNOT_SETTLE}",
+        )
     return rows[0]["Id"] if rows else None
 
 
 def create_payment(client: SfRestClient, body: dict) -> str:
-    """Create the Payment record once (no transport retry).
+    """Insert the Payment record once (no transport retry).
 
-    A 5xx after the insert committed would otherwise create a second payment;
-    the caller finds an earlier one by its ``GatewayRefNumber`` tag instead.
+    Any ``SfApiError`` propagates; the caller classifies it. A 2xx without
+    an id raises ``SettlementError`` (outcome unknown).
     """
     result = client.post(_sobject_path(client, "Payment"), body, retry=False)
     if not isinstance(result, dict) or not result.get("success") or not result.get("id"):

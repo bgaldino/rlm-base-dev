@@ -348,10 +348,11 @@ Line Level is live-verified on 264; everything below is not.
   - `[probe]` Ingest a JPY invoice and settle it with percent credit and
     payment; confirm the credit and apply actions accept whole-yen amounts and
     the memo carries no fractional tax under `Calculate`.
-- `[gap]` **Recovering a failed credit needs a new run.** One credit per
-  run: a refused credit, a memo in `Error`/`Canceled`/`Voided`, or two memos
-  under the run's tag fail the stage for good. The unknown-outcome path and
-  the `NetCreditsApplied` check are covered offline only.
+- `[gap]` **Recovering a failed credit needs a new run.** At most one
+  credit and one payment per run: a memo in `Error`/`Canceled`/`Voided`, or
+  two records under a tag, fail the stage for good; a refused write is resent
+  by a rerun and normally refused again. The unknown-outcome paths and the
+  `NetCreditsApplied` check are covered offline only.
 - `[gap]` **Reversals are not modeled.** Unapply and void were not measured;
   an `Unapplied` row or an unapplied flag on this run's applications fails
   the stage (field names from describe on 264).
