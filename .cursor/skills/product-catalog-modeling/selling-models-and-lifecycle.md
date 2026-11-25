@@ -58,10 +58,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   [Measured: 2026-11-10, 264, existing org]
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
-  were not the ones inserted. A static bundle with two mismatched pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry] (see
-  [Measured component rules](#measured-component-selling-model-rules)).
-  [Open: order, invoice and renew a static bundle with a mismatched pair]
-  [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)]
+  were not the ones inserted. The 2026-11-24 static test bundle (Evergreen Monthly root; One-Time and Term Annual children) priced, each child at 0 inside the bundle price, and its Place and `configure` calls returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see [Measured component rules](#measured-component-selling-model-rules)). [Open: place the 2026-11-24 static test bundle's children with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry] [Open: order, invoice and renew the 2026-11-24 static test bundle; record each child's order line, invoice lines and renewal line] [Open: repeat the 2026-11-24 Place and `configure` calls, with the inputs recorded for the 2026-11-24 static test bundle, on a configurable bundle with the same root and children, each child a default component in one group]
   Whether `CERT007`'s matched Term Annual pairs price, order and renew correctly is **Open —
   needs live verification**; do not copy the pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
@@ -69,7 +66,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
   See [Selling model of the bundle root](#selling-model-of-the-bundle-root).
 
-Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). Two runs drew no message. A Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. A static bundle with an Evergreen root and One Time and Term Annual children, placed with `configurationMethod: Force` and `validateProductCatalog`, `executeConfigurationRules` and `addDefaultConfiguration` true, got an empty `errorResponse` from Place and no message from a `configure` call sent with `validateProductCatalog: true`, and no `RevenueTransactionErrorLog` row was written ([below](#measured-component-selling-model-rules)) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established. [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)] Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
+Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). Two runs drew no message. A Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. For the 2026-11-24 static test bundle ([below](#measured-component-selling-model-rules)), Place returned an empty `errorResponse`, a `configure` call returned no message, and no `RevenueTransactionErrorLog` row was written [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established. [Open: repeat the 2026-11-24 Place and `configure` calls, with the inputs recorded for the 2026-11-24 static test bundle, on a configurable bundle with the same root and children, each child a default component in one group] Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
 
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
@@ -110,23 +107,30 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   Monthly on one child product per parent [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A
   row with both models blank was also accepted. Being accepted on insert does not show that a
   mismatched pair is valid.
-- **A static bundle with two mismatched pairs priced, and a `configure` call returned success with no message.** A separate active static
-  bundle (Evergreen Monthly), built for this check rather than reused from the insert tests,
-  with two rows, Evergreen parent with a One Time child and Evergreen parent
-  with a Term Annual child (each child's only option), was placed on a test quote with only the
-  bundle line (Place Sales Transaction, `configurationMethod: Force` with `validateProductCatalog`,
-  `executeConfigurationRules` and `addDefaultConfiguration` true,
-  `pricingPref: System`; the Evergreen root line needed a `BillingFrequency`). Place returned `isSuccess: true` with an empty `errorResponse`
-  and added both children, each on the child selling model of its row (the Term Annual line got
-  a one-year term and billing frequency Annual), each linked to the root by a
+- **The 2026-11-24 static test bundle priced, and its `configure` call returned success with no
+  message.** The 2026-11-24 static test bundle: Evergreen Monthly root; one child whose only
+  option is One-Time and one whose only option is Term Annual; component rows set to those models
+  (parent model Evergreen Monthly on both rows). It was active and built for this check, not
+  reused from the insert tests. Inputs: Place Sales Transaction on a new quote with only the root
+  line (quantity 1, `BillingFrequency` Monthly, which the Evergreen root line needed),
+  `pricingPref: System`, `taxPref: Skip`, `configurationMethod: Force`, and configuration options
+  `validateProductCatalog`, `validateAmendRenewCancel`, `executeConfigurationRules` and
+  `addDefaultConfiguration` all true; then a `configure` call on the root line with
+  `validateProductCatalog`, `validateAmendRenewCancel`, `executeConfigurationRules`,
+  `addDefaultConfiguration`, `executePricing`, `returnProductCatalogData` and
+  `qualifyAllProductsInTransaction` all true. Place returned `isSuccess: true` with an empty
+  `errorResponse` and added both children, each on the child selling model of its row (the Term
+  Annual line got a one-year term and billing frequency Annual), each linked to the root by a
   `QuoteLineRelationship` with pricing `IncludedInBundlePrice`. The quote priced
   (`CompletedWithPricing`) with the root at its price book entry and each child at 0; both
   component rows, inserted without `DoesBundlePriceIncludeChild`, stored that field as true (and
-  `IsQuantityEditable` as false). A configurator `configure` call on the root line, with `validateProductCatalog`,
-  `executeConfigurationRules` and `executePricing` true, returned `success: true`, `solverStatus: "success"`, no messages
-  and a null `ValidationResult` on every line; no `RevenueTransactionErrorLog` row was written.
-  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry]
-  [Open: order, invoice and renew a static bundle with a mismatched pair] [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)]
+  `IsQuantityEditable` as false). The `configure` call returned `success: true`,
+  `solverStatus: "success"`, no messages and a null `ValidationResult` on every line; no
+  `RevenueTransactionErrorLog` row was written.
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]
+  [Open: place the 2026-11-24 static test bundle's children with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry]
+  [Open: order, invoice and renew the 2026-11-24 static test bundle; record each child's order line, invoice lines and renewal line]
+  [Open: repeat the 2026-11-24 Place and `configure` calls, with the inputs recorded for the 2026-11-24 static test bundle, on a configurable bundle with the same root and children, each child a default component in one group]
 - **Several rows for one parent and child pair are allowed** (each with a different model pair;
   identical rows not tried). Four such rows coexisted [Measured: 2026-11-10, 264, existing org]; on 2026-11-24, four rows for one
   child under each static parent (Evergreen Monthly with One-Time, Term Annual or Evergreen

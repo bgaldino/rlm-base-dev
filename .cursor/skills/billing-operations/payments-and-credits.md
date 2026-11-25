@@ -42,10 +42,7 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   `ReferenceEntityId` set to one of those invoices was refused (error
   `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
   is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: turn the setting on in a fresh org with no post_billing deploy and read the Default Payment Schedule Treatment's Grouping Source] [Open: post two invoices under
-  Grouping Source Invoice and count the schedules; post two invoices with different due dates
-  under a non-blank Due Date Window; record the currency and payment method of grouped invoices;
-  cancel the automatic Draft schedule, then create one referencing an invoice]
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: turn the setting on in a fresh org with no post_billing deploy and read the Default Payment Schedule Treatment's Grouping Source] [Open: post two invoices under Grouping Source Invoice and count the schedules] [Open: post two invoices whose due dates are N days apart, once under a Due Date Window ≥ N and once under one < N, and count the schedules] [Open: record the currency and payment method of grouped invoices] [Open: cancel the automatic Draft schedule, then create one referencing an invoice]
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
