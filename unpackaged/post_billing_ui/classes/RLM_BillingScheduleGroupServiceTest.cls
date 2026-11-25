@@ -6,15 +6,13 @@
  * (mockActionOutputs) plus direct coverage of the pure payload-build and result-parse
  * helpers, so the real invoke and its failed-result handling stay uncovered.
  * Validation guards are covered by asserting AuraHandledException on bad input.
- * The System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
- * Billing permission set license seat.
+ * The System.runAs tests create their users through RLM_BillingUITestUsers, which takes a
+ * Billing permission set license seat; createWithBillingAccess adds a permission set with only
+ * the object and field grants a test names, so a refused read can be exercised.
  * The other tests run as the deploying admin and read Account, BillingAccount,
  * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE. On a
  * Release 264 org the System Administrator profile's ObjectPermissions grant read on all six
- * (read from the org, not from a test run). Only the two junction tests were run with
- * RLM_BillingUI unassigned from the admin, and both passed: the create test reads
- * BillingAccount and AccountBillingAccount, and the getAccountBillingInfo test reads Account
- * and BillingAccount (only its setup inserts the junction row).
+ * (read from the org, not from a test run).
  *
  * Payload (the create path sends what the modal chose): the legal entity (LegalEntityId__std), the
  * billing term when one is given (BillingTerm__std), the billing treatment that carries the chosen
@@ -1346,8 +1344,46 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
         Test.stopTest();
 
-        Assert.isNotNull(thrown, 'An unreadable page account is refused.');
+        Assert.isNotNull(thrown, 'A page account that is not found is refused.');
         Assert.areEqual('The account you opened this from was not found or is not visible to you.', thrown.getMessage());
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // A user with BillingAccount but no Account read, with a linked page account: create is refused with a
+    // handled message, not a raw QueryException. The refusal comes at the billing account read (it selects
+    // AccountId), before the page-account read, so the page-account catch is defensive (measured here).
+    @isTest
+    static void createViaAPI_noAccountRead_isRefusedAtTheBillingAccount() {
+        Account own = new Account(Name = 'BSG Own Page Read Refused');
+        Account page = new Account(Name = 'BSG Page Read Refused');
+        insert new List<Account>{ own, page };
+        BillingAccount ba = new BillingAccount(Name = 'BSG Page Read Refused BA', AccountId = own.Id);
+        insert ba;
+        insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'BillingAccount' },
+            new List<String>());
+        CreateArgs args = new CreateArgs(ba.Id);
+        args.pageAccountId = page.Id;
+
+        AuraHandledException thrown;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
+                'PRECONDITION: the user cannot read Account.');
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'No Account read refuses create.');
+        Assert.isTrue(thrown.getMessage().contains('read the billing account this screen needs'),
+            'It names the billing account read: ' + thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
@@ -1601,6 +1637,8 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(cutOff, 'A mixed choice from a cut-off read is not taken for a one-time charge.');
         Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items,'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('Advance-only treatment, which a one-time charge prefers'),
+            'T1 was kept and chosen, then refused as not Advance-only: ' + cutOff.getMessage());
     }
 
     // The cut-off message also says a mixed treatment was skipped when one was read whole. Cap 2 over T1
@@ -1818,7 +1856,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // A treatment with items in both timings that is the only fit: the refusal names it (quoted), and a
     // one-time charge falls back to it. A fresh legal entity keeps it apart from the other test's records.
-    // The two-item setup (Percentage then Remainder) is the usual valid pattern but unmeasured here.
+    // The two-item setup (Percentage then Remainder) activates on 264 (measured by this test, 2026-11-26).
     @isTest
     static void findBillingTreatmentId_onlyAMixedTreatment_isRefusedByNameAndUsedForOneTime() {
         LegalEntity le = new LegalEntity(Name = 'BSG TQM LE', Status = 'Active');

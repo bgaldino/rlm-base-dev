@@ -19,10 +19,11 @@ Use this skill when a commercial source says how customers are billed ("annually
 advance", "services in milestones", "Net 45") and you have to turn that into Revenue Cloud
 records and line values. It covers the decisions and the line rules the platform enforces.
 The objects themselves are in `revenue-cloud-data-model` → `domains/billing.md`. Claims are
-tagged `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]` and `[Measured: Mn]`.
-Each `Mn` is a row in [measured-264.md](measured-264.md), measured on 264 between 2026-11-10 and 2026-11-18;
-read the row's scope before generalising it.
-What happens after setup (invoice runs, tax, payments, credits, ledger) is in
+tagged `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]`, `[Measured: Mn]` and
+`[Measured: <date>, <release>, <scope>]`. Each `Mn` is a row in
+[measured-264.md](measured-264.md), measured on 264 between 2026-11-10 and 2026-11-18; a
+dated tag is a later measurement, scoped as it says. Read the scope before generalising
+either. What happens after setup (invoice runs, tax, payments, credits, ledger) is in
 [billing-operations](../billing-operations/SKILL.md).
 
 ## Quick Rules
@@ -191,11 +192,11 @@ part; the asynchronous path wasn't traced), so read the response rather than the
 ## Billing policies and treatments
 
 A **billing policy** is assigned to products (`Product2.BillingPolicyId`) and groups
-**billing treatments**. Help describes a non-milestone treatment with one **treatment item**,
-which holds the Billing Type (Advance, Arrears, None)
-[Help: `ind.billing_policies_and_treatments_create`]; the platform also accepts several items on
-one: a Percentage item and a Remainder item activate together (in `RLM_BillingScheduleGroupServiceTest`)
-[Measured: 2026-11-26, 264, scratch].
+**billing treatments**. Help describes a non-milestone treatment with one **treatment
+item**, which holds the Billing Type (Advance, Arrears, None) [Help:
+`ind.billing_policies_and_treatments_create`]; the platform also accepts several items on
+one: a Percentage item and a Remainder item activate together (in
+`RLM_BillingScheduleGroupServiceTest`) [Measured: 2026-11-26, 264, scratch].
 
 How an order product gets its treatment, when it doesn't have one
 already [Help: `ind.billing_treatment_resolution`]:
@@ -212,26 +213,29 @@ rewrites `Status` to Draft fails on a rerun once the records are Active (M12). U
 with `skipExistingRecords`, then activate only records not yet Active; `qb-billing` and the
 `activate_billing_records` Apex task show the pattern.
 
-The Billing UI's Create Billing Schedule Group modal picks its treatment from this model: the
-active, non-milestone, billable treatments of the chosen legal entity in the charge's currency,
-oldest first, counting only their active items typed Advance or Arrears (a None-type item is
-ignored; several items of one timing are fine). A recurring charge takes the first treatment
-whose items all bill in the chosen timing; one with items in both timings is ambiguous and
-skipped (when it is the only match, the refusal says it has items in both timings and must be
-split). A one-time charge offers no timing (one sent is ignored), so ambiguity does not apply, but a
-treatment is still sent [Measured: 2026-11-26, 264, scratch: with no treatment sent the platform
-picked a treatment of the legal entity whatever the currency, a JPY one for a EUR charge]: the
-first Advance-only treatment, else the first Arrears-only one, else (last, since what the
-platform bills for it on a one-time charge is unmeasured) the first with both timings.
-A legal entity with no such treatment, including one whose treatments are all in another
-currency, is refused before the action with a message naming the currency and entity (and the
-timing, for a recurring charge); a charge currency that is not an active `CurrencyType` of the
-org is refused first, before any treatment lookup. The read filters on the charge currency and
-is capped at 1000 items, oldest first; a read that runs past the cap drops the last treatment
-when it may be cut short, and if nothing then fits the refusal says the lookup was cut off
-rather than that no treatment exists (a one-time charge also refuses a cut-off read whose
-choice is not Advance-only, since an Advance-only treatment may lie past the cap). Sharing
-cannot hide a treatment (public organization-wide default on 264), so "none" means none exists.
+The Billing UI's Create Billing Schedule Group modal picks its treatment from this model
+[Repo: `unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`]; it
+considers the active, non-milestone, billable treatments of the chosen legal entity in the
+charge's currency, oldest first, counting only their active items typed Advance or Arrears
+(a None-type item is ignored; several items of one timing are fine). A recurring charge
+takes the first treatment whose items all bill in the chosen timing; one with items in both
+timings is ambiguous and skipped (when it is the only match, the refusal says it has items
+in both timings and must be split). A one-time charge offers no timing (one sent is
+ignored), so ambiguity does not apply, but a treatment is still sent [Measured: 2026-11-26,
+264, scratch: with no treatment sent the platform picked a treatment of the legal entity
+whatever the currency, a JPY one for a EUR charge]: the first Advance-only treatment, else
+the first Arrears-only one, else (last, since what the platform bills for it on a one-time
+charge is unmeasured) the first with both timings. A legal entity with no such treatment,
+including one whose treatments are all in another currency, is refused before the action
+with a message naming the currency and entity (and the timing, for a recurring charge); a
+charge currency that is not an active `CurrencyType` of the org is refused first, before any
+treatment lookup. The read filters on the charge currency and is capped at 1000 items,
+oldest first; a read that runs past the cap drops the last treatment when it may be cut
+short, and if nothing then fits the refusal says the lookup was cut off rather than that no
+treatment exists (a one-time charge also refuses a cut-off read whose choice is not
+Advance-only, since an Advance-only treatment may lie past the cap). Sharing cannot hide a
+treatment (its organization-wide default is public read/write, its items controlled by it
+[Measured: 2026-11-26, 264, scratch]), so "none" means none exists.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give

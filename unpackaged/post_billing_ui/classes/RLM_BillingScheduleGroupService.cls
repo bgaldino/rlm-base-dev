@@ -23,19 +23,19 @@
  *
  * The account: the modal passes the id of the account page it opened on (pageAccountId). When that
  * account is the billing account's own, or is linked to it through AccountBillingAccount, it is the
- * account sent (AccountId__std) and read for the shipping city; otherwise the billing account's own
- * account is used, else its oldest link (create refuses when it has neither). When the page account
- * differs from the billing account's own it must be readable by the user (an Account read in
- * USER_MODE) and linked to the billing account; if it is not found, not readable, or not linked
- * (the link was deleted, or the cached getAccountBillingInfo is stale), or the link read is
- * refused, create refuses rather than fall back to the owner, since the city the modal submitted
- * came from the page account. getAccountBillingInfo returns the billing city of the requested
- * account, which is the account create sends, so the city the modal submits matches it. It reads
- * BillingCity in the same query as the account (covered by the compound BillingAddress grant
- * RLM_BillingUI holds), not after a billing account is resolved: one read, one refusal message. No
- * billing treatment read can be hidden by sharing: BillingTreatment's organization-wide default is
- * public (measured on a 264 org; BillingTreatmentItem is controlled by its parent), so "no
- * treatment" means none exists, not that sharing hid one.
+ * account sent (AccountId__std) and read for the shipping city; with no page account, the billing
+ * account's own account is used, else its oldest link (create refuses when it has neither). When
+ * the page account differs from the billing account's own it must be readable by the user (an
+ * Account read in USER_MODE) and linked to the billing account; if it is not found, not readable,
+ * or not linked (the link was deleted, or the cached getAccountBillingInfo is stale), or the link
+ * read is refused, create refuses rather than fall back to the owner, since the city the modal
+ * submitted came from the page account. getAccountBillingInfo returns the billing city of the
+ * requested account, which is the account create sends, so the city the modal submits matches it.
+ * It reads BillingCity in the same query as the account (covered by the compound BillingAddress
+ * grant RLM_BillingUI holds), not after a billing account is resolved: one read, one refusal
+ * message. No billing treatment read can be hidden by sharing: BillingTreatment's organization-wide
+ * default is public (measured on a 264 org; BillingTreatmentItem is controlled by its parent), so
+ * "no treatment" means none exists, not that sharing hid one.
  *
  * Treatment selection (one wording; chooseTreatment implements it). Candidates are the oldest-first
  * active, non-milestone, billable treatments of the legal entity, in the charge's currency,
@@ -290,7 +290,6 @@ public with sharing class RLM_BillingScheduleGroupService {
                 return billingAccountUnreadable(acc.Name);
             }
             if (!links.isEmpty()) {
-                // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
                 try {
                     billingAccounts = [
                         SELECT Id, Name
@@ -476,6 +475,8 @@ public with sharing class RLM_BillingScheduleGroupService {
             try {
                 pageAccounts = [SELECT Id FROM Account WHERE Id = :pageAccountId WITH USER_MODE LIMIT 1];
             } catch (QueryException qe) {
+                // Defensive: without Account read the billing account read above (it selects AccountId) is
+                // refused first (createViaAPI_noAccountRead_isRefusedAtTheBillingAccount).
                 throw readRefused('the account', qe);
             }
             if (pageAccounts.isEmpty()) {
