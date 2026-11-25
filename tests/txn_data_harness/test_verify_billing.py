@@ -27,6 +27,7 @@ from scripts.txn_data_harness.verify import (
     _check_ids,
     fetch_billing_records,
     ids_from_manifest,
+    render_text,
     run_checks,
     split_ids,
 )
@@ -768,6 +769,7 @@ def test_credit_rows_alone_are_evidence_of_the_wrong_level():
             "Id": "0c0000000000099AAA", "InvoiceId": "3tt000000000002AAA",
             "CreditMemoId": "50g000000000099AAA", "Amount": 0, "Type": "Applied",
             "HasBeenUnapplied": "No"})
+        data["CreditMemo"].append({"Id": "50g000000000099AAA", "Status": "Posted"})
     report = _line(level="line", mutate=mutate)
     result = next(r for r in report["checks"] if r["check"] == "application_level"
                   and r["subject"] == "3tt000000000002AAA")
@@ -850,8 +852,9 @@ def test_canceled_payment_with_rows_makes_its_invoice_unmeasured():
     for check in ("invoice_balance", "invoice_line_balance"):
         result = results[(check, "3tt000000000001AAA")]
         assert result["status"] == "skip", check
-        assert result["detail"].startswith("linked payment 0aQ000000000001EAA: Status "
-                                           "Canceled with 1 application row(s)"), check
+        assert result["detail"].startswith(
+            "linked payment 0aQ000000000001EAA; origin payment 0aQ000000000001EAA: "
+            "Status Canceled with 1 application row(s)"), check
 
 
 def test_payment_on_a_header_settled_invoice_is_unmeasured():
@@ -860,8 +863,9 @@ def test_payment_on_a_header_settled_invoice_is_unmeasured():
     result = next(r for r in report["checks"] if r["check"] == "payment_balance"
                   and r["subject"] == "0aQ000000000001EAA")
     assert result["status"] == "skip"
-    assert result["detail"].startswith("linked invoice 3tt000000000001AAA: this invoice's "
-                                       "own evidence includes header level")
+    assert result["detail"].startswith(
+        "linked invoice 3tt000000000001AAA; origin invoice 3tt000000000001AAA: this "
+        "invoice's own evidence includes header level")
 
 
 def test_clean_line_level_invoice_and_its_processed_payment_are_checked():
@@ -891,6 +895,125 @@ def test_processed_payment_without_rows_is_unmeasured():
     report = _verify(data, ["3tt000000000002AAA"], ["0aQ000000000002EAA"])
     result = next(r for r in report["checks"] if r["check"] == "payment_balance")
     assert result["status"] == "skip" and "Status Processed with 0" in result["detail"]
+
+
+def _chain(invoices: dict, payments: dict, memos: dict = None) -> dict:
+    """A consistent line-level set. ``invoices``: name -> Status; ``payments``: name ->
+    invoice names it pays (10 each); ``memos``: name -> (Status, invoice names, 5 each).
+    Returns records keyed like a fetch, plus "ids": name -> 18-character id."""
+    from scripts.txn_data_harness.verify import _id18
+    memos = memos or {}
+    ids = {name: _id18(f"3tt0000000{i:05d}") for i, name in enumerate(invoices)}
+    ids.update({name: _id18(f"0aQ0000000{i:05d}") for i, name in enumerate(payments)})
+    ids.update({name: _id18(f"50g0000000{i:05d}") for i, name in enumerate(memos)})
+    blank_inv = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS)
+    blank_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)
+    data = {k: [] for k in ("Invoice", "InvoiceLine", "Payment", "PaymentLineInvoiceLine",
+                            "CreditMemoLineInvoiceLine", "PaymentLineInvoice",
+                            "CreditMemoInvApplication", "CreditMemoLine", "CreditMemo")}
+    paid = {name: 10 * sum(name in targets for targets in payments.values())
+            for name in invoices}
+    credited = {name: 5 * sum(name in targets for _, targets in memos.values())
+                for name in invoices}
+    for name, status in invoices.items():
+        balance = 100 - paid[name] - credited[name]
+        line = {"NetCreditsApplied": credited[name], "NetPaymentsApplied": paid[name],
+                "Balance": balance}
+        data["Invoice"].append({"Id": ids[name], "Status": status,
+                                "SettlementLevel": "InvoiceLine", "TotalAmountWithTax": 100,
+                                "WriteOffStatus": None, **line, **blank_inv})
+        data["InvoiceLine"].append({"Id": ids[name][:3].replace("3tt", "5TV") + ids[name][3:15] + "AAA",
+                                    "InvoiceId": ids[name], "Type": "Charge",
+                                    "LineAmount": 100, **line, **blank_line})
+    line_of = {r["InvoiceId"]: r["Id"] for r in data["InvoiceLine"]}
+    for i, (name, targets) in enumerate(payments.items()):
+        data["Payment"].append({"Id": ids[name], "Status": "Processed",
+                                "Amount": 10 * len(targets), "NetApplied": 10 * len(targets),
+                                "Balance": 0, "NetRefundApplied": None,
+                                "NetPaymentCreditApplied": None})
+        for j, target in enumerate(targets):
+            data["PaymentLineInvoiceLine"].append({
+                "Id": f"1Al{i:06d}{j:06d}AAA", "InvoiceLineId": line_of[ids[target]],
+                "PaymentId": ids[name], "Amount": 10, "Type": "Applied",
+                "UnappliedStatus": "No"})
+    for i, (name, (status, targets)) in enumerate(memos.items()):
+        data["CreditMemo"].append({"Id": ids[name], "Status": status})
+        memo_line = f"9yx{i:012d}AAA"
+        data["CreditMemoLine"].append({"Id": memo_line, "CreditMemoId": ids[name]})
+        for j, target in enumerate(targets):
+            data["CreditMemoLineInvoiceLine"].append({
+                "Id": f"4sG{i:06d}{j:06d}AAA", "InvoiceLineId": line_of[ids[target]],
+                "CreditMemoLineId": memo_line, "Amount": 5, "Type": "Applied",
+                "UnappliedStatus": "No"})
+    report = _verify(data, [ids[n] for n in invoices], [ids[n] for n in payments])
+    report["ids"] = ids
+    return report
+
+
+def _balance_skips(report: dict) -> dict:
+    """Subject id -> detail of every skipped balance check at record level."""
+    return {r["subject"]: r["detail"] for r in report["checks"]
+            if r["check"] in ("invoice_balance", "payment_balance") and r["status"] == "skip"}
+
+
+def test_chain_fixture_is_clean_when_everything_is_measured():
+    report = _chain({"A": "Posted", "B": "Posted", "C": "Posted"},
+                    {"P1": ["A", "B"], "P2": ["B", "C"]}, {"M": ("Posted", ["A", "C"])})
+    assert report["ok"] is True and report["skipped"] == 0, report["failed_checks"]
+
+
+def test_propagation_reaches_a_record_an_earlier_link_already_passed():
+    # Links sort (P1,B), (P2,A), (P2,B): one pass reaches P2 and B but not P1.
+    report = _chain({"A": "Draft", "B": "Posted"}, {"P1": ["B"], "P2": ["A", "B"]})
+    ids, skips = report["ids"], _balance_skips(report)
+    assert set(skips) == {ids["A"], ids["B"], ids["P1"], ids["P2"]}
+    assert f"origin invoice {ids['A']}: Status Draft" in skips[ids["P1"]]
+    assert skips[ids["P1"]].startswith(f"linked invoice {ids['B']}; ")
+
+
+def test_propagation_along_a_chain_names_the_origin_at_every_hop():
+    # A - P1 - B - P2 - C, with C Draft: four hops back to A.
+    report = _chain({"A": "Posted", "B": "Posted", "C": "Draft"},
+                    {"P1": ["A", "B"], "P2": ["B", "C"]})
+    ids, skips = report["ids"], _balance_skips(report)
+    assert set(skips) == {ids[n] for n in ("A", "B", "C", "P1", "P2")}
+    for name in ("A", "B", "P1", "P2"):
+        assert f"origin invoice {ids['C']}: Status Draft" in skips[ids[name]], name
+    assert skips[ids["A"]].startswith(f"linked payment {ids['P1']}; ")
+
+
+def test_propagation_through_a_credit_memo_links_two_invoices():
+    report = _chain({"A": "Draft", "B": "Posted"}, {"P1": ["B"]},
+                    {"M": ("Posted", ["A", "B"])})
+    ids, skips = report["ids"], _balance_skips(report)
+    assert skips[ids["B"]].startswith(f"linked credit memo {ids['M']}; origin invoice "
+                                      f"{ids['A']}: Status Draft")
+    assert f"origin invoice {ids['A']}" in skips[ids["P1"]]
+
+
+@pytest.mark.parametrize("status", ["Voided", "Draft", "Canceled", None])
+def test_credit_memo_that_is_not_posted_skips_its_invoices(status):
+    report = _chain({"A": "Posted", "B": "Posted", "C": "Posted"}, {},
+                    {"M": (status, ["A", "B"])})
+    ids, skips = report["ids"], _balance_skips(report)
+    assert set(skips) == {ids["A"], ids["B"]}
+    assert skips[ids["A"]] == (f"linked credit memo {ids['M']}; origin credit memo "
+                               f"{ids['M']}: Status {status or 'null'}; only Posted credit "
+                               "memos are measured")
+    assert report["ok"] is True
+
+
+def test_report_counts_checked_and_skipped_balance_checks():
+    report = _line()
+    assert (report["checked"], report["skipped"]) == (8, 1)
+    assert render_text(report).endswith("RESULT: pass (8 checked, 1 skipped)")
+    data = _load("line_level.json")
+    _row(data, "Invoice", "3tt000000000002AAA")["Status"] = "Draft"
+    none_run = _verify(data, ["3tt000000000002AAA"])
+    assert (none_run["ok"], none_run["checked"], none_run["skipped"]) == (True, 0, 2)
+    assert render_text(none_run).endswith("RESULT: pass (no balances checked; 2 skipped)")
+    failed = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(Balance=5))
+    assert render_text(failed).endswith("RESULT: fail (payment_balance; 8 checked, 1 skipped)")
 
 
 # ------------------------------------------------------------------ CLI
@@ -924,7 +1047,7 @@ def test_cli_verify_invoice_ids_text_output(recorded_org, capsys):
                    ",".join(LINE_INVOICES), "--payment-ids", LINE_EXTRA_PAYMENTS[0]])
     out = capsys.readouterr().out
     assert rc == 0
-    assert out.strip().endswith("RESULT: pass")
+    assert out.strip().endswith("RESULT: pass (8 checked, 1 skipped)")
 
 
 def test_cli_verify_forced_wrong_level_exits_one_naming_the_check(recorded_org, capsys):

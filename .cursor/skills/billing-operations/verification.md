@@ -24,7 +24,11 @@ python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
 
 Exit codes:
 
-- **0**: no check failed (a skipped check is not a failure).
+- **0**: no check failed. A skipped check is not a failure, so a run where every
+  balance check skipped also exits 0: read the counts. The last text line is
+  `RESULT: pass (N checked, M skipped)`, or `RESULT: pass (no balances checked; M
+  skipped)`; `--json` carries `checked` and `skipped`, counting the balance checks
+  (`invoice_balance`, `invoice_line_balance`, `payment_balance`).
 - **1**: at least one check failed. `--json` prints every result with its check name,
   subject id, status and detail.
 - **2**: no report, because the input or a Salesforce request was bad: a malformed,
@@ -69,11 +73,13 @@ skipped with the first cause found; nothing is guessed.
 | Invoice line | `Type` Charge (Tax, Adjustment, null or any other value is not), and `ConvertedNegAmount`, `ChargeConvertedNegAmount` and `AdjustmentAmount` null or zero. |
 | Invoice | `Status` Posted; no header evidence (no header application rows, `SettlementLevel` not `Invoice`); no `WriteOffStatus`; `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount`, `TotalAdjustmentAmount` and `TotalTaxesCapturedAtHeader` null or zero; every line and every application row measured. |
 | Payment | `Status` Processed with application rows, or Canceled with none; no header-level application rows; `NetRefundApplied` and `NetPaymentCreditApplied` null or zero; every application row measured. |
+| Credit memo | `Status` Posted (Draft, Pending, Void In Progress, Canceled, Error and Voided are not). Every memo on the measured org was Posted. Read by the ids on the credit application rows (through `CreditMemoLine` for line rows). |
 
-An invoice and a payment joined by a payment application row, both read, are measured
-only together: when either is outside the allow-list, the other is skipped too, and this
-repeats until nothing changes. The skip names the link and the original cause, for
-example `linked payment 0aQ...: Status Canceled with 1 application row(s) ...`.
+An invoice and a payment or credit memo joined by an application row, both read, are
+measured only together: when either is outside the allow-list, the other is skipped too,
+and this repeats until nothing changes, so a payment or memo applied to two invoices
+links them. At every hop the skip names the neighbour and the origin record with its
+cause, for example `linked payment 0aQ...; origin invoice 3tt...: Status Draft; ...`.
 Invoices and payments outside the set are not read, so they do not propagate. Header
 Level was never measured, so at header level every balance check skips;
 `application_level` still runs.
@@ -107,7 +113,8 @@ posting and two credit memos applied to one line:
 - A Canceled payment with no applications kept `Balance` equal to `Amount`.
 
 Not measured, so outside the allow-list: Header Level, unapplied rows (their sign,
-pairing, and whether an unapply can be partial), how
+pairing, and whether an unapply can be partial), credit memos in any status other than
+Posted, how
 `NetRefundApplied` and `NetPaymentCreditApplied` change a payment's `Balance` (both were
 0 on every payment read), how converted negative amounts, write-offs and adjustments
 change an invoice's or line's `Balance` (each field listed in the table above was 0 or

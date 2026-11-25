@@ -125,5 +125,12 @@
       "NetRefundApplied": null,
       "NetPaymentCreditApplied": null
     }
+  ],
+  "CreditMemoLine": [],
+  "CreditMemo": [
+    {
+      "Id": "50g000000000001AAA",
+      "Status": "Posted"
+    }
   ]
 }

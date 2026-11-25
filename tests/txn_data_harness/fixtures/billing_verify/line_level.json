@@ -146,5 +146,25 @@
       "NetRefundApplied": null,
       "NetPaymentCreditApplied": null
     }
+  ],
+  "CreditMemoLine": [
+    {
+      "Id": "9yx000000000001AAA",
+      "CreditMemoId": "50g000000000011AAA"
+    },
+    {
+      "Id": "9yx000000000002AAA",
+      "CreditMemoId": "50g000000000012AAA"
+    }
+  ],
+  "CreditMemo": [
+    {
+      "Id": "50g000000000011AAA",
+      "Status": "Posted"
+    },
+    {
+      "Id": "50g000000000012AAA",
+      "Status": "Posted"
+    }
   ]
 }

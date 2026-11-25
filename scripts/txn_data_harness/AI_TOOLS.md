@@ -123,7 +123,9 @@ python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
 
 Checks, by id and with SOQL only, that each invoice, invoice line and payment
 balance agrees with its payment and credit applications, and that the
-applications are at one level (line or header). Exit 0 on pass, 1 on any
+applications are at one level (line or header). Exit 0 when nothing fails,
+skips included, so read the counts (`RESULT: pass (N checked, M skipped)`, or
+`no balances checked`; `checked` and `skipped` in `--json`); 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
 id, missing or malformed manifest, refused query, failed connection, no `sf`
 on `PATH`, any unexpected error); with `--json` an error also prints
@@ -138,9 +140,9 @@ through the invoices' application rows, or passed with `--payment-ids`.
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
 inside one allow-list of measured cases (Line Level: Posted invoices without
 write-off, tax or other unmeasured totals; Charge lines; Applied rows; Processed
-payments with applications or Canceled ones without), and an invoice and payment
-joined by a row are measured only together; anything else skips naming its
-first cause.
+payments with applications or Canceled ones without; Posted credit memos), and
+an invoice and a payment or credit memo joined by a row are measured only
+together; anything else skips naming its first cause and origin.
 `--expect-level line|header` forces the level (default: detect from the
 records). Checks and formulas: `billing-operations` → `verification.md`.
 

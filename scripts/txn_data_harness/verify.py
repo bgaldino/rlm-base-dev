@@ -39,13 +39,19 @@ an allow-list in ``_unmeasured_causes``:
   and header-tax total null or zero; every line and application row measured;
 - payment: ``Status`` Processed with application rows, or Canceled with none; no
   header-level rows; ``NetRefundApplied`` and ``NetPaymentCreditApplied`` null or
-  zero; every application row measured.
+  zero; every application row measured;
+- credit memo: ``Status`` Posted.
 
-An invoice and a payment joined by an application row (both read) are measured only
-together: one unmeasured side makes the other unmeasured too, to a fixpoint. Each
-skipped balance check names the first cause found, for example "linked payment
-0aQ...: Status Canceled with 1 application row(s)". Counterparts outside the set are
-not read and do not propagate. Amounts compare exactly as Decimals; ids may be 15
+An invoice and a payment or credit memo joined by an application row are measured only
+together: one unmeasured side makes the other unmeasured too, to a fixpoint, so a memo
+or payment applied to two invoices links them. Each skipped balance check names the
+first cause found; a linked skip names the neighbour and the origin, for example
+"linked payment 0aQ...; origin invoice 3tt...: Status Draft; ...". Invoices and
+payments outside the set are not read and do not propagate.
+
+The report counts the balance checks (``invoice_balance``, ``invoice_line_balance``,
+``payment_balance``) that ran (``checked``) and were skipped (``skipped``): exit 0 means
+nothing failed, which includes a run where every balance check skipped. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.
 """
@@ -105,6 +111,9 @@ INVOICE_LINE_FIELDS = (
 ) + _UNMEASURED_LINE_FIELDS
 PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance", "NetRefundApplied",
                   "NetPaymentCreditApplied")
+CREDIT_MEMO_LINE_FIELDS = ("Id", "CreditMemoId")
+CREDIT_MEMO_FIELDS = ("Id", "Status")
+BALANCE_CHECKS = ("invoice_balance", "invoice_line_balance", "payment_balance")
 # Payment fields whose effect on Balance has not been measured.
 _UNMEASURED_PAYMENT_FIELDS = ("NetRefundApplied", "NetPaymentCreditApplied")
 
@@ -145,6 +154,7 @@ _CHECKED_LINE_TYPE = "Charge"
 _CHECKED_ROW_TYPE = "Applied"
 _CHECKED_PAYMENT_STATUS = "Processed"   # with application rows
 _CANCELED_PAYMENT_STATUS = "Canceled"   # with none
+_CHECKED_MEMO_STATUS = "Posted"
 
 
 class VerifyError(ValueError):
@@ -265,6 +275,15 @@ def _query_in(client, obj: str, fields: Iterable[str], where_field: str,
     return rows
 
 
+def _unique(values: Iterable[Optional[str]]) -> list[str]:
+    """Distinct non-empty values, in first-seen order."""
+    out: list[str] = []
+    for value in values:
+        if value and value not in out:
+            out.append(value)
+    return out
+
+
 def _merge(rows: list[dict], more: list[dict]) -> list[dict]:
     seen = {r["Id"] for r in rows}
     return rows + [r for r in more if r["Id"] not in seen]
@@ -274,11 +293,12 @@ def fetch_billing_records(client, invoice_ids: list[str],
                           payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
     """Read everything the checks need, by id. SOQL reads only.
 
-    Returns ``{object name: rows}`` for Invoice, InvoiceLine, Payment and the four
-    application objects. Payments are the ones asked for plus every payment that
-    has an application row on these invoices; for each payment, all of its payment
-    application rows are read too, so ``NetApplied`` can be checked against rows on
-    invoices outside the set.
+    Returns ``{object name: rows}`` for Invoice, InvoiceLine, Payment, CreditMemoLine,
+    CreditMemo and the four application objects. Payments are the ones asked for plus
+    every payment that has an application row on these invoices; for each payment, all
+    of its payment application rows are read too, so ``NetApplied`` can be checked
+    against rows on invoices outside the set. Credit memos are the ones applied to
+    these invoices (their status is part of the allow-list).
     """
     invoice_ids = _check_ids(invoice_ids, "invoice id")
     payment_ids = _check_ids(payment_ids or [], "payment id")
@@ -306,6 +326,22 @@ def fetch_billing_records(client, invoice_ids: list[str],
             pid = row.get(obj.source_field)
             if pid and pid not in payment_ids:
                 payment_ids.append(pid)
+    memo_line_ids = _unique(r.get("CreditMemoLineId")
+                            for r in records["CreditMemoLineInvoiceLine"])
+    memo_lines = _query_in(client, "CreditMemoLine", CREDIT_MEMO_LINE_FIELDS, "Id",
+                           memo_line_ids) if memo_line_ids else []
+    missing = sorted(set(memo_line_ids) - {r["Id"] for r in memo_lines})
+    if missing:
+        raise VerifyError(f"credit memo line ids not found or not readable: {', '.join(missing)}")
+    records["CreditMemoLine"] = memo_lines
+    memo_ids = _unique([r.get("CreditMemoId") for r in memo_lines]
+                       + [r.get("CreditMemoId") for r in records["CreditMemoInvApplication"]])
+    memos = _query_in(client, "CreditMemo", CREDIT_MEMO_FIELDS, "Id", memo_ids) if memo_ids else []
+    missing = sorted(set(memo_ids) - {r["Id"] for r in memos})
+    if missing:
+        raise VerifyError(f"credit memo ids not found or not readable: {', '.join(missing)}")
+    records["CreditMemo"] = memos
+
     payments = _query_in(client, "Payment", PAYMENT_FIELDS, "Id", payment_ids) if payment_ids else []
     missing = sorted(set(payment_ids) - {r["Id"] for r in payments})
     if missing:
@@ -548,43 +584,73 @@ def _payment_cause(idx: _Index, payment: dict) -> Optional[str]:
     return None
 
 
-def _unmeasured_causes(records: dict[str, list[dict]], idx: _Index) -> dict[str, str]:
-    """Map each unmeasured invoice or payment id to the first cause found.
+def _memo_cause(memo: dict) -> Optional[str]:
+    """Why a credit memo is unmeasured, or None (Status Posted).
 
-    Own causes come from the allow-list; then an invoice and a payment joined by a
-    payment application row (both in the set) share unmeasuredness, to a fixpoint.
-    Computed once; every balance check asks this map.
+    Its rows need no check here: only rows on invoices in the set are read, and an
+    unmeasured row already makes that invoice unmeasured, which propagates to the memo.
     """
-    causes: dict[str, str] = {}
-    roots: dict[str, str] = {}  # the original cause, so linked causes do not nest
-    for invoice in idx.invoices:
-        cause = _invoice_cause(idx, invoice)
-        if cause:
-            causes[invoice["Id"]] = roots[invoice["Id"]] = cause
-    payment_ids = set()
-    for payment in records.get("Payment", []):
-        payment_ids.add(payment["Id"])
-        cause = _payment_cause(idx, payment)
-        if cause:
-            causes[payment["Id"]] = roots[payment["Id"]] = cause
+    status = memo.get("Status")
+    if status != _CHECKED_MEMO_STATUS:
+        return (f"Status {status or 'null'}; only {_CHECKED_MEMO_STATUS} credit memos are "
+                "measured")
+    return None
+
+
+def _links(records: dict[str, list[dict]]) -> list[tuple[str, str, str, dict]]:
+    """Every application row as (payment or memo id, kind, invoice id, row)."""
     invoice_of_line = {line["Id"]: line["InvoiceId"] for line in records.get("InvoiceLine", [])}
-    invoice_ids = {invoice["Id"] for invoice in idx.invoices}
-    links = set()
-    for obj in _PAYMENT_APP_OBJECTS:
+    memo_of_line = {line["Id"]: line["CreditMemoId"]
+                    for line in records.get("CreditMemoLine", [])}
+    out = []
+    for obj in APP_OBJECTS:
         for row in records.get(obj.name, []):
             target = row.get(obj.target_field)
             iid = invoice_of_line.get(target) if obj.level == "line" else target
-            pid = row.get(obj.source_field)
-            if iid in invoice_ids and pid in payment_ids:
-                links.add((pid, iid))
+            source = row.get(obj.source_field)
+            if obj.kind == "payment":
+                out.append((source, "payment", iid, row))
+            else:
+                memo = memo_of_line.get(source) if obj.level == "line" else source
+                out.append((memo, "credit memo", iid, row))
+    return out
+
+
+def _unmeasured_causes(records: dict[str, list[dict]], idx: _Index) -> dict[str, str]:
+    """Map each unmeasured invoice, payment or credit memo id to the first cause found.
+
+    Own causes come from the allow-list; then an invoice and a payment or credit memo
+    joined by an application row (both read) share unmeasuredness, to a fixpoint. A
+    linked cause names the neighbour and the origin record. Computed once; every
+    balance check asks this map.
+    """
+    links = _links(records)
+    kinds: dict[str, str] = {}
+    causes: dict[str, str] = {}
+    origins: dict[str, str] = {}  # "<kind> <id>: <cause>" of the record a skip came from
+
+    def own(record_id: str, kind: str, cause: Optional[str]) -> None:
+        kinds[record_id] = kind
+        if cause:
+            causes[record_id] = cause
+            origins[record_id] = f"{kind} {record_id}: {cause}"
+
+    for invoice in idx.invoices:
+        own(invoice["Id"], "invoice", _invoice_cause(idx, invoice))
+    for payment in records.get("Payment", []):
+        own(payment["Id"], "payment", _payment_cause(idx, payment))
+    for memo in records.get("CreditMemo", []):
+        own(memo["Id"], "credit memo", _memo_cause(memo))
+    pairs = sorted({(source, iid) for source, _, iid, _ in links
+                    if source in kinds and kinds.get(iid) == "invoice"})
     changed = True
     while changed:
         changed = False
-        for pid, iid in sorted(links):
-            for src, dst, kind in ((pid, iid, "payment"), (iid, pid, "invoice")):
+        for source, iid in pairs:
+            for src, dst in ((source, iid), (iid, source)):
                 if src in causes and dst not in causes:
-                    causes[dst] = f"linked {kind} {src}: {roots[src]}"
-                    roots[dst] = roots[src]
+                    causes[dst] = f"linked {kinds[src]} {src}; origin {origins[src]}"
+                    origins[dst] = origins[src]
                     changed = True
     return causes
 
@@ -722,8 +788,11 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
     )
     failed = sorted({r["check"] for r in results if r["status"] == "fail"},
                     key=CHECK_NAMES.index)
+    balance = [r for r in results if r["check"] in BALANCE_CHECKS]
     return {
         "ok": not failed,
+        "checked": sum(1 for r in balance if r["status"] != "skip"),
+        "skipped": sum(1 for r in balance if r["status"] == "skip"),
         "level": level,
         "level_source": source,
         "invoice_ids": [r["Id"] for r in records.get("Invoice", [])],
@@ -737,8 +806,11 @@ def render_text(report: dict) -> str:
     lines = [f"Level: {report['level'] or report['level_source']} ({report['level_source']})"]
     for r in report["checks"]:
         lines.append(f"{r['status'].upper():4} {r['check']:20} {r['subject']}: {r['detail']}")
-    if report["ok"]:
-        lines.append("RESULT: pass")
+    counts = f"{report['checked']} checked, {report['skipped']} skipped"
+    if not report["ok"]:
+        lines.append(f"RESULT: fail ({', '.join(report['failed_checks'])}; {counts})")
+    elif report["checked"]:
+        lines.append(f"RESULT: pass ({counts})")
     else:
-        lines.append(f"RESULT: fail ({', '.join(report['failed_checks'])})")
+        lines.append(f"RESULT: pass (no balances checked; {report['skipped']} skipped)")
     return "\n".join(lines)
