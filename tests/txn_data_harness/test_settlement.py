@@ -3925,3 +3925,60 @@ def test_json_error_bodies_keep_codes_and_messages() -> None:
     assert exc.detail == "INVALID_FIELD: No such column"
     raw = SfApiError(500, _HTML_503, "GET", "/q")
     assert "SECRET" not in str(raw) and raw.body == _HTML_503  # kept for classification
+
+
+# -- review round 25 (todo 275) -------------------------------------------------
+
+
+@pytest.mark.parametrize("length", [1503, 429])
+def test_403_page_whose_length_reads_like_a_status_is_not_transient(length) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.failure import classify_exception
+
+    page = ("<html><body>Forbidden" + "x" * length)[:length - 14] + "</body></html>"
+    page = page.ljust(length, "x")[:length]
+    exc = SfApiError(403, page, "GET", "/services/data/v68.0/limits")
+    assert f"({length} characters" in str(exc)
+    assert classify_exception(exc) != "transient"
+
+
+@pytest.mark.parametrize("body", [
+    '{"message": {"nested": "x"}}',
+    '[{"message": ["x"], "errorCode": 7}]',
+    '{"message": "top", "output": {"errors": "not a list", "referenceLineErrorResults": "x"}}',
+    '{"output": {"referenceLineErrorResults": [1, null, {"errors": {"a": 1}}]}}',
+    '[1, "x", null]',
+])
+def test_oddly_shaped_json_bodies_never_raise(body) -> None:
+    from scripts.txn_data_harness.auth import SfApiError, render_error_body
+
+    exc = SfApiError(400, body, "POST", "/x")  # must not raise
+    assert exc.status == 400 and "HTTP 400" in str(exc)
+    assert isinstance(render_error_body(body), str)
+    assert lifecycle.api_error_codes(body) == []
+    assert lifecycle.is_api_refusal(exc)
+
+
+def test_render_error_body_keeps_only_string_messages() -> None:
+    from scripts.txn_data_harness.auth import render_error_body
+
+    body = '[{"message": ["x"]}, {"errorCode": "E", "message": "m"}, {"errorCode": 5, "message": "n"}]'
+    assert render_error_body(body) == "E: m; n"
+    assert render_error_body('{"message": "top", "output": {"errors": "bad"}}') == "top"
+
+
+def test_general_apply_refusal_says_the_payment_is_unapplied(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    client = SimpleNamespace(api_version="68.0")
+
+    def post(path, body, retry=True):
+        raise SfApiError(400, '[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"too much"}]',
+                         "POST", path)
+
+    client.post = post
+    with pytest.raises(lifecycle.SettlementError,
+                       match="apply refused: FIELD_INTEGRITY_EXCEPTION: too much. Payment 0aQ1 is "
+                             "Processed and unapplied: apply or cancel it in the org before "
+                             "posting more invoices"):
+        lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "5TV1", "amount": 1})

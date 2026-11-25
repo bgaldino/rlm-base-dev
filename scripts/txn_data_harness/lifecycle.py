@@ -1250,21 +1250,15 @@ def api_error_codes(body: str) -> list[str]:
     """The ``errorCode`` fields of a Connect/REST error body (both shapes)."""
     import json as _json
 
+    from .auth import error_entries
+
     try:
         data = _json.loads(body or "")
     except (TypeError, ValueError):
         return []
-    errors: list = []
-    if isinstance(data, list):
-        errors = data
-    elif isinstance(data, dict):
-        errors = [data]
-        out = data.get("output") or {}
-        if isinstance(out, dict):
-            errors += out.get("errors") or []
-            for ref in out.get("referenceLineErrorResults") or []:
-                errors += (ref or {}).get("errors") or []
-    return [e["errorCode"] for e in errors if isinstance(e, dict) and e.get("errorCode")]
+    errors = error_entries(data) + ([data] if isinstance(data, dict) else [])
+    return [e["errorCode"] for e in errors
+            if isinstance(e.get("errorCode"), str) and e["errorCode"]]
 
 
 def is_client_error(exc: BaseException) -> bool:
@@ -1939,7 +1933,11 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
                 record_id=payment_id,
             ) from exc
         raise SettlementError(
-            "payment", f"apply refused: {detail}", record_id=payment_id
+            "payment",
+            f"apply refused: {detail}. Payment {payment_id} is Processed and unapplied: "
+            "apply or cancel it in the org before posting more invoices on this account "
+            "(the next posted invoice may absorb it).",
+            record_id=payment_id,
         ) from exc
     if not isinstance(result, dict) or not result.get("id"):
         raise SettlementError(

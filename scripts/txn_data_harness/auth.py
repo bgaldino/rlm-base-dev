@@ -79,44 +79,62 @@ class SfApiError(RuntimeError):
         return render_error_body(self.body, safe=self.safe_text)
 
 
+def error_entries(data: Any) -> list[dict]:
+    """The error objects of a decoded Connect/REST error body, defensively.
+
+    Walks only the expected shapes -- a list of errors, or a dict with
+    ``output.errors`` and ``output.referenceLineErrorResults[].errors`` -- and
+    skips any value that is not the expected dict/list.
+    """
+    out: list[dict] = []
+
+    def add(errors: Any) -> None:
+        if isinstance(errors, list):
+            out.extend(e for e in errors if isinstance(e, dict))
+
+    if isinstance(data, list):
+        add(data)
+    elif isinstance(data, dict):
+        output = data.get("output")
+        if isinstance(output, dict):
+            add(output.get("errors"))
+            refs = output.get("referenceLineErrorResults")
+            if isinstance(refs, list):
+                for ref in refs:
+                    if isinstance(ref, dict):
+                        add(ref.get("errors"))
+    return out
+
+
 def render_error_body(body: Optional[str], *, safe: bool = False) -> str:
-    """An error body for people. The one rendering rule.
+    """An error body for people. The one rendering rule; never raises.
 
     Text the harness composed itself (``safe``): shown as is. A JSON body:
-    its error codes and messages (the list shape ``[{"errorCode",
-    "message"}]`` and the billing record-error shape ``{"message", "output":
-    {"errors": [...], "referenceLineErrorResults": [{"errors": [...]}]}}``),
-    else the JSON itself, capped. Any other body (an HTML maintenance page,
-    a SOAP fault, proxy output): its length only, never shown.
+    the string ``errorCode`` / ``message`` of its error objects
+    (:func:`error_entries`), else a top-level string ``message``, else the
+    JSON itself, capped. Any other body (an HTML maintenance page, a SOAP
+    fault, proxy output): its length only, never shown.
     """
     import html
 
-    text = body or ""
+    text = body if isinstance(body, str) else ("" if body is None else str(body))
     if safe:
         return text[:500]
     try:
         data = json.loads(text)
     except (TypeError, ValueError):
         return f"a non-JSON body ({len(text)} characters, not shown)"
-    msgs: list[str] = []
-
-    def add(errors):
-        for e in errors or []:
-            if isinstance(e, dict) and e.get("message"):
-                code = e.get("errorCode")
-                msgs.append(f"{code}: {e['message']}" if code else e["message"])
-
-    if isinstance(data, list):
-        add(data)
-    elif isinstance(data, dict):
-        out = data.get("output") or {}
-        if isinstance(out, dict):
-            add(out.get("errors"))
-            for ref in out.get("referenceLineErrorResults") or []:
-                add((ref or {}).get("errors"))
-        if not msgs and data.get("message"):
+    try:
+        msgs: list[str] = []
+        for e in error_entries(data):
+            message, code = e.get("message"), e.get("errorCode")
+            if isinstance(message, str) and message:
+                msgs.append(f"{code}: {message}" if isinstance(code, str) and code else message)
+        if not msgs and isinstance(data, dict) and isinstance(data.get("message"), str):
             msgs.append(data["message"])
-    return html.unescape("; ".join(msgs)) if msgs else text[:500]
+        return html.unescape("; ".join(msgs)) if msgs else text[:500]
+    except Exception:  # noqa: BLE001 -- rendering must never hide the real error
+        return f"an error body ({len(text)} characters) that could not be read"
 
 
 def _run_sf(args: list[str]) -> dict:

@@ -86,6 +86,10 @@ def classify_exception(exc: BaseException) -> str:
     pinned = getattr(exc, "failure_class", None)
     if pinned in ("transient", "deterministic", "unknown"):
         return pinned
-    if isinstance(exc, SfApiError) and exc.status in _TRANSIENT_STATUS:
-        return "transient"
+    if isinstance(exc, SfApiError):
+        if exc.status in _TRANSIENT_STATUS:
+            return "transient"
+        # The raw status and body, never str(exc): the rendered text holds a
+        # body length ("1503 characters") that would read as a 503.
+        return classify_signature(f"HTTP {exc.status} {(exc.body or '')[:500]}")
     return classify_signature(str(exc))
