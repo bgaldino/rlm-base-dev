@@ -244,8 +244,10 @@ In this repo:
   `force-app/main/default/staticresources/`] An org built before that fix keeps
   `/resource/omniserver`, which does not resolve, on `PROD-455868158`. Fix that one record:
   `sf data update record --sobject Product2 --where "StockKeepingUnit='PROD-455868158'" --values "DisplayUrl=/resource/powerswerve" --target-org <sf_alias>`
-  (checked on a built 264 org). Reloading qb-pcm also works, but its Upsert resets every qb-pcm
-  record to the plan's values, overwriting edits made on the org.
+  [Measured: 2026-11-25, 264, existing org]. Reloading qb-pcm also works, but its Upsert resets
+  every qb-pcm record to the plan's values, overwriting edits made on the org; after a reload, run
+  [`catalogs-and-loading.md`](catalogs-and-loading.md) step 6 (the `refresh_all_decision_tables`
+  flow, then `rebuild_search_index`).
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
   after the product plan blanked the images whenever the product plan was reloaded alone; the
   URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
