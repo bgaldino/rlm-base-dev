@@ -18,12 +18,14 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-  Turning it on (`enablePaymentSchedulesAndItemsCreation`, which the repo sets true) creates the
-  default payment schedule policy and treatment
+  Turning it on (`enablePaymentSchedulesAndItemsCreation`, which the repo sets true) for the
+  first time creates four default records: Default Payment Schedule Policy, Default Payment
+  Schedule Treatment, Default Payment Schedule Treatment Detail and Default Payment Schedule
+  Distribution Method
   [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`]
   [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]
-  [Dev guide: `meta_billingsettings`]. Help says each posted invoice then gets a single payment
-  schedule for its whole balance, and Invoice is the default Grouping Source; one account's
+  [Dev guide: `meta_billingsettings`, which names the policy and treatment]. Help says each
+  posted invoice then gets a single payment schedule for its whole balance, and Invoice is the default Grouping Source; one account's
   invoices are grouped into one only with Grouping Source Account, the same currency and payment
   method, and due dates within the Due Date Window
   [Help: `ind.billing_payments_consolidate_invoices`]. Help's listed field values for the
@@ -36,9 +38,9 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   A second payment schedule with `ReferenceEntityId` set to one of them was refused (error
   `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
   is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] Not tried: canceling or
-  reusing the automatic schedule, Grouping Source Invoice, and invoices with different due
-  dates.
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
+  [Open: Grouping Source Invoice; invoices with different due dates; canceling or reusing the
+  automatic schedule]
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
