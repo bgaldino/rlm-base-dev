@@ -551,7 +551,13 @@ public with sharing class RLM_CollectionsDashboardController {
             Date today = Date.today();
 
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
-            List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            // A refused Invoice read leaves the cases listed with a zero balance instead of dropping the section.
+            List<Invoice> disputedInvs = new List<Invoice>();
+            try {
+                disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            } catch (QueryException qe) {
+                System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.buildDisputedFromCases: ' + qe.getMessage());
+            }
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -612,8 +618,8 @@ public with sharing class RLM_CollectionsDashboardController {
         // listed, just without a name, instead of the whole section being dropped by the caller's catch.
         try {
             for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.getAccountNames: ' + e.getTypeName());
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.getAccountNames: ' + e.getMessage());
         }
         return m;
     }
