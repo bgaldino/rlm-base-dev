@@ -20,9 +20,9 @@
  * billing term when one is given (BillingTerm__std), the billing treatment that carries the chosen
  * Advance or Arrears timing for that legal entity (BillingTreatmentId__std; BillingType__std and
  * BillingTypePicklistTiming__std are rejected by the action, measured), and a shipping city
- * (ShippingCity__std: the account's, else the billingCity the caller submitted). The treatment query is replaced by
- * mockTreatmentCandidates in most tests; createViaAPI_treatmentQuery_* reads real records, and
- * lastTransactionDetails exposes the payload handed to the action. Still not sent: bill-to
+ * (ShippingCity__std: the account's, else the billingCity the caller submitted). The treatment
+ * query is replaced by mockTreatmentCandidates in most tests; findBillingTreatmentId_* reads real
+ * records, and lastTransactionDetails exposes the payload handed to the action. Still not sent: bill-to
  * contact, payment term (the action reads them from the records through the context mapping, as
  * measured earlier on a 264 org) and ParentTransactionId__std (Required for TermDefined only).
  * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact key set.
@@ -1455,10 +1455,12 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only
     // treatments of one entity, cap 2: the read returns a third row, so it was cut off; asking for Arrears
-    // finds nothing and says so (not "no treatment"); asking for Advance still finds one of them. At cap 3
-    // the same read is complete and the plain message returns. Which two are read is the query's order,
-    // so the assertions do not depend on it. The currency filter is exercised by findBillingTreatmentId_findsTheTreatmentOfTheEntityFor
-    // TheTimingAndCurrency, and only when the org has a second active currency.
+    // finds nothing and says so (not "no treatment"); asking for Advance, or for a one-time charge (an
+    // Advance-only choice is accepted from a cut-off read), still finds one of them. At cap 3 the same read
+    // is complete and the plain message returns. Which two are read is the query's order, so the
+    // assertions do not depend on it. The currency filter is exercised by
+    // findBillingTreatmentId_findsTheTreatmentOfTheEntityForTheTimingAndCurrency, and only when the org
+    // has a second active currency.
     @isTest
     static void findBillingTreatmentId_pastTheCap_saysTheLookupWasCutOff() {
         LegalEntity le = new LegalEntity(Name = 'BSG Cap LE', Status = 'Active');
@@ -1495,6 +1497,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             cutOff = e;
         }
         Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
+        Id foundOneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
         AuraHandledException none;
         try {
@@ -1505,8 +1508,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(cutOff);
-        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items,'), cutOff.getMessage());
         Assert.isTrue(treatmentIds.contains(foundAdvance), 'A treatment read before the cap is still found.');
+        Assert.isTrue(treatmentIds.contains(foundOneTime), 'A one-time charge takes an Advance-only choice from a cut-off read.');
         Assert.isNotNull(none);
         Assert.isTrue(none.getMessage().startsWith('No active billing treatment bills in arrears'),
             'Under the cap the message is the plain one: ' + none.getMessage());
@@ -1569,7 +1573,34 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(cutOff, 'An Arrears-only choice from a cut-off read is not taken for a one-time charge.');
-        Assert.isTrue(cutOff.getMessage().contains('cut off at 1 item'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 1 item,'), cutOff.getMessage());
+    }
+
+    // The cut-off message also says a mixed treatment was skipped when one was read whole. Cap 2 over T1
+    // mixed (an Advance and an Arrears item) and T2 Advance-only: the extra row is T2's, so T1 is kept,
+    // and asking for Arrears skips it as ambiguous and finds nothing else.
+    @isTest
+    static void findBillingTreatmentId_cutOffWithAMixedTreatmentRead_saysItWasSkipped() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap Skip LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        insertActiveMixedTreatment(le, 'BSG Cap Skip T1', cur);
+        insertActiveTreatment(le, 'BSG Cap Skip T2', 'Advance', cur);
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 2;
+        Test.startTest();
+        AuraHandledException cutOff;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        } catch (AuraHandledException e) {
+            cutOff = e;
+        }
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Test.stopTest();
+
+        Assert.isNotNull(cutOff);
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items,'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('was also skipped'), cutOff.getMessage());
     }
 
     // One active treatment of the entity with a single active item of the timing.
@@ -1577,6 +1608,24 @@ private class RLM_BillingScheduleGroupServiceTest {
         BillingTreatment t = new BillingTreatment(Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
         insert t;
         insert new BillingTreatmentItem(Name = name + ' Item', BillingTreatmentId = t.Id, BillingType = billingType, Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
+        List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :t.Id];
+        for (BillingTreatmentItem item : items) {
+            item.Status = 'Active';
+        }
+        update items;
+        t.Status = 'Active';
+        update t;
+        return t;
+    }
+
+    // One active treatment of the entity with an Advance (Percentage) and an Arrears (Remainder) item.
+    private static BillingTreatment insertActiveMixedTreatment(LegalEntity le, String name, String cur) {
+        BillingTreatment t = new BillingTreatment(Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        insert t;
+        insert new List<BillingTreatmentItem>{
+            new BillingTreatmentItem(Name = name + ' Adv', BillingTreatmentId = t.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(Name = name + ' Arr', BillingTreatmentId = t.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+        };
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :t.Id];
         for (BillingTreatmentItem item : items) {
             item.Status = 'Active';
@@ -1595,19 +1644,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         LegalEntity le = new LegalEntity(Name = 'BSG Cap Mixed LE', Status = 'Active');
         insert le;
         String cur = UserInfo.getDefaultCurrency();
-        BillingTreatment mixed = new BillingTreatment(Name = 'BSG Cap Mixed', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
-        insert mixed;
-        insert new List<BillingTreatmentItem>{
-            new BillingTreatmentItem(Name = 'BSG Cap Mixed Adv', BillingTreatmentId = mixed.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
-            new BillingTreatmentItem(Name = 'BSG Cap Mixed Arr', BillingTreatmentId = mixed.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
-        };
-        List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :mixed.Id];
-        for (BillingTreatmentItem item : items) {
-            item.Status = 'Active';
-        }
-        update items;
-        mixed.Status = 'Active';
-        update mixed;
+        insertActiveMixedTreatment(le, 'BSG Cap Mixed', cur);
 
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1;
         Test.startTest();
@@ -1624,7 +1661,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         for (String message : messages) {
-            Assert.isTrue(message.contains('cut off at 1 items'), 'A cut mixed treatment is never matched: ' + message);
+            Assert.isTrue(message.contains('cut off at 1 item,'), 'A cut mixed treatment is never matched: ' + message);
         }
     }
 
@@ -1644,6 +1681,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(1, kept.size());
         Assert.areEqual(t1, kept[0].treatmentId);
         Assert.areEqual(3, rows.size(), 'The input list is not changed.');
+    }
+
+    @isTest
+    static void itemReadCap_isTheDocumented1000() {
         Assert.areEqual(1000, RLM_BillingScheduleGroupService.ITEM_READ_CAP, 'The cap is the documented 1000.');
     }
 

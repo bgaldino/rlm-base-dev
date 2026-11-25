@@ -40,9 +40,11 @@
  * active, non-milestone, billable treatments of the legal entity, in the charge's currency, counting
  * only their active items typed Advance or Arrears (a None-type item is ignored; several items of the
  * same timing are fine). The read filters on the charge's currency and is capped at 1000 items, oldest
- * treatment first; when the cap is hit the last treatment read is dropped (it may be cut short), and
- * treatments beyond the cap are not considered. Recurring charge: the first treatment whose items all bill in the chosen
- * timing; a treatment with items in both timings is ambiguous and skipped. One-time charge (the
+ * treatment first; one row past the cap shows the read was cut off, the last treatment read is then
+ * dropped when the extra row belongs to it (it may be cut short), and treatments beyond the cap are not
+ * considered. A cut-off read that yields no choice, or (one-time charge) a choice that is not
+ * Advance-only, is refused with a message saying the lookup was cut off. Recurring charge: the first
+ * treatment whose items all bill in the chosen timing; a treatment with items in both timings is ambiguous and skipped. One-time charge (the
  * billing term unit is OneTime): timing is moot, so ambiguity does not apply; the first Advance-only
  * treatment, else the first Arrears-only one, else (last, because what the platform bills for it on a
  * one-time charge is unmeasured) the first treatment with both timings (measured: the platform picks a treatment
@@ -771,7 +773,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         if (truncated) {
             throw RLM_AuraErrors.handled(
                 'The billing treatment lookup for ' + legalEntityPhrase(legalEntityId) + ' in ' + currencyIsoCode
-                + ' was cut off at ' + ITEM_READ_CAP + ' items, so a matching treatment may not have been seen'
+                + ' was cut off at ' + ITEM_READ_CAP + (ITEM_READ_CAP == 1 ? ' item' : ' items') + ', so a matching treatment may not have been seen'
                 + (choice.skippedAmbiguous == null ? '' : ' (a treatment with items in both advance and arrears was also skipped)')
                 + '. Ask your administrator to consolidate or deactivate treatments, or choose another legal entity or currency.');
         }
