@@ -659,8 +659,8 @@ For a clean macOS workstation, in order:
    the repo, then `cd` in: a restored tab that reopens in the repo starts with
    the system PATH order (see §2, `~/.zprofile`).
 6. **Chrome for Testing (every machine while Chrome 158.0.8127.x is current;
-   also managed workstations).** If stock Chrome can't drive Salesforce Setup
-   pages on this machine, install Chrome for Testing 157.0.8103.78 and
+   also managed workstations).** On Chrome 158.0.8127.x, or whenever stock
+   Chrome can't drive Salesforce Setup pages on this machine, install Chrome for Testing 157.0.8103.78 and
    put `CHROME_BINARY` and `CHROMEDRIVER_PATH` in `.env.local` at the repo root
    (gitignored; `.envrc` and `./tui-cci` both load it), per
    [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations).

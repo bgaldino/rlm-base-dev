@@ -334,7 +334,7 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Use t
 
 ### Headless robot: "Unable to receive message from renderer" on Setup pages
 
-Chrome launches and the driver connects, but the renderer dies when the Robot step loads a Salesforce Setup page. This has been seen on managed workstations with stock Chrome; the same build succeeds on other machines. Install Chrome for Testing and point the Robot helpers at it with `CHROME_BINARY` and `CHROMEDRIVER_PATH`. Steps: [Chrome for Testing (managed workstations)](local-installation.md#chrome-for-testing-managed-workstations). Then rerun the failed step on the same org; a Robot step failure does not require a new org.
+Chrome launches and the driver connects, but the renderer dies when the Robot step loads a Salesforce Setup page. This has been seen on managed workstations with stock Chrome; the same build succeeds on other machines. (A different symptom, `StaleElementReferenceException` on an XPath lookup on any machine, comes from Chrome 158.0.8127.x; the same pin fixes it.) Install Chrome for Testing 157.0.8103.78 and point the Robot helpers at it with `CHROME_BINARY` and `CHROMEDRIVER_PATH`. Steps: [Chrome for Testing (managed workstations)](local-installation.md#chrome-for-testing-managed-workstations). Then rerun the failed step on the same org; a Robot step failure does not require a new org.
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
