@@ -385,13 +385,17 @@ class ManageExpressionSets(BaseSalesforceTask):
 
     def _parse_version_names_option(self) -> List[str]:
         """Get version names from options or discover from metadata files."""
-        version_names = requested_names(self.options.get("version_full_names"), "version_full_names", TaskOptionsError)
+        version_names = requested_names(
+            self.options.get("version_full_names"), "version_full_names", TaskOptionsError
+        )
         if not version_names:
             discovered_names = self._discover_version_names_from_metadata()
             if not discovered_names:
                 raise TaskOptionsError(
                     "No version_full_names provided and no versions discovered from metadata_path"
                 )
+            # Blank counts as not set, so name the fallback: the operation acts on every discovered version.
+            self.logger.info(f"version_full_names not set: using all {len(discovered_names)} discovered version(s)")
             return discovered_names
 
         return version_names

@@ -17,7 +17,9 @@ set's Metadata, which the Tooling API returns one record at a time. The task use
 status and warn-and-ignore the other two. list_versions also selected Rank, StartDate, Label and
 Description, none of which exist on ExpressionSetDefinitionVersion, so it failed on every org.
 """
+import os
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -163,15 +165,45 @@ _, err = run({"operation": "list", "sort_by": 0})
 check("an int 0 sort_by is rejected, not defaulted", err is not None and "sort_by must be" in str(err), repr(err))
 fake, _ = run({"operation": "list", "developer_names": ["A", "B"]})
 check("a list developer_names still works", "DeveloperName IN ('A', 'B')" in fake.queries[0], fake.queries[0])
-def parsed_versions(value):
+
+
+def parsed_versions(options):
+    """_parse_version_names_option's result, or the exception it raised."""
     task = ManageExpressionSets.__new__(ManageExpressionSets)
-    task.options = {"version_full_names": value}
-    return task._parse_version_names_option()
+    task.options = options
+    LOGS.clear()
+    task.logger = types.SimpleNamespace(info=LOGS.append)
+    try:
+        return task._parse_version_names_option()
+    except Exception as exc:
+        return exc
 
 
 check("version_full_names: string, list, tuple and comma items parse alike",
-      parsed_versions("A_V1, B_V1") == parsed_versions(["A_V1", "B_V1"]) == parsed_versions(("A_V1", "B_V1"))
-      == parsed_versions(["A_V1,B_V1"]) == ["A_V1", "B_V1"])
+      all(parsed_versions({"version_full_names": v}) == ["A_V1", "B_V1"]
+          for v in ("A_V1, B_V1", ["A_V1", "B_V1"], ("A_V1", "B_V1"), ["A_V1,B_V1"])))
+
+with tempfile.TemporaryDirectory() as tmp:
+    meta_dir = Path(tmp) / "force-app/main/default/expressionSetDefinition"
+    meta_dir.mkdir(parents=True)
+    (meta_dir / "X.expressionSetDefinition-meta.xml").write_text(
+        '<ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">'
+        "<versions><fullName>X_V1</fullName></versions></ExpressionSetDefinition>")
+    for blank in (None, "", "  ", []):
+        got = parsed_versions({"version_full_names": blank, "metadata_path": str(meta_dir)})
+        check(f"version_full_names {blank!r} falls through to discovery and names the fallback",
+              got == ["X_V1"] and any("not set: using all 1" in m for m in LOGS), repr((got, LOGS)))
+    cwd = os.getcwd()
+    os.chdir(tmp)
+    try:
+        for blank in (None, "", " "):
+            got = parsed_versions({"metadata_path": blank})
+            check(f"metadata_path {blank!r} means the default path", got == ["X_V1"], repr(got))
+    finally:
+        os.chdir(cwd)
+    got = parsed_versions({"metadata_path": [str(meta_dir)]})
+    check("a list metadata_path is refused", "single value" in str(got), repr(got))
+
 for op in ("activate_version", "deactivate_version"):
     _, err = run({"operation": op, "version_full_name": "  "})
     check(f"{op}: a blank version_full_name is missing", err is not None and "is required" in str(err), repr(err))

@@ -40,7 +40,7 @@ def split_names(value, option: str, exc=ValueError) -> List[str]:
         for item in value:
             raw.extend(str(item).split(","))
     else:
-        raise exc(f"{option} must be a comma-separated string or a list of strings")
+        raise exc(f"{option} must be a comma-separated string, or a list or tuple of strings")
     names = list(dict.fromkeys(n.strip() for n in raw if n and n.strip()))
     if not names:
         raise exc(f"{option} contains no names")
