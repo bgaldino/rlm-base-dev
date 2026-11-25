@@ -25,8 +25,9 @@ Checks (formulas are documented in
 ``invoice_line_balance``
     ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
     each rollup equals the net of the line's application rows. Skipped at Header
-    Level or when the level is undetermined (no application rows and no
-    ``SettlementLevel`` in the set), for an invoice that is not Posted or has Tax
+    Level, for an invoice with no level of its own (no application rows and no
+    ``SettlementLevel``) when the set has no single level (undetermined or mixed),
+    for an invoice that is not Posted or has Tax
     lines or header tax, for an
     invoice whose applications are header rows only, and for a line with a
     converted-negative or adjustment amount. An invoice with no lines fails.
@@ -47,7 +48,8 @@ Checks (formulas are documented in
 The net of a set of application rows is the sum of ``Applied`` amounts minus the sum
 of ``Unapplied`` amounts (absolute value, since the sign of an Unapplied row's
 ``Amount`` has not been measured). Amounts compare exactly as Decimals; ids may be 15
-or 18 characters and are normalized to 18 before querying.
+or 18 characters and are normalized to 18 before querying; an 18-character id's
+case is restored from its suffix, as Salesforce does.
 """
 
 from __future__ import annotations
@@ -170,6 +172,27 @@ def _id18(value: str) -> str:
     return base + suffix
 
 
+def _restore_case(value: str) -> Optional[str]:
+    """Return an 18-character id with the case of its first 15 characters restored.
+
+    As Salesforce does, the suffix decides the case: each suffix character marks which
+    of five characters are upper case. None when no casing matches (a marked
+    character is a digit, or a suffix character is outside the alphabet).
+    """
+    chars = list(value[:15])
+    for chunk, mark in enumerate(value[15:].upper()):
+        if mark not in _SUFFIX_CHARS:
+            return None
+        bits = _SUFFIX_CHARS.index(mark)
+        for i in range(5):
+            pos = chunk * 5 + i
+            upper = bool(bits & (1 << i))
+            if upper and not chars[pos].isalpha():
+                return None
+            chars[pos] = chars[pos].upper() if upper else chars[pos].lower()
+    return "".join(chars) + value[15:].upper()
+
+
 def _check_ids(ids: Iterable[str], label: str) -> list[str]:
     """Validate ids and return them in 18-character form, deduplicated, in order."""
     out: list[str] = []
@@ -179,10 +202,13 @@ def _check_ids(ids: Iterable[str], label: str) -> list[str]:
             continue
         if not _ID_RE.match(value):
             raise VerifyError(f"{label}: {value!r} is not a Salesforce id")
-        canonical = _id18(value)
-        if len(value) == 18 and value[15:].upper() != canonical[15:]:
-            raise VerifyError(f"{label}: {value!r} has a bad checksum suffix "
-                              f"(expected {canonical})")
+        if len(value) == 18:
+            canonical = _restore_case(value)
+            if canonical is None:
+                raise VerifyError(f"{label}: {value!r} has a checksum suffix that matches "
+                                  "no casing of its first 15 characters")
+        else:
+            canonical = _id18(value)
         if canonical not in out:
             out.append(canonical)
     return out
@@ -497,7 +523,7 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     return out
 
 
-def _check_line_balance(idx: _Index, level: Optional[str], source: str) -> list[dict]:
+def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
@@ -506,10 +532,12 @@ def _check_line_balance(idx: _Index, level: Optional[str], source: str) -> list[
                                "level is header; line balances at Header Level are not "
                                "measured"))
             continue
-        if source == "undetermined":
+        if level is None and not _evidence(idx, invoice):
+            # Undetermined set, or a mixed set and this invoice shows no level itself.
             out.append(_result("invoice_line_balance", iid, "skip",
                                "level undetermined (no application rows or SettlementLevel "
-                               "in the set); line balances are measured at Line Level only"))
+                               "on this invoice, and no single level for the set); line "
+                               "balances are measured at Line Level only"))
             continue
         not_posted = _not_posted(invoice)
         if not_posted:
@@ -678,7 +706,7 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
     results = (
         _check_level(idx, level, source)
         + _check_invoice_balance(idx)
-        + _check_line_balance(idx, level, source)
+        + _check_line_balance(idx, level)
         + _check_payment_balance(records, idx)
         + _check_unapplied(records)
     )

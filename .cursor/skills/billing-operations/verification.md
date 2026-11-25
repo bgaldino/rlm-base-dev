@@ -40,7 +40,10 @@ Exit codes:
   stdout. `verify` refuses abbreviated options: `--jso` is an unrecognized argument.
 
 Ids may be 15 or 18 characters; they are converted to the 18-character form before
-querying. From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
+querying. As in Salesforce, the suffix of an 18-character id restores the case of its
+first 15 characters, so `3TT000000000001AAA` reads as `3tt000000000001AAA`; an id whose
+suffix fits no casing is refused. If stdout is closed early (`verify --json | head -1`),
+the output stops quietly and the exit code is still the checks' result. From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
 manifests carry no payment ids (no stage writes them); `payment_id` or `payment_ids` is
 read only if a manifest has one. A manifest with no ids is only a warning when another
 source supplies ids.
@@ -55,7 +58,7 @@ those payments.
 The net of a set of application rows is the sum of `Applied` amounts minus the sum of
 `Unapplied` amounts. Amounts compare exactly as decimals, with no rounding, so a
 currency with zero or three decimal places is checked as it is stored. A null `Balance`
-always fails.
+fails wherever the check runs (a skipped case skips).
 
 **Posted invoices only.** The balance formulas were measured on Posted invoices, so
 `invoice_balance` and `invoice_line_balance` skip an invoice whose `Status` is anything
@@ -69,7 +72,7 @@ reason; it never guesses a formula.
 | ----- | ----------- |
 | `application_level` | The invoice has no application rows of the other level, and its `SettlementLevel` does not name the other level. Line rows: `PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`. Header rows: `PaymentLineInvoice`, `CreditMemoInvApplication`. Skipped for an invoice with neither application rows nor a `SettlementLevel`, whether the level was detected or forced with `--expect-level`. |
 | `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows (both levels). Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted, has `Type` Tax lines, or has a non-zero `TotalTaxesCapturedAtHeader`. |
-| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected) or undetermined (no application rows or `SettlementLevel` in the set), for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
+| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected), for an invoice with no application rows or `SettlementLevel` of its own when the set has no single level (undetermined or mixed), for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
 | `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Checked for a Processed payment and for a Canceled payment with no application rows; skipped for any other status or a Canceled payment with rows. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
 | `unapplied_rows` | Every `Unapplied` row pairs, by its self-lookup, with an `Applied` row marked unapplied (`UnappliedStatus` or `HasBeenUnapplied` = `Yes`), and every `Applied` row marked unapplied has its pair, one to one: a second `Unapplied` row on the same `Applied` row fails. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. The pair's amounts are not compared (see below). |
 

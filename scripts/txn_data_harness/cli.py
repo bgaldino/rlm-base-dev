@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -400,13 +401,27 @@ def _cmd_verify(args: argparse.Namespace) -> int:
             message = f"unexpected {type(exc).__name__}: {exc}"
         print(f"ERROR: {message}", file=sys.stderr)
         if args.json:
-            print(json.dumps({"ok": False, "error": message}, indent=2))
+            _emit(json.dumps({"ok": False, "error": message}, indent=2))
         return 2
-    if args.json:
-        print(json.dumps(report, indent=2))
-    else:
-        print(billing_verify.render_text(report))
+    _emit(json.dumps(report, indent=2) if args.json else billing_verify.render_text(report))
     return 0 if report["ok"] else 1
+
+
+def _emit(text: str) -> None:
+    """Print to stdout; a reader that closed the pipe (``| head -1``) is not an error.
+
+    The exit code stays the one already computed. stdout is pointed at /dev/null so
+    the interpreter's final flush does not raise again.
+    """
+    try:
+        print(text)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        try:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+        except (OSError, ValueError):  # no real file descriptor (captured stdout)
+            pass
 
 
 def _cmd_prune(args: argparse.Namespace) -> int:

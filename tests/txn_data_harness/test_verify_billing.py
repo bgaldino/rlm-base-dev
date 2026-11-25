@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -513,11 +514,21 @@ def test_fifteen_character_id_gets_the_case_safe_suffix():
         "3ttWt000002lg4HIAQ", "0aQWt000000XOLJMA4"]
 
 
-def test_eighteen_character_id_with_wrong_suffix_is_rejected():
-    with pytest.raises(VerifyError, match="checksum"):
-        split_ids(["3ttWt000002lg4HAAA"], "ids")
-    # The suffix is case-insensitive.
-    assert split_ids(["3ttWt000002lg4Hiaq"], "ids") == ["3ttWt000002lg4HIAQ"]
+@pytest.mark.parametrize("typed", ["3TTWT000002LG4HIAQ", "3ttwt000002lg4hiaq",
+                                   "3ttWt000002lg4Hiaq", "3ttWt000002lg4HIAQ"])
+def test_eighteen_character_id_case_is_restored_from_its_suffix(typed):
+    # As Salesforce does: the suffix says which characters are upper case.
+    assert split_ids([typed], "ids") == ["3ttWt000002lg4HIAQ"]
+
+
+@pytest.mark.parametrize("bad", [
+    "3tt000000000001BAA",  # B marks the first character, a digit, as upper case
+    "3tt000000000001AA9",  # 9 is outside the suffix alphabet
+])
+def test_eighteen_character_id_whose_suffix_fits_no_casing_is_refused(bad):
+    with pytest.raises(VerifyError, match="matches no casing") as raised:
+        split_ids([bad], "ids")
+    assert "expected" not in str(raised.value)  # never suggest a different record
 
 
 def test_malformed_id_is_rejected_before_any_query():
@@ -735,6 +746,45 @@ def test_header_rows_are_read_for_every_invoice():
         assert "3tt0000000000H1AAI" in {r["InvoiceId"] for r in records[obj]}, obj
     assert [r["Id"] for r in records["Payment"]] == ["0aQ0000000000H1EAI"]
     assert run_checks(records)["ok"] is True
+
+
+def test_mixed_set_skips_line_balances_of_an_invoice_with_no_level_of_its_own():
+    # INV1 line rows, INV3 a header row: mixed. INV2 has neither, so its line
+    # (deliberately inconsistent) is skipped rather than held to the Line formula.
+    def mutate(data):
+        data["PaymentLineInvoice"].append({
+            "Id": "0b8000000000099AAA", "InvoiceId": "3tt000000000003AAA",
+            "PaymentId": "0aQ000000000002EAA", "Amount": 0, "Type": "Applied",
+            "HasBeenUnapplied": "No", "AssociatedPaymentLineId": None})
+        _row(data, "InvoiceLine", "5TV000000000021GAA")["Balance"] = 1
+    report = _line(mutate=mutate)
+    assert report["level_source"] == "mixed"
+    assert report["failed_checks"] == ["application_level"]
+    result = next(r for r in report["checks"] if r["check"] == "invoice_line_balance"
+                  and r["subject"].startswith("3tt000000000002AAA"))
+    assert result["status"] == "skip" and "level undetermined" in result["detail"]
+
+
+def test_unapplied_row_paired_with_another_unapplied_row_fails():
+    # The partner is flagged Yes but is not an Applied row.
+    report = _line(mutate=lambda d: _row(d, "PaymentLineInvoiceLine", "1Al000000000002CAA")
+                   .update(Type="Unapplied"))
+    result = next(r for r in report["checks"] if r["check"] == "unapplied_rows"
+                  and r["subject"] == "PaymentLineInvoiceLine/1Al000000000003CAA")
+    assert result["status"] == "fail" and "no Applied row" in result["detail"]
+
+
+def test_credit_rows_alone_are_evidence_of_the_wrong_level():
+    # INV2: one header credit application, no payment rows, SettlementLevel null.
+    def mutate(data):
+        data["CreditMemoInvApplication"].append({
+            "Id": "0c0000000000099AAA", "InvoiceId": "3tt000000000002AAA",
+            "CreditMemoId": "50g000000000099AAA", "Amount": 0, "Type": "Applied",
+            "HasBeenUnapplied": "No", "AssociatedLineId": None})
+    report = _line(level="line", mutate=mutate)
+    result = next(r for r in report["checks"] if r["check"] == "application_level"
+                  and r["subject"] == "3tt000000000002AAA")
+    assert result["status"] == "fail" and "1 header-level row(s)" in result["detail"]
 
 
 # ------------------------------------------------------------------ CLI
@@ -1000,3 +1050,25 @@ def test_cli_verify_latest_api_version_with_odd_body_exits_two(monkeypatch, caps
     rc = cli.main(["verify", "--org", "fake", "--api-version", "latest",
                    "--invoice-ids", LINE_INVOICES[0], "--json"])
     _assert_error_exit(rc, capsys, "unexpected KeyError")
+
+
+def test_cli_verify_closed_stdout_keeps_the_exit_code(recorded_org, monkeypatch):
+    # `verify --json | head -1`: the reader closes the pipe; no traceback, and the
+    # exit code is still the checks' result.
+    class ClosedPipe:
+        def write(self, text):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def flush(self):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def fileno(self):
+            raise ValueError("no descriptor")
+
+    monkeypatch.setattr(sys, "stdout", ClosedPipe())
+    assert cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0],
+                     "--json"]) == 0
+    assert cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0],
+                     "--expect-level", "header"]) == 1
+    assert cli.main(["verify", "--org", "fake", "--invoice-ids", "3tt00000000000ZAAQ",
+                     "--json"]) == 2
