@@ -194,8 +194,8 @@ A **billing policy** is assigned to products (`Product2.BillingPolicyId`) and gr
 **billing treatments**. Help describes a non-milestone treatment with one **treatment item**,
 which holds the Billing Type (Advance, Arrears, None)
 [Help: `ind.billing_policies_and_treatments_create`]; the platform also accepts several items on
-one (a Percentage item and a Remainder item activate together in
-`RLM_BillingScheduleGroupServiceTest` on 264) [Repo: `unpackaged/post_billing_ui/classes/`].
+one: a Percentage item and a Remainder item activate together (in `RLM_BillingScheduleGroupServiceTest`)
+[Measured: 2026-11-26, 264, scratch].
 
 How an order product gets its treatment, when it doesn't have one
 already [Help: `ind.billing_treatment_resolution`]:
@@ -218,11 +218,11 @@ oldest first, counting only their active items typed Advance or Arrears (a None-
 ignored; several items of one timing are fine). A recurring charge takes the first treatment
 whose items all bill in the chosen timing; one with items in both timings is ambiguous and
 skipped (when it is the only match, the refusal says it has items in both timings and must be
-split). A one-time charge offers no timing (one sent is ignored), so ambiguity does not apply:
-it takes the first Advance-only treatment, else the first Arrears-only one, else (last, since
-what the platform bills for it on a one-time charge is unmeasured) the first with both timings
-[Measured: 2026-11-26, 264, scratch: with no treatment sent the platform picked a treatment of
-the legal entity whatever the currency, a JPY one for a EUR charge, so the service sends one].
+split). A one-time charge offers no timing (one sent is ignored), so ambiguity does not apply, but a
+treatment is still sent [Measured: 2026-11-26, 264, scratch: with no treatment sent the platform
+picked a treatment of the legal entity whatever the currency, a JPY one for a EUR charge]: the
+first Advance-only treatment, else the first Arrears-only one, else (last, since what the
+platform bills for it on a one-time charge is unmeasured) the first with both timings.
 A legal entity with no such treatment, including one whose treatments are all in another
 currency, is refused before the action with a message naming the currency and entity (and the
 timing, for a recurring charge); a charge currency that is not an active `CurrencyType` of the

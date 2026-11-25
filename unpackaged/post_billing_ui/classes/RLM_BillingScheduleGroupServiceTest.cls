@@ -1326,9 +1326,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('Page Ship', txn.get('ShippingCity__std'));
     }
 
-    // A page account the user cannot find (or read) refuses create instead of being ignored.
+    // A page account the user cannot find refuses create instead of being ignored.
     @isTest
-    static void createViaAPI_pageAccountNotReadable_isRefused() {
+    static void createViaAPI_pageAccountNotFound_isRefused() {
         Account own = new Account(Name = 'BSG Own For Missing Page');
         insert own;
         BillingAccount ba = new BillingAccount(Name = 'BSG Missing Page BA', AccountId = own.Id);
@@ -1508,7 +1508,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(cutOff);
-        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items,'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items, so a matching treatment may not have been seen'), cutOff.getMessage());
         Assert.isTrue(treatmentIds.contains(foundAdvance), 'A treatment read before the cap is still found.');
         Assert.isTrue(treatmentIds.contains(foundOneTime), 'A one-time charge takes an Advance-only choice from a cut-off read.');
         Assert.isNotNull(none);
@@ -1574,6 +1574,33 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(cutOff, 'An Arrears-only choice from a cut-off read is not taken for a one-time charge.');
         Assert.isTrue(cutOff.getMessage().contains('cut off at 1 item,'), cutOff.getMessage());
+        Assert.isTrue(cutOff.getMessage().contains('Advance-only treatment, which a one-time charge prefers'),
+            'The refusal says why the seen treatment was not taken: ' + cutOff.getMessage());
+    }
+
+    // The same rule for a mixed choice: cap 2 over T1 mixed and T2 Advance-only. The extra row is T2's, so
+    // T1 is kept and is the one-time choice, but it is not Advance-only and the read was cut off.
+    @isTest
+    static void findBillingTreatmentId_oneTimeCutOffWithOnlyMixed_isRefused() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap OneTime Mixed LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        insertActiveMixedTreatment(le, 'BSG Cap OneTime Mixed T1', cur);
+        insertActiveTreatment(le, 'BSG Cap OneTime Mixed T2', 'Advance', cur);
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 2;
+        Test.startTest();
+        AuraHandledException cutOff;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+        } catch (AuraHandledException e) {
+            cutOff = e;
+        }
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Test.stopTest();
+
+        Assert.isNotNull(cutOff, 'A mixed choice from a cut-off read is not taken for a one-time charge.');
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items,'), cutOff.getMessage());
     }
 
     // The cut-off message also says a mixed treatment was skipped when one was read whole. Cap 2 over T1

@@ -65,10 +65,10 @@ takes the first treatment whose items all bill in the chosen timing; one with it
 is ambiguous and skipped (when it is the only match the refusal says it has items in both timings
 and must be split into one treatment per timing, naming it when readable). A one-time charge
 (billing term unit OneTime) offers no timing and ignores one if sent, so ambiguity does not apply:
-it takes the first Advance-only treatment, else the first Arrears-only one, else (last, since what
-the platform bills for it on a one-time charge is unmeasured) the first with both timings (measured:
-left to itself the platform picks a treatment of the legal entity whatever the currency, so one is
-sent). The charge currency must be an active `CurrencyType`, or create refuses before the lookup.
+a treatment is still sent (measured: left to itself the platform picks a treatment of the legal
+entity whatever the currency): the first Advance-only treatment, else the first Arrears-only one,
+else (last, since what the platform bills for it on a one-time charge is unmeasured) the first with
+both timings. The charge currency must be an active `CurrencyType`, or create refuses before the lookup.
 The treatment read filters on the charge currency and is capped at 1000 items, oldest first; one row
 past the cap shows the read was cut off, and the last treatment read is then dropped when the extra
 row belongs to it (it may be cut short). When the page account differs from the billing account's
