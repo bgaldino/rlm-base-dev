@@ -237,7 +237,7 @@ with tempfile.TemporaryDirectory() as tmp:
     arts.mkdir(parents=True)
     (arts / "bom.md").write_text("\ufeff" + FM + BODY, encoding="utf-8")
     rc, out = run_scan(root, lambda: check_mod.scan("999"))
-    check("check prints the strip-the-BOM hint and a real release in its fix line",
+    check("check prints the strip-the-BOM hint for a BOM file",
           rc == 1 and "strip the UTF-8 BOM" in out)
     (arts / "bad.md").write_text(FM + BODY, encoding="utf-8")
     rc, out = run_scan(root, lambda: check_mod.scan("999"))
@@ -266,6 +266,37 @@ with tempfile.TemporaryDirectory() as tmp:
     check("_relink_retained logs the added count and the skipped file",
           any("added the attribution footer to 1 retained" in m for m in fake.logger.lines)
           and any("nofm.md (no-frontmatter)" in m for m in fake.logger.lines))
+
+# a source_url containing ")" gets a footer the check recognises, and the backfill is idempotent
+PURL = "https://developer.salesforce.com/docs/x/a_(b).htm"
+with tempfile.TemporaryDirectory() as tmp:
+    arts = Path(tmp) / "articles"
+    arts.mkdir()
+    f = arts / "p.md"
+    f.write_text(FM.replace(URL, PURL) + BODY, encoding="utf-8")
+    ch1, _ = backfill_attribution(arts)
+    once = f.read_text(encoding="utf-8")
+    ch2, _ = backfill_attribution(arts)
+    check("a source_url with ')' gets a footer has_footer recognises, so a rerun changes nothing",
+          ch1 == ["p.md"] and has_footer(once) and ch2 == [] and f.read_text(encoding="utf-8") == once
+          and once.count("Source attribution") == 1)
+    check("has_footer accepts any URL attribution_note was given",
+          all(has_footer("x\n\n" + attribution_note(u, "Salesforce developer documentation"))
+              for u in (PURL, "https://e.com/a)b)c", "https://e.com/a?x=(1)&y=2")))
+
+# trailing blank lines and spaces after the footer are still ok
+check("a footer followed by blank lines and trailing spaces is ok",
+      attribution_state(FM + BODY + "\n" + note + "  \n\n\n   \n")[0] == "ok")
+
+# frontmatter shapes
+check("empty frontmatter is closed: no-source_url, listed only",
+      attribution_state("---\n---\n\nbody\n") == ("no-source_url", "") and not is_failure("no-source_url"))
+check("a closing --- as the last line with no newline is closed",
+      attribution_state(f"---\nsource_url: {URL}\n---") == ("missing", URL))
+check("a closing --- followed by a body is closed",
+      attribution_state(f"---\nsource_url: {URL}\n---\nbody\n") == ("missing", URL))
+check("a --- line inside the body does not make unterminated frontmatter closed",
+      attribution_state("---\ntitle: T\nbody\n") [0] == "unterminated-frontmatter")
 
 print(f"\n{_passed}/{_total} passed")
 sys.exit(0 if _passed == _total else 1)

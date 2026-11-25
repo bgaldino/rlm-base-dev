@@ -360,6 +360,9 @@ def attribution_note(source_url: str, content: str) -> str:
     )
 
 
+# Frontmatter: an opening `---` line, then lines up to a closing `---` line. Empty frontmatter
+# (`---\\n---`) and a closing line that ends the file with no newline both count as closed.
+_FRONTMATTER_BLOCK = re.compile(r"---\n(.*?)^---[ \t]*$", re.S | re.M)
 _SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
 
 
@@ -370,7 +373,7 @@ def _footer_pattern():
     drift; ``guard._ATTRIBUTION`` strips from the same opening, so a footer matched here is
     one the guard comparison ignores."""
     note = attribution_note("URLTOKEN", "LABELTOKEN")
-    pat = re.escape(note).replace("URLTOKEN", r"[^)\s]+").replace("LABELTOKEN", r"[^\n(]+")
+    pat = re.escape(note).replace("URLTOKEN", r"\S+").replace("LABELTOKEN", r"[^\n(]+")
     return re.compile(r"(?:\A|\n)" + pat + r"\s*\Z")
 
 
@@ -398,7 +401,8 @@ def attribution_state(text: str) -> Tuple[str, str]:
 
     ``state`` is "ok" (ends with the footer), "missing" (frontmatter with a source_url, no
     footer), "bom-frontmatter" (a UTF-8 BOM before frontmatter), "unterminated-frontmatter"
-    (opens with ``---`` and never closes), or "no-frontmatter" / "no-source_url" (nothing to
+    (opens with ``---`` and never closes; empty frontmatter ``---``/``---`` is closed, and is
+    "no-source_url"), or "no-frontmatter" / "no-source_url" (nothing to
     build a footer from). A BOM before a file with no frontmatter is "no-frontmatter". CRLF
     frontmatter cannot reach this: files are read in text mode, which folds CRLF to LF. The
     one definition the backfill and ``check`` share.
@@ -409,10 +413,10 @@ def attribution_state(text: str) -> Tuple[str, str]:
         return "no-frontmatter", ""
     if has_footer(text):
         return "ok", ""
-    end = text.find("\n---\n", 4)
-    if end < 0:
+    fm = _FRONTMATTER_BLOCK.match(text)
+    if not fm:
         return "unterminated-frontmatter", ""
-    m = _SOURCE_URL_LINE.search(text[:end])
+    m = _SOURCE_URL_LINE.search(fm.group(1))
     if not m:
         return "no-source_url", ""
     return "missing", m.group(1).strip("'\"")
