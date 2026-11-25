@@ -227,6 +227,12 @@ releases:
       # `rlm` is a site source: the 264 corpus was switched from atlas in place and
       # its manifest carries `legacy_id_map` (old atlas id to slug). `api_version` is
       # the API the release serves; a capture refuses when the live site shows another.
+      #
+      # `industries` is a site source too (Industries Common Resources guide, sectioned).
+      # Its atlas corpus was switched in place with a sectioned `--mode refresh`, which the
+      # coverage guard allows only when the sections replace every captured atlas page:
+      # the 19 pages the site does not serve (Metadata API types, 2 Connect, 1 Tooling)
+      # were named with `--accept-uncovered` (a CLI flag, never a preset value).
       rlm:
         source: site
         site_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/rlm-get-started.html

@@ -288,7 +288,9 @@ The 264 presets `rlm` and `industries` are site sources: their corpora
 switched from atlas in place with `--mode refresh` (each manifest carries `legacy_id_map`;
 the Industries switch was sectioned, so it passed the coverage guard with
 `--accept-uncovered` for the 19 Metadata API, Connect and Tooling pages the site does not
-serve). The 262 `industries` preset and `contracts` stay atlas. A sample run:
+serve), and five pages the site serves only as stubs stayed on their atlas text (the shrinkage
+guard refused them; their `legacy_id_map` slugs have no file, so cite the atlas `.htm` id).
+The 262 `industries` preset and `contracts` stay atlas. A sample run:
 
 ```bash
 python -m scripts.doc_snapshot dev-guide --release 264 --guide industries \
