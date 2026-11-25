@@ -446,7 +446,7 @@ class DevGuideSnapshot:
 
     def _init_options(self) -> None:
         validate_options(
-            self.options, "release_version", "release_name", list_options=("sections", "accept_shrinkage")
+            self.options, "release_version", "release_name", list_options=("sections", "accept_shrinkage", "accept_uncovered")
         )
         # YAML reads `output_dir: 266` or `doc_version: 264.0` as a number.
         for name in ("release_version", "release_name", "deliverable", "output_dir",
