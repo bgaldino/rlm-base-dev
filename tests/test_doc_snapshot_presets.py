@@ -78,7 +78,7 @@ def main():
     ind264 = presets.resolve(releases, "264", "dev_guide", "industries")
     check("264 industries sections match 262 (shared anchor)",
           ind264["sections"] == ind262["sections"] and len(ind262["sections"]) == 9)
-    dg = DevGuideSnapshot(ind264)
+    dg = DevGuideSnapshot(ind262)
     check("sections list becomes section_filters; follow_links defaults off",
           dg.options["section_filters"] == ind262["sections"] and dg.options["follow_links"] is False)
 
@@ -354,7 +354,7 @@ def main():
     cli._snapshot_class = lambda kind: _Fake
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            rc = cli.main(["dev-guide", "--release", "264", "--guide", "contracts",
+            rc = cli.main(["dev-guide", "--release", "262", "--guide", "industries",
                            "--section", "timeline"])
     finally:
         cli._snapshot_class = real
