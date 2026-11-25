@@ -959,12 +959,15 @@ class SiteGuideSnapshot:
         accepted = self.options["accept_uncovered"]
         refused = [old for old in uncovered if old not in accepted]
         if refused:
-            shown = ", ".join(refused[:20]) + (f", ... ({len(refused) - 20} more)" if len(refused) > 20 else "")
+            # an unmapped id has no site page, so no section can cover it
+            shown = ", ".join(
+                f"{old}{' (not on the site)' if old not in mapping else ''}" for old in refused[:20]
+            ) + (f", ... ({len(refused) - 20} more)" if len(refused) > 20 else "")
             raise OptionsError(
                 f"switching to the site would leave {len(refused)} captured atlas page(s) with no "
                 f"replacement in the selected section(s): {shown}. Their articles would be the only "
                 "copy. Name them with --accept-uncovered ID[,ID...] to keep them on atlas, or widen "
-                "the sections."
+                "the sections for pages that are on the site."
             )
         if uncovered:
             self.logger.warning(
