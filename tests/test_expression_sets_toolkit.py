@@ -2976,6 +2976,30 @@ def test_row_lock_retry():
         "for org 'x' [UNABLE_TO_LOCK_ROW]:\n[{\"errorCode\": \"UNABLE_TO_LOCK_ROW\"}]",
         error_codes=["UNABLE_TO_LOCK_ROW"])
 
+    from scripts.expression_sets._engine import is_row_lock
+    check("a parsed UNABLE_TO_LOCK_ROW code is a row lock",
+          is_row_lock(ExpressionSetClientError("PATCH failed", error_codes=["UNABLE_TO_LOCK_ROW"])))
+    check("a lock wrapped in another code's message is a row lock (retried)",
+          is_row_lock(ExpressionSetClientError(
+              "CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY: UNABLE_TO_LOCK_ROW, unable to obtain "
+              "exclusive access to this record",
+              error_codes=["CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY"])))
+    check("an error without parsed codes is matched by its text",
+          is_row_lock(RuntimeError("UNABLE_TO_LOCK_ROW: unable to obtain exclusive access")))
+    check("an error with no lock anywhere is not a row lock",
+          not is_row_lock(ExpressionSetClientError(
+              "INVALID_FIELD boom", error_codes=["INVALID_FIELD"])))
+
+    import scripts.expression_sets._lifecycle as lifecycle_mod
+    waits_seen = []
+    real_time = lifecycle_mod.time
+    lifecycle_mod.time = type("T", (), {"sleep": staticmethod(waits_seen.append)})
+    try:
+        LifecycleEngine(_PlanTransport(plans={})).sleep(3)
+    finally:
+        lifecycle_mod.time = real_time
+    check("engine.sleep resolves time.sleep at call time", waits_seen == [3], waits_seen)
+
     class _LockTransport(_PlanTransport):
         def __init__(self, failures, error=lock, **kw):
             super().__init__(**kw)

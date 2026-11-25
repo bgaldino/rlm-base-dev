@@ -2,9 +2,9 @@
 """The one expression-set deactivate → mutate → recover engine.
 
 Shared by the standalone toolkit (``_lifecycle.LifecycleEngine``) and the CCI task
-(``tasks/rlm_expression_set_connect.py``). Stdlib only, and it must stay that way:
-the CCI task imports it, and ``tests/test_expression_set_schema.py`` runs under base
-Python without CumulusCI.
+(``tasks/rlm_expression_set_connect.py``). Stdlib only, with no CumulusCI import, and
+it must stay that way: the CCI task imports it, and the toolkit runs without
+CumulusCI.
 
 :class:`LifecycleCore` owns the state machine — the procedure-plan cascade, the
 version-state transitions, the failure recovery and health report, and the delete
@@ -59,6 +59,17 @@ def row_lock_backoff(attempt: int) -> int:
     return attempt * 2
 
 
+def is_row_lock(exc: BaseException) -> bool:
+    """Whether ``exc`` reports the platform's ``UNABLE_TO_LOCK_ROW`` anywhere: a
+    parsed error code (the toolkit's ``ExpressionSetClientError.error_codes``) or
+    the message, which also catches a lock wrapped in another error (for example
+    ``CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY`` whose message carries it). The writes
+    retried are idempotent field sets, so a broad match is safe.
+    """
+    codes = getattr(exc, "error_codes", None) or []
+    return ROW_LOCK in codes or ROW_LOCK in str(exc)
+
+
 def retry_on_row_lock(call: Callable[[], Any], *, what: str,
                       emit: Callable[[str, str], None],
                       sleep: Callable[[float], None] = time.sleep,
@@ -73,7 +84,7 @@ def retry_on_row_lock(call: Callable[[], Any], *, what: str,
         try:
             return call()
         except Exception as exc:
-            if ROW_LOCK in str(exc) and attempt < attempts:
+            if is_row_lock(exc) and attempt < attempts:
                 wait = row_lock_backoff(attempt)
                 emit("warning", f"Row lock on {what} (attempt {attempt}/{attempts}). "
                                 f"Retrying in {wait}s.")

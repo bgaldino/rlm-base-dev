@@ -269,6 +269,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if resp.status_code in (200, 204):
                 return
             resp_text = resp.text or ""
+            # Anywhere in the body: the errorCode, or a message wrapping the lock.
             if ROW_LOCK in resp_text and attempt < max_attempts:
                 wait = row_lock_backoff(attempt)
                 self.logger.warning(

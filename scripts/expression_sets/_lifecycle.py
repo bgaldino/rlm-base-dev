@@ -52,8 +52,11 @@ class LifecycleEngine(LifecycleCore):
         self.log = logger or transport.logger
         self.max_wait = max(0, max_wait_seconds)
         self.poll = max(1, poll_interval_seconds)
-        # Waits (state polls, row-lock backoff); a test can replace it.
-        self.sleep = time.sleep
+
+    def sleep(self, seconds: float) -> None:
+        """Wait (state polls, row-lock backoff). ``time.sleep`` is looked up at call
+        time, so patching it works; a test can also assign ``engine.sleep``."""
+        time.sleep(seconds)
 
     # -- Engine I/O hooks ------------------------------------------------
 

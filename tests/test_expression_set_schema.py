@@ -2464,6 +2464,55 @@ def test_delete_refuses_an_active_null_rank_version():
           and "sf data update" not in backstop)
 
 
+def test_patch_sobject_row_lock_by_error_code():
+    # Todo pack 226: the CCI PATCH retries UNABLE_TO_LOCK_ROW wherever it appears in
+    # the error (the errorCode, or a message wrapping it), like the toolkit engine;
+    # these writes are idempotent field sets, so a retry is safe.
+    import json as _json
+    import logging
+    import tasks.rlm_expression_set_connect as mod
+
+    class _Resp:
+        def __init__(self, status, body):
+            self.status_code, self.text = status, _json.dumps(body) if body else ""
+
+    class _PatchTask(Connect):
+        _base_url = "https://x/services/data/v68.0"
+        _headers = {}
+
+        def __init__(self):
+            self.logger = logging.getLogger("test_patch_row_lock")
+            self.logger.addHandler(logging.NullHandler())
+
+    def run(responses):
+        calls, waits = [], []
+        real_patch, real_time = mod.requests.patch, mod.time
+        mod.requests.patch = lambda *a, **k: (calls.append(1), responses.pop(0))[1]
+        mod.time = type("T", (), {"sleep": staticmethod(waits.append)})
+        try:
+            _PatchTask()._patch_sobject("ExpressionSetVersion", "9QMx", {"IsActive": True})
+            error = None
+        except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+            error = exc
+        finally:
+            mod.requests.patch, mod.time = real_patch, real_time
+        return error, len(calls), waits
+
+    lock = [{"errorCode": "UNABLE_TO_LOCK_ROW", "message": "unable to obtain exclusive access"}]
+    error, calls, waits = run([_Resp(400, lock), _Resp(204, None)])
+    check("CCI PATCH: a parsed UNABLE_TO_LOCK_ROW is retried and then succeeds",
+          error is None and calls == 2 and waits == [2])
+    other = [{"errorCode": "FIELD_INTEGRITY_EXCEPTION",
+              "message": "value mentions UNABLE_TO_LOCK_ROW"}]
+    error, calls, waits = run([_Resp(400, other), _Resp(204, None)])
+    check("CCI PATCH: a lock wrapped in another errorCode's message is retried too",
+          error is None and calls == 2 and waits == [2])
+    plain = [{"errorCode": "FIELD_INTEGRITY_EXCEPTION", "message": "bad value"}]
+    error, calls, waits = run([_Resp(400, plain)])
+    check("CCI PATCH: an error with no lock anywhere is not retried",
+          error is not None and calls == 1 and waits == [])
+
+
 def test_import_replace_refuses_a_version_rebind():
     # Todo pack 172: on a multi-version set the CCI task imports only a one-version
     # payload for the targeted version whose label no other version shares — the
