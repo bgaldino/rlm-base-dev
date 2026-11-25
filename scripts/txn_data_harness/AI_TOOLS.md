@@ -337,7 +337,7 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   with another transaction in the batch (`cli run` refuses otherwise; `cli
   plan` warns): posting an invoice applies the account's open payment balance.
 - An application level that could not be read: resume with `cli step ...
-  --application-level line|header` (settlement `--to-stage` only, before
+  --application-level line|header` (`--to-stage payment_applied` only, before
   the target is reached). Once the payment is planned the level is
   fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
   run with `settlement.application_level` pinned).

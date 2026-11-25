@@ -497,7 +497,7 @@ value (null) means no payment, like leaving the key out.
   target (which runs nothing and changes nothing: an earlier error stays;
   only a step that runs and succeeds clears it). A recorded block without
   `payment` refuses `--to-stage payment_applied` before any step runs.
-  `--application-level line|header` (settlement targets only, not on a
+  `--application-level line|header` (`--to-stage payment_applied` only, not on a
   manifest that already reached the target; a value equal to the recorded
   level is ignored) sets the level when it could not be read or was read
   wrong, until the payment is planned; after that it is refused

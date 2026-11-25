@@ -635,6 +635,22 @@ def _step_command(ctx: StepContext, manifest: Manifest) -> str:
     return f"`cli step --manifest {manifest.run_id} --to-stage {stage}`"
 
 
+def _below_minor_unit(what: str, manifest: Manifest, places: int):
+    """A configured credit/payment that rounds to zero in the invoice currency.
+
+    The lines have an open balance, so skipping would advance the stage with
+    nothing written; refuse instead.
+    """
+    currency = (manifest.settlement_baseline or {}).get("currency") or "the org currency"
+    return SettlementError(
+        what,
+        f"the configured {what} rounds to 0 in {currency} ({places} decimal places), "
+        f"so nothing would be {'credited' if what == 'credit' else 'paid'}; use an "
+        "amount of at least one minor unit. Start a new run with a larger amount.",
+        record_id=manifest.invoice_id,
+    )
+
+
 def _client_error(what: str, exc, manifest: Manifest, detail: str):
     """The ``SettlementError`` for a 4xx: the server created nothing.
 
@@ -872,6 +888,8 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 places,
             )
             manifest.credit_amount_requested = requested
+            if open_amount > 0 and requested <= 0:
+                raise _below_minor_unit("credit", manifest, places)
             allocations = lifecycle.allocate(requested, chosen, capacity, places)
             if not allocations:
                 _warn(manifest, "credit skipped: the chosen lines have no open balance")
@@ -1016,9 +1034,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             return manifest
         amount, target, mode = plan_payment(spec.payment, open_amount, places)
         if amount <= 0:
-            _warn(manifest, "payment skipped: the computed amount is zero")
-            manifest.reached_stage = "payment_applied"
-            return manifest
+            raise _below_minor_unit("payment", manifest, places)
         manifest.payment_amount = amount
         manifest.payment_apply_target = target
         manifest.payment_mode = mode

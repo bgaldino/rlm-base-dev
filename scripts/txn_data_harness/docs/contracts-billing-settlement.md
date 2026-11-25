@@ -230,8 +230,11 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `INVALID_SESSION_ID`, measured), and `sf project retrieve start --metadata
   Settings:Billing` on `cli`, so nothing from our process carries a token
   there.
-- `cli step` writes `error` on the manifest for any failure (`SfApiError` and
-  transport errors as well as `LifecycleError`) before it exits.
+- When a step that `cli step` runs fails, `error` and `failure_class` are
+  written on the manifest for any failure (`SfApiError` and transport errors
+  as well as `LifecycleError`) before it exits. A refusal before any step
+  runs (`--config` differences, a target the recorded block cannot reach,
+  `--application-level` misuse, an account mismatch) writes nothing.
 - **The account.** The memo and the payment belong to the invoice's account:
   `Invoice.BillingAccountId` (an Account id), else the manifest's
   `account_id`. `cli step` resolves the account by the manifest's
@@ -247,15 +250,18 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   mismatch fails deterministically with nothing inserted (`--application-level`
   while the payment is not yet planned, else a new run). No evidence: the
   insert proceeds as before.
-- **Errors are cleared only by a step that runs and succeeds.** A `cli step`
-  to a stage the manifest already reached runs nothing and changes nothing:
-  an earlier `error` / `failure_class` stays (a payment may exist that was
-  never fully applied, or a write's outcome may be unknown).
+- **Errors are cleared only by a step that runs and succeeds** -- in `cli
+  step` or in a batch run's retry -- in the same manifest write that records
+  the stage reached, so a kill cannot leave a stale error behind. A `cli
+  step` to a stage the manifest already reached runs nothing and changes
+  nothing: an earlier `error` / `failure_class` stays (a payment may exist
+  that was never fully applied, or a write's outcome may be unknown).
 - **Refused before any step runs:** `--to-stage payment_applied` on a
   manifest whose recorded block has no `payment` (the credit stage would
-  otherwise write first); `--application-level` with a non-settlement
-  `--to-stage` or on a manifest that already reached it. A value equal to the
-  recorded level is ignored (the recorded source is kept).
+  otherwise write first); `--application-level` with a `--to-stage` other
+  than `payment_applied` (the level decides where the payment is applied) or
+  on a manifest that already reached it. A value equal to the recorded level
+  is ignored (the recorded source is kept).
 - **The write rule (credit and payment).** At most one credit memo and one
   payment are created per run. The memo is tagged `<run> credit` (its
   `Description`), the payment `<run>-PAY` (`GatewayRefNumber`). Just before
@@ -314,12 +320,17 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Both level
   errors name `cli step --application-level line|header`. A level reached
   through the invoice-evidence fallback after a transient settings read is
-  not cached: the next stage reads the settings again. A `cli step` that runs
-  and succeeds clears `error` and `failure_class`; nothing else does.
+  not cached in the process: it is still recorded on the manifest (so the
+  same run keeps it), but another manifest in the same process reads the
+  settings again.
 - **`payment_applied` never advances without a payment.** A config whose
   target is `payment_applied` needs `settlement.payment`, and the stage
   refuses (not retried) a settlement block without one: with `cli step
   --config` when the manifest has no block yet, else by starting a new run.
+  A configured credit or payment that rounds to 0 in the invoice currency
+  (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
+  currency and its decimal places; only lines with no open balance at all
+  skip the stage with a warning.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without

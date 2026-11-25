@@ -226,10 +226,10 @@ def _cmd_step(args: argparse.Namespace) -> int:
     # even on a manifest that already reached the target.
     settlement = _settlement_for_step(args, manifest, client)
     if getattr(args, "application_level", None):
-        if args.to_stage not in STAGES_SETTLEMENT:
+        if args.to_stage != "payment_applied":
             raise LifecycleError(
-                "step", "--application-level applies only to --to-stage credit_applied "
-                "or payment_applied",
+                "step", "--application-level applies only to --to-stage payment_applied "
+                "(the level decides where the payment is applied)",
             )
         if not steps:
             raise LifecycleError(
@@ -258,6 +258,10 @@ def _cmd_step(args: argparse.Namespace) -> int:
                 else step
             )
             manifest = execute_step(internal_step, step_ctx, manifest)
+            # The write that records the stage reached also clears an earlier
+            # failure (one write: a kill cannot leave a stale error behind).
+            manifest.error = None
+            manifest.failure_class = None
             write_manifest(manifest)
     except Exception as exc:  # noqa: BLE001 -- record any failure, then re-raise
         # SfApiError (a 5xx, or a refusal outside a settlement call) and
@@ -268,11 +272,6 @@ def _cmd_step(args: argparse.Namespace) -> int:
         manifest.failure_class = classify_exception(exc)
         write_manifest(manifest)
         raise
-    # A successful resume clears the earlier failure (reports count any
-    # manifest with an error as failed).
-    manifest.error = None
-    manifest.failure_class = None
-    write_manifest(manifest)
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
 
@@ -692,7 +691,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
     step.add_argument("--application-level", choices=["line", "header"],
-                      help="--to-stage credit_applied/payment_applied only: set the "
+                      help="--to-stage payment_applied only: set the "
                            "application level when it could not be read or was read "
                            "wrong. A value equal to the recorded level is ignored; a "
                            "different one is refused once the payment is planned, and "

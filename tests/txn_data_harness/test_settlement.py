@@ -3071,10 +3071,17 @@ def test_application_level_flag_is_refused_where_it_cannot_apply(monkeypatch, bi
     m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
                          settlement={"application_level": "line", "credit": {"amount": 5}})
     cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
-    with pytest.raises(LifecycleError, match="applies only to --to-stage"):
+    with pytest.raises(LifecycleError, match="applies only to --to-stage payment_applied"):
         cli_mod._cmd_step(_step_args(to_stage="invoice_posted", application_level="line"))
-    with pytest.raises(LifecycleError, match="already reached credit_applied"):
-        cli_mod._cmd_step(_step_args(to_stage="credit_applied", application_level="line"))
+    # credit_applied on a block with a payment would drop the override silently.
+    m.settlement = {"application_level": "line", "credit": {"amount": 5},
+                    "payment": {"amount": "exact"}}
+    m.reached_stage = "invoice_posted"
+    with pytest.raises(LifecycleError, match="applies only to --to-stage payment_applied"):
+        cli_mod._cmd_step(_step_args(to_stage="credit_applied", application_level="header"))
+    m.reached_stage = "payment_applied"
+    with pytest.raises(LifecycleError, match="already reached payment_applied"):
+        cli_mod._cmd_step(_step_args(to_stage="payment_applied", application_level="line"))
     assert ran == []
 
 
@@ -3161,3 +3168,123 @@ def test_memo_not_posted_in_time_names_the_resume(billable_account) -> None:
                              r"credit_applied` to keep waiting"):
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert m.credit_submitted is True
+
+
+# -- review round 11 (todo 275) -------------------------------------------------
+
+
+def test_cli_step_clears_the_error_in_the_write_that_records_the_stage(
+    monkeypatch, billable_account
+) -> None:
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
+                         error="[payment] earlier", failure_class="transient",
+                         settlement={"application_level": "line", "payment": {"amount": "exact"}})
+    cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
+    writes = []
+    monkeypatch.setattr(cli_mod, "write_manifest",
+                        lambda mm: writes.append((mm.reached_stage, mm.error, mm.failure_class)))
+    assert cli_mod._cmd_step(_step_args()) == 0
+    assert writes[0] == ("payment_applied", None, None)
+
+
+def test_batch_retry_clears_the_error_in_the_write_that_records_the_stage(
+    billable_account, org_context, monkeypatch
+) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.handlers import invoice_ingestion as mod
+    from scripts.txn_data_harness.models import ResolvedInvoiceIngestionSpec
+
+    calls = []
+
+    def execute(step, ctx, manifest):
+        calls.append(step)
+        if step == "ingest_invoice":
+            manifest.invoice_id = "3ttINV"
+            manifest.reached_stage = "invoice_posted"
+        elif step == "credit_applied" and calls.count("credit_applied") == 1:
+            raise SfApiError(503, "unavailable", "POST", "/x")
+        elif step != "promote_to_posted":
+            manifest.reached_stage = step
+        return manifest
+
+    writes = []
+    monkeypatch.setattr(mod, "execute_step", execute)
+    monkeypatch.setattr(mod, "write_manifest",
+                        lambda m: writes.append((m.reached_stage, m.error)))
+    monkeypatch.setattr(mod.time, "sleep", lambda s: None)
+    spec = _coerce_spec({
+        "kind": "invoice_ingestion", "target_stage": "payment_applied",
+        "invoice_lines": [{"name": "L", "quantity": 1, "unit_price": 10}],
+        "settlement": {"credit": {"amount": 1}, "payment": {"amount": 1}},
+    }, "t")
+    resolved = ResolvedInvoiceIngestionSpec(
+        spec=spec, account=billable_account, invoice_lines=[], invoice_overrides=None,
+        effective_stage="payment_applied",
+    )
+    SCENARIO_HANDLERS["invoice_ingestion"].run(
+        None, org_context, "RUN", resolved, poll_timeout=1, max_retries=2)
+    after_retry = writes[writes.index(next(w for w in writes if w[1])) + 1:]
+    first_stage_write = next(w for w in after_retry if w[0] == "credit_applied")
+    assert first_stage_write == ("credit_applied", None)
+
+
+@pytest.mark.parametrize("what, block", [
+    ("credit", {"credit": {"amount": 0.4}}),
+    ("credit", {"credit": {"percent": 0.01}}),
+    ("payment", {"payment": {"amount": 0.4}}),
+])
+def test_amount_below_one_minor_unit_is_refused(what, block, billable_account) -> None:
+    org = SettleOrg("line", places=0)
+    org.invoice["CurrencyIsoCode"] = "JPY"
+    spec = _pst(target_stage="payment_applied" if what == "payment" else "credit_applied",
+                settlement={"application_level": "line", **block}).settlement
+    run = steps.run_credit if what == "credit" else steps.run_payment
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match=f"configured {what} rounds to 0 in JPY \\(0 decimal places\\)") as info:
+        run(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic"
+    assert org.posts == [] and m.reached_stage == "invoice_posted"
+
+
+def test_no_open_balance_still_skips_the_credit(billable_account) -> None:
+    org = SettleOrg("line")
+    for line in org.lines:
+        line["Balance"] = 0.0
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=5.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert org.posts == [] and m.reached_stage == "credit_applied"
+    assert any("no open balance" in w for w in m.settlement_warnings)
+
+
+def test_sales_retry_clears_the_error_in_the_write_that_records_the_stage(
+    billable_account, org_context, monkeypatch
+) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.handlers import sales_transaction_base as mod
+    from scripts.txn_data_harness.models import ResolvedSpec
+
+    calls = []
+
+    def execute(step, ctx, manifest):
+        calls.append(step)
+        if step == "credit_applied" and calls.count("credit_applied") == 1:
+            raise SfApiError(503, "unavailable", "POST", "/x")
+        manifest.reached_stage = {"order_from_quote": "order_draft"}.get(step, step)
+        return manifest
+
+    from scripts.txn_data_harness import runner
+
+    writes = []
+    monkeypatch.setattr(runner, "draw_lines", lambda options: [])
+    monkeypatch.setattr(mod, "execute_step", execute)
+    monkeypatch.setattr(mod, "write_manifest",
+                        lambda m: writes.append((m.reached_stage, m.error)))
+    spec = _pst(target_stage="payment_applied",
+                settlement={"credit": {"amount": 1}, "payment": {"amount": 1}})
+    resolved = ResolvedSpec(spec=spec, account=billable_account, options=[],
+                            effective_stage="payment_applied")
+    SCENARIO_HANDLERS["sales_txn_quote"].run(
+        None, org_context, "RUN", resolved, poll_timeout=1, max_retries=2, sleep=lambda s: None)
+    after_retry = writes[writes.index(next(w for w in writes if w[1])) + 1:]
+    assert next(w for w in after_retry if w[0] == "credit_applied") == ("credit_applied", None)

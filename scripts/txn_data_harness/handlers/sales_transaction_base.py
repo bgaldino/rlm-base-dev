@@ -219,9 +219,10 @@ class SalesTransactionBaseHandler:
                 for public_stage in public_stages:
                     internal = self._internal_step(public_stage)
                     manifest = execute_step(internal, step_ctx, manifest)
+                    # Same write as the stage reached: no stale error survives.
+                    manifest.error = None
+                    manifest.failure_class = None
                     write_manifest(manifest)
-                manifest.error = None
-                manifest.failure_class = None
                 break
             except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
                 manifest.error = (
