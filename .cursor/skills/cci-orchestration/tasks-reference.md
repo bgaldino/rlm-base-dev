@@ -1758,7 +1758,7 @@
 
 ### `deploy_post_billing_ui`
 
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: the rlm* LWC components for the billing console (billing schedule group, invoice, collections, dispute and payments views), their Apex controllers and tests, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 3 quick actions (Account.RLM_Create_Billing_Schedule_Group, Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set (field access, read on the objects the Billing UI controllers query, Apex class access, RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset attribute query). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: the rlm* LWC components for the billing console (billing schedule group, invoice, collections, dispute and payments views), their Apex controllers, helper classes and tests, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 3 quick actions (Account.RLM_Create_Billing_Schedule_Group, Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set (field access, read on the objects the Billing UI controllers query, Apex class access, RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset attribute query). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1770,7 +1770,7 @@
 
 ### `deploy_post_collections`
 
-**Description:** Deploy Collections metadata from unpackaged/post_collections (classes, decisionMatrixDefinition, flows, omniUiCard, permissionsets, queues, quickActions, standardValueSets, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
+**Description:** Deploy Collections metadata from unpackaged/post_collections (classes, decisionMatrixDefinition, flows, omniUiCard, permissionsets, queues, quickActions, standardValueSets, timelineObjectDefinitions). Flexipages and applications for collections are not in this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (templates/flexipages/standalone/collections, templates/applications/conditional/collections). The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
