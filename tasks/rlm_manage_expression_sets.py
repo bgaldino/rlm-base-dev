@@ -19,7 +19,7 @@ import time
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import positive_int, soql_quote, split_names
+from tasks.soql_utils import option_text, positive_int, soql_quote, split_names
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -184,8 +184,8 @@ class ManageExpressionSets(BaseSalesforceTask):
         process_type = self._option_text("process_type")
         needs_metadata = bool(interface_type or process_type)
 
-        limit = self.options.get("limit")
-        limit = positive_int(limit, "limit", TaskOptionsError) if limit not in (None, "") else None
+        limit = self._option_text("limit")
+        limit = positive_int(limit, "limit", TaskOptionsError) if limit else None
         soql = self._build_soql_query(apply_limit=not needs_metadata)
         expression_sets = self._tooling_query(soql, "expression sets")
 
@@ -210,8 +210,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         return expression_sets
 
     def _option_text(self, name: str):
-        value = self.options.get(name)
-        return str(value).strip() if value not in (None, "") else None
+        return option_text(self.options.get(name))
 
     def _tooling_headers(self) -> Dict[str, str]:
         return {
@@ -292,8 +291,8 @@ class ManageExpressionSets(BaseSalesforceTask):
             raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
 
-        limit = self.options.get("limit")
-        if apply_limit and limit not in (None, ""):
+        limit = self._option_text("limit")
+        if apply_limit and limit:
             soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
 
         return soql

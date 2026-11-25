@@ -372,6 +372,20 @@ fake, err = run([row(A, "Flow_A", 1, "Active")],
                 {"operation": "deactivate", "developer_names": "Flow_A", "status": " ", "limit": ""})
 check("deactivate does not reject blank list-only filters", err is None and len(fake.patches) == 1,
       repr((err, fake.patches)))
+fake, _ = run([], {"operation": "list", "limit": " 5 "})
+check("padded limit is trimmed", fake.queries[0].endswith(" LIMIT 5"), fake.queries[0])
+fake, _ = run([], {"operation": "list", "limit": 5})
+check("an int limit reaches SOQL", fake.queries[0].endswith(" LIMIT 5"), fake.queries[0])
+fake, err = run([], {"operation": "list", "limit": 0})
+check("an int 0 limit is a value and is rejected, not dropped",
+      err is not None and "limit must be" in str(err), repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 1, "Active")],
+                {"operation": "list", "developer_names": "Flow_A", "status": " ", "process_type": " ", "limit": " "})
+check("blank filters with names: no error and exactly one query", err is None and len(fake.queries) == 1,
+      repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "  "})
+check("whitespace-only developer_names means not set", err is None and " Definition.DeveloperName IN" not in fake.queries[0],
+      repr((err, fake.queries)))
 
 print()
 if FAILURES:

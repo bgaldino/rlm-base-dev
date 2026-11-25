@@ -1,6 +1,6 @@
 """Small helpers shared by the management tasks that build SOQL strings."""
 import re
-from typing import List
+from typing import List, Optional
 
 
 def soql_quote(value) -> str:
@@ -8,6 +8,12 @@ def soql_quote(value) -> str:
     text = str(value).replace("\\", "\\\\").replace("'", "\\'")
     text = text.replace("\n", "\\n").replace("\r", "\\r")
     return f"'{text}'"
+
+
+def option_text(value) -> Optional[str]:
+    """An option as stripped text; None, blank or whitespace means not set (0 and False are values)."""
+    text = "" if value is None else str(value).strip()
+    return text or None
 
 
 def split_names(value, option: str, exc=ValueError) -> List[str]:
