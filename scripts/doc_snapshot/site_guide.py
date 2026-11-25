@@ -250,9 +250,13 @@ def _legacy_map(manifest) -> Dict[str, str]:
     return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)} if isinstance(raw, dict) else {}
 
 
-# group 4: optional #fragment; group 5: optional link title and the closing paren. Fenced code is
-# not skipped: converter output puts real links there too, and a literal one is not a hazard.
-_LOCAL_LINK = re.compile(r'(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\s+"[^"]*")?(\))')
+# group 4: optional #fragment; group 5: optional link title (double or single quoted, with
+# \-escapes), leading space included; group 6: the closing paren. Fenced code is not skipped:
+# converter output puts real links there too, and a literal one is not a hazard.
+_LOCAL_LINK = re.compile(
+    r'''(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?(\))''')
+# any other link form to a sibling .md (titles in a form the pattern above does not know)
+_LOOSE_LINK = re.compile(r"\]\(\s*(?:\./)?([^()\s#<>/]+?\.md)")
 
 
 def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, str]]]:
@@ -294,6 +298,12 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
             return m.group(0)
 
         new = _LOCAL_LINK.sub(fix, text)
+        seen = {t for g, t in unresolved if g == f"{old}.md"}
+        for lm in _LOOSE_LINK.finditer(new):  # a link form the rewrite cannot handle: report it
+            t = lm.group(1)
+            if t not in seen and (not (articles / t).exists() or f"articles/{t}" in superseded):
+                seen.add(t)
+                unresolved.append((f"{old}.md", t))
         if new != text:
             f.write_text(new, encoding="utf-8")
     return rewritten, unresolved

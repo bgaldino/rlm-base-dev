@@ -611,7 +611,8 @@ def main():
         gone = Path(tmp) / "articles" / "gone.htm.md"
         gone.write_text("# Old\n\nSee [a](./odd_old_name.htm.md#sec), [b](./nowhere.htm.md), "
                         "[c](https://example.com/x.md), [d](./gone.htm.md) and "
-                        "[e](./odd_old_name.htm.md \"Input representation\").\n", encoding="utf-8")
+                        "[e](./odd_old_name.htm.md \"Input representation\"), "
+                        "[f](./odd_old_name.htm.md \"say \\\"x\\\"\"), [g](<./nowhere2.htm.md>) and [h](./nowhere3.htm.md (t)).\n", encoding="utf-8")
         lk = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
         lk.run()
         body = gone.read_text(encoding="utf-8")
@@ -624,8 +625,11 @@ def main():
               and any("nowhere.htm.md" in m and "left as is" in m for m in lk.logger.lines))
         check("external links and links to a file that stays are untouched",
               "[c](https://example.com/x.md)" in body and "[d](./gone.htm.md)" in body)
+        check("an escaped-quote title is handled, and a link form it cannot handle is reported",
+              '[f](./deployment-overview.md "say \\"x\\"")' in body
+              and any("nowhere3.htm.md" in m and "left as is" in m for m in lk.logger.lines))
         check("the rewrite says how many links it changed",
-              any("rewrote 2 local link" in m for m in lk.logger.lines))
+              any("rewrote 3 local link" in m for m in lk.logger.lines))
         again = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
         again.run()
         check("a rerun finds nothing left to rewrite",
