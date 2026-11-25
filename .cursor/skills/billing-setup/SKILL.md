@@ -228,14 +228,15 @@ first Arrears-only one, else (last, since what the platform bills for it on a on
 charge is unmeasured) the first with both timings. A legal entity with no such treatment,
 including one whose treatments are all in another currency, is refused before the action
 with a message naming the currency and entity (and the timing, for a recurring charge); a
-charge currency that is not an active `CurrencyType` of the org is refused first, before any
-treatment lookup. The read filters on the charge currency and is capped at 1000 items,
-oldest first; a read that runs past the cap drops the last treatment when it may be cut
-short, and if nothing then fits the refusal says the lookup was cut off rather than that no
-treatment exists (a one-time charge also refuses a cut-off read whose choice is not
-Advance-only, since an Advance-only treatment may lie past the cap). Sharing cannot hide a
-treatment (its organization-wide default is public read/write, its items controlled by it
-[Measured: 2026-11-26, 264, scratch]), so "none" means none exists.
+charge currency that is not an active `CurrencyType` of the org, or a legal entity that is
+not active and visible to the user, is refused first, before any treatment lookup. The read
+filters on the charge currency and is capped at 1000 items, oldest first; a read that runs
+past the cap drops the last treatment when it may be cut short, and if nothing then fits the
+refusal says the lookup was cut off rather than that no treatment exists (a one-time charge
+also refuses a cut-off read whose choice is not Advance-only, since an Advance-only
+treatment may lie past the cap). Sharing cannot hide a treatment (its organization-wide
+default is public, its items controlled by it [Measured: 2026-11-26, 264, scratch]), so
+"none" means none exists.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give

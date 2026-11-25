@@ -71,27 +71,30 @@ not apply: a treatment is still sent (measured: left to itself the platform pick
 treatment of the legal entity for a EUR charge): the first Advance-only treatment, else
 the first Arrears-only one, else (last, since what the platform bills for it on a
 one-time charge is unmeasured) the first with both timings. The charge currency must be
-an active `CurrencyType`, or create refuses before the lookup. The treatment read
-filters on the charge currency and is capped at 1000 items, oldest first; one row past
-the cap shows the read was cut off, and the last treatment read is then dropped when the
-extra row belongs to it (it may be cut short). When the page account differs from the
-billing account's own, it must be readable (Account read in USER_MODE) and linked to the
-billing account; if it is not found, not readable, not linked (link deleted, or a stale
-cached `getAccountBillingInfo`) or its link read is refused, create refuses instead of
-falling back to the owner (an account that is not linked says to open the billing screen
-from a linked account; a read the user is not allowed says to contact an administrator;
-one not found or not visible says so). If the treatment read runs past the cap and
-nothing fits, the message says the lookup was cut off; a one-time charge also refuses a
-cut-off read whose choice is not Advance-only, since an Advance-only treatment may lie
-past the cap. It reads `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity`,
-`CurrencyType` and `Account.ShippingCity` in USER_MODE. `RLM_BillingUI` grants object
-read on `BillingTreatment` and `LegalEntity` (the item follows its master, below) and
-field read on the shipping city through the `Account.ShippingAddress` compound grant;
-the treatment and item fields it reads (`Status`, `LegalEntityId`, `IsMilestoneBilling`,
+an active `CurrencyType`, and the legal entity active and visible to the user (as the
+picker offers them), or create refuses before the lookup. The treatment read filters on
+the charge currency and is capped at 1000 items, oldest first; one row past the cap
+shows the read was cut off, and the last treatment read is then dropped when the extra
+row belongs to it (it may be cut short). When the page account differs from the billing
+account's own, it must be readable (Account read in USER_MODE) and linked to the billing
+account; if it is not found, not readable, not linked (link deleted, or a stale cached
+`getAccountBillingInfo`) or its link read is refused, create refuses instead of falling
+back to the owner (an account that is not linked says to open the billing screen from a
+linked account; a read the user is not allowed says to contact an administrator; one not
+found or not visible says so). If the treatment read runs past the cap and nothing fits,
+the message says the lookup was cut off; a one-time charge also refuses a cut-off read
+whose choice is not Advance-only, since an Advance-only treatment may lie past the cap.
+It reads `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity`, `CurrencyType` and
+`Account.ShippingCity` in USER_MODE. `RLM_BillingUI` grants object read on
+`BillingTreatment` and `LegalEntity` (the item follows its master, below) and field read
+on the shipping city through the `Account.ShippingAddress` compound grant; the treatment
+and item fields it reads (`Status`, `LegalEntityId`, `IsMilestoneBilling`,
 `ExcludeFromBilling`, `CurrencyIsoCode`, `CreatedDate`, `BillingType`,
 `BillingTreatmentId`) are not permissionable (measured on a 264 scratch org,
-2026-11-26), so no `fieldPermissions` rows exist or are possible. `CurrencyType` needs
-no grant (`RLM_BillingUIAccessTest` asserts it is readable on a multi-currency org). The
+2026-11-26), so no `fieldPermissions` rows exist or are possible. The module needs a
+multi-currency org: the service reads `CurrencyType` and
+`BillingTreatment.CurrencyIsoCode`, which exist only there. `CurrencyType` needs no
+grant (`RLM_BillingUIAccessTest` asserts it is readable on a multi-currency org). The
 service refuses, with a message naming currency and legal entity (and the timing, in
 lower case, for a recurring charge), a charge with no such treatment, including one
 whose only treatments are in another currency, before calling the action; it never sends

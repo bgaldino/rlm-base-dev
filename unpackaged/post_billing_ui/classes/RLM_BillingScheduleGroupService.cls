@@ -19,7 +19,8 @@
  * Arrears) through the treatment's item, which is the only way to carry timing
  * because BillingType__std and BillingTypePicklistTiming__std are rejected
  * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term
- * is given. A shipping address tag is required: ShippingCity__std (the
+ * is given (the modal sends none; it has no input). A shipping address tag is
+ * required: ShippingCity__std (the
  * account's ShippingCity, else the billingCity the caller submitted, which
  * create requires).
  *
@@ -66,7 +67,8 @@
  * timing only for a recurring charge, and when the only candidates were skipped
  * as ambiguous it says that treatment has items in both timings and must be
  * split, instead of saying none exists. The charge currency must be an active
- * CurrencyType, or create refuses before any treatment lookup.
+ * CurrencyType, and the legal entity active and visible to the user (as the
+ * picker offers them), or create refuses before any treatment lookup.
  *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are
@@ -582,12 +584,14 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         requireActiveCurrency(currencyIsoCode);
+        String legalEntityName = readActiveLegalEntityName(legalEntityId);
 
         // Timing travels only through a billing treatment (see the class header), chosen for the
         // legal entity and currency. A one-time charge gets the treatment the one-time rule picks (any
         // timing sent with it is ignored), so it is not left to the platform's currency-blind choice.
         Boolean isOneTime = billingTermUnitPicklist == 'OneTime';
-        Id billingTreatmentId = findBillingTreatmentId(legalEntityId, isOneTime, timing, currencyIsoCode);
+        Id billingTreatmentId = findBillingTreatmentId(
+            legalEntityId, legalEntityName, isOneTime, timing, currencyIsoCode);
         String shippingCity = readShippingCity(accountId, billingCity);
 
         String transactionDetailsJson = buildTransactionDetailsJson(
@@ -739,7 +743,8 @@ public with sharing class RLM_BillingScheduleGroupService {
     // currency (a treatment item's BillingType is where Advance or Arrears lives). timing is not used for
     // a one-time charge. Both timings are read so a recurring charge can skip a treatment carrying both.
     @TestVisible
-    private static Id findBillingTreatmentId(Id legalEntityId, Boolean isOneTime, String timing, String currencyIsoCode) {
+    private static Id findBillingTreatmentId(
+            Id legalEntityId, String legalEntityName, Boolean isOneTime, String timing, String currencyIsoCode) {
         List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
         Boolean truncated = false;
         Integer readLimit = ITEM_READ_CAP + 1;
@@ -787,7 +792,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
         if (truncated) {
             throw RLM_AuraErrors.handled(
-                'The billing treatment lookup for ' + legalEntityPhrase(legalEntityId) + ' in ' + currencyIsoCode
+                'The billing treatment lookup for legal entity ' + legalEntityName + ' in ' + currencyIsoCode
                 + ' was cut off at ' + ITEM_READ_CAP + (ITEM_READ_CAP == 1 ? ' item' : ' items')
                 + (choice.chosen == null
                     ? ', so a matching treatment may not have been seen'
@@ -798,13 +803,13 @@ public with sharing class RLM_BillingScheduleGroupService {
         String lowerTiming = isOneTime ? null : timing.toLowerCase();
         if (choice.skippedAmbiguous != null) {
             throw RLM_AuraErrors.handled(
-                'The billing treatment ' + treatmentPhrase(choice.skippedAmbiguous, legalEntityId)
+                'The billing treatment ' + treatmentPhrase(choice.skippedAmbiguous, legalEntityName)
                 + ' has items in both advance and arrears, so it cannot be matched to ' + lowerTiming
                 + ' in ' + currencyIsoCode + '. Split it into one treatment per timing, or choose another legal entity or currency.');
         }
         throw RLM_AuraErrors.handled(
             'No active billing treatment bills ' + (isOneTime ? '' : 'in ' + lowerTiming + ' ')
-            + 'in ' + currencyIsoCode + ' for ' + legalEntityPhrase(legalEntityId) + '. '
+            + 'in ' + currencyIsoCode + ' for legal entity ' + legalEntityName + '. '
             + (isOneTime
                 ? 'Choose another legal entity or currency, or ask your administrator to set one up.'
                 : 'Choose another legal entity, timing or currency, or ask your administrator to set one up.'));
@@ -908,8 +913,8 @@ public with sharing class RLM_BillingScheduleGroupService {
         return choice;
     }
 
-    // For the ambiguous-treatment refusal: "'<name>'" when the treatment is readable, else "of <legal entity>".
-    private static String treatmentPhrase(Id treatmentId, Id legalEntityId) {
+    // For the ambiguous-treatment refusal: "'<name>'" when the treatment is readable, else "of legal entity <name>".
+    private static String treatmentPhrase(Id treatmentId, String legalEntityName) {
         try {
             List<BillingTreatment> found = [SELECT Name FROM BillingTreatment WHERE Id = :treatmentId WITH USER_MODE LIMIT 1];
             if (!found.isEmpty() && String.isNotBlank(found[0].Name)) {
@@ -918,21 +923,24 @@ public with sharing class RLM_BillingScheduleGroupService {
         } catch (QueryException qe) {
             System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService treatment name not readable: ' + qe.getMessage());
         }
-        return 'of ' + legalEntityPhrase(legalEntityId);
+        return 'of legal entity ' + legalEntityName;
     }
 
-    // For the refusal message only: "legal entity <name>", or "the selected legal entity" when the
-    // name cannot be read.
-    private static String legalEntityPhrase(Id legalEntityId) {
+    // The legal entity sent must be one the picker could offer (getLegalEntities: active and visible
+    // to the user), so an id from elsewhere is refused before the treatment lookup. Its name is
+    // returned for the treatment refusals.
+    private static String readActiveLegalEntityName(Id legalEntityId) {
+        List<LegalEntity> les;
         try {
-            List<LegalEntity> les = [SELECT Name FROM LegalEntity WHERE Id = :legalEntityId WITH USER_MODE LIMIT 1];
-            if (!les.isEmpty()) {
-                return 'legal entity ' + les[0].Name;
-            }
+            les = [SELECT Name FROM LegalEntity WHERE Id = :legalEntityId AND Status = 'Active' WITH USER_MODE LIMIT 1];
         } catch (QueryException qe) {
-            System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService legal entity name not readable: ' + qe.getMessage());
+            throw readRefused('the legal entity', qe);
         }
-        return 'the selected legal entity';
+        if (les.isEmpty()) {
+            throw RLM_AuraErrors.handled(
+                'The legal entity was not found, is not active, or is not visible to you. Choose another legal entity.');
+        }
+        return les[0].Name;
     }
 
     @TestVisible

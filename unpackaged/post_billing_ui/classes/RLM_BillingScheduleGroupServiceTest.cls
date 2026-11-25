@@ -140,7 +140,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.startTest();
         RLM_BillingScheduleGroupService.CreateResult r =
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
-                ba.Id, 'Month', 12, 'Advance', 2, fakeId(LegalEntity.SObjectType),
+                ba.Id, 'Month', 12, 'Advance', 2, activeLegalEntityId(),
                 fakeId(TaxTreatment.SObjectType), CUR, 10, 240, 'San Francisco',
                 fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1),
                 1, 1, 'Termed', Date.newInstance(2026, 12, 31), null
@@ -966,7 +966,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG Payload BA', AccountId = a.Id);
         insert ba;
-        Id leId = fakeId(LegalEntity.SObjectType);
+        Id leId = activeLegalEntityId();
         Id trId = fakeId(BillingTreatment.SObjectType);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-P' };
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
@@ -1031,7 +1031,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(thrown, 'A timing with no treatment is refused instead of silently using the org default.');
         Assert.areEqual(
-            'No active billing treatment bills in arrears in ' + CUR + ' for the selected legal entity. '
+            'No active billing treatment bills in arrears in ' + CUR + ' for legal entity ' + TEST_LEGAL_ENTITY + '. '
             + 'Choose another legal entity, timing or currency, or ask your administrator to set one up.',
             thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
@@ -1120,7 +1120,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(thrown, 'A one-time charge with only another currency treatment is refused.');
         Assert.areEqual(
-            'No active billing treatment bills in ' + CUR + ' for the selected legal entity. '
+            'No active billing treatment bills in ' + CUR + ' for legal entity ' + TEST_LEGAL_ENTITY + '. '
             + 'Choose another legal entity or currency, or ask your administrator to set one up.',
             thrown.getMessage(), 'No timing word for a one-time charge, in either sentence.');
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
@@ -1197,10 +1197,43 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(thrown, 'A treatment with both timings is refused for a recurring charge.');
         Assert.areEqual(
-            'The billing treatment of the selected legal entity has items in both advance and arrears, so it '
+            'The billing treatment of legal entity ' + TEST_LEGAL_ENTITY + ' has items in both advance and arrears, so it '
             + 'cannot be matched to arrears in ' + CUR + '. Split it into one treatment per timing, or choose another '
             + 'legal entity or currency.',
             thrown.getMessage(), 'The message says why, not that none exists.');
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The picker offers only active legal entities the user can see; an id that is neither is refused
+    // before the treatment lookup, which would otherwise answer for it.
+    @isTest
+    static void createViaAPI_legalEntityInactiveOrNotFound_isRefused() {
+        Id baId = insertBillingAccount('BSG Legal Entity Refused');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
+        LegalEntity inactive = new LegalEntity(Name = 'BSG Inactive LE', Status = 'Inactive');
+        insert inactive;
+        Map<String, Id> cases = new Map<String, Id>{
+            'An inactive legal entity' => inactive.Id,
+            'A legal entity that does not exist' => fakeId(LegalEntity.SObjectType)
+        };
+
+        Test.startTest();
+        for (String label : cases.keySet()) {
+            CreateArgs args = new CreateArgs(baId);
+            args.legalEntityId = cases.get(label);
+            AuraHandledException thrown;
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+            Assert.isNotNull(thrown, label + ' is refused.');
+            Assert.areEqual(
+                'The legal entity was not found, is not active, or is not visible to you. Choose another legal entity.',
+                thrown.getMessage(), label + ' gets the legal entity refusal.');
+        }
+        Test.stopTest();
+
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
@@ -1352,6 +1385,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     // A user with BillingAccount but no Account read, with a linked page account: create is refused with a
     // handled message, not a raw QueryException. The refusal comes at the billing account read (it selects
     // AccountId), before the page-account read, so the page-account catch is defensive (measured here).
+    // Account read is what that select needs: a second user with Account read and no field rows selects it.
     @isTest
     static void createViaAPI_noAccountRead_isRefusedAtTheBillingAccount() {
         Account own = new Account(Name = 'BSG Own Page Read Refused');
@@ -1364,6 +1398,11 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>(),
             new List<String>{ 'BillingAccount' },
+            new List<String>());
+        User withAccountRead = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account' },
             new List<String>());
         CreateArgs args = new CreateArgs(ba.Id);
         args.pageAccountId = page.Id;
@@ -1382,6 +1421,10 @@ private class RLM_BillingScheduleGroupServiceTest {
             } catch (AuraHandledException e) {
                 thrown = e;
             }
+        }
+        System.runAs(withAccountRead) {
+            Assert.isFalse(userModeQueryFails('SELECT AccountId FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: with Account read (and no field rows) the AccountId select succeeds.');
         }
         Test.stopTest();
 
@@ -1510,16 +1553,22 @@ private class RLM_BillingScheduleGroupServiceTest {
         String cur = UserInfo.getDefaultCurrency();
         List<BillingTreatment> ts = new List<BillingTreatment>();
         for (Integer i = 1; i <= 3; i++) {
-            ts.add(new BillingTreatment(Name = 'BSG Cap T' + i, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur));
+            ts.add(new BillingTreatment(
+                Name = 'BSG Cap T' + i, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+                CurrencyIsoCode = cur));
         }
         insert ts;
         List<BillingTreatmentItem> its = new List<BillingTreatmentItem>();
         for (BillingTreatment t : ts) {
-            its.add(new BillingTreatmentItem(Name = 'BSG Cap Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
+            its.add(new BillingTreatmentItem(
+                Name = 'BSG Cap Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Advance',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
         }
         insert its;
         // Re-read for the update: the inserted records carry fields the update refuses to write back.
-        List<BillingTreatmentItem> toActivate = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
+        List<BillingTreatmentItem> toActivate = [
+            SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
         for (BillingTreatmentItem item : toActivate) {
             item.Status = 'Active';
         }
@@ -1534,16 +1583,16 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.startTest();
         AuraHandledException cutOff;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
         } catch (AuraHandledException e) {
             cutOff = e;
         }
-        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
-        Id foundOneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Advance', cur);
+        Id foundOneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, true, null, cur);
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
         AuraHandledException none;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
         } catch (AuraHandledException e) {
             none = e;
         }
@@ -1561,7 +1610,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 3;
         AuraHandledException atCap;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
         } catch (AuraHandledException e) {
             atCap = e;
         }
@@ -1574,28 +1623,35 @@ private class RLM_BillingScheduleGroupServiceTest {
     // The query filters on the charge currency, so another currency's items do not count against the cap.
     // Cap 1 over an other-currency Arrears treatment (created first, so read first if unfiltered) and one
     // Arrears treatment in the charge currency: filtered, the read is the one row and complete; unfiltered,
-    // it would be cut off before the fit. Needs a second active currency; without one the filter
-    // cannot be told apart and the test returns (the 264 scratch runs had seven active currencies).
+    // it would be cut off before the fit. Needs a second active currency, which the module's orgs have
+    // (it needs a multi-currency org; the 264 scratch runs had seven active currencies).
     @isTest
     static void findBillingTreatmentId_otherCurrencyRows_doNotUseUpTheCap() {
         String cur = UserInfo.getDefaultCurrency();
         List<CurrencyType> others = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :cur LIMIT 1];
-        if (others.isEmpty()) {
-            return;
-        }
+        Assert.isFalse(others.isEmpty(),
+            'PRECONDITION: a second active currency, or the currency filter cannot be told apart.');
         LegalEntity le = new LegalEntity(Name = 'BSG Cap Currency LE', Status = 'Active');
         insert le;
-        BillingTreatment otherCurrency = new BillingTreatment(Name = 'BSG CapCur Other', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = others[0].IsoCode);
+        BillingTreatment otherCurrency = new BillingTreatment(
+            Name = 'BSG CapCur Other', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = others[0].IsoCode);
         insert otherCurrency;
-        BillingTreatment fit = new BillingTreatment(Name = 'BSG CapCur Fit', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment fit = new BillingTreatment(
+            Name = 'BSG CapCur Fit', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = cur);
         insert fit;
         List<BillingTreatment> ts = new List<BillingTreatment>{ otherCurrency, fit };
         List<BillingTreatmentItem> its = new List<BillingTreatmentItem>();
         for (BillingTreatment t : ts) {
-            its.add(new BillingTreatmentItem(Name = 'BSG CapCur Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
+            its.add(new BillingTreatmentItem(
+                Name = 'BSG CapCur Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
         }
         insert its;
-        List<BillingTreatmentItem> toActivate = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
+        List<BillingTreatmentItem> toActivate = [
+            SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
         for (BillingTreatmentItem item : toActivate) {
             item.Status = 'Active';
         }
@@ -1607,7 +1663,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1;
         Test.startTest();
-        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
         Test.stopTest();
 
         Assert.areEqual(fit.Id, found, 'The other currency\'s row is filtered out by the query, so the read is complete.');
@@ -1627,7 +1683,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 2;
         Test.startTest();
-        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
+        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Advance', cur);
         RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
         Test.stopTest();
 
@@ -1649,7 +1705,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.startTest();
         AuraHandledException cutOff;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, true, null, cur);
         } catch (AuraHandledException e) {
             cutOff = e;
         }
@@ -1676,7 +1732,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.startTest();
         AuraHandledException cutOff;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, true, null, cur);
         } catch (AuraHandledException e) {
             cutOff = e;
         }
@@ -1704,7 +1760,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.startTest();
         AuraHandledException cutOff;
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
         } catch (AuraHandledException e) {
             cutOff = e;
         }
@@ -1718,9 +1774,13 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // One active treatment of the entity with a single active item of the timing.
     private static BillingTreatment insertActiveTreatment(LegalEntity le, String name, String billingType, String cur) {
-        BillingTreatment t = new BillingTreatment(Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment t = new BillingTreatment(
+            Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
         insert t;
-        insert new BillingTreatmentItem(Name = name + ' Item', BillingTreatmentId = t.Id, BillingType = billingType, Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
+        insert new BillingTreatmentItem(
+            Name = name + ' Item', BillingTreatmentId = t.Id, BillingType = billingType,
+            Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+            Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :t.Id];
         for (BillingTreatmentItem item : items) {
             item.Status = 'Active';
@@ -1733,11 +1793,18 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // One active treatment of the entity with an Advance (Percentage) and an Arrears (Remainder) item.
     private static BillingTreatment insertActiveMixedTreatment(LegalEntity le, String name, String cur) {
-        BillingTreatment t = new BillingTreatment(Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment t = new BillingTreatment(
+            Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
         insert t;
         insert new List<BillingTreatmentItem>{
-            new BillingTreatmentItem(Name = name + ' Adv', BillingTreatmentId = t.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
-            new BillingTreatmentItem(Name = name + ' Arr', BillingTreatmentId = t.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+            new BillingTreatmentItem(
+                Name = name + ' Adv', BillingTreatmentId = t.Id, BillingType = 'Advance',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50,
+                ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(
+                Name = name + ' Arr', BillingTreatmentId = t.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
         };
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :t.Id];
         for (BillingTreatmentItem item : items) {
@@ -1764,7 +1831,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         List<String> messages = new List<String>();
         for (String timing : new List<String>{ 'Advance', 'Arrears' }) {
             try {
-                RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, timing, cur);
+                RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, timing, cur);
                 messages.add('matched');
             } catch (AuraHandledException e) {
                 messages.add(e.getMessage());
@@ -1862,23 +1929,44 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert new List<LegalEntity>{ le, other };
         String cur = UserInfo.getDefaultCurrency();
         // Another active currency, when the org has one: a treatment in it is created first, so it would be
-        // chosen if the currency were ignored. Without one, the currency filter is not exercised here (it
-        // is covered with candidates in the chooseTreatment tests).
+        // chosen if the currency were ignored. Without one, the currency filter is not exercised here: the
+        // query's filter is covered by findBillingTreatmentId_otherCurrencyRows_doNotUseUpTheCap and
+        // chooseTreatment's by the chooseTreatment tests (with candidates).
         List<CurrencyType> others = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :cur LIMIT 1];
         BillingTreatment otherCurrency = null;
         if (!others.isEmpty()) {
-            otherCurrency = new BillingTreatment(Name = 'BSG TQ Other Currency', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = others[0].IsoCode);
+            otherCurrency = new BillingTreatment(
+                Name = 'BSG TQ Other Currency', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+                CurrencyIsoCode = others[0].IsoCode);
             insert otherCurrency;
-            insert new BillingTreatmentItem(Name = 'BSG TQ Other Currency Item', BillingTreatmentId = otherCurrency.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
+            insert new BillingTreatmentItem(
+                Name = 'BSG TQ Other Currency Item', BillingTreatmentId = otherCurrency.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
         }
-        BillingTreatment advance = new BillingTreatment(Name = 'BSG TQ Advance', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
-        BillingTreatment arrears = new BillingTreatment(Name = 'BSG TQ Arrears', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
-        BillingTreatment otherArrears = new BillingTreatment(Name = 'BSG TQ Other Arrears', LegalEntityId = other.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment advance = new BillingTreatment(
+            Name = 'BSG TQ Advance', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = cur);
+        BillingTreatment arrears = new BillingTreatment(
+            Name = 'BSG TQ Arrears', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = cur);
+        BillingTreatment otherArrears = new BillingTreatment(
+            Name = 'BSG TQ Other Arrears', LegalEntityId = other.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = cur);
         insert new List<BillingTreatment>{ advance, arrears, otherArrears };
         insert new List<BillingTreatmentItem>{
-            new BillingTreatmentItem(Name = 'BSG TQ Advance Item', BillingTreatmentId = advance.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
-            new BillingTreatmentItem(Name = 'BSG TQ Arrears Item', BillingTreatmentId = arrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
-            new BillingTreatmentItem(Name = 'BSG TQ Other Item', BillingTreatmentId = otherArrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+            new BillingTreatmentItem(
+                Name = 'BSG TQ Advance Item', BillingTreatmentId = advance.Id, BillingType = 'Advance',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(
+                Name = 'BSG TQ Arrears Item', BillingTreatmentId = arrears.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(
+                Name = 'BSG TQ Other Item', BillingTreatmentId = otherArrears.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
         };
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE Name LIKE 'BSG TQ%'];
         for (BillingTreatmentItem item : items) {
@@ -1892,9 +1980,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         update treatments;
 
         Test.startTest();
-        Id foundArrears = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
-        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
-        Id foundOneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+        Id foundArrears = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', cur);
+        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Advance', cur);
+        Id foundOneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, true, null, cur);
         Test.stopTest();
 
         Assert.areEqual(arrears.Id, foundArrears, 'The chosen entity\'s Arrears treatment is found, not another entity\'s.');
@@ -1909,11 +1997,19 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void findBillingTreatmentId_onlyAMixedTreatment_isRefusedByNameAndUsedForOneTime() {
         LegalEntity le = new LegalEntity(Name = 'BSG TQM LE', Status = 'Active');
         insert le;
-        BillingTreatment mixed = new BillingTreatment(Name = 'BSG TQM Mixed', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = CUR);
+        BillingTreatment mixed = new BillingTreatment(
+            Name = 'BSG TQM Mixed', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No',
+            CurrencyIsoCode = CUR);
         insert mixed;
         insert new List<BillingTreatmentItem>{
-            new BillingTreatmentItem(Name = 'BSG TQM Advance Item', BillingTreatmentId = mixed.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
-            new BillingTreatmentItem(Name = 'BSG TQM Arrears Item', BillingTreatmentId = mixed.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+            new BillingTreatmentItem(
+                Name = 'BSG TQM Advance Item', BillingTreatmentId = mixed.Id, BillingType = 'Advance',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50,
+                ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(
+                Name = 'BSG TQM Arrears Item', BillingTreatmentId = mixed.Id, BillingType = 'Arrears',
+                Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2,
+                Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
         };
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE Name LIKE 'BSG TQM%'];
         for (BillingTreatmentItem item : items) {
@@ -1926,11 +2022,11 @@ private class RLM_BillingScheduleGroupServiceTest {
         AuraHandledException thrown;
         Test.startTest();
         try {
-            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', CUR);
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, false, 'Arrears', CUR);
         } catch (AuraHandledException e) {
             thrown = e;
         }
-        Id oneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, CUR);
+        Id oneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, le.Name, true, null, CUR);
         Test.stopTest();
 
         Assert.isNotNull(thrown, 'A treatment with both timings is refused for a recurring charge.');
@@ -1987,7 +2083,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         public Integer billingTerm = 12;
         public String billingType = 'Advance';
         public Decimal quantity = 2;
-        public Id legalEntityId = fakeId(LegalEntity.SObjectType);
+        public Id legalEntityId = activeLegalEntityId();
         public Id taxTreatmentId = fakeId(TaxTreatment.SObjectType);
         public String currencyIsoCode = UserInfo.getDefaultCurrency();
         public Decimal unitPrice = 10;
@@ -2014,6 +2110,19 @@ private class RLM_BillingScheduleGroupServiceTest {
                 productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate, pageAccountId
             );
         }
+    }
+
+    // The create path reads the legal entity (active and visible to the user) before the treatment
+    // lookup, so a create call needs a real one: one per test, made on first use.
+    private static final String TEST_LEGAL_ENTITY = 'BSG Test LE';
+    private static Id testLegalEntityId;
+    private static Id activeLegalEntityId() {
+        if (testLegalEntityId == null) {
+            LegalEntity le = new LegalEntity(Name = TEST_LEGAL_ENTITY, Status = 'Active');
+            insert le;
+            testLegalEntityId = le.Id;
+        }
+        return testLegalEntityId;
     }
 
     // A treatment the lookup finds, unless a test has set its own candidates.
