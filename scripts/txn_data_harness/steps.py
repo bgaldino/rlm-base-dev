@@ -663,14 +663,18 @@ def _check_memo_applied(memo: Optional[dict], applied: float, places: int) -> No
 
     Every memo the harness creates is for this one invoice, so what was
     applied to it (rows filtered by this invoice) must equal the memo's
-    ``TotalAmountWithTax`` within one minor unit, whatever its ``Balance``:
-    a shortfall either stays on the memo (it would settle the account's next
-    posted invoice) or was already absorbed by another invoice.
+    ``TotalAmountWithTax`` exactly (both rounded to the currency's decimal
+    places), whatever its ``Balance``: any shortfall, even one minor unit,
+    either stays on the memo (it would settle the account's next posted
+    invoice) or was already absorbed by another invoice. Measured: every live
+    memo applied exactly its total to its own invoice.
     """
+    from decimal import Decimal
+
     if memo is None:
         return
     total = lifecycle._money(memo.get("TotalAmountWithTax"), places)
-    if abs(applied - total) > 10 ** -places + 1e-9:  # more than one minor unit
+    if Decimal(str(lifecycle._money(applied, places))) != Decimal(str(total)):
         raise SettlementError(
             "credit",
             f"credit memo {memo['Id']} applied {applied} to this invoice but its total "

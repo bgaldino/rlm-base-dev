@@ -1562,6 +1562,27 @@ def allocate(
     return out
 
 
+def describe_response(result: Any) -> str:
+    """A settlement response for an error message, without raw output.
+
+    A body the transport could not decode arrives as ``{"_raw": text}``
+    (``SfRestClient._decode``); its text is never shown, only its length --
+    the rule ``auth._run_sf`` applies to sf output. JSON ``errors`` are shown.
+    """
+    if result is None:
+        return "an empty response"
+    if isinstance(result, dict):
+        if "_raw" in result:
+            return f"a non-JSON response ({len(str(result['_raw']))} characters, not shown)"
+        errors = result.get("errors")
+        if errors:
+            return f"errors {errors}"
+        return f"a response without the expected fields (keys: {sorted(result)})"
+    if isinstance(result, list):
+        return f"errors {result}"
+    return f"a {type(result).__name__} response (not shown)"
+
+
 def credit_tag(run_id: str) -> str:
     """Description stamped on the harness's credit memo (one per run)."""
     return f"{run_id} credit"
@@ -1685,9 +1706,9 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
     if not isinstance(result, dict) or not result.get("success"):
         # A 2xx is never a refusal: the action may have been accepted. The
         # caller keeps credit_submitted and looks for the memo by its tag.
-        errs = result.get("errors") if isinstance(result, dict) else result
         raise SettlementError(
-            "credit", f"credit answered 2xx without success: {errs}", record_id=invoice_id
+            "credit", f"credit answered 2xx without success: {describe_response(result)}",
+            record_id=invoice_id,
         )
     return result
 
@@ -1819,7 +1840,9 @@ def create_payment(client: SfRestClient, body: dict) -> str:
     """
     result = client.post(_sobject_path(client, "Payment"), body, retry=False)
     if not isinstance(result, dict) or not result.get("success") or not result.get("id"):
-        raise SettlementError("payment", f"payment create failed: {result}")
+        raise SettlementError(
+            "payment", f"payment create answered without an id: {describe_response(result)}"
+        )
     log.info("payment %s created (%s)", result["id"], body.get("Amount"))
     return result["id"]
 
@@ -1886,7 +1909,9 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
             "payment", f"apply refused: {detail}", record_id=payment_id
         ) from exc
     if not isinstance(result, dict) or not result.get("id"):
-        raise SettlementError("payment", f"apply returned no id: {result}", record_id=payment_id)
+        raise SettlementError(
+            "payment", f"apply returned no id: {describe_response(result)}", record_id=payment_id
+        )
     return result["id"]
 
 

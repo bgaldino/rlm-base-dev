@@ -3375,12 +3375,19 @@ def test_posted_memo_with_nothing_applied_here_fails(billable_account) -> None:
         steps.run_credit(_settle_ctx(org, billable_account, spec), _submitted())
 
 
-def test_memo_applied_in_full_passes(billable_account) -> None:
+@pytest.mark.parametrize("total, ok", [(20.0, True), (20.01, False), (20.02, False)])
+def test_memo_must_apply_exactly_its_total(total, ok, billable_account) -> None:
+    """Exact match only: even one minor unit left would settle the account's
+    next posted invoice (live: every memo applied exactly its total)."""
     org = SettleOrg("line")
-    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=20.01))  # within one unit
+    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=total))
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
-    assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0
+    if ok:
+        m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+        assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0
+    else:
+        with pytest.raises(lifecycle.SettlementError, match=f"its total is {total}"):
+            steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
 
 
 # -- rebase onto todo 276: never echo raw sf stdout -------------------------------
@@ -3412,3 +3419,29 @@ def test_billing_settings_retrieve_failure_reports_the_json_error_only(monkeypat
         client.read_billing_settings_xml()
     assert "NoOrgFound: No authorization found" in str(info.value)
     assert "SECRET" not in str(info.value)
+
+
+def test_cli_exit_0_without_status_line_never_reaches_an_error(monkeypatch, billable_account) -> None:
+    """sf exits 0 with no status line and a non-JSON body: the transport
+    returns {"_raw": text}; payment errors report its length only."""
+    from scripts.txn_data_harness import auth
+
+    client = _client("cli")
+    monkeypatch.setattr(auth.subprocess, "run", lambda *a, **kw: SimpleNamespace(
+        returncode=0, stdout="SECRET-LOOKING-OUTPUT", stderr=""))
+    assert client.post("/services/data/v68.0/sobjects/Payment", {"a": 1}) == {
+        "_raw": "SECRET-LOOKING-OUTPUT"}
+    for call in (lambda: lifecycle.create_payment(client, {"Amount": 1}),
+                 lambda: lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "5TV1", "amount": 1}),
+                 lambda: lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []})):
+        with pytest.raises(lifecycle.SettlementError) as info:
+            call()
+        assert "SECRET" not in str(info.value)
+        assert "non-JSON response (21 characters, not shown)" in str(info.value)
+
+
+def test_describe_response_keeps_json_errors() -> None:
+    assert lifecycle.describe_response({"success": False, "errors": [{"message": "m"}]}) == \
+        "errors [{'message': 'm'}]"
+    assert lifecycle.describe_response(None) == "an empty response"
+    assert "keys: ['success']" in lifecycle.describe_response({"success": True})

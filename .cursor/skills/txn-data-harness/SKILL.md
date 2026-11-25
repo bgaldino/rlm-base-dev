@@ -294,8 +294,9 @@ billing-ready account for the target dataset.
    sibling's invoice could absorb a payment between its create and apply).
 3. Inspect the manifest's `settlement` block: `application_level`,
    `payment_mode`, `payment_amount_applied`, `invoice_balance`, warnings.
-4. Verify with SOQL: `Invoice.Balance`, `Payment.Balance`, and the
-   `PaymentLineInvoiceLine` / `CreditMemoLineInvoiceLine` rows by manifest id.
+4. Verify with `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>` (it reads the manifest's `invoice_id` and
+   `payment_ids`; report its checked and skipped counts). Query by hand only
+   what it does not check, such as the credit memo by `credit_memo_ids`.
 
 ### User asks: "Change the PST payload"
 
@@ -318,6 +319,6 @@ python -m scripts.txn_data_harness.cli verify --help
 
 For behavioral lifecycle changes, also run a live smoke scenario against a
 scratch/sandbox org and verify the manifest ids in Salesforce. For settlement
-changes, check `Invoice.Balance`, `Payment.Balance` and the application rows
-(`PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`, and at Header Level
-`PaymentLineInvoice`, `CreditMemoInvApplication`) by manifest id.
+changes, run `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>` and read its checked and skipped counts; use SOQL only
+for what it does not check (the credit memo's `Status` and
+`TotalAmountWithTax`, by `credit_memo_ids`).

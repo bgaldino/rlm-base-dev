@@ -346,8 +346,9 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   lost response the write is never re-sent; the stage looks the record up by its tag for a short wait (15 s) and fails only if it has not appeared; a `cli step` resume keeps looking it up. A refused write created nothing; rerunning sends the same
   write again and will normally be refused again (new options need a new
   run). A memo in `Error` / `Canceled` / `Voided`, two records under a tag,
-  a reversed application, or a `NetCreditsApplied` mismatch mean the run
-  cannot settle: report it; a new run is the only recovery.
+  a reversed application, a memo not applied in full (its
+  `TotalAmountWithTax`) to this invoice, or a `NetCreditsApplied` mismatch
+  mean the run cannot settle: report it; a new run is the only recovery.
 - The settlement block is fixed once recorded (when the first settlement
   step starts). A `--config` that differs from it is refused, naming the
   keys: different options need a new run. `payment_applied` refuses a block
@@ -386,17 +387,16 @@ sf data query --target-org <sf-alias> -q "
   FROM Invoice WHERE Id = '<invoiceId>'"
 ```
 
-For settlement (`payment_applied`), by manifest ids:
+For settlement (`credit_applied` / `payment_applied`), run the read-only
+verifier on the manifest: `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>`. It reads the manifest's `invoice_id` and
+`payment_ids`; report its checked and skipped counts (a skip carries a reason
+and is not a pass). Use SOQL only for what it does not check, e.g. the credit
+memo by `credit_memo_ids`:
 
 ```bash
 sf data query --target-org <sf-alias> -q "
-  SELECT Id, Balance, NetCreditsApplied, NetPaymentsApplied, SettlementStatus,
-         SettlementLevel FROM Invoice WHERE Id = '<invoiceId>'"
-sf data query --target-org <sf-alias> -q "
-  SELECT Id, Amount, Balance, NetApplied FROM Payment WHERE Id = '<paymentId>'"
-sf data query --target-org <sf-alias> -q "
-  SELECT Id, InvoiceLineId, Amount, Type FROM PaymentLineInvoiceLine
-  WHERE PaymentId = '<paymentId>'"
+  SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo
+  WHERE Id = '<creditMemoId>'"
 ```
 
 For Posted invoice linkage after `post`:

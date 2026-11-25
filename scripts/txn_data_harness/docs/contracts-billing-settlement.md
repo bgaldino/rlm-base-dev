@@ -339,7 +339,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
 - **The memo must apply its whole total to this invoice.** Every memo the
   harness creates is for this one invoice, so the amount applied to it
   (application rows filtered by this invoice) must equal the memo's
-  `TotalAmountWithTax` within one minor unit, whatever its `Balance`.
+  `TotalAmountWithTax` exactly (both rounded to the currency's decimal places;
+  even one minor unit short fails), whatever its `Balance`. Measured: all 7
+  harness memos on the verification org applied exactly their total to their
+  own invoice.
   Otherwise the stage fails, naming the memo, the applied amount and the
   total (start a new run): a shortfall -- e.g. the platform's tax on a
   `Calculate` credit above what was applied -- either stays on the memo and
