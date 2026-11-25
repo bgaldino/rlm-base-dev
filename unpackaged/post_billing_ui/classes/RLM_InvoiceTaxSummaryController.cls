@@ -17,9 +17,7 @@ public with sharing class RLM_InvoiceTaxSummaryController {
             return new List<TaxSummaryRow>();
         }
 
-        List<TaxSummaryRow> rows = new List<TaxSummaryRow>();
-
-        for (AggregateResult ar : [
+        return toRows([
             SELECT
                 TaxName taxName,
                 CurrencyIsoCode currencyIsoCode,
@@ -28,14 +26,20 @@ public with sharing class RLM_InvoiceTaxSummaryController {
             WHERE InvoiceLine.InvoiceId = :invoiceId
             WITH USER_MODE GROUP BY TaxName, CurrencyIsoCode
             ORDER BY TaxName, CurrencyIsoCode
-        ]) {
+        ]);
+    }
+
+    // One row per aggregate group, in the order given. Reads the query's aliases.
+    @TestVisible
+    private static List<TaxSummaryRow> toRows(List<AggregateResult> groups) {
+        List<TaxSummaryRow> rows = new List<TaxSummaryRow>();
+        for (AggregateResult ar : groups) {
             rows.add(new TaxSummaryRow(
                 (String) ar.get('taxName'),
                 (Decimal) ar.get('totalTaxAmount'),
                 (String) ar.get('currencyIsoCode')
             ));
         }
-
         return rows;
     }
 }
