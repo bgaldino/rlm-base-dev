@@ -260,7 +260,9 @@ In this repo:
   deliberate fallback, not a split by whichever rows happened to have an address. Half of them
   used to hotlink third-party hosts, which break without notice and which the repo has no license
   to use; do not reintroduce such addresses. The dev guide's example responses still show
-  external `https` addresses.
+  external `https` addresses. An org built with `quantumbit` on before that change (most qb
+  builds too) keeps the 16 `img-src` trusted sites added for those hosts until they are removed
+  in Setup → Trusted URLs; the list is in `datasets/sfdmu/q3/en-US/q3-pcm/README.md`.
 - **An external `https` address loads only from an allowed host.** In Lightning, the page's
   `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
   (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no
