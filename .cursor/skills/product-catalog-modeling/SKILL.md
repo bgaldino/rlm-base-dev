@@ -335,7 +335,8 @@ Every item marked **Open — needs live verification** in this skill and its sub
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Recurring children in a fixed kit.** Which selling model a static kit's Term Defined
-  or Evergreen child is quoted, renewed and billed on; how a locked configurable bundle's
+  or Evergreen child is quoted on when its component row sets none or the child has several
+  options (where the row set one, Place used it), and which it renews and bills on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
   quantity does; a CML-set locked quantity and a group out of range are not measured. See
@@ -343,7 +344,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** A measured Term Defined root with Term Defined, Evergreen and One Time children, and an Evergreen static bundle with One Time and Term Annual children, drew no message, which conflicts with the traced rule; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either, but the step may skip static bundles, which cannot be configured at run time; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
   were accepted on test bundles (not `CERT007`'s own rows), and a mismatched pair priced and
