@@ -107,8 +107,9 @@ def requirement_met(requires: Dict[str, str], query: Callable[[str], List[dict]]
 def apply_conditions(plan_dir: str, query: Callable[[str], List[dict]],
                      log: Callable[[str], None] = print) -> List[str]:
     """Remove the steps whose requirement is missing, IN PLACE (call it on a temp copy).
-    Returns the removed step names; raises `ConditionalStepError` when a step the file names is
-    not in the plan, so a rename cannot silently turn the guard into a no-op."""
+    Returns the removed step names. A named step missing from the plan is logged as already absent
+    when its requirement is unmet, and raises `ConditionalStepError` when it is met (a rename). The
+    offline test checks the names of every tracked conditions file, which covers orgs without it."""
     conditions = load_conditions(plan_dir)
     if not conditions:
         return []

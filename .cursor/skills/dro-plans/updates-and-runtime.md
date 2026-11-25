@@ -536,7 +536,7 @@ when the target org has no unnamespaced `RLM` named credential record (it checks
 not that it answers). The two steps that depended on it then have no predecessor and start with the plan
 [inferred from the dependency rows]. Details are in the
 [qb-dro README](../../../datasets/sfdmu/qb/en-US/qb-dro/README.md). A load never deletes the step from an org
-that already has it. `mfg-dro` has no conditions file yet, so it still loads both of its tenant steps.
+that already has it. `mfg-dro` has no conditions file yet, so a load of it (no cumulusci.yml task runs one today) would carry both of its tenant steps, which have different names from qb-dro's.
 
 **Mock provider for callout steps.** `DFOApexMockService` (definition in
 `unpackaged/post_quantumbit/integrationProviderDefinitions/`) returns success, response code 200, by default.

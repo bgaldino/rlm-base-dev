@@ -74,6 +74,16 @@ check("one step, requiring the RLM Named Credential", cs.load_conditions(str(PLA
 check("the step is in the tracked definitions",
       STEP in {r["Name"] for r in rows(PLAN, cs.DEFINITION_CSV)}, True)
 
+print("every tracked conditions file names steps its plan has")
+# The load's rename guard fires only on an org that meets the requirement, which no default build
+# does; this offline check covers a renamed step on every build.
+tracked = sorted((REPO / "datasets").rglob(cs.CONDITIONS_FILENAME))
+check("at least the qb-dro conditions file is found", PLAN / cs.CONDITIONS_FILENAME in tracked, True)
+for spec in tracked:
+    names = {r[cs.DEFINITION_NAME_COLUMN] for r in rows(spec.parent, cs.DEFINITION_CSV)}
+    check(f"{spec.relative_to(REPO)}: every named step is in {cs.DEFINITION_CSV}",
+          [i["name"] for i in cs.load_conditions(str(spec.parent)) if i["name"] not in names], [])
+
 print("no RLM credential: the step and its dependencies go, the rest stays")
 plan = fresh_plan()
 before_defs = {r["Name"] for r in rows(plan, cs.DEFINITION_CSV)}

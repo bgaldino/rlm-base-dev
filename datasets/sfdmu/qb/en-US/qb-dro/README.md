@@ -88,8 +88,11 @@ loads the step as before.
 The load never deletes anything, so an org that already holds the step keeps it. The load logs a warning
 naming the step; remove it by hand on that org. A plan that already lacks the step (for example, an
 extraction from such an org) loads without it when the credential is missing, and fails when the credential
-exists, so a renamed step cannot slip past. Only the plan-root CSVs are filtered: the load fails if
-`objectset_source/` holds a copy of either one. Logic: `scripts/sfdmu_conditional_steps.py`.
+exists. Because no default build has the credential, an offline test
+(`tests/test_sfdmu_conditional_steps.py`) checks that every name in a tracked `conditional_steps.json` is in its
+plan's CSV, so a renamed step fails the gate. Only the plan-root CSVs are filtered: the load fails if
+`objectset_source/` holds a copy of either one. Do not extract with `copy_to_plan true` from an org without the
+credential: that writes CSVs without the step into the tracked plan. Logic: `scripts/sfdmu_conditional_steps.py`.
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`

@@ -175,8 +175,9 @@ def run_post_process_script(
 
 def copy_plan_control_files(plan_dir: str, dest_dir: str) -> None:
     """Copy the files that make `dest_dir` loadable as `plan_dir`: export.json and, when the plan
-    has one, its parent_id_lookups.json. Without the lookups file a processed extraction of a
-    lookup plan loads with no Ids for its children's matching key."""
+    has them, its parent_id_lookups.json and conditional_steps.json. Without the lookups file a
+    processed extraction of a lookup plan loads with no Ids for its children's matching key; without
+    the conditions file it loads steps the org cannot run."""
     shutil.copy2(os.path.join(plan_dir, EXPORT_JSON_FILENAME), os.path.join(dest_dir, EXPORT_JSON_FILENAME))
     lookups_src = os.path.join(plan_dir, sfdmu_id_lookups.LOOKUPS_FILENAME)
     if os.path.isfile(lookups_src):

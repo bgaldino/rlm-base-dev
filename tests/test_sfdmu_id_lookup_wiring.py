@@ -522,7 +522,7 @@ for option, want_name, credential in ((True, True, True), ("false", False, True)
         check(f"{tag}: the placeholder is unchanged (a temp copy, for the conditional step)",
               [(plan != DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
         check(f"{tag}: no user query", user_queries, [])
-    shutil.rmtree(DRO / "target", ignore_errors=True)  # the in-place run's (empty) output
+    shutil.rmtree(DRO / "target", ignore_errors=True)  # in case a run wrote output beside the plan
 dro_after = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
 check("qb-dro plan byte-for-byte unchanged", dro_after == dro_before, True)
 shutil.rmtree(dro_root, ignore_errors=True)
@@ -632,6 +632,37 @@ plain._temp_plan_dir = None
 plain._apply_conditional_steps()
 check("a plan without conditional_steps.json is left alone",
       plain.pathtoexportjson, str(REPO / "datasets/sfdmu/qb/en-US/qb-pricing"))
+
+print("LoadSFDMUData: insert_qb_dro_data's options run the user Name and the condition together")
+# The load task as insert_qb_dro_data runs it (dynamic_assigned_to_user on): both temp-copy steps
+# share one copy, so the loaded CSV carries the user Name and, without the credential, no tenant step.
+for credential in (True, False):
+    seen.clear(), user_queries.clear()
+    has_credential[0] = credential
+    work = pathlib.Path(tempfile.mkdtemp())
+    shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-dro", work / "qb-dro",
+                    ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
+    load = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    load.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    load.options = {"pathtoexportjson": str(work / "qb-dro"), "dynamic_assigned_to_user": True}
+    load.logger = _Log()
+    load._load_keychain = lambda: None
+    saved_run = rs.subprocess.run
+    rs.subprocess.run = dro_run
+    try:
+        load._run_task()
+        error = None
+    except Exception as exc:  # asserted below
+        error = exc
+    finally:
+        rs.subprocess.run = saved_run
+        shutil.rmtree(work, ignore_errors=True)
+    tag = f"credential={credential}"
+    check(f"{tag}: the load completes", error, None)
+    check(f"{tag}: SFDMU ran once, from a temp copy", [plan != work / "qb-dro" for plan, _ in seen], [True])
+    check(f"{tag}: the loaded definitions carry the user Name, and the tenant step only with the credential",
+          [("Admin User" in csv, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv, "Stage New Tenant" in csv)
+           for _, csv in seen], [(True, False, credential)])
 
 print("=" * 60)
 if _failures:
