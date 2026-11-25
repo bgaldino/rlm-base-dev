@@ -18,8 +18,11 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-  The repo turns the setting on (`enablePaymentSchedulesAndItemsCreation` true)
-  [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
+  Only the two `Billing.settings-meta.xml` files touch the setting: `unpackaged/pre/2_settings`
+  sets `enablePaymentSchedulesAndItemsCreation` false and `unpackaged/post_billing/settings` sets
+  it true. No repo file creates a payment schedule treatment or sets its Grouping Source
+  [Repo: `unpackaged/pre/2_settings/Billing.settings-meta.xml`;
+  `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
 
   Help says: the first time the setting is turned on it creates four default records, Default
   Payment Schedule Policy, Default Payment Schedule Treatment, Default Payment Schedule
@@ -38,8 +41,7 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   `ReferenceEntityId` set to one of those invoices was refused (error
   `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
   is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: read the treatment's
-  Grouping Source on an org right after the setting is first turned on; post two invoices under
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: post two invoices under
   Grouping Source Invoice and count the schedules; post two invoices with different due dates
   under a non-blank Due Date Window; record the currency and payment method of grouped invoices;
   cancel the automatic Draft schedule, then create one referencing an invoice]
