@@ -17,7 +17,7 @@
 
 Help says `Type` cannot be changed after the product is created, and that you can't change a
 simple product to a bundle product [Help: `ind.product_catalog_create_simple_products.htm`,
-`ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article describes one exception, a one-way conversion
+`ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article (`docs/salesforce/264/help/articles/ind.product_catalog_convert_simple_product_to_bundle_product.htm.md`) describes one exception, a one-way conversion
 of a product with no type to Bundle that "can't be undone" and can affect configuration,
 quotes, orders and assets. Plan as if `Type` is fixed; the conflict is **Open, needs live
 verification** (edit a test product's `Type` from blank to `Bundle` in the Product Catalog

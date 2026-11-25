@@ -457,12 +457,16 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
   `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
-  The status does not recover on its own. `E2ECommon.robot` `Wait For Quote Calculation` reprices once
+  That the status does not recover on its own is `[inferred]` from the pollers' behavior, not sourced.
+  `E2ECommon.robot` `Wait For Quote Calculation` reprices once
   (Place Sales Transaction, `pricingPref` Force) and fails the test if the second wait also fails.
-  The large-deal guide likewise allows a bounded reprice retry for these values
-  (`troubleshooting/large-deal-preprocess-reference.md`).
-- **Settled partially, investigate (do not auto-retry):** `QuoteRequestPartiallySaved`, `PartialSaveSuccess`.
-  The repo's pollers treat both as failed (`E2ECommon.robot` `@{QUOTE_CALC_FAILED}`). The large-deal
+  The large-deal guide likewise allows a bounded reprice retry for the values it lists
+  (`PstBaseStepFailed`, `ConfigurationFailed`, `GroupRampConfigurationFailed`, `PriceCalculationFailed`,
+  `TaxCalculationFailed`, `SaveFailedOrIncomplete`, `ReconciliationFailed`, `OrderRequestFailed`;
+  `troubleshooting/large-deal-preprocess-reference.md`).
+- **Settled partially, investigate (guide) vs. reprice once (repo poller):** `QuoteRequestPartiallySaved`, `PartialSaveSuccess`.
+  Divergence: the repo poller puts both in `@{QUOTE_CALC_FAILED}`, so `_Is Failed Calculation Status`
+  is true and `Wait For Quote Calculation` reprices once, like a failure (`E2ECommon.robot`). The large-deal
   guide says investigate rather than retry for `OrderRequestPartiallySaved` and `PartialSaveSuccess`
   (`troubleshooting/large-deal-preprocess-reference.md`); it does not name `QuoteRequestPartiallySaved`,
   so that value follows the same rule by analogy `[inferred]`.

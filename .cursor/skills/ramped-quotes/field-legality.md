@@ -2,7 +2,7 @@
 
 > Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`.
 
-Snapshot — re-verify with a `describe` on the target org. Writeable = accepted on the graph; read-only = rejected or engine-owned there. These are not the describe createable/updateable flags.
+Snapshot — re-verify with a `describe` on the target org. Writeable = accepted on the graph; read-only = rejected on the graph or by direct API writes, or engine-owned. These are not the describe createable/updateable flags.
 
 | Object | Writeable (set these) | Read-only (never set) |
 |---|---|---|
@@ -11,8 +11,8 @@ Snapshot — re-verify with a `describe` on the target org. Writeable = accepted
 | `Quote` | `Status`, `TotalPriceOverride`, `AdjustmentDistributionLogic` | `CalculationStatus`, `TotalPrice`, `GrandTotal`, `QuoteNumber` |
 | `Product2` | — | `CanRamp` (direct writes refused on one 264 org via REST, Bulk, Apex, CLI; gates the line-ramp path only) |
 
-The 264 schema marks `RampIdentifier` and `SegmentIdentifier` createable/updateable. They are listed
-read-only because the graph rejected caller writes (not re-tested against the describe) `[inferred]`.
+The graph rejected caller writes to `RampIdentifier` and `SegmentIdentifier` (measured). The 264 schema
+marks both createable/updateable, so the describe flags do not reflect that rejection `[inferred]`.
 `groupRampAction` stamps both; never set them.
 
 `SegmentType` enum: `Yearly`, `Custom`, `FreeTrial`, `Prorated`.

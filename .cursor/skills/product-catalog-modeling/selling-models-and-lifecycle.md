@@ -59,7 +59,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
   were not the ones inserted. The 2026-11-24 static test bundle (Evergreen Monthly root; One-Time and Term Annual children) priced, each child at 0 inside the bundle price, and its Place and `configure` calls returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see [Measured component rules](#measured-component-selling-model-rules)). [Open: set both component rows' `DoesBundlePriceIncludeChild` to false on the 2026-11-24 static test bundle (record whether the active bundle accepts the update), repeat the recorded Place inputs, and compare each child's price with its price book entry] [Open: order, invoice and renew the 2026-11-24 static test bundle; record each child's order line, invoice lines and renewal line] [Open: build a new active configurable root with the same selling model option and the same two children, component rows with no selling models, each child a default component in one group; repeat the recorded Place and `configure` inputs of the 2026-11-24 static test bundle]
-  Whether `CERT007`'s matched Term Annual pairs price, order and renew correctly is **Open —
+  Whether `CERT007`'s matched Term Annual pairs price, order and renew correctly is **Open,
   needs live verification**; do not copy the pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
   product's and its root bundle's. Help lists all three as prerequisites, and all three
