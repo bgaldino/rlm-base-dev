@@ -223,7 +223,7 @@ platform picked a treatment of the legal entity whatever the currency, a JPY one
 so the service sends one]. A legal entity with no such treatment, including one whose treatments are
 all in another currency, is refused before the action with a message naming the currency and
 entity (and the timing, for a recurring charge); a charge currency that is not an active `CurrencyType`
-of the org is refused first, before any treatment lookup. The read filters on the charge currency and is capped at 1000 items, oldest first; at the cap the last treatment read is dropped (it may be cut short), and if nothing then fits the refusal says the lookup was cut off rather than that no treatment exists. Sharing cannot hide a treatment (public
+of the org is refused first, before any treatment lookup. The read filters on the charge currency and is capped at 1000 items, oldest first; a read that runs past the cap drops the last treatment when it may be cut short, and if nothing then fits the refusal says the lookup was cut off rather than that no treatment exists. Sharing cannot hide a treatment (public
 organization-wide default on 264), so "none" means none exists.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the

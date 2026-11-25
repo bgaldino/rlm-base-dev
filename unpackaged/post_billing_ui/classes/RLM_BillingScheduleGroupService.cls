@@ -24,7 +24,7 @@
  * The account: the modal passes the id of the account page it opened on (pageAccountId). When that
  * account is the billing account's own, or is linked to it through AccountBillingAccount, it is the
  * account sent (AccountId__std) and read for the shipping city; otherwise the billing account's own
- * account is used (if it has none, create refuses), else its oldest link. When the page account differs
+ * account is used, else its oldest link (create refuses when it has neither). When the page account differs
  * from the billing account's own it must be readable by the user (an Account read in USER_MODE) and
  * linked to the billing account; if it is not found, not readable, or not linked (the link was
  * deleted, or the cached getAccountBillingInfo is stale), or the link read is refused, create refuses
@@ -486,7 +486,7 @@ public with sharing class RLM_BillingScheduleGroupService {
             }
             if (pageLinks.isEmpty()) {
                 throw RLM_AuraErrors.handled(
-                    'The account you opened this from is no longer linked to the billing account. Reopen it and try again.');
+                    'The account you opened this from is not linked to the billing account. Reopen it and try again.');
             }
             accountId = pageAccountId;
         }
@@ -721,11 +721,11 @@ public with sharing class RLM_BillingScheduleGroupService {
     // The billing treatment of the legal entity chosen by the rule in the class header, in the charge's
     // currency (a treatment item's BillingType is where Advance or Arrears lives). timing is not used for
     // a one-time charge. Both timings are read so a recurring charge can skip a treatment carrying both.
-
     @TestVisible
     private static Id findBillingTreatmentId(Id legalEntityId, Boolean isOneTime, String timing, String currencyIsoCode) {
         List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
         Boolean truncated = false;
+        Integer readLimit = ITEM_READ_CAP + 1;
         if (Test.isRunningTest() && mockTreatmentCandidates != null) {
             candidates = mockTreatmentCandidates;
         } else {
@@ -742,7 +742,7 @@ public with sharing class RLM_BillingScheduleGroupService {
                     AND BillingTreatment.CurrencyIsoCode = :currencyIsoCode
                     WITH USER_MODE
                     ORDER BY BillingTreatment.CreatedDate, BillingTreatmentId
-                    LIMIT :ITEM_READ_CAP
+                    LIMIT :readLimit
                 ]) {
                     candidates.add(new TreatmentCandidate(
                         item.BillingTreatmentId, item.BillingType, item.BillingTreatment.CurrencyIsoCode));
@@ -750,8 +750,15 @@ public with sharing class RLM_BillingScheduleGroupService {
             } catch (QueryException qe) {
                 throw readRefused('the billing treatments', qe);
             }
-            truncated = candidates.size() >= ITEM_READ_CAP;
-            candidates = dropPartialLastTreatment(candidates, ITEM_READ_CAP);
+            // One row past the cap shows the read was cut off (exactly the cap is a complete read). Drop the
+            // extra row; if it belongs to the last treatment kept, that treatment may be cut short.
+            truncated = candidates.size() > ITEM_READ_CAP;
+            if (truncated) {
+                Id extraTreatmentId = candidates.remove(candidates.size() - 1).treatmentId;
+                if (candidates[candidates.size() - 1].treatmentId == extraTreatmentId) {
+                    candidates = dropPartialLastTreatment(candidates, candidates.size());
+                }
+            }
         }
         TreatmentChoice choice = chooseTreatment(candidates, isOneTime, timing, currencyIsoCode);
         if (choice.chosen != null) {
@@ -760,8 +767,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         if (truncated) {
             throw RLM_AuraErrors.handled(
                 'The billing treatment lookup for ' + legalEntityPhrase(legalEntityId) + ' in ' + currencyIsoCode
-                + ' was cut off at ' + ITEM_READ_CAP + ' items, so a matching treatment may not have been seen. '
-                + 'Ask your administrator to consolidate or deactivate treatments, or choose another legal entity.');
+                + ' was cut off at ' + ITEM_READ_CAP + ' items, so a matching treatment may not have been seen'
+                + (choice.skippedAmbiguous == null ? '' : ' (a treatment with items in both advance and arrears was also skipped)')
+                + '. Ask your administrator to consolidate or deactivate treatments, or choose another legal entity or currency.');
         }
         String lowerTiming = isOneTime ? null : timing.toLowerCase();
         if (choice.skippedAmbiguous != null) {

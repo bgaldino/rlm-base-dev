@@ -1295,7 +1295,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(String.valueOf(own.Id), ownTxn.get('AccountId__std'), 'The billing account\'s own account stays.');
         Assert.areEqual('Own City', ownTxn.get('ShippingCity__std'));
         Assert.isNotNull(unrelatedRefusal, 'A readable page account with no link to the billing account is refused.');
-        Assert.isTrue(unrelatedRefusal.getMessage().contains('no longer linked'), unrelatedRefusal.getMessage());
+        Assert.isTrue(unrelatedRefusal.getMessage().contains('is not linked'), unrelatedRefusal.getMessage());
     }
 
     // A billing account owned by another account is reached from the page account through a link: the
@@ -1387,10 +1387,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
-    // A billing account with no account of its own, for a user who cannot read the links, refuses
-    // (at the page-account link check when a page account is sent).
+    // A billing account with no account of its own, for a user who cannot read the links, refuses at
+    // the page-account link check when a page account is sent.
     @isTest
-    static void createViaAPI_noOwnAccountAndLinksRefused_isRefused() {
+    static void createViaAPI_pageAccountLinkReadRefused_isRefusedAtThePageAccountCheck() {
         Account page = new Account(Name = 'BSG Page No Own');
         insert page;
         BillingAccount ba = new BillingAccount(Name = 'BSG No Own Account BA');
@@ -1420,10 +1420,43 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
+    // The same user with no page account: the billing account has no account of its own, so the oldest
+    // link is read, and that read is refused.
+    @isTest
+    static void createViaAPI_noOwnAccountNoPageAccountAndLinksRefused_isRefused() {
+        Account linked = new Account(Name = 'BSG Linked No Own');
+        insert linked;
+        BillingAccount ba = new BillingAccount(Name = 'BSG No Own No Page BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = linked.Id, BillingAccountId = ba.Id);
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress' });
+        CreateArgs args = new CreateArgs(ba.Id);
+
+        AuraHandledException thrown;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'No own account, no page account and no readable links refuses create.');
+        Assert.isTrue(thrown.getMessage().contains('the links between the billing account and its accounts'),
+            'It is the oldest-link read: ' + thrown.getMessage());
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only
-    // treatments of one entity, cap 2: asking for Arrears sees two rows, drops the possibly partial last
-    // treatment, finds nothing and says the read was cut off (not "no treatment"); asking for Advance
-    // still finds one of them. Which two are read is the query's order, so the assertions do not depend
+    // treatments of one entity, cap 2: the read returns a third row, so it was cut off; asking for Arrears
+    // finds nothing and says so (not "no treatment"); asking for Advance still finds one of them. At cap 3
+    // the same read is complete and the plain message returns. Which two are read is the query's order, so the assertions do not depend
     // on it. The currency filter is exercised by findBillingTreatmentId_findsTheTreatmentOfTheEntityFor
     // TheTimingAndCurrency, and only when the org has a second active currency.
     @isTest
@@ -1477,6 +1510,60 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNotNull(none);
         Assert.isTrue(none.getMessage().startsWith('No active billing treatment bills in arrears'),
             'Under the cap the message is the plain one: ' + none.getMessage());
+
+        // Exactly as many items as the cap is a complete read, not a cut-off one.
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 3;
+        AuraHandledException atCap;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        } catch (AuraHandledException e) {
+            atCap = e;
+        }
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Assert.isNotNull(atCap);
+        Assert.isTrue(atCap.getMessage().startsWith('No active billing treatment bills in arrears'),
+            'A read of exactly the cap is complete: ' + atCap.getMessage());
+    }
+
+    // A mixed treatment cut by the cap must not look single-timing: one treatment with an Advance and an
+    // Arrears item, cap 1. The read sees one row and one more, so the treatment is dropped and both timings
+    // get the cut-off message (kept, it would match whichever timing its one seen row had).
+    @isTest
+    static void findBillingTreatmentId_mixedTreatmentCutByTheCap_isNeverMatched() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap Mixed LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        BillingTreatment mixed = new BillingTreatment(Name = 'BSG Cap Mixed', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        insert mixed;
+        insert new List<BillingTreatmentItem>{
+            new BillingTreatmentItem(Name = 'BSG Cap Mixed Adv', BillingTreatmentId = mixed.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(Name = 'BSG Cap Mixed Arr', BillingTreatmentId = mixed.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+        };
+        List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :mixed.Id];
+        for (BillingTreatmentItem item : items) {
+            item.Status = 'Active';
+        }
+        update items;
+        mixed.Status = 'Active';
+        update mixed;
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1;
+        Test.startTest();
+        List<String> messages = new List<String>();
+        for (String timing : new List<String>{ 'Advance', 'Arrears' }) {
+            try {
+                RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, timing, cur);
+                messages.add('matched');
+            } catch (AuraHandledException e) {
+                messages.add(e.getMessage());
+            }
+        }
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Test.stopTest();
+
+        for (String message : messages) {
+            Assert.isTrue(message.contains('cut off at 1 items'), 'A cut mixed treatment is never matched: ' + message);
+        }
     }
 
     // The item read is capped: at the cap the last treatment read is dropped (it may be cut short, so a

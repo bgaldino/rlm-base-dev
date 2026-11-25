@@ -88,7 +88,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   entity's Advance or Arrears treatment). Account sent: the account page the modal opened on when it is the
   billing account's own or is linked to it through `AccountBillingAccount`; a page account that is
   unreadable, not linked (link deleted) or whose link read is refused refuses create; with no page account,
-  the billing account's own account (create refuses if it has none), else its oldest link. Shipping city:
+  the billing account's own account, else its oldest link (create refuses when it has neither). Shipping city:
   that account's shipping city, else the billing city the caller submitted, which the modal reads from
   that same account.
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
