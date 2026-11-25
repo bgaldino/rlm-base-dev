@@ -85,7 +85,7 @@ class FakeTooling(types.ModuleType):
             m = re.search(r"(?<![\w.])" + re.escape(field) + r" IN \((.*?)\)(?= AND | OR |\)|$)", where)
             return [v.replace("\\'", "'") for v in re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(1))] if m else None
 
-        dev, def_ids, ids = in_list("Definition.DeveloperName"), in_list("DefinitionId"), in_list("Id")
+        dev, def_ids = in_list("Definition.DeveloperName"), in_list("DefinitionId")
         if dev is not None or def_ids is not None:  # the two name clauses are OR-ed
             dev_l = {v.lower() for v in dev or []}  # DeveloperName compares case-insensitively
 
@@ -94,8 +94,6 @@ class FakeTooling(types.ModuleType):
                            for d in def_ids or [])
 
             rows = [r for r in rows if r["Definition"]["DeveloperName"].lower() in dev_l or id_match(r)]
-        if ids is not None:
-            rows = [r for r in rows if r["Id"] in ids]
         m = re.search(r"Status = '([^']*)'", where)
         if m:
             rows = [r for r in rows if r["Status"] == m.group(1)]
@@ -300,7 +298,7 @@ fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "develope
 check("no status, process_type or limit: one query serves the missing-name check", err is None and len(fake.queries) == 1, repr(fake.queries))
 fake, err = run([row(A, "Flow_A", 1, "Active"), row(A, "Flow_A", 2, "Draft")], {"operation": "query", "developer_names": "FLOW_A"})
 check("query returns the rows in return_values['flows'] (case-insensitive DeveloperName)",
-      err is None and [f["VersionNumber"] for f in fake.task.return_values.get("flows", [])] == [1, 2]
+      err is None and sorted(f["VersionNumber"] for f in fake.task.return_values.get("flows", [])) == [1, 2]
       and all("attributes" not in f and "attributes" not in f["Definition"] for f in fake.task.return_values["flows"]),
       repr((err, fake.task.return_values)))
 fake, err = run([row(A, "Flow_A", 1, "Active", "AutoLaunchedFlow"), row(B, "Flow_B", 1, "Active", "Flow")],

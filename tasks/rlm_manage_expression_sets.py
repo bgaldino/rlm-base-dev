@@ -125,7 +125,10 @@ class ManageExpressionSets(BaseSalesforceTask):
         """Return the project API version (OrgConfig has no api_version attribute)."""
         # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
         # raises AssertionError under STRICT_GETATTR).
-        return str(self.project_config.project__package__api_version).lstrip("v")
+        version = self.project_config.project__package__api_version
+        if not version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        return str(version).lstrip("v")
     
     def _list_expression_sets(self):
         """List expression sets with their metadata."""

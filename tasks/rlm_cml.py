@@ -247,11 +247,12 @@ class CMLBaseTask(BaseSalesforceTask):
 
     @property
     def _api_version(self) -> str:
-        if self.options.get("api_version"):
-            return str(self.options["api_version"])
         # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
         # raises AssertionError under STRICT_GETATTR).
-        return str(self.project_config.project__package__api_version).lstrip("v")
+        version = self.options.get("api_version") or self.project_config.project__package__api_version
+        if not version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        return str(version).lstrip("v")
 
     @property
     def _headers(self) -> Dict[str, str]:

@@ -88,6 +88,7 @@ WARNINGS = []
 def run(record, status, patch_response=None):
     """Call _update_version_status against the stub; return (stub, result_or_exception)."""
     fake = FakeRequests(record, patch_response or FakeResponse(204))
+    saved = sys.modules.get("requests")
     sys.modules["requests"] = fake
     WARNINGS.clear()
     task = ManageExpressionSets.__new__(ManageExpressionSets)
@@ -101,6 +102,11 @@ def run(record, status, patch_response=None):
         return fake, task._update_version_status(record and "Model_V1" or "Missing_V1", status)
     except Exception as exc:  # TaskOptionsError, or Exception when CumulusCI is absent
         return fake, exc
+    finally:
+        if saved is None:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = saved
 
 
 def constraint_record(active):

@@ -8,7 +8,8 @@ Needs `requests` (rlm_cml imports it) and a real CumulusCI install (the stdctx t
 
 Covers the pack 457 class sweep of tasks no flow calls: tasks/soql_utils.py, manage_decision_tables
 (sort_by / sort_order / limit), export_cml (developer_name, version), manage_transaction_processing_types
-(key value), and extend_standard_context (the activate option was accepted and ignored).
+(key value), extend_standard_context (the activate option was accepted and ignored), and the API version
+of manage_transaction_processing_types and manage_fulfillment_scope_cnfg (read from project config).
 """
 import re
 import sys
@@ -146,6 +147,29 @@ with tempfile.TemporaryDirectory() as tmp:
     t._query = lambda tok, url, ver, soql: seen.append(soql) or []
     t._upsert_records()
 check("key value escaped", seen and seen[0].endswith("DeveloperName = 'O\\'Brien'"), repr(seen))
+
+print("api version: read from project config, never org_config.api_version")
+
+
+class StrictOrgConfig(types.SimpleNamespace):
+    def __getattr__(self, name):
+        raise AssertionError(f"org_config.{name} is not an OrgConfig attribute")
+
+
+for module, cls in (("rlm_manage_transaction_processing_types", "ManageTransactionProcessingTypes"),
+                    ("rlm_manage_fulfillment_scope_cnfg", "ManageFulfillmentScopeCnfg")):
+    klass = getattr(load(module), cls)
+    t = klass.__new__(klass)
+    t.options = {}
+    t.org_config = StrictOrgConfig(access_token="tok", instance_url="https://x")
+    t.project_config = types.SimpleNamespace(project__package__api_version="v68.0")
+    try:
+        version = t._get_api_context()[2]
+    except Exception as exc:  # noqa: BLE001
+        version = exc
+    check(f"{cls} takes the project version ('v' stripped)", version == "68.0", repr(version))
+    t.project_config = types.SimpleNamespace(project__package__api_version=None)
+    check(f"{cls} refuses a missing project version", raises(t._get_api_context, "No API version"))
 
 print("extend_standard_context: activate is honoured")
 ExtendStandardContext = load("rlm_extend_stdctx").ExtendStandardContext

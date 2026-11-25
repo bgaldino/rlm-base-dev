@@ -58,9 +58,12 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             raise TaskOptionsError("No org_config available")
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        api_version = self.options.get("api_version") or getattr(
-            self.org_config, "api_version", None
-        ) or getattr(self.project_config, "project__package__api_version", "68.0")
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR).
+        api_version = self.options.get("api_version") or self.project_config.project__package__api_version
+        if not api_version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        api_version = str(api_version).lstrip("v")
         return access_token, instance_url, api_version
 
     def _tooling_headers(self, access_token: str) -> Dict[str, str]:

@@ -345,7 +345,7 @@ classes. They fall into these categories:
 | Category | Classes | Base Class |
 |----------|---------|------------|
 | SFDMU data ops | `LoadSFDMUData`, `ExtractSFDMUData`, `DeleteSFDMUData`, `TestSFDMUIdempotency` | `SFDXBaseTask` |
-| REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageTransactionProcessingTypes` | `SFDXBaseTask` / `BaseTask` |
+| REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageTransactionProcessingTypes` | `SFDXBaseTask`, `BaseTask` or `BaseSalesforceTask` |
 | Tooling API | `ManageFlows` | `BaseSalesforceTask` |
 | Metadata deploy | `AssembleAndDeployUX`, `StampGitCommit`, `CleanupSettingsForDev`, `FixDocumentTemplateBinaries` | `SFDXBaseTask` |
 | Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings` | `BaseTask` |

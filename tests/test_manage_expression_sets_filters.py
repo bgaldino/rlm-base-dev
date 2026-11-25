@@ -79,6 +79,7 @@ LOGS = []
 
 def run(options):
     fake = FakeTooling()
+    saved = sys.modules.get("requests")
     sys.modules["requests"] = fake
     LOGS.clear()
     task = ManageExpressionSets.__new__(ManageExpressionSets)
@@ -92,6 +93,11 @@ def run(options):
         return fake, None
     except Exception as exc:
         return fake, exc
+    finally:
+        if saved is None:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = saved
 
 
 JOINED = "\n".join

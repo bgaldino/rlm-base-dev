@@ -120,7 +120,10 @@ class ManageFlows(BaseSalesforceTask):
     def _api_version(self) -> str:
         # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
         # raises AssertionError under STRICT_GETATTR). The project's API version is what the repo's tasks use.
-        return str(self.project_config.project__package__api_version).lstrip("v")
+        version = self.project_config.project__package__api_version
+        if not version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        return str(version).lstrip("v")
 
     def _headers(self) -> Dict[str, str]:
         return {
