@@ -45,7 +45,7 @@ List<RLM_DecisionTableManagerController.DecisionTableInfo> tables =
 if (tables.isEmpty()) {
     throw new DecisionTableFreshnessException(
         'No decision tables were readable, so freshness could not be checked at all. '
-        + 'Either none are deployed (run prepare_rlm_org, or deploy_decision_tables), '
+        + 'Either none are deployed (run prepare_rlm_org), '
         + 'or the running user cannot see them. This is NOT a clean result.');
 }
 

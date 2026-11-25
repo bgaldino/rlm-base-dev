@@ -110,7 +110,7 @@ project:
     tax: true                 # Tax engine
     quote_est_tax: false      # Estimated tax on quotes and orders; needs tax (turned on after the tax engine). Off: a price-lowering Sales Price Amendment fails with it on
     calmdelete: true          # CALM Delete
-    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
+    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue; post_collections_case_flow; RLM_CollectionsUI permission set) + CollectionConsole UX. On by default; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
@@ -662,8 +662,6 @@ project:
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rating_entitlements_dataset: &quantumbit_rating_entitlements_dataset "datasets/sfdmu/qb/en-US/qb-rating-entitlements"  # QuantumBit usage policies + grants per product usage resource
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
-    quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
-    quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_bundle_constraints_data_dir: &quantumbit_bundle_constraints_data_dir "datasets/constraints/qb/QuantumBitBundle"  # QuantumBitBundle combined CML constraint model (LineItem-primary)
     quantumbit_price_revision_dataset: &quantumbit_price_revision_dataset "datasets/sfdmu/qb/en-US/qb-price-revision"   # QuantumBit CPI index rates + price revision policies
@@ -1056,20 +1054,6 @@ tasks:
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/pre
-
-  deploy_permissions:
-    description: Deploy Permission Set Groups
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: force-app/main/default/permissionsetgroups
-
-  deploy_decision_tables:
-    description: Deploy Decision Tables
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: force-app/main/default/decisionTables
 
   deploy_agents_settings:
     description: Deploy Agentforce Agent Settings (EinsteinCopilot, EinsteinGpt, AgentPlatform). Required before deploying agent bots/planners.
@@ -1478,8 +1462,9 @@ tasks:
       Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS,
       PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data,
       and RLM_AA_Reset_Quote_Status, which resets the quote status on recall or cancel),
-      Apex class, and permission set. EmailTemplatePage FlexiPages (including
-      RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
+      Apex class, and permission set. The two EmailTemplatePage FlexiPages
+      (RLM_Quote_Discount_Approval_Template, RLM_Quote_Payment_Terms_Approval_Template)
+      are excluded via .forceignore — EmailTemplatePage type cannot be
       deployed via Metadata API (platform restriction); Lightning Email Templates are created
       separately by create_approval_email_templates.
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1644,24 +1629,6 @@ tasks:
     options:
       path: unpackaged/post_procedureplans
   
-  deploy_post_procedureplans_objects:
-    description: Deploy Procedure Plans Objects
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_procedureplans/objects
-
-  deploy_post_procedureplans_classes:
-    description: Deploy Procedure Plans Classes
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_procedureplans/classes
-
-  deploy_post_procedureplans_permissionsets:
-    description: Deploy Procedure Plans Permissionsets
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_procedureplans/permissionsets
-
   deploy_post_billing:
     description: Deploy Billing Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1671,21 +1638,19 @@ tasks:
   deploy_post_billing_ui:
     group: Revenue Lifecycle Management
     description: >
-      Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components
-      (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus,
-      rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder,
-      rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart,
-      rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary,
-      rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards,
-      rlmSplitInvoicesView), 17 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account),
+      Deploy Billing UI metadata from unpackaged/post_billing_ui: the rlm* LWC components
+      for the billing console (billing schedule group, invoice, collections, dispute and
+      payments views), their Apex controllers, helper classes and tests, 1 flow
+      (RLM_Generate_Statement_of_Account),
       2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c),
       2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
-      2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
+      3 quick actions (Account.RLM_Create_Billing_Schedule_Group,
+      Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
       the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set
       (field access, read on the objects the Billing UI controllers query, Apex class access,
       RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
-      attribute query). Flexipages for billing_ui are
-      deployed via assemble_and_deploy_ux (billing_ui feature flag).
+      attribute query). Flexipages and the Billing Console app for billing_ui are not in
+      this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_billing_ui
@@ -1836,11 +1801,12 @@ tasks:
   deploy_post_collections:
     group: Revenue Lifecycle Management
     description: >
-      Deploy Collections metadata from unpackaged/post_collections (flows, objects,
-      omniUiCard, permissionsets, queues, quickActions, tabs,
-      timelineObjectDefinitions). Flexipages and applications for collections are
-      deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
-      here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here —
+      Deploy Collections metadata from unpackaged/post_collections (classes,
+      decisionMatrixDefinition, flows, omniUiCard, permissionsets, queues,
+      quickActions, standardValueSets, timelineObjectDefinitions). Flexipages,
+      applications and list views for collections are not in this bundle;
+      assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (collections
+      feature flag). The RLM_Create_Case_for_Collection flow is NOT here —
       it lives in unpackaged/post_collections_case_flow and is deployed by
       deploy_collections_case_flow AFTER seed_collections_case_matrix activates the
       decision matrix it invokes.
@@ -2350,20 +2316,6 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: "datasets/sfdmu/scratch_data"
-
-  insert_qb_constraints_product_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_product_dataset
-
-  insert_qb_constraints_component_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Constraints Product Related Component Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_constraints_component_dataset
 
   # --- CML Constraint Model Tasks ---
   export_cml:
@@ -4810,9 +4762,10 @@ flows:
           api_names:
             - RLM_CollectionsUI
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
-    # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
-    # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
+    # RLM_Collections_Account_Record_Page) and the two apps (the standard__CollectionConsole
+    # override and RLM_Receivables_Management) are assembled + deployed by
+    # assemble_and_deploy_ux (prepare_ux flow, step 30), gated on the same collections flag.
+    # The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
   prepare_revenue_settings:

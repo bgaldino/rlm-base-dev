@@ -31,7 +31,7 @@ rlm-base-dev/
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
-│   │   └── collections/        # Collections feature (WIP)
+│   │   └── collections/        # Collections feature
 │   └── profiles/
 │       ├── base/               # Canonical profiles: Admin, RLM Sales Representative, RLM Custom Partner Community User
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
