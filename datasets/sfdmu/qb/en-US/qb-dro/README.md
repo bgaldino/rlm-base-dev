@@ -43,10 +43,31 @@ That callout (`RLM_DFOTenantProvisioningCallout`) posts to
 longer ships either end: the in-org `@RestResource` (`RLM_TenantProvisioningAPI`, with its
 tenant-environment object and flows) was removed in 2025-01 and the `RLM` named credential,
 which pointed at a single, hard-coded org, in 2026-03 (git history). On a fresh build the step therefore has no
-target. How the step ends (status, error, whether the plan continues) is not yet measured.
-The step is reached by products decomposed to
+target. The step is reached by products decomposed to
 `QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
 callout on its tenant-provisioning steps [inferred from its step definitions; not run].
+
+Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
+- The step is wired and runs at order activation for any order that contains `QB-API-MGMT`. It has no
+  `ExecuteOn` condition, and neither does the `QB-API-MGMT` to `QB-DRO-APIPLAT` decomposition rule.
+  Orders with only `QB-API` or `QB-API-FLEX` never reach it.
+- It fails at once: the callout throws `CalloutException` (no `RLM` named credential), the class returns
+  `isSuccess=false` with code 503, and the step goes `FatallyFailed` with 0 retries. Nothing is retried.
+- The failed step stalls the plan. Receive Key and Provision Licensing/Features depend on it, and
+  Provision Licensing/Features gates Initiate Billing, Post Invoice and Receive Payment. All stay `Pending` and
+  the plan stays `InProgress`, so billing is never initiated for such an order.
+- `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
+  not the 503 text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
+  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`; both absent on that build). The 503 text was seen only in the
+  debug log. Whether it surfaces once the tables exist was not measured.
+- An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
+  no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
+  stay `Draft` on this build regardless of plan state, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
+  records rather than Flow Orchestration instances, and the orders it used contained only `QB-API`/`QB-API-FLEX`.
+  See the dro-plans skill, **Verify a DRO step on a fresh build**.
+
+What to do about the missing target (ship a credential and target, point the step at a mock, or remove or condition
+the step) is an open decision (todo pack 419, item 3).
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
@@ -84,7 +105,7 @@ Release 264 live verification confirmed decomposition and plan composition
 after these repairs, including the restored provisioning step and dependencies.
 End-to-end fulfillment remains unverified: the tenant-provisioning callout
 requires the `RLM` named credential, which this repo no longer ships (see above),
-so the step has no target. Manual steps also require operator completion.
+so the step has no target; its measured end state is in the paragraph above. Manual steps also require operator completion.
 
 The build currently creates `RLM_SalesTransactionContext` but does not select it
 in DRO Context Definition Settings. Automating and verifying that assignment

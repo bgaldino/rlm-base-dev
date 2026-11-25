@@ -500,6 +500,55 @@ these conditions; rerun the amendment and cancel checks there.
   Nothing reacts to a step's completion: a describe of `FulfillmentStep` returns `triggerable`
   false [Measured: 2026-11-18, 264, scratch]. Put follow-on work in a later step, or leave it to a person.
 
+## Tenant Callout Step (qb-dro) and DFO Callout
+
+`qb-dro` ships the Callout step `Stage New Tenant for Provisioning - Platform`
+(`RLM_DFOTenantProvisioningCallout`, posting to `callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`).
+This repo ships neither the `RLM` named credential nor the REST resource. On a fresh 264 `dro` build
+[Measured: 2026-11-25, 264, scratch, one org]:
+- The step is wired and runs at order activation for any order containing `QB-API-MGMT`
+  (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group `Platform`). Neither the
+  rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders do not reach it.
+- It fails at once. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
+  `System.CalloutException: ... the named credential "RLM" might not exist`, then the class returns
+  `isSuccess=false` (code 503). The step is `FatallyFailed`, `RetryAttempts` 0, no flow interview.
+- It stalls the billing chain. Receive Key and Provision Licensing/Features depend on it; Provision Licensing/Features
+  gates Initiate Billing, then Post Invoice, then Receive Payment. All stayed `Pending` and the plan stayed `InProgress`.
+- `ExecutionMessage` showed `Fallout Rule is misconfigured: Specify valid name for Data set Link`, not the 503 text,
+  because that build had no fallout or jeopardy decision tables (see **Fallout and jeopardy rules** above). The 503
+  text was visible only in the debug log. Whether it surfaces with the tables present was not measured.
+- `isSuccess=false` ending the step as `FatallyFailed` matches the non-2xx-is-failure behaviour (pack 381). The measured
+  failure is the `CalloutException` path; the HTTP 4xx/5xx branch was not reached.
+- Fulfillment orders stayed `Draft` for every order on that build, including an order whose plan had no failed step, so a
+  Draft fulfillment order is not evidence about a step. Why they never leave Draft was not measured.
+- An earlier check concluded the step was "not wired" from Draft fulfillment orders and zero `FlowOrchestrationInstance`
+  records. Both signals are uninformative here (see **Verify a DRO step on a fresh build**).
+
+Open decision (todo pack 419, item 3): ship a credential and target, point the step at a mock provider, or
+remove or condition the step. This section records behaviour, not a fix.
+
+## Verify a DRO Step on a Fresh Build
+
+1. Pick the order by decomposition, not by guess. Query `ProductFulfillmentDecompRule` (source to destination
+   product) and `ProductFulfillmentScenario` (`FulfillmentStepDefnGroupId`, `ProductId`), then the step definitions in that
+   group (`FulfillmentStepDefinition.StepDefinitionGroupId`, and `ExecuteOnConditionData`/`ExecuteOnRuleId` for a condition).
+   Choose an order whose product decomposes to a product with a scenario in the step's group.
+2. Activate the order (for QB, `scripts/build_quote_to_asset.py --sku <SKU> --skip-usage-verify` builds quote, order and
+   activation headlessly; a direct `OrderItem` create cannot set `ProductSellingModelId`).
+3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier`:
+
+   ```bash
+   sf data query --target-org "$SF_ORG" --query "SELECT Id, Name, State FROM FulfillmentPlan WHERE SourceIdentifier = '<orderId>'"
+   sf data query --target-org "$SF_ORG" --query "SELECT Name, State, StepType, ExecutionMessage, RetryAttempts, NextEarliestRunTime FROM FulfillmentStep WHERE FulfillmentPlan.SourceIdentifier = '<orderId>'"
+   ```
+
+4. Do not use fulfillment-order `Status` (it stayed `Draft` regardless of plan state) or
+   `FlowOrchestrationInstance` (plans are `FulfillmentPlan`/`FulfillmentStep`, so its count stayed 0 for plans that ran)
+   as the signal [Measured: 2026-11-25, 264, scratch, one org].
+5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error is
+   not in the record. Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
+   log (trace flag on the activating user; the step runs in the activation path, not an async job).
+
 ## Update Acceptance Scenarios
 
 | Scenario | Required evidence |
