@@ -267,8 +267,9 @@ In this repo:
   `https:` wildcard; a host in neither is blocked by the browser. Method: the policy was read off
   a Lightning Product2 record page in Chrome, and each address was loaded in that page as a test
   image (`new Image()` with a `securitypolicyviolation` listener): `images.ctfassets.net` loaded
-  with no trusted site, a `gstatic` host loaded through its trusted site, and hosts in neither
-  list were blocked. A record page does not render the product image itself; its Details tab
+  with no trusted site, a `gstatic` host loaded through its trusted site (deployed by the build
+  of that day; the repo no longer ships it, so a fresh build has none), and hosts in neither list
+  were blocked. A record page does not render the product image itself; its Details tab
   shows `DisplayUrl` as text. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] So ship
   images as static resources rather than adding a trusted site per host.
 - **Catalog cards and the configurator header follow the same rule, and fail silently.** Browse
