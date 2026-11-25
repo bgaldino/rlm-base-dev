@@ -336,25 +336,50 @@ def test_amounts_compare_exactly_without_assuming_cents():
 
 # ------------------------------------------------------------------ unmeasured fields
 
+def _invoice_checks_on(report: dict, invoice: str) -> dict:
+    """Every result for one invoice and its lines, keyed by (check, subject)."""
+    return {(r["check"], r["subject"]): r for r in report["checks"]
+            if r["subject"].startswith(invoice)}
+
+
 @pytest.mark.parametrize("field", ["TotalConvertedNegAmount", "WriteOffTotalChargeAmount",
                                    "WriteOffTotalTaxAmount", "TotalAdjustmentAmount"])
-def test_invoice_with_unmeasured_field_is_skipped_not_failed(field):
-    # Balance deliberately inconsistent: the skip must win over a fail.
-    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
-        {field: -10, "Balance": 485}))
+def test_invoice_with_unmeasured_field_skips_both_invoice_checks(field):
+    # A written-off line-level invoice: Balance 0 while its line still reads 3950. No
+    # invoice-level skip may leave the line check to fail on the same invoice.
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000001AAA").update(
+        {field: -3950, "Balance": 0}))
     assert report["ok"] is True, report["failed_checks"]
-    result = next(r for r in report["checks"]
-                  if r["check"] == "invoice_balance" and r["subject"] == "3tt000000000002AAA")
-    assert result["status"] == "skip" and field in result["detail"]
+    results = _invoice_checks_on(report, "3tt000000000001AAA")
+    assert all(r["status"] != "fail" for r in results.values())
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000001AAA")]
+        assert result["status"] == "skip" and field in result["detail"], check
 
 
-def test_invoice_with_write_off_status_is_skipped():
-    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
+def test_invoice_with_write_off_status_skips_both_invoice_checks():
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000001AAA").update(
         WriteOffStatus="Completed", Balance=0))
-    assert report["ok"] is True
-    assert "WriteOffStatus" in next(
-        r["detail"] for r in report["checks"]
-        if r["check"] == "invoice_balance" and r["subject"] == "3tt000000000002AAA")
+    assert report["ok"] is True, report["failed_checks"]
+    results = _invoice_checks_on(report, "3tt000000000001AAA")
+    assert all(r["status"] != "fail" for r in results.values())
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000001AAA")]
+        assert result["status"] == "skip" and "WriteOffStatus Completed" in result["detail"]
+
+
+def test_invoice_with_line_and_header_evidence_skips_invoice_balance():
+    # INV1 has line rows and SettlementLevel InvoiceLine; one header row makes both.
+    def mutate(data):
+        data["PaymentLineInvoice"].append({
+            "Id": "0b8000000000099AAA", "InvoiceId": "3tt000000000001AAA",
+            "PaymentId": "0aQ000000000002EAA", "Amount": 0, "Type": "Applied",
+            "HasBeenUnapplied": "No"})
+    report = _line(mutate=mutate)
+    results = _invoice_checks_on(report, "3tt000000000001AAA")
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000001AAA")]
+        assert result["status"] == "skip" and "includes header level" in result["detail"]
 
 
 @pytest.mark.parametrize("field", ["ConvertedNegAmount", "ChargeConvertedNegAmount",
@@ -570,7 +595,7 @@ def test_header_rows_only_invoice_skips_line_balances_even_at_line_level():
     assert report["failed_checks"] == ["application_level"]
     result = next(r for r in report["checks"] if r["check"] == "invoice_line_balance"
                   and r["subject"] == "3tt0000000000H1AAI")
-    assert result["status"] == "skip" and "shows header level" in result["detail"]
+    assert result["status"] == "skip" and "includes header level" in result["detail"]
 
 
 @pytest.mark.parametrize("status", ["Draft", "Canceled", None])
@@ -708,7 +733,7 @@ def test_mixed_set_skips_line_balances_of_an_invoice_with_no_level_of_its_own():
     assert "shows no level" in line_checks["3tt000000000002AAA"]["detail"]
     # INV3 now has line and header rows: both levels, skipped.
     assert line_checks["3tt000000000003AAA"]["status"] == "skip"
-    assert "shows both levels" in line_checks["3tt000000000003AAA"]["detail"]
+    assert "includes header level" in line_checks["3tt000000000003AAA"]["detail"]
     # INV1's own evidence is still line level alone: it runs inside a mixed set.
     assert line_checks["3tt000000000001AAA/5TV000000000011GAA"]["status"] == "pass"
 
@@ -750,7 +775,7 @@ def test_settlement_level_alone_decides_whether_line_balances_run(settlement, ru
         assert [r["status"] for r in results] == ["fail"]
     else:
         assert [r["status"] for r in results] == ["skip"]
-        assert "shows header level" in results[0]["detail"]
+        assert "includes header level" in results[0]["detail"]
 
 
 @pytest.mark.parametrize("how", ["unapplied_row", "flag_only", "null_type"])

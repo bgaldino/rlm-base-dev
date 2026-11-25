@@ -225,6 +225,7 @@ sf data query -o <sf-alias> -q "SELECT Id, ActivityDate FROM TransactionJournal 
 - Each billing promise has an activated test order whose first invoice has the expected
   period, amount, tax and due date (billing-setup's check, extended to tax and cash).
 - Posted and draft invoices carry the tax status the customer expects (estimated vs actual).
-- A payment or credit applied to an invoice changes its balance as the configured level
-  (header or line) predicts; `cli verify` checks this by id ([verification.md](verification.md)).
+- A payment or credit applied to an invoice changes its balance as measured at Line Level;
+  `cli verify` checks this by id at line level only, and skips the balance checks at
+  header level, which is unmeasured ([verification.md](verification.md)).
 - `python3 scripts/ai/analyze_agent_tooling.py check` passes after edits to this skill.

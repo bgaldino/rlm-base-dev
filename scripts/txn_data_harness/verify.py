@@ -17,7 +17,8 @@ Checks (formulas are documented in
     level was chosen.
 ``invoice_balance``
     ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
-    each rollup equals the net of the invoice's application rows. Skipped for an
+    each rollup equals the net of the invoice's line-level application rows (header
+    evidence skips first, so no header row is ever summed). Skipped for an
     invoice whose own evidence includes header level (header rows or
     ``SettlementLevel`` Invoice), for an invoice whose ``Status`` is not Posted (the rollups were measured on Posted
     invoices only), for an invoice with ``Type`` Tax lines or a non-zero
@@ -28,9 +29,10 @@ Checks (formulas are documented in
     each rollup equals the net of the line's application rows. Runs only on an invoice
     whose own evidence is line level alone (line application rows and/or
     ``SettlementLevel`` InvoiceLine, and nothing of the header level); skipped for
-    any other invoice, naming its evidence. Also skipped for an invoice that is not
-    Posted or has Tax lines or header tax, and for a line with a converted-negative
-    or adjustment amount. An invoice with no lines fails.
+    any other invoice, naming its evidence. Also skipped for every reason that skips
+    ``invoice_balance`` (one shared gate: header evidence, not Posted, tax, write-off
+    and the other unmeasured fields, unapplied rows), and for a line with a
+    converted-negative or adjustment amount. An invoice with no lines fails.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
     payment's application rows on any invoice. Skipped for a payment with any
@@ -499,39 +501,45 @@ def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict
     return out
 
 
+def _invoice_skip(idx: _Index, invoice: dict) -> Optional[str]:
+    """The reason both invoice checks skip this invoice, or None.
+
+    One gate for ``invoice_balance`` and ``invoice_line_balance``: anything that makes
+    the invoice's balance unmeasured makes its lines' balances unmeasured too.
+    """
+    # Balances were measured at Line Level only (an unpaid invoice with no rows and
+    # no SettlementLevel included); any header-level evidence skips.
+    if "header" in _evidence(idx, invoice):
+        return (f"this invoice's own evidence includes header level "
+                f"({_facts(idx, invoice)}); balances at Header Level are not measured")
+    not_posted = _not_posted(invoice)
+    if not_posted:
+        return not_posted
+    unmeasured = _unmeasured(invoice, _UNMEASURED_INVOICE_FIELDS) + _tax_lines(idx, invoice)
+    if invoice.get("WriteOffStatus"):
+        unmeasured.append(f"WriteOffStatus {invoice['WriteOffStatus']}")
+    if unmeasured:
+        return f"{', '.join(unmeasured)}: the effect on Balance is not measured"
+    if _has_unapplied(_all_invoice_rows(idx, invoice["Id"])):
+        return _UNAPPLIED_REASON
+    return None
+
+
 def _check_invoice_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
-        # Balances were measured at Line Level only (an unpaid invoice with no rows and
-        # no SettlementLevel included); any header-level evidence skips.
-        if "header" in _evidence(idx, invoice):
-            out.append(_result("invoice_balance", iid, "skip",
-                               f"this invoice's own evidence includes header level "
-                               f"({_facts(idx, invoice)}); balances at Header Level are "
-                               "not measured"))
-            continue
-        not_posted = _not_posted(invoice)
-        if not_posted:
-            out.append(_result("invoice_balance", iid, "skip", not_posted))
-            continue
-        unmeasured = _unmeasured(invoice, _UNMEASURED_INVOICE_FIELDS) + _tax_lines(idx, invoice)
-        if invoice.get("WriteOffStatus"):
-            unmeasured.append(f"WriteOffStatus {invoice['WriteOffStatus']}")
-        if unmeasured:
-            out.append(_result("invoice_balance", iid, "skip",
-                               f"{', '.join(unmeasured)}: the effect on Balance is not "
-                               "measured"))
-            continue
-        if _has_unapplied(_all_invoice_rows(idx, iid)):
-            out.append(_result("invoice_balance", iid, "skip", _UNAPPLIED_REASON))
+        reason = _invoice_skip(idx, invoice)
+        if reason:
+            out.append(_result("invoice_balance", iid, "skip", reason))
             continue
         total = _dec(invoice.get("TotalAmountWithTax"))
         credits = _zero(invoice.get("NetCreditsApplied"))
         payments = _zero(invoice.get("NetPaymentsApplied"))
         balance = _dec(invoice.get("Balance"))
-        rec_pay = sum((_net(_invoice_rows(idx, iid, "payment", lvl)) for lvl in LEVELS), Decimal("0"))
-        rec_cred = sum((_net(_invoice_rows(idx, iid, "credit", lvl)) for lvl in LEVELS), Decimal("0"))
+        # Header evidence skipped above, so only line-level rows remain.
+        rec_pay = _net(_invoice_rows(idx, iid, "payment", "line"))
+        rec_cred = _net(_invoice_rows(idx, iid, "credit", "line"))
         expected = None if total is None else total - credits - payments
         problems = []
         if not _eq(balance, expected):
@@ -554,27 +562,18 @@ def _check_line_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
-        # Line balances were measured at Line Level only, so the one gate is this
-        # invoice's own evidence, whatever level the set has or was forced to.
-        own = _evidence(idx, invoice)
-        if own != {"line"}:
-            shown = {0: "no level", 1: f"{''.join(own)} level"}.get(len(own), "both levels")
+        reason = _invoice_skip(idx, invoice)
+        if reason:
+            out.append(_result("invoice_line_balance", iid, "skip", reason))
+            continue
+        # Line balances were measured at Line Level only, so the line check's own gate
+        # is this invoice's evidence, whatever level the set has or was forced to.
+        # Header evidence was skipped above, so anything but {"line"} here is no level.
+        if _evidence(idx, invoice) != {"line"}:
             out.append(_result("invoice_line_balance", iid, "skip",
-                               f"this invoice's own evidence shows {shown} "
+                               f"this invoice's own evidence shows no level "
                                f"({_facts(idx, invoice)}); line balances are checked only "
                                "when it is line level alone"))
-            continue
-        not_posted = _not_posted(invoice)
-        if not_posted:
-            out.append(_result("invoice_line_balance", iid, "skip", not_posted))
-            continue
-        tax = _unmeasured(invoice, ("TotalTaxesCapturedAtHeader",)) + _tax_lines(idx, invoice)
-        if tax:
-            out.append(_result("invoice_line_balance", iid, "skip",
-                               f"{', '.join(tax)}: separate or header tax is not measured"))
-            continue
-        if _has_unapplied(_all_invoice_rows(idx, iid)):
-            out.append(_result("invoice_line_balance", iid, "skip", _UNAPPLIED_REASON))
             continue
         lines = idx.lines_by_invoice.get(iid, [])
         if not lines:
