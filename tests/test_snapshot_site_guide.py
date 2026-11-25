@@ -659,6 +659,14 @@ def main():
               "[1](./a.md)" in kept and "[2](./a.md#f)" in kept and "[4](../x.md)" in kept and "[5](sub/x.md)" in kept)
         check("a link form the rewrite cannot handle to a superseded file is reported",
               ("keep.htm.md", "sup.htm.md") in un2 and n2 == 2)
+        check("a path link is neither rewritten nor reported",
+              not any(tg in ("../x.md", "sub/x.md") for _, tg in un2))
+        (u2 / "articles" / "bad.htm.md").write_bytes(b"\xff\xfe[x](./a.htm.md)")
+        man2["unmapped_legacy_ids"]["bad.htm"] = ""
+        _, un3 = sg.rewrite_retained_links(u2, man2)
+        check("an unreadable retained article is reported, not fatal",
+              any(f == "bad.htm.md" and "unreadable" in tg for f, tg in un3))
+        del man2["unmapped_legacy_ids"]["bad.htm"]
         check("a superseded article and the site slug files are not rewritten",
               (u2 / "articles" / "sup.htm.md").read_text(encoding="utf-8") == "[z](./a.htm.md)\n"
               and (u2 / "articles" / "a.md").read_text(encoding="utf-8") == "[y](./a.htm.md)\n")
