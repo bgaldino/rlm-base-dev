@@ -256,7 +256,7 @@ def _legacy_map(manifest) -> Dict[str, str]:
 _LOCAL_LINK = re.compile(
     r'''(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?(\))''')
 # any other link form to a sibling .md (a title or angle-bracket target the pattern above does not know)
-_LOOSE_LINK = re.compile(r"\]\(\s*<?(?:\./)?([^()\s#<>/]+?\.md)")
+_LOOSE_LINK = re.compile(r"\]\(\s*<?(?:\./)?([^()\s#<>/]+?\.md)(?=[\s#>)])")
 
 
 def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, str]]]:
@@ -869,7 +869,8 @@ class SiteGuideSnapshot:
             shown = ", ".join(f"{f} -> {t}" for f, t in unresolved[:10])
             self.logger.warning(
                 f"  {len(unresolved)} local link(s) in retained atlas articles point at a missing "
-                f"file with no site replacement and were left as is: {shown}"
+                "file and were left as is (no site file for the target, or a link form the "
+                f"rewrite does not handle): {shown}"
                 + (f", ... ({len(unresolved) - 10} more)" if len(unresolved) > 10 else ""))
 
     def _save_manifest(self, path: Path, manifest: Dict[str, Any]) -> None:
