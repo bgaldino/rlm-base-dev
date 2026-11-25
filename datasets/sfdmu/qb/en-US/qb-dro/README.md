@@ -48,17 +48,17 @@ target. The step is reached by products decomposed to
 callout on its tenant-provisioning steps [inferred from its step definitions; not run].
 
 Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and ran when the order was activated (its start time equalled plan creation) on new-sale orders that contain `QB-API-MGMT`. It has no
+- The step is wired and started at plan creation (its start time equalled the plan's `CreatedDate`) on new-sale orders that contain `QB-API-MGMT`. It has no
   condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to
   `QB-DRO-APIPLAT` decomposition rule. Orders with only `QB-API` or `QB-API-FLEX` did not reach it. Amend, renew and
-  cancel orders (the scenario lists them) were not run. That the step ran synchronously in the activation transaction is
+  cancel orders (the scenario lists them) were not run. That the step ran in the activation transaction is
   [inferred].
-- It failed on its first attempt, straight away: the debug log shows the callout throwing `CalloutException` (no `RLM` named credential), and the
+- It failed on its first attempt, straight away: the debug log shows the callout throwing `CalloutException` (the named credential "RLM" might not exist), and the
   step goes `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
   [inferred from the class]). The 0 retries are attributed to the missing decision tables below [inferred], meaning the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied [inferred]; their effect once the tables exist was not
   measured.
-- The failed step stalls the plan. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
+- The failed step stalls the plan [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
   Provision Licensing/Features gates Initiate Billing, which gates Post Invoice, which gates Receive Payment (it also
   gates Activate Tokens, which was not on these plans). All stayed `Pending` and the plan stayed `InProgress`, so
   billing was not initiated in the measured run.
@@ -68,7 +68,7 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   debug log. Whether it surfaces once the tables exist was not measured.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
-  stayed `Draft` on the 2026-11-25 build regardless of plan state, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
+  stayed `Draft` on every order measured on the 2026-11-25 build, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
   records rather than Flow Orchestration instances [inferred from the zero count], and the orders it used contained only `QB-API`/`QB-API-FLEX`.
   See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 

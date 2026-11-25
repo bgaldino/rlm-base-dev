@@ -506,20 +506,19 @@ these conditions; rerun the amendment and cancel checks there.
 (`RLM_DFOTenantProvisioningCallout`, posting to `callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`).
 This repo ships neither the `RLM` named credential nor the REST resource. On a fresh 264 `dro` build
 [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and ran when the order was activated (its start time equalled plan creation) on new-sale orders
+- The step is wired and started at plan creation (its start time equalled the plan's `CreatedDate`) on new-sale orders
   containing `QB-API-MGMT` (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group
   `Platform`). Neither the rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders did not reach it. Amend,
-  renew and cancel orders (the scenario lists them) were not run. That the step ran synchronously in the activation
-  transaction is [inferred].
+  renew and cancel orders (the scenario lists them) were not run. That the step ran in the activation transaction is [inferred].
 - It failed on its first attempt, straight away. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
   `System.CalloutException: ... the named credential "RLM" might not exist`. The step is `FatallyFailed` with
   `RetryAttempts` 0. The class returns `isSuccess=false` (code 503) on that path [inferred from the class]; the log does
   not show the returned value. The 0 retries are attributed to the missing decision tables below [inferred], meaning the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied [inferred]; their effect once the tables exist was not
   measured.
-- It stalls the billing chain. Receive Key + Assign to Asset and Provision Licensing/Features depend on it;
-  Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), which gates Post Invoice,
-  which gates Receive Payment. All stayed `Pending` and the plan stayed `InProgress`.
+- It stalls the billing chain [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision
+  Licensing/Features depend on it; Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), which gates Post Invoice,
+  which gates Receive Payment. All stayed `Pending` and the plan stayed `InProgress` (observed).
 - `ExecutionMessage` showed `Fallout Rule is misconfigured: Specify valid name for Data set Link`, not the exception text,
   on a build with no fallout or jeopardy decision tables (see **Fallout and jeopardy rules** above); the tables are the
   likely cause [inferred]. The exception text was visible only in the debug log. Whether it surfaces with the tables
@@ -541,7 +540,9 @@ remove or condition the step. This section records behaviour, not a fix.
    group (`FulfillmentStepDefinition.StepDefinitionGroupId`, and `ExecuteOnConditionData`/`ExecuteOnRuleId` for a condition).
    Choose an order whose product decomposes to a product with a scenario in the step's group.
 2. Activate the order. For QB, `scripts/build_quote_to_asset.py --org <sf_alias> --accounts "<one account>" --sku <SKU> --start <today> --skip-usage-verify`
-   builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start). A direct
+   builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start; add `--allow-existing-asset` on a rerun). Activation is the part
+   that matters for this check; the script's later wait for a new `Asset` can fail if assetizing waits on the stalled
+   step [inferred], which does not mean the DRO check failed. A direct
    `OrderItem` create could not set `ProductSellingModelId` [Measured: 2026-11-25, 264, scratch, one org].
 3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` there; a plan
    sourced from order items would carry an OrderItem id [inferred from `RLM_AccountUtilities`, which queries both
@@ -552,7 +553,7 @@ remove or condition the step. This section records behaviour, not a fix.
    sf data query --target-org "<sf_alias>" --query "SELECT Name, State, StepType, ExecutionMessage, RetryAttempts, NextEarliestRunTime FROM FulfillmentStep WHERE FulfillmentPlan.SourceIdentifier = '<orderId>'"
    ```
 
-4. Do not use fulfillment-order `Status` (it stayed `Draft` regardless of plan state) or
+4. Do not use fulfillment-order `Status` (it stayed `Draft` on every order measured, including one whose plan had no failed step) or
    `FlowOrchestrationInstance` (its count stayed 0 for plans that ran; the plans are `FulfillmentPlan`/`FulfillmentStep` records [inferred])
    as the signal [Measured: 2026-11-25, 264, scratch, one org].
    In the measured run the step's `ActualStartDate` equalled the plan's `CreatedDate` and no non-test `AsyncApexJob`
