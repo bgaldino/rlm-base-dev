@@ -14,7 +14,7 @@
 //   2.5. Remove duplicate PURs that overlap an Active PUR by effective period (safety net: the
 //        rating plans no longer create duplicates, since qb/q3 rating and rating-entitlements match
 //        existing rows and delete nothing (todos 298, 319); kept for hand-made copies):
-//        2.5a. Delete Draft PUG/PURP children of the duplicate Draft PURs (they block PUR deletion).
+//        2.5a. Delete the Draft PUGs and all PURPs of the duplicate Draft PURs (they block PUR deletion).
 //        2.5b. Delete the now-childless duplicate Draft PURs (survivor: Active > has-children > lower Id).
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
@@ -53,8 +53,9 @@
 //   Step 2.5 queries ALL PURs (including Active) so the overlap-detection logic can
 //   correctly prefer Active over Draft when both exist for the same Product+UsageResource.
 //   purIdsWithChildren is built before the overlap scan so child-bearing status informs
-//   survivor selection (Active > has-children > lower Id). Only Draft PURs with no
-//   PUG/PURP children are deleted; Active records and child-bearing records are never touched.
+//   survivor selection (Active > has-children > lower Id). Only duplicate Draft PURs are
+//   deleted, after 2.5a deletes their Draft PUGs and all their PURPs; Active PURs, Active PUGs
+//   and non-duplicate PURs are never touched.
 //   All other steps filter on Status != 'Active' and are safe no-ops when records are
 //   already Active.
 // ============================================================================
@@ -79,11 +80,10 @@ if (!urs.isEmpty()) {
     System.debug('All UsageResource records are already Active.');
 }
 
-// Step 2.5: Remove only duplicate PURs that have NO PUG/PURP children.
-// Re-running the plan can insert duplicate Draft PURs (same Product+UsageResource+overlapping period).
-// The platform blocks activation with "effective period overlaps". We delete only duplicate PURs
-// that have zero ProductUsageGrant and zero ProductUsageResourcePolicy children — so we never
-// delete PUG or PURP. Duplicate PURs inserted on a second load have no children; the originals have them.
+// Step 2.5: Remove duplicate Draft PURs (safety net; the current rating plans match existing rows
+// and do not create them). A duplicate (same Product+UsageResource, overlapping period) blocks
+// activation with "effective period overlaps". 2.5a deletes each duplicate Draft PUR's Draft PUGs
+// and all its PURPs; 2.5b then deletes the duplicate Draft PURs left with no children.
 // Query Draft and Active PURs ordered by (ProductId, UsageResourceId, EffectiveStartDate) so
 // overlapping duplicates within each Product+UsageResource group are adjacent — enables O(n)
 // linear scan rather than O(n^2) nested loop. Both statuses are included because the survivor
