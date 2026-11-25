@@ -72,7 +72,7 @@ drop the `.md` suffix of the snapshot file name.
   [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
   pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry]
   [Open: order, invoice and renew a static bundle with a mismatched pair]
-  [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
+  [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -350,7 +350,7 @@ Every item marked **Open — needs live verification** or `[Open: …]` in this 
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch]; for an Evergreen static bundle with One Time and Term Annual children, Place returned an empty `errorResponse` and a `configure` call returned no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch]; for an Evergreen static bundle with One Time and Term Annual children, Place returned an empty `errorResponse` and a `configure` call returned no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
   were accepted on new test bundles when both products had the selling model option (not
@@ -358,7 +358,7 @@ Every item marked **Open — needs live verification** or `[Open: …]` in this 
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
   pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry].
   [Open: order, invoice and renew a static bundle with a mismatched pair]
-  [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
+  [Open: repeat Place on a configurable bundle with an Evergreen root, one child whose only option is One Time and one whose only option is Term Annual, using the same Place options as the static run (`validateProductCatalog: true`, `configurationMethod: Force`, `executeConfigurationRules`, `addDefaultConfiguration`)]
   Whether `CERT007`'s matched pairs price, order and renew correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
