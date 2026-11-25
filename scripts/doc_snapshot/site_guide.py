@@ -62,6 +62,7 @@ from scripts.doc_snapshot._core import (
     as_id_set,
     as_int,
     attribution_note,
+    backfill_attribution,
     captured_table,
     compute_stats,
     get_logger,
@@ -873,7 +874,14 @@ class SiteGuideSnapshot:
             manifest.pop("superseded_files", None)
 
     def _relink_retained(self, output_dir: Path, manifest: Dict[str, Any]) -> None:
-        """Keep local links in the atlas articles that stay behind pointing at files that exist."""
+        """Keep local links in the atlas articles that stay behind pointing at files that exist,
+        and give those older captures the attribution footer they predate."""
+        added, skipped = backfill_attribution(output_dir / "articles")
+        if added:
+            self.logger.info(f"  added the attribution footer to {len(added)} retained article(s)")
+        if skipped:
+            shown = ", ".join(f"{n} ({r})" for n, r in skipped[:10])
+            self.logger.warning(f"  {len(skipped)} article(s) left without the attribution footer: {shown}")
         count, unresolved = rewrite_retained_links(output_dir, manifest)
         if count:
             self.logger.info(f"  rewrote {count} local link(s) in retained atlas articles to site slugs")

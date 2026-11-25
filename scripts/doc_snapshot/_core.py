@@ -12,6 +12,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 # scripts/doc_snapshot/_core.py -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -358,6 +359,128 @@ def attribution_note(source_url: str, content: str) -> str:
         "live page, the live page wins. Do not republish it elsewhere without "
         "confirming Salesforce's terms."
     )
+
+
+# Frontmatter: an opening `---` line, then lines up to a closing `---` line. Empty frontmatter
+# (`---\\n---`) and a closing line that ends the file with no newline both count as closed.
+_FRONTMATTER_BLOCK = re.compile(r"---\n(.*?)^---[ \t]*$", re.S | re.M)
+_SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
+
+
+def _footer_pattern():
+    """The footer exactly as ``attribution_note`` emits it, anchored to the end of the text:
+    ``\\n---\\n\\n> **Source attribution ...** ... confirming Salesforce's terms.`` with the
+    source URL and content label left open. Built from the note itself, so the two cannot
+    drift; ``guard._ATTRIBUTION`` strips from the same opening, so a footer matched here is
+    one the guard comparison ignores."""
+    note = attribution_note("URLTOKEN", "LABELTOKEN")
+    pat = re.escape(note).replace("URLTOKEN", r"\S+").replace("LABELTOKEN", r"[^\n(]+")
+    return re.compile(r"(?:\A|\n)" + pat + r"\s*\Z")
+
+
+_FOOTER_AT_END = _footer_pattern()
+
+
+def has_footer(text: str) -> bool:
+    """True when the text ENDS with the attribution footer, rule line included. A body that
+    quotes the note as its last line (no rule line before it) does not count."""
+    return _FOOTER_AT_END.search(text) is not None
+
+
+def is_failure(reason: str) -> bool:
+    """A skip reason that is a real problem (unreadable, not writable, unterminated or BOM
+    frontmatter) rather than a file with nothing to build a footer from ("no-frontmatter",
+    "no-source_url")."""
+    return not reason.startswith("no-")
+
+
+BOM_HINT = "strip the UTF-8 BOM (the first three bytes, EF BB BF) from the file, then rerun"
+
+
+def attribution_state(text: str) -> Tuple[str, str]:
+    """Classify a captured article's footer: ``(state, source_url)``.
+
+    ``state`` is "ok" (ends with the footer), "missing" (frontmatter with a source_url, no
+    footer), "bom-frontmatter" (a UTF-8 BOM before frontmatter), "unterminated-frontmatter"
+    (opens with ``---`` and never closes; empty frontmatter ``---``/``---`` is closed, and is
+    "no-source_url"), or "no-frontmatter" / "no-source_url" (nothing to
+    build a footer from). A BOM before a file with no frontmatter is "no-frontmatter". CRLF
+    frontmatter cannot reach this: files are read in text mode, which folds CRLF to LF. The
+    one definition the backfill and ``check`` share.
+    """
+    if text.startswith("\ufeff"):
+        return ("bom-frontmatter" if text[1:].startswith("---\n") else "no-frontmatter"), ""
+    if not text.startswith("---\n"):
+        return "no-frontmatter", ""
+    if has_footer(text):
+        return "ok", ""
+    fm = _FRONTMATTER_BLOCK.match(text)
+    if not fm:
+        return "unterminated-frontmatter", ""
+    m = _SOURCE_URL_LINE.search(fm.group(1))
+    if not m:
+        return "no-source_url", ""
+    return "missing", m.group(1).strip("'\"")
+
+
+def scan_attribution(articles: Path) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    """``(missing, skipped)`` for ``articles/*.md``: ``(file name, source_url)`` of every
+    article lacking the footer, and ``(file name, reason)`` of every file that cannot be
+    judged: ``unreadable: <Exc>``, ``bom-frontmatter``, ``unterminated-frontmatter``
+    (failures, see ``is_failure``), ``no-frontmatter``, ``no-source_url``. A missing directory is empty."""
+    missing: List[Tuple[str, str]] = []
+    skipped: List[Tuple[str, str]] = []
+    if not articles.is_dir():
+        return missing, skipped
+    for f in sorted(articles.glob("*.md")):
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            skipped.append((f.name, f"unreadable: {exc.__class__.__name__}"))
+            continue
+        state, url = attribution_state(text)
+        if state == "missing":
+            missing.append((f.name, url))
+        elif state != "ok":
+            skipped.append((f.name, state))
+    return missing, skipped
+
+
+def _is_help_host(url: str) -> bool:
+    """True when the URL's host is help.salesforce.com (not a substring of the URL)."""
+    try:
+        return urlsplit(url).hostname == "help.salesforce.com"
+    except ValueError:
+        return False
+
+
+def backfill_attribution(articles: Path) -> Tuple[List[str], List[Tuple[str, str]]]:
+    """Append the attribution footer to captured articles that lack it.
+
+    Retained atlas articles (a page the site move did not replace) were captured
+    before the footer existed, and a refresh never rewrites them. Every ``*.md``
+    in ``articles`` that ``scan_attribution`` reports missing gets ``attribution_note``
+    appended, labelled by the source host ("Salesforce Help content" for
+    help.salesforce.com, else "Salesforce developer documentation"). Idempotent;
+    ``index.md`` lives outside ``articles`` and is never touched.
+
+    Returns ``(changed, skipped)``: the names changed, and ``(name, reason)`` for each
+    file left alone (no frontmatter or source_url, unreadable, or "not writable: ...").
+    """
+    missing, skipped = scan_attribution(articles)
+    changed: List[str] = []
+    for name, url in missing:
+        label = ("Salesforce Help content" if _is_help_host(url)
+                 else "Salesforce developer documentation")
+        f = articles / name
+        try:
+            text = f.read_text(encoding="utf-8")
+            f.write_text(text.rstrip() + "\n\n" + attribution_note(url, label) + "\n", encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            skipped.append((name, f"not writable: {exc.__class__.__name__}"))
+            continue
+        changed.append(name)
+    return changed, skipped
 
 
 def log_done(logger, stats: Dict[str, Any], manifest_path: Path) -> None:

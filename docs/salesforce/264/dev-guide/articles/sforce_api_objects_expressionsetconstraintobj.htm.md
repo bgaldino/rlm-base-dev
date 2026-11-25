@@ -208,3 +208,7 @@ This object is available in orgs where Revenue Cloud is enabled.
 | Name | **Type** string **Properties** Autonumber, Defaulted on create, Filter, idLookup, Sort **Description** The name of the expression set constraint. |
 | OwnerId | **Type** reference **Properties** Create, Defaulted on create, Filter, Group, Sort, Update **Description** For internal use only. This field is a polymorphic relationship field. **Relationship Name** Owner **Refers To** Group, User |
 | ReferenceObjectId | **Type** reference **Properties** Create, Filter, Group, Sort, Update **Description** The object associated with the expression set constraint object. This field is a polymorphic relationship field. **Relationship Name** ReferenceObject **Refers To** Product2, ProductClassification, ProductRelatedComponent |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_expressionsetconstraintobj.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

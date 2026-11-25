@@ -415,6 +415,17 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="doc_snapshot_footers",
+        cmd=["python", "scripts/doc_snapshot/check.py", "--active"],
+        # Every captured article of the active release must end with the source-attribution
+        # footer (retained atlas articles once lacked it). The release comes from
+        # salesforce_release_active in the manifest, so a missing manifest or key fails the
+        # check rather than skipping it. Triggers are the whole snapshot tree (not one release's
+        # path, which would go stale at the next release), the tool, and the manifest.
+        triggers=["docs/salesforce/", "scripts/doc_snapshot/", ".claude/skill-manifest.yml"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="permission_set_dependencies",
         cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
         # Account read depends on Contact read because of the person accounts in the TSO orgs;
@@ -1034,6 +1045,7 @@ STDLIB_SUITES = [
     "tests/test_sfdmu_id_lookups.py",
     "tests/test_sfdmu_conditional_steps.py",
     "tests/test_sf_token.py",
+    "tests/test_snapshot_attribution.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
     "tests/test_snapshot_site_guide.py",

@@ -41,8 +41,9 @@ Every corpus holds the same three things:
 - `articles/<id>.md`: one file per article, with YAML frontmatter (id, title,
   source URL, release, area or section, fetch date) followed by the article
   body and a source-attribution note that links the source URL. Files
-  captured before the note was added lack it until they are recaptured with
-  `--mode refresh` (the other modes skip captured articles).
+  captured before the note was added lack it. A refresh does not add it to
+  an article it leaves alone (the other modes skip captured articles), so run
+  `backfill-attribution`; until then `check --release R` fails.
 - `manifest.json`: the machine-readable index described above.
 - `index.md`: a human-readable index generated from the manifest.
 
@@ -74,7 +75,8 @@ flags.
 | `help --release R --area A` | Snapshot one or more Help areas. |
 | `dev-guide --release R --guide G` | Snapshot one or more developer guides. |
 | `run --release R [--only k1,k2]` | Snapshot every preset of a release, Help and dev guide alike. |
-| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus, and for `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). |
+| `check [--release R \| --active]` | The footer gate plus two spot-checks. Gate (`--release R`, or `--active` for the release named by `salesforce_release_active` in `.claude/skill-manifest.yml`; pr_gate runs `--active`): every `docs/salesforce/R/*/articles/*.md` with a `source_url` must end with the attribution footer. It exits 1 on a missing footer, an unreadable file, a BOM before the frontmatter, or frontmatter that never closes (fix a missing footer with `backfill-attribution`; strip a BOM by hand). Files with no frontmatter or no `source_url` are listed, not failed. Without either flag the gate is skipped (older frozen snapshots predate the footer). Spot-checks, which never fail: glued-link text artifacts in the Help corpus, and `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). |
+| `backfill-attribution --release R` | Offline, no network: append the source-attribution footer to every captured article under `docs/salesforce/R/*/articles` that lacks it (retained atlas articles predate it). Idempotent; `index.md` is untouched. Files it cannot judge are printed as skipped; an unreadable or unwritable one makes it exit 1. A site-guide run also does this for its own retained articles. |
 | `bootstrap --from R --to NEW --release-name N` | Add a release to `presets.yaml` by copying an existing one. |
 
 `--area` and `--guide` take a preset key, a comma-separated list of keys, or
@@ -121,7 +123,7 @@ python -m scripts.doc_snapshot run --release 264
 python -m scripts.doc_snapshot run --release 264 --only pricing,rlm
 ```
 
-**Spot-check the Help corpus after a capture:**
+**Gate the footers and spot-check the Help corpus after a capture:**
 
 ```bash
 python -m scripts.doc_snapshot check --release 264
@@ -180,7 +182,7 @@ A refused capture:
   guard, M no longer in the contents] ...").
 
 A refused page is listed under **Errored** in `index.md`, while its kept prior
-file stays on disk and `check` still reads it. The same holds for any failed
+file stays on disk and `check` still reads it (and still requires its footer). The same holds for any failed
 fetch (a navigation timeout, a missing H1, an empty body): Help and dev-guide
 alike keep the prior file and its `file` and `body_length`, and change only
 `status` and `error`.
@@ -350,7 +352,7 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   counts as failed.
 - `2`: a usage error, such as an unknown preset or preset option, an empty selector, flag value, or `sections` list, a list or mapping where an option takes one value (only `sections` may be a list), an integer option given `true` or `2.5`, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
-`check` always exits 0. Its hits are leads to verify, not failures.
+`check` exits 1 only for the footer gate (see the subcommand table); its glued-link and rename hits are leads to verify, not failures, and never change the exit code.
 
 **Run one `help` snapshot at a time per release.** Every area writes to the same
 `help/manifest.json`, and when two processes run at once the last one to save

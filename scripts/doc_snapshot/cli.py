@@ -7,7 +7,9 @@ Subcommands:
     help        snapshot help.salesforce.com areas (and release notes)
     dev-guide   snapshot developer.salesforce.com atlas developer guides
     run         snapshot every preset of a release
-    check       lint the captured Help corpus for glued-link artifacts
+    check       footer gate (--release R / --active) plus Help and rename spot-checks
+    backfill-attribution
+                offline: add the source-attribution footer to captured articles lacking it
     bootstrap   add a release to presets.yaml by copying another one
 
 Examples:
@@ -201,8 +203,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common_run_flags(p)
     _add_site_switch_flags(p)
 
-    p = sub.add_parser("check", help="lint the Help corpus for glued-link artifacts")
-    p.add_argument("--release", help="only this release's corpus")
+    p = sub.add_parser("check", help="gate the attribution footer of a release; spot-check Help and rename artifacts")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--release", help="only this release's corpus; also gates its attribution footers")
+    g.add_argument("--active", action="store_true",
+                   help="gate the release named by salesforce_release_active in .claude/skill-manifest.yml")
+
+    p = sub.add_parser("backfill-attribution",
+                       help="offline: add the attribution footer to captured articles lacking it")
+    p.add_argument("--release", required=True, help="release version, e.g. 264")
 
     p = sub.add_parser("bootstrap", help="add a release to presets.yaml")
     p.add_argument("--from", dest="source", required=True, help="release to copy")
@@ -385,7 +394,27 @@ def cmd_run(args, releases, logger) -> int:
 
 def cmd_check(args, releases, logger) -> int:
     from scripts.doc_snapshot import check
-    return check.scan(args.release)
+    return check.scan(check.active_release() if args.active else args.release)
+
+
+def cmd_backfill_attribution(args, releases, logger) -> int:
+    from scripts.doc_snapshot._core import BOM_HINT, backfill_attribution, is_failure
+    from scripts.doc_snapshot.check import REPO_ROOT
+    base = REPO_ROOT / "docs" / "salesforce" / args.release
+    total, failed = 0, 0
+    for articles in sorted(base.glob("*/articles")):
+        changed, skipped = backfill_attribution(articles)
+        total += len(changed)
+        if changed:
+            print(f"{articles.relative_to(REPO_ROOT)}: added the footer to {len(changed)} file(s)")
+        for name, reason in skipped:
+            print(f"  skipped {articles.relative_to(REPO_ROOT)}/{name}: {reason}")
+            # no frontmatter or source_url: nothing to build a footer from, not a failure
+            failed += is_failure(reason)
+            if reason == "bom-frontmatter":
+                print(f"    {BOM_HINT}.")
+    print(f"Release {args.release}: {total} article(s) updated.")
+    return EXIT_FAILED if failed else 0
 
 
 def cmd_bootstrap(args, releases, logger) -> int:
@@ -412,6 +441,7 @@ COMMANDS = {
     "dev-guide": cmd_dev_guide,
     "run": cmd_run,
     "check": cmd_check,
+    "backfill-attribution": cmd_backfill_attribution,
     "bootstrap": cmd_bootstrap,
 }
 
@@ -422,7 +452,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger = get_logger()
     try:
         # `check` reads the corpus, not the presets, so it needs no PyYAML.
-        releases = {} if args.command == "check" else presets_mod.load_presets(args.presets)
+        releases = {} if args.command in ("check", "backfill-attribution") else presets_mod.load_presets(args.presets)
         return COMMANDS[args.command](args, releases, logger)
     except OptionsError as exc:
         print(f"error: {exc}", file=sys.stderr)
