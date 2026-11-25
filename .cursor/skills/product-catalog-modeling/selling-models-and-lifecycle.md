@@ -274,8 +274,7 @@ In this repo:
   in Setup → Trusted URLs; the list is in `datasets/sfdmu/q3/en-US/q3-pcm/README.md`. Remove
   them only after that org's q3 `DisplayUrl` values point at the placeholder: removed first, the
   q3 images that still use those hosts disappear without an error (the fallback below). An org
-  with no q3 products (every qb build: q3 loads only when `q3` is on and `qb` is off) can delete
-  the 16 sites at once.
+  where the q3-pcm plan was never loaded can delete the 16 sites at once.
 - **An external `https` address loads only from an allowed host.** In Lightning, the page's
   `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
   (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no

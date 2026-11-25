@@ -129,5 +129,4 @@ ProductCategoryProduct.csv               # 72 records
   `shutterstock`, `unsplash`. Delete them only after the org's q3 `DisplayUrl` values point at the
   placeholder (above): deleting them first makes the q3 images that still use those hosts
   disappear, with no error (see the product-catalog-modeling skill's product-images notes). An
-  org with no q3 products (every qb build: q3 loads only when `q3` is on and `qb` is off) can
-  delete the 16 sites at once.
+  org where the q3-pcm plan was never loaded can delete the 16 sites at once.
