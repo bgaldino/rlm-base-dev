@@ -35,9 +35,9 @@ paths are forceignored.
 | Depends On | Must Deploy First | Reason |
 |-----------|-------------------|--------|
 | Custom fields | `unpackaged/pre/` or `force-app` | Referenced by flows, LWC, Apex |
-| Expression sets | `force-app/expressionSetDefinition/` | Referenced by pricing/rating procedures |
+| Expression sets | `force-app/main/default/expressionSetDefinition/` | Referenced by pricing/rating procedures |
 | Decision tables | `unpackaged/pre/5_decisiontables/` | Referenced by pricing/rating flows |
-| Permission sets | `force-app/permissionsets/` | Must exist before assignment |
+| Permission sets | `force-app/main/default/permissionsets/` | Must exist before assignment |
 | Context definitions | Extended at runtime | Created by `extend_context_*` tasks |
 | Flexipages/compact layouts | `templates/` → `unpackaged/post_ux/` | Referenced by actionOverrides |
 
