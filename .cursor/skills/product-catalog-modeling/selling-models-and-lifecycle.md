@@ -66,12 +66,12 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
   See [Selling model of the bundle root](#selling-model-of-the-bundle-root).
 
-Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). Two runs drew no message. A Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. For the 2026-11-24 static test bundle ([below](#measured-component-selling-model-rules)), Place returned an empty `errorResponse`, a `configure` call returned no message, and no `RevenueTransactionErrorLog` row was written [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established. [Open: build a new active configurable root with the same selling model option and the same two children, component rows with no selling models, each child a default component in one group; repeat the recorded Place and `configure` inputs of the 2026-11-24 static test bundle] That check addresses only the 2026-11-24 run; whether the 2026-11-12 root was static or configurable is not recorded. Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
+Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). Two runs drew no message. A Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. For the 2026-11-24 static test bundle ([below](#measured-component-selling-model-rules)), Place returned an empty `errorResponse`, a `configure` call returned no message, and no `RevenueTransactionErrorLog` row was written [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Why neither run produced a message is not established. [Open: build a new active configurable root with the same selling model option and the same two children, component rows with no selling models, each child a default component in one group; repeat the recorded Place and `configure` inputs of the 2026-11-24 static test bundle] That check addresses only the 2026-11-24 run; whether the 2026-11-12 root was static or configurable is not recorded. Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open, needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
 
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductSellingModelOption.csv`] How a mixed-model bundle
-renews is **Open — needs live verification** beyond the one-time rule above and the one
+renews is **Open, needs live verification** beyond the one-time rule above and the one
 measured shape ([below](#selling-model-of-the-bundle-root)); how it co-terminates is open for
 every shape.
 
@@ -164,12 +164,12 @@ Early renewal of a usage-based asset needs a Term Defined selling model; it is n
 No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
 children. One shape is measured, a locked configurable bundle with a Term Defined root: its
 Evergreen child came through at quantity 0 ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur)).
-An Evergreen root, and other bundle shapes: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
+An Evergreen root, and other bundle shapes: **Open, needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
 (a term-defined parent with one-time or evergreen children; "a one-time evergreen parent,
 and a term-defined child"), but the snapshot drops the column that marks which are supported:
-**Open — needs live verification.** [Help: `ind.qocal_considerations_ramp_deals.htm`] Whether
+**Open, needs live verification.** [Help: `ind.qocal_considerations_ramp_deals.htm`] Whether
 a bundle-based adjustment applies under a new static bundle, whose component rows Help
-requires to carry parent selling model None, is **Open — needs live verification**.
+requires to carry parent selling model None, is **Open, needs live verification**.
 
 ## Ramps
 
@@ -232,7 +232,7 @@ returned `FIELD_CUSTOM_VALIDATION_EXCEPTION` with its message [Measured: 2026-11
 quote, not the line, so a quote that already holds the root passes a standalone line, and removing the root afterward leaves the line standalone, since the trigger runs only when the line is inserted. [inferred]
 
 Whether search hides the flagged product because of the flag or because it has no category (the flag is in the search index documents, so a filter is plausible; its logic is not traced), and what amend,
-renew or cancel do when its companion is removed: **Open — needs live verification.** The
+renew or cancel do when its companion is removed: **Open, needs live verification.** The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
 ## Other lifecycle fields on `Product2`

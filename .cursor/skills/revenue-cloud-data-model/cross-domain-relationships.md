@@ -58,9 +58,9 @@ Account (Transactions) is referenced by most transactional and billing objects:
 | Asset | AccountId | Transactions |
 | FulfillmentOrder | AccountId | DRO |
 | BillingAccount | AccountId | Billing |
-| BillingSchedule | BillingAccountId | Billing |
-| Invoice | BillingAccountId | Billing |
-| CreditMemo | BillingAccountId | Billing |
+| BillingSchedule | BillingAccountId (→ Account) | Billing |
+| Invoice | BillingAccountId (→ Account) | Billing |
+| CreditMemo | BillingAccountId (→ Account) | Billing |
 | Payment | AccountId | Billing |
 
 ## PriceBook2 Cross-Domain Links
@@ -141,7 +141,7 @@ Asset.ParentId → Asset (bundle hierarchy)
 
 AssetAction.AssetId → Asset
 AssetActionSource.AssetActionId → AssetAction
-AssetActionSource.ReferenceEntityItemId → OrderItem
+AssetActionSource.ReferenceEntityItemId → OrderItem, OrderItemDetail or WorkOrderLineItem (polymorphic)
 ```
 
 ## Fulfillment Bridge (DRO ↔ Transactions)
@@ -172,5 +172,5 @@ scratch_data (Account, Contact)
         ├→ qb-prm (Partner accounts, channel programs)
         ├→ qb-approvals (approval alert content)
         ├→ qb-transactionprocessingtypes (standalone)
-        └→ qb-price-revision (IndexRate, PriceRevisionPolicy; no product dependency)
+        └→ qb-price-revision (IndexRate, PriceRevisionPolicy; no product dependency; loads after qb-pricing, as step 3 of prepare_pricing_data, not under qb-pcm)
 ```

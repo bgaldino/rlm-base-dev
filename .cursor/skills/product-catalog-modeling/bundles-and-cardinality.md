@@ -15,10 +15,11 @@
 | Bundle | Not Allowed / None | Static bundle | static simple, static bundle |
 | Bundle | Allowed | Configurable bundle | any of the four |
 
-Help says `Type` cannot be changed after the product is created, and that a simple product
-cannot become a bundle; a separate 264 article describes one exception, a one-way conversion
+Help says `Type` cannot be changed after the product is created, and that you can't change a
+simple product to a bundle product [Help: `ind.product_catalog_create_simple_products.htm`,
+`ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article describes one exception, a one-way conversion
 of a product with no type to Bundle that "can't be undone" and can affect configuration,
-quotes, orders and assets. Plan as if `Type` is fixed; the conflict is **Open — needs live
+quotes, orders and assets. Plan as if `Type` is fixed; the conflict is **Open, needs live
 verification** (edit a test product's `Type` from blank to `Bundle` in the Product Catalog
 Management app, then try the reverse). A static bundle can become configurable and back.
 Configurable → static needs every attribute defaulted, every child Not Allowed/None,
@@ -52,7 +53,7 @@ subscription that must renew or bill on its own model) is not settled by the rul
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
   Evergreen child, a root other than Evergreen, a row with no model or a child with several
   options, and whether the child
-  then renews and bills on that model: **Open — needs live verification.**
+  then renews and bills on that model: **Open, needs live verification.**
 
 Until the open cases above are measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
@@ -75,7 +76,7 @@ So test the lock at order creation, or read the error log, not the save's result
 `bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
 quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
 whether either blocks the order, how locked children amend, and whether the lock holds on the
-renewal quote: **Open — needs live verification.** Renewal rules by selling model are in
+renewal quote: **Open, needs live verification.** Renewal rules by selling model are in
 [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 
 ## Structure rules

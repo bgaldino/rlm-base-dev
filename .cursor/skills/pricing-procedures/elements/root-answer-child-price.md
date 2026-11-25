@@ -138,7 +138,7 @@ it has no Help article and was never exercised
 
 ## Open questions
 
-- **Open — needs live verification:** routes 2 and 3; neither was built. How the root answer
+- **Open, needs live verification:** routes 2 and 3; neither was built. How the root answer
   reaches the header for them (a rep enters it on the quote, or automation copies it from the
   root line) is also open; nothing in the 264 snapshot documents a copy.
 - An uplift through a Price Adjustment Matrix: its Percentage is a discount too (a Percentage

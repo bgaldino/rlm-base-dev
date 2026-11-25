@@ -23,7 +23,7 @@ Every product claim carries its source: `[Help: <article>]` (the 264 Help snapsh
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
 names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded), `[Platform behaviour, traced]` (a platform mechanism read in source), `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established), or `[inferred]` (a conclusion drawn from the cited evidence that no source states and no measurement shows). A claim only a live
-org could settle is marked **Open — needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
+org could settle is marked **Open, needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
 ## Quick Rules
@@ -309,7 +309,7 @@ configure one bundle in the configurator with rules on.
 
 ## Open questions
 
-Every item marked **Open — needs live verification** or `[Open: …]` in this skill and its sub-files:
+Every item marked **Open, needs live verification** or `[Open: …]` in this skill and its sub-files:
 
 - **`IsSoldOnlyWithOtherProds`.** Whether search hides it for the flag or for the missing
   category, and what amend, renew or cancel do when its companion is removed. See

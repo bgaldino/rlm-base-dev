@@ -93,10 +93,14 @@ select Include in Output.
   own code.
 - The waterfall lists each contributor (source, scope, product, id, contributed price).
 - Limits are per-org values, enforced at Derived Price save and again in discovery
-  (runtime guardrail errors) [Core]. The 264 Help limits page publishes "products associated with a
-  contributing product" as 40 default, 1 minimum, 50 maximum, with a note that it is the total number of contributors for a derived product (transactional and non-transactional), and assets per contributing asset as 50 maximum [Help: `ind.pricing_limits.htm`]; the same page caps a discovery procedure at 50 elements by default (100 maximum) and a discovery run at 10 seconds by default (60 maximum). Core's
-  platform defaults are larger (contributing products 500, min 1, up to 2000; assets per
-  product 100, up to 1000; source products per price book entry 3, up to 5) [Core].
+  (runtime guardrail errors) [Core].
+- The 264 Help limits page publishes "products associated with a contributing product" as 40 default,
+  1 minimum, 50 maximum. Its note says this is the total number of contributors for a derived product
+  (transactional and non-transactional). It publishes assets per contributing asset as 50 maximum
+  [Help: `ind.pricing_limits.htm`]. The same page caps a discovery procedure at 50 elements by default
+  (100 maximum) and a discovery run at 10 seconds by default (60 maximum).
+- Core's platform defaults are larger: contributing products 500, min 1, up to 2000; assets per
+  product 100, up to 1000; source products per price book entry 3, up to 5 [Core].
   Design to the Help numbers; the effective value on an org can differ.
 - [Core] Save-time rules (the procedure cannot be saved):
   - "You can’t have the Derived Price and Promotion Execution elements in the same pricing procedure. Delete one of them and try again."

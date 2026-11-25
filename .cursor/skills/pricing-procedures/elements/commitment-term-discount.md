@@ -226,7 +226,7 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
 - Inside a formula, round the operand instead, as step 2 of this pattern does.
 - A Rounding Values step at that position was built and ran on 2026-11-11, and manual discounts
   after it priced as expected ([`rounding-values.md`](rounding-values.md) → Rules and limits).
-  **Open — needs live verification:** a line whose net has a fractional cent going into the
+  **Open, needs live verification:** a line whose net has a fractional cent going into the
   discount; check the discounted net and the waterfall entry.
 
 ## Overlay shape
@@ -381,14 +381,14 @@ Price Adjustment Matrix over a custom decision table whose input columns are key
 registered on the pricing recipe and refreshed after each band change, and each line must resolve to
 exactly one row unless Output Resolution is on
 ([`price-adjustment-matrix.md`](price-adjustment-matrix.md)). Make the bands non-overlapping.
-**Open — needs live verification:** this route was not built or measured here, because route (b)
+**Open, needs live verification:** this route was not built or measured here, because route (b)
 expressed the rule.
 
 ## Open questions
 
 - One Time lines were not in the 2026-11-10 run. With criterion 11 in place they priced without
   error on 2026-11-11 ([Line inputs on real quotes](#line-inputs-on-real-quotes)).
-  **Open — needs live verification:** what an unguarded criterion 2 (no criterion 11) does on a One
+  **Open, needs live verification:** what an unguarded criterion 2 (no criterion 11) does on a One
   Time line's null `PricingTermUnit`. Help says a null compared tag
   returns an error, but what the error looks like, was not measured. The condition logic does not
   short-circuit, so ordering does not keep criterion 2 from being evaluated; it is the unknown-value
@@ -399,7 +399,7 @@ expressed the rule.
   ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Which `SubscriptionTermUnit` the
   line editor writes when a rep adds a line by hand was not measured; check a real quote line
   before relying on one.
-- The amendment and renewal behavior (criterion 9) was not measured. **Open — needs live
+- The amendment and renewal behavior (criterion 9) was not measured. **Open, needs live
   verification:** renew, with a +2% uplift, one 48-month asset that took the 6% and one shorter
   asset renewed for 48 months, and price the renewal lines through the clone. On an as-is renewal
   the parent `NetUnitPrice` is null and the price sits on `QuoteLineDetail`

@@ -14,7 +14,7 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `BillingSchedule` | Schedule linking orders to billing | ReferenceEntityId (→ Order), BillingAccountId, BillingTreatmentItemId, TaxTreatmentId, OriginalBillingScheduleId |
+| `BillingSchedule` | Schedule linking orders to billing | ReferenceEntityId (polymorphic: Order, OrderSummary, Quote), BillingAccountId (→ Account), BillingTreatmentItemId, TaxTreatmentId, OriginalBillingScheduleId |
 | `BillingScheduleGroup` (BSG) | Groups billing schedules | BillingArrangementId, BillingTreatmentId, LegalEntityId, PaymentTermId, TaxTreatmentId |
 | `BillingPeriodItem` | Period within a billing schedule | BillingScheduleGroupId, InvoiceBatchRunId, InvoiceId, InvoiceLineId |
 | `BillingArrangement` | Arrangement container | — |
@@ -27,7 +27,7 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `Invoice` | Invoice record | BillingAccountId, LegalEntityId, PaymentTermId, InvoiceBatchRunId |
+| `Invoice` | Invoice record | BillingAccountId (→ Account), LegalEntityId, PaymentTermId, InvoiceBatchRunId |
 | `InvoiceLine` | Line item on an invoice | InvoiceId, Product2Id, BillingScheduleId, BillingScheduleGroupId, LegalEntityId, TaxTreatmentId |
 | `InvoiceLineTax` | Tax detail on an invoice line | — |
 | `InvoiceAddressGroup` | Address grouping for invoices | — |
@@ -42,7 +42,7 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `CreditMemo` | Credit memo | BillingAccountId, LegalEntityId, ReferenceEntityId (→ Order) |
+| `CreditMemo` | Credit memo | BillingAccountId (→ Account), LegalEntityId, ReferenceEntityId (polymorphic: Invoice, Order, OrderSummary) |
 | `CreditMemoLine` | Line on a credit memo | CreditMemoId |
 | `CreditMemoLineTax` | Tax on a credit memo line | LegalEntityId |
 | `CreditMemoAddressGroup` | Address grouping | — |
@@ -133,6 +133,6 @@ TaxTreatment ← BillingScheduleGroup, InvoiceLine, BillingSchedule (TaxTreatmen
 
 ## SFDMU Data Plans
 
-- `qb-billing` — 13 objects across 3 passes (draft upsert → activate treatment items → activate treatments/policies). Upstream: `qb-pcm`
-- `qb-tax` — 7 objects across 2 passes. Upstream: `qb-pcm`, metadata (tax adapter)
-- `qb-accounting` — 4 objects (GL accounts and rules). Upstream: LegalEntity from `qb-billing`/`qb-tax`
+- `qb-billing` — 13 distinct objects (16 entries) across 3 passes (draft upsert → activate treatment items → activate treatments/policies). Upstream: `qb-pcm`
+- `qb-tax` — 7 distinct objects (9 entries) across 2 passes. Upstream: `qb-pcm`, metadata (tax adapter)
+- `qb-accounting` — 4 distinct objects (GL accounts and rules). Upstream: LegalEntity from `qb-billing`/`qb-tax`

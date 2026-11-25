@@ -116,7 +116,7 @@ before it existed, so refresh the data and rerun rather than editing a cell.
 - **PCM**: ProductAttributeDefinition, ProductCategoryProduct, ProductRelatedComponent, ProductSellingModelOption all reference Product2
 - **Pricing**: PriceBookEntry, PriceAdjustmentTier, BundleBasedAdjustment link products to price books and adjustments
 - **Rates**: RateCardEntry links Product2 to rate cards via UsageResource
-- **Configurator**: ProductConfigFlowAssignment binds a flow to Product2 (or a classification); ExpressionSetConstraintObj binds an expression set to Product2, a classification or a component via a polymorphic `ReferenceObjectId`. ProductConfigurationFlow and ProductConfigurationRule carry no Product2 lookup
+- **Configurator**: ProductConfigFlowAssignment binds a flow to Product2 (or a classification); ExpressionSetConstraintObj binds an expression set to Product2, a classification, a component group (`ProductComponentGroup`) or a related component (`ProductRelatedComponent`) via a polymorphic `ReferenceObjectId`. ProductConfigurationFlow and ProductConfigurationRule carry no Product2 lookup
 - **Transactions**: QuoteLineItem, OrderItem, Asset, FulfillmentOrderLineItem, InvoiceLine all carry Product2Id
 - **Usage**: ProductUsageResource (PUR) binds Product2 to UsageResource; ProductUsageGrant (PUG) grants usage entitlements per product
 - **Billing**: Product2 carries BillingPolicyId, TaxPolicyId — set by billing/tax data plans

@@ -59,7 +59,7 @@ ProductCategory ← ProductCategory (ParentCategoryId, self-ref hierarchy)
 
 ## SFDMU Data Plan: `qb-pcm`
 
-28 object entries in dependency order (2 override objects are `excluded` and not processed). Root plan — must load before all other QB plans.
+28 object entries (28 distinct objects) in dependency order (2 override objects are `excluded` and not processed). Root plan — must load before all other QB plans.
 
 Key ordering: Attributes → Classifications → Products → SellingModels → Bundles → Catalogs → Qualifications
 

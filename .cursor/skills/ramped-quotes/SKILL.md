@@ -453,18 +453,24 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
     `AmountNegative` while estimated tax is on.
   - Robust pollers accept both values as settled; see `E2ECommon.robot`
     `@{QUOTE_CALC_PRICED}`.
-- **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
+- **Settled — failure (the poll stops):** any `…Failed` — `TaxCalculationFailed`,
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
   `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
+  The status does not recover on its own. `E2ECommon.robot` `Wait For Quote Calculation` reprices once
+  (Place Sales Transaction, `pricingPref` Force) and fails the test if the second wait also fails.
+  The large-deal guide likewise allows a bounded reprice retry for these values
+  (`troubleshooting/large-deal-preprocess-reference.md`).
 - **Settled partially, investigate (do not auto-retry):** `QuoteRequestPartiallySaved`, `PartialSaveSuccess`.
-  The repo's pollers treat both as failed (`E2ECommon.robot` `@{QUOTE_CALC_FAILED}`) and the large-deal
-  guide says investigate rather than retry (`troubleshooting/large-deal-preprocess-reference.md`).
+  The repo's pollers treat both as failed (`E2ECommon.robot` `@{QUOTE_CALC_FAILED}`). The large-deal
+  guide says investigate rather than retry for `OrderRequestPartiallySaved` and `PartialSaveSuccess`
+  (`troubleshooting/large-deal-preprocess-reference.md`); it does not name `QuoteRequestPartiallySaved`,
+  so that value follows the same rule by analogy `[inferred]`.
 - **In-flight (keep polling):** `NotStarted`, `TaxCalculationWaiting`,
   `TaxCalculationInProcess`, `PriceCalculationQueued`, `PriceCalculationInProgress`,
   `Saving`, `ConfigurationInProgress`, `ReconciliationInProgress`,
   `ContextHydrationInProgress`, `ARCInProgress`, `CloneInProgress`, `ImportQLIInProgress`, `ImportQLISuccess`
-  (the import is done but pricing may not have started; `E2ECommon.robot` retries it), and every
+  (the import is done but pricing may not have started; `E2ECommon.robot` retries it only when `require_priced` is set), and every
   `QueuedFor…` value (`QueuedForConfiguration`, `QueuedForPricing`,
   `QueuedForPricingAndSaving`, `QueuedForSaving`, `QueuedForARC`, `QueuedForClone`).
 

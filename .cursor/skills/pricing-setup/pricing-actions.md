@@ -60,7 +60,7 @@ Design Time User, Pricing Manager or Pricing Admin. [Core]
 
 | UI label | API name | Rules |
 |---|---|---|
-| Object | `objectName` | `Case`, `Contract`, `Opportunity`, `Order`, `Quote`, `SalesAgreement`, `WorkOrder` [Dev guide]; the dev guide's sample and the repo's parameters write the value uppercase (`ORDER`, `QUOTE`) [Repo]. Help's setup list omits the last two; the Setup dialog omits Work Order too (see above) |
+| Object | `objectName` | `Case`, `Contract`, `Opportunity`, `Order`, `Quote`, `SalesAgreement`, `WorkOrder` [Dev guide]. The dev guide's sample and the repo's parameters write the value uppercase (`ORDER`, `QUOTE`) [Dev guide][Repo]. Help's setup list omits the last two; the Setup dialog omits Work Order too (see above) |
 | Context definition | `contextDefinition` | Required. Must be extended, with nodes, attributes, tags [Help] |
 | Context mapping | `contextMapping` | Required. Must match the target object type or pricing errors [Help] |
 | Pricing procedure | `pricingProcedure` | Text (name or id), not a lookup; optional. Blank: see below [Core] |

@@ -22,7 +22,7 @@
 |--------|---------|-----------|
 | `AssetStatePeriod` | Time-sliced state of an asset | AssetId, StartDate, EndDate, Quantity, Amount |
 | `AssetAction` | Action performed on an asset; `CategoryEnum` gives its business category (initial sale, upsell, downsell, renewal, cancellation, ...) | AssetId, Type, Subtype, CategoryEnum |
-| `AssetActionSource` | Source transaction for an asset action | AssetActionId, ReferenceEntityItemId (→ OrderItem) |
+| `AssetActionSource` | Source transaction for an asset action | AssetActionId, ReferenceEntityItemId (polymorphic: OrderItem, OrderItemDetail, WorkOrderLineItem) |
 | `AssetRelationship` | Relationship between assets | AssetId, RelatedAssetId |
 | `AssetContractRelationship` | Links asset to contract | AssetId |
 | `AssetTokenEvent` | Token consumption events on an asset | — |
@@ -76,7 +76,7 @@ QuoteLineItem ← OrderItem (QuoteLineItemId)
 OrderItem ← OrderItem (OriginalOrderItemId, self-ref for amendments)
 Asset ← AssetAction (AssetId)
 AssetAction ← AssetActionSource (AssetActionId)
-OrderItem ← AssetActionSource (ReferenceEntityItemId)
+OrderItem ← AssetActionSource (ReferenceEntityItemId, polymorphic)
 Asset ← AssetStatePeriod (AssetId)
 Asset ← Asset (ParentId, RootAssetId — bundle hierarchy)
 Order ← FulfillmentOrder (OrderId)
