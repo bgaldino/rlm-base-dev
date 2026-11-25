@@ -1120,7 +1120,7 @@ _level_cache: dict[str, tuple[str, str]] = {}
 _level_lock = threading.Lock()
 
 
-def parse_billing_settings_level(xml_text: str) -> Optional[str]:
+def parse_settings_application_level(xml_text: str) -> Optional[str]:
     """Map a ``readMetadata`` BillingSettings response to ``line``/``header``.
 
     ``enableTransactionsApplicationToInvoices`` is the Metadata API name of the
@@ -1141,7 +1141,7 @@ def parse_billing_settings_level(xml_text: str) -> Optional[str]:
     return LEVEL_HEADER if m.group(1) == "true" else LEVEL_LINE
 
 
-def _read_billing_settings_level(client: SfRestClient) -> Optional[str]:
+def _read_settings_application_level(client: SfRestClient) -> Optional[str]:
     """Read BillingSettings through the client's own transport.
 
     ``SfRestClient.read_billing_settings_xml`` uses the Metadata SOAP API on the
@@ -1152,7 +1152,7 @@ def _read_billing_settings_level(client: SfRestClient) -> Optional[str]:
     if xml_text is None:
         log.warning("BillingSettings could not be read; falling back")
         return None
-    return parse_billing_settings_level(xml_text)
+    return parse_settings_application_level(xml_text)
 
 
 def invoice_level_evidence(client: SfRestClient, invoice_id: str) -> tuple[Optional[str], str]:
@@ -1201,7 +1201,7 @@ def read_application_level(
         source = ""
         transient = ""
         try:
-            level = _read_billing_settings_level(client)
+            level = _read_settings_application_level(client)
             source = "billing_settings"
         except Exception as exc:  # noqa: BLE001 -- fall through to the probe
             log.warning("BillingSettings read failed (%s); falling back", exc)

@@ -391,13 +391,13 @@ def test_plan_payment_modes(payment, open_amount, expected) -> None:
         ("", None),
     ],
 )
-def test_parse_billing_settings_level(xml, expected) -> None:
-    assert lifecycle.parse_billing_settings_level(xml) == expected
+def test_parse_settings_application_level(xml, expected) -> None:
+    assert lifecycle.parse_settings_application_level(xml) == expected
 
 
 def test_read_application_level_reads_once(fake_client, monkeypatch) -> None:
     calls = []
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", lambda c: calls.append(1) or "line")
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", lambda c: calls.append(1) or "line")
     assert lifecycle.read_application_level(fake_client) == ("line", "billing_settings")
     assert lifecycle.read_application_level(fake_client) == ("line", "billing_settings")
     assert len(calls) == 1
@@ -407,14 +407,14 @@ def test_read_application_level_falls_back_to_invoice_evidence(fake_client, monk
     def boom(c):
         raise RuntimeError("no metadata access")
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", boom)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", boom)
     fake_client.query_responses = [[{"Id": "3tt", "SettlementLevel": "Invoice"}]]
     assert lifecycle.read_application_level(fake_client, "3tt") == ("header", "invoice_evidence")
     assert "WHERE Id = '3tt'" in fake_client.queries[0]  # this invoice, not the latest one
 
 
 def test_read_application_level_errors_when_unknown(fake_client, monkeypatch) -> None:
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", lambda c: None)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", lambda c: None)
     fake_client.query_responses = [[]]
     with pytest.raises(LifecycleError, match=r"--application-level line\|header") as info:
         lifecycle.read_application_level(fake_client)
@@ -764,7 +764,7 @@ def test_payment_rows_at_the_other_level_are_recorded_with_a_warning(billable_ac
 
 
 def test_auto_level_is_read_from_the_org_and_recorded(billable_account, monkeypatch) -> None:
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", lambda c: "line")
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", lambda c: "line")
     org = SettleOrg("line")
     m = steps.run_payment(
         _settle_ctx(org, billable_account, SettlementSpec(payment=PaymentSpec(amount=10.0))),
@@ -775,7 +775,7 @@ def test_auto_level_is_read_from_the_org_and_recorded(billable_account, monkeypa
 
 def test_manifest_level_wins_on_resume(billable_account, monkeypatch) -> None:
     monkeypatch.setattr(
-        lifecycle, "_read_billing_settings_level",
+        lifecycle, "_read_settings_application_level",
         lambda c: pytest.fail("a recorded level must not be re-read"),
     )
     org = SettleOrg("header")
@@ -2090,7 +2090,7 @@ def test_billing_settings_read_on_cli_sends_no_token(monkeypatch) -> None:
     monkeypatch.setattr(auth.subprocess, "run", run)
     monkeypatch.setattr(auth.requests.Session, "post",
                         lambda *a, **kw: pytest.fail("cli transport must not POST from Python"))
-    assert lifecycle._read_billing_settings_level(client) == "header"
+    assert lifecycle._read_settings_application_level(client) == "header"
     assert seen[0][:3] == ["sf", "project", "retrieve"]
     assert not any("SECRET" in a for a in seen[0])
 
@@ -2109,7 +2109,7 @@ def test_billing_settings_read_on_requests_uses_the_session() -> None:
                 "</enableTransactionsApplicationToInvoices></x>"))
 
     client._local.session = _Session()
-    assert lifecycle._read_billing_settings_level(client) == "line"
+    assert lifecycle._read_settings_application_level(client) == "line"
     assert calls[0][0] == "https://x.example/services/Soap/m/68.0"
 
 
@@ -2485,7 +2485,7 @@ def test_level_read_transient_failure_is_retryable(fake_client, monkeypatch) -> 
     def unavailable(c):
         raise SfApiError(-1, "retrieve timed out after 90s", "retrieve", "Settings:Billing")
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", unavailable)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", unavailable)
     fake_client.query_responses = [[]]
     with pytest.raises(LifecycleError, match="--application-level line|header") as info:
         lifecycle.read_application_level(fake_client)
@@ -2495,7 +2495,7 @@ def test_level_read_transient_failure_is_retryable(fake_client, monkeypatch) -> 
     def refused(c):
         raise SfApiError(403, "INSUFFICIENT_ACCESS", "POST", "/services/Soap/m")
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", refused)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", refused)
     fake_client.query_responses = [[]]
     with pytest.raises(LifecycleError) as info:
         lifecycle.read_application_level(fake_client)
@@ -2704,7 +2704,7 @@ def test_level_read_429_is_retried(fake_client, monkeypatch) -> None:
     def limited(c):
         raise SfApiError(429, "REQUEST_LIMIT_EXCEEDED", "POST", "/services/Soap/m")
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", limited)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", limited)
     fake_client.query_responses = [[]]
     with pytest.raises(LifecycleError) as info:
         lifecycle.read_application_level(fake_client)
@@ -3094,7 +3094,7 @@ def test_fallback_level_after_a_transient_read_is_not_cached(fake_client, monkey
             raise SfApiError(503, "unavailable", "POST", "/services/Soap/m")
         return "header"
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", flaky)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", flaky)
     fake_client.query_responses = [[{"Id": "3tt", "SettlementLevel": "InvoiceLine"}]]
     assert lifecycle.read_application_level(fake_client, "3tt") == ("line", "invoice_evidence")
     assert lifecycle.read_application_level(fake_client, "3tt") == ("header", "billing_settings")
@@ -3517,7 +3517,7 @@ def test_transient_settings_failure_without_this_invoices_evidence_records_nothi
     def unavailable(c):
         raise SfApiError(503, "unavailable", "POST", "/services/Soap/m")
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", unavailable)
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level", unavailable)
     org = SettleOrg("line")
     real = org.query
 
@@ -3537,7 +3537,7 @@ def test_transient_settings_failure_without_this_invoices_evidence_records_nothi
 def test_transient_settings_failure_uses_this_invoices_evidence(billable_account, monkeypatch) -> None:
     from scripts.txn_data_harness.auth import SfApiError
 
-    monkeypatch.setattr(lifecycle, "_read_billing_settings_level",
+    monkeypatch.setattr(lifecycle, "_read_settings_application_level",
                         lambda c: (_ for _ in ()).throw(SfApiError(503, "x", "POST", "/s")))
     org = SettleOrg("header")
     org.invoice["SettlementLevel"] = "Invoice"
