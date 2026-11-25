@@ -211,6 +211,7 @@ foundations:
         - .cursor/skills/billing-operations/tax.md
         - .cursor/skills/billing-operations/payments-and-credits.md
         - .cursor/skills/billing-operations/accounting.md
+        - .cursor/skills/billing-operations/verification.md
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

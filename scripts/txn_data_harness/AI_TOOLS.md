@@ -112,6 +112,22 @@ Rebuilds the batch report from manifests already on disk (all `out/*.json` shari
 the `<base_run_id>` prefix). Use it to re-summarize an older batch or to read a
 failure-signature rollup when triaging which scenarios to continue or clean up.
 
+### Verify billing (read-only)
+
+```bash
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
+  --invoice-ids <invoiceId>,<invoiceId> --payment-ids <paymentId>
+```
+
+Checks, by id and with SOQL only, that each invoice, invoice line and payment
+balance agrees with its payment and credit applications, and that the
+applications are at one level (line or header). Exit 0 on pass, 1 on any
+failed check. `--expect-level line|header` forces the level (default: detect
+from the records). Checks and formulas: `billing-operations` →
+`verification.md`.
+
 ### Prune
 
 ```bash

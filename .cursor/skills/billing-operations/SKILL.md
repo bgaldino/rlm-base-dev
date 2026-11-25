@@ -122,6 +122,9 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
   API at Line Level, or checking the automatic payment schedule after posting.
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
+- [verification.md](verification.md): read when checking, read-only, that invoice, line
+  and payment balances agree with their applications and the application level
+  (`cli verify` in the Transaction Data Harness).
 
 ## What the repo ships for these stages
 
@@ -223,5 +226,5 @@ sf data query -o <sf-alias> -q "SELECT Id, ActivityDate FROM TransactionJournal 
   period, amount, tax and due date (billing-setup's check, extended to tax and cash).
 - Posted and draft invoices carry the tax status the customer expects (estimated vs actual).
 - A payment or credit applied to an invoice changes its balance as the configured level
-  (header or line) predicts.
+  (header or line) predicts; `cli verify` checks this by id ([verification.md](verification.md)).
 - `python3 scripts/ai/analyze_agent_tooling.py check` passes after edits to this skill.
