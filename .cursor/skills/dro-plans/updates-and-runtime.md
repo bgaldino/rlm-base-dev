@@ -548,8 +548,10 @@ response code 500. A `post_quantumbit` redeploy resets the attribute to `false`.
 `BillingSystemExtCredentials`. Without principal access to it the send throws first with `SF_DRO_STEP_API_00124`
 [Measured: 2026-11-25, 264, scratch]. The `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed
 with the credential) grants that one principal and nothing else. `prepare_quantumbit` step 15 assigns it to the
-running user when `quantumbit` and `dro` are on, so a default build (tso off) needs no manual assignment. The tso
-build's `RLM_QuantumBit` copy in `post_tso` carries the same grant for its personas.
+running user when `quantumbit` and `dro` are on, so a default build (tso off) needs no manual assignment. Personas are
+not covered on either build: `RLM_QuantumBit` is assigned only to the running user (`prepare_quantumbit` step 4). On a
+tso build `deploy_post_tso` overwrites `RLM_QuantumBit` with a copy that adds the `BillingSystemExtCredentials` and
+`SalesforceContractsExtCredentials` principal grants, which the running user already holds from step 4.
 
 - The step runs inside order activation, so the user who needs the grant is the one who activates the order. Every
   step record was created by that user, and the org has no separate automated user [Measured: 2026-11-26, 264, scratch, one
@@ -558,7 +560,9 @@ build's `RLM_QuantumBit` copy in `post_tso` carries the same grant for its perso
 - Which permission set grants the principal is visible as `SetupEntityAccess` rows of type
   `ExternalCredentialParameter` on `DRO_Integrations`.
 - The grant cannot live in the base `RLM_QuantumBit` under `force-app`: that deploys before `deploy_quantumbit`
-  creates the credential, and builds without quantumbit never have it [inferred from deploy order].
+  creates the credential, and builds without quantumbit never have it [Repo: `cumulusci.yml` step order].
+- The `SalesforceContractsExtCredentials` principal has the same default-build gap, since `DRO_Integrations` grants
+  only Billing. Whether CLM callout steps fail without it is unverified.
 - On a default build only `mfg-dro` has callout steps through these credentials (eight `DFOApexMockService` steps).
   `qb-dro` has none once its tenant step is dropped, so verifying qb means pointing one step definition at
   `DFOApexMockService`. A temporary `Callout` step in group `Platform` with that provider, on a `QB-API-MGMT` order,
