@@ -228,6 +228,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // that includes lines it will skip anyway.
             List<SObject> dmlRecords = new List<SObject>();
             List<SObject> dmlTargets = new List<SObject>();
+            List<String> dmlLabels = new List<String>();
             List<String> skippedLines = new List<String>();
             for (SObject rec : targets) {
                 Map<String, CoercedField> applicable = fieldsForRecord(typeName, rec, coercedFields);
@@ -237,6 +238,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                         + ' — skipped (one-time product; dates do not apply)');
                     continue;
                 }
+                // A refused row is labelled as it still is (the update rolled back), so take
+                // its label before the loaded row is mutated.
+                dmlLabels.add(recordLabel(typeName, rec));
                 // Mutate the loaded row too, so recordLabel/summarizeChanges read
                 // the new values; it is never sent to the database.
                 applyFields(rec, applicable);
@@ -271,7 +275,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                         if (!failedIndexes.add(e.getDmlIndex(i))) {
                             continue;
                         }
-                        failedLines.add(recordLabel(typeName, dmlTargets[e.getDmlIndex(i)]) + ' — '
+                        failedLines.add(dmlLabels[e.getDmlIndex(i)] + ' — '
                             + saveErrorText(e.getDmlType(i), e.getDmlMessage(i)));
                     }
                     failedRows = failedIndexes.size();
@@ -867,9 +871,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     }
 
     // FIELD_CUSTOM_VALIDATION_EXCEPTION is the status the platform gives both a validation rule's
-    // message and a trigger's addError text: an administrator or developer wrote it for the person
-    // saving the record, so it is shown as written (the same status rule as RLM_UsageUploaderController;
-    // a DmlException carries one error per failed row, so only the platform's first error is seen).
+    // message and a trigger's addError text, which is written to be read by the person saving the
+    // record, so it is shown as written (the same status rule as RLM_UsageUploaderController; a
+    // DmlException gives each failed row one error here, and a row that repeats keeps its first).
     // Every other save error becomes ROW_SAVE_FAILED_MESSAGE, with the detail in the debug log.
     @TestVisible
     private static String saveErrorText(StatusCode status, String message) {

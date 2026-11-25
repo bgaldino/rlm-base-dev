@@ -672,7 +672,8 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'QuoteLineItem';
         input.applyToAll = true;
-        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk updated"}]';
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk updated"},'
+            + '{"fieldApiName":"Quantity","value":"5"}]';
 
         Test.startTest();
         List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
@@ -684,11 +685,13 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(false, out.isSuccess, 'should fail');
         System.assertEquals(0, out.updatedCount);
         System.assertEquals('No records were updated.', out.errorMessage);
+        // The refused line is named as it still is (Qty 1), not with the quantity that was tried.
         System.assertEquals('Could not update:\n- **Quinn Alpha** (Qty 1) — '
             + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE
             + '\nThe other 2 records in this update were not changed.', out.resultsDisplay);
-        for (QuoteLineItem qli : [SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
+        for (QuoteLineItem qli : [SELECT Description, Quantity FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
             System.assertEquals('Original description', qli.Description);
+            System.assertEquals(1, qli.Quantity);
         }
     }
 
