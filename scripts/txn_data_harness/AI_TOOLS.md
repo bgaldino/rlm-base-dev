@@ -135,13 +135,12 @@ are refused. Ids may be 15 or 18
 characters. Harness manifests carry no payment ids: payments are found
 through the invoices' application rows, or passed with `--payment-ids`.
 `--latest` checks only the newest manifest: after a batch of several
-scenarios, pass each manifest (`--manifest` repeats) or the ids. Where
-nothing was measured a check skips with a reason: balances only on Posted
-invoices without tax lines or header tax, and on Processed payments or
-Canceled ones with no applications; nothing with unapplied or non-Applied
-application rows; nothing at Header Level (header rows or `SettlementLevel`
-Invoice); line balances only on an invoice whose own evidence is line level
-alone.
+scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
+inside one allow-list of measured cases (Line Level: Posted invoices without
+write-off, tax or other unmeasured totals; Charge lines; Applied rows; Processed
+payments with applications or Canceled ones without), and an invoice and payment
+joined by a row are measured only together; anything else skips naming its
+first cause.
 `--expect-level line|header` forces the level (default: detect from the
 records). Checks and formulas: `billing-operations` → `verification.md`.
 

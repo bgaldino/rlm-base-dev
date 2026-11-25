@@ -298,14 +298,16 @@ def test_payment_net_applied_disagreeing_with_rows_fails():
     assert report["failed_checks"] == ["payment_balance"]
 
 
+@pytest.mark.parametrize("payment", ["0aQ000000000002EAA", "0aQ000000000001EAA"])
 @pytest.mark.parametrize("field", ["NetRefundApplied", "NetPaymentCreditApplied"])
-def test_payment_with_unmeasured_field_is_skipped_not_failed(field):
-    # Balance deliberately inconsistent: a skip must not hide behind a pass or a fail.
-    report = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000002EAA").update(
+def test_payment_with_unmeasured_field_is_skipped_not_failed(field, payment):
+    # Canceled (no rows) and Processed (with rows). Balance deliberately inconsistent:
+    # a skip must not hide behind a pass or a fail.
+    report = _line(mutate=lambda d: _row(d, "Payment", payment).update(
         {field: 25, "Balance": 975}))
     assert report["ok"] is True
     result = next(r for r in report["checks"]
-                  if r["check"] == "payment_balance" and r["subject"] == "0aQ000000000002EAA")
+                  if r["check"] == "payment_balance" and r["subject"] == payment)
     assert result["status"] == "skip"
     assert field in result["detail"]
 
@@ -357,15 +359,16 @@ def test_invoice_with_unmeasured_field_skips_both_invoice_checks(field):
         assert result["status"] == "skip" and field in result["detail"], check
 
 
-def test_invoice_with_write_off_status_skips_both_invoice_checks():
+@pytest.mark.parametrize("write_off", ["Completed", "InProgress", "Failed"])
+def test_invoice_with_write_off_status_skips_both_invoice_checks(write_off):
     report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000001AAA").update(
-        WriteOffStatus="Completed", Balance=0))
+        WriteOffStatus=write_off, Balance=0))
     assert report["ok"] is True, report["failed_checks"]
     results = _invoice_checks_on(report, "3tt000000000001AAA")
     assert all(r["status"] != "fail" for r in results.values())
     for check in ("invoice_balance", "invoice_line_balance"):
         result = results[(check, "3tt000000000001AAA")]
-        assert result["status"] == "skip" and "WriteOffStatus Completed" in result["detail"]
+        assert result["status"] == "skip" and f"WriteOffStatus {write_off}" in result["detail"]
 
 
 def test_invoice_with_line_and_header_evidence_skips_invoice_balance():
@@ -385,21 +388,27 @@ def test_invoice_with_line_and_header_evidence_skips_invoice_balance():
 @pytest.mark.parametrize("field", ["ConvertedNegAmount", "ChargeConvertedNegAmount",
                                    "AdjustmentAmount"])
 def test_line_with_unmeasured_field_is_skipped_not_failed(field):
+    # An unmeasured line makes its invoice unmeasured: both invoice checks skip.
     report = _line(mutate=lambda d: _row(d, "InvoiceLine", "5TV000000000032GAA").update(
         {field: -5, "Balance": 1}))
     assert report["ok"] is True, report["failed_checks"]
-    result = next(r for r in report["checks"]
-                  if r["subject"] == "3tt000000000003AAA/5TV000000000032GAA")
-    assert result["status"] == "skip" and field in result["detail"]
+    results = _invoice_checks_on(report, "3tt000000000003AAA")
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000003AAA")]
+        assert result["status"] == "skip" and field in result["detail"], check
 
 
-def test_adjustment_type_line_is_skipped():
+@pytest.mark.parametrize("line_type", ["Adjustment", "Tax", None, "Surcharge"])
+def test_line_whose_type_is_not_charge_is_skipped(line_type):
+    # Allow-list: only Charge lines are measured; null and unknown Types included.
     report = _line(mutate=lambda d: _row(d, "InvoiceLine", "5TV000000000032GAA").update(
-        Type="Adjustment", Balance=1))
-    assert report["ok"] is True
-    result = next(r for r in report["checks"]
-                  if r["subject"] == "3tt000000000003AAA/5TV000000000032GAA")
-    assert result["status"] == "skip" and "Adjustment" in result["detail"]
+        Type=line_type, Balance=1))
+    assert report["ok"] is True, report["failed_checks"]
+    results = _invoice_checks_on(report, "3tt000000000003AAA")
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000003AAA")]
+        assert result["status"] == "skip", check
+        assert f"has Type {line_type or 'null'}" in result["detail"], check
 
 
 @pytest.mark.parametrize("value", [0, None])
@@ -445,24 +454,38 @@ def test_invoice_with_no_lines_fails_the_line_check():
 def test_more_ids_than_one_chunk_are_all_read():
     from scripts.txn_data_harness.verify import _id18
     n = 450
-    invoices, lines = [], []
+    invoices, lines, payments, rows = [], [], [], []
     unmeasured_invoice = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS)
     unmeasured_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)
     for i in range(n):
-        iid = _id18(f"3tt{i:012d}")
-        invoices.append({"Id": iid, "Status": "Posted", "SettlementLevel": None,
+        iid, lid, pid = (_id18(f"3tt{i:012d}"), _id18(f"5TV{i:012d}"),
+                         _id18(f"0aQ{i:012d}"))
+        invoices.append({"Id": iid, "Status": "Posted", "SettlementLevel": "InvoiceLine",
                          "TotalAmountWithTax": 10, "NetCreditsApplied": 0,
-                         "NetPaymentsApplied": 0, "Balance": 10, "WriteOffStatus": None,
+                         "NetPaymentsApplied": 4, "Balance": 6, "WriteOffStatus": None,
                          **unmeasured_invoice})
-        lines.append({"Id": _id18(f"5TV{i:012d}"), "InvoiceId": iid, "Type": "Charge",
-                      "LineAmount": 10, "NetCreditsApplied": 0, "NetPaymentsApplied": 0,
-                      "Balance": 10, **unmeasured_line})
-    data = {"Invoice": invoices, "InvoiceLine": lines}
+        lines.append({"Id": lid, "InvoiceId": iid, "Type": "Charge",
+                      "LineAmount": 10, "NetCreditsApplied": 0, "NetPaymentsApplied": 4,
+                      "Balance": 6, **unmeasured_line})
+        payments.append({"Id": pid, "Status": "Processed", "Amount": 4, "NetApplied": 4,
+                         "Balance": 0, "NetRefundApplied": None,
+                         "NetPaymentCreditApplied": None})
+        rows.append({"Id": _id18(f"1Al{i:012d}"), "InvoiceLineId": lid, "PaymentId": pid,
+                     "Amount": 4, "Type": "Applied", "UnappliedStatus": "No"})
+    data = {"Invoice": invoices, "InvoiceLine": lines, "Payment": payments,
+            "PaymentLineInvoiceLine": rows}
     client = RecordedClient(data)
     records = fetch_billing_records(client, [r["Id"] for r in invoices])
     assert len(records["Invoice"]) == n and len(records["InvoiceLine"]) == n
     assert sum(1 for q in client.queries if " FROM Invoice " in q) == 3
-    assert run_checks(records)["ok"] is True
+    # Payments are found through the rows, read in chunks, and their rows read again by
+    # payment id: the merge must not count a row twice.
+    assert len(records["Payment"]) == n
+    assert sum(1 for q in client.queries if " FROM Payment " in q) == 3
+    assert len(records["PaymentLineInvoiceLine"]) == n
+    report = run_checks(records)
+    assert report["ok"] is True, report["failed_checks"]
+    assert _statuses(report, "payment_balance") == {"pass"}
 
 
 # ------------------------------------------------------------------ inputs
@@ -647,7 +670,7 @@ def test_tax_lines_skip_the_invoice_balance_checks():
     for check in ("invoice_balance", "invoice_line_balance"):
         result = next(r for r in report["checks"] if r["check"] == check
                       and r["subject"].startswith("3tt000000000003AAA"))
-        assert result["status"] == "skip" and "1 Type Tax line(s)" in result["detail"], check
+        assert result["status"] == "skip" and "has Type Tax" in result["detail"], check
 
 
 def test_header_tax_skips_the_invoice_balance_checks():
@@ -802,8 +825,8 @@ def test_unapplied_rows_skip_invoice_line_and_payment_balances(how):
                and r["check"] != "application_level"]
     assert {r["check"] for r in skipped} == {"invoice_balance", "invoice_line_balance",
                                              "payment_balance"}
-    assert all(r["status"] == "skip" and "has unapplied application rows" in r["detail"]
-               for r in skipped)
+    assert all(r["status"] == "skip" and "application row" in r["detail"]
+               and "measured on 264" in r["detail"] for r in skipped)
 
 
 def test_unapplied_credit_row_alone_skips_the_invoice_balances():
@@ -817,6 +840,57 @@ def test_unapplied_credit_row_alone_skips_the_invoice_balances():
     skipped = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
                and r["check"] in ("invoice_balance", "invoice_line_balance")]
     assert len(skipped) == 2 and all(r["status"] == "skip" for r in skipped)
+
+
+def test_canceled_payment_with_rows_makes_its_invoice_unmeasured():
+    report = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(
+        Status="Canceled"))
+    assert report["ok"] is True, report["failed_checks"]
+    results = _invoice_checks_on(report, "3tt000000000001AAA")
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = results[(check, "3tt000000000001AAA")]
+        assert result["status"] == "skip", check
+        assert result["detail"].startswith("linked payment 0aQ000000000001EAA: Status "
+                                           "Canceled with 1 application row(s)"), check
+
+
+def test_payment_on_a_header_settled_invoice_is_unmeasured():
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000001AAA").update(
+        SettlementLevel="Invoice"))
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance"
+                  and r["subject"] == "0aQ000000000001EAA")
+    assert result["status"] == "skip"
+    assert result["detail"].startswith("linked invoice 3tt000000000001AAA: this invoice's "
+                                       "own evidence includes header level")
+
+
+def test_clean_line_level_invoice_and_its_processed_payment_are_checked():
+    # Guard against over-skipping: the measured case still runs and can fail.
+    clean = _line()
+    statuses = {(r["check"], r["subject"]): r["status"] for r in clean["checks"]}
+    assert statuses[("invoice_balance", "3tt000000000001AAA")] == "pass"
+    assert statuses[("invoice_line_balance", "3tt000000000001AAA/5TV000000000011GAA")] == "pass"
+    assert statuses[("payment_balance", "0aQ000000000001EAA")] == "pass"
+    broken = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(Balance=5))
+    assert broken["failed_checks"] == ["payment_balance"]
+
+
+def test_payment_with_an_unmeasured_row_on_an_invoice_outside_the_set_skips():
+    # INV1 is not read, so nothing propagates: the payment's own row must skip it.
+    data = _load("line_level.json")
+    _row(data, "PaymentLineInvoiceLine", "1Al000000000001CAA")["UnappliedStatus"] = "Yes"
+    _row(data, "Payment", "0aQ000000000001EAA")["Balance"] = 7
+    report = _verify(data, ["3tt000000000002AAA"], ["0aQ000000000001EAA"])
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance")
+    assert result["status"] == "skip" and "UnappliedStatus Yes" in result["detail"]
+
+
+def test_processed_payment_without_rows_is_unmeasured():
+    data = _load("line_level.json")
+    _row(data, "Payment", "0aQ000000000002EAA").update(Status="Processed", Balance=7)
+    report = _verify(data, ["3tt000000000002AAA"], ["0aQ000000000002EAA"])
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance")
+    assert result["status"] == "skip" and "Status Processed with 0" in result["detail"]
 
 
 # ------------------------------------------------------------------ CLI
@@ -1104,3 +1178,21 @@ def test_cli_verify_closed_stdout_keeps_the_exit_code(recorded_org, monkeypatch)
                      "--expect-level", "header"]) == 1
     assert cli.main(["verify", "--org", "fake", "--invoice-ids", "3tt00000000000ZAAQ",
                      "--json"]) == 2
+
+
+def test_cli_verify_json_usage_error_on_a_closed_pipe_exits_two(monkeypatch):
+    # `verify --json --bogus | true`: the JSON error object meets a closed pipe.
+    class ClosedPipe:
+        def write(self, text):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def flush(self):
+            raise BrokenPipeError(32, "Broken pipe")
+
+        def fileno(self):
+            raise ValueError("no descriptor")
+
+    monkeypatch.setattr(sys, "stdout", ClosedPipe())
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["verify", "--org", "x", "--json", "--bogus"])
+    assert raised.value.code == 2

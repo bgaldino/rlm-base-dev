@@ -454,7 +454,7 @@ def _json_usage_errors(parsers: list[argparse.ArgumentParser], as_json: bool) ->
 
         def error(message: str, _original=original):
             if as_json:
-                print(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
+                _emit(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
             _original(message)
 
         parser.error = error  # type: ignore[method-assign]
