@@ -1186,8 +1186,10 @@ def read_application_level(
     (:func:`invoice_level_evidence`, source ``invoice_evidence``, never
     cached) -- never another invoice's level, which may predate a change of
     the setting. With no evidence: transient when the settings read failed
-    in a way that may clear (5xx, network, a CLI retrieve failure or
-    timeout: retry later), deterministic when it was refused. Both name the
+    in a way that may clear (5xx, 420/429, network, a CLI retrieve timeout or
+    a retrieve error not named as a refusal: retry later), deterministic
+    when it was refused (a 4xx, a refusal SOAP fault, or a CLI retrieve
+    error named as one, e.g. ``NamedOrgNotFoundError``). Both name the
     remedy that works on a resume: ``cli step ... --application-level``.
     """
     key = client.instance_url

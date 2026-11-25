@@ -3547,7 +3547,8 @@ def test_over_application_fails(billable_account) -> None:
 
 @pytest.mark.parametrize("name, refused", [
     ("INSUFFICIENT_ACCESS", True), ("sf:INSUFFICIENT_ACCESS", True),
-    ("NamedOrgNotFoundError", True), ("NoAuthInfoFound", True),
+    ("NamedOrgNotFoundError", True),  # measured: unknown alias, sf 2.159
+    ("RefreshTokenAuthError", False),  # any failed refresh, network blips too
     ("MetadataTransferError", False), (None, False),
 ])
 def test_cli_retrieve_failure_is_classified_from_the_sf_error_name(
@@ -3590,3 +3591,34 @@ def test_over_payment_applied_beyond_its_target_fails(billable_account) -> None:
                          settlement_baseline={"balance": 250.0, "decimal_places": 2})
     with pytest.raises(lifecycle.SettlementError, match="applied 120.0 .* more than the 100.0 planned"):
         steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+
+
+# -- review round 18 (todo 275) -------------------------------------------------
+
+
+def test_submitted_credit_with_no_memo_fails_as_unknown_outcome(billable_account) -> None:
+    """credit_submitted and no memo under the tag: not a 'not Posted' wait on
+    a memo that may not exist, but the unknown-outcome failure."""
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _submitted()
+    with pytest.raises(lifecycle.SettlementError,
+                       match="credit outcome unknown .*if it never appears, this run cannot "
+                             "settle") as info:
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert "not Posted" not in str(info.value)
+    assert info.value.failure_class == "deterministic" and org.posts == []
+
+
+@pytest.mark.parametrize("level, where", [("line", "the chosen lines"), ("header", "the invoice")])
+def test_short_application_warning_names_the_unapplied_rest(level, where, billable_account) -> None:
+    org = SettleOrg(level)
+    org.lines[0]["Balance"] = 0.0
+    org.lines[1]["Balance"] = 100.0
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level=level, payment=PaymentSpec())
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _payment_planned_manifest(payment_ids=["0aQ1"]))
+    assert any(f"({where} had less open balance" in w and "0aQ1 keeps 150.0 unapplied" in w
+               for w in m.settlement_warnings)

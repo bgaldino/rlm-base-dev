@@ -123,12 +123,14 @@ def _sf_error_name(proc: subprocess.CompletedProcess) -> Optional[str]:
     return name.split(":", 1)[1] if name.startswith("sf:") else name
 
 
-# sf error names that refuse a call for good (permission, auth, alias): a retry
-# cannot succeed.
+# sf error names that refuse a call for good: a retry cannot succeed. Only
+# measured names: NamedOrgNotFoundError (unknown alias, sf 2.159, exit 2), plus
+# the Salesforce refusal codes sf passes through (optionally ``sf:``-prefixed).
+# Not RefreshTokenAuthError: sf-core raises it for any failed refresh,
+# network errors and OAuth 5xx included.
 _SF_REFUSAL_NAMES = frozenset({
     "INSUFFICIENT_ACCESS", "INSUFFICIENT_ACCESS_OR_READONLY", "INVALID_SESSION_ID",
-    "API_DISABLED_FOR_ORG", "INVALID_TYPE", "NamedOrgNotFoundError", "NoAuthInfoFound",
-    "NoOrgFound", "AuthInfoNotFoundError", "NoDefaultEnvError", "RefreshTokenAuthError",
+    "API_DISABLED_FOR_ORG", "INVALID_TYPE", "NamedOrgNotFoundError",
 })
 
 
@@ -408,9 +410,12 @@ class SfRestClient:
         A refusal returns ``None``: an HTTP 4xx other than 420/429, or a SOAP
         fault whose ``faultcode`` is a refusal (:data:`_SOAP_REFUSALS`; SOAP
         faults come back as HTTP 500 -- measured: ``INVALID_SESSION_ID``).
-        Anything that may clear on a retry (another 5xx, 420/429, a network
-        error, a CLI retrieve that failed or timed out) raises ``SfApiError``
-        / ``requests.RequestException`` so the caller can classify it as
+        On ``cli`` a failed retrieve whose JSON error ``name`` is a refusal
+        (:data:`_SF_REFUSAL_NAMES`, e.g. ``NamedOrgNotFoundError``) returns
+        ``None`` too. Anything that may clear on a retry (another 5xx,
+        420/429, a network error, a retrieve that timed out or failed with
+        any other error) raises ``SfApiError`` /
+        ``requests.RequestException`` so the caller can classify it as
         transient.
 
         There is no REST read for it. ``requests``: Metadata SOAP

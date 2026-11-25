@@ -279,7 +279,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   - **Anything else** -- a 5xx, a transport failure, a 2xx without `success`
     (or a body that is not JSON) -- keeps the flag: the step waits up to 15 s
     for the record (a convenience, not a safety measure) and otherwise fails
-    for good, naming the `cli step` command that keeps looking.
+    for good, naming the `cli step` command that keeps looking. A resume
+    with the flag set and still no record fails the same way after the
+    short wait (the credit is polled for `Posted` only once a memo exists);
+    if the record never appears, this run cannot settle: start a new run.
   - A memo that ends in `Error`, `Canceled` or `Voided`, two memos under the
     credit tag, two payments under the payment tag (the stray's id is named
     so it can be canceled), a recorded credit memo that can no longer be
@@ -316,7 +319,8 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   failure with no HTTP status (expired auth), are deterministic. An
   application level that could not be read is transient when the
   BillingSettings read failed in a way that may clear (5xx, 420/429,
-  network, CLI retrieve failure or timeout) and this invoice shows no level
+  network, a CLI retrieve timeout or a retrieve error not named as a
+  refusal) and this invoice shows no level
   (its `SettlementLevel`, or its application rows); nothing is recorded, so
   a retry reads again. With evidence on this invoice, that level is used
   (source `invoice_evidence`).
@@ -360,11 +364,14 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `INVALID_TYPE` on `CurrencyType` (ISO 4217 minor units of the code, not
   cached). A transient error is never recorded as "no currency" or cached.
 - The BillingSettings retrieve on `cli` is bounded (`--wait 1` and a 90 s
-  process timeout). A failure whose sf JSON error `name` is a permission,
-  auth or alias error (`INSUFFICIENT_ACCESS`, `INVALID_SESSION_ID`,
-  `NamedOrgNotFoundError`, `NoAuthInfoFound`, ...) is a refusal, as a 4xx is
-  on `requests`; on a timeout or any other failure the level comes from this
-  invoice's evidence, else the stage fails transient (retry later).
+  process timeout). A failure whose sf JSON error `name` is a measured
+  refusal -- `NamedOrgNotFoundError` (unknown alias; sf 2.159, exit 2) or a
+  Salesforce refusal code such as `INSUFFICIENT_ACCESS` /
+  `INVALID_SESSION_ID`, optionally `sf:`-prefixed -- is a refusal, as a 4xx
+  is on `requests`. `RefreshTokenAuthError` is not: sf raises it for any
+  failed token refresh, network errors and OAuth 5xx included. On a timeout
+  or any other failure the level comes from this invoice's evidence, else
+  the stage fails transient (retry later).
 
 ## Currency precision
 

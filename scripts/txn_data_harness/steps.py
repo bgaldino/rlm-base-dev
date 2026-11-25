@@ -914,8 +914,14 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     _check_fixed_amounts(spec, manifest, places)
 
     if not manifest.credit_memo_ids:
-        memo = _find_memo(ctx, manifest)
-        if memo is None and not manifest.credit_submitted:
+        memo = _find_memo(ctx, manifest, wait=manifest.credit_submitted)
+        if memo is None and manifest.credit_submitted:
+            # Submitted earlier, outcome unknown, and still no memo: there is
+            # nothing to poll for Posted; say so instead of waiting on it.
+            raise _unknown_outcome(
+                "credit", "an earlier POST", ctx, manifest, lifecycle.credit_tag(ctx.run_id)
+            )
+        if memo is None:
             strategy = spec.credit.tax_strategy
             chosen = _chosen_lines(ctx, manifest, spec.credit.lines)
 
@@ -1143,10 +1149,14 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             record_id=payment_id,
         )
     if applied < manifest.payment_apply_target:
+        where = "the invoice" if level == lifecycle.LEVEL_HEADER else "the chosen lines"
+        rest = lifecycle._money((manifest.payment_amount or 0) - applied, places)
         _warn(
             manifest,
             f"payment applied {applied} of the {manifest.payment_apply_target} planned "
-            "(the chosen lines had less open balance than planned)",
+            f"({where} had less open balance than planned); payment {payment_id} keeps "
+            f"{rest} unapplied, which the platform may apply to the account's next "
+            "posted invoice",
         )
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
