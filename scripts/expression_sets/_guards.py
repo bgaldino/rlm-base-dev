@@ -197,7 +197,18 @@ _NO_RANK_CAUSE = (
     "(\"Enter a valid rank to enable …\", measured on Release 264, 2026-11-25). "
     "Nothing was written."
 )
-_NO_ACTIVATION = "run without activation (--no-activate / activate_after false)"
+# The run-without-activation remedy, in each surface's own option name.
+NO_ACTIVATION_CLI = "run with --no-activate, which leaves the version inactive"
+NO_ACTIVATION_CCI_APPLY = ("run with -o activate_after_apply false, which leaves the "
+                           "version inactive")
+NO_ACTIVATION_CCI_IMPORT = ("run with -o activate_after_import false, which leaves the "
+                            "version inactive")
+
+
+def _activate_cmd(esv: Dict[str, Any], flag: str) -> str:
+    return ("python scripts/expression_sets/activate_expression_set.py --target-org "
+            "<alias> --expression-set <name> --version "
+            f"{esv.get('ApiName') or '<ApiName>'} {flag} --confirm")
 
 
 def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
@@ -205,17 +216,15 @@ def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
     # inactive version; on an active one it is refused ("An enabled Expression Set
     # Version cannot be updated/deleted."), as is a Metadata API redeploy, so an
     # active version is deactivated, ranked and activated again.
-    update = (f"sf data update record --sobject ExpressionSetVersion --record-id "
-              f"{esv.get('Id')} --values Rank=<n>")
-    version = f"--version {esv.get('ApiName') or '<ApiName>'}"
+    update = ("sf data update record --target-org <alias> --sobject ExpressionSetVersion "
+              f"--record-id {esv.get('Id')} --values \"Rank=<n>\"")
     if esv.get("IsActive"):
         how = (" Give it a Rank first. No update of an active version is accepted "
                "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
-               "measured), so: deactivate it (activate_expression_set.py "
-               f"{version} --deactivate; it does not run while off), set a Rank that "
-               f"keeps the intended version executing ({update}), and activate it again "
-               f"(activate_expression_set.py {version} --activate); each step was "
-               "measured")
+               "measured), so: deactivate it (" + _activate_cmd(esv, "--deactivate")
+               + "; it does not run while off), set a Rank that keeps the intended "
+               f"version executing ({update}), and activate it again ("
+               + _activate_cmd(esv, "--activate") + "); each step was measured")
     else:
         how = (" Give it a Rank first, one that keeps the intended version executing "
                f"({update}; measured on an inactive version)")
@@ -223,12 +232,13 @@ def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
 
 
 def null_rank_reactivation_refusal(
-    esv: Dict[str, Any], activate_after: bool, alternative: Optional[str] = _NO_ACTIVATION
+    esv: Dict[str, Any], activate_after: bool, alternative: Optional[str] = None
 ) -> Optional[str]:
     """Why a run that would activate ``esv`` must not start, or None.
 
-    ``alternative`` is the other remedy offered besides giving the version a Rank
-    (None when the caller's only purpose is to activate).
+    ``alternative`` is the other remedy offered besides giving the version a Rank,
+    in the caller's own option name (``NO_ACTIVATION_*``); None when the caller has
+    no way to run without activation or its only purpose is to activate.
 
     Activating a version through the API needs a Rank: the platform refused it on
     264 with "Enter a valid rank to enable …" (measured 2026-11-25). A run that
@@ -262,7 +272,8 @@ def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
     return (
         f"Delete refused: ExpressionSetVersion {name} is active with no Rank, so if the "
         "DELETE failed its rollback could not turn the version back on" + _NO_RANK_CAUSE
-        + _rank_remedy(esv, "deactivate it first and then delete the set")
+        + _rank_remedy(esv, "deactivate it first (" + _activate_cmd(esv, "--deactivate")
+                       + ") and then delete the set")
     )
 
 
@@ -362,6 +373,39 @@ def _norm_label(text: Any) -> str:
     # Whether the platform's name check ignores case or spacing is not measured;
     # comparing loosely refuses more, never less.
     return " ".join(str(text or "").split()).casefold()
+
+
+def other_active_versions_refusal(
+    api_name: str,
+    versions: List[Dict[str, Any]],
+    target: Dict[str, Any],
+) -> Optional[str]:
+    """Why an overlay PATCH, which sends every version, must not run, or ``None``.
+
+    The lifecycle deactivates only ``target`` (the version it cycles) before the
+    full-graph PATCH, so any other active version would be sent while active.
+    Whether the platform accepts that is not measured, and a PATCH that fails part
+    way leaves ``target`` and its procedure plans off. So the overlay is refused,
+    before any write, while any version other than ``target`` is active.
+    ``versions`` are the org's ``ExpressionSetVersion`` rows.
+    """
+    others = [v for v in versions
+              if v.get("IsActive") and v.get("ApiName") != target.get("ApiName")]
+    if not others:
+        return None
+    deactivate = "; ".join(_activate_cmd(v, "--deactivate").replace("<name>", api_name)
+                           for v in others)
+    return (
+        f"Expression set '{api_name}' has {len(versions)} versions: "
+        f"{version_rows(versions)}. The overlay PATCH sends every version, but the "
+        f"run deactivates only {target.get('ApiName')}, so it would rewrite "
+        f"{', '.join(v.get('ApiName') for v in others)} while active (not measured; a "
+        f"PATCH that failed part way would leave {target.get('ApiName')} and its "
+        "procedure plans off). Nothing was written. Deactivate the other active "
+        f"version(s) first ({deactivate}; a version that does not run changes no "
+        "price), or change one step formula with "
+        "scripts/expression_sets/set_step_formula.py, which edits only that version."
+    )
 
 
 def version_name_collision_refusal(

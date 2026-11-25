@@ -2141,8 +2141,8 @@ def test_overlay_multi_version_target_and_name_guard():
     from copy import deepcopy
     from tasks.rlm_expression_set_connect import TaskOptionsError
 
-    def run(v1_name, options=None):
-        rows = [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "IsActive": False,
+    def run(v1_name, options=None, v1_active=False):
+        rows = [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "IsActive": v1_active,
                  "VersionNumber": 1, "Rank": 1},
                 {"Id": "9QM2", "ApiName": "C_V2", "Name": "C V2", "IsActive": True,
                  "VersionNumber": 2, "Rank": 2}]
@@ -2208,6 +2208,10 @@ def test_overlay_multi_version_target_and_name_guard():
     check("CCI overlay refuses versions sharing a name before any write",
           clash["error"] is not None and "both carry the name" in clash["error"]
           and clash["writes"] == [])
+    both = run("C V1", v1_active=True)
+    check("CCI overlay refuses before any write while another version is active",
+          both["error"] is not None and "rewrite C_V1 while active" in both["error"]
+          and both["writes"] == [])
 
 
 def test_import_replace_restores_every_version():

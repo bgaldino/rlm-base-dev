@@ -2287,12 +2287,33 @@ def test_null_rank_guard():
           "cause and the remedy",
           "Enter a valid rank" in msg and "Nothing was written" in msg
           and "could not turn it back on" in msg and "cannot be updated/deleted" in msg
-          and "--values Rank=<n>" in msg and "--version X_V1 --deactivate" in msg
-          and "--version X_V1 --activate" in msg
           and "X_V1" in msg, msg)
+    # The printed commands run as printed (placeholders aside).
+    activate = ("python scripts/expression_sets/activate_expression_set.py --target-org "
+                "<alias> --expression-set <name> --version X_V1 {} --confirm")
+    update = ("sf data update record --target-org <alias> --sobject ExpressionSetVersion "
+              "--record-id 9QMv --values \"Rank=<n>\"")
+    check("the Rank remedy prints complete deactivate, update and activate commands",
+          activate.format("--deactivate") in msg and update in msg
+          and activate.format("--activate") in msg, msg)
+    check("with no alternative given, no run-without-activation option is named",
+          "--no-activate" not in msg and "activate_after" not in msg, msg)
+    from scripts.expression_sets._guards import (
+        NO_ACTIVATION_CCI_APPLY, NO_ACTIVATION_CCI_IMPORT, NO_ACTIVATION_CLI,
+        null_rank_delete_refusal)
+    for alternative, option in ((NO_ACTIVATION_CLI, "--no-activate"),
+                                (NO_ACTIVATION_CCI_APPLY, "-o activate_after_apply false"),
+                                (NO_ACTIVATION_CCI_IMPORT, "-o activate_after_import false")):
+        text = null_rank_reactivation_refusal(null_active, True, alternative) or ""
+        check(f"the alternative names the caller's real option ({option})",
+              option in text, text)
+    delete_msg = null_rank_delete_refusal(null_active) or ""
+    check("the delete refusal's alternative is a complete deactivate command",
+          "deactivate it first (" + activate.format("--deactivate") + ")" in delete_msg,
+          delete_msg)
     draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
-    check("a null-Rank draft the run would activate is refused too",
-          "fail to activate it" in draft_msg, draft_msg)
+    check("a null-Rank draft the run would activate is refused too, with the update command",
+          "fail to activate it" in draft_msg and update in draft_msg, draft_msg)
     for label, esv, activate_after in (
             ("a numeric Rank", dict(null_active, Rank=1), True),
             ("a row read without Rank", {k: v for k, v in null_active.items() if k != "Rank"},
@@ -2489,6 +2510,28 @@ def test_overlay_multi_version():
         check("overlay refuses colliding version names before any write",
               rc == 1 and writes == [] and any("both carry the name" in m for m in logs),
               (rc, writes, logs))
+        both_active = [dict(r, IsActive=True) for r in org("C V1", "C V2")]
+        rc, logs = run(both_active, sent("C V1", "C V2"))
+        check("overlay refuses before any write while another version is active",
+              rc == 1 and writes == []
+              and any("rewrite C_V1 while active" in m and "--version C_V1 --deactivate"
+                      in m and "set_step_formula.py" in m for m in logs),
+              (rc, writes, logs))
+
+    from scripts.expression_sets._guards import other_active_versions_refusal
+    two = org("C V1", "C V2")
+    check("other-active guard: an inactive draft beside the target is allowed",
+          other_active_versions_refusal("C", two, two[1]) is None)
+    check("other-active guard: a single active version is allowed",
+          other_active_versions_refusal("C", two[1:], two[1]) is None)
+    three = two + [{"Id": "9QM3", "ApiName": "C_V3", "Name": "C V3", "VersionNumber": 3,
+                    "IsActive": True, "Rank": 3}]
+    msg = other_active_versions_refusal("C", three, three[2]) or ""
+    check("other-active guard: names each other active version with its deactivate "
+          "command, and only those",
+          "rewrite C_V2 while active" in msg and "--expression-set C --version C_V2 "
+          "--deactivate --confirm" in msg and "--version C_V1" not in msg
+          and "Nothing was written" in msg, msg)
 
 
 def test_client_auth_hint():

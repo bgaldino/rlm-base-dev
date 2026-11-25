@@ -79,11 +79,14 @@ from tasks.expression_set_schema import (
 )
 # Stdlib-only pure guards shared with the standalone toolkit (no CumulusCI import).
 from scripts.expression_sets._guards import (
+    NO_ACTIVATION_CCI_APPLY,
+    NO_ACTIVATION_CCI_IMPORT,
     VERSION_FIELDS,
     executing_version,
     import_target_refusal,
     null_rank_delete_refusal,
     null_rank_reactivation_refusal,
+    other_active_versions_refusal,
     version_name_collision_refusal,
     rank_order_warning,
     target_version_warning,
@@ -1591,8 +1594,11 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         self._preflight_validate_definition(simulated, log_summary=False)
 
         # Before any write: a null-Rank active version could not be reactivated,
-        # and a PATCH whose versions' names are not unique is rejected.
-        refusal = (null_rank_reactivation_refusal(esv, activate_after)
+        # the PATCH must not rewrite another active version, and a PATCH whose
+        # versions' names are not unique is rejected.
+        refusal = (null_rank_reactivation_refusal(esv, activate_after,
+                                                  NO_ACTIVATION_CCI_APPLY)
+                   or other_active_versions_refusal(es_api_name, all_versions, esv)
                    or version_name_collision_refusal(es_api_name, all_versions, simulated))
         if refusal:
             raise TaskOptionsError(refusal)
@@ -2114,7 +2120,8 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             # payload's version onto another one, before ANY write (the
             # ResourceInitializationType alignment below is a write too).
             refusal = (import_target_refusal(api_name, versions, esv, payload)
-                       or null_rank_reactivation_refusal(esv, activate_after))
+                       or null_rank_reactivation_refusal(esv, activate_after,
+                                                         NO_ACTIVATION_CCI_IMPORT))
             if refusal:
                 raise TaskOptionsError(refusal)
 

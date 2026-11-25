@@ -73,6 +73,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     list_versions,
 )
 from scripts.expression_sets._guards import (  # noqa: E402
+    NO_ACTIVATION_CLI,
     import_target_refusal,
     null_rank_reactivation_refusal,
 )
@@ -232,7 +233,7 @@ def main(argv=None) -> int:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
                        "restored (run relabel_expression_set.py to fix).")
             # Before any write: a null-Rank active version could not be reactivated.
-            refusal = null_rank_reactivation_refusal(esv, activate_after)
+            refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
             if refusal:
                 eprint(f"\nREFUSED: {refusal}")
                 return 1

@@ -56,7 +56,9 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
 )
 from scripts.expression_sets._guards import (  # noqa: E402
+    NO_ACTIVATION_CLI,
     null_rank_reactivation_refusal,
+    other_active_versions_refusal,
     version_name_collision_refusal,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
@@ -237,8 +239,11 @@ def main(argv=None) -> int:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
                    "will NOT be restored (run relabel_expression_set.py to fix).")
 
-        # Before any write: a null-Rank active version could not be reactivated.
-        refusal = (null_rank_reactivation_refusal(esv, activate_after)
+        # Before any write: a null-Rank active version could not be reactivated, the
+        # PATCH must not rewrite another active version, and the versions it sends
+        # need unique names.
+        refusal = (null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
+                   or other_active_versions_refusal(es_api_name, versions, esv)
                    or version_name_collision_refusal(es_api_name, versions, simulated))
         if refusal:
             raise LifecycleError(refusal)
