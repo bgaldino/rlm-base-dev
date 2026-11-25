@@ -82,10 +82,10 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, Id> collectionPlanIdByInvoice,
         Map<Id, String> disputeReasonByInvoice
     ) {
-        // Each column's query is guarded on its own, so a column whose object the user cannot read
+        // Each column's query is guarded on its own, so a lookup on an object the user cannot read
         // is skipped and the rest still load. The case seen live: a billing user without the
         // collections license reads collection plan items as "not supported", and gets the
-        // delinquent rows without the collection-plan column.
+        // delinquent rows with no collection plan shown on any of them.
         try {
             List<PaymentSchedule> schedules = [
                 SELECT Id, ReferenceEntityId,
@@ -140,7 +140,8 @@ public with sharing class RLM_CollectionsConsoleController {
         }
     }
 
-    // A column the user cannot read is left empty for every row; the reason goes to the debug log.
+    // A skipped lookup adds nothing to its map, so every row shows what it shows when there is no
+    // value (no plan, no promise-to-pay date); the reason goes to the debug log.
     private static void columnSkipped(String column, Exception e) {
         System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController ' + column + ' column skipped: ' + e.getMessage());
     }
