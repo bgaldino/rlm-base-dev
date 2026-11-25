@@ -221,7 +221,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('BSG Info Acct', info.accountName, 'Account name surfaced.');
         Assert.areEqual(ba.Id, info.billingAccountId, 'The billing account linked to the account is returned.');
         Assert.areEqual('BSG Info BA', info.billingAccountName, 'Billing account name surfaced.');
-        Assert.areEqual('Austin', info.billingCity, 'Billing city comes from the billing account\'s account.');
+        Assert.areEqual('Austin', info.billingCity, 'Billing city comes from the requested account.');
     }
 
     @isTest
@@ -237,7 +237,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('BSG No BA Acct', info.accountName, 'Account name is returned without a billing account.');
         Assert.isNull(info.billingAccountId, 'No billing account -> no billing account id.');
         Assert.isNull(info.billingAccountName, 'No billing account -> no billing account name.');
-        Assert.isNull(info.billingCity, 'Billing city is read through the billing account, so it is blank too.');
+        Assert.isNull(info.billingCity, 'No billing account resolved -> no city is returned.');
     }
 
     @isTest
@@ -1282,16 +1282,20 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         CreateArgs viaUnrelated = new CreateArgs(ba.Id);
         viaUnrelated.pageAccountId = unrelated.Id;
-        viaUnrelated.call();
-        Map<String, Object> unrelatedTxn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        AuraHandledException unrelatedRefusal;
+        try {
+            viaUnrelated.call();
+        } catch (AuraHandledException e) {
+            unrelatedRefusal = e;
+        }
         Test.stopTest();
 
         Assert.areEqual(String.valueOf(linked.Id), linkedTxn.get('AccountId__std'), 'The linked page account is sent.');
         Assert.areEqual('Linked City', linkedTxn.get('ShippingCity__std'), 'Its shipping city is read.');
         Assert.areEqual(String.valueOf(own.Id), ownTxn.get('AccountId__std'), 'The billing account\'s own account stays.');
         Assert.areEqual('Own City', ownTxn.get('ShippingCity__std'));
-        Assert.areEqual(String.valueOf(own.Id), unrelatedTxn.get('AccountId__std'),
-            'A page account with no link to the billing account is not sent.');
+        Assert.isNotNull(unrelatedRefusal, 'A readable page account with no link to the billing account is refused.');
+        Assert.isTrue(unrelatedRefusal.getMessage().contains('no longer linked'), unrelatedRefusal.getMessage());
     }
 
     // A billing account owned by another account is reached from the page account through a link: the
@@ -1329,6 +1333,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert own;
         BillingAccount ba = new BillingAccount(Name = 'BSG Missing Page BA', AccountId = own.Id);
         insert ba;
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-NR' };
         CreateArgs args = new CreateArgs(ba.Id);
         args.pageAccountId = fakeId(Account.SObjectType);
 
@@ -1342,6 +1347,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(thrown, 'An unreadable page account is refused.');
+        Assert.areEqual('The account you opened this from was not found or is not visible to you.', thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
@@ -1410,7 +1416,65 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(thrown, 'No own account and no readable links refuses create.');
+        Assert.isTrue(thrown.getMessage().contains('the account links'), 'It is the page-account link read: ' + thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The real query's cap and truncation message, through a small injected cap. Three Advance-only
+    // treatments of one entity, cap 2: asking for Arrears sees two rows, drops the possibly partial last
+    // treatment, finds nothing and says the read was cut off (not "no treatment"); asking for Advance
+    // still finds one of them. Which two are read is the query's order, so the assertions do not depend
+    // on it. The currency filter is exercised by findBillingTreatmentId_findsTheTreatmentOfTheEntityFor
+    // TheTimingAndCurrency, and only when the org has a second active currency.
+    @isTest
+    static void findBillingTreatmentId_atTheCap_saysTheLookupWasCutOff() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        List<BillingTreatment> ts = new List<BillingTreatment>();
+        for (Integer i = 1; i <= 3; i++) {
+            ts.add(new BillingTreatment(Name = 'BSG Cap T' + i, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur));
+        }
+        insert ts;
+        List<BillingTreatmentItem> its = new List<BillingTreatmentItem>();
+        for (BillingTreatment t : ts) {
+            its.add(new BillingTreatmentItem(Name = 'BSG Cap Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
+        }
+        insert its;
+        for (BillingTreatmentItem item : its) {
+            item.Status = 'Active';
+        }
+        update its;
+        for (BillingTreatment t : ts) {
+            t.Status = 'Active';
+        }
+        update ts;
+        Set<Id> treatmentIds = new Map<Id, BillingTreatment>(ts).keySet();
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 2;
+        Test.startTest();
+        AuraHandledException cutOff;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        } catch (AuraHandledException e) {
+            cutOff = e;
+        }
+        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        AuraHandledException none;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        } catch (AuraHandledException e) {
+            none = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(cutOff);
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 2 items'), cutOff.getMessage());
+        Assert.isTrue(treatmentIds.contains(foundAdvance), 'A treatment read before the cap is still found.');
+        Assert.isNotNull(none);
+        Assert.isTrue(none.getMessage().startsWith('No active billing treatment bills in arrears'),
+            'Under the cap the message is the plain one: ' + none.getMessage());
     }
 
     // The item read is capped: at the cap the last treatment read is dropped (it may be cut short, so a
