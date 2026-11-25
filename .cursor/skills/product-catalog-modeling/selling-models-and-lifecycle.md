@@ -57,8 +57,11 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   inactive and active test bundles [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so Help's rule, written for a *new*
   static bundle, looks like guidance [inferred] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
-  were not the ones inserted. A test bundle with mismatched pairs priced, and a `configure` call
-  returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (same section); whether `CERT007`'s matched Term Annual pairs
+  were not the ones inserted. A mismatched pair priced (each child at 0 inside the bundle price;
+  not compared with a matched-model bundle) and a `configure` call returned no message
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be configured at run time
+  [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may skip
+  static bundles [inferred] (same section). [Open: order, billing and renewal of a mismatched pair] Whether `CERT007`'s matched Term Annual pairs
   price, order and renew correctly is **Open — needs live verification**; do not copy the
   pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent

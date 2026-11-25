@@ -68,10 +68,11 @@ drop the `.md` suffix of the snapshot file name.
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] and accepted for static test bundles
   (inactive [Measured: 2026-11-10, 264, existing org]; inactive and active [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so
-  Help's static rule looks like guidance, not a guard [inferred]. A mismatched pair priced (each child at 0 inside the bundle price; not compared with a
-  matched-model bundle; order, billing and renewal not tried), and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
+  Help's static rule looks like guidance, not a guard [inferred]. A mismatched pair priced (each
+  child at 0 inside the bundle price; not compared with a matched-model bundle) and a
+  `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
   configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's
-  selling-model check may skip static bundles [inferred]
+  selling-model check may skip static bundles [inferred] [Open: order, billing and renewal of a mismatched pair]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -352,11 +353,12 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch], which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may skip static bundles [inferred]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
-  were accepted on test bundles (not `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], and a
-  a mismatched pair priced (each child at 0 inside the bundle price; not compared with a matched-model bundle; order, billing and renewal not tried), and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
+  were accepted on test bundles (not `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org].
+  A mismatched pair priced (each child at 0 inside the bundle price; not compared with a
+  matched-model bundle) and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
   a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so
-  the configurator's selling-model check may skip static bundles [inferred]; whether `CERT007`'s matched pairs
-  price, order and renew correctly is still open. See
+  the configurator's selling-model check may skip static bundles [inferred]. [Open: order, billing and renewal of a mismatched pair] Whether
+  `CERT007`'s matched pairs price, order and renew correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
