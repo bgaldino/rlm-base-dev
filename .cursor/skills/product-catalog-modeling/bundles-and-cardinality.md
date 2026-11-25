@@ -17,10 +17,11 @@
 
 Help says `Type` cannot be changed after the product is created, and that you can't change a
 simple product to a bundle product [Help: `ind.product_catalog_create_simple_products.htm`,
-`ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article (`docs/salesforce/264/help/articles/ind.product_catalog_convert_simple_product_to_bundle_product.htm.md`) describes one exception, a one-way conversion
-of a product with no type to Bundle that "can't be undone" and can affect configuration,
-quotes, orders and assets. Plan as if `Type` is fixed; the conflict is **Open, needs live
-verification** (edit a test product's `Type` from blank to `Bundle` in the Product Catalog
+`ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article
+(`ind.product_catalog_convert_simple_product_to_bundle_product.htm`) describes one exception,
+a one-way conversion of a product with no type to Bundle that "can't be undone" and can affect
+configuration, quotes, orders and assets. Plan as if `Type` is fixed; the conflict is
+**Open, needs live verification** (edit a test product's `Type` from blank to `Bundle` in the Product Catalog
 Management app, then try the reverse). A static bundle can become configurable and back.
 Configurable → static needs every attribute defaulted, every child Not Allowed/None,
 every child included by default with quantity locked, and no classification components.

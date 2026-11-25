@@ -11,9 +11,10 @@ Snapshot — re-verify with a `describe` on the target org. Writeable = accepted
 | `Quote` | `Status`, `TotalPriceOverride`, `AdjustmentDistributionLogic` | `CalculationStatus`, `TotalPrice`, `GrandTotal`, `QuoteNumber` |
 | `Product2` | — | `CanRamp` (direct writes refused on one 264 org via REST, Bulk, Apex, CLI; gates the line-ramp path only) |
 
-The graph rejected caller writes to `RampIdentifier` and `SegmentIdentifier` (measured). The 264 schema
-marks both createable/updateable, so the describe flags do not reflect that rejection `[inferred]`.
-`groupRampAction` stamps both; never set them.
+`RampIdentifier` and `SegmentIdentifier` are read-only here because the ramp actions stamp them:
+`EditGroup` stamps `RampIdentifier` (SKILL.md call order, step 2), and every ramped line carries both
+after `groupRampAction` (SKILL.md validation checks). The 264 schema marks both createable/updateable.
+Whether the graph refuses a caller write to them is not measured; never set them `[inferred]`.
 
 `SegmentType` enum: `Yearly`, `Custom`, `FreeTrial`, `Prorated`.
 `QuoteLineGroup.Type` enum: `CPQQuoteGroup`, `RampScheduleGroup`, `AssetSwap`,
