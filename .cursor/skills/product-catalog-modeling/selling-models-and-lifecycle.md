@@ -241,7 +241,13 @@ In this repo:
   point a product at an existing image rather than at a name that does not ship
   (`PROD-455868158` reuses `powerswerve`). [Repo:
   `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
-  `force-app/main/default/staticresources/`]
+  `force-app/main/default/staticresources/`] An org built before that fix keeps
+  `/resource/omniserver`, which does not resolve, on `PROD-455868158` until the qb-pcm plan is
+  reloaded: `cci task run insert_quantumbit_pcm_data --org <cci_alias>`, then
+  `cci flow run refresh_all_decision_tables --org <cci_alias>` and
+  `cci task run rebuild_search_index --org <cci_alias>`, in the order
+  [`catalogs-and-loading.md`](catalogs-and-loading.md) step 6 gives. The reload was checked on a
+  built 264 org and set the new image.
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
   after the product plan blanked the images whenever the product plan was reloaded alone; the
   URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
