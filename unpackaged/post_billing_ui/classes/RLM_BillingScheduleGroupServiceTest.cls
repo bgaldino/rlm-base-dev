@@ -40,6 +40,11 @@
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
+    // The create path validates the charge currency against the org's active CurrencyType, so the tests
+    // that reach it use the org's default currency; OTHER_CUR is any different code (candidates only).
+    private static final String CUR = UserInfo.getDefaultCurrency();
+    private static final String OTHER_CUR = CUR == 'EUR' ? 'GBP' : 'EUR';
+
     private static Id fakeId(Schema.SObjectType t) {
         return (Id) (t.getDescribe().getKeyPrefix() + '000000000000');
     }
@@ -138,7 +143,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.CreateResult r =
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
                 ba.Id, 'Month', 12, 'Advance', 2, fakeId(LegalEntity.SObjectType),
-                fakeId(TaxTreatment.SObjectType), 'USD', 10, 240, 'San Francisco',
+                fakeId(TaxTreatment.SObjectType), CUR, 10, 240, 'San Francisco',
                 fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1),
                 1, 1, 'Termed', Date.newInstance(2026, 12, 31), null
             );
@@ -967,7 +972,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id trId = fakeId(BillingTreatment.SObjectType);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-P' };
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(trId, 'Arrears', 'USD'));
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(trId, 'Arrears', CUR));
         CreateArgs args = new CreateArgs(ba.Id);
         args.legalEntityId = leId;
         args.billingTerm = 7;
@@ -1028,7 +1033,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(thrown, 'A timing with no treatment is refused instead of silently using the org default.');
         Assert.areEqual(
-            'No active billing treatment bills in arrears in USD for the selected legal entity. '
+            'No active billing treatment bills in arrears in ' + CUR + ' for the selected legal entity. '
             + 'Choose another legal entity, timing or currency, or ask your administrator to set one up.',
             thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
@@ -1040,7 +1045,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-T' };
         Id oneTimeTreatment = fakeId(BillingTreatment.SObjectType);
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(oneTimeTreatment, 'Advance', 'USD'));
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(oneTimeTreatment, 'Advance', CUR));
 
         CreateArgs recurringNoTiming = new CreateArgs(baId);
         recurringNoTiming.billingType = null;
@@ -1073,10 +1078,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id baId = insertBillingAccount('BSG Other Currency');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-C' };
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(fakeId(BillingTreatment.SObjectType), 'Arrears', 'EUR'));
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(fakeId(BillingTreatment.SObjectType), 'Arrears', OTHER_CUR));
         CreateArgs args = new CreateArgs(baId);
         args.billingType = 'Arrears';
-        args.currencyIsoCode = 'USD';
+        args.currencyIsoCode = CUR;
 
         AuraHandledException thrown;
         Test.startTest();
@@ -1088,7 +1093,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(thrown, 'A treatment in another currency is refused, not paired with the charge.');
-        Assert.isTrue(thrown.getMessage().contains('arrears in USD'), 'The message names the timing and currency.');
+        Assert.isTrue(thrown.getMessage().contains('arrears in ' + CUR), 'The message names the timing and currency.');
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
@@ -1097,14 +1102,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id baId = insertBillingAccount('BSG One-Time Other Currency');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-OC' };
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(fakeId(BillingTreatment.SObjectType), 'Advance', 'EUR'));
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(fakeId(BillingTreatment.SObjectType), 'Advance', OTHER_CUR));
         CreateArgs args = new CreateArgs(baId);
         args.billingTermUnit = 'OneTime';
         args.billingType = null;
         args.billingTerm = null;
         args.termSetting = 'Evergreen';
         args.endDate = null;
-        args.currencyIsoCode = 'USD';
+        args.currencyIsoCode = CUR;
 
         AuraHandledException thrown;
         Test.startTest();
@@ -1117,29 +1122,41 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Assert.isNotNull(thrown, 'A one-time charge with only another currency treatment is refused.');
         Assert.areEqual(
-            'No active billing treatment bills in USD for the selected legal entity. '
+            'No active billing treatment bills in ' + CUR + ' for the selected legal entity. '
             + 'Choose another legal entity or currency, or ask your administrator to set one up.',
             thrown.getMessage(), 'No timing word for a one-time charge, in either sentence.');
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
     @isTest
-    static void chooseTreatment_oneTime_prefersAdvanceInChargeCurrencyAndIgnoresAmbiguity() {
-        Id arrearsFirst = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
-        Id mixed = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
-        Id eurAdvance = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000003');
-        List<RLM_BillingScheduleGroupService.TreatmentCandidate> rows = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(eurAdvance, 'Advance', 'EUR'),
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(arrearsFirst, 'Arrears', 'USD'),
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(mixed, 'Arrears', 'USD'),
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(mixed, 'Advance', 'USD')
+    static void chooseTreatment_oneTime_prefersAdvanceOnlyThenArrearsOnlyThenMixed() {
+        String prefix = BillingTreatment.SObjectType.getDescribe().getKeyPrefix();
+        Id mixed = Id.valueOf(prefix + '000000000001');
+        Id arrearsOnly = Id.valueOf(prefix + '000000000002');
+        Id advanceOnly = Id.valueOf(prefix + '000000000003');
+        Id otherCurrencyAdvance = Id.valueOf(prefix + '000000000004');
+        RLM_BillingScheduleGroupService.TreatmentCandidate mixedArrears =
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(mixed, 'Arrears', 'USD');
+        RLM_BillingScheduleGroupService.TreatmentCandidate mixedAdvance =
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(mixed, 'Advance', 'USD');
+        RLM_BillingScheduleGroupService.TreatmentCandidate arrearsRow =
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(arrearsOnly, 'Arrears', 'USD');
+        RLM_BillingScheduleGroupService.TreatmentCandidate advanceRow =
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(advanceOnly, 'Advance', 'USD');
+        RLM_BillingScheduleGroupService.TreatmentCandidate otherRow =
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(otherCurrencyAdvance, 'Advance', 'EUR');
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> all = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
+            otherRow, mixedArrears, mixedAdvance, arrearsRow, advanceRow
         };
-        Assert.areEqual(mixed, RLM_BillingScheduleGroupService.chooseTreatment(rows, true, null, 'USD').chosen,
-            'One-time prefers a treatment with an Advance item, even one with both timings, in the charge currency.');
-        Assert.areEqual(arrearsFirst, RLM_BillingScheduleGroupService.chooseTreatment(
-            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{ rows[1] }, true, null, 'USD').chosen,
-            'With no Advance item, the first Arrears treatment is used.');
-        Assert.isNull(RLM_BillingScheduleGroupService.chooseTreatment(rows, true, null, 'GBP').chosen, 'No treatment in the currency.');
+        Assert.areEqual(advanceOnly, RLM_BillingScheduleGroupService.chooseTreatment(all, true, null, 'USD').chosen,
+            'An Advance-only treatment beats an older mixed one and an Arrears-only one.');
+        Assert.areEqual(arrearsOnly, RLM_BillingScheduleGroupService.chooseTreatment(
+            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{ mixedArrears, mixedAdvance, arrearsRow }, true, null, 'USD').chosen,
+            'With no Advance-only treatment, an Arrears-only one beats a mixed one.');
+        Assert.areEqual(mixed, RLM_BillingScheduleGroupService.chooseTreatment(
+            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{ mixedArrears, mixedAdvance }, true, null, 'USD').chosen,
+            'A mixed treatment is the last resort.');
+        Assert.isNull(RLM_BillingScheduleGroupService.chooseTreatment(all, true, null, 'GBP').chosen, 'No treatment in the currency.');
     }
 
     @isTest
@@ -1165,8 +1182,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-AM' };
         Id ambiguous = fakeId(BillingTreatment.SObjectType);
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(ambiguous, 'Arrears', 'USD'),
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(ambiguous, 'Advance', 'USD')
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(ambiguous, 'Arrears', CUR),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(ambiguous, 'Advance', CUR)
         };
         CreateArgs args = new CreateArgs(baId);
         args.billingType = 'Arrears';
@@ -1183,7 +1200,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNotNull(thrown, 'A treatment with both timings is refused for a recurring charge.');
         Assert.areEqual(
             'The billing treatment of the selected legal entity has items in both advance and arrears, so it '
-            + 'cannot be matched to arrears in USD. Split it into one treatment per timing, or choose another '
+            + 'cannot be matched to arrears in ' + CUR + '. Split it into one treatment per timing, or choose another '
             + 'legal entity or currency.',
             thrown.getMessage(), 'The message says why, not that none exists.');
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
@@ -1196,8 +1213,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id arrears = fakeId(BillingTreatment.SObjectType);
         Id advance = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(arrears, 'Arrears', 'USD'),
-            new RLM_BillingScheduleGroupService.TreatmentCandidate(advance, 'Advance', 'USD')
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(arrears, 'Arrears', CUR),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(advance, 'Advance', CUR)
         };
         CreateArgs args = new CreateArgs(baId);
         args.billingTermUnit = 'OneTime';
@@ -1219,6 +1236,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_inactiveOrUnknownCurrency_isRefusedBeforeTheTreatmentLookup() {
         Id baId = insertBillingAccount('BSG Bad Currency');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-BC' };
+        // A lookup that ran first would find nothing and give another message, so the message proves the order.
+        RLM_BillingScheduleGroupService.mockTreatmentCandidates =
+            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>();
         CreateArgs args = new CreateArgs(baId);
         args.currencyIsoCode = 'ZZZ';
 
@@ -1272,6 +1292,34 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('Own City', ownTxn.get('ShippingCity__std'));
         Assert.areEqual(String.valueOf(own.Id), unrelatedTxn.get('AccountId__std'),
             'A page account with no link to the billing account is not sent.');
+    }
+
+    // A billing account owned by another account is reached from the page account through a link: the
+    // billing city the modal shows and submits is the page account's, the account create sends.
+    @isTest
+    static void getAccountBillingInfoThenCreate_linkedPageAccount_usesThePageAccountsCity() {
+        Account owner = new Account(Name = 'BSG Owner', BillingCity = 'Owner City', ShippingCity = 'Owner Ship');
+        Account page = new Account(Name = 'BSG Page', BillingCity = 'Page City', ShippingCity = 'Page Ship');
+        insert new List<Account>{ owner, page };
+        BillingAccount ba = new BillingAccount(Name = 'BSG Owned BA', AccountId = owner.Id);
+        insert ba;
+        insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LC' };
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info = RLM_BillingScheduleGroupService.getAccountBillingInfo(page.Id);
+        CreateArgs args = new CreateArgs(info.billingAccountId);
+        args.billingCity = info.billingCity;
+        args.pageAccountId = page.Id;
+        args.call();
+        Test.stopTest();
+
+        Assert.areEqual(ba.Id, info.billingAccountId, 'The linked billing account is found.');
+        Assert.areEqual('Page City', info.billingCity, 'The page account\'s city, not the owner\'s.');
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Assert.areEqual(String.valueOf(page.Id), txn.get('AccountId__std'));
+        Assert.areEqual('Page City', txn.get('BillingCity__std'));
+        Assert.areEqual('Page Ship', txn.get('ShippingCity__std'));
     }
 
     // With no own account, the page account wins over the oldest link.
@@ -1375,6 +1423,45 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(advance.Id, foundOneTime, 'A one-time charge takes the Advance treatment in the currency.');
     }
 
+    // A treatment with items in both timings that is the only fit: the refusal names it (quoted), and a
+    // one-time charge falls back to it. A fresh legal entity keeps it apart from the other test's records.
+    // The two-item setup (Percentage then Remainder) is the usual valid pattern but unmeasured here.
+    @isTest
+    static void findBillingTreatmentId_onlyAMixedTreatment_isRefusedByNameAndUsedForOneTime() {
+        LegalEntity le = new LegalEntity(Name = 'BSG TQM LE', Status = 'Active');
+        insert le;
+        BillingTreatment mixed = new BillingTreatment(Name = 'BSG TQM Mixed', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = CUR);
+        insert mixed;
+        insert new List<BillingTreatmentItem>{
+            new BillingTreatmentItem(Name = 'BSG TQM Advance Item', BillingTreatmentId = mixed.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Percentage', Percentage = 50, ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(Name = 'BSG TQM Arrears Item', BillingTreatmentId = mixed.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 2, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
+        };
+        List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE Name LIKE 'BSG TQM%'];
+        for (BillingTreatmentItem item : items) {
+            item.Status = 'Active';
+        }
+        update items;
+        mixed.Status = 'Active';
+        update mixed;
+
+        AuraHandledException thrown;
+        Test.startTest();
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', CUR);
+        } catch (AuraHandledException e) {
+            thrown = e;
+        }
+        Id oneTime = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, CUR);
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'A treatment with both timings is refused for a recurring charge.');
+        Assert.areEqual(
+            'The billing treatment \'BSG TQM Mixed\' has items in both advance and arrears, so it cannot be matched to arrears in '
+            + CUR + '. Split it into one treatment per timing, or choose another legal entity or currency.',
+            thrown.getMessage(), 'The readable name is quoted.');
+        Assert.areEqual(mixed.Id, oneTime, 'A one-time charge falls back to a mixed treatment when it is the only fit.');
+    }
+
     // ---- result parser ----
 
     @isTest
@@ -1423,7 +1510,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         public Decimal quantity = 2;
         public Id legalEntityId = fakeId(LegalEntity.SObjectType);
         public Id taxTreatmentId = fakeId(TaxTreatment.SObjectType);
-        public String currencyIsoCode = 'USD';
+        public String currencyIsoCode = UserInfo.getDefaultCurrency();
         public Decimal unitPrice = 10;
         public Decimal totalPrice = 240;
         public String billingCity = 'San Francisco';
@@ -1455,7 +1542,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         if (RLM_BillingScheduleGroupService.mockTreatmentCandidates == null) {
             RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
                 new RLM_BillingScheduleGroupService.TreatmentCandidate(
-                    fakeId(BillingTreatment.SObjectType), 'Advance', 'USD'));
+                    fakeId(BillingTreatment.SObjectType), 'Advance', CUR));
         }
     }
 
@@ -1530,7 +1617,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         try {
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
                 billingAccountId, 'Month', 1, 'Advance', 1, fakeId(LegalEntity.SObjectType),
-                fakeId(TaxTreatment.SObjectType), 'USD', 10, 10, 'San Francisco',
+                fakeId(TaxTreatment.SObjectType), CUR, 10, 10, 'San Francisco',
                 fakeId(Product2.SObjectType), 'Widget', Date.today(), 1, 1, 'Evergreen', null, null
             );
             return false;

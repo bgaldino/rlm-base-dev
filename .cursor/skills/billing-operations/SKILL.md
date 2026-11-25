@@ -85,7 +85,10 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   and `BillingTerm__std` are honoured, and a shipping address tag (`ShippingCity__std` alone
   suffices) is required or the action fails with `REQUIRED_FIELD_MISSING: shippingAddress`.
   The Billing UI's Create Billing Schedule Group modal sends these (the timing as the legal
-  entity's Advance or Arrears treatment, the shipping city from the account, else the billing city the caller submitted).
+  entity's Advance or Arrears treatment, the shipping city from the account page it opened on when that
+  account is linked to the billing account (its own or through `AccountBillingAccount`), else from the billing
+  account's own account, else its oldest link; the account's shipping city, else the billing city the caller
+  submitted, which the modal reads from that same account).
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
   is designed for simple calculations and may not suit tax compliance needs; it calculates,
   and might round, at line level [Help: `ind.billing_standard_tax_rate`].

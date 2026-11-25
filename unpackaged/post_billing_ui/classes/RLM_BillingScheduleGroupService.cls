@@ -24,17 +24,22 @@
  * The account: the modal passes the id of the account page it opened on (pageAccountId). When that
  * account is the billing account's own, or is linked to it through AccountBillingAccount, it is the
  * account sent (AccountId__std) and read for the shipping city; otherwise the billing account's own
- * account is used, else its oldest link. No billing treatment read can be hidden by sharing:
+ * account is used, else its oldest link. The page account is only a preference: if the read of the
+ * links is refused, the billing account's own account is kept as before. getAccountBillingInfo returns
+ * the billing city of that same account (the page account's when the billing account is reached
+ * through a link, since create sends that account), so the city the modal submits matches it. No billing treatment read can be hidden by sharing:
  * BillingTreatment's organization-wide default is public (measured on a 264 org; BillingTreatmentItem
  * is controlled by its parent), so "no treatment" means none exists, not that sharing hid one.
  *
  * Treatment selection (one wording; chooseTreatment implements it). Candidates are the oldest-first
  * active, non-milestone, billable treatments of the legal entity, in the charge's currency, counting
  * only their active items typed Advance or Arrears (a None-type item is ignored; several items of the
- * same timing are fine). Recurring charge: the first treatment whose items all bill in the chosen
+ * same timing are fine). At most 1000 items are read, oldest treatment first; candidates beyond that
+ * are not considered. Recurring charge: the first treatment whose items all bill in the chosen
  * timing; a treatment with items in both timings is ambiguous and skipped. One-time charge (the
- * billing term unit is OneTime): timing is moot, so ambiguity does not apply; the first treatment
- * with an Advance item, else the first with an Arrears item (measured: the platform picks a treatment
+ * billing term unit is OneTime): timing is moot, so ambiguity does not apply; the first Advance-only
+ * treatment, else the first Arrears-only one, else (last, because what the platform bills for it on a
+ * one-time charge is unmeasured) the first treatment with both timings (measured: the platform picks a treatment
  * of the legal entity whatever the currency, so one is sent to keep the currency right). A valid
  * Advance or Arrears sent with a one-time charge is ignored (the modal never sends one). When none
  * fits, create refuses with a message before calling the action: it names the timing only for a
@@ -226,6 +231,7 @@ public with sharing class RLM_BillingScheduleGroupService {
         // BillingAccount.IsDefaultBillingProfile in ORDER BY adds no field-level-security dependency:
         // measured on a 264 org, describe reports it not permissionable and a FieldPermissions row for
         // it is refused, so USER_MODE does not check it and no permission set can grant it.
+        Boolean reachedThroughLink = false;
         List<BillingAccount> billingAccounts;
         try {
             billingAccounts = [
@@ -274,6 +280,7 @@ public with sharing class RLM_BillingScheduleGroupService {
                 return billingAccountUnreadable(acc.Name);
             }
             if (!links.isEmpty()) {
+                reachedThroughLink = true;
                 // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
                 try {
                     billingAccounts = [
@@ -303,11 +310,12 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         BillingAccount ba = billingAccounts[0];
         String city;
-        if (ba.Account != null) {
+        if (!reachedThroughLink && ba.Account != null) {
             city = ba.Account.BillingCity;
         } else {
-            // A billing account linked only through AccountBillingAccount has no owning account, so
-            // its city is the requesting account's. The modal sends this city on create and has no
+            // A billing account reached only through AccountBillingAccount (it has no owning account, or
+            // another account owns it) is created for the requesting account when that account is linked
+            // to it, so the city is the requesting account's, not the owner's. The modal sends this city on create and has no
             // city input, so a null here would refuse every create with "Billing City is required.".
             try {
                 city = [SELECT BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].BillingCity;
@@ -471,7 +479,10 @@ public with sharing class RLM_BillingScheduleGroupService {
                     accountId = pageAccountId;
                 }
             } catch (QueryException qe) {
-                throw readRefused('the links between the billing account and its accounts', qe);
+                // The page account is only a preference: a refused read of the links keeps the billing
+                // account's own account (and the oldest-link read below, if it has none, refuses on its own).
+                System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService page account link check refused: '
+                    + qe.getTypeName() + ': ' + qe.getMessage());
             }
         }
 
@@ -719,6 +730,7 @@ public with sharing class RLM_BillingScheduleGroupService {
                     AND BillingTreatment.ExcludeFromBilling = 'No'
                     WITH USER_MODE
                     ORDER BY BillingTreatment.CreatedDate, BillingTreatmentId
+                    LIMIT 1000
                 ]) {
                     candidates.add(new TreatmentCandidate(
                         item.BillingTreatmentId, item.BillingType, item.BillingTreatment.CurrencyIsoCode));
@@ -754,20 +766,37 @@ public with sharing class RLM_BillingScheduleGroupService {
             List<TreatmentCandidate> candidates, Boolean isOneTime, String timing, String currencyIsoCode) {
         TreatmentChoice choice = new TreatmentChoice();
         if (isOneTime) {
-            Id firstArrears = null;
+            // Advance-only first, then Arrears-only, then a treatment with both timings last: what the
+            // platform bills for a mixed treatment on a one-time charge is unmeasured.
+            Set<Id> hasAdvance = new Set<Id>();
+            Set<Id> hasArrears = new Set<Id>();
+            List<Id> order = new List<Id>();
             for (TreatmentCandidate c : candidates) {
                 if (c.currencyIsoCode != currencyIsoCode) {
                     continue;
                 }
-                if (c.billingType == TIMING_ADVANCE) {
-                    choice.chosen = c.treatmentId;
-                    return choice;
+                if (!hasAdvance.contains(c.treatmentId) && !hasArrears.contains(c.treatmentId)) {
+                    order.add(c.treatmentId);
                 }
-                if (firstArrears == null) {
-                    firstArrears = c.treatmentId;
+                if (c.billingType == TIMING_ADVANCE) {
+                    hasAdvance.add(c.treatmentId);
+                } else {
+                    hasArrears.add(c.treatmentId);
                 }
             }
-            choice.chosen = firstArrears;
+            Id firstArrearsOnly = null;
+            for (Id treatmentId : order) {
+                Boolean adv = hasAdvance.contains(treatmentId);
+                Boolean arr = hasArrears.contains(treatmentId);
+                if (adv && !arr) {
+                    choice.chosen = treatmentId;
+                    return choice;
+                }
+                if (arr && !adv && firstArrearsOnly == null) {
+                    firstArrearsOnly = treatmentId;
+                }
+            }
+            choice.chosen = firstArrearsOnly != null ? firstArrearsOnly : (order.isEmpty() ? null : order[0]);
             return choice;
         }
         Map<Id, String> firstType = new Map<Id, String>();

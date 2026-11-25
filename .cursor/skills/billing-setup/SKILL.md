@@ -216,12 +216,14 @@ oldest first, counting only their active items typed Advance or Arrears (a None-
 ignored; several items of one timing are fine). A recurring charge takes the first treatment whose
 items all bill in the chosen timing; one with items in both timings is ambiguous and skipped (when it is the only match, the refusal says it has
 items in both timings and must be split). A one-time charge offers no timing (one sent is ignored), so
-ambiguity does not apply: it takes the first treatment with
-an Advance item, else the first with an Arrears item [Measured, 264: with no treatment sent the
+ambiguity does not apply: it takes the first Advance-only
+treatment, else the first Arrears-only one, else (last, since what the platform bills for it on a
+one-time charge is unmeasured) the first with both timings [Measured, 264: with no treatment sent the
 platform picked a treatment of the legal entity whatever the currency, a JPY one for a EUR charge,
 so the service sends one]. A legal entity with no such treatment, including one whose treatments are
 all in another currency, is refused before the action with a message naming the currency and
-entity (and the timing, for a recurring charge). Sharing cannot hide a treatment (public
+entity (and the timing, for a recurring charge); a charge currency that is not an active `CurrencyType`
+of the org is refused first, before any treatment lookup. At most 1000 treatment items are read, oldest first. Sharing cannot hide a treatment (public
 organization-wide default on 264), so "none" means none exists.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
