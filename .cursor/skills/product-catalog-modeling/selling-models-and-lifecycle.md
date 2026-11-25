@@ -241,10 +241,13 @@ In this repo:
   point a product at an existing image rather than at a name that does not ship
   (`PROD-455868158` reuses `powerswerve`). [Repo:
   `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
-  `force-app/main/default/staticresources/`] An org built before that fix keeps
-  `/resource/omniserver`, which does not resolve, on `PROD-455868158`. Fix that one record:
+  `force-app/main/default/staticresources/`] An org built with `qb` on before that fix
+  keeps `/resource/omniserver`, which does not resolve, on `PROD-455868158`. Fix that one record:
   `sf data update record --sobject Product2 --where "StockKeepingUnit='PROD-455868158'" --values "DisplayUrl=/resource/powerswerve" --target-org <sf_alias>`
-  [Measured: 2026-11-25, 264, existing org]. Reloading qb-pcm also works, but its Upsert resets
+  [Measured: 2026-11-25, 264, existing org]. No follow-up step is needed: a `DisplayUrl` change
+  made this way, with no search-index rebuild, showed at once on Browse Catalogs cards and in the
+  configurator header (`PROD-455868158` on a qb org; `LLMCERT001` and `CERT007` on a q3 org)
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Reloading qb-pcm also works, but its Upsert resets
   every qb-pcm record to the plan's values, overwriting edits made on the org; after a reload, run
   [`catalogs-and-loading.md`](catalogs-and-loading.md) step 6 (the `refresh_all_decision_tables`
   flow, then `rebuild_search_index`).
@@ -270,7 +273,9 @@ In this repo:
   builds too) keeps the 16 `img-src` trusted sites added for those hosts until they are removed
   in Setup → Trusted URLs; the list is in `datasets/sfdmu/q3/en-US/q3-pcm/README.md`. Remove
   them only after that org's q3 `DisplayUrl` values point at the placeholder: removed first, the
-  q3 images that still use those hosts disappear without an error (the fallback below).
+  q3 images that still use those hosts disappear without an error (the fallback below). An org
+  with no q3 products (every qb build: q3 loads only when `q3` is on and `qb` is off) can delete
+  the 16 sites at once.
 - **An external `https` address loads only from an allowed host.** In Lightning, the page's
   `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
   (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no

@@ -109,7 +109,9 @@ ProductCategoryProduct.csv               # 72 records
   (`sf project deploy start --metadata StaticResource:RLM_product_placeholder --target-org <sf_alias>`;
   not `deploy_full`, which a built org refuses because it redeploys active expression set
   versions). Then either set `Product2.DisplayUrl` to `/resource/RLM_product_placeholder` on the
-  plan's products, identified by the `StockKeepingUnit` values in `Product2.csv`, or reload this
+  plan's products, identified by the `StockKeepingUnit` values in `Product2.csv` (no follow-up
+  step needed: on 2026-11-24 such updates showed at once on Browse Catalogs cards and in the
+  configurator header, with no search-index rebuild), or reload this
   plan (`insert_q3_pcm_data`, then the `refresh_all_decision_tables` flow and the
   `rebuild_search_index` task, as `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md`
   step 6 orders them). A reload resets every q3-pcm record to the plan's values, overwriting
@@ -126,4 +128,6 @@ ProductCategoryProduct.csv               # 72 records
   `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
   `shutterstock`, `unsplash`. Delete them only after the org's q3 `DisplayUrl` values point at the
   placeholder (above): deleting them first makes the q3 images that still use those hosts
-  disappear, with no error (see the product-catalog-modeling skill's product-images notes).
+  disappear, with no error (see the product-catalog-modeling skill's product-images notes). An
+  org with no q3 products (every qb build: q3 loads only when `q3` is on and `qb` is off) can
+  delete the 16 sites at once.
