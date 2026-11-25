@@ -33,7 +33,10 @@ private class RLM_BillingUIAccessTest {
     };
 
     private static final Map<String, List<String>> READS = new Map<String, List<String>>{
-        'Account' => new List<String>{ 'Name', 'BillingCity', 'CurrencyIsoCode' },
+        'Account' => new List<String>{ 'Name', 'BillingCity', 'ShippingCity', 'CurrencyIsoCode' },
+        // The create path picks the treatment for a legal entity and timing (Create Billing Schedule Group).
+        'BillingTreatment' => new List<String>{ 'Status', 'LegalEntityId', 'IsMilestoneBilling', 'ExcludeFromBilling', 'CurrencyIsoCode' },
+        'BillingTreatmentItem' => new List<String>{ 'BillingTreatmentId', 'BillingType', 'Status', 'BillingTreatment.CurrencyIsoCode', 'BillingTreatment.CreatedDate' },
         'Contact' => new List<String>{ 'Name' },
         'Invoice' => new List<String>{
             'Balance', 'BillingAccountId', 'BillToContactId', 'BillingArrangementId',

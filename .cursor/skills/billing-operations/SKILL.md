@@ -78,6 +78,14 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 - **DO NOT** use the Create Standalone Billing Schedules API for a billing schedule group
   linked to an asset; amend, renew and cancel from the order or asset and use the
   order-to-schedule flow or the orders API [Help: `ind.billing_schedules_standalone_api`].
+- **DO NOT** expect `BillingType__std` or `BillingTypePicklistTiming__std` to set Advance or
+  Arrears in a Create Standalone Billing Schedules payload: the action rejects both (`Invalid
+  tag attribute name key`) [Measured 264]. Timing comes only from the billing treatment sent
+  as `BillingTreatmentId__std`, which also sets the group's Billing Type. `LegalEntityId__std`
+  and `BillingTerm__std` are honoured, and a shipping address tag (`ShippingCity__std` alone
+  suffices) is required or the action fails with `REQUIRED_FIELD_MISSING: shippingAddress`.
+  The Billing UI's Create Billing Schedule Group modal sends these (the timing as the legal
+  entity's Advance or Arrears treatment, the shipping city from the account, else its billing city).
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
   is designed for simple calculations and may not suit tax compliance needs; it calculates,
   and might round, at line level [Help: `ind.billing_standard_tax_rate`].

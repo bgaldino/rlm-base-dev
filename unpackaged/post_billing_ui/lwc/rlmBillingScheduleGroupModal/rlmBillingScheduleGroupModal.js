@@ -23,8 +23,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     productOptions = [];
 
     billingTermUnitPicklist; // BillingScheduleGroup.BillingTermUnitPicklist
-    billingTerm; // BillingScheduleGroup.BillingTerm (numeric; required for Month/Year)
-    billingTypePicklistTiming;
+    billingTypePicklistTiming; // Advance or Arrears; the service maps it to the legal entity's billing treatment
     legalEntityId;
 
     quantity = 1; // BillingSchedule.Quantity - defaults to 1
@@ -316,6 +315,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         this.chargeType = event.detail.value;
         if (this.chargeType === 'OneTime') {
             this.billingTermUnitPicklist = 'OneTime';
+            // A one-time charge offers no timing: drop one chosen earlier so it is not sent.
+            this.billingTypePicklistTiming = undefined;
         } else {
             this.billingTermUnitPicklist = undefined;
         }
@@ -539,7 +540,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             const result = await createBillingScheduleGroupAndScheduleViaAPI({
                 billingAccountId: this.billingAccountId,
                 billingTermUnitPicklist: this.billingTermUnitPicklist,
-                billingTerm: this.billingTerm,
+                // The modal has no billing term input; the service accepts one from other callers.
+                billingTerm: null,
                 billingTypePicklistTiming: this.billingTypePicklistTiming,
                 quantity: this.quantity,
                 legalEntityId: this.legalEntityId,

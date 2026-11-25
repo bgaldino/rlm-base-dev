@@ -13,6 +13,13 @@
  * is asynchronous: it returns requestId + statusUrl (AsyncOperationTracker),
  * which are surfaced back to the LWC.
  *
+ * What the payload sends from the modal's choices (measured on a 264 org by calling the action
+ * directly): LegalEntityId__std sets the group's legal entity; BillingTreatmentId__std sets the
+ * group's billing type (Advance or Arrears) through the treatment's item, which is the only way
+ * to carry timing because BillingType__std and BillingTypePicklistTiming__std are rejected
+ * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term is given. A shipping
+ * address tag is required: ShippingCity__std (account shipping city, else the billing city).
+ *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are
  * platform-provided with the Revenue Cloud Billing license — they are not custom
@@ -31,6 +38,29 @@ public with sharing class RLM_BillingScheduleGroupService {
     // without enqueuing a real async billing-schedule job.
     @TestVisible
     private static Map<String, Object> mockActionOutputs = null;
+
+    public static final String TIMING_ADVANCE = 'Advance';
+    public static final String TIMING_ARREARS = 'Arrears';
+
+    // A billing treatment that can carry a timing for a legal entity, as read from its items.
+    public class TreatmentCandidate {
+        public Id treatmentId;
+        public String currencyIsoCode;
+        public Datetime createdDate;
+
+        public TreatmentCandidate(Id treatmentId, String currencyIsoCode, Datetime createdDate) {
+            this.treatmentId = treatmentId;
+            this.currencyIsoCode = currencyIsoCode;
+            this.createdDate = createdDate;
+        }
+    }
+
+    // Test seams: candidates stand in for the treatment query, and the payload handed to the action is
+    // kept so a test can read what the create path really sends.
+    @TestVisible
+    private static List<TreatmentCandidate> mockTreatmentCandidates = null;
+    @TestVisible
+    private static String lastTransactionDetails = null;
 
     public class LegalEntityOption {
         @AuraEnabled public Id id;
@@ -459,11 +489,28 @@ public with sharing class RLM_BillingScheduleGroupService {
         if (termSetting == 'Termed' && billingTermUnitPicklist != 'OneTime' && endDate == null) {
             throw RLM_AuraErrors.handled('End Date is required for a termed charge.');
         }
+        if (billingTerm != null && billingTerm < 1) {
+            throw RLM_AuraErrors.handled('Billing Term must be 1 or greater.');
+        }
+        String timing = String.isBlank(billingTypePicklistTiming) ? null : billingTypePicklistTiming;
+        if (timing != null && timing != TIMING_ADVANCE && timing != TIMING_ARREARS) {
+            throw RLM_AuraErrors.handled('Billing Timing must be Advance or Arrears.');
+        }
+        if (timing == null && billingTermUnitPicklist != 'OneTime') {
+            throw RLM_AuraErrors.handled('Billing Timing is required for a recurring charge.');
+        }
+
+        // Timing travels only through a billing treatment (see the class header), chosen for the
+        // legal entity. A one-time charge offers no timing, so it sends none and the org default
+        // billing treatment applies.
+        Id billingTreatmentId = timing == null ? null : findBillingTreatmentId(legalEntityId, timing, currencyIsoCode);
+        String shippingCity = readShippingCity(accountId, billingCity);
 
         String transactionDetailsJson = buildTransactionDetailsJson(
             accountId, billingAccountId, billingTermUnitPicklist, quantity, legalEntityId,
             taxTreatmentId, currencyIsoCode, unitPrice, totalPrice, billingCity, productId,
-            productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate
+            productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate,
+            billingTerm, billingTreatmentId, shippingCity
         );
 
         Map<String, Object> outputs = invokeStandaloneBillingScheduleCreate(transactionDetailsJson);
@@ -491,7 +538,10 @@ public with sharing class RLM_BillingScheduleGroupService {
         Integer billingDayOfMonth,
         Integer billingStartMonth,
         String termSetting,
-        Date endDate
+        Date endDate,
+        Integer billingTerm,
+        Id billingTreatmentId,
+        String shippingCity
     ) {
         String transactionId = 'txn_' + String.valueOf(System.currentTimeMillis());
 
@@ -525,9 +575,13 @@ public with sharing class RLM_BillingScheduleGroupService {
             'UnitPrice__std' => unitPrice,
             'Quantity__std' => quantity,
             'TaxTreatmentId__std' => taxTreatmentId,
+            'LegalEntityId__std' => legalEntityId,
             'AccountId__std' => accountId,
             'BillingProfileId__std' => billingAccountId,
             'BillingCity__std' => billingCity,
+            // Any one shipping address tag satisfies the action's shipping address requirement
+            // (measured: ShippingCity__std alone clears REQUIRED_FIELD_MISSING for shippingAddress).
+            'ShippingCity__std' => shippingCity,
             'BillingTermUnit__std' => billingTermUnitPicklist,
             'BillingActionType__std' => 'Add',
             'CurrencyIsoCode__std' => currencyIsoCode,
@@ -536,6 +590,14 @@ public with sharing class RLM_BillingScheduleGroupService {
             // so it must be sent for every selling model — not just Termed.
             'TotalPrice__std' => totalPrice
         };
+
+        // Only what the caller chose is sent; an omitted treatment or term leaves the org default.
+        if (billingTreatmentId != null) {
+            transactionData.put('BillingTreatmentId__std', billingTreatmentId);
+        }
+        if (billingTerm != null) {
+            transactionData.put('BillingTerm__std', billingTerm);
+        }
 
         // EndDate applies only to a fixed-term (TermDefined) schedule; OneTime and
         // Evergreen have no end date.
@@ -547,6 +609,92 @@ public with sharing class RLM_BillingScheduleGroupService {
             'Transaction' => new List<Object>{ transactionData }
         };
         return JSON.serialize(transactionWrapper);
+    }
+
+    // The shipping city for the action: the account's, else the billing city already required of
+    // the caller. Throws when neither exists rather than sending a made-up value.
+    @TestVisible
+    private static String readShippingCity(Id accountId, String billingCity) {
+        String city;
+        try {
+            city = [SELECT ShippingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].ShippingCity;
+        } catch (QueryException qe) {
+            throw readRefused('the account', qe);
+        }
+        return resolveShippingCity(city, billingCity);
+    }
+
+    @TestVisible
+    private static String resolveShippingCity(String accountShippingCity, String billingCity) {
+        if (String.isNotBlank(accountShippingCity)) {
+            return accountShippingCity;
+        }
+        if (String.isNotBlank(billingCity)) {
+            return billingCity;
+        }
+        throw RLM_AuraErrors.handled(
+            'The account has no Shipping City or Billing City. Add one to the Account before creating a billing schedule group.');
+    }
+
+    // The active, non-milestone billing treatment of the legal entity whose active item bills in the
+    // chosen timing (a treatment item's BillingType is where Advance or Arrears lives).
+    @TestVisible
+    private static Id findBillingTreatmentId(Id legalEntityId, String timing, String currencyIsoCode) {
+        List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
+        if (Test.isRunningTest() && mockTreatmentCandidates != null) {
+            candidates = mockTreatmentCandidates;
+        } else {
+            try {
+                for (BillingTreatmentItem item : [
+                    SELECT BillingTreatmentId, BillingTreatment.CurrencyIsoCode, BillingTreatment.CreatedDate
+                    FROM BillingTreatmentItem
+                    WHERE BillingType = :timing
+                    AND Status = 'Active'
+                    AND BillingTreatment.Status = 'Active'
+                    AND BillingTreatment.LegalEntityId = :legalEntityId
+                    AND BillingTreatment.IsMilestoneBilling = false
+                    AND BillingTreatment.ExcludeFromBilling = 'No'
+                    WITH USER_MODE
+                ]) {
+                    candidates.add(new TreatmentCandidate(
+                        item.BillingTreatmentId, item.BillingTreatment.CurrencyIsoCode, item.BillingTreatment.CreatedDate));
+                }
+            } catch (QueryException qe) {
+                throw readRefused('the billing treatments', qe);
+            }
+        }
+        Id chosen = chooseTreatment(candidates, currencyIsoCode);
+        if (chosen == null) {
+            throw RLM_AuraErrors.handled(
+                'No active billing treatment bills in ' + timing + ' for the selected legal entity. '
+                + 'Choose another legal entity or timing, or ask your administrator to set one up.');
+        }
+        return chosen;
+    }
+
+    // Among the treatments that fit, one in the charge's currency wins, then the oldest, so the same
+    // inputs always pick the same treatment. Null when there are none.
+    @TestVisible
+    private static Id chooseTreatment(List<TreatmentCandidate> candidates, String currencyIsoCode) {
+        TreatmentCandidate best;
+        for (TreatmentCandidate c : candidates) {
+            if (best == null || isBetter(c, best, currencyIsoCode)) {
+                best = c;
+            }
+        }
+        return best == null ? null : best.treatmentId;
+    }
+
+    private static Boolean isBetter(TreatmentCandidate c, TreatmentCandidate best, String currencyIsoCode) {
+        Boolean cMatches = c.currencyIsoCode == currencyIsoCode;
+        Boolean bestMatches = best.currencyIsoCode == currencyIsoCode;
+        if (cMatches != bestMatches) {
+            return cMatches;
+        }
+        if (c.createdDate != best.createdDate) {
+            return c.createdDate != null && (best.createdDate == null || c.createdDate < best.createdDate);
+        }
+        return String.valueOf(c.treatmentId) < String.valueOf(best.treatmentId);
     }
 
     @TestVisible
@@ -562,6 +710,9 @@ public with sharing class RLM_BillingScheduleGroupService {
      */
     @TestVisible
     private static Map<String, Object> invokeStandaloneBillingScheduleCreate(String transactionDetailsJson) {
+        if (Test.isRunningTest()) {
+            lastTransactionDetails = transactionDetailsJson;
+        }
         if (Test.isRunningTest() && mockActionOutputs != null) {
             return mockActionOutputs;
         }

@@ -44,6 +44,18 @@ that fails the build on any >40 value), so the map and the shipped class now agr
   `RLM_InvoiceBatchRunMonitorController`, `RLM_InvoiceSummaryController`,
   `RLM_OnAccountBillingController`.
 
+## Create Billing Schedule Group modal
+
+`rlmBillingScheduleGroupModal` calls `RLM_BillingScheduleGroupService`, which invokes the
+standard `createBillingSchedulesFromTrxn` action. The payload carries the chosen legal entity
+(`LegalEntityId__std`), the billing treatment of that entity for the chosen Advance or Arrears
+timing (`BillingTreatmentId__std`; the timing tags themselves are rejected by the action), a
+billing term when a caller gives one (`BillingTerm__std`; the modal has no input for it) and a
+shipping city (`ShippingCity__std`: the account's, else its billing city). It reads
+`BillingTreatment`, `BillingTreatmentItem` and `Account.ShippingCity` in USER_MODE, which
+`RLM_BillingUI` grants. The service refuses, with a message, a timing the legal entity has no
+active treatment for and an account with no shipping or billing city.
+
 ## Do not
 
 - Do **not** add `classes/` to `.prettierignore` — it would exempt the 25 hand-authored

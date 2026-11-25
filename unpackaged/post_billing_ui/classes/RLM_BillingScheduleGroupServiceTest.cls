@@ -19,17 +19,16 @@
  * BillingAccount and AccountBillingAccount, and the getAccountBillingInfo test reads Account
  * and BillingAccount (only its setup inserts the junction row).
  *
- * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
- * org, a run of the action with real records and this service's payload returned
- * isSuccess() = false with REQUIRED_FIELD_MISSING for billToContact, then paymentTermID,
- * then shippingAddress, as each earlier one was supplied on the records. The payload sends
- * none of these, so the create path may fail for a typical account. It also never sends
- * ParentTransactionId__std, which the 264 developer guide marks Required for a TermDefined
- * new sale (Optional for evergreen and one-time), or BillingTreatmentId__std (when it is
- * omitted, the guide says the org-default billing treatment is used).
- * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact
- * key set, so it catches a fix only if the fix adds payload keys; prerequisites supplied on
- * records through the context mapping would not show there.
+ * Payload (the create path sends what the modal chose): the legal entity (LegalEntityId__std), the
+ * billing term when one is given (BillingTerm__std), the billing treatment that carries the chosen
+ * Advance or Arrears timing for that legal entity (BillingTreatmentId__std; BillingType__std and
+ * BillingTypePicklistTiming__std are rejected by the action, measured), and a shipping city
+ * (ShippingCity__std: the account's, else the billing city). The treatment query is replaced by
+ * mockTreatmentCandidates in most tests; createViaAPI_treatmentQuery_* reads real records, and
+ * lastTransactionDetails exposes the payload handed to the action. Still not sent: bill-to
+ * contact, payment term (the action reads them from the records through the context mapping, as
+ * measured earlier on a 264 org) and ParentTransactionId__std (Required for TermDefined only).
+ * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact key set.
  *
  * Fixed: a one-time charge from the Create Billing Schedule Group modal (billing term unit
  * 'OneTime', termSetting 'Evergreen' or a leftover 'Termed') is sent as SellingModelType__std
@@ -40,8 +39,7 @@
  * billing account (ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id), and
  * resolves one linked only through AccountBillingAccount; getLegalEntities/getTaxTreatments
  * offer only Active records; the create path rejects a null total price and a Termed
- * recurring create with no end date. ParentTransactionId__std (Required for TermDefined) is
- * still never sent; the key-set test pins its absence.
+ * recurring create with no end date.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -137,6 +135,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             'requestId' => 'REQ-PLACEHOLDER',
             'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/REQ-PLACEHOLDER'
         };
+        seedTreatment();
 
         Test.startTest();
         RLM_BillingScheduleGroupService.CreateResult r =
@@ -815,40 +814,35 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id baId = fakeId(BillingAccount.SObjectType);
         Id ttId = fakeId(TaxTreatment.SObjectType);
         Id prodId = fakeId(Product2.SObjectType);
+        Id leId = fakeId(LegalEntity.SObjectType);
+        Id trId = fakeId(BillingTreatment.SObjectType);
 
         // Quantity, unit price and total are deliberately inconsistent: 3 x 12.5 x 12 months =
         // 450, so 451 cannot be derived. The builder passes each through as given.
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            accId, baId, 'Month', 3, fakeId(LegalEntity.SObjectType), ttId,
+            accId, baId, 'Month', 3, leId, ttId,
             'EUR', 12.5, 451, 'Lisbon', prodId, 'Widget Pro',
-            Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
+            Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6), 7, trId, 'Porto'
         ));
 
-        // Known gap, pinned by the exact key set: legalEntityId is accepted but not sent, the
-        // public create method likewise accepts billingTerm and billingTypePicklistTiming and
-        // drops them, no ParentTransactionId__std is sent (Required for TermDefined only), no
-        // BillingTreatmentId__std is sent (the guide uses the org default when it is omitted),
-        // and no bill-to contact, payment term or shipping address is sent (see the class header).
-        // Any key added to or removed from the payload fails here.
+        // The exact key set is pinned: any key added or removed fails here. ParentTransactionId__std,
+        // bill-to contact and payment term are deliberately absent (see the class header).
         Set<String> expectedKeys = new Set<String>{
             'TransactionId__std', 'SellingModelType__std', 'ProductId__std', 'ProductName__std',
             'StartDate__std', 'EndDate__std', 'PeriodBoundary__std', 'BillingDayOfMonth__std',
             'BillingStartMonth__std', 'UnitPrice__std', 'Quantity__std', 'TotalPrice__std',
-            'TaxTreatmentId__std', 'AccountId__std', 'BillingProfileId__std', 'BillingCity__std',
-            'BillingTermUnit__std', 'BillingActionType__std', 'CurrencyIsoCode__std'
+            'TaxTreatmentId__std', 'LegalEntityId__std', 'AccountId__std', 'BillingProfileId__std',
+            'BillingCity__std', 'ShippingCity__std', 'BillingTermUnit__std', 'BillingActionType__std',
+            'CurrencyIsoCode__std', 'BillingTerm__std', 'BillingTreatmentId__std'
         };
         Set<String> added = new Set<String>(txn.keySet());
         added.removeAll(expectedKeys);
         Set<String> missing = new Set<String>(expectedKeys);
         missing.removeAll(txn.keySet());
-        Assert.isTrue(added.isEmpty(),
-            'Known gap: the payload omits legalEntityId, billingTerm, billing type timing, '
-            + 'ParentTransactionId__std (Required for TermDefined) and BillingTreatmentId__std (org '
-            + 'default used when omitted), and sends no bill-to contact, payment term or shipping '
-            + 'address (see class header). New keys ' + added
-            + ': a fix to the known gap may have landed; update this test and the header.');
-        Assert.isTrue(missing.isEmpty(),
-            'An expected payload key was removed (regression): ' + missing);
+        Assert.isTrue(added.isEmpty(), 'Unexpected payload keys: ' + added);
+        Assert.isTrue(missing.isEmpty(), 'An expected payload key was removed (regression): ' + missing);
+        Assert.isFalse(txn.containsKey('BillingType__std') || txn.containsKey('BillingTypePicklistTiming__std'),
+            'The action rejects the timing tags (Invalid tag attribute name key); timing goes through the treatment.');
 
         Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
@@ -870,6 +864,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('Month', txn.get('BillingTermUnit__std'));
         Assert.areEqual('Add', txn.get('BillingActionType__std'));
         Assert.areEqual('EUR', txn.get('CurrencyIsoCode__std'));
+        Assert.areEqual(String.valueOf(leId), txn.get('LegalEntityId__std'), 'The chosen legal entity is sent.');
+        Assert.areEqual(7, txn.get('BillingTerm__std'), 'The billing term is sent.');
+        Assert.areEqual(String.valueOf(trId), txn.get('BillingTreatmentId__std'), 'The billing treatment is sent.');
+        Assert.areEqual('Porto', txn.get('ShippingCity__std'), 'The shipping city is sent.');
     }
 
     // The modal marks a one-time charge by billing term unit, not termSetting (it sends only
@@ -890,7 +888,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 120,
             'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            'Termed', null
+            'Termed', null, null, null, 'Boston'
         ));
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'));
         Assert.isFalse(txn.containsKey('EndDate__std'),
@@ -906,7 +904,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'OneTime', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
             'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            'Evergreen', null
+            'Evergreen', null, null, null, 'Boston'
         ));
         Assert.areEqual('OneTime', txn.get('BillingTermUnit__std'), 'The one-time unit is sent as given.');
         Assert.areEqual('OneTime', txn.get('SellingModelType__std'),
@@ -923,7 +921,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'OneTime', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
             'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            'Termed', Date.newInstance(2026, 12, 31)
+            'Termed', Date.newInstance(2026, 12, 31), null, null, 'Boston'
         ));
         Assert.areEqual('OneTime', txn.get('BillingTermUnit__std'), 'The one-time unit is sent as given.');
         Assert.areEqual('OneTime', txn.get('SellingModelType__std'),
@@ -943,7 +941,7 @@ private class RLM_BillingScheduleGroupServiceTest {
                 fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
                 fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 75,
                 'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-                termSetting, Date.newInstance(2026, 12, 31)
+                termSetting, Date.newInstance(2026, 12, 31), null, null, 'Boston'
             ));
             Assert.areEqual(Decimal.valueOf('75'), toDecimal(txn.get('TotalPrice__std')),
                 termSetting + ' sends the total price.');
@@ -955,6 +953,184 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void formatIsoDate_keepsTwoDigitMonthAndDay() {
         Assert.areEqual('2026-12-31', RLM_BillingScheduleGroupService.formatIsoDate(Date.newInstance(2026, 12, 31)));
         Assert.areEqual('2027-01-09', RLM_BillingScheduleGroupService.formatIsoDate(Date.newInstance(2027, 1, 9)));
+    }
+
+
+    // ---- what the create path sends from the modal's choices ----
+
+    @isTest
+    static void createViaAPI_sendsEntityTermTreatmentAndShippingCity() {
+        Account a = new Account(Name = 'BSG Payload Acct', ShippingCity = 'Austin', BillingCity = 'Denver');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Payload BA', AccountId = a.Id);
+        insert ba;
+        Id leId = fakeId(LegalEntity.SObjectType);
+        Id trId = fakeId(BillingTreatment.SObjectType);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-P' };
+        RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(trId, 'USD', Datetime.newInstance(2026, 1, 1)));
+        CreateArgs args = new CreateArgs(ba.Id);
+        args.legalEntityId = leId;
+        args.billingTerm = 7;
+        args.billingType = 'Arrears';
+
+        Test.startTest();
+        args.call();
+        Test.stopTest();
+
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Assert.areEqual(String.valueOf(leId), txn.get('LegalEntityId__std'), 'The chosen legal entity reaches the action.');
+        Assert.areEqual(7, txn.get('BillingTerm__std'), 'The chosen billing term reaches the action.');
+        Assert.areEqual(String.valueOf(trId), txn.get('BillingTreatmentId__std'), 'The treatment for the chosen timing reaches the action.');
+        Assert.areEqual('Austin', txn.get('ShippingCity__std'), 'The account shipping city is sent.');
+        Assert.areEqual('San Francisco', txn.get('BillingCity__std'), 'The billing city is still sent.');
+        Assert.isFalse(txn.containsKey('BillingType__std') || txn.containsKey('BillingTypePicklistTiming__std'),
+            'The rejected timing tags are never sent.');
+    }
+
+    @isTest
+    static void createViaAPI_noShippingCity_fallsBackToTheBillingCity() {
+        Id baId = insertBillingAccount('BSG Ship Fallback');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-S' };
+
+        Test.startTest();
+        new CreateArgs(baId).call();
+        Test.stopTest();
+
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Assert.areEqual('San Francisco', txn.get('ShippingCity__std'),
+            'With no account shipping city the billing city is sent as the shipping city.');
+    }
+
+    @isTest
+    static void resolveShippingCity_prefersShippingThenBilling_andRefusesWhenNeitherExists() {
+        Assert.areEqual('Austin', RLM_BillingScheduleGroupService.resolveShippingCity('Austin', 'Denver'));
+        Assert.areEqual('Denver', RLM_BillingScheduleGroupService.resolveShippingCity(null, 'Denver'));
+        Assert.areEqual('Denver', RLM_BillingScheduleGroupService.resolveShippingCity('  ', 'Denver'));
+        for (String blank : new List<String>{ null, '', ' ' }) {
+            AuraHandledException thrown;
+            try {
+                RLM_BillingScheduleGroupService.resolveShippingCity(blank, blank);
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+            Assert.isNotNull(thrown, 'No shipping and no billing city is refused, not sent as a made-up value.');
+            Assert.areEqual(
+                'The account has no Shipping City or Billing City. Add one to the Account before creating a billing schedule group.',
+                thrown.getMessage(), 'The user is told what to fix.');
+        }
+    }
+
+    @isTest
+    static void createViaAPI_noTreatmentForTheEntityAndTiming_isRefusedWithAMessage() {
+        Id baId = insertBillingAccount('BSG No Treatment');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-N' };
+        RLM_BillingScheduleGroupService.mockTreatmentCandidates =
+            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>();
+        CreateArgs args = new CreateArgs(baId);
+        args.billingType = 'Arrears';
+
+        AuraHandledException thrown;
+        Test.startTest();
+        try {
+            args.call();
+        } catch (AuraHandledException e) {
+            thrown = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'A timing with no treatment is refused instead of silently using the org default.');
+        Assert.areEqual(
+            'No active billing treatment bills in Arrears for the selected legal entity. '
+            + 'Choose another legal entity or timing, or ask your administrator to set one up.',
+            thrown.getMessage());
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    @isTest
+    static void createViaAPI_timingRules() {
+        Id baId = insertBillingAccount('BSG Timing');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-T' };
+
+        CreateArgs recurringNoTiming = new CreateArgs(baId);
+        recurringNoTiming.billingType = null;
+        CreateArgs badTiming = new CreateArgs(baId);
+        badTiming.billingType = 'None';
+        CreateArgs badTerm = new CreateArgs(baId);
+        badTerm.billingTerm = 0;
+        CreateArgs oneTime = new CreateArgs(baId);
+        oneTime.billingTermUnit = 'OneTime';
+        oneTime.billingType = null;
+        oneTime.billingTerm = null;
+        oneTime.termSetting = 'Evergreen';
+        oneTime.endDate = null;
+
+        Test.startTest();
+        Assert.isTrue(throwsAura(recurringNoTiming), 'A recurring charge needs a timing.');
+        Assert.isTrue(throwsAura(badTiming), 'Only Advance and Arrears are accepted.');
+        Assert.isTrue(throwsAura(badTerm), 'A billing term below 1 is refused.');
+        Assert.isFalse(throwsAura(oneTime), 'A one-time charge offers no timing and needs none.');
+        Test.stopTest();
+
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Assert.isFalse(txn.containsKey('BillingTreatmentId__std'),
+            'A one-time charge with no timing sends no treatment, so the org default applies.');
+        Assert.isFalse(txn.containsKey('BillingTerm__std'), 'No billing term given, none sent.');
+    }
+
+    @isTest
+    static void chooseTreatment_prefersTheChargeCurrencyThenTheOldest() {
+        Id older = fakeId(BillingTreatment.SObjectType);
+        Id newer = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+        Id eur = Id.valueOf(BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> list1 = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(newer, 'USD', Datetime.newInstance(2026, 3, 1)),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(older, 'USD', Datetime.newInstance(2026, 1, 1)),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(eur, 'EUR', Datetime.newInstance(2025, 1, 1))
+        };
+        Assert.areEqual(older, RLM_BillingScheduleGroupService.chooseTreatment(list1, 'USD'),
+            'Of the treatments in the charge currency the oldest wins.');
+        Assert.areEqual(eur, RLM_BillingScheduleGroupService.chooseTreatment(list1, 'EUR'),
+            'A treatment in the charge currency beats an older one in another.');
+        Assert.areEqual(eur, RLM_BillingScheduleGroupService.chooseTreatment(list1, 'GBP'),
+            'With no currency match the oldest treatment of the entity still wins.');
+        Assert.isNull(RLM_BillingScheduleGroupService.chooseTreatment(
+            new List<RLM_BillingScheduleGroupService.TreatmentCandidate>(), 'USD'), 'No candidates, no treatment.');
+    }
+
+    // Reads real records: the treatment is found through its legal entity and the timing of its
+    // active item. Setup is the least that the platform accepts; if it is refused the failure names
+    // the record, so this is a precondition and not a skip.
+    @isTest
+    static void createViaAPI_treatmentQuery_findsTheTreatmentOfTheEntityForTheTiming() {
+        LegalEntity le = new LegalEntity(Name = 'BSG TQ LE', Status = 'Active');
+        LegalEntity other = new LegalEntity(Name = 'BSG TQ Other LE', Status = 'Active');
+        insert new List<LegalEntity>{ le, other };
+        BillingTreatment advance = new BillingTreatment(Name = 'BSG TQ Advance', LegalEntityId = le.Id, Status = 'Draft', CurrencyIsoCode = 'USD');
+        BillingTreatment arrears = new BillingTreatment(Name = 'BSG TQ Arrears', LegalEntityId = le.Id, Status = 'Draft', CurrencyIsoCode = 'USD');
+        BillingTreatment otherArrears = new BillingTreatment(Name = 'BSG TQ Other Arrears', LegalEntityId = other.Id, Status = 'Draft', CurrencyIsoCode = 'USD');
+        insert new List<BillingTreatment>{ advance, arrears, otherArrears };
+        insert new List<BillingTreatmentItem>{
+            new BillingTreatmentItem(Name = 'BSG TQ Advance Item', BillingTreatmentId = advance.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = 'USD'),
+            new BillingTreatmentItem(Name = 'BSG TQ Arrears Item', BillingTreatmentId = arrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = 'USD'),
+            new BillingTreatmentItem(Name = 'BSG TQ Other Item', BillingTreatmentId = otherArrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = 'USD')
+        };
+        for (BillingTreatmentItem item : [SELECT Id FROM BillingTreatmentItem WHERE Name LIKE 'BSG TQ%']) {
+            item.Status = 'Active';
+            update item;
+        }
+        for (BillingTreatment t : [SELECT Id FROM BillingTreatment WHERE Name LIKE 'BSG TQ%']) {
+            t.Status = 'Active';
+            update t;
+        }
+
+        Test.startTest();
+        Id foundArrears = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, 'Arrears', 'USD');
+        Id foundAdvance = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, 'Advance', 'USD');
+        Test.stopTest();
+
+        Assert.areEqual(arrears.Id, foundArrears, 'The chosen entity\'s Arrears treatment is found, not another entity\'s.');
+        Assert.areEqual(advance.Id, foundAdvance, 'The Advance treatment of the same entity is found for Advance.');
     }
 
     // ---- result parser ----
@@ -1022,12 +1198,27 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
 
         public RLM_BillingScheduleGroupService.CreateResult call() {
+            seedTreatment();
             return RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
                 billingAccountId, billingTermUnit, billingTerm, billingType, quantity, legalEntityId,
                 taxTreatmentId, currencyIsoCode, unitPrice, totalPrice, billingCity, productId,
                 productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate
             );
         }
+    }
+
+    // A treatment the lookup finds, unless a test has set its own candidates.
+    private static void seedTreatment() {
+        if (RLM_BillingScheduleGroupService.mockTreatmentCandidates == null) {
+            RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
+                new RLM_BillingScheduleGroupService.TreatmentCandidate(
+                    fakeId(BillingTreatment.SObjectType), 'USD', Datetime.newInstance(2026, 1, 1)));
+        }
+    }
+
+    private static List<RLM_BillingScheduleGroupService.TreatmentCandidate> candidates(
+            RLM_BillingScheduleGroupService.TreatmentCandidate one) {
+        return new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{ one };
     }
 
     private static Boolean throwsAura(CreateArgs args) {
@@ -1059,7 +1250,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
             'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            termSetting, null
+            termSetting, null, null, null, 'Boston'
         ));
         return (String) txn.get('SellingModelType__std');
     }
@@ -1092,6 +1283,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     private static Boolean throwsViaApi(Id billingAccountId) {
+        seedTreatment();
         try {
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
                 billingAccountId, 'Month', 1, 'Advance', 1, fakeId(LegalEntity.SObjectType),

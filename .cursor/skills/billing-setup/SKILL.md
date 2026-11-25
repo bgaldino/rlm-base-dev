@@ -210,6 +210,11 @@ rewrites `Status` to Draft fails on a rerun once the records are Active (M12). U
 with `skipExistingRecords`, then activate only records not yet Active; `qb-billing` and the
 `activate_billing_records` Apex task show the pattern.
 
+The Billing UI's Create Billing Schedule Group modal picks its treatment from this model: the
+active, non-milestone, billable treatment of the chosen legal entity whose active item has the
+chosen Billing Type (a currency match first, then the oldest). A legal entity with no such
+treatment is refused with a message; a one-time charge sends none and takes the org default.
+
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give
 the item a billable treatment, and reprocess the order when they are ready
