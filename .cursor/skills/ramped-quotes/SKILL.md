@@ -460,7 +460,7 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
   `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
-  No source says whether a failed status clears on its own; the repo pollers don't wait for it.
+  No source says whether a failed status clears on its own; the repo pollers don't wait for it (`E2ECommon.robot`, `_Is Failed Calculation Status`). [Open: leave a failed quote untouched for several minutes and re-read `CalculationStatus`]
   `E2ECommon.robot` `Wait For Quote Calculation` reprices once
   (Place Sales Transaction, `pricingPref` Force) and fails the test if the second wait also fails.
   The large-deal reference, written for `Order.CalculationStatus` (Release 262), likewise allows a

@@ -15,7 +15,7 @@ Snapshot — re-verify with a `describe` on the target org. Writeable = accepted
 `EditGroup` stamps `RampIdentifier` (SKILL.md Quick Rule 1 and build step 2), and every ramped line
 carries both after `groupRampAction` (SKILL.md validation checks). The 264 schema marks both
 createable/updateable on `QuoteLineItem`. Never set them.
-[Open: send a caller value for `RampIdentifier` on a Place and record whether it is refused or overwritten]
+[Open: send caller values for `RampIdentifier` and `SegmentIdentifier` on a Place and record, for each, whether it is refused or overwritten]
 
 `SegmentType` enum: `Yearly`, `Custom`, `FreeTrial`, `Prorated`.
 `QuoteLineGroup.Type` enum: `CPQQuoteGroup`, `RampScheduleGroup`, `AssetSwap`,
