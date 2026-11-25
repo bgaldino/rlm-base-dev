@@ -11,8 +11,10 @@ TaxTreatment and building the InvoiceLineTax graph when required.
 
 The handler owns its own step graph:
 
-    invoice -> [ingest_invoice]
-    post    -> [ingest_invoice, promote_to_posted]
+    invoice_draft   -> [ingest_invoice]
+    invoice_posted  -> [ingest_invoice, promote_to_posted]
+    credit_applied  -> [..., credit_applied]
+    payment_applied -> [..., credit_applied, payment_applied]
 
 ``promote_to_posted`` is a no-op when ``ingest_invoice`` already produced a
 Posted invoice in the same run (the handler's STEP_GRAPH for ``post`` always
@@ -56,6 +58,7 @@ from ..failure import classify_exception
 from ..lifecycle import LifecycleError
 from ..runner import _retry_backoff, current_run_id
 from ..steps import StepContext, execute_step
+from .base import settlement_summary
 
 log = logging.getLogger("txn_data_harness.handlers.invoice_ingestion")
 
@@ -67,6 +70,11 @@ log = logging.getLogger("txn_data_harness.handlers.invoice_ingestion")
 STEP_GRAPH: dict[str, list[str]] = {
     "invoice_draft":  ["ingest_invoice"],
     "invoice_posted": ["ingest_invoice", "promote_to_posted"],
+    # Settlement stages are shared steps (steps.run_credit / run_payment).
+    "credit_applied": ["ingest_invoice", "promote_to_posted", "credit_applied"],
+    "payment_applied": [
+        "ingest_invoice", "promote_to_posted", "credit_applied", "payment_applied",
+    ],
 }
 
 
@@ -77,7 +85,9 @@ STEP_GRAPH: dict[str, list[str]] = {
 _STAGE_INDEX = {
     None: 0,              # nothing checkpointed yet
     "invoice_draft": 1,   # Draft persisted
-    "invoice_posted": 2,  # Posted persisted (terminal)
+    "invoice_posted": 2,  # Posted persisted
+    "credit_applied": 3,  # credit memo applied (or no credit configured)
+    "payment_applied": 4,  # payment applied (terminal)
 }
 
 
@@ -359,7 +369,7 @@ class InvoiceIngestionHandler:
         if reached_idx is None:
             raise ValueError(
                 f"invoice_ingestion: reached_stage '{reached_stage}' is not a "
-                f"valid ingestion stage (valid: invoice, post)"
+                f"valid ingestion stage (valid: {', '.join(k for k in _STAGE_INDEX if k)})"
             )
         target_idx = _STAGE_INDEX[target_stage]
         if reached_idx >= target_idx:
@@ -492,6 +502,11 @@ class InvoiceIngestionHandler:
             kind=self.kind,
             account_id=resolved.account.id,
             account_name=resolved.account.name,
+            settlement=(
+                resolved.spec.settlement.to_dict()
+                if resolved.spec.settlement is not None
+                else None
+            ),
         )
         step_ctx = StepContext(
             client=client,
@@ -506,6 +521,7 @@ class InvoiceIngestionHandler:
             invoice_lines=resolved.invoice_lines,
             invoice_spec=resolved.invoice_overrides,
             taxable_tax_treatment_id=resolved.taxable_tax_treatment_id,
+            settlement=resolved.spec.settlement,
         )
         attempt = 0
         while True:
@@ -530,11 +546,18 @@ class InvoiceIngestionHandler:
                     else f"{type(exc).__name__}: {exc}"
                 )
                 manifest.failure_class = classify_exception(exc)
+                # Before the invoice exists a retry re-submits the same
+                # uniqueIdentifier (idempotent). Once it is Posted, the
+                # settlement steps are retry-safe by design (they read back
+                # what was created/applied). In between -- an invoice id but
+                # no Posted checkpoint -- stop rather than replay the graph.
                 retryable = (
-                    resolved.spec.target_stage in ("invoice_draft", "invoice_posted")
-                    and manifest.failure_class == "transient"
-                    and not manifest.invoice_id
+                    manifest.failure_class == "transient"
                     and attempt <= max_retries
+                    and (
+                        not manifest.invoice_id
+                        or manifest.reached_stage in ("invoice_posted", "credit_applied")
+                    )
                 )
                 if not retryable:
                     break
@@ -580,4 +603,5 @@ class InvoiceIngestionHandler:
             },
             "invoice_number": m.invoice_number,
             "creation_mode": m.creation_mode,
+            "settlement": settlement_summary(m),
         }

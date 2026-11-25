@@ -74,7 +74,15 @@ def test_step_graph_shape() -> None:
     # Posted (the no-op short-circuit lives in run_promote_to_posted).
     assert STEP_GRAPH["invoice_draft"] == ["ingest_invoice"]
     assert STEP_GRAPH["invoice_posted"] == ["ingest_invoice", "promote_to_posted"]
-    assert set(STEP_GRAPH) == {"invoice_draft", "invoice_posted"}
+    assert STEP_GRAPH["credit_applied"] == [
+        "ingest_invoice", "promote_to_posted", "credit_applied",
+    ]
+    assert STEP_GRAPH["payment_applied"] == [
+        "ingest_invoice", "promote_to_posted", "credit_applied", "payment_applied",
+    ]
+    assert set(STEP_GRAPH) == {
+        "invoice_draft", "invoice_posted", "credit_applied", "payment_applied",
+    }
 
 
 # ---------------------------------------------------------------------------

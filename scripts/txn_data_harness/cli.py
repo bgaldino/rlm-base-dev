@@ -31,7 +31,7 @@ from .manifests import (
     write_manifest,
 )
 from .handlers import SCENARIO_HANDLERS
-from .models import STAGES_QUOTE, LineItem
+from .models import STAGES_QUOTE, STAGES_SETTLEMENT, LineItem
 from .report import build_batch_report, render_markdown
 from .runner import draw_lines
 from .steps import StepContext, execute_step
@@ -267,6 +267,7 @@ def _build_step_context(
     ``ingest_invoice`` is already done by the time we hit ``promote_to_posted``
     and the remaining step (post the existing Draft) only needs the invoice id.
     """
+    settlement = _settlement_for_step(args, manifest)
     if handler.kind == "invoice_ingestion":
         return StepContext(
             client=client,
@@ -280,6 +281,7 @@ def _build_step_context(
             target_stage=args.to_stage,
             invoice_lines=[],
             invoice_spec=None,
+            settlement=settlement,
         )
 
     # Persisted selection wins; do not run unrelated default discovery first.
@@ -297,7 +299,7 @@ def _build_step_context(
         if len(currencies) > 1:
             raise ConfigError("Manifest lines must use the same currency")
         account = replace(account, currency_iso_code=lines[0].product.currency_iso_code)
-    if not lines and args.to_stage not in {"invoice_draft", "invoice_posted"}:
+    if not lines and args.to_stage not in {"invoice_draft", "invoice_posted", *STAGES_SETTLEMENT}:
         raise LifecycleError(
             "step", "no manifest lines or config product lines to use"
         )
@@ -310,7 +312,34 @@ def _build_step_context(
         with_opportunity=args.with_opportunity,
         poll_timeout=args.poll_timeout,
         checkpoint=write_manifest,
+        settlement=settlement,
     )
+
+
+def _settlement_for_step(args: argparse.Namespace, manifest):
+    """Settlement options for a ``cli step`` resume.
+
+    The manifest's persisted ``settlement`` wins (the steps read it when the
+    context carries none); otherwise the first scenario of ``--config`` that
+    has a ``settlement:`` block. A settlement target with neither fails here,
+    before any org write.
+    """
+    if getattr(manifest, "settlement", None):
+        return None
+    if getattr(args, "config", None):
+        try:
+            for spec in load_scenarios(args):
+                if getattr(spec, "settlement", None) is not None:
+                    return spec.settlement
+        except ConfigError:
+            pass
+    if getattr(args, "to_stage", None) in STAGES_SETTLEMENT:
+        raise LifecycleError(
+            "step",
+            f"--to-stage {args.to_stage} needs settlement options: the manifest has "
+            "none, so pass --config with a scenario that has a 'settlement:' block",
+        )
+    return None
 
 
 def _cmd_report(args: argparse.Namespace) -> int:

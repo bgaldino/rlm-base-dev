@@ -2,7 +2,7 @@
 
 Both ``sales_txn_quote`` and ``sales_txn_order`` drive the same post-Quote/
 post-Order tail: ``order_activated -> usage_upload -> invoice_draft ->
-invoice_posted``. Only the head differs -- quote-path goes through PST place
+invoice_posted -> credit_applied -> payment_applied``. Only the head differs -- quote-path goes through PST place
 + ``order_from_quote``; order-path goes through PST place-on-Order
 (``order_direct``). The split lives in each subclass's :attr:`STAGES` and
 :attr:`STEP_GRAPH`; the resolve/run/retry/summarize logic is shared here so a
@@ -27,6 +27,7 @@ from ..failure import classify_exception
 from ..lifecycle import LifecycleError
 from ..manifests import write_manifest
 from ..models import IMPLEMENTED_MAX_STAGE, Manifest, ResolvedSpec
+from .base import settlement_summary
 from ..steps import StepContext, execute_step
 
 log = logging.getLogger("txn_data_harness.handlers.sales_transaction_base")
@@ -190,6 +191,11 @@ class SalesTransactionBaseHandler:
             account_name=resolved.account.name,
             start_date=start_date.isoformat() if start_date is not None else None,
             lines=[line.to_manifest_record() for line in lines],
+            settlement=(
+                resolved.spec.settlement.to_dict()
+                if getattr(resolved.spec, "settlement", None) is not None
+                else None
+            ),
         )
 
         step_ctx = StepContext(
@@ -203,6 +209,7 @@ class SalesTransactionBaseHandler:
             start_date=start_date,
             checkpoint=write_manifest,
             target_stage=target_stage,
+            settlement=getattr(resolved.spec, "settlement", None),
         )
 
         effective = self.effective_stage(target_stage, resolved.account)
@@ -287,4 +294,5 @@ class SalesTransactionBaseHandler:
                 "error": m.invoice_order_link_error,
             },
             "invoice_number": m.invoice_number,
+            "settlement": settlement_summary(m),
         }
