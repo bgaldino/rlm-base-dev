@@ -714,10 +714,10 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/business-rules/d
 | `isSet​Source​Type` | Boolean | For internal use only. Indicates whether the `sourceType` is enabled (`true`) or not (`false`). | Optional | 58.0 |
 | `isSetType` | Boolean | For internal use only. Indicates whether the `type` field is enabled (`true`) or not (`false`). | Optional | 58.0 |
 | `isSetUsageType` | Boolean | For internal use only. Indicates whether the `UsageType` field is enabled (`true`) or not (`false`). | Optional | 58.0 |
-| `parameters` | [Decision Table Parameter Input](./connect_requests_decision_table_parameter_input.htm.md)[] | Array of input and output fields for the decision table. | Optional | 58.0 |
+| `parameters` | [Decision Table Parameter Input](./connect-requests-decision-table-parameter-input.md)[] | Array of input and output fields for the decision table. | Optional | 58.0 |
 | `setupName` | String | Name of the decision table. | Required | 58.0 |
 | `source​condition​Logic` | String | Custom logic to filter the decision table rows. | Optional | 58.0 |
-| `sourceCriteria` | [Decision Table Source Criteria Input](./connect_requests_decision_table_source_criteria_input.htm.md)[] | Output array representation of source filters for the decision table rows, such as, `fieldName`, `operators`, `valueType`, and more. | Optional | 58.0 |
+| `sourceCriteria` | [Decision Table Source Criteria Input](./connect-requests-decision-table-source-criteria-input.md)[] | Output array representation of source filters for the decision table rows, such as, `fieldName`, `operators`, `valueType`, and more. | Optional | 58.0 |
 | `sourceObject` | String | Object containing business rules for the decision table to read. | Required | 58.0 |
 | `sourceType` | String | Type of source to obtain decision table data. Valid values are: `CsvUpload` `MultipleSobjects` `SingleSobject` | Required | 58.0 |
 | `status` | String | Status of the decision table. Valid values are: `ActivationInProgress` `ActivationInProgress` `Draft` `Inactive` | Required | 58.0 |
@@ -738,7 +738,7 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/business-rules/d
 **Response body for POST**
 
           
-: [Decision Table Output](./connect_responses_decision_table_output.htm.md)
+: [Decision Table Output](./connect-responses-decision-table-output.md)
 
 ---
 

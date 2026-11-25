@@ -283,14 +283,19 @@ the site over plain HTTP (no browser) through `site_guide.py`:
 | `deliverable` | the guide's path segment | The legacy atlas id; frontmatter and the redirect lookup use it. |
 | `sections`, `output_dir`, `mode`, `concurrency`, `batch_delay_ms`, `max_pages` | as for atlas | `doc_version` is rejected; `follow_links` does not apply. |
 
-The 264 preset `rlm` is a site source: its corpus, `docs/salesforce/264/dev-guide`,
-was switched from atlas in place with `--mode refresh` (its manifest carries
-`legacy_id_map`). The `industries` preset stays atlas, and `industries_site` writes
-to `docs/salesforce/264/dev-guide-industries-site` until that corpus is switched.
-A sample run:
+The 264 presets `rlm` and `industries` are site sources: their corpora
+(`docs/salesforce/264/dev-guide`, `docs/salesforce/264/dev-guide-industries`) were
+switched from atlas in place with `--mode refresh` (each manifest carries `legacy_id_map`;
+the Industries switch was sectioned, so it passed the coverage guard with
+`--accept-uncovered` for the 19 Metadata API, Connect and Tooling pages the site does not
+serve), and in the Industries corpus five pages the site serves only as stubs stayed on their atlas text (the rlm corpus holds two the same way; the shrinkage
+guard refused them; their `legacy_id_map` slugs have no file, so cite the atlas `.htm` id).
+Local links inside the retained atlas articles were rewritten to the site slug files, so
+they stay navigable offline (a switch does not do this itself; sweep for broken relative links after one).
+The 262 `industries` preset and both `contracts` presets stay atlas. A sample run:
 
 ```bash
-python -m scripts.doc_snapshot dev-guide --release 264 --guide industries_site \
+python -m scripts.doc_snapshot dev-guide --release 264 --guide industries \
     --output-dir /tmp/ind-sample --section connect-resources-predictions-v2
 ```
 

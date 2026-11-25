@@ -1,0 +1,111 @@
+---
+page_id: tooling-api-objects-assessmentquestionsetconfig
+title: AssessmentQuestionSetConfig
+source_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/tooling-api-objects-assessmentquestionsetconfig.html
+release: 264
+release_name: Winter '27
+deliverable: industries_reference
+api_version: 68.0
+section: Discovery Framework
+parent_page: discovery-framework-tooling-api-objects
+legacy_page_id: tooling_api_objects_assessmentquestionsetconfig.htm
+fetched_at: 2026-11-25
+---
+
+# AssessmentQuestionSetConfig
+
+Reqpresents the assessment question set record metadata configuration. This object is available in API version 56.0 and later.
+
+## Supported SOAP API Calls
+
+`describeSObjects()`, `query()`, `retrieve()`
+
+## Supported REST API Methods
+
+`GET, HEAD, Query`
+
+## Special Access Rules
+
+To use this tooling API object, you must enable the Discovery Framework feature in your Salesforce org.
+
+## Fields
+
+### DeveloperName
+
+- 
+
+**Type**: string
+
+- 
+
+**Properties**: Filter, Group, Sort
+
+- 
+
+**Description**: The unique name of the object in the API. This name can contain only underscores and alphanumeric characters, and must be unique in your org. It must begin with a letter, not include spaces, not end with an underscore, and not contain two consecutive underscores. In managed packages, this field prevents naming conflicts on package installations. With this field, a developer can change the object’s name in a managed package and the changes are reflected in a subscriber’s organization.
+
+**Note:**
+
+When creating large sets of data, always specify a unique DeveloperName for each record. If no DeveloperName is specified, performance slows down while Salesforce generates one for each record.
+
+### Language
+
+- **Type**: picklist
+
+- **Properties**: Filter, Group, Restricted picklist, Sort
+
+- **Description**: Language of the assessment question set.
+
+### ManageableState
+
+- 
+
+**Type**: picklist
+
+- 
+
+**Properties**: Filter, Group, Nillable, Restricted picklist, Sort
+
+- 
+
+**Description**: Indicates the manageable state of the specified component that is contained in a package.
+
+- 
+
+**Possible values**:
+
+  - `beta`—Managed-Beta
+
+  - `deleted`—Managed-Proposed-Deleted
+
+  - `deprecated`—Managed-Proposed-Deprecated
+
+  - `deprecatedEditable`—SecondGen-Installed-Deprecated
+
+  - `installed`—Managed-Installed
+
+  - `installedEditable`—SecondGen-Installed-Editable
+
+  - `released`—Managed-Released
+
+  - `unmanaged`—Unmanaged
+
+### MasterLabel
+
+- **Type**: string
+
+- **Properties**: Filter, Group, Sort
+
+- **Description**: Label of the assessment question set.
+
+### NamespacePrefix
+
+- **Type**: string
+
+- **Properties**: Filter, Group, Nillable, Sort
+
+- **Description**: Namespace prefix associated with this object. Each Developer Edition org that creates a managed package has a unique namespace prefix.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/tooling-api-objects-assessmentquestionsetconfig.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
