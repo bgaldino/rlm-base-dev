@@ -231,7 +231,7 @@ private class RLM_BillingUIAccessTest {
         Assert.isTrue(coreCpqBySet.get('RLM_BillingUIAssetAttributes') == true,
             'RLM_BillingUIAssetAttributes grants Core CPQ User, which the user-mode asset attribute query needs');
         Assert.isTrue(coreCpqBySet.get('RLM_BillingUI') == false,
-            'RLM_BillingUI carries no license-gated user permission, so any user can be given it');
+            'RLM_BillingUI does not carry Core CPQ User, so a user whose license does not allow it can still be given the set');
     }
 
     // The asset attribute set is assignable with the Billing license alone: a set that carries
