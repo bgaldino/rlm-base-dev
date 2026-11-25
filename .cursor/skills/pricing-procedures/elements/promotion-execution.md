@@ -9,7 +9,7 @@ the applicable promotions for the transaction line items.
 ## When to use it
 
 - Applying GPM promotions during pricing. [Help]
-- Help defers all how-to detail to "Configure Your Pricing Procedure for Promotions in Revenue Cloud" (a separate article, not in this skill's sources). The Help article is a stub: it states the purpose and editions only, no parameters or rules [Help]..
+- Help defers all how-to detail to "Configure Your Pricing Procedure for Promotions in Revenue Cloud" (a separate article, not in this skill's sources). The Help article is a stub: it states the purpose and editions only, no parameters or rules [Help].
 
 ## actionType
 
