@@ -236,6 +236,35 @@ check("version_check warn logs the finding as a warning and continues",
       any(level == "WARNING" and "does not execute" in m for level, m in warning.logs)
       and not any(level == "ERROR" for level, _ in warning.logs), warning.logs)
 
+check("the failure names both remedies (the task and the flow option)",
+      raised is not None and "-o version_check warn" in str(raised)
+      and "activate_and_deploy_expression_sets__version_check warn" in str(raised), raised)
+
+
+class _BrokenSf(_FakeSf):
+    def query_all(self, soql):
+        raise RuntimeError("INVALID_SESSION_ID: session expired")
+
+
+for mode in ("warn", "fail"):
+    broken = make_task(mode, deployed_rows(), package)
+    broken._sf_client = _BrokenSf([], [])
+    try:
+        broken._check_versions()
+        broken_raised = None
+    except mod.CumulusCIFailure as exc:
+        broken_raised = exc
+    if mode == "warn":
+        check("warn mode: a read-back that cannot query warns and does not fail the build",
+              broken_raised is None
+              and any(level == "WARNING" and "could not run" in m for level, m in broken.logs),
+              (broken_raised, broken.logs))
+    else:
+        check("fail mode: a read-back that cannot query fails, naming the cause",
+              broken_raised is not None and "unverified" in str(broken_raised)
+              and any("INVALID_SESSION_ID" in m for _, m in broken.logs),
+              (broken_raised, broken.logs))
+
 empty = make_task("fail", {}, None)
 empty._check_versions()
 check("nothing deployed → nothing to read back, no query",

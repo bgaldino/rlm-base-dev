@@ -6,10 +6,10 @@ with the tracked Draft versions flipped to Active. A successful deploy does not 
 the deployed version is the one pricing runs, for two reasons, both silent:
 
 - **A version chain.** An org can hold several versions of one definition, several of
-  them active. The runtime runs one of them: the 264 object reference says the
-  highest ``Rank`` among enabled versions whose date windows overlap (see
-  ``scripts/expression_sets/_guards.executing_version``; the tie-break is
-  unverified). In an upgraded org (``ramp264``: v1 to v4, three active) the repo's
+  them active. The runtime runs one of them: the highest ``Rank`` among enabled
+  versions whose date windows overlap, and among null Ranks the earliest created
+  (``scripts/expression_sets/_guards.executing_version``, measured on 264). In an
+  upgraded org (``ramp264``: v1 to v4, three active) the repo's
   ``_V1`` deploys and changes no price (todo packs 172, 175).
 - **A no-op deploy.** The Metadata API deploy handler matches payload versions to org
   versions by VersionNumber. A payload version whose DeveloperName exists in the org
@@ -225,13 +225,17 @@ class DeployExpressionSets(Deploy):
             self.logger.info("No expression set versions were deployed; nothing to read back.")
             return
         definitions = sorted({v["definition"] for v in expected})
-        org_versions = self._org_versions(definitions)
         try:
+            org_versions = self._org_versions(definitions)
             findings = version_findings(expected, org_versions)
             notes = {d: rank_order_warning(org_versions.get(d) or []) for d in definitions}
-        except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
-            raise CumulusCIFailure(f"Version read-back could not resolve the executing "
-                                   f"version: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 — a query or an unreadable version date
+            # The read-back could not run: same fail/warn decision as a finding, so
+            # warn mode never fails the build on the check itself.
+            self._conclude([f"Version read-back could not run: {exc}"],
+                           "The version read-back could not run; the deployed change "
+                           "is unverified.")
+            return
         for definition, note in notes.items():
             if note:
                 self.logger.warning(f"{definition}: {note}")
@@ -242,16 +246,22 @@ class DeployExpressionSets(Deploy):
                 "version that executes."
             )
             return
+        self._conclude(findings, (
+            f"{len(findings)} expression set version finding(s) after the deploy; the "
+            "deployed change may not be what pricing runs."
+        ))
+
+    def _conclude(self, findings: List[str], message: str) -> None:
+        """Log ``findings``, then fail (``version_check: fail``) or warn and go on."""
         log = self.logger.error if self.version_check == "fail" else self.logger.warning
         for finding in findings:
             log(finding)
-        message = (
-            f"{len(findings)} expression set version finding(s) after the deploy; the "
-            "deployed change may not be what pricing runs."
-        )
         if self.version_check == "fail":
             raise CumulusCIFailure(
-                message + " Set -o version_check warn to continue anyway."
+                message + " To continue anyway: cci task run "
+                "activate_and_deploy_expression_sets -o version_check warn, or in the "
+                "build, cci flow run prepare_rlm_org -o "
+                "activate_and_deploy_expression_sets__version_check warn."
             )
         self.logger.warning(message + " Continuing (version_check: warn).")
 
