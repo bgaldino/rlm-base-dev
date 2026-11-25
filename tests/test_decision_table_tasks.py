@@ -1666,7 +1666,7 @@ check("verdict: any step runs -> unexpected", _list_verdict(_g, [False, True])[0
 check("verdict: every step off -> expected", _list_verdict(_g, [False, False])[0] == _manage.EXPECTED)
 check("verdict: off plus can't-tell -> unknown", _list_verdict(_g, [False, None])[0] == _manage.UNKNOWN)
 check("SOQL quoting escapes backslash before quote",
-      _manage._soql_quote("O'Brien\\x") == "'O\\'Brien\\\\x'", _manage._soql_quote("O'Brien\\x"))
+      _manage.soql_quote("O'Brien\\x") == "'O\\'Brien\\\\x'", _manage.soql_quote("O'Brien\\x"))
 
 
 def validate_lists_run(org_rows, when_values, strict=True):
