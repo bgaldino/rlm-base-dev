@@ -688,6 +688,21 @@ def main():
         check("a file that cannot be written is reported and its links are not counted",
               ("w.htm.md", "(not writable: OSError)") in un5 and n5 == 0)
         del man2["unmapped_legacy_ids"]["w.htm"]
+        man2["unmapped_legacy_ids"]["r.htm"] = ""
+        (u2 / "articles" / "r.htm.md").write_text("# r\n", encoding="utf-8")
+        _orig_rt = Path.read_text
+        def _noread(self, *a_, **k_):
+            if self.name == "r.htm.md":
+                raise PermissionError("denied")
+            return _orig_rt(self, *a_, **k_)
+        Path.read_text = _noread
+        try:
+            _, un6 = sg.rewrite_retained_links(u2, man2)
+        finally:
+            Path.read_text = _orig_rt
+        check("a permission-denied read is reported, not fatal",
+              ("r.htm.md", "(unreadable: PermissionError)") in un6)
+        del man2["unmapped_legacy_ids"]["r.htm"]
         check("a superseded article and the site slug files are not rewritten",
               (u2 / "articles" / "sup.htm.md").read_text(encoding="utf-8") == "[z](./a.htm.md)\n"
               and (u2 / "articles" / "a.md").read_text(encoding="utf-8") == "[y](./a.htm.md)\n")

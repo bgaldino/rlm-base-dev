@@ -268,7 +268,9 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
     article on disk is rewritten to ``./<slug>.md`` (fragment kept). A link left
     dangling (no site file for the target, or a link form the rewrite does not handle) stays as
     is and is returned so the caller can report it. Returns the number of links rewritten and
-    those unresolved ``(file, target)`` pairs, one per target per file. Idempotent.
+    those unresolved ``(file, target)`` pairs, one per target per file; a file that cannot be read or
+    written is reported as ``(file, "(unreadable: <error>)")`` or ``(file, "(not writable: <error>)")``.
+    Idempotent.
     """
     articles = out / "articles"
     mapping = _legacy_map(manifest)
