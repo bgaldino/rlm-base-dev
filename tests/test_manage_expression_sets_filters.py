@@ -154,6 +154,16 @@ fake, _ = run({"operation": "list", "limit": " 3 "})
 check("padded limit is trimmed", fake.queries[0].endswith("LIMIT 3"), fake.queries[0])
 _, err = run({"operation": "list", "limit": 0})
 check("an int 0 limit is rejected, not dropped", err is not None and "limit must be" in str(err), repr(err))
+fake, err = run({"operation": " list "})
+check("padded operation runs", err is None and len(fake.queries) == 1, repr((err, fake.queries)))
+fake, err = run({"operation": "list", "developer_names": "  "})
+check("whitespace-only developer_names means not set", err is None and "DeveloperName IN" not in fake.queries[0],
+      repr((err, fake.queries)))
+_, err = run({"operation": "list", "sort_by": 0})
+check("an int 0 sort_by is rejected, not defaulted", err is not None and "sort_by must be" in str(err), repr(err))
+for opt in ("status", "process_type", "interface_source_type"):
+    _, err = run({"operation": "list", opt: ["Active"]})
+    check(f"a list {opt} is refused", err is not None and "single value" in str(err), repr(err))
 fake, _ = run({"operation": "list", "sort_by": " developer_name "})
 check("padded sort_by is trimmed", "ORDER BY DeveloperName" in fake.queries[0], fake.queries[0])
 

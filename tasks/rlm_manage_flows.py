@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, soql_quote, split_names
+from tasks.soql_utils import option_text, positive_int, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -160,10 +160,7 @@ class ManageFlows(BaseSalesforceTask):
         return records
 
     def _requested_names(self) -> List[str]:
-        value = self.options.get("developer_names")
-        if value == [] or (isinstance(value, str) and not value.strip()) or value is None:
-            return []
-        return split_names(value, "developer_names", TaskOptionsError)
+        return requested_names(self.options.get("developer_names"), "developer_names", TaskOptionsError)
 
     # -- list / query ---------------------------------------------------
 
@@ -195,7 +192,7 @@ class ManageFlows(BaseSalesforceTask):
 
     def _option_text(self, name: str) -> Optional[str]:
         """The option as stripped text; blank or whitespace means not set."""
-        return option_text(self.options.get(name))
+        return option_text(self.options.get(name), name, TaskOptionsError)
 
     @staticmethod
     def _developer_name(flow: Dict) -> str:

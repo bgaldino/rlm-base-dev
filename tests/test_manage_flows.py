@@ -387,6 +387,12 @@ fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "develope
 check("whitespace-only developer_names means not set", err is None and " Definition.DeveloperName IN" not in fake.queries[0],
       repr((err, fake.queries)))
 
+for opt in ("status", "process_type"):
+    _, err = run([], {"operation": "list", opt: ["Active"]})
+    check(f"a list {opt} is refused", err is not None and "single value" in str(err), repr(err))
+_, err = run([], {"operation": "list", "status": []})
+check("an empty-list status is refused too", err is not None and "single value" in str(err), repr(err))
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")

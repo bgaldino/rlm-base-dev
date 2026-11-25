@@ -10,10 +10,22 @@ def soql_quote(value) -> str:
     return f"'{text}'"
 
 
-def option_text(value) -> Optional[str]:
-    """An option as stripped text; None, blank or whitespace means not set (0 and False are values)."""
+def option_text(value, option: str = "option", exc=ValueError) -> Optional[str]:
+    """An option as stripped text; None, blank or whitespace means not set (0 and False are values).
+
+    A list, tuple, set or dict is refused: stringifying it would build a filter that matches nothing.
+    """
+    if isinstance(value, (list, tuple, set, dict)):
+        raise exc(f"{option} must be a single value, got {value!r}")
     text = "" if value is None else str(value).strip()
     return text or None
+
+
+def requested_names(value, option: str, exc=ValueError) -> List[str]:
+    """`split_names`, except None, blank, whitespace-only or an empty list means no names were asked for."""
+    if value is None or value == [] or value == () or (isinstance(value, str) and not value.strip()):
+        return []
+    return split_names(value, option, exc)
 
 
 def split_names(value, option: str, exc=ValueError) -> List[str]:

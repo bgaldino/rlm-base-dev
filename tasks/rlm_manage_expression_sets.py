@@ -19,7 +19,7 @@ import time
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, soql_quote, split_names
+from tasks.soql_utils import option_text, positive_int, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -98,7 +98,7 @@ class ManageExpressionSets(BaseSalesforceTask):
     
     def _run_task(self):
         """Execute the task based on the operation specified."""
-        operation = self.options.get("operation", "").lower()
+        operation = (self._option_text("operation") or "").lower()
         
         if operation == "list":
             self._list_expression_sets()
@@ -210,7 +210,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         return expression_sets
 
     def _option_text(self, name: str):
-        return option_text(self.options.get(name))
+        return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _tooling_headers(self) -> Dict[str, str]:
         return {
@@ -264,9 +264,8 @@ class ManageExpressionSets(BaseSalesforceTask):
         ]
         where_clauses = []
 
-        developer_names = self.options.get("developer_names")
-        if developer_names not in (None, "", []):
-            names = split_names(developer_names, "developer_names", TaskOptionsError)
+        names = requested_names(self.options.get("developer_names"), "developer_names", TaskOptionsError)
+        if names:
             where_clauses.append("DeveloperName IN (" + ", ".join(soql_quote(n) for n in names) + ")")
 
         status = self._option_text("status")
@@ -280,13 +279,13 @@ class ManageExpressionSets(BaseSalesforceTask):
         if where_clauses:
             soql += " WHERE " + " AND ".join(where_clauses)
 
-        sort_key = (str(self.options.get("sort_by") or "").strip() or "LastModifiedDate").replace("_", "").lower()
+        sort_key = (self._option_text("sort_by") or "LastModifiedDate").replace("_", "").lower()
         if sort_key not in _SORT_FIELDS:
             raise TaskOptionsError(
                 "sort_by must be one of DeveloperName, Label, LastModifiedDate, CreatedDate; "
                 f"got {self.options.get('sort_by')!r}"
             )
-        sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
+        sort_order = (self._option_text("sort_order") or "Desc").capitalize()
         if sort_order not in ("Asc", "Desc"):
             raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
@@ -343,7 +342,7 @@ class ManageExpressionSets(BaseSalesforceTask):
 
     def _activate_version(self):
         """Activate an expression set version."""
-        version_full_name = self.options.get("version_full_name")
+        version_full_name = self._option_text("version_full_name")
         
         if not version_full_name:
             raise TaskOptionsError("version_full_name is required for activate_version operation")
@@ -359,7 +358,7 @@ class ManageExpressionSets(BaseSalesforceTask):
     
     def _deactivate_version(self):
         """Deactivate an expression set version."""
-        version_full_name = self.options.get("version_full_name")
+        version_full_name = self._option_text("version_full_name")
         
         if not version_full_name:
             raise TaskOptionsError("version_full_name is required for deactivate_version operation")
