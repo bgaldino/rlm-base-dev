@@ -1124,14 +1124,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         LegalEntity other = new LegalEntity(Name = 'BSG TQ Other LE', Status = 'Active');
         insert new List<LegalEntity>{ le, other };
         String cur = UserInfo.getDefaultCurrency();
-        BillingTreatment advance = new BillingTreatment(Name = 'BSG TQ Advance', LegalEntityId = le.Id, Status = 'Draft', CurrencyIsoCode = cur);
-        BillingTreatment arrears = new BillingTreatment(Name = 'BSG TQ Arrears', LegalEntityId = le.Id, Status = 'Draft', CurrencyIsoCode = cur);
-        BillingTreatment otherArrears = new BillingTreatment(Name = 'BSG TQ Other Arrears', LegalEntityId = other.Id, Status = 'Draft', CurrencyIsoCode = cur);
+        BillingTreatment advance = new BillingTreatment(Name = 'BSG TQ Advance', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment arrears = new BillingTreatment(Name = 'BSG TQ Arrears', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        BillingTreatment otherArrears = new BillingTreatment(Name = 'BSG TQ Other Arrears', LegalEntityId = other.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
         insert new List<BillingTreatment>{ advance, arrears, otherArrears };
         insert new List<BillingTreatmentItem>{
-            new BillingTreatmentItem(Name = 'BSG TQ Advance Item', BillingTreatmentId = advance.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = cur),
-            new BillingTreatmentItem(Name = 'BSG TQ Arrears Item', BillingTreatmentId = arrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = cur),
-            new BillingTreatmentItem(Name = 'BSG TQ Other Item', BillingTreatmentId = otherArrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice', CurrencyIsoCode = cur)
+            new BillingTreatmentItem(Name = 'BSG TQ Advance Item', BillingTreatmentId = advance.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(Name = 'BSG TQ Arrears Item', BillingTreatmentId = arrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'),
+            new BillingTreatmentItem(Name = 'BSG TQ Other Item', BillingTreatmentId = otherArrears.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice')
         };
         List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE Name LIKE 'BSG TQ%'];
         for (BillingTreatmentItem item : items) {
