@@ -106,11 +106,16 @@ def run(options):
 
 JOINED = "\n".join
 
+
+def first_query(fake):
+    """The first SOQL sent, or "" when none was, so a check records a FAIL instead of crashing."""
+    return fake.queries[0] if fake.queries else ""
+
 print("status filters in SOQL through the versions (it is not a field of the set)")
 fake, err = run({"operation": "list", "status": "Draft"})
 check("semi-join on ExpressionSetDefinitionVersion.Status",
       "Id IN (SELECT ExpressionSetDefinitionId FROM ExpressionSetDefinitionVersion WHERE Status = 'Draft')"
-      in fake.queries[0], fake.queries[0])
+      in first_query(fake), first_query(fake))
 check("no metadata reads when only status is set", not fake.gets, repr(fake.gets))
 
 print("interface_source_type filters on each set's metadata")
@@ -122,7 +127,7 @@ check("only the rating set is listed", "Query returned 1 expression set(s)." in 
 print("process_type and interface_source_type combine, and the limit applies after filtering")
 fake, err = run({"operation": "list", "interface_source_type": "PricingProcedure",
                  "process_type": "DefaultPricing", "limit": "1"})
-check("the SOQL carries no LIMIT (it would cut before the filter)", "LIMIT" not in fake.queries[0], fake.queries[0])
+check("the SOQL carries no LIMIT (it would cut before the filter)", "LIMIT" not in first_query(fake), first_query(fake))
 check("one set returned", "Query returned 1 expression set(s)." in JOINED(LOGS), JOINED(LOGS))
 check("metadata reads stop once the limit is met", len(fake.gets) == 1, repr(fake.gets))
 check("the matched columns are printed", "InterfaceSourceType" in JOINED(LOGS) and "Pricing_One" in JOINED(LOGS),
@@ -130,11 +135,11 @@ check("the matched columns are printed", "InterfaceSourceType" in JOINED(LOGS) a
 
 print("with no metadata filter the limit stays in SOQL")
 fake, _ = run({"operation": "list", "limit": "2"})
-check("LIMIT 2", fake.queries[0].endswith("LIMIT 2"), fake.queries[0])
+check("LIMIT 2", first_query(fake).endswith("LIMIT 2"), first_query(fake))
 
 print("developer_names splits on commas and every value is escaped")
 fake, _ = run({"operation": "list", "developer_names": "A, B'C", "status": "x'y"})
-q = fake.queries[0]
+q = first_query(fake)
 check("names split and escaped", "DeveloperName IN ('A', 'B\\'C')" in q, q)
 check("status escaped", "Status = 'x\\'y'" in q, q)
 
@@ -145,26 +150,26 @@ for opts, needle in (({"sort_by": "Id; x"}, "sort_by must be"),
     _, err = run(dict({"operation": "list"}, **opts))
     check(f"rejects {list(opts)[0]}", err is not None and needle in str(err), repr(err))
 fake, _ = run({"operation": "list", "sort_by": "developer_name", "sort_order": "asc"})
-check("DeveloperName Asc", fake.queries[0].endswith("ORDER BY DeveloperName Asc"), fake.queries[0])
+check("DeveloperName Asc", first_query(fake).endswith("ORDER BY DeveloperName Asc"), first_query(fake))
 fake, _ = run({"operation": "list", "sort_order": " asc "})
-check("sort_order is trimmed", fake.queries[0].endswith("Asc"), fake.queries[0])
+check("sort_order is trimmed", first_query(fake).endswith("Asc"), first_query(fake))
 fake, _ = run({"operation": "list", "sort_by": " "})
-check("blank sort_by orders by LastModifiedDate", "ORDER BY LastModifiedDate" in fake.queries[0], fake.queries[0])
+check("blank sort_by orders by LastModifiedDate", "ORDER BY LastModifiedDate" in first_query(fake), first_query(fake))
 fake, err = run({"operation": "list", "limit": " "})
-check("blank limit means no LIMIT", err is None and "LIMIT" not in fake.queries[0], repr((err, fake.queries)))
+check("blank limit means no LIMIT", err is None and "LIMIT" not in first_query(fake), repr((err, fake.queries)))
 fake, _ = run({"operation": "list", "limit": " 3 "})
-check("padded limit is trimmed", fake.queries[0].endswith("LIMIT 3"), fake.queries[0])
+check("padded limit is trimmed", first_query(fake).endswith("LIMIT 3"), first_query(fake))
 _, err = run({"operation": "list", "limit": 0})
 check("an int 0 limit is rejected, not dropped", err is not None and "limit must be" in str(err), repr(err))
 fake, err = run({"operation": " list "})
 check("padded operation runs", err is None and len(fake.queries) == 1, repr((err, fake.queries)))
 fake, err = run({"operation": "list", "developer_names": "  "})
-check("whitespace-only developer_names means not set", err is None and "DeveloperName IN" not in fake.queries[0],
+check("whitespace-only developer_names means not set", err is None and "DeveloperName IN" not in first_query(fake),
       repr((err, fake.queries)))
 _, err = run({"operation": "list", "sort_by": 0})
 check("an int 0 sort_by is rejected, not defaulted", err is not None and "sort_by must be" in str(err), repr(err))
 fake, _ = run({"operation": "list", "developer_names": ["A", "B"]})
-check("a list developer_names still works", "DeveloperName IN ('A', 'B')" in fake.queries[0], fake.queries[0])
+check("a list developer_names still works", "DeveloperName IN ('A', 'B')" in first_query(fake), first_query(fake))
 
 
 def parsed_versions(options):
@@ -172,7 +177,7 @@ def parsed_versions(options):
     task = ManageExpressionSets.__new__(ManageExpressionSets)
     task.options = options
     LOGS.clear()
-    task.logger = types.SimpleNamespace(info=LOGS.append)
+    task.logger = types.SimpleNamespace(info=LOGS.append, warning=LOGS.append)
     try:
         return task._parse_version_names_option()
     except Exception as exc:
@@ -213,11 +218,12 @@ for opt in ("status", "process_type", "interface_source_type"):
     _, err = run({"operation": "list", opt: ["Active"]})
     check(f"a list {opt} is refused", err is not None and "single value" in str(err), repr(err))
 fake, _ = run({"operation": "list", "sort_by": " developer_name "})
-check("padded sort_by is trimmed", "ORDER BY DeveloperName" in fake.queries[0], fake.queries[0])
+check("padded sort_by is trimmed", "ORDER BY DeveloperName" in first_query(fake), first_query(fake))
 
 print("list_versions selects only fields that exist on the version object")
 fake, err = run({"operation": "list_versions", "developer_names": "Pricing_One"})
-vq = [q for q in fake.queries if "FROM ExpressionSetDefinitionVersion" in q][0]
+vq = next((q for q in fake.queries if "FROM ExpressionSetDefinitionVersion" in q), "")
+check("a version query was sent", bool(vq), repr(fake.queries))
 check("no Rank / StartDate / Label / Description", not any(f in vq for f in ("Rank", "StartDate", ", Label", "Description")), vq)
 check("selects VersionNumber and Status", "VersionNumber" in vq and "Status" in vq, vq)
 check("prints the version row", "Pricing_One_V1" in JOINED(LOGS), JOINED(LOGS))

@@ -79,7 +79,7 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": False
         },
         "metadata_path": {
-            "description": "Path to expression set metadata directory used to auto-discover version full names.",
+            "description": "Path to the expression set metadata directory used to discover version full names when version_full_names is not set. Default: force-app/main/default/expressionSetDefinition",
             "required": False
         },
         "sort_by": {
@@ -395,7 +395,7 @@ class ManageExpressionSets(BaseSalesforceTask):
                     "No version_full_names provided and no versions discovered from metadata_path"
                 )
             # Blank counts as not set, so name the fallback: the operation acts on every discovered version.
-            self.logger.info(f"version_full_names not set: using all {len(discovered_names)} discovered version(s)")
+            self.logger.warning(f"version_full_names not set: using all {len(discovered_names)} discovered version(s)")
             return discovered_names
 
         return version_names

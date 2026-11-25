@@ -93,6 +93,7 @@ Expression set **version** activation and deactivation are performed by this tas
 | `process_type` | list, query, list_versions | For example `DefaultPricing`, `DefaultRating`, `PricingDiscovery`. Same cost note as above. |
 | `version_full_name` | activate_version, deactivate_version | Version FullName, for example `RLM_DefaultPricingProcedure_V1`. |
 | `version_full_names` | activate_versions, deactivate_versions | FullNames, comma-separated or a list; when not set (blank counts as not set), every version under `metadata_path`. |
+| `metadata_path` | activate_versions, deactivate_versions | Where versions are discovered when `version_full_names` is not set. Default: `force-app/main/default/expressionSetDefinition`. |
 | `sort_by` | list, query, list_versions | `DeveloperName`, `Label`, `LastModifiedDate` (default; blank also means the default), `CreatedDate`. |
 | `sort_order` | list, query, list_versions | `Asc` or `Desc` (default; blank also means the default). |
 | `limit` | list, query, list_versions | Positive integer, applied after every filter. |
