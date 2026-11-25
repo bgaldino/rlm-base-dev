@@ -117,8 +117,8 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
-  memos, writing off, or running collections, or applying a payment or credit through the
-  API at Line Level.
+  memos, writing off, or running collections, applying a payment or credit through the
+  API at Line Level, or scripting payment schedules after posting.
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 
@@ -140,7 +140,8 @@ A snapshot; the files are the source [Repo]:
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
-Line Level application and the invoice PDF fetch (*Measured: Line Level application* in
+Line Level application, the automatic payment schedule on posting and the invoice PDF fetch
+(*Measured: Line Level application* and *Billing Settings that change behavior* in
 [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* in
 [invoicing.md](invoicing.md)).
 
