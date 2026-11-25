@@ -243,7 +243,9 @@ SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM Bil
 Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query. Schedules
 created after the run should show `PendingForecast` until a later run whose filters include
 them picks them up [inferred]. The third query lists every schedule in the org, including
-milestone and usage ones that Help excludes from forecasting. To link a schedule to its
+milestone and usage ones that Help excludes from forecasting. The forecast object and field
+names come from the dev-guide object pages cited above; the data-model skill does not cover them yet.
+To link a schedule to its
 run, use `BillingForecast.InvoiceBatchRunId` (see the measured block).
 
 [Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
@@ -269,7 +271,8 @@ run, use `BillingForecast.InvoiceBatchRunId` (see the measured block).
   schedules already `Forecasted` (the first run used recalculate, over `PendingForecast`).
 - A later read-only query of the same org also returned two schedules created after the run
   (BS-000000004 and -005) still `PendingForecast` with null `LastForecastRunTargetDate`, and
-  `ForecastBatchRunId` null even on the three `Forecasted` schedules.
+  `ForecastBatchRunId` null even on the three `Forecasted` schedules, which differs from
+  the dev guide's description of that field as the forecast run reference.
 - Not measured: multi-period or ramped schedules, amended or canceled schedules, run
   duration beyond "under a minute", the UI path, the Console, and a non-admin user.
 
