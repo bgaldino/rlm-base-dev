@@ -62,3 +62,16 @@ def test_failure_without_a_json_error_shows_stderr(monkeypatch):
         auth._run_sf(["org", "display", "--target-org", "x"])
     assert "boom" in str(err.value)
     assert TOKEN not in str(err.value)
+
+
+def test_json_that_is_not_an_object_is_a_clear_error(monkeypatch):
+    monkeypatch.setattr(auth.subprocess, "run", _fake_run(0, json.dumps([TOKEN])))
+    with pytest.raises(SfCliError) as err:
+        auth._run_sf(["org", "display", "--target-org", "x"])
+    assert "not an object" in str(err.value)
+    assert TOKEN not in str(err.value)
+
+
+def test_client_repr_does_not_show_the_token():
+    client = auth.SfRestClient(alias="x", access_token=TOKEN, instance_url="https://example.my.salesforce.com")
+    assert TOKEN not in repr(client)

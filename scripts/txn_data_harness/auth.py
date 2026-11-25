@@ -83,6 +83,8 @@ def _run_sf(args: list[str]) -> dict:
             f"`{' '.join(cmd)}` returned output that is not JSON "
             f"({len(proc.stdout)} characters, not shown)"
         ) from None  # the JSONDecodeError keeps the whole output in .doc
+    if not isinstance(payload, dict):
+        raise SfCliError(f"`{' '.join(cmd)}` returned JSON that is not an object")
     return payload.get("result", {})
 
 
@@ -145,7 +147,7 @@ class SfRestClient:
     """
 
     alias: str
-    access_token: str
+    access_token: str = field(repr=False)  # never in a repr, log or traceback
     instance_url: str
     api_version: str = DEFAULT_API_VERSION
     transport: str = "requests"  # "requests" | "cli"
