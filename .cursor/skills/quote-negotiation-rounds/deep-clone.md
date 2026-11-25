@@ -8,13 +8,13 @@ automation that clones. Parent: [quote-negotiation-rounds](SKILL.md).
 | Route | How | Notes |
 |---|---|---|
 | UI | **Deep Clone** action on the quote or order record page [Help: `ind.qocal_clone_quotes_and_orders`] | Needs **Clone Quotes and Orders** on in Revenue Settings and the action on the page. The setting controls only the UI action [Help: `ind.qocal_clone_quotes_and_orders`]. This repo's base quote page lists `DeepCloneAction` in its highlights-panel actions [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`], and the build sets `enableTransactionCloning` [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`] |
-| Connect API | `POST /services/data/v68.0/connect/rev/sales-transaction/actions/clone` with `recordIds` (exactly one id) and `salesTransactionId` [Dev guide: `connect_resources_clone_sales_transaction`] | Clones a Quote, Order, QuoteLineItem, OrderItem, QuoteLineGroup or OrderItemGroup. Optional `options` (v65+): `recordTypeId` and `lineScope` [Dev guide: `connect_requests_clone_options_input`]. Works with the Revenue Settings toggle off [Help: `ind.qocal_clone_quotes_and_orders`] |
-| Invocable action | `deepCloneSalesTransaction` (`/actions/standard/deepCloneSalesTransaction`), API 67.0+, output `newRecordId` [Dev guide: `actions_obj_deep_clone_sales_transaction`] | On one 264 scratch org with `enableTransactionCloning` on, REST answered `Invalid Action Type: deepCloneSalesTransaction` and `/actions/standard` did not list it [Measured: 2026-11-10, 264]. Use the Connect API until it resolves on your org |
+| Connect API | `POST /services/data/v68.0/connect/rev/sales-transaction/actions/clone` with `recordIds` (exactly one id) and `salesTransactionId` [Dev guide: `connect-resources-clone-sales-transaction`] | Clones a Quote, Order, QuoteLineItem, OrderItem, QuoteLineGroup or OrderItemGroup. Optional `options` (v65+): `recordTypeId` and `lineScope` [Dev guide: `connect-requests-clone-options-input`]. Works with the Revenue Settings toggle off [Help: `ind.qocal_clone_quotes_and_orders`] |
+| Invocable action | `deepCloneSalesTransaction` (`/actions/standard/deepCloneSalesTransaction`), API 67.0+, output `newRecordId` [Dev guide: `actions-obj-deep-clone-sales-transaction`] | On one 264 scratch org with `enableTransactionCloning` on, REST answered `Invalid Action Type: deepCloneSalesTransaction` and `/actions/standard` did not list it [Measured: 2026-11-10, 264]. Use the Connect API until it resolves on your org |
 | Line or group in the editor | Select a line and **Clone**, or a group and **Clone Group** [Help: `ind.qocal_clone_quotes_and_orders`] | Copies inside the same quote; not a new round |
 | Repo Apex | `RLM_CloneSalesTransaction` (invocable Apex behind the MCP `cloneSalesTransaction` tool) [Repo: `unpackaged/post_mcp_custom/`] | Deployed by `deploy_post_mcp_custom`, part of the `prepare_mcp` flow; see `mcp-integration`. In Apex, `ConnectApi.CloneSalesTransactionConnect` is not visible unless `enableCoreCPQ` and `enableTransactionCloning` are on (`mcp-integration`), so the toggle is not UI-only for Apex callers: keep it on |
 
 `/connect/pcm/deep-clone` is a different API: it clones a `Product2` and its related catalog
-records, not a quote [Dev guide: `connect_resources_deep_clone`].
+records, not a quote [Dev guide: `connect-resources-deep-clone`].
 
 To clone a whole quote, pass the quote id as both `recordIds[0]` and `salesTransactionId`.
 That is the form measured below; the dev guide's examples show a line id in `recordIds`.
@@ -23,7 +23,7 @@ That is the form measured below; the dev guide's examples show a line id in `rec
 
 - The dev guide documents `{ requestId, salesTransactionId, success, errors }`, with
   `success` covering only the synchronous part and `requestId` for the async status
-  [Dev guide: `connect_responses_clone_sales_transaction_output`].
+  [Dev guide: `connect-responses-clone-sales-transaction-output`].
 - Measured on two whole-quote clones: the response also carried `trackerId` and
   `trackerUrl` (as the `ramped-quotes` skill also records for group clones); `requestId`, `trackerId` and `trackerUrl` were all null;
   `salesTransactionId` was the **new** quote's id. After the first clone, the new quote read

@@ -223,9 +223,16 @@ releases:
         output_dir: docs/salesforce/264/release-notes
         expect_min_articles: 60
     dev_guide:
+      # The revenue guide moved off atlas to a server-rendered site (pack 437), so
+      # `rlm` is a site source: the 264 corpus was switched from atlas in place and
+      # its manifest carries `legacy_id_map` (old atlas id to slug). `api_version` is
+      # the API the release serves; a capture refuses when the live site shows another.
       rlm:
+        source: site
+        site_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/rlm-get-started.html
+        api_version: "68.0"
+        probe_page: connect-resources-get-catalogs
         deliverable: revenue_lifecycle_management_dev_guide
-        doc_version: "264.0"
       contracts:
         deliverable: clm_developer_guide
         doc_version: "264.0"
@@ -240,16 +247,9 @@ releases:
       # truncated pages). `source: site` reads them over plain HTTP; `api_version`
       # is the API the release serves, and a capture refuses when the live site
       # shows another (the site has no version selector, so after the next GA it
-      # serves that release). They write beside the atlas corpora, which stay the
-      # default until the re-capture switches them. `run --release 264` includes
-      # them; use `--only` to pick presets.
-      rlm_site:
-        source: site
-        site_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/rlm-get-started.html
-        api_version: "68.0"
-        probe_page: connect-resources-get-catalogs
-        deliverable: revenue_lifecycle_management_dev_guide
-        output_dir: docs/salesforce/264/dev-guide-site
+      # serves that release). `industries_site` writes beside the atlas corpus, which
+      # stays the default until its re-capture switches it. `run --release 264`
+      # includes it; use `--only` to pick presets.
       industries_site:
         source: site
         site_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/business-rules-engine.html

@@ -7,7 +7,7 @@
 
 ## Choose the selling model from the pricing basis
 
-Selling models are optional in PCM; a product can have several. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce_api_objects_productsellingmodel.htm`]
+Selling models are optional in PCM; a product can have several. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce-api-objects-productsellingmodel.md`]
 
 | The charge… | `SellingModelType` | `PricingTerm` / `PricingTermUnit` | Lifecycle consequence |
 |---|---|---|---|
@@ -16,7 +16,7 @@ Selling models are optional in PCM; a product can have several. [Help: `ind.prod
 | recurs until cancelled | `Evergreen` | required, e.g. 1 Months | No end date; cancel ends it. [Help: `ind.product_catalog_product_selling_model.htm`] |
 
 `SellingModelType` defaults to `OneTime` and `Status` to `Draft`; a model cannot return to
-Draft once Active or Inactive. [Dev guide: `sforce_api_objects_productsellingmodel.htm`; Repo: `pricing-setup/proration-and-selling-models.md`]
+Draft once Active or Inactive. [Dev guide: `sforce-api-objects-productsellingmodel.md`; Repo: `pricing-setup/proration-and-selling-models.md`]
 
 **Pricing basis.** The Subscription price element multiplies unit price × quantity ×
 pricing term count; the Proration element supplies the count. So a list price is *per
@@ -30,7 +30,7 @@ set. More models, more PBEs, and more rows to keep in step. [Repo: `pricing-setu
 ## Product selling model options
 
 `ProductSellingModelOption` is the junction that says "this product can be sold on this
-model". [Dev guide: `sforce_api_objects_productsellingmodeloption.htm`]
+model". [Dev guide: `sforce-api-objects-productsellingmodeloption.md`]
 
 | Field | Use |
 |---|---|
@@ -38,7 +38,7 @@ model". [Dev guide: `sforce_api_objects_productsellingmodeloption.htm`]
 | `ProrationPolicyId` | Term-defined and evergreen options only; with no policy a partial period is charged in full [Repo: `pricing-setup/proration-and-selling-models.md` → Troubleshooting] |
 | `Minimum`, `Maximum`, `Increment` | Bounds and step for the subscription term, in pricing term units |
 
-[Dev guide: `sforce_api_objects_productsellingmodeloption.htm`; Help: `ind.product_catalog_assign_a_product_selling_model_to_a_product.htm`]
+[Dev guide: `sforce-api-objects-productsellingmodeloption.md`; Help: `ind.product_catalog_assign_a_product_selling_model_to_a_product.htm`]
 
 `ProrationPolicyId` is create-only: an option first inserted without its policy keeps it
 blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a Live Org*]
@@ -181,7 +181,7 @@ products. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`])
 Help: select *Sell only with other products* "if you can only sell this product when it's
 combined with other products". [Help: `ind.product_catalog_create_simple_products.htm`] The
 flag is exposed on product representations returned by the catalog APIs.
-[Dev guide: `apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm`]
+[Dev guide: `apex-class-runtime-industries-cpq-productdetailsrepresentation.md`]
 
 Help does not say what enforces it. Three write paths refuse, each on its own object: (1) assigning a category to a product whose flag is true (insert or update of the product-category link; a link with no category is not refused); (2) setting the flag from false to true on a product that already has a category assignment (a non-specific input error; true to false is never checked); (3) a Product Set with the flag true. [Platform behaviour, traced] No refusal was found when the flagged product is added as a bundle component, or in Place, quote-to-order or activation, where the flag is only read into product details (absence of hits in the modules searched; live check pending) [Platform behaviour, traced in part]. The flag is also returned to catalog API clients, which may filter on it. Treat it as a catalog-hygiene flag, not a reliable sales rule. Measured [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
@@ -210,7 +210,7 @@ QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-
 
 | Field | Decision | Owner skill |
 |---|---|---|
-| `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
+| `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage-management-fields-on-product2.md`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
 | `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | No enforcement found (see note below) | see note below |
 
@@ -228,8 +228,8 @@ Not run live.
 ### Product images
 
 `Product2.DisplayUrl` holds the image shown for a product, and Connect product responses return it
-as `displayUrl`. [Dev guide: `connect_responses_recommended_products_output.htm`,
-`connect_responses_guided_selection_output.htm`, `connect_responses_configurator_product_catalog_output.htm`]
+as `displayUrl`. [Dev guide: `connect-responses-recommended-products-output.md`,
+`connect-responses-guided-selection-output.md`, `connect-responses-configurator-product-catalog-output.md`]
 In this repo:
 
 - **QuantumBit uses static-resource paths.** The qb plan stores `/resource/<name>`,

@@ -1,0 +1,70 @@
+---
+page_id: connect-responses-pricing-recipe-output
+title: Pricing Recipe
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-responses-pricing-recipe-output.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Salesforce Pricing
+parent_page: pricing-api-responses
+legacy_page_id: connect_responses_pricing_recipe_output.htm
+fetched_at: 2026-11-25
+---
+
+# Pricing Recipe
+
+Output representation of the pricing recipe information table.
+
+## JSON Example
+
+```
+  "recipes": [
+    {
+      "active": false,
+      "createdBy": "autoproc@00dxx0000006gmjea2",
+      "createdOn": "2023-07-15T13:12:38.000Z",
+      "decisionTables": [
+        {
+          "id": "0lDxx00000000T3EAI",
+          "isInternal": true,
+          "pricingComponentType": "ListPrice"
+        },
+        {
+          "id": "0lDxx00000000T4EAI",
+          "isInternal": true,
+          "pricingComponentType": "VolumeDiscount"
+        },
+        {
+          "id": "0lDxx00000000HlEAI",
+          "isInternal": false,
+          "pricingComponentType": "CustomDiscount"
+        }
+      ],
+      "developerName": "NGPDefaultRecipe",
+      "id": "12Gxx0000005Ka4EAE",
+      "name": "NGPDefaultRecipe",
+      "procedureCreatedBy": "",
+      "procedureCreatedOn": "2023-09-19T11:39:18.983Z",
+      "procedureId": "",
+      "procedureName": ""
+    }]
+```
+
+| Property Name | Type | Description | Filter Group and Version | Available Version |
+| --- | --- | --- | --- | --- |
+| `active` | Boolean | Indicates whether the recipe is active (`true`) or not (`false`). | Small, 60.0 | 60.0 |
+| `created​By` | String | Details on who created the recipe. | Small, 60.0 | 60.0 |
+| `created​On` | String | Date when the recipe was created. | Small, 60.0 | 60.0 |
+| `decision​Tables` | [Pricing Recipe LookUp Table Response](./connect-responses-pricing-recipe-look-up-table-response.md)[] | Decision tables linked to the recipe. | Small, 60.0 | 60.0 |
+| `developer​Name` | String | API name of the recipe. | Small, 60.0 | 60.0 |
+| `id` | String | ID of the recipe. | Small, 60.0 | 60.0 |
+| `name` | String | Name of the recipe. | Small, 60.0 | 60.0 |
+| `procedure​CreatedBy` | String | Details on who created the procedure. | Small, 60.0 | 60.0 |
+| `procedure​CreatedOn` | String | Date when the procedure was created. | Small, 60.0 | 60.0 |
+| `procedure​Id` | String | ID of the procedure. | Small, 60.0 | 60.0 |
+| `procedure​Name` | String | Name of the procedure. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-responses-pricing-recipe-output.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

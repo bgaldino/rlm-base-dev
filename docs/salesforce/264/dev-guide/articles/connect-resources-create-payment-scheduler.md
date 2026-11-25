@@ -1,0 +1,115 @@
+---
+page_id: connect-resources-create-payment-scheduler
+title: Batch Payment Scheduler (POST)
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-resources-create-payment-scheduler.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Billing
+parent_page: billing-business-apis-resources
+legacy_page_id: connect_resources_create_payment_scheduler.htm
+fetched_at: 2026-11-25
+---
+
+# Batch Payment Scheduler (POST)
+
+Create a payment scheduler to automate and process payment runs on a recurring basis.
+
+## Special Access Rules
+
+You need the Payment Ops permission set to use this API.
+
+## Resource
+
+```
+/commerce/payments/payment-schedulers/
+```
+
+## Resource Example
+
+```
+https://{yourInstance}.salesforce.com/services/data/v68.0/commerce/payments/payment-schedulers/
+```
+
+## Available Version
+
+64.0
+
+## HTTP Methods
+
+POST
+
+## Request Body for POST
+
+**JSON Example**
+
+**JSON Example**
+
+```
+{
+  "schedulerName": "Payment Scheduler",
+  "startDate": "2022-01-01",
+  "endDate": "2022-12-31",
+  "preferredTime": "02:05:00.000",
+  "frequencyCadence": "Monthly",
+  "recursEveryMonthOnDay": "28",
+  "criteriaMatchType": "MatchAny",
+  "status": "Active",
+  "filterCriteria": [
+    {
+      "objectName": "PaymentScheduleItem",
+      "fieldName": "PaymentRunMatchingValue",
+      "operation": "Equals",
+      "value": "1",
+      "criteriaSequence": 1
+    },
+    {
+      "objectName": "PaymentScheduleItem",
+      "fieldName": "PaymentRunMatchingValue",
+      "operation": "Equals",
+      "value": "2",
+      "criteriaSequence": 2
+    },
+    {
+      "objectName": "PaymentScheduleItem",
+      "fieldName": "PaymentRunMatchingValue",
+      "operation": "Equals",
+      "value": "3",
+      "criteriaSequence": 3
+    }
+  ]
+}
+```
+
+**Properties**
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `criteria​MatchType` | String | Match type for the criteria of the payment scheduler. Valid values are `Match Any` or `Match None`. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `endDate` | String | End date of the payment scheduler. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `frequency​Cadence` | String | Frequency cadence of the payment scheduler. | Required | 64.0 |
+| `filter​Criteria` | [Payment Run Batch Filter Criteria Input](./connect-requests-payment-run-batch-filter-criteria-input.md) | List of criteria that are used to filter the payment run details. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `preferredTime` | String | Preferred time for the payment scheduler run. | Required | 64.0 |
+| `recursEvery​MonthOnDay` | String | Date when the payment scheduler recurs. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `scheduler​Name` | String | Name of the payment scheduler. | Required | 64.0 |
+| `startDate` | String | Start date of the payment scheduler. | Required | 64.0 |
+| `status` | String | Status of the payment scheduler. Valid values are `Active`, `Canceled`, `Draft`, or `Inactive`. | Required | 64.0 |
+
+Valid values are:
+
+- `Once`
+
+- `Daily`
+
+- `Weekly`
+
+- `Monthly`
+
+## Response Body for POST
+
+[Batch Payments Scheduler](./connect-responses-payment-scheduler-output.md)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-resources-create-payment-scheduler.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

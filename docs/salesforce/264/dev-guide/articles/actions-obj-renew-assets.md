@@ -1,0 +1,103 @@
+---
+page_id: actions-obj-renew-assets
+title: Initiate Renewal Action
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/actions-obj-renew-assets.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Transaction Management
+parent_page: qoc-invocable-actions-parent
+legacy_page_id: actions_obj_renew_assets.htm
+fetched_at: 2026-11-25
+---
+
+# Initiate Renewal Action
+
+Initiate and execute the renewal of an asset.
+
+Specify the IDs of the assets that you want to add to renew by specifying a start date. You can also specify the type of renewal record that you want to create, such as a quote or an order.
+
+This action is available in API version 60.0 and later.
+
+## Supported REST HTTP Methods
+
+**URI:** `/services/data/v68.0/actions/standard/initiateRenewal`
+
+**Formats:** JSON, XML
+
+**HTTP Methods:** POST
+
+**Authentication:** `Authorization: Bearer TOKEN`
+
+Where TOKEN is a placeholder for your OAuth access token.
+
+## Inputs
+
+| Input | Type | Description |
+| --- | --- | --- |
+| `rampOptionsDetails` | Apex-defined | An Apex RampOptionInputRepresentation record that contains the details of ramp options. The details include the segment type (`segmentType`), duration in months (`durationInMonths`), and segment count (`segmentCount`). Specify this property if you want to include assets in a group ramp with a ramp schedule. If you specify this property, also specify `renewStartDate`. See [RampOptionInputRepresentation](./apex-connectapi-input-ramp-option.md) to refer to the associated properties for ramp options. Available in API version 67.0 and later. |
+| `renewAssetIds` | string | Required. The IDs of the assets that you want to renew. |
+| `renewContractId` | string | ID of the contract record to sync with the renewal quote. |
+| `renewEndDate` | datetime | Effective end date of the renewal. Available in API version 62.0 and later. |
+| `renewOpportunityId` | string | ID of the Opportunity record to sync with the renewal quote. |
+| `renewOutputType` | string | Required. Type of renewal record to create such as a quote or an order. |
+| `renewStartDate` | datetime | Optional. Effective start date of the renewal. Required for early asset renewals and renewing expired assets, by using today’s date or a future date. Also required if you specify `rampOptionsDetails`. Available in API version 62.0 and later. |
+| `skipPricing` | boolean | Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
+
+## Outputs
+
+| Output | Type | Description |
+| --- | --- | --- |
+| `renewRecordId` | string | The ID of the amendment record that’s created. |
+| `requestIdentifier` | string | Request ID that’s used to track the async request. |
+
+## Example
+
+**POST**
+
+This sample request is for the Initiate Renewal action.
+
+```
+{
+  "inputs": [
+    {
+      "rampOptionsDetails": {
+        "segmentType": "Custom",
+        "durationInMonths": 40,
+        "segmentCount": 10
+      },
+      "renewAssetIds": [
+        "02ixx0000004LMwAAM"
+      ],
+      "renewOutputType": "Quote",
+      "renewContractId": "800DU0000000lZlYAI",
+      "renewOpportunityId": "006DU0000025AanYAE",
+      "renewStartDate": "2023-10-21T00:00:00.000Z",
+      "renewEndDate": "2024-10-21T00:00:00.000Z",
+      "skipPricing": false
+    }
+  ]
+}
+```
+
+This sample response is for the Initiate Renewal action.
+
+```
+[
+    {
+        "actionName": "initiateRenewal",
+        "errors": null,
+        "isSuccess": true,
+        "outputValues": {
+            "renewRecordId": "0Q0xx0000004P32CAE",
+            "requestIdentifier": "16Pxx0000004OTY"
+        },
+        "version": 1
+    }
+]
+```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/actions-obj-renew-assets.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

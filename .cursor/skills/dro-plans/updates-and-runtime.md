@@ -249,7 +249,7 @@ these conditions; rerun the amendment and cancel checks there.
     scheduled hours or more ahead; only starts due within minutes were observed.]
   - The org's `ExecuteOn` picklist read `SourceLineStartDate`, `CustomDate` and
     `PreviousStepExecutionDate`. The developer guide lists `PreviousStepsStartDate` and
-    `SourceLineStartDate` [Dev guide: `sforce_api_objects_fulfillmentstepdefinition`]; use the
+    `SourceLineStartDate` [Dev guide: `sforce-api-objects-fulfillmentstepdefinition`]; use the
     target's describe.
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity

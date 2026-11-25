@@ -42,7 +42,7 @@ Settings checklist (copy, mark each on, off or n/a for the target):
   repeated 2026-11-17 on a second org]
 - [ ] Time-awareness, only after the migration it names and for backdated or future-dated changes [Help: ind.dro_time_aware_fulfillment_enable]
 - [ ] Rule library named `DRORuleLibrary` for the default usage type [Help: ind.dro_orchestrate_a_business_process]
-- [ ] Selected sales transaction context and node bindings: Setup > Dynamic Revenue Orchestrator > Context Definition Settings, Setup-only fields with no metadata route [Dev guide: deployment_dynamic_revenue_orchestrator_metadata; Help: ind.dro_associate_custom_context_definition_with_sales_transaction_attribute].
+- [ ] Selected sales transaction context and node bindings: Setup > Dynamic Revenue Orchestrator > Context Definition Settings, Setup-only fields with no metadata route [Dev guide: deployment-dynamic-revenue-orchestrator-metadata; Help: ind.dro_associate_custom_context_definition_with_sales_transaction_attribute].
   A fresh build of this repo leaves the standard `SalesTransactionContext__stdctx` selected
   [Measured: 2026-11-16, 264, scratch, one org]. Switch it only when DRO must read a tag of the
   extended context, such as a Custom Date step; the procedure is in section 3

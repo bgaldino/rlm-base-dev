@@ -26,7 +26,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `taxPref` (String, Optional, **Available Version 65.0**): Valid value `Skip` — skips tax calculation for the request. Tax calculation runs by default if omitted.
   - `groupRampAction` (String, Optional, **Available Version 65.0**): Action to perform on group ramp segments — `AddProducts`, `DeleteProducts`, `EditGroup`, `EditRampSchedule`, `DeleteSegment`, or `ConvertToNonRampedGroup`. Converts a non-ramped group into a ramped group and vice versa.
 
-*Grounded against: `connect_resources_place_sales_transaction.htm.md`, `connect_requests_place_sales_transaction_input.htm.md`*
+*Grounded against: `connect-resources-place-sales-transaction.md`, `connect-requests-place-sales-transaction-input.md`*
 
 ---
 
@@ -45,7 +45,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `shouldReturnMetadataOnly` (Boolean, Optional, **Available Version 68.0**): When `true`, returns only the batch metadata without fetching batch data.
 - **Response (batch fields, Available Version 68.0):** `batches` (the requested batches, each with a `batchIndex` and its `batchRecords`) and `batchMetadata` (`parentContextId`, `totalBatches`, `batchId`), alongside the existing `isSuccess`, `errors` and `response`. `batchMetadata` is returned when you request only the metadata or fetch specific batches. The 264 response examples also show `GrandTotalAmount` and `hasDeletedLines` among a Quote's returned `data` values; the guide lists them in examples only, not as documented properties.
 
-*Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`, `connect_requests_sales_transaction_filter_condition_input.htm.md`, `connect_responses_read_sales_transaction_output.htm.md`, `connect_responses_batch_metadata_output.htm.md`*
+*Grounded against: `connect-resources-read-sales-transaction.md`, `connect-requests-read-sales-transaction-input.md`, `connect-requests-sales-transaction-filter-condition-input.md`, `connect-responses-read-sales-transaction-output.md`, `connect-responses-batch-metadata-output.md`*
 
 ---
 
@@ -62,7 +62,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
     - `recordTypeId` (String, Optional): Record type ID for the cloned record.
     - `lineScope` (String, Optional): `AllLines` — clone all line items in a ramped group; `RampedLinesOnly` — clone only ramped line items, generating a new segment identifier with date continuity. Only the last ramp segment can be cloned.
 
-*Grounded against: `connect_resources_clone_sales_transaction.htm.md`, `connect_requests_clone_sales_transaction_input.htm.md`, `connect_requests_clone_options_input.htm.md`*
+*Grounded against: `connect-resources-clone-sales-transaction.md`, `connect-requests-clone-sales-transaction-input.md`, `connect-requests-clone-options-input.md`*
 
 ---
 
@@ -77,7 +77,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `correlationId` (String, Optional): Client-generated ID for tracking multiple related API requests.
   - `records` (Object with Reference Input[], Required): List of quote/order/line-item pricing data to fetch, expressed as sObject-graph-style records with `referenceId` and `record.attributes.type`/`method`.
 
-*Grounded against: `connect_resources_cpq_instant_pricing.htm.md`*
+*Grounded against: `connect-resources-cpq-instant-pricing.md`*
 
 ---
 
@@ -93,7 +93,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `recordId` (String, Required): ID of the record to preview approvals for.
   - `inputParameters` (Map<String, Object>, Optional, **Available Version 67.0**): Input parameters to preview (e.g., `approverComments`, `requestType`).
 
-*Grounded against: `connect_resources_preview_approvals.htm.md`, `connect_requests_preview_approval_input.htm.md`*
+*Grounded against: `connect-resources-preview-approvals.md`, `connect-requests-preview-approval-input.md`*
 
 ---
 
@@ -107,7 +107,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `salesTransactionId` (String, Required): The sales transaction ID (order ID or quote ID) for the promotion evaluation.
   - `lineItemIds` (String[], Required): List of line item IDs to evaluate for promotions; the object type is auto-determined from the sales transaction ID.
 
-*Grounded against: `connect_resources_get_eligible_promotions.htm.md`, `connect_requests_get_eligible_promotions_input.htm.md`*
+*Grounded against: `connect-resources-get-eligible-promotions.md`, `connect-requests-get-eligible-promotions-input.md`*
 
 ---
 
@@ -122,7 +122,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 - **Request Parameters (query):**
   - `includeRetryablePayload` (Boolean, Optional, default `false`): Whether to return a subset of the original Place Sales Transaction payload errors.
 
-*Grounded against: `connect_resources_retrieve_place_sales_transaction_error.htm.md`*
+*Grounded against: `connect-resources-retrieve-place-sales-transaction-error.md`*
 
 ---
 
@@ -137,7 +137,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `pricingPref` (String, Optional): `Force`, `Skip`, or `System`. If `Force` or `System`, the supplemental order can differ in pricing from the original order.
   - `supplementalGraph` (Object Graph Input, Optional): sObject graph with the additional changes to ingest. The record `attributes.method` must be `PATCH`, and the record ID must be the ID of the original order/order item being supplemented.
 
-*Grounded against: `connect_resources_place_supplemental_transaction.htm.md`*
+*Grounded against: `connect-resources-place-supplemental-transaction.md`*
 
 ---
 
@@ -150,7 +150,7 @@ The Sales Transactions APIs are the primary interface for creating and managing 
 - **Request Body Fields:**
   - `salesTransactionIds` (String[], Required): List of record IDs (quote or order) whose calculation status is unlocked. This release supports only one record ID.
 
-*Grounded against: `connect_resources_unlock_transaction.htm.md`, `connect_requests_unlock_transaction_input.htm.md`*
+*Grounded against: `connect-resources-unlock-transaction.md`, `connect-requests-unlock-transaction-input.md`*
 
 ---
 
@@ -173,7 +173,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `outputRecordType` (String, Required): Type of amendment record to create, e.g. `Quote`. For usage products, set to `Quote` — usage-related records are copied in the quote action flow, not the amend order flow.
   - `quantityChange` (Double, Required): Quantity to add to or reduce from the asset's existing quantity.
 
-*Grounded against: `connect_resources_assets_amend.htm.md`, `connect_requests_amend_input.htm.md`*
+*Grounded against: `connect-resources-assets-amend.md`, `connect-requests-amend-input.md`*
 
 ---
 
@@ -191,7 +191,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `outputRecordId` (String, Optional): ID of the quote or order to cancel.
   - `outputRecordType` (String, Required): Type of cancellation record to create.
 
-*Grounded against: `connect_resources_assets_cancel.htm.md`, `connect_requests_cancel_input.htm.md`*
+*Grounded against: `connect-resources-assets-cancel.md`, `connect-requests-cancel-input.md`*
 
 ---
 
@@ -210,7 +210,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `renewalEndDate` (String, Optional): End date of the renewal process for the assets.
   - `renewalStartDate` (String, Optional): Start date of the renewal process. Required for early asset renewals and for renewing expired assets. The dev guide adds "using today's date or a future date". *Measured on 264 (one org, one Term Annual product, 2026-10-28): without it an expired asset was rejected with "Select Override Renewal Term to renew expired or future-dated assets", and a **past** date was accepted; the guide's own sample request also uses a past date. See `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`.*
 
-*Grounded against: `connect_resources_assets_renew.htm.md`, `connect_requests_renew_input.htm.md`*
+*Grounded against: `connect-resources-assets-renew.md`, `connect-requests-renew-input.md`*
 
 ---
 
@@ -227,7 +227,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `contractId` (String, Optional): ID of the contract record to upgrade.
   - `opportunityId` (String, Optional): ID of the opportunity record to upgrade.
 
-*Grounded against: `connect_resources_initiate_upgrade.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
+*Grounded against: `connect-resources-initiate-upgrade.md`. Added — not present in the prior v66.0 extraction of this document.*
 
 ---
 
@@ -244,7 +244,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `contractId` (String, Optional): ID of the contract record to downgrade.
   - `opportunityId` (String, Optional): ID of the opportunity record to downgrade.
 
-*Grounded against: `connect_resources_initiate_downgrade.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
+*Grounded against: `connect-resources-initiate-downgrade.md`. Added — not present in the prior v66.0 extraction of this document.*
 
 ---
 
@@ -261,7 +261,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `contractId` (String, Optional): ID of the contract record to swap.
   - `opportunityId` (String, Optional): ID of the opportunity record to swap.
 
-*Grounded against: `connect_resources_initiate_swap.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
+*Grounded against: `connect-resources-initiate-swap.md`. Added — not present in the prior v66.0 extraction of this document.*
 
 ---
 
@@ -287,7 +287,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
   - `trialTermUnit` (String, Optional — required if `trialTerm` is specified): Valid value: `DAYS`.
   - `executionSettings` (Execution Settings Input[], Optional): Settings to run pricing or configuration rules (`executePricing`, `executeConfigRules`).
 
-*Grounded against: `connect_resources_create_ramp_deal.htm.md`, `connect_requests_create_ramp_deal_input.htm.md`*
+*Grounded against: `connect-resources-create-ramp-deal.md`, `connect-requests-create-ramp-deal-input.md`*
 
 ---
 
@@ -305,7 +305,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
   - `deletedNodes` (Context Node Input[], Required): Nodes to delete, addressed the same way.
   - `executionSettings` (Execution Settings Input[], Optional): Settings to run pricing or configuration rules.
 
-*Grounded against: `connect_resources_update_ramp_deal.htm.md`, `connect_requests_update_ramp_deal_input.htm.md`*
+*Grounded against: `connect-resources-update-ramp-deal.md`, `connect-requests-update-ramp-deal-input.md`*
 
 ---
 
@@ -320,7 +320,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 - **Request Body Fields:**
   - `rampDealIds` (String[], Required): Ramp identifier(s) on the quote line item or order item.
 
-*Grounded against: `connect_resources_delete_ramp_deal.htm.md`, `connect_requests_delete_ramp_deal_input.htm.md`*
+*Grounded against: `connect-resources-delete-ramp-deal.md`, `connect-requests-delete-ramp-deal-input.md`*
 
 ---
 
@@ -336,7 +336,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
   - `transactionId` (String, Required): ID of the quote or order, needed to hydrate the context and retrieve the quote/order lines.
   - `transactionLineId` (String, Required): ID of the quote or order line to retrieve segmented details for.
 
-*Grounded against: `connect_resources_view_ramp_deal.htm.md`*
+*Grounded against: `connect-resources-view-ramp-deal.md`*
 
 ---
 
@@ -353,7 +353,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
   - `rules` (Object[], Required): Promotion rules — `journalType`, `priority`, `ruleName`, `templateName`, `eventConfiguration` (Array), `rewardConfiguration` (Array of `scope`/`scopeDetails`/`rewardDetailsList`/`childProducts`/`type`/`isPrimaryReward`).
   - The snapshot doesn't document distinct Path/Query parameters for GET or PUT, or a separate Properties table for this resource — it defers the full request/response schema to the [Loyalty/Unified Promotions Connect API](https://developer.salesforce.com/docs/atlas.en-us.264.0.loyalty.meta/loyalty/connect_resources_unified_promotions.htm).
 
-*Grounded against: `connect_resources_create_promotions.htm.md`. Added — not present in the prior v66.0 extraction of this document.*
+*Grounded against: `connect-resources-create-promotions.md`. Added — not present in the prior v66.0 extraction of this document.*
 
 ---
 
@@ -368,7 +368,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 - **Description:** **Deprecated as of API v63.0.** Place a sales order. Requires the PlaceOrder API permission set. Replaced by [Place Sales Transaction](#1-place-sales-transaction-post) (`/connect/rev/sales-transaction/actions/place`).
 - **Available Version:** 60.0 (Deprecated as of v63.0 — use `/connect/rev/sales-transaction/actions/place` instead)
 
-*Grounded against: `connect_resources_place_order.htm.md`*
+*Grounded against: `connect-resources-place-order.md`*
 
 ---
 
@@ -379,7 +379,7 @@ The following endpoints were deprecated in v63.0 and replaced by the [Place Sale
 - **Description:** **Deprecated as of API v63.0.** Create a quote to discover and price products/services; insert, update, or delete quote line items. Requires the "Create on Quotes" user permission. Replaced by [Place Sales Transaction](#1-place-sales-transaction-post) (`/connect/rev/sales-transaction/actions/place`).
 - **Available Version:** 60.0 (Deprecated as of v63.0 — use `/connect/rev/sales-transaction/actions/place` instead)
 
-*Grounded against: `connect_resources_place_quote.htm.md`*
+*Grounded against: `connect-resources-place-quote.md`*
 
 ---
 

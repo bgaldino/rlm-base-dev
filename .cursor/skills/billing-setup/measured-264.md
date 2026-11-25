@@ -109,7 +109,7 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 - A service added by an amendment (a new product on the amendment order) carrying a milestone
   treatment: whether activation creates a plan, with `enableMilestoneBillingForAmend` on (as the
   repo ships) or off, is unmeasured. Read its `BillingSchedule.Category`, `BillingMilestonePlanId`
-  and billing schedule group [Dev guide: `sforce_api_objects_billingschedule`], and whether a
+  and billing schedule group [Dev guide: `sforce-api-objects-billingschedule`], and whether a
   plan made by hand for that order product or quote line links to its schedule.
 - Measured, separately: a quantity increase on an already milestone-billed service, with the
   amendment line carrying the milestone treatment and the setting on, got a new active plan on a

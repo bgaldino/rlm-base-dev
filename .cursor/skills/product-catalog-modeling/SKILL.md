@@ -46,7 +46,7 @@ drop the `.md` suffix of the snapshot file name.
 5. **Pick the selling model from how the charge recurs** (once, for a fixed term, until
    cancelled), then give the product one `ProductSellingModelOption` per model it can be
    sold on, with at most one `IsDefault`. Price book entries and attribute-based adjustments
-   carry a `ProductSellingModelId`. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce_api_objects_productsellingmodeloption.htm`; Repo: `scripts/ai/query_erd.py describe PricebookEntry`, `describe AttributeBasedAdjustment`]
+   carry a `ProductSellingModelId`. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce-api-objects-productsellingmodeloption.md`; Repo: `scripts/ai/query_erd.py describe PricebookEntry`, `describe AttributeBasedAdjustment`]
 6. **`IsAssetizable` on a bundle root governs every child**; it decides whether the sale
    leaves an asset that amend, renew and cancel can act on. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.qocal_asset_lifecycle.htm`]
 7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
@@ -196,7 +196,7 @@ fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUI
 classification attribute rows match `ProductClassificationAttr.csv` (0 missing, 0 differences; a query of the rows' `CreatedDate` and `LastModifiedDate` showed none modified after
 creation), run with `python scripts/check_classification_attrs.py --target-org <sf_alias>`. [Measured: 2026-11-23, fresh 264 ent-sb0 scratch org] Why: every QuantumBit
 `AttributeNameOverride` and `IsRequired` equals its definition's, and `DefaultValue`, `Description` and `HelpText` match wherever the definition sets one, so the
-copy an insert makes already equals the CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+copy an insert makes already equals the CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce-api-objects-productclassificationattr.md`]
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`

@@ -7,7 +7,7 @@
 > `ind.pricing_add_the_subscription_price_proration_element.htm`,
 > `ind.product_catalog_product_selling_model.htm`,
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; dev guide
-> `actions_obj_run_salesforce_headless_pricing.htm`; shipped `RLM_DefaultPricingProcedure`; a live
+> `actions-obj-run-salesforce-headless-pricing.md`; shipped `RLM_DefaultPricingProcedure`; a live
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10; real quotes and headless runs on a
 > fresh 264 `ent-sb0` scratch org on 2026-11-11; a build on a 264 scratch org on 2026-11-16 (tagged
 > `[Measured: 2026-11-16, 264, scratch, one org]`).
@@ -86,7 +86,7 @@ the filter must be the first child, one filter per group].
 - The not-null criteria (3, 4, 10) follow the Help rule that a null tag compared in a filter
   returns an error [Help: `ind.pricing_list_group_list_operation.htm`]. Criterion 2 has no such
   guard, and `PricingTermUnit` must be null on a One Time selling model
-  [Dev guide: `sforce_api_objects_productsellingmodel.htm`]. A bundle can mix One Time, Term
+  [Dev guide: `sforce-api-objects-productsellingmodel.md`]. A bundle can mix One Time, Term
   Defined and Evergreen lines, since each child keeps its own selling model options
   ([product-catalog-modeling → Selling models inside bundles](../../product-catalog-modeling/selling-models-and-lifecycle.md#selling-models-inside-bundles)).
   As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, ahead of the comparison it

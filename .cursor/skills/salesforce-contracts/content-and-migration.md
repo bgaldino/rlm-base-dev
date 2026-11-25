@@ -10,8 +10,8 @@ pages.
 
 The Release 264 clause migration walkthrough and validation constraints are in
 the separate Revenue Management Developer Guide deliverable:
-[Clause Migration Considerations](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_migration.htm.md)
-and [Clause Validations and Migration Constraints](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_validation_migration_constraints.htm.md).
+[Clause Migration Considerations](../../../docs/salesforce/264/dev-guide/articles/deployment-contracts-clause-migration.md)
+and [Clause Validations and Migration Constraints](../../../docs/salesforce/264/dev-guide/articles/deployment-contracts-clause-validation-migration-constraints.md).
 Keep those corpora distinct. The 264 captures of these two pages no longer carry
 the preview-release caveat that the earlier capture had; still check current
 Salesforce availability and release guidance before applying them.

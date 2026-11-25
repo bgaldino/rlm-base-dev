@@ -279,13 +279,15 @@ the site over plain HTTP (no browser) through `site_guide.py`:
 | `deliverable` | the guide's path segment | The legacy atlas id; frontmatter and the redirect lookup use it. |
 | `sections`, `output_dir`, `mode`, `concurrency`, `batch_delay_ms`, `max_pages` | as for atlas | `doc_version` is rejected; `follow_links` does not apply. |
 
-The 264 presets `rlm_site` and `industries_site` write to
-`docs/salesforce/264/dev-guide-site` and `dev-guide-industries-site`; the atlas
-presets stay the defaults until a re-capture switches them. A sample run:
+The 264 preset `rlm` is a site source: its corpus, `docs/salesforce/264/dev-guide`,
+was switched from atlas in place with `--mode refresh` (its manifest carries
+`legacy_id_map`). The `industries` preset stays atlas, and `industries_site` writes
+to `docs/salesforce/264/dev-guide-industries-site` until that corpus is switched.
+A sample run:
 
 ```bash
-python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm_site \
-    --output-dir /tmp/rlm-sample --section connect-resources-get-catalogs
+python -m scripts.doc_snapshot dev-guide --release 264 --guide industries_site \
+    --output-dir /tmp/ind-sample --section connect-resources-predictions-v2
 ```
 
 ## Reading the result

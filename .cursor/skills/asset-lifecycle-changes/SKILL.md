@@ -137,7 +137,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
       sold as its own line.
     - `quantityChange` is the quantity to add to or reduce from the asset's existing
       quantity, and the amend inputs take no attribute values [Dev guide:
-      `actions_obj_amend_assets`, `connect_requests_amend_input`]. On a bundle sized by a
+      `actions-obj-amend-assets`, `connect-requests-amend-input`]. On a bundle sized by a
       root attribute (locations, seats), "add 5 locations" is therefore not `quantityChange: 5`,
       which changes the root's own quantity and leaves the sizing attribute as it was.
     - **Changing the root's sizing answer on an amendment re-derives the children.** Amend

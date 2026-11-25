@@ -22,7 +22,7 @@ setting. The Help says standard fields on approval objects can't be written thro
 sObject APIs; change them through the approval invocable actions
 [Help: `ind.approvals_design_build_activation`]. The dev guide, though, lists `update()` on
 `ApprovalWorkItem` for `ApprovalChainName` and the Smart Approval fields
-[Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]; unmeasured. Configuration records such as
+[Dev guide: `adv-approvals-capture-fields-on-approvalworkitem`]; unmeasured. Configuration records such as
 `ApprovalAlertContentDef` load normally (the `qb-approvals` plan upserts them).
 
 ## Supporting Objects (from data plans)

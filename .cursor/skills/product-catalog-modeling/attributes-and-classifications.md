@@ -15,7 +15,7 @@ ProductClassificationAttr  (classification level; parent → subclassification i
 ProductAttributeDefinition (product level; OverrideContextId set = bundle-context override)
 ```
 
-[Repo: `revenue-cloud-data-model/domains/pcm.md`; `scripts/ai/query_erd.py describe Product2`; Dev guide: `sforce_api_objects_productattributedefinition.htm`]
+[Repo: `revenue-cloud-data-model/domains/pcm.md`; `scripts/ai/query_erd.py describe Product2`; Dev guide: `sforce-api-objects-productattributedefinition.md`]
 
 - **Picklists come first.** An attribute of type picklist needs its picklist to exist; a
   picklist can be reused by several attributes. Picklist value types: Boolean, Date,
@@ -52,14 +52,14 @@ configuration attributes higher. [Help: `ind.pricing_attribute_based_pricing_lim
 | Product attribute | `ProductAttributeDefinition` (no `OverrideContextId`) | One product's configuration of an inherited attribute |
 | Bundle-context override | `ProductAttributeDefinition` with `OverrideContextId` = root bundle | The product's attribute inside one bundle only |
 
-[Help: `ind.product_catalog_configure_product_attributes.htm`; `ind.product_catalog_override_product_component_attributes_in_bundles.htm`; Dev guide: `sforce_api_objects_productattributedefinition.htm`, `sforce_api_objects_productclassificationattr.htm`]
+[Help: `ind.product_catalog_configure_product_attributes.htm`; `ind.product_catalog_override_product_component_attributes_in_bundles.htm`; Dev guide: `sforce-api-objects-productattributedefinition.md`, `sforce-api-objects-productclassificationattr.md`]
 
 Shared fields at the classification, product and override levels: `AttributeNameOverride`
 (display name, e.g. Colour shown as "Laptop Colour"), `DefaultValue`, `IsRequired`,
 `IsHidden`, `IsReadOnly`, `IsPriceImpacting`, `DisplayType`, min/max value and character
 count, `StepValue`, `Sequence`, `Status`. Booleans default `false`; `Status` defaults to
 `Draft`. The definition level carries only `DefaultValue` and `IsRequired` of these.
-[Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`, `sforce_api_objects_attributedefinition.htm`]
+[Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce-api-objects-productclassificationattr.md`, `sforce-api-objects-attributedefinition.md`]
 
 **Changes do not cascade for you.** After changing a definition, review the classification
 attributes; after changing a classification attribute, review the product attributes; after
@@ -67,7 +67,7 @@ changing a product attribute, review its bundle overrides. [Help: `ind.product_c
 
 **Picklist narrowing.** Every picklist value is included by default at classification
 level; exclude values there, at the product, or in a bundle override
-(`ExcludedPicklistValues` on the classification attribute). [Help: `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm`; `ind.product_catalog_products.htm`; `ind.product_catalog_create_bundled_products.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+(`ExcludedPicklistValues` on the classification attribute). [Help: `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm`; `ind.product_catalog_products.htm`; `ind.product_catalog_create_bundled_products.htm`; Dev guide: `sforce-api-objects-productclassificationattr.md`]
 
 ### Bundle-context overrides: use sparingly
 

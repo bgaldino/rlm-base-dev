@@ -23,7 +23,7 @@ Discovery, Manage Revenue Cloud and Run Flows.
 
 Child products appear in the editor only when **Quote Visibility** on the product-related component is
 blank, Always or Transaction Line Editor (the dev guide's value label is *Transaction Line Editor Only*) [Help: `ind.qocal_view_and_edit_quotes`; Dev guide:
-`product_catalog_management_fields_on_product_related_component`].
+`product-catalog-management-fields-on-product-related-component`].
 
 Measured traps:
 
@@ -96,7 +96,7 @@ Measured traps:
 - Sort Order on the Quote Line Groups related list sets group order; blank ones go last, by creation date.
 - **Ungroup** returns to a flat list. Groups carry over from quote to order.
 - Lines created through the Place Sales Transaction API should carry a group ID when the STLE will be
-  used on that quote afterwards [Dev guide: `connect_resources_place_sales_transaction`].
+  used on that quote afterwards [Dev guide: `connect-resources-place-sales-transaction`].
 - Group ramps (Create Ramp Schedule, segments, uplift) are covered in
   [`ramped-quotes`](../ramped-quotes/SKILL.md); the legacy TLE doesn't support them.
 
