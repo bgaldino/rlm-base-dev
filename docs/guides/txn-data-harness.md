@@ -229,7 +229,11 @@ python -m scripts.txn_data_harness.cli prune --older-than 7d --yes     # delete
 payment balance agrees with its payment and credit applications, and that the
 applications are all at one level (line or header). Ids may be 15 or 18
 characters. It exits 1 if any check fails, and 2 if the input or a
-Salesforce request is bad. `--latest` reads only the newest manifest; after a
+Salesforce request is bad. Balance checks run only on what was measured (a
+Line Level allow-list); anything outside it is skipped with a reason, and a
+run where every balance check skipped still exits 0, so read the counts on the
+last line (`RESULT: pass (N checked, M skipped)`) or `checked` and `skipped`
+under `--json`. `--latest` reads only the newest manifest; after a
 batch of several scenarios, repeat `--manifest` or pass the ids:
 
 ```bash

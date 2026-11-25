@@ -23,6 +23,7 @@ from scripts.txn_data_harness import auth, cli
 from scripts.txn_data_harness import verify as verify_mod
 from scripts.txn_data_harness.auth import SfApiError, SfCliError
 from scripts.txn_data_harness.verify import (
+    CHECK_NAMES,
     VerifyError,
     _check_ids,
     fetch_billing_records,
@@ -1385,3 +1386,70 @@ def test_cli_verify_latest_without_manifests_says_so(monkeypatch, capsys):
 def test_run_checks_rejects_an_unknown_expected_level(level):
     with pytest.raises(VerifyError, match="expect_level must be auto, line or header"):
         run_checks({"Invoice": []}, level)
+
+
+def test_line_payment_rollup_on_the_wrong_line_fails():
+    # INV1 gets a second line. The payment row stays on line 11 while the rollup sits
+    # on line 12; each line's Balance matches its own rollup and the invoice totals
+    # are untouched, so only the per-line payment comparison can fail.
+    def mutate(data):
+        _row(data, "InvoiceLine", "5TV000000000011GAA").update(NetPaymentsApplied=0,
+                                                              Balance=4950)
+        data["InvoiceLine"].append({
+            "Id": "5TV000000000012GAA", "InvoiceId": "3tt000000000001AAA", "Type": "Charge",
+            "LineAmount": 0, "NetCreditsApplied": 0, "NetPaymentsApplied": 1000,
+            "Balance": -1000, **dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)})
+    report = _line(mutate=mutate)
+    assert report["failed_checks"] == ["invoice_line_balance"]
+    failed = {r["subject"]: r["detail"] for r in report["checks"] if r["status"] == "fail"}
+    assert set(failed) == {"3tt000000000001AAA/5TV000000000011GAA",
+                           "3tt000000000001AAA/5TV000000000012GAA"}
+    assert all("PaymentLineInvoiceLine rows" in d for d in failed.values())
+
+
+@pytest.mark.parametrize("obj, record_id, update, check, subject", [
+    # Each null is placed where reading it as 0 would make the check pass.
+    ("Invoice", "3tt000000000003AAA", {"TotalAmountWithTax": 100, "Balance": None},
+     "invoice_balance", "3tt000000000003AAA"),
+    ("Invoice", "3tt000000000002AAA", {"TotalAmountWithTax": None, "Balance": 0},
+     "invoice_balance", "3tt000000000002AAA"),
+    ("InvoiceLine", "5TV000000000031GAA", {"Balance": None},
+     "invoice_line_balance", "3tt000000000003AAA/5TV000000000031GAA"),
+    ("InvoiceLine", "5TV000000000032GAA", {"LineAmount": None, "Balance": 0},
+     "invoice_line_balance", "3tt000000000003AAA/5TV000000000032GAA"),
+    ("Payment", "0aQ000000000001EAA", {"Balance": None},
+     "payment_balance", "0aQ000000000001EAA"),
+    ("Payment", "0aQ000000000001EAA", {"Amount": None, "Balance": -1000},
+     "payment_balance", "0aQ000000000001EAA"),
+])
+def test_null_amount_fails_instead_of_reading_as_zero(obj, record_id, update, check, subject):
+    report = _line(mutate=lambda d: _row(d, obj, record_id).update(update))
+    result = next(r for r in report["checks"]
+                  if r["check"] == check and r["subject"] == subject)
+    assert result["status"] == "fail" and "null" in result["detail"]
+
+
+def test_cli_verify_checks_the_payment_ids_a_manifest_names(recorded_org, tmp_path, capsys):
+    # 0aQ...2 has no application rows: only the manifest's payment_ids can bring it in.
+    path = _manifest(tmp_path, invoice_id="3tt000000000002AAA",
+                     payment_ids=["0aQ000000000002EAA"])
+    rc = cli.main(["verify", "--org", "fake", "--manifest", str(path), "--json"])
+    report = json.loads(capsys.readouterr().out)
+    assert rc == 0, report["failed_checks"]
+    assert report["payment_ids"] == ["0aQ000000000002EAA"]
+
+
+def test_fetch_with_no_ids_is_an_error():
+    client = RecordedClient({})
+    with pytest.raises(VerifyError, match="no invoice or payment ids to verify"):
+        fetch_billing_records(client, [], [])
+    assert client.queries == []
+
+
+def test_failed_checks_follow_the_check_order():
+    def mutate(data):
+        _row(data, "Payment", "0aQ000000000002EAA")["Balance"] = 1
+        _row(data, "Invoice", "3tt000000000002AAA")["Balance"] = 1
+        _row(data, "InvoiceLine", "5TV000000000031GAA")["Balance"] = 1
+    report = _line(level="header", mutate=mutate)
+    assert report["failed_checks"] == list(CHECK_NAMES)

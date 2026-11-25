@@ -140,8 +140,9 @@ characters. Harness manifests carry no payment ids: payments are found
 through the invoices' application rows, or passed with `--payment-ids`.
 `--latest` checks only the newest manifest: after a batch of several
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
-inside one allow-list of measured cases (Line Level: Posted invoices without
-write-off, tax or other unmeasured totals; Charge lines; Applied rows; Processed
+inside one allow-list of measured cases (Line Level: Posted invoices, taxed
+ones included, without write-off or other unmeasured totals, separate Tax lines
+or header-captured tax; Charge lines; Applied rows; Processed
 payments with applications or Canceled ones without; Posted credit memos), and
 an invoice and a payment or credit memo joined by a row are measured only
 together; anything else skips naming its first cause and origin.
