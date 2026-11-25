@@ -13,7 +13,7 @@ This document provides working examples for the `manage_flows` and `manage_expre
 | `operation` | all | `list`, `query`, `activate`, `deactivate` |
 | `developer_names` | all | Comma-separated flow DeveloperNames (a FlowDefinition Id also works). **Required** for `activate` and `deactivate`. For `list` and `query`, omitted means all flows. A name that matches no flow is an error and nothing is changed. |
 | `status` | list, query | `Active`, `Draft`, `Obsolete` or `InvalidDraft`. Rejected by `activate` and `deactivate`. |
-| `process_type` | list, query | For example `AutoLaunchedFlow`, `Flow` (screen flow), `Workflow`. |
+| `process_type` | list, query | For example `AutoLaunchedFlow`, `Flow` (screen flow), `Workflow`. Rejected by `activate` and `deactivate`. |
 | `sort_by` | list, query | `DeveloperName`, `Label`, `Status`, `ProcessType`, `VersionNumber`, `CreatedDate` (default). `LastModifiedDate` is accepted as `CreatedDate`. |
 | `sort_order` | list, query | `Asc` or `Desc` (default). |
 | `limit` | list, query | Positive integer. Rejected by `activate` and `deactivate`. |
@@ -60,7 +60,7 @@ cci task run manage_flows --org <org> -o operation list -o sort_by ProcessType -
 
 ### Activating and deactivating
 
-`activate` activates the newest `Draft` or `Active` version, so a newly saved draft goes live and a flow whose newest live version is already active is skipped. An `Obsolete` version is chosen only when no `Draft` or `Active` version exists (re-activating a deactivated flow), so a rollback to an older active version is never undone. `InvalidDraft` versions are never chosen. `deactivate` leaves no version active; a flow with no active version is skipped. The task checks every name before changing anything, continues past a per-flow failure, and fails at the end if any flow failed.
+`activate` picks one version per flow. When a version is `Active`, it activates the newest `Draft` numbered above it, otherwise the flow is skipped, so a rollback to an older active version stands and an abandoned older draft is never picked. When no version is `Active` (a deactivated flow), it activates the newest `Draft` or `Obsolete` version, so the flow returns to the version that was live rather than to a stale older draft. `InvalidDraft` versions are never chosen; a flow with nothing else fails with the statuses it has. `deactivate` leaves no version active; a flow with no active version is skipped. The task checks every name before changing anything, continues past a per-flow failure, and fails at the end if any flow failed.
 
 ```bash
 # One flow

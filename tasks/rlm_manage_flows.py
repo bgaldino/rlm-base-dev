@@ -43,7 +43,7 @@ _SORT_FIELDS = {
 }
 
 # sort_by/sort_order carry cumulusci.yml defaults and cannot change what is activated.
-_MUTATING_REJECTS = ("status", "limit")
+_MUTATING_REJECTS = ("status", "process_type", "limit")
 
 
 class ManageFlows(BaseSalesforceTask):
@@ -78,7 +78,7 @@ class ManageFlows(BaseSalesforceTask):
             "required": False
         },
         "process_type": {
-            "description": "Filter by ProcessType (e.g., 'AutoLaunchedFlow', 'Flow', 'Workflow'). Default: None",
+            "description": "list/query only: filter by ProcessType (e.g., 'AutoLaunchedFlow', 'Flow', 'Workflow'). Default: None. Rejected by activate and deactivate.",
             "required": False
         },
         "sort_by": {
@@ -188,9 +188,31 @@ class ManageFlows(BaseSalesforceTask):
 
     def _query_flows(self) -> List[Dict]:
         """Query flow versions from the Tooling API, one row per version."""
-        flows = self._tooling_query(self._build_soql_query())
+        names = self._requested_names()
+        flows = self._tooling_query(self._build_soql_query(names=names))
+        if names:
+            # status/process_type may legitimately exclude a flow that exists, so a name is
+            # only "missing" when no flow of that name exists at all.
+            by_name = flows
+            if self.options.get("status") or self.options.get("process_type"):
+                by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
+            self._raise_on_missing(names, by_name)
         self.logger.info(f"Query returned {len(flows)} flow version(s).")
         return flows
+
+    def _raise_on_missing(self, names: List[str], rows: List[Dict]):
+        """Raise when a requested name (DeveloperName or FlowDefinition Id) matches no flow."""
+        # SOQL string comparison is case-insensitive, so the check against the names asked for is too.
+        found = set()
+        for row in rows:
+            def_id = row["DefinitionId"]
+            found.update(v.lower() for v in (def_id, def_id[:15], self._developer_name(row)))
+        missing = [n for n in names if n.lower() not in found]
+        if missing:
+            raise TaskOptionsError(
+                "No flow matches: " + ", ".join(missing)
+                + ". Nothing was changed. Run list without developer_names to see the DeveloperNames."
+            )
 
     def _name_clause(self, names: List[str]) -> str:
         ids = [n for n in names if _DEFINITION_ID.match(n)]
@@ -202,7 +224,7 @@ class ManageFlows(BaseSalesforceTask):
             parts.append("DefinitionId IN (" + ", ".join(soql_quote(n) for n in ids) + ")")
         return parts[0] if len(parts) == 1 else "(" + " OR ".join(parts) + ")"
 
-    def _build_soql_query(self, names=None, include_status=True, ordered=True) -> str:
+    def _build_soql_query(self, names=None, filtered=True, ordered=True) -> str:
         """Build the Flow SOQL from the task options (every value escaped or whitelisted)."""
         fields = [
             "Id",
@@ -222,11 +244,11 @@ class ManageFlows(BaseSalesforceTask):
             where.append(self._name_clause(names))
 
         status = self.options.get("status")
-        if status and include_status:
+        if status and filtered:
             where.append(f"Status = {soql_quote(status)}")
 
         process_type = self.options.get("process_type")
-        if process_type:
+        if process_type and filtered:
             where.append(f"ProcessType = {soql_quote(process_type)}")
 
         soql = f"SELECT {', '.join(fields)} FROM Flow"
@@ -277,18 +299,7 @@ class ManageFlows(BaseSalesforceTask):
         for row in rows:
             by_definition.setdefault(row["DefinitionId"], []).append(row)
 
-        # SOQL string comparison is case-insensitive, so the check against the names asked for is too.
-        found = set()
-        for def_id, versions in by_definition.items():
-            found.update(
-                v.lower() for v in (def_id, def_id[:15], self._developer_name(versions[0]))
-            )
-        missing = [n for n in names if n.lower() not in found]
-        if missing:
-            raise TaskOptionsError(
-                "No flow matches: " + ", ".join(missing)
-                + ". Nothing was changed. Run the list operation to see the DeveloperNames."
-            )
+        self._raise_on_missing(names, rows)
         return by_definition
 
     def _change_activation(self, activate: bool):
@@ -335,22 +346,34 @@ class ManageFlows(BaseSalesforceTask):
     def _activation_target(versions: List[Dict]) -> Dict:
         """Pick the version to activate.
 
-        The newest Draft or Active version wins, so a newly saved draft is activated and a
-        flow whose newest live version is already Active is left alone. An Obsolete version
-        (superseded or deactivated) is only chosen when no Draft or Active version exists,
-        which re-activates a deactivated flow without undoing a rollback to an older
-        active version. InvalidDraft versions are never chosen.
+        A version is Active, Draft, Obsolete (superseded or deactivated) or InvalidDraft,
+        which is never chosen.
+        - When a version is Active: the newest Draft numbered above it, else the Active one
+          itself (the flow is skipped), so a rollback to an older active version stands and an
+          abandoned older draft is never picked.
+        - When none is Active: the newest Draft or Obsolete version, so a deactivated flow
+          returns to the version that was live rather than to a stale older draft.
         """
-        def newest(rows):
-            return max(rows, key=lambda v: int(v.get("VersionNumber") or 0))
+        def number(v):
+            return int(v.get("VersionNumber") or 0)
 
-        live = [v for v in versions if v.get("Status") in ("Draft", "Active")]
-        if live:
-            return newest(live)
-        obsolete = [v for v in versions if v.get("Status") == "Obsolete"]
-        if obsolete:
-            return newest(obsolete)
-        raise TaskOptionsError("it has no valid version to activate (all are InvalidDraft)")
+        def newest(rows):
+            return max(rows, key=number)
+
+        active = [v for v in versions if v.get("Status") == "Active"]
+        if active:
+            current = newest(active)
+            newer_drafts = [
+                v for v in versions if v.get("Status") == "Draft" and number(v) > number(current)
+            ]
+            return newest(newer_drafts) if newer_drafts else current
+        candidates = [v for v in versions if v.get("Status") in ("Draft", "Obsolete")]
+        if candidates:
+            return newest(candidates)
+        seen = sorted({str(v.get("Status")) for v in versions})
+        raise TaskOptionsError(
+            "it has no Draft, Active or Obsolete version to activate (statuses seen: " + ", ".join(seen) + ")"
+        )
 
     def _set_active_version(self, definition_id: str, version_number: int):
         """PATCH FlowDefinition.Metadata.activeVersionNumber (0 deactivates)."""

@@ -4,7 +4,7 @@ Invariant: task options that reach SOQL are escaped or whitelisted, and an accep
 
     python tests/test_soql_option_hardening.py
 
-Needs `requests` (rlm_cml imports it); CumulusCI is stubbed where a task module imports it unconditionally.
+Needs `requests` (rlm_cml imports it) and a real CumulusCI install (the stdctx task subclasses its base\nclasses); run it with the repo .venv interpreter.
 
 Covers the pack 457 class sweep of tasks no flow calls: tasks/soql_utils.py, manage_decision_tables
 (sort_by / sort_order / limit), export_cml (developer_name, version), manage_transaction_processing_types
@@ -140,6 +140,27 @@ def activate_requested(value):
 check("true, 'true' and unset activate", activate_requested(True) and activate_requested("True") and activate_requested(None))
 check("false and 'false' leave it inactive", not activate_requested(False) and not activate_requested("false"))
 check("a non-boolean string is rejected", raises(lambda: activate_requested("maybe"), "activate must be"))
+check("a non-bool, non-string value is rejected", raises(lambda: activate_requested(1), "activate must be"))
+
+print("extend_standard_context: _init_options rejects bad options before any change")
+from unittest import mock  # noqa: E402
+from cumulusci.tasks.sfdx import SFDXBaseTask  # noqa: E402
+
+
+def init_options(options):
+    t = ExtendStandardContext.__new__(ExtendStandardContext)
+    t.options = options
+    t._get_env = lambda: {}
+    with mock.patch.object(SFDXBaseTask, "_init_options", create=True, new=lambda self, kwargs: None):
+        t._init_options({})
+    return t
+
+
+GOOD = {"name": "N", "developerName": "D", "baseReference": "B", "activate": "false"}
+check("a complete option set is accepted", init_options(dict(GOOD)) is not None)
+check("a missing name, developerName and baseReference are all named",
+      raises(lambda: init_options({"activate": True}), "name, developerName, baseReference"))
+check("a bad activate value is rejected at init", raises(lambda: init_options(dict(GOOD, activate="maybe")), "activate must be"))
 
 print()
 if FAILURES:

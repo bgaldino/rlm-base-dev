@@ -63,7 +63,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             "required": True,
         },
         "activate": {
-            "description": "Whether to activate the context definition after the plan is applied (true or false; false leaves it inactive)",
+            "description": "Whether to activate the context definition after the plan is applied (true or false; false does not activate it)",
             "required": True,
         }
         ,
@@ -82,8 +82,20 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
     # Initialize the task options and environment variables
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self._activate_requested()  # reject a bad value before any change is made
+        self._validate_task_options()  # reject bad options before any change is made
         self.env = self._get_env()
+
+    # The options that go into the create request: without them the platform rejects the POST.
+    _REQUIRED_VALUES = ("name", "developerName", "baseReference")
+
+    def _validate_task_options(self):
+        missing = [o for o in self._REQUIRED_VALUES if not self.options.get(o)]
+        if missing:
+            raise TaskOptionsError(
+                "extend_standard_context needs a value for: " + ", ".join(missing)
+                + ". The extend_context_* tasks supply them; set them with -o when running this one directly."
+            )
+        self._activate_requested()
 
     # Load keychain with either the current keychain or generate a new one based on environment configuration
     def _load_keychain(self):
@@ -162,6 +174,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                     f"Recovering ID to continue configuration..."
                 )
                 recovery_reason = "duplicate_value"
+                self._existing_definition = True
                 self.context_id = self._recover_context_id(developer_name)
             elif self._last_response_status is not None:
                 # Non-recoverable API error (auth, validation, etc.) — fail loudly
@@ -385,7 +398,12 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         if self._activate_requested():
             self._activate_context_id()
         else:
-            self.logger.info("      activate is false: leaving the context definition inactive.")
+            if getattr(self, "_existing_definition", False):
+                self.logger.info(
+                    "      activate is false: not activating. The existing context definition keeps its current active state."
+                )
+            else:
+                self.logger.info("      activate is false: leaving the new context definition inactive.")
 
     def _activate_requested(self) -> bool:
         value = self.options.get("activate", True)
@@ -396,7 +414,9 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             if text in ("false", "no", "n", "0", "off"):
                 return False
             raise TaskOptionsError(f"activate must be true or false, got {value!r}")
-        return bool(value)
+        if isinstance(value, bool):
+            return value
+        raise TaskOptionsError(f"activate must be true or false, got {value!r}")
 
     def _apply_plan_if_present(self):
         plan_file = self.options.get("plan_file")

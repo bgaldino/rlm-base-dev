@@ -3340,12 +3340,12 @@ tasks:
 
   manage_flows:
     group: Revenue Lifecycle Management
-    description: Manage Flows by DeveloperName - list or query flow versions, activate (newest Draft or Active version; an Obsolete one only when no Draft or Active exists) or deactivate
+    description: Manage Flows by DeveloperName - list or query flow versions, activate (the newest Draft above the Active version, else skip; with none Active, the newest Draft or Obsolete) or deactivate
     class_path: tasks.rlm_manage_flows.ManageFlows
     options:
       operation: list  # Options: 'list', 'query', 'activate', 'deactivate'
       status: null     # list/query only: Active, Draft, Obsolete, InvalidDraft, or null for all
-      process_type: null  # Filter by ProcessType (AutoLaunchedFlow, Flow, Workflow, etc.)
+      process_type: null  # list/query only: filter by ProcessType (AutoLaunchedFlow, Flow, Workflow, etc.)
       sort_by: LastModifiedDate  # list/query only; mapped to CreatedDate (flow versions are immutable)
       sort_order: Desc
       # developer_names: comma-separated DeveloperNames; required for activate/deactivate
@@ -3355,8 +3355,8 @@ tasks:
     description: Manage Expression Sets - list or query sets (filter by status, interface_source_type, process_type), list versions, activate or deactivate versions
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
-      operation: list  # Options: 'list', 'query', 'list_versions', 'activate_version', 'deactivate_version'
-      status: null     # Keep sets that have a version with this status (Active, Draft, or null for all)
+      operation: list  # Options: 'list', 'query', 'list_versions', 'activate_version', 'deactivate_version', 'activate_versions', 'deactivate_versions'
+      status: null     # Keep sets that have a version with this status (Active, Draft, Inactive, or null for all)
       interface_source_type: null  # Keep sets with this InterfaceSourceType (PricingProcedure, RatingProcedure, etc.); read from each set's metadata
       process_type: null  # Keep sets with this ProcessType (DefaultPricing, DefaultRating, etc.); read from each set's metadata
       version_full_name: null  # For version operations: Full name of the version

@@ -173,6 +173,41 @@ print("names match case-insensitively, as the SOQL IN does")
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": "flow_a"})
 check("flow_a finds Flow_A", err is None and len(fake.patches) == 1, repr((err, fake.patches)))
 
+print("activation target: an older draft never beats a newer version that was live")
+def target(versions):
+    return ManageFlows._activation_target([dict(v) for v in versions])["VersionNumber"]
+
+
+def st(n, status):
+    return {"VersionNumber": n, "Status": status}
+
+
+check("[Draft v1, Obsolete v2] -> v2", target([st(1, "Draft"), st(2, "Obsolete")]) == 2)
+check("[Active v1, Draft v2, Obsolete v3] -> v2 (a draft newer than the Active one)",
+      target([st(1, "Active"), st(2, "Draft"), st(3, "Obsolete")]) == 2)
+check("[Draft v1, Active v2, Obsolete v3] -> v2 (an older draft loses to the Active one)",
+      target([st(1, "Draft"), st(2, "Active"), st(3, "Obsolete")]) == 2)
+check("[Obsolete v1, Active v2] -> v2 (rollback stands)", target([st(1, "Obsolete"), st(2, "Active")]) == 2)
+fake, err = run([row(A, "Flow_A", 1, "Draft"), row(A, "Flow_A", 2, "Obsolete")],
+                {"operation": "activate", "developer_names": "Flow_A"})
+check("run: deactivated flow returns to v2, not the stale draft",
+      err is None and [b for _, b in fake.patches] == [{"Metadata": {"activeVersionNumber": 2}}], repr((err, fake.patches)))
+_, err = run([row(A, "Flow_A", 1, "InvalidDraft"), row(A, "Flow_A", 2, "Weird")],
+             {"operation": "activate", "developer_names": "Flow_A"})
+check("no usable version names the statuses seen",
+      err is not None and any("InvalidDraft, Weird" in m for m in LOGS), repr((err, LOGS)))
+
+print("process_type is rejected by activate/deactivate; list/query report a name that matches no flow")
+for verb in ("activate", "deactivate"):
+    _, err = run(TWO, {"operation": verb, "developer_names": "Flow_A", "process_type": "Flow"})
+    check(f"{verb} rejects process_type", err is not None and "process_type is not used" in str(err), repr(err))
+_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,Nope"})
+check("list raises naming the missing flow", err is not None and "Nope" in str(err), repr(err))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "flow_a", "status": "Draft"})
+check("a status filter that excludes an existing flow is not a missing name",
+      err is None and len(fake.queries) == 2 and "Status = 'Draft'" in fake.queries[0] and "Status" not in fake.queries[1].split("WHERE")[1],
+      repr((err, fake.queries)))
+
 print("activate never undoes a rollback and does re-activate a deactivated flow")
 fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Active")],
                 {"operation": "activate", "developer_names": "Flow_A"})
