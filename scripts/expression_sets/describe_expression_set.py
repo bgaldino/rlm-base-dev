@@ -46,7 +46,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.expression_sets._client import (  # noqa: E402
@@ -55,13 +55,13 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
-from scripts.expression_sets._guards import relabel_command  # noqa: E402
+from scripts.expression_sets._guards import relabel_command, select_version  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
-    resolve_version_by_es_id,
+    resolve_target_row,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
     ToolingError,
@@ -72,18 +72,20 @@ from scripts.expression_sets._tooling import (  # noqa: E402
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
 
-def _pick_version(definition: dict, version_api_name: Optional[str]) -> dict:
+def _pick_version(definition: dict, row: Dict[str, Any]) -> dict:
+    """The GET's block for ``row`` (an ExpressionSetVersion row): by VersionNumber,
+    then ApiName (the GET can serve a stale clone name); a one-version GET gives
+    its only version."""
     versions = definition.get("versions") or []
     if not versions:
         return {}
-    if version_api_name:
-        for v in versions:
-            if v.get("apiName") == version_api_name:
-                return v
+    version = select_version(versions, row.get("ApiName"), row.get("VersionNumber"))
+    if version is None:
         raise ExpressionSetClientError(
-            f"Version '{version_api_name}' not found in the definition."
+            f"Version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) not found "
+            "in the definition."
         )
-    return versions[0]
+    return version
 
 
 def _action_type(step: dict) -> str:
@@ -224,13 +226,12 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
-        # Default to the version that executes, not the GET's first (which can be a
-        # draft on a multi-version set).
-        version_api_name = args.version_api_name or resolve_version_by_es_id(
-            es_id, target_org=args.target_org, api_version=args.api_version,
-            logger=eprint,
-        ).get("ApiName")
-        version = _pick_version(definition, version_api_name)
+        # The named version, else the one that executes; never the GET's first
+        # (which can be a draft on a multi-version set).
+        row = resolve_target_row(es_id, args.version_api_name,
+                                 target_org=args.target_org,
+                                 api_version=args.api_version, logger=eprint)
+        version = _pick_version(definition, row)
     except (ExpressionSetClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1

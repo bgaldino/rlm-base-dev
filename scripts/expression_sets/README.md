@@ -50,7 +50,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `describe_expression_set.py` | Read-only | Pretty-print one set: version → steps in execution (per-parent `sequenceNumber`) order → params / variables. `--params` for the full parameter dump; `--labels` joins the readable step **labels** from the Tooling API (Connect has none) and flags `label==name` drift. |
 | `export_expression_set.py` | Read-only | GET a definition → JSON file (the read half of the round trip). `--for-import` strips read-only fields + HTML-unescapes so the output is import-ready. |
 | **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. `--mermaid deps\|flow` renders a diagram (`--out` to a `.mmd` file) where each node is **shaped & colored by kind** (step / version constant / version variable / custom / `__std` field / context tag); `--step` scopes `deps` to one step's neighborhood; `--labels` titles step nodes with their readable Tooling label. |
-| `diff_expression_set.py` | Read-only | Added / removed / changed / reordered steps + variables, org-vs-org or org-vs-JSON. |
+| `diff_expression_set.py` | Read-only | Added / removed / changed / reordered steps + variables of one version per side, org-vs-org or org-vs-JSON. An org side uses `--left-version` / `--right-version`, else the executing version; a JSON file with several versions needs the option. |
 | `export_expression_set_overlay.py` | Read-only (writes local file) | Slice step(s) from a live GET into a **validated** `addSteps` overlay with the three dependency scopes pre-classified (version deps → `addVariables`; custom refs → `externalDependencies`). `--with-labels` joins each sliced step's readable **label** (from the Tooling Metadata — Connect can't serialize it) into a top-level `labels` block, so the overlay is self-describing and `apply_expression_set_overlay` restores the label after the Connect PATCH clobbers it. |
 
 **Mutators (preview by default; `--confirm` to write — never on a shipped procedure):**
@@ -255,8 +255,15 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   so expect a refusal there.
 - **Edit the version that executes.** A change to any other version changes no
   price: a constant written into `_V1` changed no price, written into the executing
-  v40 it changed every price [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Use `set_step_formula.py` for formula edits; it defaults to the executing
-  version and reads the result back.
+  v40 it changed every price [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Use
+  `set_step_formula.py` for formula edits; it defaults to the executing version and
+  reads the result back.
+- **No tool picks the first version.** A tool given no version works on the
+  executing one (`describe`, `trace`, `export_expression_set_overlay`, `diff` org
+  sides, the overlay and import), and finds it in the Connect GET by
+  `VersionNumber`, since the GET can serve a stale clone `apiName`; a definition
+  with one version uses that version. A JSON file with several versions needs the
+  version named.
 - **A version with no Rank cannot be cycled.** Activating a version through the API
   needs a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
   scratch build, disposable sets], so a run that would end by activating a null-Rank

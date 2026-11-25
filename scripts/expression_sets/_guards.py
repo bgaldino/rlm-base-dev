@@ -50,6 +50,27 @@ MEASURED = "measured on Release 264, 2026-11-24"
 MEASURED_1125 = "measured on Release 264, 2026-11-25"
 
 
+def select_version(versions: List[Any], api_name: Optional[str] = None,
+                   version_number: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """The Connect GET's version block for a chosen ExpressionSetVersion, or None.
+
+    Matched by ``versionNumber`` first (the GET carries it, while its ``apiName``
+    can be a stale clone name), then by ``apiName``; a GET with a single version
+    gives that version. With several versions and nothing to match, None: the
+    caller names the version (the executing one by default), never the first.
+    """
+    blocks = [v for v in (versions or []) if isinstance(v, dict)]
+    if version_number is not None:
+        hit = next((v for v in blocks if v.get("versionNumber") == version_number), None)
+        if hit:
+            return hit
+    if api_name:
+        hit = next((v for v in blocks if v.get("apiName") == api_name), None)
+        if hit:
+            return hit
+    return blocks[0] if len(blocks) == 1 else None
+
+
 def _parse_datetime(value: Any) -> Optional[datetime]:
     """A Salesforce dateTime (``2020-01-01T08:00:00.000+0000`` or ``…Z``); None when
     empty. Raises ValueError on any other value: guessing a window would pick a
@@ -501,8 +522,17 @@ def version_name_collision_refusal(
             problems.append(f"{seen[key]} and {api} both carry the name '{label}'")
         else:
             seen[key] = api
+        # The org row this payload version is: by VersionNumber when both carry one
+        # (the GET's apiName can be a stale clone name), else by ApiName.
+        number = version.get("versionNumber")
+
+        def _same(row: Dict[str, Any]) -> bool:
+            if number is not None and row.get("VersionNumber") is not None:
+                return row.get("VersionNumber") == number
+            return row.get("ApiName") == api
+
         holders = [r.get("ApiName") for r in versions
-                   if r.get("ApiName") != api and _norm_label(r.get("Name")) == key]
+                   if not _same(r) and _norm_label(r.get("Name")) == key]
         if holders:
             problems.append(f"{api} carries the name '{label}', which "
                             f"{', '.join(holders)} holds")

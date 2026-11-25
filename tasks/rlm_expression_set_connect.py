@@ -89,6 +89,7 @@ from scripts.expression_sets._guards import (
     null_rank_reactivation_refusal,
     other_active_versions_refusal,
     relabel_command,
+    select_version,
     version_name_collision_refusal,
     rank_order_warning,
     target_version_warning,
@@ -1633,12 +1634,19 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         # version-name consistency warning. The actual overlay is applied to a
         # fresh post-deactivation GET inside the mutate body below so the PATCH
         # payload reflects the deactivated state.
+        all_versions = self._list_versions(es_id)
+        # The GET's block is matched by VersionNumber: its apiName can be a stale
+        # clone name (see _find_version).
+        self._overlay_version_number = next(
+            (v.get("VersionNumber") for v in all_versions
+             if v.get("ApiName") == version_api_name), None)
         preflight_definition = self._get_expression_set_via_connect(es_id)
         self._preflight_validate_overlay_against_definition(
-            overlay, preflight_definition, version_api_name
+            overlay, preflight_definition,
+            self._find_version(preflight_definition.get("versions") or [],
+                               version_api_name).get("apiName"),
         )
         self._check_version_name_consistency(es_id, esv, preflight_definition)
-        all_versions = self._list_versions(es_id)
         label_esv = self._resolve_label_version(esv, version_api_name, all_versions)
 
         # Simulate the merge on the preflight snapshot and validate the merged
@@ -1773,14 +1781,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         return result
 
     def _find_version(self, versions: list, version_api_name: Optional[str]) -> dict:
-        if version_api_name:
-            for v in versions:
-                if v.get("apiName") == version_api_name:
-                    return v
+        """The target version block: by the VersionNumber ``_run_task`` resolved (the
+        GET's apiName can be a stale clone name), then ``apiName``; a one-version
+        definition gives its only version. Never the first of several."""
+        version = select_version(versions, version_api_name,
+                                 getattr(self, "_overlay_version_number", None))
+        if version is None:
             raise TaskOptionsError(
                 f"Version '{version_api_name}' not found in definition."
+                if version_api_name else
+                f"Definition has {len(versions)} versions; name the target version."
             )
-        return versions[0]
+        return version
 
     @staticmethod
     def _overlay_change_summary(before: dict, after: dict) -> str:

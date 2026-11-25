@@ -928,13 +928,13 @@ def validate_overlay_against_definition(
     """
     result = validate_overlay(overlay)
     versions = definition.get("versions", []) if isinstance(definition, dict) else []
-    version = None
-    if version_api_name:
-        version = next(
-            (v for v in versions if v.get("apiName") == version_api_name), None
-        )
-    elif versions:
-        version = versions[0]
+    blocks = [v for v in versions if isinstance(v, dict)]
+    # The named version; a one-version definition gives its only version (its GET
+    # apiName can be a stale clone name). Several and none named: unresolved.
+    version = next((v for v in blocks
+                    if version_api_name and v.get("apiName") == version_api_name), None)
+    if version is None and len(blocks) == 1:
+        version = blocks[0]
     if not version:
         result.error("(definition)", "could not resolve target version for overlay.")
         return result

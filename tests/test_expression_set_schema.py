@@ -2141,16 +2141,19 @@ def test_overlay_multi_version_target_and_name_guard():
     from copy import deepcopy
     from tasks.rlm_expression_set_connect import TaskOptionsError
 
-    def run(v1_name, options=None, v1_active=False):
+    def run(v1_name, options=None, v1_active=False, v2_get_api="C_V2"):
         rows = [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "IsActive": v1_active,
                  "VersionNumber": 1, "Rank": 1},
                 {"Id": "9QM2", "ApiName": "C_V2", "Name": "C V2", "IsActive": True,
                  "VersionNumber": 2, "Rank": 2}]
         get_names = {"C_V1": "C V2" if v1_name == "C V2" else "C V1", "C_V2": "C V2"}
+        # v2_get_api: the apiName the GET serves for V2 (a stale clone name when it
+        # differs from the sObject ApiName).
         definition = {"apiName": "C", "versions": [
-            {"apiName": api, "name": get_names[api], "id": rid,
+            {"apiName": get_api, "name": get_names[api], "id": rid, "versionNumber": n,
              "steps": [{"name": "S", "description": "old"}], "variables": []}
-            for api, rid in (("C_V1", "9QM1"), ("C_V2", "9QM2"))]}
+            for api, get_api, rid, n in (("C_V1", "C_V1", "9QM1", 1),
+                                         ("C_V2", v2_get_api, "9QM2", 2))]}
         seen = {"writes": [], "edited": [], "warnings": []}
         task = object.__new__(ApplyExpressionSetOverlay)
         task.logger = logging.getLogger("test_overlay_multi_version")
@@ -2210,6 +2213,10 @@ def test_overlay_multi_version_target_and_name_guard():
     check("CCI overlay refuses versions sharing a name before any write",
           clash["error"] is not None and "both carry the name" in clash["error"]
           and clash["writes"] == [])
+    stale = run("C V1", v2_get_api="C_OLD_CLONE")
+    check("CCI overlay finds the executing version by VersionNumber when the GET "
+          "serves a stale clone name",
+          stale["error"] is None and stale["edited"] == ["C_OLD_CLONE"])
     both = run("C V1", v1_active=True)
     check("CCI overlay refuses before any write while another version is active",
           both["error"] is not None and "rewrite C_V1 while active" in both["error"]

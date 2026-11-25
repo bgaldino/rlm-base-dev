@@ -123,6 +123,24 @@ def resolve_version_by_es_id(
     return chosen
 
 
+def resolve_target_row(
+    es_id: str, version_api_name: Optional[str] = None, *, target_org: str,
+    api_version: str = _client.DEFAULT_API_VERSION, logger=None,
+) -> Dict[str, Any]:
+    """The ``ExpressionSetVersion`` row a read tool works on: the one named by
+    ``version_api_name``, else the executing one (:func:`resolve_version_by_es_id`),
+    never the Connect GET's first. Pair it with ``_guards.select_version`` to find
+    the GET's block by VersionNumber. A name with no sObject row is returned as
+    ``{"ApiName": name}`` so a GET-only (stale clone) name still matches by name."""
+    if not version_api_name:
+        return resolve_version_by_es_id(es_id, target_org=target_org,
+                                        api_version=api_version, logger=logger)
+    rows = [r for r in list_versions(es_id, target_org=target_org,
+                                     api_version=api_version)
+            if r.get("ApiName") == version_api_name]
+    return rows[0] if rows else {"ApiName": version_api_name}
+
+
 def list_expression_sets(
     *, target_org: str, api_version: str = _client.DEFAULT_API_VERSION,
     developer_name: Optional[str] = None,

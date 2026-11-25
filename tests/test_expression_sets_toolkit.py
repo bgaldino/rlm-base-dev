@@ -1186,7 +1186,8 @@ def test_export_overlay_with_labels():
             exp_mod,
             resolve_expression_set_id=lambda *a, **k: "9QLx",
             resolve_definition_id_by_es_id=lambda *a, **k: "9QAx",
-            resolve_version_by_es_id=lambda *a, **k: {"ApiName": "TEST_Proc_V1"},
+            resolve_target_row=lambda *a, **k: {"ApiName": "TEST_Proc_V1",
+                                                "VersionNumber": 1},
             fetch_definition=lambda *a, **k: defn,
             Transport=lambda **k: None,
             capture_labels=lambda *a, **k: dict(all_labels),
@@ -1203,6 +1204,120 @@ def test_export_overlay_with_labels():
               written.get("labels") == {"GetPrice": "Get Price"}, written.get("labels"))
         check("export --with-labels drops non-sliced steps' labels",
               "ApplyMarkup" not in written.get("labels", {}), written.get("labels"))
+
+
+def test_version_selection_never_takes_the_first():
+    """Every tool that picks a version without being told one resolves the executing
+    version, and finds the GET's block by VersionNumber (its apiName can be a stale
+    clone name); a single version is used as is; several with nothing named refuse
+    (todo pack 172, final round)."""
+    print("test_version_selection_never_takes_the_first")
+    import io
+    from contextlib import redirect_stdout
+
+    import scripts.expression_sets.diff_expression_set as diff_mod
+    import scripts.expression_sets.trace_expression_set as trace_mod
+    from scripts.expression_sets._graph import ExpressionSetGraph
+    from scripts.expression_sets._guards import select_version
+    from scripts.expression_sets._overlay import apply_overlay
+    from scripts.expression_sets.export_expression_set_overlay import build_overlay
+
+    base = _sample_definition()["versions"][0]
+    draft = dict(deepcopy(base), apiName="P_V1", versionNumber=1,
+                 steps=[s for s in base["steps"] if s["name"] != "GetPrice"])
+    running = dict(deepcopy(base), apiName="P_OLD_CLONE", versionNumber=2)  # stale name
+    chain = dict(_sample_definition(), versions=[draft, running])  # draft first
+
+    check("select_version: by VersionNumber despite a stale apiName",
+          select_version(chain["versions"], "P_V2", 2) is chain["versions"][1])
+    check("select_version: by apiName when no number is given",
+          select_version(chain["versions"], "P_V1") is chain["versions"][0])
+    check("select_version: several versions and nothing to match gives None",
+          select_version(chain["versions"]) is None
+          and select_version(chain["versions"], "P_V9", 9) is None)
+    check("select_version: a one-version GET gives its only version, whatever its name",
+          select_version([running], "P_V2", 7) is running)
+
+    edited = apply_overlay(chain, {"updateSteps": [{"name": "GetPrice",
+                                                    "description": "x"}]},
+                           version_api_name="P_V2", version_number=2)
+    check("apply_overlay edits the block whose VersionNumber matches (stale apiName)",
+          next(s for s in edited["versions"][1]["steps"]
+               if s["name"] == "GetPrice").get("description") == "x")
+    try:
+        ExpressionSetGraph(chain, None)
+        graph_error = None
+    except ValueError as exc:
+        graph_error = exc
+    check("the graph refuses to pick a version of several when none is named",
+          graph_error is not None)
+    try:
+        build_overlay(chain, ["GetPrice"])
+        build_error = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        build_error = exc
+    check("build_overlay refuses to pick a version of several when none is named",
+          build_error is not None and "name the source version" in str(build_error))
+
+    row = {"ApiName": "P_V2", "VersionNumber": 2}  # the executing version's sObject row
+    common = dict(resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  fetch_definition=lambda *a, **k: deepcopy(chain),
+                  resolve_target_row=lambda es_id, name=None, **k: (
+                      {"ApiName": name} if name else dict(row)))
+
+    out = io.StringIO()
+    undo = _patch(trace_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = trace_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    traced = json.loads(out.getvalue() or "{}")
+    check("trace defaults to the executing version, found by VersionNumber",
+          rc == 0 and traced.get("version") == "P_OLD_CLONE", (rc, traced))
+
+    import scripts.expression_sets.describe_expression_set as desc_mod
+    out = io.StringIO()
+    undo = _patch(desc_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = desc_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    described = json.loads(out.getvalue() or "{}")
+    check("describe finds the executing version by VersionNumber despite a stale name",
+          rc == 0 and any(s.get("name") == "GetPrice"
+                          for s in described.get("steps", [])), described)
+
+    with tempfile.TemporaryDirectory() as td:
+        two_file = Path(td) / "two.json"
+        two_file.write_text(json.dumps(chain))
+        one_file = Path(td) / "one.json"
+        one_file.write_text(json.dumps(dict(chain, versions=[running])))
+        logs = []
+        undo = _patch(diff_mod, eprint=logs.append, **common)
+        try:
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc_org = diff_mod.main(["--developer-name", "P", "--target-org", "x",
+                                        "--right-file", str(one_file), "--json"])
+            org_vs_file = json.loads(out.getvalue() or "{}")
+            rc_refused = diff_mod.main(["--left-file", str(two_file),
+                                        "--right-file", str(one_file)])
+            out = io.StringIO()
+            with redirect_stdout(out):
+                rc_named = diff_mod.main(["--left-file", str(two_file), "--left-version",
+                                          "P_V1", "--right-file", str(one_file), "--json"])
+            named = json.loads(out.getvalue() or "{}")
+        finally:
+            undo()
+        check("diff: an org side uses the executing version (no difference from it)",
+              rc_org == 0 and org_vs_file.get("diff", {}).get("addedSteps") == [],
+              org_vs_file)
+        check("diff: a file side with several versions and no --left-version is refused",
+              rc_refused == 1 and any("--left-version" in m for m in logs), logs)
+        check("diff: --left-version picks that version of a multi-version file",
+              rc_named == 0 and named["diff"]["addedSteps"] == ["GetPrice"], named)
 
 
 def test_read_tools_default_to_the_executing_version():
@@ -1223,7 +1338,10 @@ def test_read_tools_default_to_the_executing_version():
     defn = dict(_sample_definition(), versions=[draft, running])  # GET order: draft first
     common = dict(resolve_expression_set_id=lambda *a, **k: "9QLx",
                   fetch_definition=lambda *a, **k: deepcopy(defn),
-                  resolve_version_by_es_id=lambda *a, **k: {"ApiName": "TEST_Proc_V2"})
+                  # The named version's row, else the executing one (V2).
+                  resolve_target_row=lambda es_id, name=None, **k: (
+                      {"ApiName": name, "VersionNumber": int(name[-1])} if name
+                      else {"ApiName": "TEST_Proc_V2", "VersionNumber": 2}))
 
     out = io.StringIO()
     undo = _patch(desc_mod, **common)
@@ -1363,14 +1481,33 @@ def test_overlay_content_verification():
         except cli.LifecycleError as exc:
             check(f"CLI rejects unexpected step case {index}", "unexpected step" in str(exc))
 
+    # Several versions and a name that matches none: refused, never the first.
+    two = {"versions": [dict(version, apiName="TEST_V1", versionNumber=1),
+                        dict(version, apiName="TEST_V2", versionNumber=2)]}
+
     class Engine:
-        def get_definition(self, _): return definition
+        def get_definition(self, _): return two
         def log(self, _): pass
     try:
-        cli._verify(Engine(), "9QLx", {}, "missing", definition)
+        cli._verify(Engine(), "9QLx", {}, "missing", two)
         check("verification refuses wrong-version fallback", False)
     except cli.LifecycleError:
         check("verification refuses wrong-version fallback", True)
+
+    # A stale clone name in the GET: the version is matched by VersionNumber.
+    stale = {"versions": [dict(version, apiName="TEST_V1", versionNumber=1),
+                          dict(version, apiName="OLD_CLONE_NAME", versionNumber=2)]}
+
+    class StaleEngine:
+        def get_definition(self, _): return stale
+        def log(self, _): pass
+    try:
+        cli._verify(StaleEngine(), "9QLx", {}, "TEST_V2", stale, version_number=2)
+        check("verification matches the GET's version by VersionNumber despite a stale "
+              "apiName", True)
+    except cli.LifecycleError as exc:
+        check("verification matches the GET's version by VersionNumber despite a stale "
+              "apiName", False, exc)
     try:
         cli._verify(Engine(), "9QLx", {"updateSteps": [changed]}, "TEST_V1",
                     {"versions": [expected]})
@@ -2696,7 +2833,7 @@ def test_overlay_multi_version():
     with tempfile.TemporaryDirectory() as td:
         overlay_path = Path(td) / "ov.json"
         overlay_path.write_text(json.dumps({"updateSteps": [{"name": "S", "description": "x"}]}))
-        targets, writes = [], []
+        targets, writes, numbers = [], [], []
 
         class _RecordingEngine(_FakeEngine):
             def ensure_resource_initialization_type(self, *a, **k):
@@ -2707,11 +2844,14 @@ def test_overlay_multi_version():
 
         def run(org_rows, payload, extra=()):
             targets.clear()
+            numbers.clear()
             writes.clear()
             logs = []
 
-            def record_apply(definition, overlay, version_api_name=None, **k):
+            def record_apply(definition, overlay, version_api_name=None,
+                             version_number=None, **k):
                 targets.append(version_api_name)
+                numbers.append(version_number)
                 return payload
 
             undo = _patch_cli(
@@ -2738,6 +2878,9 @@ def test_overlay_multi_version():
         check("overlay with no version edits the executing version, not the GET's first",
               rc == 0 and targets and set(targets) == {"C_V2"}
               and writes == ["resourceInitializationType", "run_mutation"], (rc, targets, logs))
+        check("overlay selects the GET's block by the executing version's VersionNumber "
+              "(the GET's apiName can be a stale clone name)",
+              numbers and set(numbers) == {2}, numbers)
         rc, logs = run(org("C V1", "C V2"), sent("C V1", "C V2"), ("--version", "C_V1"))
         check("an explicit non-executing version is edited, with a warning",
               rc == 0 and set(targets) == {"C_V1"}
@@ -2850,6 +2993,7 @@ def main():
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_read_tools_default_to_the_executing_version,
+               test_version_selection_never_takes_the_first,
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,

@@ -189,13 +189,23 @@ def main(argv=None) -> int:
                    "active versions in their date window; earliest created among null "
                    "Ranks), so pricing does not run the edited version.")
 
+        versions = list_versions(es_id, target_org=args.target_org,
+                                 api_version=args.api_version) or [esv]
+        # The GET's block is matched by VersionNumber: its apiName can be a stale
+        # clone name.
+        version_number = next((v.get("VersionNumber") for v in versions
+                               if v.get("ApiName") == version_api_name), None)
+
         # ---- local pre-flights (BEFORE any deactivation) ----------------- #
         preflight_def = engine.get_definition(es_id)
-        cross = validate_overlay_against_definition(overlay, preflight_def, version_api_name)
+        preflight_name = find_version(
+            preflight_def.get("versions") or [], version_api_name,
+            version_number=version_number, error_cls=OverlayError).get("apiName")
+        cross = validate_overlay_against_definition(overlay, preflight_def, preflight_name)
         if not _report(cross, "Overlay cross-check"):
             return 1
-        simulated = apply_overlay(preflight_def, overlay,
-                                  version_api_name=version_api_name, error_cls=OverlayError)
+        simulated = apply_overlay(preflight_def, overlay, version_api_name=version_api_name,
+                                  version_number=version_number, error_cls=OverlayError)
         # Validate the merge in the SAME shape it will be sent — normalized
         # (HTML-unescaped). Validating the raw GET here instead would emit an
         # HTML-entity warning for every pre-existing escaped value in the
@@ -216,8 +226,6 @@ def main(argv=None) -> int:
         # go only to the version it edits: --version can name a draft while
         # another version is active, and esv (active-first) is only the version
         # the lifecycle toggles. --no-preserve-labels opts out.
-        versions = list_versions(es_id, target_org=args.target_org,
-                                 api_version=args.api_version) or [esv]
         label_esv = esv
         if version_api_name and version_api_name != esv.get("ApiName"):
             label_esv = next((v for v in versions
@@ -261,7 +269,8 @@ def main(argv=None) -> int:
             # state; re-merge + re-validate as a last guard against drift.
             definition = engine.get_definition(es_id)
             modified = apply_overlay(definition, overlay,
-                                     version_api_name=version_api_name, error_cls=OverlayError)
+                                     version_api_name=version_api_name,
+                                     version_number=version_number, error_cls=OverlayError)
             merged = validate_definition(modified)
             if not merged.passed:
                 raise LifecycleError(
@@ -272,7 +281,8 @@ def main(argv=None) -> int:
             engine.patch_definition(es_id, patch_payload)
             engine.log(f"PATCHed expression set {es_id}.")
             if verify and not preview:
-                _verify(engine, es_id, overlay, version_api_name, patch_payload)
+                _verify(engine, es_id, overlay, version_api_name, patch_payload,
+                        version_number=version_number)
 
         engine.run_mutation(
             es_def_id=es_def_id, esv=esv, mutate=mutate,
@@ -317,14 +327,17 @@ def main(argv=None) -> int:
     return 0 if restore_ok else 1
 
 
-def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected):
+def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected,
+            version_number=None):
     """Verify the full step graph in the target version, rejecting unexpected steps."""
     definition = engine.get_definition(es_id)
     versions = definition.get("versions") or []
     if not versions:
         raise LifecycleError("Verification failed: post-PATCH definition returned no versions.")
-    version = find_version(versions, version_api_name, error_cls=LifecycleError)
+    version = find_version(versions, version_api_name, version_number=version_number,
+                           error_cls=LifecycleError)
     expected_version = find_version(expected.get("versions", []), version_api_name,
+                                    version_number=version_number,
                                     error_cls=LifecycleError)
     errors = overlay_step_content_errors(overlay, expected_version, version)
     if errors:
