@@ -595,6 +595,17 @@ def main():
               and any("typo.htm" in m for m in lg.logger.lines))
     with tempfile.TemporaryDirectory() as tmp:
         atlas_dir(tmp)
+        wg = snap(tmp, redirects=redir, mode="refresh", accept_uncovered=["gone.htm"],
+                  probe_page="connect-resources-get-catalogs")
+        try:
+            wg.run()
+        except SnapshotError:
+            pass
+        check("a whole-guide switch is not subject to the section guard, and says the flag did nothing",
+              load(tmp)["source"] == "site" and (Path(tmp) / "articles" / "gone.htm.md").is_file()
+              and any("has no effect" in m for m in wg.logger.lines))
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
         for pid in ("rlm_get_started.htm", "gone.htm"):
             (Path(tmp) / "articles" / f"{pid}.md").unlink()
         mm = load(tmp)
