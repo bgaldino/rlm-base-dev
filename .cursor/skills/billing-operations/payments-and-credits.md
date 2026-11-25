@@ -33,8 +33,10 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   Default Payment Schedule Treatment, had Grouping Source **Account** and a blank Due Date
   Window; its policy, Default Payment Schedule Policy, had `IsOrgDefault` true. Two invoices
   posted for one account with the same due date produced one Draft payment schedule, which both
-  invoices point to through `PaymentScheduleId`. That matches neither Help article: one says one
-  schedule per posted invoice, the other names Invoice as the default Grouping Source.
+  invoices point to through `PaymentScheduleId`. The grouping followed Help's Account rule; what
+  differs from Help is the treatment the setting created, Grouping Source Account where Help
+  states the default is Invoice. So the enable article's single payment schedule for each posted
+  invoice, which describes the Invoice default, did not hold on this build.
   A second payment schedule with `ReferenceEntityId` set to one of them was refused (error
   `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
   is associated with another Payment Schedule that's in Draft or Open status.").
@@ -137,8 +139,10 @@ fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry 
   (`/services/data/v68.0/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs
   `paymentId`, `invoiceId`), it applied a 1,000 payment to lines of 250, 250 and 1,200 as 250,
   250 and 500. A second 1,000 payment on the remaining 700 applied 700 and reported
-  `unappliedAmount` 0: that output is what is left of the capped amount, not of the payment,
-  which kept a balance of 300. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
+  `unappliedAmount` 0, while the payment kept a balance of 300.
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] That output is what was left
+  of the capped amount when the lines ran out of balance, not the payment's remaining balance
+  [Repo: `unpackaged/post_billing/flows/RLM_Apply_Payment_To_Invoice_Lines.flow-meta.xml`].
 
 Read-back after any of these: query the line-level junction (`PaymentLineInvoiceLine`,
 `CreditMemoLineInvoiceLine`) and confirm the header-level one (`PaymentLineInvoice`,
