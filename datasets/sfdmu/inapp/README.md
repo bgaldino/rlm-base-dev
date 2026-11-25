@@ -200,7 +200,7 @@ stale and omits the dev-guide corpus). 262 = Summer '26; 258 = Winter '26.
   (Contracts/Transaction → `ind.qocal_*`, pricing → `ind.pricing_*`, catalog →
   `ind.product_catalog_*`); a precise article is kept where the 262 match is unambiguous.
 - **2 stale dev-guide pages → 262** (`asset_lifecycle_overview` /
-  `transaction_management_overview` → `quote-and-order-capture-standard-objects`).
+  `transaction_management_overview` → `quote_and_order_capture_standard_objects`).
 - **Release pin `258 → 262`** on every help link (now 15× `release=262`, 0× `258`).
 - **"Price Management" → "Salesforce Pricing"** — the 262 capability label, applied to the
   Page record + all **visible** fields (headers/descriptions). Internal record `Name` keys
