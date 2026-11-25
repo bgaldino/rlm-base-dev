@@ -3,7 +3,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
 
     // The InvoiceLineTax query returns no rows in a test (see the first test's note), so toRows,
     // which maps each aggregate group to a row, is tested with real AggregateResult rows from
-    // Account aggregates that use the controller's three aliases.
+    // Account aggregates aliased like the controller's query.
     // Documented, not pinned (no InvoiceLineTax row can be created): the controller's
     // SUM(TaxAmount) ... GROUP BY TaxName, CurrencyIsoCode returns each total in the corporate
     // currency, but labels it with the group's CurrencyIsoCode, so a non-corporate tax line's
@@ -72,7 +72,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
             FROM Account
             WHERE Name LIKE 'RLM Tax Summary %'
             GROUP BY Name, Industry
-            ORDER BY Name DESC, Industry
+            ORDER BY Name DESC, SUM(AnnualRevenue)
         ]);
         Assert.areEqual(3, rows.size(), 'One row per group, including two groups with the same name.');
         Assert.areEqual('RLM Tax Summary B', rows[0].taxName, 'Rows keep the given order, not re-sorted.');
@@ -83,12 +83,13 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         Assert.areEqual(3, rows[1].totalTaxAmount, 'The second group\'s total.');
         Assert.areEqual('RLM Tax Summary A', rows[2].taxName, 'The third group\'s name.');
         Assert.areEqual('Banking', rows[2].currencyIsoCode, 'The third group\'s second key.');
-        Assert.areEqual(1, rows[2].totalTaxAmount, 'The third group\'s total.');
+        Assert.areEqual(1.25, rows[2].totalTaxAmount, 'The third group\'s total, fraction kept.');
     }
 
-    // With the real CurrencyIsoCode column, both accounts named B fall in one group and are summed.
+    // With the real CurrencyIsoCode column (the query's GROUP BY puts both B accounts in one group),
+    // the row carries the group's real currency code and total.
     @isTest
-    static void toRows_sumsTheAccountsOfOneGroup() {
+    static void toRows_readsTheRealCurrencyColumn() {
         String corporate = insertAccounts();
         List<RLM_InvoiceTaxSummaryController.TaxSummaryRow> rows = RLM_InvoiceTaxSummaryController.toRows([
             SELECT Name taxName, CurrencyIsoCode currencyIsoCode, SUM(AnnualRevenue) totalTaxAmount
@@ -97,7 +98,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
             GROUP BY Name, CurrencyIsoCode
         ]);
         Assert.areEqual(1, rows.size(), 'One group.');
-        Assert.areEqual(5, rows[0].totalTaxAmount, 'Two accounts summed.');
+        Assert.areEqual(5, rows[0].totalTaxAmount, 'The group\'s total.');
         Assert.areEqual(corporate, rows[0].currencyIsoCode, 'The group\'s currency.');
     }
 
@@ -122,12 +123,28 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         ]);
         Assert.areEqual(1, rows.size(), 'No account has an AccountNumber: one group.');
         Assert.isNull(rows[0].taxName, 'A null group name stays null.');
-        Assert.areEqual(6, rows[0].totalTaxAmount, 'The group\'s total.');
+        Assert.areEqual(6.25, rows[0].totalTaxAmount, 'The group\'s total.');
+    }
+
+    // A group whose amounts are all null has a null SUM: the row keeps the null total.
+    @isTest
+    static void toRows_aNullTotalIsKept() {
+        insert new Account(Name = 'RLM Tax Summary No Revenue');
+        List<RLM_InvoiceTaxSummaryController.TaxSummaryRow> rows = RLM_InvoiceTaxSummaryController.toRows([
+            SELECT Name taxName, CurrencyIsoCode currencyIsoCode, SUM(AnnualRevenue) totalTaxAmount
+            FROM Account
+            WHERE Name = 'RLM Tax Summary No Revenue'
+            GROUP BY Name, CurrencyIsoCode
+        ]);
+        Assert.areEqual(1, rows.size(), 'One group.');
+        Assert.areEqual('RLM Tax Summary No Revenue', rows[0].taxName, 'The group\'s name.');
+        Assert.isNull(rows[0].totalTaxAmount, 'A null total stays null.');
     }
 
     // An alias toRows reads but the query does not define is an error, not a blank row, so a
-    // controller query whose aliases drift from toRows fails loudly at run time. (No test runs
-    // the controller's own query with rows, so this does not catch such a drift in CI.)
+    // controller query whose aliases drift from toRows fails loudly at run time, on the first
+    // invoice with tax lines. (No test runs the controller's own query with rows, so this does
+    // not catch such a drift in CI.)
     @isTest
     static void toRows_aMissingAliasThrows() {
         insertAccounts();
@@ -148,12 +165,14 @@ private class RLM_InvoiceTaxSummaryControllerTest {
     }
 
     // Three accounts in the corporate currency, so SUM(AnnualRevenue) needs no conversion:
-    // "RLM Tax Summary A" 1 (Banking), "RLM Tax Summary B" 2 (Banking) and 3 (Energy).
+    // "RLM Tax Summary A" 1.25 (Banking), "RLM Tax Summary B" 2 (Banking) and 3 (Energy).
+    // AnnualRevenue is Currency(18, 0), but an Apex insert keeps the fraction (measured on a 264
+    // build); the 1.25 is there so a toRows that rounds the total fails.
     // Returns the corporate currency code.
     private static String insertAccounts() {
         String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
         List<Account> accounts = new List<Account>{
-            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1, Industry = 'Banking'),
+            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1.25, Industry = 'Banking'),
             new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 2, Industry = 'Banking'),
             new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 3, Industry = 'Energy')
         };
