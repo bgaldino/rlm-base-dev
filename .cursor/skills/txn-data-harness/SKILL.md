@@ -91,9 +91,11 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     flag is recorded first; any 4xx clears it; after a lost response the
     write is never re-sent, the record is looked up by its tag for a short
     wait, and the stage fails only if it has not appeared). A refused write is resent by a rerun and normally refused
-    again; a failed memo, two records under a tag, a reversed application or
-    a `NetCreditsApplied` gain other than the run's memo fail the stage;
-    recovering needs a new run.
+    again; a failed memo, two records under a tag, a reversed application, a
+    memo not applied in full (its `TotalAmountWithTax`) to this invoice, a
+    recorded memo that can no longer be read, a payment applied beyond its
+    planned target, or a `NetCreditsApplied` gain other than the run's memo
+    fail the stage; recovering needs a new run.
     The settlement block is fixed once a settlement step records it; `cli
     step --config` supplies it only to a manifest without one and is refused
     if it differs (new options = a new run). Contract:

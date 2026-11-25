@@ -714,8 +714,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     add_connection_args(verify)
     verify.add_argument("--manifest", action="append",
                         help="Run id or manifest path (repeatable); reads its "
-                             "invoice_id(s), and payment_id(s) if it has them "
-                             "(harness stages write none).")
+                             "invoice_id(s) and payment_id(s) (the settlement "
+                             "stage payment_applied writes payment_ids).")
     verify.add_argument("--latest", action="store_true",
                         help="Add the ids of the newest manifest only.")
     verify.add_argument("--invoice-ids", action="append",

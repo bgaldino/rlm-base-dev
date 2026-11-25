@@ -110,6 +110,28 @@ def _sf_error_text(proc: subprocess.CompletedProcess) -> str:
     return f"no error text ({len(proc.stdout)} characters of output, not shown)"
 
 
+def _sf_error_name(proc: subprocess.CompletedProcess) -> Optional[str]:
+    """The ``name`` of the JSON error a failed ``sf --json`` call prints, if any
+    (an ``sf:`` prefix removed). Structured field only; stdout is not shown."""
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    name = payload.get("name") if isinstance(payload, dict) else None
+    if not isinstance(name, str) or not name:
+        return None
+    return name.split(":", 1)[1] if name.startswith("sf:") else name
+
+
+# sf error names that refuse a call for good (permission, auth, alias): a retry
+# cannot succeed.
+_SF_REFUSAL_NAMES = frozenset({
+    "INSUFFICIENT_ACCESS", "INSUFFICIENT_ACCESS_OR_READONLY", "INVALID_SESSION_ID",
+    "API_DISABLED_FOR_ORG", "INVALID_TYPE", "NamedOrgNotFoundError", "NoAuthInfoFound",
+    "NoOrgFound", "AuthInfoNotFoundError", "NoDefaultEnvError", "RefreshTokenAuthError",
+})
+
+
 def resolve_auth(alias: str) -> tuple[str, str]:
     """Resolve ``(access_token, instance_url)`` for an sf alias/username.
 
@@ -436,6 +458,13 @@ class SfRestClient:
                     "Settings:Billing",
                 ) from exc
             if proc.returncode != 0:
+                # Refused for good (permission, auth, unknown alias): like a 4xx
+                # on the requests transport, return None. Anything else may
+                # clear on a retry: raise (classed transient).
+                if (_sf_error_name(proc) or "") in _SF_REFUSAL_NAMES:
+                    log.warning("BillingSettings retrieve refused: %s",
+                                _sf_error_text(proc)[:300])
+                    return None
                 raise SfApiError(
                     -1, _sf_error_text(proc)[:300], "retrieve", "Settings:Billing",
                 )

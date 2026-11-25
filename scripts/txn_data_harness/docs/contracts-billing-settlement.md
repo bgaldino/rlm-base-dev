@@ -360,7 +360,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `INVALID_TYPE` on `CurrencyType` (ISO 4217 minor units of the code, not
   cached). A transient error is never recorded as "no currency" or cached.
 - The BillingSettings retrieve on `cli` is bounded (`--wait 1` and a 90 s
-  process timeout); on a timeout or failure the level comes from this
+  process timeout). A failure whose sf JSON error `name` is a permission,
+  auth or alias error (`INSUFFICIENT_ACCESS`, `INVALID_SESSION_ID`,
+  `NamedOrgNotFoundError`, `NoAuthInfoFound`, ...) is a refusal, as a 4xx is
+  on `requests`; on a timeout or any other failure the level comes from this
   invoice's evidence, else the stage fails transient (retry later).
 
 ## Currency precision

@@ -515,9 +515,10 @@ value (null) means no payment, like leaving the key out.
   options, start a new run). A 5xx or lost response keeps it: the write is never re-sent; the stage looks the record up by its tag for a short wait (15 s) and fails only if it has not appeared; every
   resume looks it up again. A memo applied to this invoice short of its
   `TotalAmountWithTax`, a memo in `Error`, `Canceled` or `Voided`, two
-  records under a tag, an
-  application reversed in the org, or a `NetCreditsApplied` gain the memo
-  does not explain fail for good: this run cannot settle; start a new run.
+  records under a tag, an application reversed in the org, a recorded credit
+  memo that can no longer be read (deleted, or no access), a payment applied
+  beyond its planned target, or a `NetCreditsApplied` gain the memo does not
+  explain fail for good: this run cannot settle; start a new run.
 
 ## What makes an account / product a valid target
 

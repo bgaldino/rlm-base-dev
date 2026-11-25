@@ -3416,12 +3416,13 @@ def test_billing_settings_retrieve_failure_reports_the_json_error_only(monkeypat
 
     client = auth.SfRestClient(alias="a", access_token="", instance_url="https://x.example",
                                transport="cli")
-    out = json.dumps({"name": "NoOrgFound", "message": "No authorization found", "extra": "SECRET"})
+    out = json.dumps({"name": "MetadataTransferError", "message": "Retrieve failed",
+                      "extra": "SECRET"})
     monkeypatch.setattr(auth.subprocess, "run",
                         lambda *a, **kw: SimpleNamespace(returncode=1, stdout=out, stderr=""))
     with pytest.raises(SfApiError) as info:
         client.read_billing_settings_xml()
-    assert "NoOrgFound: No authorization found" in str(info.value)
+    assert "MetadataTransferError: Retrieve failed" in str(info.value)
     assert "SECRET" not in str(info.value)
 
 
@@ -3538,4 +3539,54 @@ def test_over_application_fails(billable_account) -> None:
                          settlement_baseline={"balance": 250.0, "decimal_places": 2})
     with pytest.raises(lifecycle.SettlementError,
                        match="payment 0aQ1 applied 60.0 to this invoice, more than the 50.0 planned"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+
+
+# -- review round 17 (todo 275) -------------------------------------------------
+
+
+@pytest.mark.parametrize("name, refused", [
+    ("INSUFFICIENT_ACCESS", True), ("sf:INSUFFICIENT_ACCESS", True),
+    ("NamedOrgNotFoundError", True), ("NoAuthInfoFound", True),
+    ("MetadataTransferError", False), (None, False),
+])
+def test_cli_retrieve_failure_is_classified_from_the_sf_error_name(
+    name, refused, monkeypatch, fake_client
+) -> None:
+    """A permission/auth error from `sf project retrieve` is a refusal, as an
+    HTTP 4xx is on requests: deterministic, naming --application-level. Other
+    failures stay transient."""
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.failure import classify_exception
+
+    client = auth.SfRestClient(alias="a", access_token="", instance_url="https://r.example",
+                               transport="cli")
+    out = json.dumps({"name": name, "message": "m"}) if name else "not json"
+    monkeypatch.setattr(auth.subprocess, "run",
+                        lambda *a, **kw: SimpleNamespace(returncode=1, stdout=out, stderr=""))
+    if refused:
+        assert client.read_billing_settings_xml() is None
+    else:
+        with pytest.raises(auth.SfApiError):
+            client.read_billing_settings_xml()
+    # Through the level read, with no evidence on the invoice.
+    client.query = lambda soql: [{"Id": "3tt"}] if "FROM Invoice " in soql else []
+    with pytest.raises(LifecycleError, match="--application-level") as info:
+        lifecycle.read_application_level(client, "3tt")
+    assert classify_exception(info.value) == ("deterministic" if refused else "transient")
+
+
+def test_over_payment_applied_beyond_its_target_fails(billable_account) -> None:
+    """An over-payment on a lines: subset: target (that line's balance) is
+    below the amount; applied above the target but below the amount fails."""
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 150.0})
+    org.payment_apps.append({"Id": "1AlX", "Amount": 120.0, "level": "line", "payment": "0aQ1",
+                             "invoice": "3ttINV"})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=150.0, lines=[0]))
+    m = _posted_manifest(payment_ids=["0aQ1"], payment_amount=150.0, payment_apply_target=100.0,
+                         payment_mode="over", application_level="line",
+                         settlement_baseline={"balance": 250.0, "decimal_places": 2})
+    with pytest.raises(lifecycle.SettlementError, match="applied 120.0 .* more than the 100.0 planned"):
         steps.run_payment(_settle_ctx(org, billable_account, spec), m)

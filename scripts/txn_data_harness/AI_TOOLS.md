@@ -338,8 +338,10 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   plan` warns): posting an invoice applies the account's open payment balance.
 - Only the payment stage needs the application level (the credit reads its
   rows back from both junctions). A level that could not be read fails the
-  payment stage: resume with `cli step ... --to-stage payment_applied
-  --application-level line|header` (before the target is reached). Once the payment is planned the level is
+  payment stage. After a transient settings read failure (5xx, timeout,
+  network) with no evidence on the invoice, the failure is transient: a later
+  retry may succeed. In either case `cli step ... --to-stage payment_applied
+  --application-level line|header` pins it (before the target is reached). Once the payment is planned the level is
   fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
   run with `settlement.application_level` pinned).
 - At most one credit and one payment are created per run. After a 5xx or a
@@ -347,8 +349,10 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   write again and will normally be refused again (new options need a new
   run). A memo in `Error` / `Canceled` / `Voided`, two records under a tag,
   a reversed application, a memo not applied in full (its
-  `TotalAmountWithTax`) to this invoice, or a `NetCreditsApplied` mismatch
-  mean the run cannot settle: report it; a new run is the only recovery.
+  `TotalAmountWithTax`) to this invoice, a recorded credit memo that can no
+  longer be read (deleted, or no access), a payment applied beyond its
+  planned target, or a `NetCreditsApplied` mismatch mean the run cannot
+  settle: report it; a new run is the only recovery.
 - The settlement block is fixed once recorded (when the first settlement
   step starts). A `--config` that differs from it is refused, naming the
   keys: different options need a new run. `payment_applied` refuses a block
