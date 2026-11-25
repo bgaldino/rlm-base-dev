@@ -292,8 +292,8 @@ export default class RlmInvoiceBatchRunMonitor extends NavigationMixin(Lightning
         return `${mins}m ${secs}s${isRunning ? ' (running)' : ''}`;
     }
 
-    // In the user's Salesforce time zone, like the record's own Start Time and Completion Time
-    // fields, not the browser's.
+    // In the user's Salesforce time zone (the zone the record's own Start Time and Completion Time
+    // fields use), not the browser's. The 'en-US' format is unchanged.
     fmtDateTime(val) {
         if (!val) return '—';
         return new Date(val).toLocaleString('en-US', {

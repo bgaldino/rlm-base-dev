@@ -2,7 +2,9 @@ import { createElement } from 'lwc';
 import RlmInvoiceBatchRunMonitor from 'c/rlmInvoiceBatchRunMonitor';
 import { getRecord } from 'lightning/uiRecordApi';
 
-jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'America/Los_Angeles' }), { virtual: true });
+// The user's Salesforce time zone. UTC+14 matches no realistic machine or CI zone, so the test fails
+// if the component formats in the browser's zone instead.
+jest.mock('@salesforce/i18n/timeZone', () => ({ default: 'Pacific/Kiritimati' }), { virtual: true });
 jest.mock(
     '@salesforce/apex/RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts',
     () => ({ default: jest.fn(() => Promise.resolve({ Draft: 0, Pending: 0, Posted: 1, Error: 0 })) }),
@@ -17,9 +19,9 @@ const RUN = {
         InvoiceBatchRunNumber: field('IBR-000000001'),
         Status: field('Completed'),
         StatusSubtype: field('Completed'),
-        // 09:42 UTC is 1:42 AM in Los Angeles and 4:42 PM in Bangkok.
+        // 09:42 and 09:47 UTC are 11:42 PM and 11:47 PM in the user's zone (UTC+14).
         StartTime: field('2026-11-25T09:42:00.000Z'),
-        CompletionTime: field('2026-11-25T09:42:07.000Z'),
+        CompletionTime: field('2026-11-25T09:47:07.000Z'),
         TotalInvoicesGenerated: field(1),
         TotalPostedInvoices: field(1)
     }
@@ -40,7 +42,7 @@ describe('rlmInvoiceBatchRunMonitor times', () => {
         getRecord.emit(RUN);
         await flush();
         const values = timingValues(el);
-        expect(values[0]).toBe('Nov 25, 2026, 1:42 AM');
-        expect(values[1]).toBe('Nov 25, 2026, 1:42 AM');
+        expect(values[0]).toBe('Nov 25, 2026, 11:42 PM');
+        expect(values[1]).toBe('Nov 25, 2026, 11:47 PM');
     });
 });
