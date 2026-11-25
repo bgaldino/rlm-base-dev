@@ -82,26 +82,37 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, Id> collectionPlanIdByInvoice,
         Map<Id, String> disputeReasonByInvoice
     ) {
-        List<PaymentSchedule> schedules = [
-            SELECT Id, ReferenceEntityId,
-                (SELECT Id, TargetPaymentProcessingDate
-                 FROM PaymentScheduleItems
-                 WHERE TargetPaymentProcessingDate != NULL
-                 ORDER BY TargetPaymentProcessingDate DESC
-                 LIMIT 1)
-            FROM PaymentSchedule
-            WHERE ReferenceEntityId IN :invoiceIds
-            WITH USER_MODE
-        ];
-        latestPtpByInvoice.putAll(latestPromiseDates(schedules));
+        // Each column's query is guarded on its own: a user who cannot read payment schedules or
+        // collection plans (for example, without the collections license, where the object reads
+        // as "not supported") still gets the delinquent rows, without that column.
+        try {
+            List<PaymentSchedule> schedules = [
+                SELECT Id, ReferenceEntityId,
+                    (SELECT Id, TargetPaymentProcessingDate
+                     FROM PaymentScheduleItems
+                     WHERE TargetPaymentProcessingDate != NULL
+                     ORDER BY TargetPaymentProcessingDate DESC
+                     LIMIT 1)
+                FROM PaymentSchedule
+                WHERE ReferenceEntityId IN :invoiceIds
+                WITH USER_MODE
+            ];
+            latestPtpByInvoice.putAll(latestPromiseDates(schedules));
+        } catch (QueryException e) {
+            columnSkipped('promise-to-pay date', e);
+        }
 
-        List<CollectionPlanItem> planItems = [
-            SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name
-            FROM CollectionPlanItem
-            WHERE InvoiceId IN :invoiceIds
-            WITH USER_MODE
-        ];
-        addFirstCollectionPlans(planItems, collectionPlanByInvoice, collectionPlanIdByInvoice);
+        try {
+            List<CollectionPlanItem> planItems = [
+                SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name
+                FROM CollectionPlanItem
+                WHERE InvoiceId IN :invoiceIds
+                WITH USER_MODE
+            ];
+            addFirstCollectionPlans(planItems, collectionPlanByInvoice, collectionPlanIdByInvoice);
+        } catch (QueryException e) {
+            columnSkipped('collection plan', e);
+        }
 
         // Query disputes linked to these invoices for the dispute-reason display.
         // Dispute and its InvoiceId lookup are license-gated billing extensions:
@@ -126,6 +137,11 @@ public with sharing class RLM_CollectionsConsoleController {
                 System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage());
             }
         }
+    }
+
+    // A column the user cannot read is left empty for every row; the reason goes to the debug log.
+    private static void columnSkipped(String column, Exception e) {
+        System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController ' + column + ' column skipped: ' + e.getMessage());
     }
 
     // Each invoice's latest promise-to-pay date: the newest dated item across its payment

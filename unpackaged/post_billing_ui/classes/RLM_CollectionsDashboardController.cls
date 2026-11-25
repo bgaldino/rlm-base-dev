@@ -714,11 +714,15 @@ public with sharing class RLM_CollectionsDashboardController {
         return null;
     }
 
+    // Only a Processed payment can be applied, so only its remaining balance is unapplied: a Draft,
+    // Pending, Failed or Canceled payment keeps its Balance but is not money to apply.
+    private static final String PROCESSED_PAYMENT = 'Processed';
+
     private static Decimal getUnappliedCreditsSum(Id accountId, String currencyCode) {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
-            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 ';
+            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
                 soql += ' AND (Type = \'Credit\' OR Type = \'Credit Memo\') ';
             }
@@ -756,7 +760,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
-            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 ';
+            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
                 soql += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
             }
@@ -774,7 +778,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Integer cnt = 0;
         try {
             String accFld = getPaymentAccountFieldName();
-            String soql = 'SELECT COUNT(Id) cnt FROM Payment WHERE Balance > 0 ';
+            String soql = 'SELECT COUNT(Id) cnt FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
                 soql += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
             }

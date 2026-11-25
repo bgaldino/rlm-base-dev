@@ -261,6 +261,35 @@ private class RLM_CollectionsDashboardControllerTest {
         }
     }
 
+    // Only a Processed payment's balance is unapplied: a Canceled payment keeps its Balance but is
+    // not money to apply, so it is neither counted nor summed.
+    @isTest
+    static void getDashboardCards_canceledPaymentIsNotUnapplied() {
+        Account payer = newAccount('RLM CD Canceled Payer');
+        String paymentCurrency = corporateCurrency();
+        Payment kept = new Payment(AccountId = payer.Id, Amount = 250, Status = 'Processed',
+            Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = paymentCurrency);
+        Payment canceled = new Payment(AccountId = payer.Id, Amount = 100, Status = 'Processed',
+            Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = paymentCurrency);
+        insert new List<Payment>{ kept, canceled };
+        update new Payment(Id = canceled.Id, Status = 'Canceled');
+        Payment canceledNow = [SELECT Status, Balance FROM Payment WHERE Id = :canceled.Id];
+        Assert.areEqual('Canceled', canceledNow.Status, 'PRECONDITION: the second payment is Canceled');
+        Assert.isTrue(canceledNow.Balance != null && canceledNow.Balance > 0,
+            'PRECONDITION: a Canceled payment keeps a positive balance. Got ' + canceledNow.Balance);
+        Decimal expected = [SELECT Balance FROM Payment WHERE Id = :kept.Id].Balance;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards =
+            RLM_CollectionsDashboardController.getDashboardCards(payer.Id, null);
+        Test.stopTest();
+
+        Assert.areEqual(1, cards.unappliedPaymentCount, 'Only the Processed payment is counted');
+        if (userCurrencyIsCorporate()) {
+            assertAmount(expected, cards.unappliedPaymentBalance, 'Only the Processed payment\'s balance is unapplied');
+        }
+    }
+
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
     // The memo has a total and is on the filtered account, so its Draft status is what keeps it
     // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is

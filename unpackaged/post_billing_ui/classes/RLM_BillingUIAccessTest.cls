@@ -212,6 +212,20 @@ private class RLM_BillingUIAccessTest {
         Assert.isTrue(failures.isEmpty(), 'Billing role write access missing:\n' + String.join(failures, '\n'));
     }
 
+    // Reading AssetStatePeriodAttribute in user mode (the product summary's attribute columns and
+    // its line attribute save) needs the Core CPQ User permission. Without it the platform throws
+    // ExternalObjectException from its attribute query, but only when attribute rows exist, which a
+    // unit test cannot create (READS above passes either way). Measured on a 264 org as a billing
+    // operations user: the query failed with the billing license alone, and with read on every
+    // attribute object; it succeeded once CoreCPQUser was granted, with or without the Revenue Cloud
+    // User license. So the grant is pinned here.
+    @IsTest
+    static void billingUiGrantsTheAssetAttributeReadPermission() {
+        PermissionSet billingUi = [SELECT PermissionsCoreCPQUser FROM PermissionSet WHERE Name = 'RLM_BillingUI'];
+        Assert.isTrue(billingUi.PermissionsCoreCPQUser,
+            'RLM_BillingUI grants Core CPQ User, which the user-mode asset attribute query needs');
+    }
+
     private static List<String> unreadable(Map<String, List<String>> manifest) {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();

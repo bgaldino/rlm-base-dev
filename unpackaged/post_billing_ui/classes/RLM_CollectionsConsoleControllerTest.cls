@@ -244,6 +244,43 @@ private class RLM_CollectionsConsoleControllerTest {
             'Nothing is found for an invoice with no related records');
     }
 
+    // A billing operations user without the collections license cannot read collection plan items
+    // (the object reads as "not supported"). The delinquents list still loads for that user: the
+    // collection-plan and promise-to-pay columns are left empty instead of the call failing.
+    @isTest
+    static void loadRelatedRecords_withoutCollectionsAccess_leavesThoseColumnsEmpty() {
+        User billingOnly = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        Set<Id> invoiceIds = new Set<Id>{ mintId(Invoice.SObjectType) };
+        Map<Id, Date> ptp = new Map<Id, Date>();
+        Map<Id, String> planNames = new Map<Id, String>();
+        Map<Id, Id> planIds = new Map<Id, Id>();
+        Map<Id, String> reasons = new Map<Id, String>();
+        String refused;
+        String failed;
+
+        Test.startTest();
+        System.runAs(billingOnly) {
+            try {
+                Database.query('SELECT InvoiceId FROM CollectionPlanItem LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                refused = e.getMessage();
+            }
+            try {
+                RLM_CollectionsConsoleController.loadRelatedRecords(invoiceIds, ptp, planNames, planIds, reasons);
+            } catch (Exception e) {
+                failed = e.getTypeName() + ': ' + e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(refused, 'PRECONDITION: this user cannot read CollectionPlanItem in user mode');
+        Assert.isNull(failed, 'The related lookups degrade instead of failing: ' + failed);
+        Assert.isTrue(ptp.isEmpty() && planNames.isEmpty() && planIds.isEmpty(),
+            'The promise-to-pay and collection-plan columns are left empty');
+    }
+
     // The dispute-field check is true only for a field the Dispute object has.
     @isTest
     static void disputeFieldAvailable_answersForTheDisputeObjectsOwnFields() {
