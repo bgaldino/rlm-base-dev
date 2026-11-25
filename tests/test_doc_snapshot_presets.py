@@ -324,7 +324,7 @@ def main():
                  [("264", "help", "pcm"), ("264", "help", "dro")],
                  {"output_dir": "/tmp/x"}, None))
     try:
-        cli.run_targets(releases, [("264", "dev_guide", "rlm"), ("264", "dev_guide", "industries")],
+        cli.run_targets(releases, [("264", "dev_guide", "rlm"), ("264", "dev_guide", "contracts")],
                         {"sections": ["timeline"]}, None)
         conflict = ""
     except OptionsError as exc:
@@ -354,7 +354,7 @@ def main():
     cli._snapshot_class = lambda kind: _Fake
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            rc = cli.main(["dev-guide", "--release", "264", "--guide", "industries",
+            rc = cli.main(["dev-guide", "--release", "264", "--guide", "contracts",
                            "--section", "timeline"])
     finally:
         cli._snapshot_class = real
@@ -363,7 +363,7 @@ def main():
     try:
         cli._snapshot_class = lambda kind: _Fake
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            rc = cli.main(["dev-guide", "--release", "264", "--guide", "industries",
+            rc = cli.main(["dev-guide", "--release", "264", "--guide", "contracts",
                            "--section", "Data Processing Engine, Batch Management",
                            "--section", "timeline"])
     finally:
@@ -426,7 +426,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "manifest.json").write_text(json.dumps(
             {"doc_version": "262.0", "pages": [{"page_id": "a", "status": "captured"}]}))
-        dg_opts = presets.resolve(releases, "264", "dev_guide", "industries",
+        dg_opts = presets.resolve(releases, "264", "dev_guide", "contracts",
                                   {"output_dir": tmp, "mode": "all"})
         check("preflight rejects a pinned doc_version over a captured manifest",
               raises(OptionsError, DevGuideSnapshot(dg_opts).preflight))
@@ -444,14 +444,14 @@ def main():
         try:
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
-                rc = cli.main(["run", "--release", "264", "--only", "pcm,industries"])
+                rc = cli.main(["run", "--release", "264", "--only", "pcm,contracts"])
         finally:
             cli._snapshot_class = real
         check("run: a later dev guide's version conflict exits 2 before Help runs",
               rc == cli.EXIT_USAGE and ran == [])
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "manifest.json").write_text("[]")
-        dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "industries",
+        dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "contracts",
                                               {"output_dir": tmp}))
         fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages")
         check("a non-object manifest passes preflight and is replaced by defaults",
@@ -513,7 +513,7 @@ def main():
 
     # Site-source dev-guide presets (pack 437).
     from scripts.doc_snapshot.site_guide import SiteGuideSnapshot
-    for key, sections, tail in (("rlm", False, None), ("industries_site", True, "dev-guide-industries-site")):
+    for key, sections, tail in (("rlm", False, None), ("industries", True, "dev-guide-industries")):
         opts = presets.resolve(releases, "264", "dev_guide", key)
         check(f"{key} is a site preset on API 68.0 (rlm: the corpus switched in place)",
               presets.dev_guide_source(opts) == "site" and opts["api_version"] == "68.0"
@@ -523,9 +523,8 @@ def main():
               and SiteGuideSnapshot(opts).options["mode"] == "all")
         check(f"{key} section filter is {'set' if sections else 'whole guide'}",
               bool(opts.get("sections")) == sections)
-    check("the industries and contracts presets stay on the atlas snapshotter",
-          all(cli._class_for("dev_guide", presets.resolve(releases, "264", "dev_guide", k)) is DevGuideSnapshot
-              for k in ("industries", "contracts")))
+    check("the contracts preset stays on the atlas snapshotter",
+          cli._class_for("dev_guide", presets.resolve(releases, "264", "dev_guide", "contracts")) is DevGuideSnapshot)
     check("an unknown source is a usage error",
           raises(OptionsError, presets.dev_guide_source, {"source": "pdf"}))
     check("ad hoc site run needs only --site-url",

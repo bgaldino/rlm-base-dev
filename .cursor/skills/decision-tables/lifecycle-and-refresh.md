@@ -307,7 +307,7 @@ columns are matched (per `conditionType` / `conditionCriteria`), the hit policy
 (`filterResultBy`) selects the winning row(s), and OUTPUT columns are returned to
 the calling expression set / pricing procedure. Direct runtime invocation is
 available via the Connect Decision Table **Lookup / Invocation / Execution**
-resources (`lookup_table_resources.htm`) and `ConnectApi` from Apex — out of scope
+resources (`lookup-table-resources`) and `ConnectApi` from Apex — out of scope
 for this setup/authoring toolkit; see the reference doc's *Runtime resources*
 note. The expression sets that consume a table's output are covered in
 `.cursor/skills/expression-sets/SKILL.md`.

@@ -238,23 +238,10 @@ releases:
         doc_version: "264.0"
         output_dir: docs/salesforce/264/dev-guide-contracts
       industries:
-        deliverable: industries_reference
-        doc_version: "264.0"
-        output_dir: docs/salesforce/264/dev-guide-industries
-        sections: *industries_sections
-      # SITE SOURCES (pack 437). Salesforce moved these guides off atlas onto
-      # server-rendered sites that the atlas fetch above cannot read (empty or
-      # truncated pages). `source: site` reads them over plain HTTP; `api_version`
-      # is the API the release serves, and a capture refuses when the live site
-      # shows another (the site has no version selector, so after the next GA it
-      # serves that release). `industries_site` writes beside the atlas corpus, which
-      # stays the default until its re-capture switches it. `run --release 264`
-      # includes it; use `--only` to pick presets.
-      industries_site:
         source: site
         site_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/business-rules-engine.html
         api_version: "68.0"
         probe_page: connect-resources-predictions-v2
         deliverable: industries_reference
-        output_dir: docs/salesforce/264/dev-guide-industries-site
+        output_dir: docs/salesforce/264/dev-guide-industries
         sections: *industries_sections

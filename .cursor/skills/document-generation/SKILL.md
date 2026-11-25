@@ -97,7 +97,7 @@ Deploy via `cci flow run prepare_docgen --org dev-scratch`. See
 
 ### SObject REST API (ODT Experimentation Only)
 
-> **Salesforce official warning** (from [SObject API reference](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/sforce_api_objects_omnidatatransform.htm)):
+> **Salesforce official warning** (from [SObject API reference](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/sforce-api-objects-omnidatatransform.html)):
 > *"This object and associated records are only for internal use. Don't perform
 > any create, edit, or delete operations on this object. Modifying or deleting
 > this object's records may result in errors with your implementation."*

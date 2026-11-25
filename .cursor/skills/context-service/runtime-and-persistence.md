@@ -272,7 +272,7 @@ not by chaining outbound `/connect/contexts/*` calls.
 ### The invocable-actions path (fourth surface) — same request-scope wall
 
 Context Service also ships **standard invocable actions** (Flow-/REST-invocable,
-[doc](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/context_service_invocable_actions_parent.htm)).
+[doc](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/context-service-invocable-actions-parent.html)).
 Action names on the org (`GET /services/data/v68.0/actions/standard`, filtered):
 **`buildContext`**, **`updateContextAttributes`**, **`persistContextData`**,
 **`queryContextTags`**, **`deleteContextCache`**, plus `addContextRecords` /

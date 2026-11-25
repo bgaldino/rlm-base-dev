@@ -1,7 +1,7 @@
 # Decision table and matrix lookups (`GetOutputsFromDecisionTable`, `GetOutputsFromDecisionMatrix`)
 
 > Release 264 / API v68.0. Sources: `meta_expressionsetdefinition.htm` (actionType enum,
-> `ExpressionSetDecisionTable`), `connect_requests_expression_set_version.htm` (JSON
+> `ExpressionSetDecisionTable`), `connect-requests-expression-set-version` (JSON
 > example); `ind.pricing_configure_decision_tables.htm`. Shipped XML: none (no shipped
 > procedure uses these actionTypes). Lookup parameter convention read in core's List Price parameter code [Core].
 

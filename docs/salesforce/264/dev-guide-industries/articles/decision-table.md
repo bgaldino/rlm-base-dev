@@ -1,0 +1,46 @@
+---
+page_id: decision-table
+title: Decision Table
+source_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/decision-table.html
+release: 264
+release_name: Winter '27
+deliverable: industries_reference
+api_version: 68.0
+section: Business Rules Engine
+parent_page: business-rules-engine
+legacy_page_id: decision_table.htm
+fetched_at: 2026-11-25
+---
+
+# Decision Table
+
+A decision table provides outcomes for one or more fields of a standard or custom object based on the business rules that you define. The business rules can be part of a standard or custom object, or a custom metadata type.
+
+| Required Editions |
+| --- |
+| Available in: Lightning Experience |
+| Available in: Decision Table is available with Enterprise, Unlimited, and Performance Editions with Loyalty Management or Rebate Management |
+
+Information about decision tables are contained in Tooling API objects. Tooling API objects let you interact with metadata for declarative development. For example, you can create your own version of Setup.
+
+- 
+
+**[Decision Table REST APIs](./decision-table-apis.md)**
+
+Decision table APIs are RESTful APIs that are sometimes available as Apex classes and methods. You can access Decision Table APIs using REST endpoints. These REST APIs follow similar conventions as Connect REST APIs.
+
+- 
+
+**[Decision Table Metadata API](./decision-table-metadata-api.md)**
+
+You can create, edit, and activate a decision table using a Metadata API.
+
+- 
+
+**[Decision Table Invocable Actions](./dt-actions-parent.md)**
+
+Invoke a decision table or refresh business rules for an active decision table. For more information on standard and custom invocable actions, see **[REST API Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_actions_invocable.htm)** and **[Actions Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.api_action.meta/api_action/actions_intro.htm)**.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/decision-table.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
