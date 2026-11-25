@@ -108,8 +108,11 @@ JOINED = "\n".join
 
 
 def first_query(fake):
-    """The first SOQL sent, or "" when none was, so a check records a FAIL instead of crashing."""
-    return fake.queries[0] if fake.queries else ""
+    """The first SOQL sent; with none sent, record a FAIL here (so a `not in` check cannot pass vacuously) and return ""."""
+    if not fake.queries:
+        check("a query was sent", False, "no SOQL was sent")
+        return ""
+    return fake.queries[0]
 
 print("status filters in SOQL through the versions (it is not a field of the set)")
 fake, err = run({"operation": "list", "status": "Draft"})
