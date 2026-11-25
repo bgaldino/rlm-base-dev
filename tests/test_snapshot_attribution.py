@@ -11,7 +11,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.doc_snapshot import check as check_mod, cli, guard  # noqa: E402
-from scripts.doc_snapshot._core import attribution_note, backfill_attribution  # noqa: E402
+from scripts.doc_snapshot import site_guide as sg  # noqa: E402
+from scripts.doc_snapshot._core import (  # noqa: E402
+    attribution_note, attribution_state, backfill_attribution, has_footer, is_failure)
 
 _passed = _total = 0
 
@@ -116,6 +118,105 @@ for bad_name, content, want in (("nosrc.md", "---\ntitle: T\n---\n\nbody\n", 0),
         ns = type("A", (), {"release": "999"})()
         rc, out = run_scan(root, lambda: cli.cmd_backfill_attribution(ns, {}, None))
         check(f"backfill-attribution exit {want} and prints the skipped {bad_name}", rc == want and bad_name in out)
+
+# footer detection looks at the tail, not any mention
+note = attribution_note(URL, "Salesforce developer documentation")
+check("a fresh capture's bytes count as having the footer", has_footer("x\n\n" + note + "\n"))
+check("the marker quoted mid-body is not a footer",
+      not has_footer("see > **Source attribution and limited-use note.** here\n\nmore text\n")
+      and attribution_state(FM + "Quote: " + note.splitlines()[-1] + "\n\nBody continues.\n")[0] == "missing")
+check("a footer followed by more text is not the tail", not has_footer(note + "\n\nTrailing paragraph.\n"))
+check("a BOM before the frontmatter is its own reason, and a failure",
+      attribution_state("\ufeff" + FM + BODY)[0] == "bom-frontmatter" and is_failure("bom-frontmatter")
+      and not is_failure("no-frontmatter") and is_failure("not writable: PermissionError"))
+
+# an unwritable file is skipped with a reason and the command exits 1
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+    arts.mkdir(parents=True)
+    ro = arts / "ro.md"
+    ro.write_text(FM + BODY, encoding="utf-8")
+    ro.chmod(0o444)
+    try:
+        ch, sk = backfill_attribution(arts)
+        writable = os.access(ro, os.W_OK)  # root ignores the mode: then there is nothing to test
+        if not writable:
+            check("an unwritable file is skipped as 'not writable', unchanged", ch == [] and sk == [("ro.md", "not writable: PermissionError")]
+                  and ro.read_text(encoding="utf-8") == FM + BODY)
+            ns = type("A", (), {"release": "999"})()
+            rc, out = run_scan(root, lambda: cli.cmd_backfill_attribution(ns, {}, None))
+            check("backfill-attribution exits 1 on it and names it", rc == 1 and "ro.md" in out and "not writable" in out)
+    finally:
+        ro.chmod(0o644)
+
+# check: unreadable and BOM files exit 1; an unscoped check skips the footer gate and returns 0
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+    arts.mkdir(parents=True)
+    (arts / "bad.md").write_text(FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan(None))
+    check("an unscoped check skips the footer gate and returns 0 even with a footer missing",
+          rc == 0 and "Footer check skipped" in out and "bad.md" not in out)
+    (arts / "bad.md").write_text(FM + BODY + "\n" + note + "\n", encoding="utf-8")
+    (arts / "bin.md").write_bytes(b"\xff\xfe\x00bad")
+    (arts / "nofm.md").write_text("# plain\n", encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("check never tracebacks on an unreadable file, lists it and exits 1",
+          rc == 1 and "bin.md: unreadable" in out)
+    check("check lists a file with no frontmatter like the backfill does",
+          "nofm.md: no-frontmatter" in out)
+    (arts / "bin.md").unlink()
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("no-frontmatter alone does not fail the check", rc == 0 and "nofm.md" in out)
+    (arts / "bom.md").write_text("\ufeff" + FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("a BOM file fails the check", rc == 1 and "bom.md: bom-frontmatter" in out)
+
+# --active: the release comes from the manifest; a missing manifest or key fails
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    (root / ".claude").mkdir()
+    (root / ".claude" / "skill-manifest.yml").write_text('x: 1\nsalesforce_release_active: "999"\n', encoding="utf-8")
+    check("active_release reads salesforce_release_active", check_mod.active_release(root) == "999")
+    (root / ".claude" / "skill-manifest.yml").write_text("x: 1\n", encoding="utf-8")
+    try:
+        check_mod.active_release(root)
+        check("a manifest without the key raises", False)
+    except OSError:
+        check("a manifest without the key raises", True)
+    try:
+        check_mod.active_release(root / "nowhere")
+        check("a missing manifest raises", False)
+    except OSError:
+        check("a missing manifest raises", True)
+rc, out = run_scan(Path(tempfile.gettempdir()) / "no-such-root-401", lambda: check_mod.main(["--active"]))
+check("check --active exits 1 (no traceback) when the manifest is missing", rc == 1)
+
+# the site guide's relink step runs the backfill and logs added and skipped files
+class _Log:
+    def __init__(self):
+        self.lines = []
+    info = warning = lambda self, m: self.lines.append(m)
+
+
+class _Fake:
+    logger = _Log()
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    out_dir = Path(tmp)
+    (out_dir / "articles").mkdir()
+    (out_dir / "articles" / "r.htm.md").write_text(FM + BODY, encoding="utf-8")
+    (out_dir / "articles" / "nofm.md").write_text("# plain\n", encoding="utf-8")
+    fake = _Fake()
+    sg.SiteGuideSnapshot._relink_retained(fake, out_dir, {})
+    check("_relink_retained appends the footer to a retained article",
+          has_footer((out_dir / "articles" / "r.htm.md").read_text(encoding="utf-8")))
+    check("_relink_retained logs the added count and the skipped file",
+          any("added the attribution footer to 1 retained" in m for m in fake.logger.lines)
+          and any("nofm.md (no-frontmatter)" in m for m in fake.logger.lines))
 
 print(f"\n{_passed}/{_total} passed")
 sys.exit(0 if _passed == _total else 1)

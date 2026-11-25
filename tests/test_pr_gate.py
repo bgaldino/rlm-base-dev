@@ -307,6 +307,14 @@ check("a data plan README selects the build-step check",
           ["datasets/sfdmu/qb/en-US/qb-billing/README.md"]))
 check("a non-markdown file does not select it via the suffix",
       "doc_build_steps" not in selected_names(["robot/x.robot"]))
+check("the footer gate runs `check --active` and selects on the snapshot tree, the tool and the manifest",
+      [x for x in pr_gate.CHECKS if x["name"] == "doc_snapshot_footers"][0]["cmd"]
+      == ["python", "scripts/doc_snapshot/check.py", "--active"]
+      and all("doc_snapshot_footers" in selected_names([f]) for f in (
+          "docs/salesforce/264/dev-guide/articles/x.md", "scripts/doc_snapshot/check.py",
+          ".claude/skill-manifest.yml"))
+      and "doc_snapshot_footers" not in selected_names(["robot/x.robot"]),
+      selected_names(["scripts/doc_snapshot/check.py"]))
 check("only the whole-repo checks carry a suffix selector",
       [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")]
       == ["permission_set_dependencies", "doc_build_steps"],
@@ -388,7 +396,8 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check"}
 # Words admitted only for the one check that declares them, not for CHECKS at large — the
 # scoping the global CMD_WORDS set cannot express.
-PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}, "data_plan_audit": {"audit"}}
+PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}, "data_plan_audit": {"audit"},
+                         "doc_snapshot_footers": {"--active"}}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     if w not in CMD_WORDS
                     and w not in PER_CHECK_EXTRA_WORDS.get(c["name"], set())
@@ -6137,7 +6146,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 865
+EXPECTED = 869
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -6155,7 +6164,7 @@ _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: 
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
               27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
               31: "thirty-one", 32: "thirty-two", 33: "thirty-three",
-              34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight"}
+              34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight", 39: "thirty-nine"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT

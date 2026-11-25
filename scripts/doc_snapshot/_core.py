@@ -363,16 +363,40 @@ def attribution_note(source_url: str, content: str) -> str:
 _SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
 
 
+_ATTR_MARKER = "> **Source attribution and limited-use note.**"
+_ATTR_CLOSING = "confirming Salesforce's terms."
+
+
+def has_footer(text: str) -> bool:
+    """True when the text ENDS with the attribution footer: its last block is the one-line
+    note (marker first, fixed closing last). A mention of the marker elsewhere does not count."""
+    i = text.rfind(_ATTR_MARKER)
+    if i < 0:
+        return False
+    tail = text[i:].rstrip()
+    return "\n" not in tail and tail.endswith(_ATTR_CLOSING)
+
+
+def is_failure(reason: str) -> bool:
+    """A skip reason that is a real problem (unreadable, not writable, BOM) rather than a
+    file with nothing to build a footer from ("no-frontmatter", "no-source_url")."""
+    return not reason.startswith("no-")
+
+
 def attribution_state(text: str) -> Tuple[str, str]:
     """Classify a captured article's footer: ``(state, source_url)``.
 
-    ``state`` is "ok" (footer present), "missing" (frontmatter with a source_url, no
-    footer), "no-frontmatter" or "no-source_url" (nothing to build a footer from).
-    The one definition the backfill and ``check`` share.
+    ``state`` is "ok" (ends with the footer), "missing" (frontmatter with a source_url, no
+    footer), "bom-frontmatter" (a UTF-8 BOM before the frontmatter), "no-frontmatter" or
+    "no-source_url" (nothing to build a footer from). CRLF frontmatter cannot reach this:
+    files are read in text mode, which folds CRLF to LF. The one definition the backfill
+    and ``check`` share.
     """
+    if text.startswith("\ufeff"):
+        return "bom-frontmatter", ""
     if not text.startswith("---\n"):
         return "no-frontmatter", ""
-    if "> **Source attribution" in text:
+    if has_footer(text):
         return "ok", ""
     end = text.find("\n---\n", 4)
     m = _SOURCE_URL_LINE.search(text[:end]) if end > 0 else None
