@@ -55,7 +55,10 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
-from scripts.expression_sets._guards import null_rank_reactivation_refusal  # noqa: E402
+from scripts.expression_sets._guards import (  # noqa: E402
+    null_rank_reactivation_refusal,
+    version_name_collision_refusal,
+)
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._overlay import (  # noqa: E402
     OverlayError,
@@ -111,7 +114,7 @@ def main(argv=None) -> int:
                              "the overlay's expressionSetApiName).")
     parser.add_argument("--version", dest="version_api_name",
                         help="Target version apiName (else the overlay's versionApiName, "
-                             "else the active version).")
+                             "else the executing version).")
     parser.add_argument("--no-verify", action="store_true",
                         help="Skip the post-PATCH verification re-GET.")
     parser.add_argument("--no-preserve-labels", action="store_true",
@@ -172,6 +175,17 @@ def main(argv=None) -> int:
         esv = resolve_version_by_es_id(
             es_id, target_org=args.target_org, api_version=args.api_version, logger=eprint
         )
+        # With no version named, edit the version the lifecycle cycles: the
+        # executing one. The GET lists versions lowest first, so its first entry
+        # can be a draft (measured on 264, 2026-11-25: an overlay with no version
+        # edited the draft v1 while reporting the active v2).
+        if not version_api_name:
+            version_api_name = esv.get("ApiName")
+        elif version_api_name != esv.get("ApiName"):
+            eprint(f"WARNING: the overlay edits {version_api_name}, but "
+                   f"{esv.get('ApiName')} is the executing version (highest Rank among "
+                   "active versions in their date window; earliest created among null "
+                   "Ranks), so pricing does not run the edited version.")
 
         # ---- local pre-flights (BEFORE any deactivation) ----------------- #
         preflight_def = engine.get_definition(es_id)
@@ -224,7 +238,8 @@ def main(argv=None) -> int:
                    "will NOT be restored (run relabel_expression_set.py to fix).")
 
         # Before any write: a null-Rank active version could not be reactivated.
-        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        refusal = (null_rank_reactivation_refusal(esv, activate_after)
+                   or version_name_collision_refusal(es_api_name, versions, simulated))
         if refusal:
             raise LifecycleError(refusal)
         engine.ensure_resource_initialization_type(

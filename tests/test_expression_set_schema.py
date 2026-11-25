@@ -2133,6 +2133,71 @@ def test_connect_mutation_labels_follow_requested_version():
                              (2, {"A": "A Label", "New": "New Step"})])
 
 
+def test_overlay_multi_version_target_and_name_guard():
+    # Todo pack 172, live round 3 (264, 2026-11-25): with no version named, the
+    # overlay edited the GET's first (draft) version while the lifecycle cycled the
+    # executing one; and a PATCH whose versions share a name is rejected.
+    import logging
+    from copy import deepcopy
+    from tasks.rlm_expression_set_connect import TaskOptionsError
+
+    def run(v1_name, options=None):
+        rows = [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "IsActive": False,
+                 "VersionNumber": 1, "Rank": 1},
+                {"Id": "9QM2", "ApiName": "C_V2", "Name": "C V2", "IsActive": True,
+                 "VersionNumber": 2, "Rank": 2}]
+        get_names = {"C_V1": "C V2" if v1_name == "C V2" else "C V1", "C_V2": "C V2"}
+        definition = {"apiName": "C", "versions": [
+            {"apiName": api, "name": get_names[api], "id": rid,
+             "steps": [{"name": "S", "description": "old"}], "variables": []}
+            for api, rid in (("C_V1", "9QM1"), ("C_V2", "9QM2"))]}
+        seen = {"writes": [], "edited": []}
+        task = object.__new__(ApplyExpressionSetOverlay)
+        task.logger = logging.getLogger("test_overlay_multi_version")
+        task.options = {"overlay_file": "unused", **(options or {})}
+        task._load_overlay = lambda: {"expressionSetApiName": "C",
+                                      "updateSteps": [{"name": "S", "description": "new"}]}
+        task._preflight_validate_overlay = lambda overlay: None
+        task._get_expression_set_id = lambda name: "9QLx"
+        task._get_expression_set_definition_id = lambda name: "9QAx"
+        task._resolve_version_by_es_id = lambda es_id: dict(rows[1])
+        task._get_expression_set_via_connect = lambda es_id: deepcopy(definition)
+        task._preflight_validate_overlay_against_definition = lambda *a: None
+        task._check_version_name_consistency = lambda *a: None
+        task._list_versions = lambda es_id: [dict(r) for r in rows]
+        task._preflight_validate_definition = lambda *a, **k: None
+        task._ensure_resource_initialization_type = (
+            lambda *a: seen["writes"].append("resourceInitializationType"))
+        task._run_connect_mutation = lambda **kw: seen["writes"].append("mutation")
+        real_apply = task._apply_overlay
+
+        def recording_apply(defn, overlay):
+            out = real_apply(defn, overlay)
+            seen["edited"] = [v["apiName"] for v in out["versions"]
+                              if v["steps"][0]["description"] == "new"]
+            return out
+
+        task._apply_overlay = recording_apply
+        try:
+            task._run_task()
+            seen["error"] = None
+        except TaskOptionsError as exc:
+            seen["error"] = str(exc)
+        return seen
+
+    ok = run("C V1")
+    check("CCI overlay with no version edits the executing version, not the GET's first",
+          ok["error"] is None and ok["edited"] == ["C_V2"]
+          and ok["writes"] == ["resourceInitializationType", "mutation"])
+    named = run("C V1", {"version_api_name": "C_V1"})
+    check("CCI overlay edits an explicitly named version",
+          named["error"] is None and named["edited"] == ["C_V1"])
+    clash = run("C V2")
+    check("CCI overlay refuses versions sharing a name before any write",
+          clash["error"] is not None and "both carry the name" in clash["error"]
+          and clash["writes"] == [])
+
+
 def test_import_replace_restores_every_version():
     # A replace import PATCHes the full graph, which relabels every version of
     # the set, so the task hands all of them to _run_connect_mutation.

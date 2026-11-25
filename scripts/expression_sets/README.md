@@ -257,14 +257,19 @@ v4, three active; v4 ran). Consequences:
   Rank=<n>`) works on an inactive version; on an active one it is refused ("An
   enabled Expression Set Version cannot be updated/deleted."), as is a redeploy, so
   deactivate it, set the Rank and activate it again (it does not run while off).
-
-`apply_expression_set_overlay` is not guarded by the importer rule, and it does send
-every version of the set: it PATCHes the whole definition it read with a GET. An
-overlay on a set with one active version and an inactive draft (distinct labels, in
-GET order) succeeded live on 264 (commit 68dccf7bd); the measured import failures
-were payloads built by hand (reordered versions, or shared labels). Whether an
-overlay succeeds on a chain whose versions share one label is not measured, so on
-such a set prefer `set_step_formula.py`.
+- **An overlay sends every version, so their names must differ.**
+  `apply_expression_set_overlay` (toolkit and CCI) PATCHes the whole definition its
+  GET returned. Measured on 264 (2026-11-25) on two-version sets, active and draft:
+  it succeeded when the versions were deployed with their own labels, and was
+  rejected ("An expression set version with the name … exists in this expression
+  set") when the GET returned one name for both — whether the rows' `Name` was
+  shared or had been made distinct by an sObject update, which does not change the
+  name the GET returns. Both surfaces refuse before any write when a version in the
+  PATCH has no name, shares one with another, or carries another version's `Name`.
+  With no version named, an overlay edits the executing version (it used to edit the
+  GET's first version, measured to be the draft); naming another version warns that
+  pricing does not run it. Platform version chains share one label, so expect a
+  refusal there and use `set_step_formula.py`.
 
 In the build, `activate_and_deploy_expression_sets` reads back which version each
 deployed repo procedure executes and fails when it is not the deployed one. The

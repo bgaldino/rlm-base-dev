@@ -970,8 +970,15 @@ def test_cli_restore_boundary():
             u = _patch_cli(
                 apply_mod, restore_labels_after_clobber=record_restore,
                 list_versions=lambda *a, **k: [
-                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
-                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "Name": "Test V1",
+                     "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "Name": "Test V2",
+                     "IsActive": False, "VersionNumber": 2}],
+                # The PATCH sends both versions, each under its own name.
+                apply_overlay=lambda *a, **k: {"versions": [
+                    {"apiName": "TEST_V1", "name": "Test V1", "steps": [], "variables": []},
+                    {"apiName": "TEST_V2", "name": "Test V2", "steps": [],
+                     "variables": []}]},
                 capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
             )
             rc_draft = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
@@ -2367,6 +2374,106 @@ def test_null_rank_guard():
     check("--show still reads a null-Rank version", rc == 0, logs)
 
 
+def test_overlay_multi_version():
+    """Todo pack 172, live round 3 (264, 2026-11-25): an overlay sends every version.
+    It succeeded when each version carried its own name and was rejected on the
+    version-name collision when two carried one; with no version named it edited the
+    GET's first (draft) version while the lifecycle cycled the executing one."""
+    print("test_overlay_multi_version")
+    from scripts.expression_sets._guards import version_name_collision_refusal
+    import scripts.expression_sets.apply_expression_set_overlay as apply_mod
+
+    def org(v1_name, v2_name):
+        return [{"Id": "9QM1", "ApiName": "C_V1", "Name": v1_name, "VersionNumber": 1,
+                 "IsActive": False, "Rank": 1},
+                {"Id": "9QM2", "ApiName": "C_V2", "Name": v2_name, "VersionNumber": 2,
+                 "IsActive": True, "Rank": 2}]
+
+    def sent(*names):
+        return {"versions": [{"apiName": f"C_V{i}", "name": n}
+                             for i, n in enumerate(names, start=1)]}
+
+    rows = (
+        # (label, org rows, payload, refused) -- the first three are the live rows.
+        ("a1: org Names distinct by an sObject rename, GET names shared",
+         org("C draft", "C"), sent("C", "C"), True),
+        ("a2: org Names and GET names shared", org("C", "C"), sent("C", "C"), True),
+        ("a3: each version deployed with its own label", org("C V1", "C V2"),
+         sent("C V1", "C V2"), False),
+        ("names differing only in case and spacing", org("C V1", "C V2"),
+         sent("c  v1", "C V1"), True),
+        ("a one-version payload carrying another version's Name", org("C", "C"),
+         {"versions": [{"apiName": "C_V2", "name": "C"}]}, True),
+        ("a payload version with no name", org("C V1", "C V2"),
+         {"versions": [{"apiName": "C_V1"}, {"apiName": "C_V2", "name": "C V2"}]}, True),
+        ("a single-version set", org("C", "C")[:1], sent("C"), False),
+    )
+    for label, versions, payload, refused in rows:
+        msg = version_name_collision_refusal("C", versions, payload)
+        check(f"overlay name guard: {label} -> {'refused' if refused else 'allowed'}",
+              bool(msg) == refused, msg)
+    msg = version_name_collision_refusal("C", org("C draft", "C"), sent("C", "C"))
+    check("the refusal names the collision, the measurement and nothing written",
+          "C_V1 and C_V2 both carry the name 'C'" in msg and "C_V1 carries the name 'C', "
+          "which C_V2 holds" in msg and "2026-11-25" in msg and "Nothing was written" in msg,
+          msg)
+
+    # The CLI: default target and the refusal before any write.
+    with tempfile.TemporaryDirectory() as td:
+        overlay_path = Path(td) / "ov.json"
+        overlay_path.write_text(json.dumps({"updateSteps": [{"name": "S", "description": "x"}]}))
+        targets, writes = [], []
+
+        class _RecordingEngine(_FakeEngine):
+            def ensure_resource_initialization_type(self, *a, **k):
+                writes.append("resourceInitializationType")
+
+            def run_mutation(self, *a, **k):
+                writes.append("run_mutation")
+
+        def run(org_rows, payload, extra=()):
+            targets.clear()
+            writes.clear()
+            logs = []
+
+            def record_apply(definition, overlay, version_api_name=None, **k):
+                targets.append(version_api_name)
+                return payload
+
+            undo = _patch_cli(
+                apply_mod, LifecycleEngine=_RecordingEngine, Transport=lambda **k: None,
+                eprint=logs.append,
+                resolve_expression_set_id=lambda *a, **k: "9QLx",
+                resolve_definition_id=lambda *a, **k: "9QAx",
+                resolve_version_by_es_id=lambda *a, **k: dict(org_rows[1]),
+                validate_overlay_against_definition=lambda *a, **k: _passing_validation(),
+                apply_overlay=record_apply,
+                validate_definition=lambda *a, **k: _passing_validation(),
+                normalize_html_entities=lambda p, **k: p,
+                list_versions=lambda *a, **k: [dict(r) for r in org_rows],
+                capture_labels=lambda *a, **k: {},
+            )
+            try:
+                rc = apply_mod.main(["--target-org", "x", "--expression-set", "C",
+                                     "--overlay", str(overlay_path), "--confirm", *extra])
+            finally:
+                undo()
+            return rc, logs
+
+        rc, logs = run(org("C V1", "C V2"), sent("C V1", "C V2"))
+        check("overlay with no version edits the executing version, not the GET's first",
+              rc == 0 and targets and set(targets) == {"C_V2"}
+              and writes == ["resourceInitializationType", "run_mutation"], (rc, targets, logs))
+        rc, logs = run(org("C V1", "C V2"), sent("C V1", "C V2"), ("--version", "C_V1"))
+        check("an explicit non-executing version is edited, with a warning",
+              rc == 0 and set(targets) == {"C_V1"}
+              and any("C_V2 is the executing version" in m for m in logs), (rc, logs))
+        rc, logs = run(org("C draft", "C"), sent("C", "C"))
+        check("overlay refuses colliding version names before any write",
+              rc == 1 and writes == [] and any("both carry the name" in m for m in logs),
+              (rc, writes, logs))
+
+
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""
     import subprocess
@@ -2405,7 +2512,8 @@ def main():
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
-               test_import_guards, test_set_step_formula, test_null_rank_guard):
+               test_import_guards, test_set_step_formula, test_null_rank_guard,
+               test_overlay_multi_version):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

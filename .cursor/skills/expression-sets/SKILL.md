@@ -357,6 +357,12 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   `Rank` works on an inactive version; an active one refuses every update ("An
   enabled Expression Set Version cannot be updated/deleted."), so deactivate it, set
   the Rank and activate it again (measured on 264, 2026-11-25).
+- **An overlay sends every version.** `apply_expression_set_overlay` PATCHes the
+  whole GET, which succeeded when the versions carried their own labels and was
+  rejected on a version-name collision when the GET returned one name for both
+  (measured on 264, 2026-11-25; an sObject update of `Name` does not change the name
+  the GET returns). Both surfaces refuse that before any write. With no version
+  named, the overlay edits the executing version.
 - **A whole-set import works in one shape only.** On a multi-version set both
   `import_expression_set` surfaces allow only a payload with exactly one version,
   the one the import targets, and no other version sharing its label; everything

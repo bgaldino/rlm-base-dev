@@ -84,6 +84,7 @@ from scripts.expression_sets._guards import (
     import_target_refusal,
     null_rank_delete_refusal,
     null_rank_reactivation_refusal,
+    version_name_collision_refusal,
     rank_order_warning,
     target_version_warning,
 )
@@ -1461,7 +1462,8 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         },
         "version_api_name": {
             "description": (
-                "Override version API name (default: from overlay file)."
+                "Version API name to edit (default: the overlay's versionApiName, "
+                "else the executing version)."
             ),
             "required": False,
         },
@@ -1544,10 +1546,19 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         es_def_id = self._get_expression_set_definition_id(es_api_name)
         esv = self._resolve_version_by_es_id(es_id)
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
+        # With no version named, edit the version the lifecycle cycles: the
+        # executing one. The GET lists versions lowest first, so its first entry
+        # can be a draft (measured on 264, 2026-11-25: an overlay with no version
+        # edited the draft v1 while reporting the active v2).
+        self._executing_api_name = esv.get("ApiName")
+        version_api_name = self._overlay_version_api_name(overlay)
+        if version_api_name != esv.get("ApiName"):
+            self.logger.warning(
+                "The overlay edits %s, but %s is the executing version (highest Rank "
+                "among active versions in their date window; earliest created among "
+                "null Ranks), so pricing does not run the edited version.",
+                version_api_name, esv.get("ApiName"),
+            )
 
         # Fetch the live definition up front (before any deactivation) for the
         # read-only pre-flights: the overlay/definition cross-check — which
@@ -1576,8 +1587,10 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         simulated = self._apply_overlay(preflight_definition, overlay)
         self._preflight_validate_definition(simulated, log_summary=False)
 
-        # Before any write: a null-Rank active version could not be reactivated.
-        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        # Before any write: a null-Rank active version could not be reactivated,
+        # and a PATCH whose versions' names are not unique is rejected.
+        refusal = (null_rank_reactivation_refusal(esv, activate_after)
+                   or version_name_collision_refusal(es_api_name, all_versions, simulated))
         if refusal:
             raise TaskOptionsError(refusal)
         # Align ResourceInitializationType to the value the PATCH body will
@@ -1647,6 +1660,15 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             raise TaskOptionsError(f"Overlay file not found: {path}")
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def _overlay_version_api_name(self, overlay: dict) -> Optional[str]:
+        """The version the overlay edits: the option, the overlay's versionApiName,
+        else the executing version ``_run_task`` resolved."""
+        return (
+            self.options.get("version_api_name")
+            or overlay.get("versionApiName")
+            or getattr(self, "_executing_api_name", None)
+        )
+
     # -- Overlay transformation (pure function) ------------------------
 
     def _apply_overlay(self, definition: dict, overlay: dict) -> dict:
@@ -1656,11 +1678,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         if not versions:
             raise TaskOptionsError("Expression set has no versions to modify.")
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
-        version = self._find_version(versions, version_api_name)
+        version = self._find_version(versions, self._overlay_version_api_name(overlay))
         steps = version.get("steps", [])
         variables = version.get("variables", [])
 
@@ -1938,10 +1956,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         if not versions:
             raise TaskOptionsError("Verification failed: no versions found.")
 
-        version_api_name = (
-            self.options.get("version_api_name")
-            or overlay.get("versionApiName")
-        )
+        version_api_name = self._overlay_version_api_name(overlay)
         version = self._find_version(versions, version_api_name)
         expected_version = self._find_version(expected.get("versions", []), version_api_name)
         errors = overlay_step_content_errors(overlay, expected_version, version)

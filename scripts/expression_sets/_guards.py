@@ -28,6 +28,10 @@ Two facts drive these guards (todo packs 172 and 175):
   on the version-name collision when another version shared its label, and
   succeeded when no other version did. :func:`import_target_refusal` allows only
   that last shape.
+* **What an overlay can send.** An overlay PATCH sends every version its GET
+  returned, ids kept. Measured on 264 (2026-11-25): it succeeded when every version
+  carried its own name and failed on the version-name collision when two carried
+  the same one; :func:`version_name_collision_refusal` refuses the latter.
 """
 
 from datetime import datetime, timezone
@@ -331,14 +335,9 @@ def import_target_refusal(
             + alternatives
         )
 
-    def _norm(text: Any) -> str:
-        # Whether the platform's name check ignores case or spacing is not
-        # measured; comparing loosely refuses more, never less.
-        return " ".join(str(text or "").split()).casefold()
-
     sharing = [v.get("ApiName") for v in versions
                if v.get("ApiName") != target.get("ApiName")
-               and _norm(v.get("Name")) == _norm(label)]
+               and _norm_label(v.get("Name")) == _norm_label(label)]
     if sharing:
         return (
             prefix + f"Other version(s) {', '.join(sharing)} share the label "
@@ -346,3 +345,65 @@ def import_target_refusal(
             f"a one-version payload aimed at the target ({MEASURED}). " + alternatives
         )
     return None
+
+
+def _norm_label(text: Any) -> str:
+    # Whether the platform's name check ignores case or spacing is not measured;
+    # comparing loosely refuses more, never less.
+    return " ".join(str(text or "").split()).casefold()
+
+
+def version_name_collision_refusal(
+    api_name: str,
+    versions: List[Dict[str, Any]],
+    payload: Dict[str, Any],
+) -> Optional[str]:
+    """Why a full-graph PATCH that sends every version must not run, or ``None``.
+
+    The overlay sends every version its GET returned. Measured on Release 264
+    (2026-11-25, a two-version set, active and draft): the PATCH succeeded when
+    each version carried its own name; it was rejected ("An expression set version
+    with the name … exists in this expression set") when two versions carried the
+    same name, both when the org rows' ``Name`` was shared and when it had been made
+    distinct by an sObject update, which does not change the name the Connect GET
+    returns. A one-version payload whose name another version's ``Name`` held was
+    rejected the same way. So, on a set with several versions, the PATCH is refused
+    when a payload version has no name, shares its name with another payload
+    version, or carries the ``Name`` of a different org version (compared ignoring
+    case and spacing). ``versions`` are the org's ``ExpressionSetVersion`` rows.
+    The caller refuses before any write.
+    """
+    sent = [v for v in (payload.get("versions") or []) if isinstance(v, dict)]
+    if len(versions) <= 1 and len(sent) <= 1:
+        return None
+    problems: List[str] = []
+    seen: Dict[str, str] = {}
+    for version in sent:
+        api, label = version.get("apiName"), version.get("name")
+        key = _norm_label(label)
+        if not key:
+            problems.append(f"{api} has no name in the payload")
+            continue
+        if key in seen:
+            problems.append(f"{seen[key]} and {api} both carry the name '{label}'")
+        else:
+            seen[key] = api
+        holders = [r.get("ApiName") for r in versions
+                   if r.get("ApiName") != api and _norm_label(r.get("Name")) == key]
+        if holders:
+            problems.append(f"{api} carries the name '{label}', which "
+                            f"{', '.join(holders)} holds")
+    if not problems:
+        return None
+    return (
+        f"Expression set '{api_name}' has {len(versions)} versions: "
+        f"{version_rows(versions)}. The PATCH sends every version, and the platform "
+        "rejects it when a version's name is not unique in the set (\"An expression "
+        "set version with the name … exists in this expression set\", measured on "
+        f"Release 264, 2026-11-25): {'; '.join(problems)}. Nothing was written. Give "
+        "each version its own label (a Metadata API deploy with a distinct <label> "
+        "per version gave distinct names, measured; an sObject update of "
+        "ExpressionSetVersion.Name did not change the name the GET returns, "
+        "measured), or change one version's step formula with "
+        "scripts/expression_sets/set_step_formula.py, which edits only that version."
+    )
