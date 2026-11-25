@@ -596,6 +596,18 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The engine status is logged, not mapped.');
     }
 
+    // The logged engine status is bounded to 40 characters; a missing status logs null.
+    @IsTest
+    static void getTax_unmappedEngineStatus_logIsBoundedAndNullSafe() {
+        getTaxAnswering(200, '{"code":"X","status":"' + 'S'.repeat(100) + '",'
+            + '"totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}');
+        Assert.areEqual('engine status not mapped, status left unset: ' + 'S'.repeat(40), RLM_CalculateTaxService.lastDebugDetail,
+            'A long engine status is cut to 40 characters.');
+        getTaxAnswering(200, '{"code":"X","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}');
+        Assert.areEqual('engine status not mapped, status left unset: null', RLM_CalculateTaxService.lastDebugDetail,
+            'A missing engine status logs null.');
+    }
+
     // Any date text Date.valueOf rejects is named, whatever exception it raises, and never throws.
     @IsTest
     static void invalidResponseDate_namesAnyUnreadableDateWithoutThrowing() {
