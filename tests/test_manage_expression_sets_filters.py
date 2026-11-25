@@ -110,7 +110,9 @@ JOINED = "\n".join
 def first_query(fake):
     """The first SOQL sent; with none sent, record a FAIL here (so a `not in` check cannot pass vacuously) and return ""."""
     if not fake.queries:
-        check("a query was sent", False, "no SOQL was sent")
+        if not getattr(fake, "no_query_reported", False):  # one FAIL per run, however often it is called
+            fake.no_query_reported = True
+            check("a query was sent", False, "no SOQL was sent")
         return ""
     return fake.queries[0]
 

@@ -75,7 +75,7 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": False
         },
         "version_full_names": {
-            "description": "For bulk version operations: list or comma-separated FullName values. When not set, every version under metadata_path is used.",
+            "description": "For bulk version operations: list or comma-separated FullName values. When not set, every version in the metadata_path directory is used.",
             "required": False
         },
         "metadata_path": {
