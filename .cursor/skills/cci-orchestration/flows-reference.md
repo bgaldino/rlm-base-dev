@@ -246,7 +246,7 @@ Extract rating and rates data from an org into CSV files
 12. **task** `deploy_billing_email_template_settings`  `when: project_config.project__custom__billing`
 13. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
 14. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
-   - `api_names`: `['RLM_BillingUI']`
+   - `api_names`: `['RLM_BillingUI', 'RLM_BillingUIAssetAttributes']`
 15. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 16. **flow** `prepare_billing_portal`
 17. **task** `recalculate_billing_psg_after_settings`  `when: project_config.project__custom__billing`

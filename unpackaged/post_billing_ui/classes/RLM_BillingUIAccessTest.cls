@@ -212,6 +212,52 @@ private class RLM_BillingUIAccessTest {
         Assert.isTrue(failures.isEmpty(), 'Billing role write access missing:\n' + String.join(failures, '\n'));
     }
 
+    // Reading AssetStatePeriodAttribute in user mode (the product summary's attribute columns and
+    // its line attribute save) needs the Core CPQ User permission. Without it the platform throws
+    // ExternalObjectException from its attribute query, but only when attribute rows exist, which a
+    // unit test cannot create (READS above passes either way). Measured on a 264 org as a billing
+    // operations user: the query failed with the billing license alone, and with read on every
+    // attribute object; it succeeded once CoreCPQUser was granted, with or without the Revenue Cloud
+    // User license. So the grant is pinned here.
+    // The permission is in its own set, RLM_BillingUIAssetAttributes, because it needs a license
+    // that allows it: in RLM_BillingUI it would make that set unassignable to a user without one.
+    @IsTest
+    static void assetAttributeSetGrantsCoreCpqUserAndBillingUiDoesNot() {
+        Map<String, Boolean> coreCpqBySet = new Map<String, Boolean>();
+        for (PermissionSet ps : [SELECT Name, PermissionsCoreCPQUser FROM PermissionSet
+                                 WHERE Name IN ('RLM_BillingUI', 'RLM_BillingUIAssetAttributes')]) {
+            coreCpqBySet.put(ps.Name, ps.PermissionsCoreCPQUser);
+        }
+        Assert.isTrue(coreCpqBySet.get('RLM_BillingUIAssetAttributes') == true,
+            'RLM_BillingUIAssetAttributes grants Core CPQ User, which the user-mode asset attribute query needs');
+        Assert.isTrue(coreCpqBySet.get('RLM_BillingUI') == false,
+            'RLM_BillingUI does not carry Core CPQ User, so a user whose license does not allow it can still be given the set');
+    }
+
+    // The asset attribute set is assignable with the Billing license alone: a set that carries
+    // CoreCPQUser needs a license that allows it, and the Billing license is the one billing users have.
+    @IsTest
+    static void assetAttributeSetIsAssignableWithTheBillingLicense() {
+        User u = billingUser(new List<String>{ 'RLM_BillingUIAssetAttributes' }, BILLING_ONLY);
+        Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment
+                            WHERE AssigneeId = :u.Id AND PermissionSet.Name = 'RLM_BillingUIAssetAttributes'],
+            'A Billing-licensed user can be given RLM_BillingUIAssetAttributes');
+    }
+
+    // Without a license that allows CoreCPQUser the set cannot be assigned at all, which is why the
+    // permission is kept out of RLM_BillingUI. The test user holds only the Salesforce user license.
+    @IsTest
+    static void assetAttributeSetIsNotAssignableWithoutALicenseThatAllowsIt() {
+        StatusCode refused;
+        try {
+            RLM_BillingUITestUsers.create(new List<String>{ 'RLM_BillingUIAssetAttributes' }, new List<String>());
+        } catch (DmlException e) {
+            refused = e.getDmlType(0);
+        }
+        Assert.areEqual(StatusCode.FIELD_INTEGRITY_EXCEPTION, refused,
+            'RLM_BillingUIAssetAttributes needs a license that allows Core CPQ User');
+    }
+
     private static List<String> unreadable(Map<String, List<String>> manifest) {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();

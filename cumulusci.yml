@@ -1681,9 +1681,10 @@ tasks:
       2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c),
       2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
       2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
-      the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
+      the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set
       (field access, read on the objects the Billing UI controllers query, Apex class access,
-      RunFlow). Flexipages for billing_ui are
+      RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
+      attribute query). Flexipages for billing_ui are
       deployed via assemble_and_deploy_ux (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
@@ -4271,6 +4272,7 @@ flows:
         options:
           api_names:
             - RLM_BillingUI
+            - RLM_BillingUIAssetAttributes
       15:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui

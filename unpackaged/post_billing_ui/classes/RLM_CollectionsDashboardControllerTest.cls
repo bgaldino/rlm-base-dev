@@ -261,6 +261,46 @@ private class RLM_CollectionsDashboardControllerTest {
         }
     }
 
+    // Only a Processed payment's balance is unapplied. A Canceled, Draft, Pending or Failed payment
+    // keeps its Balance but is not money to apply, so it is neither counted nor summed.
+    @isTest
+    static void getDashboardCards_onlyProcessedPaymentsAreUnapplied() {
+        Account payer = newAccount('RLM CD Status Payer');
+        String paymentCurrency = corporateCurrency();
+        Payment kept = payment(payer.Id, 250, 'Processed', paymentCurrency);
+        Payment canceled = payment(payer.Id, 100, 'Processed', paymentCurrency);
+        List<Payment> others = new List<Payment>{
+            payment(payer.Id, 30, 'Draft', paymentCurrency),
+            payment(payer.Id, 40, 'Pending', paymentCurrency),
+            payment(payer.Id, 50, 'Failed', paymentCurrency)
+        };
+        List<Payment> all = new List<Payment>{ kept, canceled };
+        all.addAll(others);
+        insert all;
+        update new Payment(Id = canceled.Id, Status = 'Canceled');
+        Set<Id> ids = new Map<Id, Payment>(all).keySet();
+        for (Payment p : [SELECT Status, Balance FROM Payment WHERE Id IN :ids AND Id != :kept.Id]) {
+            Assert.isTrue(p.Balance != null && p.Balance > 0,
+                'PRECONDITION: a ' + p.Status + ' payment keeps a positive balance. Got ' + p.Balance);
+        }
+        Decimal expected = [SELECT Balance FROM Payment WHERE Id = :kept.Id].Balance;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards =
+            RLM_CollectionsDashboardController.getDashboardCards(payer.Id, null);
+        Test.stopTest();
+
+        Assert.areEqual(1, cards.unappliedPaymentCount, 'Only the Processed payment is counted');
+        if (userCurrencyIsCorporate()) {
+            assertAmount(expected, cards.unappliedPaymentBalance, 'Only the Processed payment\'s balance is unapplied');
+        }
+    }
+
+    private static Payment payment(Id accountId, Decimal amount, String status, String currencyCode) {
+        return new Payment(AccountId = accountId, Amount = amount, Status = status,
+            Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = currencyCode);
+    }
+
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
     // The memo has a total and is on the filtered account, so its Draft status is what keeps it
     // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is
