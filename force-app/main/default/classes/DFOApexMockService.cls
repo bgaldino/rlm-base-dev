@@ -16,8 +16,8 @@ global with sharing class DFOApexMockService implements industriesintegrationfwk
     private static final String MOCK_CALLOUT_NAMED_CREDENTIAL = 'callout:BillingSystemNC';
     private final static Integer TIMEOUT = 120000; // Request time out in milliseconds
 
-    @TestVisible private static final String SIMULATE_FAILURE = 'Simulate_Failure';
-    @TestVisible private static final String FAILURE_MESSAGE = 'Internal Error - 500.';
+    private static final String SIMULATE_FAILURE = 'Simulate_Failure';
+    private static final String FAILURE_MESSAGE = 'Internal Error - 500.';
 
     private static final industriesintegrationfwk.ApexProviderAttr NAMED_CRED_ATTR = new industriesintegrationfwk.ApexProviderAttr('Named Credential',
     'Named_Credential', 'BillingSystemNC', true, 'String');
