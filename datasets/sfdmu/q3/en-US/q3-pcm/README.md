@@ -124,4 +124,6 @@ ProductCategoryProduct.csv               # 72 records
   keeps the 16 records until they are deleted by hand in Setup → Trusted URLs: `amazon_media`,
   `apjonlinecdn`, `bruneau`, `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`,
   `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
-  `shutterstock`, `unsplash`.
+  `shutterstock`, `unsplash`. Delete them only after the org's q3 `DisplayUrl` values point at the
+  placeholder (above): deleting them first makes the q3 images that still use those hosts
+  disappear, with no error (see the product-catalog-modeling skill's product-images notes).
