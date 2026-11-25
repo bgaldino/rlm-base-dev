@@ -335,6 +335,8 @@ def main():
               raises(SnapshotError, lambda: snap(tmp, mode="refresh", api_version="69.0").run())
               and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
         check("the same version is unaffected", snap(tmp, mode="all").run()["captured"] == 4)
+        # that rerun rewrites last_updated (second resolution); compare later refusals to the manifest it left
+        before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
         other = "https://developer.salesforce.com/docs/industries/common/guide/start.html"
         for label, kw in (("guide", {"site_url": other}), ("release", {"release_version": "266"}),
                           ("deliverable", {"deliverable": "other_dev_guide"})):
