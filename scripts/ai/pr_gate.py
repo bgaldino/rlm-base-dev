@@ -783,6 +783,7 @@ CHECKS = [
         # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
+                  "tasks/soql_utils.py", "tests/test_soql_option_hardening.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
                   "scripts/expression_sets/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
                   "scripts/sf_token.py",
