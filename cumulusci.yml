@@ -1683,7 +1683,7 @@ tasks:
       2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
       the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
       (field access, read on the objects the Billing UI controllers query, Apex class access,
-      RunFlow). Flexipages for billing_ui are
+      RunFlow, CoreCPQUser). Flexipages for billing_ui are
       deployed via assemble_and_deploy_ux (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
