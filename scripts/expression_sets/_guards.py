@@ -55,9 +55,11 @@ def select_version(versions: List[Any], api_name: Optional[str] = None,
     """The Connect GET's version block for a chosen ExpressionSetVersion, or None.
 
     Matched by ``versionNumber`` first (the GET carries it, while its ``apiName``
-    can be a stale clone name), then by ``apiName``; a GET with a single version
-    gives that version. With several versions and nothing to match, None: the
-    caller names the version (the executing one by default), never the first.
+    can be a stale clone name), then by ``apiName``. A GET with a single version
+    gives that version only when nothing is named; a name or number that matches
+    nothing is None, so a typo never edits or reads another version. With several
+    versions and nothing named, None: the caller names the version (the executing
+    one by default), never the first.
     """
     blocks = [v for v in (versions or []) if isinstance(v, dict)]
     if version_number is not None:
@@ -68,7 +70,8 @@ def select_version(versions: List[Any], api_name: Optional[str] = None,
         hit = next((v for v in blocks if v.get("apiName") == api_name), None)
         if hit:
             return hit
-    return blocks[0] if len(blocks) == 1 else None
+    named = api_name or version_number is not None
+    return blocks[0] if len(blocks) == 1 and not named else None
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -283,16 +286,16 @@ def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str],
     if esv.get("IsActive"):
         how = (" Give it a Rank first. No update of an active version is accepted "
                "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
-               "measured), so: deactivate it without cascading ("
+               f"{MEASURED_1125}), so: deactivate it without cascading ("
                + _activate_cmd(esv, "--deactivate --no-cascade", target_org, es_api_name)
                + "; it does not run while off), " + rank + " (an sObject update of "
-               "ExpressionSetVersion.Rank works on an inactive version, measured), and "
-               "activate it again without cascading ("
+               f"ExpressionSetVersion.Rank works on an inactive version, {MEASURED_1125}"
+               "), and activate it again without cascading ("
                + _activate_cmd(esv, "--activate --no-cascade", target_org, es_api_name)
                + ")")
     else:
         how = (" Give it a Rank first: " + rank + " (an sObject update of "
-               "ExpressionSetVersion.Rank works on an inactive version, measured)")
+               f"ExpressionSetVersion.Rank works on an inactive version, {MEASURED_1125})")
     return how + (f"; or {alternative}." if alternative else ".")
 
 
@@ -544,9 +547,10 @@ def version_name_collision_refusal(
         "rejects it when a version's name is not unique in the set (\"An expression "
         f"set version with the name … exists in this expression set\", {MEASURED_1125}"
         f"): {'; '.join(problems)}. Nothing was written. "
-        "Versions deployed with their own <label> got distinct names (measured), but "
-        "an sObject update of ExpressionSetVersion.Name did not change the name the "
-        "GET returns (measured) and a deploy over an active version is refused, so on "
+        f"Versions deployed with their own <label> got distinct names ({MEASURED_1125}), "
+        "but an sObject update of ExpressionSetVersion.Name did not change the name the "
+        f"GET returns ({MEASURED_1125}) and a deploy over an active version is refused, "
+        "so on "
         "an existing set change one version's step formula with "
         "scripts/expression_sets/set_step_formula.py, which edits only that version."
     )

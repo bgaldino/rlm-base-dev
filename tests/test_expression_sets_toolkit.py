@@ -923,7 +923,9 @@ class _FakeEngine:
         self.log = lambda *a, **k: None
 
     def get_definition(self, es_id):
-        return {"versions": [{"apiName": "TEST_V1", "steps": [], "variables": []}]}
+        return {"versions": [
+            {"apiName": "TEST_V1", "versionNumber": 1, "steps": [], "variables": []},
+            {"apiName": "TEST_V2", "versionNumber": 2, "steps": [], "variables": []}]}
 
     def ensure_resource_initialization_type(self, *a, **k):
         return None
@@ -1235,8 +1237,12 @@ def test_version_selection_never_takes_the_first():
     check("select_version: several versions and nothing to match gives None",
           select_version(chain["versions"]) is None
           and select_version(chain["versions"], "P_V9", 9) is None)
-    check("select_version: a one-version GET gives its only version, whatever its name",
-          select_version([running], "P_V2", 7) is running)
+    check("select_version: a one-version GET gives its only version when none is named",
+          select_version([running]) is running)
+    check("select_version: a name or number matching nothing is None even on a "
+          "one-version GET (a typo never edits another version)",
+          select_version([running], "P_TYPO", 7) is None
+          and select_version([running], "P_TYPO") is None)
 
     edited = apply_overlay(chain, {"updateSteps": [{"name": "GetPrice",
                                                     "description": "x"}]},
@@ -1275,6 +1281,22 @@ def test_version_selection_never_takes_the_first():
     traced = json.loads(out.getvalue() or "{}")
     check("trace defaults to the executing version, found by VersionNumber",
           rc == 0 and traced.get("version") == "P_OLD_CLONE", (rc, traced))
+
+    # A stale name that repeats the draft's apiName: still the executing block.
+    dup_chain = dict(chain, versions=[draft, dict(running, apiName="P_V1")])
+    out = io.StringIO()
+    undo = _patch(trace_mod, **dict(common,
+                                    fetch_definition=lambda *a, **k: deepcopy(dup_chain)))
+    try:
+        with redirect_stdout(out):
+            rc = trace_mod.main(["--target-org", "x", "--developer-name", "P", "--json"])
+    finally:
+        undo()
+    traced = json.loads(out.getvalue() or "{}")
+    check("trace traces the executing block by number even when its stale name repeats "
+          "the draft's",
+          rc == 0 and traced.get("steps") == len(running["steps"])
+          and len(running["steps"]) != len(draft["steps"]), (rc, traced))
 
     import scripts.expression_sets.describe_expression_set as desc_mod
     out = io.StringIO()
@@ -2801,7 +2823,7 @@ def test_overlay_multi_version():
                  "IsActive": True, "Rank": 2}]
 
     def sent(*names):
-        return {"versions": [{"apiName": f"C_V{i}", "name": n}
+        return {"versions": [{"apiName": f"C_V{i}", "name": n, "versionNumber": i}
                              for i, n in enumerate(names, start=1)]}
 
     rows = (

@@ -198,10 +198,13 @@ def main(argv=None) -> int:
 
         # ---- local pre-flights (BEFORE any deactivation) ----------------- #
         preflight_def = engine.get_definition(es_id)
-        preflight_name = find_version(
+        # Cross-check against exactly the block the run edits (found by number), so a
+        # stale GET name that repeats another version's cannot pick the wrong one.
+        preflight_block = find_version(
             preflight_def.get("versions") or [], version_api_name,
-            version_number=version_number, error_cls=OverlayError).get("apiName")
-        cross = validate_overlay_against_definition(overlay, preflight_def, preflight_name)
+            version_number=version_number, error_cls=OverlayError)
+        cross = validate_overlay_against_definition(
+            overlay, dict(preflight_def, versions=[preflight_block]))
         if not _report(cross, "Overlay cross-check"):
             return 1
         simulated = apply_overlay(preflight_def, overlay, version_api_name=version_api_name,

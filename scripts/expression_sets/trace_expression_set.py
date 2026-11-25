@@ -322,7 +322,8 @@ def main(argv=None) -> int:
         eprint(f"Error: {exc}")
         return 1
 
-    graph = ExpressionSetGraph(definition, block.get("apiName"))
+    # Exactly the block found by number (a stale name could repeat another's).
+    graph = ExpressionSetGraph(dict(definition, versions=[block]))
 
     if args.mermaid:
         title = f"{args.developer_name or es_id} — version {graph.version_api_name}"

@@ -198,10 +198,10 @@ def main(argv=None) -> int:
             raise ExpressionSetClientError(
                 f"Version '{row.get('ApiName')}' (v{row.get('VersionNumber')}) not found "
                 "in the definition.")
-        source_version = block.get("apiName")
+        # Slice exactly the block found by number (a stale name could repeat
+        # another version's), the same block the labels come from.
         overlay = build_overlay(
-            definition, args.steps,
-            version_api_name=source_version,
+            dict(definition, versions=[block]), args.steps,
             after=args.after,
             include_variables=not args.no_variables,
         )

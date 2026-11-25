@@ -2180,6 +2180,8 @@ def test_overlay_multi_version_target_and_name_guard():
             out = real_apply(defn, overlay)
             seen["edited"] = [v["apiName"] for v in out["versions"]
                               if v["steps"][0]["description"] == "new"]
+            seen["edited_numbers"] = [v.get("versionNumber") for v in out["versions"]
+                                      if v["steps"][0]["description"] == "new"]
             return out
 
         task._apply_overlay = recording_apply
@@ -2217,6 +2219,11 @@ def test_overlay_multi_version_target_and_name_guard():
     check("CCI overlay finds the executing version by VersionNumber when the GET "
           "serves a stale clone name",
           stale["error"] is None and stale["edited"] == ["C_OLD_CLONE"])
+    # A stale name that repeats another version's apiName: still the block by number.
+    dup = run("C V1", v2_get_api="C_V1")
+    check("CCI overlay edits the executing version's block by number even when its "
+          "stale GET name repeats another version's",
+          dup["error"] is None and dup["edited_numbers"] == [2])
     both = run("C V1", v1_active=True)
     check("CCI overlay refuses before any write while another version is active",
           both["error"] is not None and "rewrite C_V1 while active" in both["error"]

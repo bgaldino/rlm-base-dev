@@ -261,9 +261,9 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
 - **No tool picks the first version.** A tool given no version works on the
   executing one (`describe`, `trace`, `export_expression_set_overlay`, `diff` org
   sides, the overlay and import), and finds it in the Connect GET by
-  `VersionNumber`, since the GET can serve a stale clone `apiName`; a definition
-  with one version uses that version. A JSON file with several versions needs the
-  version named.
+  `VersionNumber`, since the GET can serve a stale clone `apiName`. A definition
+  with one version uses that version when none is named; a name that matches
+  nothing is refused. A JSON file with several versions needs the version named.
 - **A version with no Rank cannot be cycled.** Activating a version through the API
   needs a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
   scratch build, disposable sets], so a run that would end by activating a null-Rank

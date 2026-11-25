@@ -1641,10 +1641,13 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             (v.get("VersionNumber") for v in all_versions
              if v.get("ApiName") == version_api_name), None)
         preflight_definition = self._get_expression_set_via_connect(es_id)
+        # Cross-check against exactly the block the run edits (found by number), so
+        # a stale GET name that repeats another version's cannot pick the wrong one.
         self._preflight_validate_overlay_against_definition(
-            overlay, preflight_definition,
-            self._find_version(preflight_definition.get("versions") or [],
-                               version_api_name).get("apiName"),
+            overlay,
+            dict(preflight_definition, versions=[self._find_version(
+                preflight_definition.get("versions") or [], version_api_name)]),
+            None,
         )
         self._check_version_name_consistency(es_id, esv, preflight_definition)
         label_esv = self._resolve_label_version(esv, version_api_name, all_versions)
