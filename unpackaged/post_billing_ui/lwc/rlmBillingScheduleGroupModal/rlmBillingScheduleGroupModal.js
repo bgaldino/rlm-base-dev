@@ -78,7 +78,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         { label: 'GBP - British Pound', value: 'GBP' },
         { label: 'CAD - Canadian Dollar', value: 'CAD' },
         { label: 'AUD - Australian Dollar', value: 'AUD' },
-        { label: 'JPY - Japanese Yen', value: 'JPY' }
+        { label: 'JPY - Japanese Yen', value: 'JPY' },
+        { label: 'CHF - Swiss Franc', value: 'CHF' }
     ];
 
     get currencyFormatter() {
@@ -88,7 +89,8 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             GBP: { currency: 'GBP', symbol: '\u00A3', decimals: 2 },
             CAD: { currency: 'CAD', symbol: 'C$', decimals: 2 },
             AUD: { currency: 'AUD', symbol: 'A$', decimals: 2 },
-            JPY: { currency: 'JPY', symbol: '\u00A5', decimals: 0 }
+            JPY: { currency: 'JPY', symbol: '\u00A5', decimals: 0 },
+            CHF: { currency: 'CHF', symbol: 'CHF', decimals: 2 }
         };
         return formatters[this.currencyIsoCode] || formatters.USD;
     }
@@ -540,7 +542,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             const result = await createBillingScheduleGroupAndScheduleViaAPI({
                 billingAccountId: this.billingAccountId,
                 billingTermUnitPicklist: this.billingTermUnitPicklist,
-                // The modal has no billing term input; the service accepts one from other callers.
+                // The modal has no billing term input; the service accepts one, but this modal does not use it.
                 billingTerm: null,
                 billingTypePicklistTiming: this.billingTypePicklistTiming,
                 quantity: this.quantity,

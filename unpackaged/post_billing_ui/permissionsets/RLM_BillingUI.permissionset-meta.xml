@@ -303,17 +303,10 @@
         <!-- Create Billing Schedule Group reads BillingTreatment and BillingTreatmentItem fields (Status,
              LegalEntityId, IsMilestoneBilling, ExcludeFromBilling, CurrencyIsoCode, CreatedDate, BillingType,
              BillingTreatmentId): none is permissionable (measured on a 264 scratch org, 2026-11-26), so
-             object read is the whole grant and no fieldPermissions rows are possible. -->
+             object read is the whole grant and no fieldPermissions rows are possible. BillingTreatmentItem is a
+             master-detail child, so its read follows this grant; a grant on it is dropped on deploy
+             (measured, 264). -->
         <object>BillingTreatment</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>BillingTreatmentItem</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>

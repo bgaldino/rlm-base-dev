@@ -49,20 +49,28 @@ that fails the build on any >40 value), so the map and the shipped class now agr
 `rlmBillingScheduleGroupModal` calls `RLM_BillingScheduleGroupService`, which invokes the
 standard `createBillingSchedulesFromTrxn` action. The payload carries the chosen legal entity
 (`LegalEntityId__std`), the billing treatment of that entity for the chosen Advance or Arrears
-timing (`BillingTreatmentId__std`; the timing tags themselves are rejected by the action), a
+timing, or for a one-time charge the entity's treatment in the charge's currency
+(`BillingTreatmentId__std`; the timing tags themselves are rejected by the action), a
 billing term when a caller gives one (`BillingTerm__std`; the modal has no input for it) and a
 shipping city (`ShippingCity__std`: the account's `ShippingCity`, else the `billingCity` the
-caller submitted, which create requires). The treatment is the oldest active, non-milestone,
-billable one of the legal entity whose item bills in that timing and whose currency is the
-charge's; a treatment with both an Advance and an Arrears item is skipped as ambiguous. It reads
+caller submitted, which create requires). Treatments considered are the oldest-first active,
+non-milestone, billable ones of the legal entity in the charge's currency, counting only their active
+items typed Advance or Arrears (a None-type item is ignored; several items of one timing are fine).
+A recurring charge takes the first treatment whose items all bill in the chosen timing; one with
+items in both timings is ambiguous and skipped. A one-time charge offers no timing, so ambiguity
+does not apply: it takes the first treatment with an Advance item, else the first with an Arrears item
+(measured: left to itself the platform picks a treatment of the legal entity whatever the currency,
+so one is sent). It reads
 `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity` and `Account.ShippingCity` in USER_MODE.
 `RLM_BillingUI` grants object read on them; the treatment and item fields it reads (`Status`,
 `LegalEntityId`, `IsMilestoneBilling`, `ExcludeFromBilling`, `CurrencyIsoCode`, `CreatedDate`,
 `BillingType`, `BillingTreatmentId`) are not permissionable (measured on a 264 scratch org,
 2026-11-26), so no `fieldPermissions` rows exist or are possible. The service refuses, with a
-message naming timing, currency and legal entity, a charge with no such treatment (including one
-whose only treatments are in another currency); it never pairs a charge with a treatment of
-another currency.
+message naming currency and legal entity (and the timing, for a recurring charge), a charge with no
+such treatment, including one whose only treatments are in another currency, before calling the
+action; it never sends a treatment of another currency. `BillingTreatmentItem` has no grant of
+its own: it is a master-detail child, so its read follows `BillingTreatment` (a grant on it is
+dropped on deploy, measured). The modal's currency list is hardcoded (USD, EUR, GBP, CAD, AUD, JPY, CHF).
 
 ## Do not
 

@@ -19,11 +19,17 @@
  * to carry timing because BillingType__std and BillingTypePicklistTiming__std are rejected
  * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term is given. A shipping
  * address tag is required: ShippingCity__std (the account's ShippingCity, else the billingCity the
- * caller submitted, which create requires). The treatment is the oldest active, non-milestone,
- * billable one of the legal entity whose only active item bills in the chosen timing, in the
- * charge's currency; a treatment with both an Advance and an Arrears item is ambiguous and
- * skipped. When none fits, create refuses with a message instead of pairing the charge with a
- * treatment of another currency.
+ * caller submitted, which create requires).
+ *
+ * Treatment selection (one wording; chooseTreatment implements it). Candidates are the oldest-first
+ * active, non-milestone, billable treatments of the legal entity, in the charge's currency, counting
+ * only their active items typed Advance or Arrears (a None-type item is ignored; several items of the
+ * same timing are fine). Recurring charge: the first treatment whose items all bill in the chosen
+ * timing; a treatment with items in both timings is ambiguous and skipped. One-time charge (no timing
+ * is offered): timing is moot, so ambiguity does not apply; the first treatment with an Advance
+ * item, else the first with an Arrears item (measured: the platform picks a treatment of the legal
+ * entity whatever the currency, so one is sent to keep the currency right). When none fits, create
+ * refuses with a message (naming the timing only for a recurring charge) before calling the action.
  *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are
@@ -443,6 +449,7 @@ public with sharing class RLM_BillingScheduleGroupService {
                     FROM AccountBillingAccount
                     WHERE BillingAccountId = :billingAccountId
                     WITH USER_MODE
+                    ORDER BY CreatedDate, Id
                     LIMIT 1
                 ];
             } catch (QueryException qe) {
@@ -508,9 +515,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         // Timing travels only through a billing treatment (see the class header), chosen for the
-        // legal entity. A one-time charge offers no timing, so it sends none and the org default
-        // billing treatment applies.
-        Id billingTreatmentId = timing == null ? null : findBillingTreatmentId(legalEntityId, timing, currencyIsoCode);
+        // legal entity and currency. A one-time charge offers no timing (null), and gets the treatment
+        // the one-time rule picks, so it is not left to the platform's currency-blind choice.
+        Id billingTreatmentId = findBillingTreatmentId(legalEntityId, timing, currencyIsoCode);
         String shippingCity = readShippingCity(accountId, billingCity);
 
         String transactionDetailsJson = buildTransactionDetailsJson(
@@ -598,7 +605,7 @@ public with sharing class RLM_BillingScheduleGroupService {
             'TotalPrice__std' => totalPrice
         };
 
-        // Only what the caller chose is sent; an omitted treatment or term leaves the org default.
+        // The chosen treatment is sent when there is one; an omitted term leaves the org default.
         if (billingTreatmentId != null) {
             transactionData.put('BillingTreatmentId__std', billingTreatmentId);
         }
@@ -622,13 +629,14 @@ public with sharing class RLM_BillingScheduleGroupService {
     // (create already requires it to be non-blank).
     @TestVisible
     private static String readShippingCity(Id accountId, String billingCity) {
-        String city;
+        List<Account> accounts;
         try {
-            city = [SELECT ShippingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].ShippingCity;
+            accounts = [SELECT ShippingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
         } catch (QueryException qe) {
             throw readRefused('the account', qe);
         }
-        return resolveShippingCity(city, billingCity);
+        // An account hidden by sharing returns no row: that is not a refused read, so fall back.
+        return resolveShippingCity(accounts.isEmpty() ? null : accounts[0].ShippingCity, billingCity);
     }
 
     @TestVisible
@@ -639,9 +647,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         return billingCity;
     }
 
-    // The active, non-milestone, billable billing treatment of the legal entity that bills in the
-    // chosen timing and the charge's currency (a treatment item's BillingType is where Advance or
-    // Arrears lives). Both timings are read so a treatment carrying both can be skipped as ambiguous.
+    // The billing treatment of the legal entity chosen by the rule in the class header, in the charge's
+    // currency (a treatment item's BillingType is where Advance or Arrears lives). timing is null for a
+    // one-time charge. Both timings are read so a recurring charge can skip a treatment carrying both.
     @TestVisible
     private static Id findBillingTreatmentId(Id legalEntityId, String timing, String currencyIsoCode) {
         List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
@@ -671,18 +679,32 @@ public with sharing class RLM_BillingScheduleGroupService {
         Id chosen = chooseTreatment(candidates, timing, currencyIsoCode);
         if (chosen == null) {
             throw RLM_AuraErrors.handled(
-                'No active billing treatment bills in ' + timing + ' in ' + currencyIsoCode
-                + ' for legal entity ' + legalEntityName(legalEntityId) + '. '
+                'No active billing treatment bills ' + (timing == null ? '' : 'in ' + timing + ' ')
+                + 'in ' + currencyIsoCode + ' for ' + legalEntityPhrase(legalEntityId) + '. '
                 + 'Choose another legal entity, timing or currency, or ask your administrator to set one up.');
         }
         return chosen;
     }
 
-    // The first candidate, in the order given (the query's: oldest treatment first), whose items all
-    // bill in the timing and whose currency is the charge's; null when none. A treatment with items in
-    // both timings is skipped, since either timing would match it.
+    // Applies the selection rule in the class header to candidates in the order given (the query's:
+    // oldest treatment first); null when none fits. A null timing is a one-time charge.
     @TestVisible
     private static Id chooseTreatment(List<TreatmentCandidate> candidates, String timing, String currencyIsoCode) {
+        if (timing == null) {
+            Id firstArrears = null;
+            for (TreatmentCandidate c : candidates) {
+                if (c.currencyIsoCode != currencyIsoCode) {
+                    continue;
+                }
+                if (c.billingType == TIMING_ADVANCE) {
+                    return c.treatmentId;
+                }
+                if (firstArrears == null) {
+                    firstArrears = c.treatmentId;
+                }
+            }
+            return firstArrears;
+        }
         Map<Id, String> firstType = new Map<Id, String>();
         Set<Id> bothTimings = new Set<Id>();
         List<Id> inTiming = new List<Id>();
@@ -708,12 +730,13 @@ public with sharing class RLM_BillingScheduleGroupService {
         return null;
     }
 
-    // For the refusal message only; falls back to a generic phrase when the name cannot be read.
-    private static String legalEntityName(Id legalEntityId) {
+    // For the refusal message only: "legal entity <name>", or "the selected legal entity" when the
+    // name cannot be read.
+    private static String legalEntityPhrase(Id legalEntityId) {
         try {
             List<LegalEntity> les = [SELECT Name FROM LegalEntity WHERE Id = :legalEntityId WITH USER_MODE LIMIT 1];
             if (!les.isEmpty()) {
-                return les[0].Name;
+                return 'legal entity ' + les[0].Name;
             }
         } catch (QueryException qe) {
             System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService legal entity name not readable: ' + qe.getMessage());

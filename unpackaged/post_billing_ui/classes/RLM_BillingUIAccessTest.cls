@@ -34,7 +34,9 @@ private class RLM_BillingUIAccessTest {
 
     private static final Map<String, List<String>> READS = new Map<String, List<String>>{
         'Account' => new List<String>{ 'Name', 'BillingCity', 'ShippingCity', 'CurrencyIsoCode' },
-        // The create path picks the treatment for a legal entity and timing (Create Billing Schedule Group).
+        // The create path picks the treatment for a legal entity, timing and currency (Create Billing Schedule Group).
+        // BillingTreatmentItem has no object grant of its own: it is a master-detail child, so its read follows
+        // BillingTreatment (the grant is dropped on deploy); this reads it to prove that.
         'BillingTreatment' => new List<String>{ 'Status', 'LegalEntityId', 'IsMilestoneBilling', 'ExcludeFromBilling', 'CurrencyIsoCode' },
         'BillingTreatmentItem' => new List<String>{ 'BillingTreatmentId', 'BillingType', 'Status', 'BillingTreatment.CurrencyIsoCode', 'BillingTreatment.CreatedDate' },
         'Contact' => new List<String>{ 'Name' },
@@ -110,7 +112,9 @@ private class RLM_BillingUIAccessTest {
             'DebitGeneralLedgerAccountId', 'ReferenceTransactionRecordId', 'CreatedDate'
         },
         'GeneralLedgerAccount' => new List<String>{ 'Name' },
-        // Multi-currency orgs only; checked only there.
+        // The module requires a multi-currency org. The check below skips CurrencyType and the
+        // CurrencyIsoCode fields only so a run on a non-multi-currency org does not fail on fields
+        // that do not exist there; that is not single-currency support.
         'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive', 'ConversionRate' }
     };
 
