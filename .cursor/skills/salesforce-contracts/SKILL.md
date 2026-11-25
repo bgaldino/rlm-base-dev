@@ -109,7 +109,9 @@ template prerequisites. See `data-model-and-queries.md` for SOQL patterns.
 ### Trace what Foundations seeds
 
 Inspect `datasets/sfdmu/qb/en-US/qb-clm/README.md` and `export.json`. The shipped
-plan upserts clause category configurations and state model records; the
+plan upserts clause category configurations, state definitions and state action
+definitions; state values, transitions and transition actions are insert-only
+(`skipExistingRecords`, so an edited CSV row never updates an existing org row). The
 `insert_clm_clause_sets` step then inserts the missing document clause sets (always
 as Draft, leaving existing sets alone). Neither provides complete clause bodies or
 document templates.
