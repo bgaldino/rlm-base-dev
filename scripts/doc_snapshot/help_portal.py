@@ -295,7 +295,8 @@ class HelpSnapshot:
             self.options,
             "release_version", "release_name", "area",
             "root_article_id", "article_id_prefix",
-            list_options=("accept_shrinkage",),
+            # accept_uncovered is a dev-guide flag that `run` passes to every target.
+            list_options=("accept_shrinkage", "accept_uncovered"),
         )
         # YAML reads `root_article_id: 123` or `output_dir: 266` as a number.
         for name in ("release_version", "release_name", "area", "root_article_id",

@@ -258,8 +258,12 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   slugs (a TOC match on the usual rename, else the atlas URL's redirect); ids
   neither finds are the keys of `unmapped_legacy_ids`. They are never guessed.
   The old ids come from an atlas manifest in the same `output_dir`; switching that
-  directory to the site needs a whole-guide `--mode refresh` (no `--section`), and the
-  old articles are not deleted (remove them in the same change). The shrinkage guard
+  directory to the site needs `--mode refresh`, and the old articles are not deleted
+  (remove them in the same change). A sectioned switch (a preset with `sections`) is
+  allowed only when the selected sections cover every captured atlas article: each such
+  id must map to a slug inside them. Otherwise it is refused before anything is saved,
+  listing the uncovered ids; `--accept-uncovered ID[,ID...]` (on `dev-guide` and `run`,
+  atlas ids with `.htm`) names the ones that may stay on atlas as the only copy. The shrinkage guard
   compares a replacement with the page's atlas article (the longest, if several ids map
   to it) when no site article exists. An atlas article is listed under
   `superseded_files` only once its page has an article; a refused or failed replacement,
@@ -364,6 +368,7 @@ applied in this order, and each step overrides the one before:
 | `concurrency` | 4 (Help), 6 (dev guide) | Parallel fetches. |
 | `wait_ms` | 3000 | Time to wait after each page load. |
 | `accept_shrinkage` | none | Page ids, as a flag only (`--accept-shrinkage ID[,ID...]`), never a preset value. See **Capture guard**. |
+| `accept_uncovered` | none | Dev guides only. Atlas page ids a sectioned atlas-to-site switch may leave on atlas (`--accept-uncovered ID[,ID...]`), never a preset value. See **Legacy ids**. |
 
 **`help`:**
 

@@ -56,9 +56,11 @@ HELP_FLAGS = sorted(
 )
 DEV_GUIDE_FLAGS = sorted(
     presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"} | presets_mod.CLI_ONLY_OPTIONS
+    | presets_mod.DEV_GUIDE_CLI_ONLY
 )
 RUN_FLAGS = sorted(
     presets_mod.SHARED_OPTIONS - {"output_dir"} | presets_mod.CLI_ONLY_OPTIONS
+    | presets_mod.DEV_GUIDE_CLI_ONLY
 )
 # Flags that describe one specific target, meaningless across several presets:
 # argparse dest -> the flag as the user types it.
@@ -118,6 +120,14 @@ def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
                         "the prior text's characters and under 60%% of its words (a "
                         "real upstream cut you have checked); named pages only, and "
                         "a not-found page is never written")
+
+
+def _add_site_switch_flags(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--accept-uncovered", dest="accept_uncovered", type=_id_list,
+                   metavar="ID[,ID...]",
+                   help="atlas page ids (with .htm) a sectioned atlas-to-site switch may leave on "
+                        "atlas because the site's section has no page replacing them; any other "
+                        "captured atlas page without a replacement refuses the switch")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -182,12 +192,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--batch-delay-ms", dest="batch_delay_ms", type=int)
     p.add_argument("--follow-links", dest="follow_links", metavar="BOOL")
     p.add_argument("--max-pages", dest="max_pages", type=int)
+    _add_site_switch_flags(p)
 
     p = sub.add_parser("run", help="snapshot every preset of a release")
     p.add_argument("--release", required=True)
     p.add_argument("--only", help="comma-separated preset keys to include "
                                   "(matched across help and dev_guide presets)")
     _add_common_run_flags(p)
+    _add_site_switch_flags(p)
 
     p = sub.add_parser("check", help="lint the Help corpus for glued-link artifacts")
     p.add_argument("--release", help="only this release's corpus")

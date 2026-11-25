@@ -573,8 +573,65 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp:
         atlas_dir(tmp)
-        check("a switch limited to a section is refused (it would drop the other pages' records)",
-              raises(OptionsError, snap(tmp, redirects=redir, mode="refresh", sections=["deployment-overview"]).preflight))
+        sect = dict(redirects=redir, mode="refresh", sections=["deployment-overview"],
+                    probe_page="connect-resources-get-catalogs")
+        before = (Path(tmp) / "manifest.json").read_text(encoding="utf-8")
+        check("a sectioned switch passes preflight (the guard needs the site's pages)",
+              snap(tmp, **sect).preflight() is None)
+        check("a sectioned switch is refused when captured atlas pages have no replacement in the section",
+              raises(OptionsError, snap(tmp, **sect).run)
+              and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        try:
+            snap(tmp, **sect).run()
+            refusal = ""
+        except OptionsError as exc:
+            refusal = str(exc)
+        check("the refusal marks an id that is not on the site, and not one that merely falls outside the section",
+              "gone.htm (not on the site)" in refusal and "rlm_get_started.htm" in refusal
+              and "rlm_get_started.htm (not on the site)" not in refusal)
+        check("accepting only some of the uncovered pages still refuses",
+              raises(OptionsError, snap(tmp, accept_uncovered=["gone.htm"], **sect).run)
+              and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        out = {k: (G + "connect-resources-get-catalogs.html" if k.endswith("odd_old_name.htm") else v)
+               for k, v in redir.items()}
+        check("a redirect that lands outside the section counts as uncovered",
+              raises(OptionsError, snap(tmp, **dict(sect, redirects=out), accept_uncovered=["gone.htm", "rlm_get_started.htm"]).run)
+              and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        lg = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm", "typo.htm"], **sect)
+        lg.run()
+        ms = load(tmp)
+        check("naming every uncovered page switches the section and keeps their atlas files",
+              ms["source"] == "site" and [p["page_id"] for p in ms["pages"]] == ["deployment-considerations", "deployment-overview"]
+              and (Path(tmp) / "articles" / "gone.htm.md").is_file()
+              and (Path(tmp) / "articles" / "rlm_get_started.htm.md").read_text(encoding="utf-8") == big
+              and ms["superseded_files"] == ["articles/odd_old_name.htm.md"]
+              and any("typo.htm" in m for m in lg.logger.lines))
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
+        wg = snap(tmp, redirects=redir, mode="refresh", accept_uncovered=["gone.htm"],
+                  probe_page="connect-resources-get-catalogs")
+        try:
+            wg.run()
+        except SnapshotError:
+            pass
+        check("a whole-guide switch is not subject to the section guard, and says the flag did nothing",
+              load(tmp)["source"] == "site" and (Path(tmp) / "articles" / "gone.htm.md").is_file()
+              and any("has no effect" in m for m in wg.logger.lines))
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
+        for pid in ("rlm_get_started.htm", "gone.htm"):
+            (Path(tmp) / "articles" / f"{pid}.md").unlink()
+        mm = load(tmp)
+        mm["pages"] = [p for p in mm["pages"] if p["page_id"] == "odd_old_name.htm"] + [
+            {"page_id": "rlm_get_started.htm", "status": "error"}, {"page_id": "gone.htm", "status": "error"}]
+        (Path(tmp) / "manifest.json").write_text(json.dumps(mm), encoding="utf-8")
+        snap(tmp, redirects=redir, mode="refresh", sections=["deployment-overview"],
+             probe_page="connect-resources-get-catalogs").run()
+        check("a sectioned switch needs no acceptance when the section replaces every captured atlas page",
+              load(tmp)["source"] == "site"
+              and load(tmp)["legacy_id_map"].get("odd_old_name.htm") == "deployment-overview")
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
         try:
             snap(tmp, redirects=redir, mode="refresh").run()
         except SnapshotError:
