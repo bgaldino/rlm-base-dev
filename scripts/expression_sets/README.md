@@ -267,8 +267,10 @@ traced]; the one construction measured (264, 2026-11-24: lower version deleted,
 read-back reports any VersionNumber mismatch either way. It runs only after a
 successful deploy, and that step cannot be re-run in place on a built org: the
 redeploy is refused ("You can't update the expression set version … because it's
-active", measured on 264, 2026-11-24). When it fails, resume the build after the
-step and, if the wrong version executes, edit or re-rank the executing version;
+active", measured on 264, 2026-11-24). When it fails, run the build's remaining
+steps after it, in order (`cci flow info prepare_rlm_org` lists them; a build-harness
+`resume` restarts at the failed step, so it would re-run it) and, if the wrong
+version executes, edit or re-rank the executing version;
 `-o version_check warn` is for future builds on an org whose chain is known.
 
 ### Discovery Procedure "Unused" Outputs

@@ -238,9 +238,10 @@ check("version_check warn logs the finding as a warning and continues",
       any(level == "WARNING" and "does not execute" in m for level, m in warning.logs)
       and not any(level == "ERROR" for level, _ in warning.logs), warning.logs)
 
-check("the failure names the remedies: resume after the step, edit or re-rank the "
-      "executing version, and warn only for future builds",
-      raised is not None and "harness.py resume" in str(raised)
+check("the failure names the remedies: run the steps after this one (a harness resume "
+      "would re-run it), edit or re-rank the executing version, warn only for future builds",
+      raised is not None and "run the prepare_rlm_org steps after this one" in str(raised)
+      and "resume restarts at the failed step" in str(raised)
       and "re-rank the executing version" in str(raised)
       and "set_step_formula.py" in str(raised)
       and "activate_and_deploy_expression_sets__version_check warn" in str(raised)

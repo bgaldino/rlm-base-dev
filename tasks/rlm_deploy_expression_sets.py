@@ -37,8 +37,10 @@ Draft to Active). Nothing here re-implements either.
 a deployed change that pricing does not run produces plausible prices with no other
 signal, so the build is stopped at the step that found it. The deploy has already
 been applied by then, and re-running this step on a built org is refused by the
-platform (measured), so the remedy is to resume the build after this step and, if the
-wrong version executes, edit or re-rank the executing version
+platform (measured), so the remedy is to run the build's remaining steps after this one,
+in order (``cci flow info prepare_rlm_org`` lists them; a build-harness ``resume``
+restarts at the failed step, so it would re-run it) and, if
+the wrong version executes, edit or re-rank the executing version
 (``scripts/expression_sets/set_step_formula.py`` for formulas). ``warn`` logs the same
 findings and lets the build go on; set it for future builds on an org whose version
 chain is known and accepted.
@@ -266,9 +268,10 @@ class DeployExpressionSets(Deploy):
         if self.version_check == "fail":
             raise CumulusCIFailure(
                 message + " The deploy has already been applied, and re-running this "
-                "step on a built org is refused by the platform, so do not re-run it: "
-                "resume the build after this step (python scripts/build_harness/harness.py "
-                "resume, or run the remaining prepare_rlm_org steps), and if the wrong "
+                "step on a built org is refused by the platform, so do not re-run it "
+                "(a build-harness resume restarts at the failed step, so it would re-run "
+                "it too): run the prepare_rlm_org steps after this one, in order (cci "
+                "flow info prepare_rlm_org lists them), and if the wrong "
                 "version executes, edit or re-rank the executing version "
                 "(scripts/expression_sets/set_step_formula.py for formulas). "
                 "version_check warn is for future builds on an org whose version chain "

@@ -369,10 +369,12 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   deploy loudly instead. The read-back reports any mismatch either way. When it fails,
   the deploy is already applied and the step cannot be re-run on a built org (the
   redeploy is refused: "You can't update the expression set version … because it's
-  active", measured on 264, 2026-11-24): resume the build after the step and, if the
-  wrong version executes, edit or re-rank the executing version (`set_step_formula.py`
-  for formulas). `-o version_check warn` is for future builds on an org whose chain is
-  known. The read-back is not a way to audit a built org. Toolkit detail:
+  active", measured on 264, 2026-11-24): run the build's remaining steps after it, in
+  order (`cci flow info prepare_rlm_org` lists them; a build-harness `resume` restarts
+  at the failed step, so it would re-run it) and, if the wrong version executes, edit
+  or re-rank the executing version (`set_step_formula.py` for formulas).
+  `-o version_check warn` is for future builds on an org whose chain is known. The
+  read-back is not a way to audit a built org. Toolkit detail:
   `scripts/expression_sets/README.md` → *Multi-version expression sets*.
 
 ## Overlays & dependency capture (summary)
