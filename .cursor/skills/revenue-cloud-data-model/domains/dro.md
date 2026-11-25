@@ -30,7 +30,7 @@ deployment prerequisites, targeted updates, and supported in-flight handling.
 |--------|---------|-----------|
 | `FulfillmentPlan` | Runtime plan instance for an order | — |
 | `FulfillmentStep` | Runtime step within a plan | FulfillmentPlanId, FulfillmentStepDefinitionId, AssignedToId (polymorphic, self-ref) |
-| `FulfillmentStepDependency` | Runtime dependency between steps | FulfillmentStepId, DependsOnStepId, DependencyDefinitionId |
+| `FulfillmentStepDependency` | Runtime dependency between steps | DependentStepId, DependsOnStepId, DependencyDefinitionId |
 | `FulfillmentStepSource` | Source records for a step | — |
 | `SalesTransactionFulfillReq` | Fulfillment request from a sales transaction | PlanId, PreviousRequestId (self-ref) |
 | `SalesTrxnDeleteEvent` | Deletion events from transactions | — |
@@ -56,8 +56,9 @@ FulfillmentStepDefinition ← FulfillmentStepDependencyDef (FulfillmentStepDefin
 FulfillmentStepDefinitionGroup ← ProductFulfillmentScenario (FulfillmentStepDefnGroupId)
 Product2 ← ProductFulfillmentDecompRule (SourceProductId, DestinationProductId)
 FulfillmentPlan ← FulfillmentStep (FulfillmentPlanId)
-FulfillmentStep ← FulfillmentStepDependency (FulfillmentStepId, DependsOnStepId)
-FulfillmentAsset ← AssetFulfillmentDecomp (FulfillmentSourceAssetId, FulfillmentTargetAssetId)
+FulfillmentStep ← FulfillmentStepDependency (DependentStepId, DependsOnStepId)
+Asset, FulfillmentAsset ← AssetFulfillmentDecomp (FulfillmentSourceAssetId, polymorphic)
+FulfillmentAsset ← AssetFulfillmentDecomp (FulfillmentTargetAssetId)
 FulfillmentAsset ← FulfillmentAssetRelationship (AssociatedFulfillmentAssetId)
 ValTfrmGrp ← ProductDecompEnrichmentRule (ListMappingGroupId)
 SalesTransactionFulfillReq ← SalesTransactionFulfillReq (PreviousRequestId, self-ref)

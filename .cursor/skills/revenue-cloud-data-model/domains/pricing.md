@@ -8,7 +8,7 @@
 |--------|---------|-----------|
 | `PriceBook2` | Price book container | Name, IsStandard, CostBookId |
 | `PriceBookEntry` | Price for a product+selling model in a price book | Product2Id, Pricebook2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode |
-| `PriceAdjustmentSchedule` | Named adjustment schedule (discounts, surcharges) | Name, Pricebook2Id, CurrencyIsoCode, AdjustmentType |
+| `PriceAdjustmentSchedule` | Named adjustment schedule (discounts, surcharges) | Name, Pricebook2Id, CurrencyIsoCode, ScheduleType, AdjustmentMethod |
 | `PriceAdjustmentTier` | Tier within an adjustment schedule | PriceAdjustmentScheduleId, Product2Id, ProductSellingModelId, LowerBound, UpperBound |
 | `ProductSellingModel` | Selling model type (One-Time, Evergreen, Term-Defined) | Name, SellingModelType |
 | `ProductSellingModelOption` | Binds selling model to product with proration | Product2Id, ProductSellingModelId, ProrationPolicyId |
@@ -58,10 +58,10 @@ PriceAdjustmentSchedule ← PriceAdjustmentTier (PriceAdjustmentScheduleId)
 Product2 ← PriceAdjustmentTier (Product2Id)
 ProductSellingModel ← PriceAdjustmentTier (ProductSellingModelId)
 AttributeBasedAdjRule ← AttributeAdjustmentCondition (AttributeBasedAdjRuleId)
-ProductSellingModel ← AttributeBasedAdjustment (Lookup)
+ProductSellingModel ← AttributeBasedAdjustment (ProductSellingModelId)
 ProductSellingModel ← PriceBookEntryDerivedPrice (ProductSellingModelId)
 ProductSellingModel ← ProductSellingModelOption (ProductSellingModelId)
-ProrationPolicy ← ProcedurePlanCriterion (ProrationPolicyId)
+ProcedurePlanOption ← ProcedurePlanCriterion (ProcedurePlanOptionId)
 ```
 
 ## SFDMU Data Plan: `qb-pricing`

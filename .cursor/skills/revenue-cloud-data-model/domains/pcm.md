@@ -8,7 +8,7 @@
 |--------|---------|-----------|
 | `Product2` | Central product record | StockKeepingUnit (unique), Name, ProductCode, Family, IsActive, BillingPolicyId, TaxPolicyId, UsageModelType |
 | `AttributePicklist` | Picklist definitions for product attributes | Name, UnitOfMeasureId |
-| `AttributePicklistValue` | Individual values within an attribute picklist | Code, AttributePicklistId |
+| `AttributePicklistValue` | Individual values within an attribute picklist | Code, PicklistId |
 | `AttributeDefinition` | Defines a product attribute (size, color, etc.) | Code, PicklistId, UnitOfMeasureId, DataType |
 | `AttributeCategory` | Groups attributes into categories | Code, Name |
 | `AttributeCategoryAttribute` | Junction: category ↔ attribute | AttributeCategoryId, AttributeDefinitionId |
@@ -48,9 +48,9 @@ AttributePicklist ← AttributeDefinition (PicklistId)
 AttributeDefinition ← ProductAttributeDefinition (AttributeDefinitionId)
 Product2 ← ProductAttributeDefinition (Product2Id)
 Product2 ← ProductCategoryProduct (ProductId)
-Product2 ← ProductRelatedComponent (ParentProductId, ProductId)
+Product2 ← ProductRelatedComponent (ParentProductId, ChildProductId)
 Product2 ← ProductSellingModelOption (Product2Id)
-ProductCategory ← ProductCategoryProduct (CategoryId)
+ProductCategory ← ProductCategoryProduct (ProductCategoryId)
 ProductRelationshipType ← ProductRelatedComponent (ProductRelationshipTypeId)
 ProductSellingModel ← ProductSellingModelOption (ProductSellingModelId)
 ProductClassification ← ProductClassification (ParentProductClassificationId, self-ref hierarchy)
@@ -59,7 +59,7 @@ ProductCategory ← ProductCategory (ParentCategoryId, self-ref hierarchy)
 
 ## SFDMU Data Plan: `qb-pcm`
 
-28 objects loaded in dependency order. Root plan — must load before all other QB plans.
+28 object entries (28 distinct objects) in dependency order (2 override objects are `excluded` and not processed). Root plan — must load before all other QB plans.
 
 Key ordering: Attributes → Classifications → Products → SellingModels → Bundles → Catalogs → Qualifications
 

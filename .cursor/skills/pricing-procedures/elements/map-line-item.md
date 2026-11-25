@@ -122,6 +122,7 @@ In XML the JSON string is entity-escaped; the Connect API needs it unescaped.
 | Procedure | Step | What it does |
 |---|---|---|
 | RLM_DefaultPricingProcedure | `MapLineItemtoDetailItem` | 18 sections, line to detail; also shipped as overlay `map_line_item.json` (`afterStep` Pricing Setting) |
+| Negotiable_Rating_Procedure (rating, not pricing) | `MapLineItem` (seq 5, top level) | 4 sections from `UsageRatableSummary` to `UsageRatableSummaryCommitmentAssetRate__std` (commitment asset, summary id, commit rate, rating decision date); the standard 18-section set and Advanced Detail Line Pricing do not apply to it |
 
 PRM DISTI, Recalc and Price Distribution procedures do not ship it. Discover with
 `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`

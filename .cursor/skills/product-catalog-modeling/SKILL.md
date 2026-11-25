@@ -23,14 +23,16 @@ Every product claim carries its source: `[Help: <article>]` (the 264 Help snapsh
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
 names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded), `[Platform behaviour, traced]` (a platform mechanism read in source), `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established), or `[inferred]` (a conclusion drawn from the cited evidence that no source states and no measurement shows). A claim only a live
-org could settle is marked **Open — needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
+org could settle is marked **Open, needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
 ## Quick Rules
 
-1. **Decide `Product2.Type` first: it cannot be changed after the record is created.**
-   A wrong simple/bundle choice means a new product. Static ↔ configurable *can* be
-   converted later. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_conversion_of_bundle_products.htm`]
+1. **Decide `Product2.Type` first: Help says it cannot be changed after the record is created.**
+   Plan a wrong simple/bundle choice as a new product. One 264 article describes an exception, a
+   one-way conversion of a product with no type to Bundle that "can't be undone"; that conflict is
+   **Open, needs live verification** (see [Bundles and cardinality](bundles-and-cardinality.md)).
+   Static ↔ configurable *can* be converted later. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_conversion_of_bundle_products.htm`; `ind.product_catalog_convert_simple_product_to_bundle_product.htm`]
 2. **A choice is an attribute unless something downstream needs it as its own record**:
    its own SKU, price book entry, selling model, asset, fulfillment line or category
    placement. Then it is a product (a component, or a variation product). See
@@ -58,7 +60,9 @@ drop the `.md` suffix of the snapshot file name.
 ## DO NOT
 
 - **DO NOT** model a simple product you may later need to bundle (or the reverse) on the
-  assumption you can flip `Type`. You cannot. [Help: `ind.product_catalog_create_simple_products.htm`]
+  assumption you can flip `Type`. Help says you cannot; one 264 article describes a one-way
+  blank-type-to-Bundle conversion, which is **Open, needs live verification**.
+  [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_convert_simple_product_to_bundle_product.htm`]
 - **DO NOT** put a configurable product (simple or bundle) under a **static** bundle, or
   leave a static bundle's child without *Include component by default*. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
 - **DO NOT** set *Require this component* or *Include component by default* on a
@@ -135,7 +139,7 @@ the detail and the sources.
 | Choice | Pick A when… / B when… | Trade-off | Downstream effect |
 |---|---|---|---|
 | **Attribute vs product** | Attribute: a characteristic on one SKU, same price book entry. Product: needs its own SKU, price, selling model, asset or fulfillment line. | Attributes keep the catalog small; each product adds price book entries, options and category rows. | Attribute → no PBE of its own; priced through attribute-based adjustments (classification-bound) or a pricing element that reads attributes, such as a price adjustment matrix or a formula. Product → own PBE per selling model, own asset line. [Help: `ind.product_catalog_plan_catalog.htm`; `ind.pricing_attribute_based_pricing_limits.htm`; `ind.pricing_add_the_price_adjustment_matrix_element.htm`; `ind.pricing_formula_based_pricing.htm`] |
-| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Irreversible. | Only bundles carry groups, components and bundle-based adjustments. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_products.htm`; `ind.pricing_create_bundle_based_adjustments.htm`] |
+| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Treat as irreversible (Open: one 264 article describes a one-way blank-type-to-Bundle conversion). | Only bundles carry groups, components and bundle-based adjustments. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_products.htm`; `ind.pricing_create_bundle_based_adjustments.htm`] |
 | **Static vs configurable** (`ConfigureDuringSale`) | Static: a fixed kit. Configurable: the buyer picks parts, quantities or attributes. | Static needs a default for every attribute and fixes children and quantities; configurable needs groups and cardinality. Convertible both ways, but configurable → static also requires no classification components. | Configurable: buyers add or remove children, change quantities and attributes at run time, and CML bundle rules apply. Static: buyers change none of that at run time. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm`; Repo: `constraint-models/SKILL.md`] |
 | **Component vs classification component** | One product per row vs "any product based on classification X". | Classification components grow with the catalog but cannot be required or default. | New products of that classification appear in the bundle without a PCM edit; CML sync does not pick up class membership changes. [Help: `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_configurator_sync_cml_and_pcm.htm`] |
 | **Cardinality** (group min/max, component min/max/default, required, default) | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md). | Tight cardinality blocks bad quotes but can make a bundle unconfigurable. | CML sync carries component cardinality and *required*; group changes do not sync. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`] |
@@ -305,7 +309,7 @@ configure one bundle in the configurator with rules on.
 
 ## Open questions
 
-Every item marked **Open — needs live verification** or `[Open: …]` in this skill and its sub-files:
+Every item marked **Open, needs live verification** or `[Open: …]` in this skill and its sub-files:
 
 - **`IsSoldOnlyWithOtherProds`.** Whether search hides it for the flag or for the missing
   category, and what amend, renew or cancel do when its companion is removed. See

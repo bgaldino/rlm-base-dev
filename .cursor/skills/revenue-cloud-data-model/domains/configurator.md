@@ -6,16 +6,19 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `ProductConfigurationFlow` | Flow controlling product configuration UX | ReferenceObjectId (→ Product2) |
-| `ProductConfigurationRule` | Validation/constraint rules for product configuration | ProductId (→ Product2) |
-| `ProductConfigFlowAssignment` | Assigns configuration flows to contexts | — |
-| `ExpressionSetConstraintObj` | Links expression set constraints to configuration | — |
+| `ProductConfigurationFlow` | Flow controlling product configuration UX | Name, FlowIdentifier, IsDefault, Status, Type, SubType, Sequence, AssociatedProcessId (polymorphic: ApexClass, FlowRecord, GenAiFunctionDefinition, IntegrationProviderDef, OmniScriptConfig) |
+| `ProductConfigurationRule` | Validation/constraint rules for product configuration | Name, ApiName, RuleType, RuleSubType, Status, ProcessScope, Sequence |
+| `ProductConfigFlowAssignment` | Assigns a configuration flow to a product or classification | ProductConfigurationFlowId, ProductId, ProductClassificationId, AssignmentType |
+| `ExpressionSetConstraintObj` | Links an expression set (constraint model) to a product, classification, component group or component | ExpressionSetId, ReferenceObjectId (polymorphic: Product2, ProductClassification, ProductComponentGroup, ProductRelatedComponent), ConstraintModelTag, ConstraintModelTagType |
 
 ## Key Relationships
 
 ```
-Product2 ← ProductConfigurationFlow (ReferenceObjectId)
-Product2 ← ProductConfigurationRule (ProductId)
+ProductConfigurationFlow ← ProductConfigFlowAssignment (ProductConfigurationFlowId)
+Product2 ← ProductConfigFlowAssignment (ProductId)
+ProductClassification ← ProductConfigFlowAssignment (ProductClassificationId)
+ExpressionSet ← ExpressionSetConstraintObj (ExpressionSetId)
+Product2 ← ExpressionSetConstraintObj (ReferenceObjectId, polymorphic)
 ```
 
 ## Notes

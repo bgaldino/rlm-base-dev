@@ -43,7 +43,7 @@ points at itself.
 Rules:
 
 - Make every category code unique across **all levels and all catalogs** the plan loads.
-  Whether the platform enforces uniqueness per org or per catalog is **Open — needs live verification**;
+  Whether the platform enforces uniqueness per org or per catalog is **Open, needs live verification**;
   do not rely on either.
 - Derive generated codes from the full path (`<catalog>-<parent>-<name>`), not the name.
   Name-as-code (`GPU`, `PCIe`) reads well but collides as soon as a subcategory shares a

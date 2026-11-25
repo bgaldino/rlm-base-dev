@@ -32,7 +32,7 @@ longer being enhanced" [Help: `ind.qocal_customize_transaction_line_editor`]. He
 `[Release notes: <article>]` are the sibling `dev-guide/` and `release-notes/` snapshots.
 `[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is behaviour observed on a 264
 demo org; `[Measured: <date>, fresh 264 ent-sb0 scratch org]` on a scratch org freshly built from
-this repo with the `ent-sb0` shape. **Open — needs live verification** marks anything only a live org can settle.
+this repo with the `ent-sb0` shape. **Open, needs live verification** marks anything only a live org can settle.
 Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 
 ## Quick Rules
@@ -156,7 +156,7 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
 | [`page-configuration.md`](page-configuration.md) | Changing columns, the Adjustment Type column, side panel or ramp fields, action buttons, the Transaction Summary, the settings the editor depends on, or auto-refresh, in Lightning App Builder or in this repo's templates |
 | [`runtime-behavior.md`](runtime-behavior.md) | Using the editor: Browse Catalogs, groups, Instant Pricing, Reprice All, header adjustments, configuring a bundle from a line, amendment, renewal and cancellation lines, filters, bulk edit, a product-line discount inside a bundle, and the measured demo traps |
 
-## Open — needs live verification
+## Open, needs live verification
 
 1. Whether a 264 org's Lightning App Builder shows the **text box** for action buttons, the
    **visual button-group UI**, or both, and the flexipage property each writes.

@@ -79,7 +79,8 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
 - Effective date ranges for the same region can't overlap (except multi-currency orgs), on both
   policies and index rates. [Help]
 - Add Region picklist values on IndexRate before creating policies/rates. [Help]
-- Winter '26+ orgs may have the Index Rate decision table deactivated; activate it in Setup ->
+- After an org updates to Winter '26, the Index Rate decision table may be deactivated. Help says
+  users with Price Tracking enabled may be unable to use Price Revision then. Activate it in Setup ->
   Decision Tables. Refresh it if the waterfall looks wrong. [Help] See `../../decision-tables/SKILL.md`.
 - CPI-tied renewal uplifts are not supported on ramped products, and CPI can't be combined
   with compound uplift.
