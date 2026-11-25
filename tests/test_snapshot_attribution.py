@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from scripts.doc_snapshot import check as check_mod, cli, guard  # noqa: E402
 from scripts.doc_snapshot import site_guide as sg  # noqa: E402
 from scripts.doc_snapshot._core import (  # noqa: E402
-    attribution_note, attribution_state, backfill_attribution, has_footer, is_failure)
+    _is_help_host, attribution_note, attribution_state, backfill_attribution, has_footer, is_failure)
 
 _passed = _total = 0
 
@@ -301,6 +301,14 @@ check("frontmatter with no closing line at all is unterminated",
 # block; captures never write unclosed frontmatter.
 check("a body --- rule after unclosed frontmatter is read as the closing line",
       attribution_state("---\ntitle: T\nbody\n\n---\n\nmore\n")[0] == "no-source_url")
+
+# the label comes from the URL's host, not from a substring of it
+check("help host: the Help portal", _is_help_host("https://help.salesforce.com/s/articleView?id=x") is True)
+check("help host: not a lookalike host",
+      _is_help_host("https://evil.example/help.salesforce.com/x") is False
+      and _is_help_host("https://help.salesforce.com.evil.example/x") is False)
+check("help host: developer docs and junk are not Help",
+      _is_help_host("https://developer.salesforce.com/docs/x") is False and _is_help_host("not a url") is False)
 
 print(f"\n{_passed}/{_total} passed")
 sys.exit(0 if _passed == _total else 1)

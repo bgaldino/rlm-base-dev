@@ -12,6 +12,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 # scripts/doc_snapshot/_core.py -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -445,6 +446,14 @@ def scan_attribution(articles: Path) -> Tuple[List[Tuple[str, str]], List[Tuple[
     return missing, skipped
 
 
+def _is_help_host(url: str) -> bool:
+    """True when the URL's host is help.salesforce.com (not a substring of the URL)."""
+    try:
+        return urlsplit(url).hostname == "help.salesforce.com"
+    except ValueError:
+        return False
+
+
 def backfill_attribution(articles: Path) -> Tuple[List[str], List[Tuple[str, str]]]:
     """Append the attribution footer to captured articles that lack it.
 
@@ -461,7 +470,7 @@ def backfill_attribution(articles: Path) -> Tuple[List[str], List[Tuple[str, str
     missing, skipped = scan_attribution(articles)
     changed: List[str] = []
     for name, url in missing:
-        label = ("Salesforce Help content" if "help.salesforce.com" in url
+        label = ("Salesforce Help content" if _is_help_host(url)
                  else "Salesforce developer documentation")
         f = articles / name
         try:
