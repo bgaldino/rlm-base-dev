@@ -546,20 +546,21 @@ response code 500. A `post_quantumbit` redeploy resets the attribute to `false`.
 **Credential access for callout steps.** Every named credential in `unpackaged/post_quantumbit/namedCredentials/`
 (`BillingSystemNC`, `LogisticsSystemNC`, `OrderFulfillmentSystemNC`, `OrderFulfillmentSystemNCcanned` and
 `RLM_MockTax`) uses one external credential, `BillingSystemExtCredentials` [Repo:
-`unpackaged/post_quantumbit/namedCredentials/`], so a DRO callout through any of the four that are not the tax
-credential sends through it. Without principal access to it, a callout step on the mock provider
-(`DFOApexMockService`, which sends to `BillingSystemNC`) failed with `SF_DRO_STEP_API_00124` [Measured: 2026-11-25,
-264, scratch, one org]; the other three (`LogisticsSystemNC`, `OrderFulfillmentSystemNC`,
-`OrderFulfillmentSystemNCcanned`) likely fail the same way [inferred: same external credential]. `RLM_MockTax` is used
-only as the tax engine's merchant credential [Repo: `datasets/sfdmu/qb/en-US/qb-tax/TaxEngine.csv`], and the mock tax
-engine does not send through it: `RLM_MockTaxAdapter` makes no HTTP callout [Repo:
-`unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls`]. The `DRO_Integrations` permission set (`unpackaged/post_quantumbit/`,
-deployed with the credential) grants that one principal and nothing else. `prepare_quantumbit` step 15 assigns it to
-the running user when `quantumbit` and `dro` are on, so a default build (tso off) needs no manual assignment. Personas
-are not covered on either build: `RLM_QuantumBit` is assigned only to the running user (`prepare_quantumbit` step 4).
-On a tso build `deploy_post_tso` overwrites `RLM_QuantumBit` with a copy that adds field permissions and grants to the
-`BillingSystemExtCredentials` and `SalesforceContractsExtCredentials` principals, which the running user, assigned
-`RLM_QuantumBit` at step 4, then holds.
+`unpackaged/post_quantumbit/namedCredentials/`], so any callout through `BillingSystemNC`, `LogisticsSystemNC`,
+`OrderFulfillmentSystemNC` or `OrderFulfillmentSystemNCcanned` sends through it. Without principal access to it, a
+callout step on the mock provider (`DFOApexMockService`, which sends to `BillingSystemNC`) failed with
+`SF_DRO_STEP_API_00124` [Measured: 2026-11-25, 264, scratch, one org]; a callout through the other three would likely
+fail the same way [inferred: same external credential], though no shipped provider or Apex uses them [Repo: search for
+the credential names]. `RLM_MockTax` is used only as the tax engine's merchant credential [Repo:
+`datasets/sfdmu/qb/en-US/qb-tax/TaxEngine.csv`], and the mock tax engine does not send through it:
+`RLM_MockTaxAdapter` makes no HTTP callout [Repo: `unpackaged/pre/4_tax/RLM_MockTaxAdapter.cls`]. The
+`DRO_Integrations` permission set (`unpackaged/post_quantumbit/`, deployed with the credential) grants that one
+principal and nothing else. `prepare_quantumbit` step 15 assigns it to the running user when `quantumbit` and `dro`
+are on, so a default build (tso off) needs no manual assignment. On a tso build `deploy_post_tso` overwrites
+`RLM_QuantumBit` with a copy that adds field permissions and grants to the `BillingSystemExtCredentials` and
+`SalesforceContractsExtCredentials` principals, which the running user, assigned `RLM_QuantumBit` at step 4, then
+holds. Personas are not covered on either build: neither `DRO_Integrations` (step 15) nor `RLM_QuantumBit` (step 4) is
+assigned to them.
 
 - The step likely runs inside order activation [inferred, see above], so the user who needs the grant is likely the
   one who activates the order [inferred]. In the one run, every step record was created by the activating user, who
@@ -571,9 +572,10 @@ On a tso build `deploy_post_tso` overwrites `RLM_QuantumBit` with a copy that ad
   scratch, one org].
 - The grant cannot live in the base `RLM_QuantumBit` under `force-app`: that deploys before `deploy_quantumbit`
   creates the credential, and builds without quantumbit never have it [Repo: `cumulusci.yml` step order].
-- `SalesforceContractsExtCredentials` (an `AwsSv4` credential for `texttract`) matches Help's Contracts AI extraction
-  credential [Help: `ind.sf_contracts_create_an_external_credential_and_named_credential`; inferred from its shape];
-  no named credential, Apex, flow or DRO step in the repo calls through it [Repo: search for the credential name].
+- `SalesforceContractsExtCredentials` (an `AwsSv4` credential for service `texttract`, sic, as in the metadata)
+  matches Help's Contracts AI extraction credential [Help:
+  `ind.sf_contracts_create_an_external_credential_and_named_credential`; inferred from its shape]; no named
+  credential, Apex, flow or DRO step in the repo calls through it [Repo: search for the credential name].
   `DRO_Integrations` does not grant its principal.
 - Of the shipped plans only `mfg-dro` (not wired into the build) has callout steps through these credentials (eight
   `DFOApexMockService` steps) [Repo: `datasets/sfdmu/mfg/en-US/mfg-dro/FulfillmentStepDefinition.csv`;
