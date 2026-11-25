@@ -371,9 +371,9 @@ class SfRestClient:
         status, text = parse_cli_response(proc.stdout)
         if status is None:
             if proc.returncode != 0:
-                raise SfApiError(
-                    proc.returncode, proc.stderr.strip() or text, method, path
-                )
+                # No HTTP status: the call never reached the API. Same rule as
+                # _run_sf -- never echo raw sf stdout.
+                raise SfApiError(proc.returncode, _sf_error_text(proc), method, path)
             return self._decode(200, text)
         if not (200 <= status < 300):
             raise SfApiError(status, text, method, path)
@@ -437,8 +437,7 @@ class SfRestClient:
                 ) from exc
             if proc.returncode != 0:
                 raise SfApiError(
-                    -1, (proc.stderr or proc.stdout).strip()[:300], "retrieve",
-                    "Settings:Billing",
+                    -1, _sf_error_text(proc)[:300], "retrieve", "Settings:Billing",
                 )
             found = list(Path(tmp).rglob("Billing.settings"))
             return found[0].read_text(encoding="utf-8") if found else None

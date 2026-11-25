@@ -3381,3 +3381,34 @@ def test_memo_applied_in_full_passes(billable_account) -> None:
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
     assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0
+
+
+# -- rebase onto todo 276: never echo raw sf stdout -------------------------------
+
+
+def test_cli_transport_failure_without_status_never_echoes_stdout(monkeypatch) -> None:
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    client = _client("cli")
+    monkeypatch.setattr(auth.subprocess, "run", lambda *a, **kw: SimpleNamespace(
+        returncode=1, stdout="00D...!SECRET-LOOKING-OUTPUT", stderr=""))
+    with pytest.raises(SfApiError) as info:
+        client.get("/services/data/v68.0/limits")
+    assert "SECRET" not in str(info.value) and "not shown" in str(info.value)
+    assert info.value.status == 1
+
+
+def test_billing_settings_retrieve_failure_reports_the_json_error_only(monkeypatch) -> None:
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    client = auth.SfRestClient(alias="a", access_token="", instance_url="https://x.example",
+                               transport="cli")
+    out = json.dumps({"name": "NoOrgFound", "message": "No authorization found", "extra": "SECRET"})
+    monkeypatch.setattr(auth.subprocess, "run",
+                        lambda *a, **kw: SimpleNamespace(returncode=1, stdout=out, stderr=""))
+    with pytest.raises(SfApiError) as info:
+        client.read_billing_settings_xml()
+    assert "NoOrgFound: No authorization found" in str(info.value)
+    assert "SECRET" not in str(info.value)
