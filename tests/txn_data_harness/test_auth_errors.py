@@ -25,6 +25,8 @@ def test_non_json_output_is_not_shown(monkeypatch):
         auth._run_sf(["org", "auth", "show-access-token", "--target-org", "x"])
     assert TOKEN not in str(err.value)
     assert "not JSON" in str(err.value)
+    assert err.value.__cause__ is None
+    assert err.value.__suppress_context__
 
 
 def test_failure_without_stderr_does_not_show_raw_stdout(monkeypatch):
@@ -41,10 +43,20 @@ def test_failure_shows_the_json_error_message(monkeypatch):
     monkeypatch.setattr(auth.subprocess, "run", _fake_run(1, body))
     with pytest.raises(SfCliError) as err:
         auth._run_sf(["org", "display", "--target-org", "x"])
-    assert "No authorization information found for x." in str(err.value)
+    assert "NamedOrgNotFoundError: No authorization information found for x." in str(err.value)
 
 
-def test_failure_prefers_stderr(monkeypatch):
+def test_json_error_wins_over_a_warning_on_stderr(monkeypatch):
+    body = json.dumps({"status": 1, "name": "NamedOrgNotFoundError", "message": "No org x."})
+    warning = "Warning: @salesforce/cli update available from 2.159.7 to 2.160.0."
+    monkeypatch.setattr(auth.subprocess, "run", _fake_run(1, body, stderr=warning))
+    with pytest.raises(SfCliError) as err:
+        auth._run_sf(["org", "display", "--target-org", "x"])
+    assert "No org x." in str(err.value)
+    assert "update available" not in str(err.value)
+
+
+def test_failure_without_a_json_error_shows_stderr(monkeypatch):
     monkeypatch.setattr(auth.subprocess, "run", _fake_run(2, f"{TOKEN}", stderr="boom"))
     with pytest.raises(SfCliError) as err:
         auth._run_sf(["org", "display", "--target-org", "x"])

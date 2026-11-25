@@ -77,29 +77,33 @@ def _run_sf(args: list[str]) -> dict:
         )
     try:
         payload = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
+    except json.JSONDecodeError:
         # Never echo the output: on `org auth show-access-token` it can hold the token.
         raise SfCliError(
             f"`{' '.join(cmd)}` returned output that is not JSON "
             f"({len(proc.stdout)} characters, not shown)"
-        ) from exc
+        ) from None  # the JSONDecodeError keeps the whole output in .doc
     return payload.get("result", {})
 
 
 def _sf_error_text(proc: subprocess.CompletedProcess) -> str:
     """The error text of a failed ``sf --json`` call, never its raw stdout.
 
-    stderr first; otherwise the ``message`` of the JSON error ``sf`` prints on stdout.
-    Raw stdout is not shown, because a token command's output can carry the token.
+    The ``name`` and ``message`` of the JSON error ``sf`` prints on stdout first (stderr
+    often holds only Node or update warnings); otherwise stderr. Raw stdout is not shown,
+    because a token command's output can carry the token.
     """
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        payload = None
+    if isinstance(payload, dict):
+        message = payload.get("message")
+        if isinstance(message, str) and message.strip():
+            name = payload.get("name")
+            return f"{name}: {message.strip()}" if isinstance(name, str) and name else message.strip()
     if proc.stderr.strip():
         return proc.stderr.strip()
-    try:
-        message = json.loads(proc.stdout).get("message")
-    except (json.JSONDecodeError, AttributeError):
-        message = None
-    if isinstance(message, str) and message.strip():
-        return message.strip()
     return f"no error text ({len(proc.stdout)} characters of output, not shown)"
 
 
