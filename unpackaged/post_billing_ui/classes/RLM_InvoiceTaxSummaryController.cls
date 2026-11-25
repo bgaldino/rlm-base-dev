@@ -17,8 +17,7 @@ public with sharing class RLM_InvoiceTaxSummaryController {
             return new List<TaxSummaryRow>();
         }
 
-        List<Map<String, Object>> groups = new List<Map<String, Object>>();
-        for (AggregateResult ar : [
+        return toRows([
             SELECT
                 TaxName taxName,
                 CurrencyIsoCode currencyIsoCode,
@@ -27,24 +26,18 @@ public with sharing class RLM_InvoiceTaxSummaryController {
             WHERE InvoiceLine.InvoiceId = :invoiceId
             WITH USER_MODE GROUP BY TaxName, CurrencyIsoCode
             ORDER BY TaxName, CurrencyIsoCode
-        ]) {
-            groups.add(ar.getPopulatedFieldsAsMap());
-        }
-
-        return toRows(groups);
+        ]);
     }
 
-    // One row per aggregate group, in query order. Each map is an AggregateResult's
-    // getPopulatedFieldsAsMap(): its keys are the query's aliases with their case as written,
-    // and the lookup is case-sensitive, so the keys below must match those aliases exactly.
+    // One row per aggregate group, in the order given. Reads the query's aliases.
     @TestVisible
-    private static List<TaxSummaryRow> toRows(List<Map<String, Object>> groups) {
+    private static List<TaxSummaryRow> toRows(List<AggregateResult> groups) {
         List<TaxSummaryRow> rows = new List<TaxSummaryRow>();
-        for (Map<String, Object> g : groups) {
+        for (AggregateResult ar : groups) {
             rows.add(new TaxSummaryRow(
-                (String) g.get('taxName'),
-                (Decimal) g.get('totalTaxAmount'),
-                (String) g.get('currencyIsoCode')
+                (String) ar.get('taxName'),
+                (Decimal) ar.get('totalTaxAmount'),
+                (String) ar.get('currencyIsoCode')
             ));
         }
         return rows;
