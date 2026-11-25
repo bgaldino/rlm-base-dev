@@ -197,7 +197,7 @@ create context definitions, create/edit/activate decision tables, and create/upd
 - Licenses: `cumulusci.yml` `rlm_psl_api_names` assigns PSL `CorePricingDesignTime`. Persona
   groups: `RLM_Product_and_Pricing_Admin` bundles `CorePricingAdmin`, `CorePricingDesignTimeUser`,
   `CorePricingManager`, `CorePricingRunTimeUser`; `RLM_Sales_Representative` and
-  `RLM_Sales_Operations` carry only `CorePricingRunTimeUser`. [Repo]
+  `RLM_Sales_Operations` carry `CorePricingRunTimeUser` as their only `CorePricing*` set. [Repo]
 - The default procedure is set by the Robot-driven tasks `configure_core_pricing_setup` (Salesforce
   Pricing Setup page) and the revenue settings task; see [pricing-wiring](../pricing-wiring/SKILL.md). [Repo]
 
