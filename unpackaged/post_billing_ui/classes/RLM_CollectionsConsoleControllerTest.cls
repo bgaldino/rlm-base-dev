@@ -275,6 +275,9 @@ private class RLM_CollectionsConsoleControllerTest {
         }
         Test.stopTest();
 
+        // That the lookups after a refusal still run is checked in the next test: this user is
+        // refused Dispute too, and a refused query does not count toward the query limit, so a
+        // count here cannot show it.
         Assert.isTrue(scheduleRefused, 'PRECONDITION: this user cannot read PaymentSchedule in user mode');
         Assert.isTrue(planItemRefused, 'PRECONDITION: this user cannot read CollectionPlanItem in user mode');
         Assert.isNull(failed, 'Each refused lookup is skipped instead of failing the call: ' + failed);
@@ -293,9 +296,15 @@ private class RLM_CollectionsConsoleControllerTest {
         Integer queries;
         Integer expected;
         String failed;
+        Boolean scheduleReadable = true;
+        Boolean planItemRefused = false;
 
         Test.startTest();
         System.runAs(billingOnly) {
+            try { Database.query('SELECT Id FROM PaymentSchedule LIMIT 1', AccessLevel.USER_MODE); }
+            catch (QueryException e) { scheduleReadable = false; }
+            try { Database.query('SELECT Id FROM CollectionPlanItem LIMIT 1', AccessLevel.USER_MODE); }
+            catch (QueryException e) { planItemRefused = true; }
             expected = 1 + (RLM_CollectionsConsoleController.disputeFieldAvailable('InvoiceId') ? 1 : 0);
             Integer before = Limits.getQueries();
             try {
@@ -309,6 +318,8 @@ private class RLM_CollectionsConsoleControllerTest {
         }
         Test.stopTest();
 
+        Assert.isTrue(scheduleReadable, 'PRECONDITION: a billing operations user can read PaymentSchedule');
+        Assert.isTrue(planItemRefused, 'PRECONDITION: without the collections license, CollectionPlanItem is refused');
         Assert.isNull(failed, 'The refused collection-plan lookup is skipped: ' + failed);
         Assert.areEqual(expected, queries,
             'The payment-schedule and (where available) dispute queries run after the refused collection-plan query');

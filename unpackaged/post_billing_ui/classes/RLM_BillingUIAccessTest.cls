@@ -234,6 +234,16 @@ private class RLM_BillingUIAccessTest {
             'RLM_BillingUI carries no license-gated user permission, so any user can be given it');
     }
 
+    // The asset attribute set is assignable with the Billing license alone: a set that carries
+    // CoreCPQUser needs a license that allows it, and the Billing license is the one billing users have.
+    @IsTest
+    static void assetAttributeSetIsAssignableWithTheBillingLicense() {
+        User u = billingUser(new List<String>{ 'RLM_BillingUIAssetAttributes' }, BILLING_ONLY);
+        Assert.areEqual(1, [SELECT COUNT() FROM PermissionSetAssignment
+                            WHERE AssigneeId = :u.Id AND PermissionSet.Name = 'RLM_BillingUIAssetAttributes'],
+            'A Billing-licensed user can be given RLM_BillingUIAssetAttributes');
+    }
+
     private static List<String> unreadable(Map<String, List<String>> manifest) {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();

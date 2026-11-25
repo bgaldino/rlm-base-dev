@@ -23,7 +23,7 @@ This plan is executed as **step 2** of the `prepare_billing` flow (when `billing
 | 11   | `create_default_invoice_email_template` | billing            | Creates the Default Invoice Email Template, which Billing makes only from the Setup toggle (`createDefaultInvoiceEmailTemplate.apex`; skips if it exists) |
 | 12   | `deploy_billing_email_template_settings` | billing           | Selects it as Billing Settings' default email template (`post_billing_email_template_settings`) |
 | 13   | `deploy_post_billing_ui`                | billing_ui         | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
-| 14   | `assign_permission_sets`                | billing_ui         | Assigns `RLM_BillingUI` permission set to the running user                              |
+| 14   | `assign_permission_sets`                | billing_ui         | Assigns the `RLM_BillingUI` and `RLM_BillingUIAssetAttributes` permission sets to the running user |
 | 15   | `apply_context_billing_order`           | billing+billing_ui | Patches `RLM_BillingContext` Order node — maps `BillingArrangement__std` → `RLM_Billing_Arrangement__c` and `BillingProfile__std` → `RLM_Billing_Profile__c` |
 
 ### Task Definition
