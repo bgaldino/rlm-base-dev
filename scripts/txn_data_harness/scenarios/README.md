@@ -423,7 +423,7 @@ settlement:
   application_level: auto      # auto (read Billing Settings once) | line | header
   credit:                      # one credit memo, applied to the Posted invoice
     percent: 10                # or amount: 50 -- pre-tax; exactly one of the two
-    lines: [0, "Onboarding"]   # optional: 0-based index (the line's record-Id order, usually ingest order; a line name / SKU is exact) or line name / SKU
+    lines: [0, "Onboarding"]   # optional: 0-based index (the line's record-Id order, usually ingest order) or line name / SKU (matched ignoring case and spaces around the entry)
     tax_strategy: auto         # auto | Calculate | Ignore | CopyFromInvoiceLine
   payment:                     # one processed payment (no gateway), applied after the invoice posts
     amount: exact              # exact | a number | percent: N (over 100 = over-payment)

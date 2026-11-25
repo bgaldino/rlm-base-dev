@@ -497,6 +497,7 @@ class SettleOrg:
         self.memo_visible_after = 0
         self.memo_queries = 0
         self.payment_queries = 0
+        self.invoice_balance_override: Optional[float] = None
         self.fail_next_post: Optional[Exception] = None
         self._pending_credit: list[tuple[str, float]] = []
 
@@ -543,7 +544,9 @@ class SettleOrg:
             # NetCreditsApplied rolls up every credit application on the
             # invoice, as the platform's does.
             credited = sum(a["Amount"] for a in self.credit_apps if a["invoice"] == "3ttINV")
-            return [{**self.invoice, "Balance": self._balance(),
+            balance = self._balance() if self.invoice_balance_override is None else \
+                self.invoice_balance_override
+            return [{**self.invoice, "Balance": balance,
                      "NetCreditsApplied": self._r(self.invoice["NetCreditsApplied"] + credited)}]
         if "FROM InvoiceLine " in soql:
             inv, typ = _eq(soql, "InvoiceId"), _eq(soql, "Type")
@@ -3369,14 +3372,27 @@ def test_memo_leftover_absorbed_by_another_invoice_fails(billable_account) -> No
         steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
 
 
-def test_posted_memo_with_nothing_applied_here_fails(billable_account) -> None:
+def test_posted_memo_with_no_rows_yet_names_the_rerun(billable_account) -> None:
+    """Rows can lag a Posted memo: with none yet, the error names the cli step
+    rerun (nothing is sent again), not an immediate new run."""
     org = SettleOrg("line")
     org.memos.append({"Id": "50gONLY", "ReferenceEntityId": "3ttINV", "Description": "RUN credit",
                       "Status": "Posted", "Balance": 0.0, "TotalAmountWithTax": 20.0,
                       "_statuses": ["Posted"]})
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    with pytest.raises(lifecycle.SettlementError, match="50gONLY applied 0.0 to this invoice"):
-        steps.run_credit(_settle_ctx(org, billable_account, spec), _submitted())
+    m = _submitted()
+    with pytest.raises(lifecycle.SettlementError,
+                       match="50gONLY has no application rows on this invoice yet. Rerun "
+                             "`cli step --manifest RUN --to-stage credit_applied` to look again"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.credit_memo_ids == ["50gONLY"]
+    # The rerun finds the rows that have landed since, and passes.
+    org.credit_apps.append({"Id": "4sGL", "Amount": 20.0, "level": "line", "memo": "50gONLY",
+                            "invoice": "3ttINV"})
+    org.invoice["NetCreditsApplied"] = 0.0
+    m.credit_baseline = 0.0
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0
 
 
 @pytest.mark.parametrize("total, ok", [(20.0, True), (20.01, False), (20.02, False)])
@@ -3622,3 +3638,20 @@ def test_short_application_warning_names_the_unapplied_rest(level, where, billab
                           _payment_planned_manifest(payment_ids=["0aQ1"]))
     assert any(f"({where} had less open balance" in w and "0aQ1 keeps 150.0 unapplied" in w
                for w in m.settlement_warnings)
+
+
+# -- review round 20 (todo 275) -------------------------------------------------
+
+
+def test_credit_is_capped_at_the_invoice_balance(billable_account) -> None:
+    """The lines' balances (250) add up to more than the invoice's (200): the
+    credit never exceeds what the invoice still owes."""
+    org = SettleOrg("line")
+    org.invoice_balance_override = 200.0
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=230.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    m = steps.run_credit(ctx, _posted_manifest())
+    assert m.reached_stage == "credit_applied"
+    body = next(b for p, b, _ in org.posts if p.endswith("/actions/credit"))
+    assert sum(ln["amountToCredit"] for ln in body["invoiceLines"]) == 200.0
+    assert any("credit capped" in w and "200.0 of 230.0" in w for w in m.settlement_warnings)

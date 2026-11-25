@@ -12,8 +12,8 @@
 # A settlement target ingests the invoice as Posted (needs an active
 # non-taxable TaxTreatment, as in 15-standalone-billing.yaml), then runs
 # `credit_applied` and `payment_applied`. `lines:` picks invoice lines by
-# 0-based index (record-Id order, usually ingest order; a line name / SKU is
-# exact) or by line name / SKU; omit it for all lines.
+# 0-based index (record-Id order, usually ingest order) or by line name / SKU
+# (matched ignoring case and spaces around the entry); omit it for all lines.
 # Contract: docs/contracts-billing-settlement.md.
 defaults:
   kind: invoice_ingestion

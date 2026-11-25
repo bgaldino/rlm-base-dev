@@ -928,7 +928,15 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             def capacity(line: dict) -> float:
                 return lifecycle.credit_capacity(line, strategy, places)
 
-            open_amount = lifecycle._money(sum(capacity(r) for r in chosen), places)
+            # The lines' balances can add up to more than the invoice's own
+            # Balance; the credit never exceeds what the invoice still owes.
+            invoice_open = lifecycle._money(
+                lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id).get("Balance"),
+                places,
+            )
+            open_amount = lifecycle._money(
+                min(sum(capacity(r) for r in chosen), invoice_open), places
+            )
             requested = lifecycle._money(
                 spec.credit.amount if spec.credit.amount is not None
                 else open_amount * spec.credit.percent / 100.0,
@@ -937,7 +945,9 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             manifest.credit_amount_requested = requested
             if open_amount > 0 and requested <= 0:
                 raise _below_minor_unit("credit", manifest, places)
-            allocations = lifecycle.allocate(requested, chosen, capacity, places)
+            allocations = lifecycle.allocate(
+                min(requested, open_amount), chosen, capacity, places
+            )
             if not allocations:
                 _warn(manifest, "credit skipped: the chosen lines have no open balance")
                 manifest.reached_stage = "credit_applied"
@@ -990,6 +1000,17 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             f"recorded credit memo {memo_id} is not readable in the org (deleted, or "
             f"no access), so its application cannot be checked. {lifecycle.CANNOT_SETTLE}",
             record_id=memo_id,
+        )
+    if not ids:
+        # Rows can lag the memo's Posted status: the memo is recorded, so a
+        # rerun looks again rather than sending anything.
+        raise SettlementError(
+            "credit",
+            f"credit memo {manifest.credit_memo_ids[0]} has no application rows on this "
+            f"invoice yet. Rerun {_step_command(ctx, manifest)} to look again (nothing is "
+            "sent again); if a rerun still finds none, this run cannot settle: start a "
+            "new run.",
+            record_id=manifest.credit_memo_ids[0],
         )
     _check_memo_applied(memo, applied, places)
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
