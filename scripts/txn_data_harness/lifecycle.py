@@ -1155,36 +1155,40 @@ def _read_billing_settings_level(client: SfRestClient) -> Optional[str]:
     return parse_billing_settings_level(xml_text)
 
 
-def _level_from_invoice_evidence(client: SfRestClient) -> Optional[str]:
-    """Fallback: the SettlementLevel of the org's most recent applied invoice.
+def invoice_level_evidence(client: SfRestClient, invoice_id: str) -> tuple[Optional[str], str]:
+    """The application level THIS invoice shows, with its source, else ``(None, "")``.
 
     ``Invoice.SettlementLevel`` stays null until something is applied to the
-    invoice, then reads ``InvoiceLine`` or ``Invoice``. It reflects the level
-    in force when that application happened.
+    invoice, then reads ``InvoiceLine`` or ``Invoice``; failing that, the
+    junction of any application row already on the invoice.
     """
-    rows = client.query(
-        "SELECT SettlementLevel FROM Invoice WHERE SettlementLevel != null "
-        "ORDER BY LastModifiedDate DESC LIMIT 1"
+    header = fetch_invoice_header(client, invoice_id)
+    level = {"InvoiceLine": LEVEL_LINE, "Invoice": LEVEL_HEADER}.get(
+        header.get("SettlementLevel") or ""
     )
-    if not rows:
-        return None
-    value = rows[0].get("SettlementLevel")
-    if value == "InvoiceLine":
-        return LEVEL_LINE
-    if value == "Invoice":
-        return LEVEL_HEADER
-    return None
+    if level:
+        return level, "Invoice.SettlementLevel"
+    apps = read_invoice_applications(client, invoice_id)
+    if apps["payment_line"] or apps["credit_line"]:
+        return LEVEL_LINE, "an application row on the invoice lines"
+    if apps["payment_header"] or apps["credit_header"]:
+        return LEVEL_HEADER, "an application row on the invoice"
+    return None, ""
 
 
-def read_application_level(client: SfRestClient) -> tuple[str, str]:
-    """Return ``(level, source)`` for the org, read once per process.
+def read_application_level(
+    client: SfRestClient, invoice_id: Optional[str] = None
+) -> tuple[str, str]:
+    """Return ``(level, source)``: the org's setting, read once per process.
 
-    ``source`` is ``billing_settings`` (Metadata API) or
-    ``invoice_settlement_level`` (fallback). When neither answers: if the
-    BillingSettings read failed in a way that may clear (5xx, network, a CLI
-    retrieve failure or timeout) the error is transient (retried); if it was
-    read or refused, it is deterministic. Both name the remedy that works on a
-    resume: ``cli step ... --application-level line|header``.
+    ``source`` is ``billing_settings`` (Metadata API, cached per org). When
+    the settings cannot be read, only evidence on THIS invoice is used
+    (:func:`invoice_level_evidence`, source ``invoice_evidence``, never
+    cached) -- never another invoice's level, which may predate a change of
+    the setting. With no evidence: transient when the settings read failed
+    in a way that may clear (5xx, network, a CLI retrieve failure or
+    timeout: retry later), deterministic when it was refused. Both name the
+    remedy that works on a resume: ``cli step ... --application-level``.
     """
     key = client.instance_url
     with _level_lock:
@@ -1201,35 +1205,34 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
             log.warning("BillingSettings read failed (%s); falling back", exc)
             if not is_api_refusal(exc):
                 transient = str(exc)[:300]
-        if level is None:
-            level = _level_from_invoice_evidence(client)
-            source = "invoice_settlement_level"
-        if level is None:
-            remedy = (
-                "Pin it on the resume: `cli step --manifest <run> --to-stage <target> "
-                "--application-level line|header` (a new run can also pin "
-                "settlement.application_level)."
-            )
-            if transient:
-                raise SettlementError(
-                    "settlement",
-                    f"could not read the Credit, Payment and Refund Application Level: "
-                    f"BillingSettings read failed ({transient}) and no invoice has a "
-                    f"SettlementLevel yet. Retry, or {remedy[0].lower()}{remedy[1:]}",
-                    failure_class="transient",
-                )
+        if level is not None:
+            _level_cache[key] = (level, source)
+            log.info("application level: %s (from %s)", level, source)
+            return level, source
+        if invoice_id:
+            evidence, where = invoice_level_evidence(client, invoice_id)
+            if evidence is not None:
+                log.info("application level: %s (from %s of %s)", evidence, where, invoice_id)
+                return evidence, "invoice_evidence"
+        remedy = (
+            "Pin it on the resume: `cli step --manifest <run> --to-stage <target> "
+            "--application-level line|header` (a new run can also pin "
+            "settlement.application_level)."
+        )
+        if transient:
             raise SettlementError(
                 "settlement",
-                "could not read the Credit, Payment and Refund Application Level "
-                "(BillingSettings unreadable and no invoice has a SettlementLevel "
-                f"yet). {remedy}",
+                f"could not read the Credit, Payment and Refund Application Level: "
+                f"BillingSettings read failed ({transient}) and this invoice shows no "
+                f"level yet. Retry later, or {remedy[0].lower()}{remedy[1:]}",
+                failure_class="transient",
             )
-        # A fallback reached because the settings read failed transiently is
-        # used for this call only: the next call reads the settings again.
-        if not transient:
-            _level_cache[key] = (level, source)
-        log.info("application level: %s (from %s)", level, source)
-        return level, source
+        raise SettlementError(
+            "settlement",
+            "could not read the Credit, Payment and Refund Application Level "
+            "(BillingSettings unreadable and this invoice shows no level yet). "
+            f"{remedy}",
+        )
 
 
 # 4xx answers that clear on a retry: by HTTP status, or by the errorCode in

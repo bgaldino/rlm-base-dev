@@ -191,8 +191,9 @@ class Manifest:
     # "header". Read once per org; a resume reuses the recorded value.
     application_level: Optional[str] = None
     # Where the level came from: "billing_settings" (Metadata API read),
-    # "invoice_settlement_level" (fallback: an applied invoice's
-    # SettlementLevel), or "config" (pinned by settlement.application_level).
+    # "invoice_evidence" (this invoice's SettlementLevel or application rows,
+    # when the settings could not be read), "config" (pinned by
+    # settlement.application_level), or "override" (cli step).
     application_level_source: Optional[str] = None
     # Invoice balances read at the start of the first settlement stage, before
     # the harness applied anything. Non-zero ``net_payments_applied`` /

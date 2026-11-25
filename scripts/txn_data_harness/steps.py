@@ -515,7 +515,7 @@ def _ensure_application_level(
     if spec.application_level in (lifecycle.LEVEL_LINE, lifecycle.LEVEL_HEADER):
         level, source = spec.application_level, "config"
     else:
-        level, source = lifecycle.read_application_level(ctx.client)
+        level, source = lifecycle.read_application_level(ctx.client, manifest.invoice_id)
     manifest.application_level = level
     manifest.application_level_source = source
     return level
@@ -796,17 +796,7 @@ def _check_level_evidence(ctx: StepContext, manifest: Manifest, level: str) -> N
     e.g. by the credit stage), else the junction of any application row on
     the invoice. No evidence: proceed.
     """
-    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-    evidence = {"InvoiceLine": lifecycle.LEVEL_LINE, "Invoice": lifecycle.LEVEL_HEADER}.get(
-        header.get("SettlementLevel") or ""
-    )
-    source = "Invoice.SettlementLevel"
-    if evidence is None:
-        apps = lifecycle.read_invoice_applications(ctx.client, manifest.invoice_id)
-        if apps["payment_line"] or apps["credit_line"]:
-            evidence, source = lifecycle.LEVEL_LINE, "an application row on the invoice lines"
-        elif apps["payment_header"] or apps["credit_header"]:
-            evidence, source = lifecycle.LEVEL_HEADER, "an application row on the invoice"
+    evidence, source = lifecycle.invoice_level_evidence(ctx.client, manifest.invoice_id)
     if evidence is None or evidence == level:
         return
     if manifest.payment_apply_target is None:
@@ -905,8 +895,10 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     a scenario retry nor a ``cli step`` resume POSTs again -- they look the
     memo up by the tag. Only a 4xx (nothing created) clears it, so a rerun
     after a refusal sends the same credit again. A memo that ends in Error,
-    Canceled or Voided, two memos under the tag, or a ``NetCreditsApplied``
-    gain the memo does not explain fail the stage for good: start a new run.
+    Canceled or Voided, two memos under the tag, a memo not applied in full
+    to this invoice, a recorded memo that can no longer be read (deleted, or
+    no access), or a ``NetCreditsApplied`` gain the memo does not explain
+    fail the stage for good: start a new run.
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.credit is None:
@@ -1141,6 +1133,15 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     ids, applied = _record_applications(manifest, _read(), level, "payment")
     manifest.payment_application_ids = ids
     manifest.payment_amount_applied = applied
+    target = lifecycle._money(manifest.payment_apply_target, places)
+    if lifecycle._money(applied, places) > target:
+        raise SettlementError(
+            "payment",
+            f"payment {payment_id} applied {applied} to this invoice, more than the "
+            f"{target} planned: an application outside this run's plan. "
+            f"{lifecycle.CANNOT_SETTLE}",
+            record_id=payment_id,
+        )
     if applied < manifest.payment_apply_target:
         _warn(
             manifest,

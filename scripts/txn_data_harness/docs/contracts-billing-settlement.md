@@ -30,7 +30,7 @@ Settlement*; `steps.py` → `run_credit`, `run_payment`.
 | Source | How | Observed |
 | ------ | --- | -------- |
 | BillingSettings (primary) | Metadata SOAP `readMetadata`, type `BillingSettings`, fullName `Billing`, `POST /services/Soap/m/68.0` with the session id. No REST equivalent (BillingSettings is not a Tooling sObject). | `enableTransactionsApplicationToInvoices` = `false` on this Line Level org (Line Level confirmed by the payment-apply error below). |
-| `Invoice.SettlementLevel` (fallback) | `SELECT SettlementLevel FROM Invoice WHERE SettlementLevel != null ORDER BY LastModifiedDate DESC LIMIT 1` | `null` on a Posted invoice until something is applied, then `InvoiceLine`. Picklist: `InvoiceLine`, `Invoice`. (`CreditMemo.SettlementLevel` read `LineLevel`.) |
+| `Invoice.SettlementLevel` of THIS invoice (when the settings cannot be read), else the junction of its application rows | `SELECT ..., SettlementLevel FROM Invoice WHERE Id = '<invoiceId>'` (no org-wide query: another invoice's level may predate a change of the setting) | `null` on a Posted invoice until something is applied, then `InvoiceLine`. Picklist: `InvoiceLine`, `Invoice`. (`CreditMemo.SettlementLevel` read `LineLevel`.) |
 | `settlement.application_level: line\|header` | Pinned in the scenario; skips the read. | — |
 
 The harness maps `false → line`, `true → header`. The `true` half is inferred
@@ -281,8 +281,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
     for the record (a convenience, not a safety measure) and otherwise fails
     for good, naming the `cli step` command that keeps looking.
   - A memo that ends in `Error`, `Canceled` or `Voided`, two memos under the
-    credit tag, or two payments under the payment tag (the stray's id is
-    named so it can be canceled) fail the stage for good: this run cannot
+    credit tag, two payments under the payment tag (the stray's id is named
+    so it can be canceled), a recorded credit memo that can no longer be
+    read (deleted, or no access), or a payment applied to this invoice
+    beyond its planned target fail the stage for good: this run cannot
     settle; start a new run.
 - **Double-credit check.** After the credit stage the invoice's
   `NetCreditsApplied` gain since `credit_baseline` must equal what the run's
@@ -314,18 +316,19 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   failure with no HTTP status (expired auth), are deterministic. An
   application level that could not be read is transient when the
   BillingSettings read failed in a way that may clear (5xx, 420/429,
-  network, CLI retrieve failure or timeout) and no invoice evidence exists.
+  network, CLI retrieve failure or timeout) and this invoice shows no level
+  (its `SettlementLevel`, or its application rows); nothing is recorded, so
+  a retry reads again. With evidence on this invoice, that level is used
+  (source `invoice_evidence`).
   A refused read is deterministic: a 4xx, or a SOAP fault whose
   `faultcode` is `INVALID_SESSION_ID`, `INSUFFICIENT_ACCESS`, `INVALID_TYPE`
   (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Only the
   payment stage resolves the level (the credit stage reads its application
   rows back from both junctions by memo id and needs none), so both level
   errors arise there and name `cli step --to-stage payment_applied
-  --application-level line|header`. A level reached
-  through the invoice-evidence fallback after a transient settings read is
-  not cached in the process: it is still recorded on the manifest (so the
-  same run keeps it), but another manifest in the same process reads the
-  settings again.
+  --application-level line|header`. A level taken from this invoice's
+  evidence is recorded on the manifest but not cached in the process:
+  another manifest reads the settings again.
 - **`payment_applied` never advances without a payment.** A config whose
   target is `payment_applied` needs `settlement.payment`, and the stage
   refuses (not retried) a settlement block without one: with `cli step
@@ -357,8 +360,8 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `INVALID_TYPE` on `CurrencyType` (ISO 4217 minor units of the code, not
   cached). A transient error is never recorded as "no currency" or cached.
 - The BillingSettings retrieve on `cli` is bounded (`--wait 1` and a 90 s
-  process timeout); on a timeout or failure the level comes from the
-  invoice-evidence probe, with the reason logged.
+  process timeout); on a timeout or failure the level comes from this
+  invoice's evidence, else the stage fails transient (retry later).
 
 ## Currency precision
 

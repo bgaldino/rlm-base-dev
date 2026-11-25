@@ -408,8 +408,9 @@ def test_read_application_level_falls_back_to_invoice_evidence(fake_client, monk
         raise RuntimeError("no metadata access")
 
     monkeypatch.setattr(lifecycle, "_read_billing_settings_level", boom)
-    fake_client.query_responses = [[{"SettlementLevel": "Invoice"}]]
-    assert lifecycle.read_application_level(fake_client) == ("header", "invoice_settlement_level")
+    fake_client.query_responses = [[{"Id": "3tt", "SettlementLevel": "Invoice"}]]
+    assert lifecycle.read_application_level(fake_client, "3tt") == ("header", "invoice_evidence")
+    assert "WHERE Id = '3tt'" in fake_client.queries[0]  # this invoice, not the latest one
 
 
 def test_read_application_level_errors_when_unknown(fake_client, monkeypatch) -> None:
@@ -2257,11 +2258,11 @@ def test_billing_settings_retrieve_timeout_falls_back(monkeypatch) -> None:
 
     class _Cli(auth.SfRestClient):
         def query(self, soql):
-            assert "SettlementLevel" in soql
-            return [{"SettlementLevel": "InvoiceLine"}]
+            assert "WHERE Id = '3tt'" in soql  # this invoice's header only
+            return [{"Id": "3tt", "SettlementLevel": "InvoiceLine"}]
 
     client = _Cli(alias="a", access_token="", instance_url="https://timeout.example", transport="cli")
-    assert lifecycle.read_application_level(client) == ("line", "invoice_settlement_level")
+    assert lifecycle.read_application_level(client, "3tt") == ("line", "invoice_evidence")
     assert seen["kw"]["timeout"] == auth._RETRIEVE_TIMEOUT_S
     assert seen["args"][seen["args"].index("--wait") + 1] == str(auth._RETRIEVE_WAIT_MINUTES)
 
@@ -3087,10 +3088,10 @@ def test_fallback_level_after_a_transient_read_is_not_cached(fake_client, monkey
         return "header"
 
     monkeypatch.setattr(lifecycle, "_read_billing_settings_level", flaky)
-    fake_client.query_responses = [[{"SettlementLevel": "InvoiceLine"}]]
-    assert lifecycle.read_application_level(fake_client) == ("line", "invoice_settlement_level")
-    assert lifecycle.read_application_level(fake_client) == ("header", "billing_settings")
-    assert lifecycle.read_application_level(fake_client) == ("header", "billing_settings")
+    fake_client.query_responses = [[{"Id": "3tt", "SettlementLevel": "InvoiceLine"}]]
+    assert lifecycle.read_application_level(fake_client, "3tt") == ("line", "invoice_evidence")
+    assert lifecycle.read_application_level(fake_client, "3tt") == ("header", "billing_settings")
+    assert lifecycle.read_application_level(fake_client, "3tt") == ("header", "billing_settings")
     assert len(reads) == 2  # the settings read is cached once it succeeds
 
 
@@ -3478,3 +3479,63 @@ def test_recorded_memo_missing_from_the_org_fails(billable_account) -> None:
                        match="recorded credit memo 50gGONE is not readable.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic"
+
+
+# -- review round 16 (todo 275) -------------------------------------------------
+
+
+def test_transient_settings_failure_without_this_invoices_evidence_records_nothing(
+    billable_account, monkeypatch
+) -> None:
+    """No org-wide guess: another invoice's level is never used, and with no
+    evidence on this invoice the stage fails transient with nothing recorded."""
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.failure import classify_exception
+
+    def unavailable(c):
+        raise SfApiError(503, "unavailable", "POST", "/services/Soap/m")
+
+    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", unavailable)
+    org = SettleOrg("line")
+    real = org.query
+
+    def query(soql):
+        assert "ORDER BY LastModifiedDate" not in soql, "no org-wide fallback"
+        return real(soql)
+
+    org.query = query
+    spec = SettlementSpec(payment=PaymentSpec(amount=10.0))  # level: auto
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError, match="this invoice shows no level") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert classify_exception(info.value) == "transient"
+    assert m.application_level is None and org.payments == []
+
+
+def test_transient_settings_failure_uses_this_invoices_evidence(billable_account, monkeypatch) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    monkeypatch.setattr(lifecycle, "_read_billing_settings_level",
+                        lambda c: (_ for _ in ()).throw(SfApiError(503, "x", "POST", "/s")))
+    org = SettleOrg("header")
+    org.invoice["SettlementLevel"] = "Invoice"
+    spec = SettlementSpec(payment=PaymentSpec(amount=10.0))
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert (m.application_level, m.application_level_source) == ("header", "invoice_evidence")
+    assert m.reached_stage == "payment_applied"
+
+
+def test_over_application_fails(billable_account) -> None:
+    """Applied beyond the planned target: someone else's application."""
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 100.0})
+    org.payment_apps.append({"Id": "1AlX", "Amount": 60.0, "level": "line", "payment": "0aQ1",
+                             "invoice": "3ttINV"})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=50.0))
+    m = _posted_manifest(payment_ids=["0aQ1"], payment_amount=50.0, payment_apply_target=50.0,
+                         payment_mode="partial", application_level="line",
+                         settlement_baseline={"balance": 250.0, "decimal_places": 2})
+    with pytest.raises(lifecycle.SettlementError,
+                       match="payment 0aQ1 applied 60.0 to this invoice, more than the 50.0 planned"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
