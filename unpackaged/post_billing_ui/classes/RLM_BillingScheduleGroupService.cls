@@ -13,49 +13,60 @@
  * is asynchronous: it returns requestId + statusUrl (AsyncOperationTracker),
  * which are surfaced back to the LWC.
  *
- * What the payload sends from the modal's choices (measured on a 264 org by calling the action
- * directly): LegalEntityId__std sets the group's legal entity; BillingTreatmentId__std sets the
- * group's billing type (Advance or Arrears) through the treatment's item, which is the only way
- * to carry timing because BillingType__std and BillingTypePicklistTiming__std are rejected
- * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term is given. A shipping
- * address tag is required: ShippingCity__std (the account's ShippingCity, else the billingCity the
- * caller submitted, which create requires).
+ * What the payload sends from the modal's choices (measured on a 264 org by
+ * calling the action directly): LegalEntityId__std sets the group's legal
+ * entity; BillingTreatmentId__std sets the group's billing type (Advance or
+ * Arrears) through the treatment's item, which is the only way to carry timing
+ * because BillingType__std and BillingTypePicklistTiming__std are rejected
+ * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term
+ * is given. A shipping address tag is required: ShippingCity__std (the
+ * account's ShippingCity, else the billingCity the caller submitted, which
+ * create requires).
  *
- * The account: the modal passes the id of the account page it opened on (pageAccountId). When that
- * account is the billing account's own, or is linked to it through AccountBillingAccount, it is the
- * account sent (AccountId__std) and read for the shipping city; with no page account, the billing
- * account's own account is used, else its oldest link (create refuses when it has neither). When
- * the page account differs from the billing account's own it must be readable by the user (an
- * Account read in USER_MODE) and linked to the billing account; if it is not found, not readable,
- * or not linked (the link was deleted, or the cached getAccountBillingInfo is stale), or the link
- * read is refused, create refuses rather than fall back to the owner, since the city the modal
- * submitted came from the page account. getAccountBillingInfo returns the billing city of the
- * requested account, which is the account create sends, so the city the modal submits matches it.
- * It reads BillingCity in the same query as the account (covered by the compound BillingAddress
- * grant RLM_BillingUI holds), not after a billing account is resolved: one read, one refusal
- * message. No billing treatment read can be hidden by sharing: BillingTreatment's organization-wide
- * default is public (measured on a 264 org; BillingTreatmentItem is controlled by its parent), so
- * "no treatment" means none exists, not that sharing hid one.
+ * The account: the modal passes the id of the account page it opened on
+ * (pageAccountId). When that account is the billing account's own, or is linked
+ * to it through AccountBillingAccount, it is the account sent (AccountId__std)
+ * and read for the shipping city; with no page account, the billing account's
+ * own account is used, else its oldest link (create refuses when it has
+ * neither). When the page account differs from the billing account's own it
+ * must be readable by the user (an Account read in USER_MODE) and linked to the
+ * billing account; if it is not found, not readable, or not linked (the link
+ * was deleted, or the cached getAccountBillingInfo is stale), or the link read
+ * is refused, create refuses rather than fall back to the owner, since the city
+ * the modal submitted came from the page account. getAccountBillingInfo returns
+ * the billing city of the requested account, which is the account create sends,
+ * so the city the modal submits matches it. It reads BillingCity in the same
+ * query as the account (covered by the compound BillingAddress grant
+ * RLM_BillingUI holds), not after a billing account is resolved: one read, one
+ * refusal message. No billing treatment read can be hidden by sharing:
+ * BillingTreatment's organization-wide default is public (measured on a 264
+ * org; BillingTreatmentItem is controlled by its parent), so "no treatment"
+ * means none exists, not that sharing hid one.
  *
- * Treatment selection (one wording; chooseTreatment implements it). Candidates are the oldest-first
- * active, non-milestone, billable treatments of the legal entity, in the charge's currency,
- * counting only their active items typed Advance or Arrears (a None-type item is ignored; several
- * items of the same timing are fine). The read filters on the charge's currency and is capped at
- * 1000 items, oldest treatment first; one row past the cap shows the read was cut off, the last
- * treatment read is then dropped when the extra row belongs to it (it may be cut short), and
- * treatments beyond the cap are not considered. A cut-off read that yields no choice, or (one-time
- * charge) a choice that is not Advance-only, is refused with a message saying the lookup was cut
- * off. Recurring charge: the first treatment whose items all bill in the chosen timing; a treatment
- * with items in both timings is ambiguous and skipped. One-time charge (the billing term unit is
- * OneTime): timing is moot, so ambiguity does not apply. A treatment is still sent (measured: left
- * to itself the platform picks a treatment of the legal entity whatever the currency): the first
- * Advance-only treatment, else the first Arrears-only one, else (last, because what the platform
- * bills for it on a one-time charge is unmeasured) the first treatment with both timings. A valid
- * Advance or Arrears sent with a one-time charge is ignored (the modal never sends one). When none
- * fits, create refuses with a message before calling the action: it names the timing only for a
- * recurring charge, and when the only candidates were skipped as ambiguous it says that treatment
- * has items in both timings and must be split, instead of saying none exists. The charge currency
- * must be an active CurrencyType, or create refuses before any treatment lookup.
+ * Treatment selection (one wording; chooseTreatment implements it). Candidates
+ * are the oldest-first active, non-milestone, billable treatments of the legal
+ * entity, in the charge's currency, counting only their active items typed
+ * Advance or Arrears (a None-type item is ignored; several items of the same
+ * timing are fine). The read filters on the charge's currency and is capped at
+ * 1000 items, oldest treatment first; one row past the cap shows the read was
+ * cut off, the last treatment read is then dropped when the extra row belongs
+ * to it (it may be cut short), and treatments beyond the cap are not
+ * considered. A cut-off read that yields no choice, or (one-time charge) a
+ * choice that is not Advance-only, is refused with a message saying the lookup
+ * was cut off. Recurring charge: the first treatment whose items all bill in
+ * the chosen timing; a treatment with items in both timings is ambiguous and
+ * skipped. One-time charge (the billing term unit is OneTime): timing is moot,
+ * so ambiguity does not apply. A treatment is still sent (measured: left to
+ * itself the platform picked a JPY treatment of the legal entity for a EUR
+ * charge): the first Advance-only treatment, else the first Arrears-only one,
+ * else (last, because what the platform bills for it on a one-time charge is
+ * unmeasured) the first treatment with both timings. A valid Advance or Arrears
+ * sent with a one-time charge is ignored (the modal never sends one). When none
+ * fits, create refuses with a message before calling the action: it names the
+ * timing only for a recurring charge, and when the only candidates were skipped
+ * as ambiguous it says that treatment has items in both timings and must be
+ * split, instead of saying none exists. The charge currency must be an active
+ * CurrencyType, or create refuses before any treatment lookup.
  *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are

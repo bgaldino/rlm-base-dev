@@ -221,10 +221,10 @@ charge's currency, oldest first, counting only their active items typed Advance 
 takes the first treatment whose items all bill in the chosen timing; one with items in both
 timings is ambiguous and skipped (when it is the only match, the refusal says it has items
 in both timings and must be split). A one-time charge offers no timing (one sent is
-ignored), so ambiguity does not apply, but a treatment is still sent [Measured: 2026-11-26,
-264, scratch: with no treatment sent the platform picked a treatment of the legal entity
-whatever the currency, a JPY one for a EUR charge]: the first Advance-only treatment, else
-the first Arrears-only one, else (last, since what the platform bills for it on a one-time
+ignored), so ambiguity does not apply, but a treatment is still sent (with none sent the
+platform picked a treatment of the legal entity in another currency, a JPY one for a EUR
+charge [Measured: 2026-11-26, 264, scratch]): the first Advance-only treatment, else the
+first Arrears-only one, else (last, since what the platform bills for it on a one-time
 charge is unmeasured) the first with both timings. A legal entity with no such treatment,
 including one whose treatments are all in another currency, is refused before the action
 with a message naming the currency and entity (and the timing, for a recurring charge); a

@@ -1373,6 +1373,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         System.runAs(u) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
+            Assert.isFalse(userModeQueryFails('SELECT Id FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: the user can read BillingAccount (so the failure below is the AccountId select).');
+            Assert.isTrue(userModeQueryFails('SELECT AccountId FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: selecting BillingAccount.AccountId needs Account read.');
             try {
                 args.call();
             } catch (AuraHandledException e) {
@@ -1475,6 +1479,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         AuraHandledException thrown;
         Test.startTest();
         System.runAs(u) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM AccountBillingAccount LIMIT 1'),
+                'PRECONDITION: the user cannot read AccountBillingAccount.');
             try {
                 args.call();
             } catch (AuraHandledException e) {
@@ -1494,9 +1500,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     // finds nothing and says so (not "no treatment"); asking for Advance, or for a one-time charge (an
     // Advance-only choice is accepted from a cut-off read), still finds one of them. At cap 3 the same read
     // is complete and the plain message returns. Which two are read is the query's order, so the
-    // assertions do not depend on it. The currency filter is exercised by
-    // findBillingTreatmentId_findsTheTreatmentOfTheEntityForTheTimingAndCurrency, and only when the org
-    // has a second active currency.
+    // assertions do not depend on it. The query's currency filter is exercised by
+    // findBillingTreatmentId_otherCurrencyRows_doNotUseUpTheCap, and only when the org has a second active
+    // currency.
     @isTest
     static void findBillingTreatmentId_pastTheCap_saysTheLookupWasCutOff() {
         LegalEntity le = new LegalEntity(Name = 'BSG Cap LE', Status = 'Active');
@@ -1563,6 +1569,48 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNotNull(atCap);
         Assert.isTrue(atCap.getMessage().startsWith('No active billing treatment bills in arrears'),
             'A read of exactly the cap is complete: ' + atCap.getMessage());
+    }
+
+    // The query filters on the charge currency, so another currency's items do not count against the cap.
+    // Cap 1 over an other-currency Arrears treatment (created first, so read first if unfiltered) and one
+    // Arrears treatment in the charge currency: filtered, the read is the one row and complete; unfiltered,
+    // it would be cut off before the fit. Needs a second active currency; without one the filter
+    // cannot be told apart and the test returns (the 264 scratch runs had seven active currencies).
+    @isTest
+    static void findBillingTreatmentId_otherCurrencyRows_doNotUseUpTheCap() {
+        String cur = UserInfo.getDefaultCurrency();
+        List<CurrencyType> others = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :cur LIMIT 1];
+        if (others.isEmpty()) {
+            return;
+        }
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap Currency LE', Status = 'Active');
+        insert le;
+        BillingTreatment otherCurrency = new BillingTreatment(Name = 'BSG CapCur Other', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = others[0].IsoCode);
+        insert otherCurrency;
+        BillingTreatment fit = new BillingTreatment(Name = 'BSG CapCur Fit', LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        insert fit;
+        List<BillingTreatment> ts = new List<BillingTreatment>{ otherCurrency, fit };
+        List<BillingTreatmentItem> its = new List<BillingTreatmentItem>();
+        for (BillingTreatment t : ts) {
+            its.add(new BillingTreatmentItem(Name = 'BSG CapCur Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Arrears', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
+        }
+        insert its;
+        List<BillingTreatmentItem> toActivate = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
+        for (BillingTreatmentItem item : toActivate) {
+            item.Status = 'Active';
+        }
+        update toActivate;
+        for (BillingTreatment t : ts) {
+            t.Status = 'Active';
+        }
+        update ts;
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1;
+        Test.startTest();
+        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Arrears', cur);
+        Test.stopTest();
+
+        Assert.areEqual(fit.Id, found, 'The other currency\'s row is filtered out by the query, so the read is complete.');
     }
 
     // The extra row past the cap belongs to a different treatment, so the last treatment kept is complete
