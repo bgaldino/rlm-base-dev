@@ -656,10 +656,39 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(false, out.isSuccess, 'should fail');
         System.assertEquals(0, out.updatedCount);
         System.assertEquals('No records were updated.', out.errorMessage);
-        System.assertEquals('\nCould not update:\n- **Quinn Alpha** (Qty 1) — '
+        System.assertEquals('Could not update:\n- **Quinn Alpha** (Qty 1) — '
             + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE, out.resultsDisplay);
         QuoteLineItem unchanged = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
         System.assertEquals('Original description', unchanged.Description);
+    }
+
+    // Every refused row is reported under its own product name.
+    @isTest
+    static void refusedSaveReportsEachFailedLine() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.applyToAll = true;
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"' + 'x'.repeat(300) + '"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals('No records were updated.', out.errorMessage);
+        String fixed = RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE;
+        System.assert(out.resultsDisplay.contains('- **Quinn Alpha** (Qty 1) — ' + fixed), out.resultsDisplay);
+        System.assert(out.resultsDisplay.contains('- **Quinn Beta** (Qty 1) — ' + fixed), out.resultsDisplay);
+        System.assert(!out.resultsDisplay.contains('not changed'),
+            'no row was left out of the failure list: ' + out.resultsDisplay);
+        for (QuoteLineItem qli : [SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
+            System.assertEquals('Original description', qli.Description);
+        }
     }
 
     // A validation rule's message (or a trigger's addError text; the platform gives both this

@@ -248,18 +248,27 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             List<String> failedLines = new List<String>();
             Integer successCount = 0;
 
+            Boolean saved = true;
+            Integer failedRows = 0;
             if (!dmlRecords.isEmpty()) {
                 try {
                     // All or none: one row that cannot be saved rolls the whole update back,
                     // so a bulk edit never leaves a quote half changed.
                     Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
                 } catch (DmlException e) {
+                    saved = false;
+                    failedRows = e.getNumDml();
                     for (Integer i = 0; i < e.getNumDml(); i++) {
                         failedLines.add(recordLabel(typeName, dmlTargets[e.getDmlIndex(i)]) + ' — '
                             + saveErrorText(e.getDmlType(i), e.getDmlMessage(i)));
                     }
+                    if (failedLines.isEmpty()) {
+                        System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed with no row: '
+                            + e.getMessage());
+                        failedLines.add(UPDATE_FAILED_MESSAGE);
+                    }
                 }
-                if (failedLines.isEmpty()) {
+                if (saved) {
                     for (SObject rec : dmlTargets) {
                         successCount++;
                         Map<String, CoercedField> applied = fieldsForRecord(typeName, rec, coercedFields);
@@ -274,7 +283,13 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // (or every targeted line was legitimately skipped).
             out.isSuccess = failedLines.isEmpty() && (successCount > 0 || !skippedLines.isEmpty());
             out.resultsDisplay = buildResultsDisplay(successLines, failedLines, skippedLines);
-            if (!failedLines.isEmpty() || (successCount == 0 && skippedLines.isEmpty())) {
+            Integer rolledBack = dmlTargets.size() - failedRows;
+            if (failedRows > 0 && rolledBack > 0) {
+                out.resultsDisplay += '\n' + (rolledBack == 1
+                    ? 'The other record was not changed.'
+                    : 'The other ' + rolledBack + ' records were not changed.');
+            }
+            if (!saved || (successCount == 0 && skippedLines.isEmpty())) {
                 out.errorMessage = 'No records were updated.';
             }
 
@@ -817,7 +832,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
         }
         if (!failed.isEmpty()) {
-            parts.add('');
+            if (!parts.isEmpty()) {
+                parts.add('');
+            }
             parts.add('Could not update:');
             for (String line : failed) {
                 parts.add('- ' + line);
@@ -838,7 +855,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
     // FIELD_CUSTOM_VALIDATION_EXCEPTION is the status the platform gives both a validation rule's
     // message and a trigger's addError text: an administrator or developer wrote it for the person
-    // saving the record, so it is shown as written (the same rule as RLM_UsageUploaderController).
+    // saving the record, so it is shown as written (the same status rule as RLM_UsageUploaderController;
+    // a DmlException carries one error per failed row, so only the platform's first error is seen).
     // Every other save error becomes ROW_SAVE_FAILED_MESSAGE, with the detail in the debug log.
     @TestVisible
     private static String saveErrorText(StatusCode status, String message) {
