@@ -1641,6 +1641,15 @@ def find_credit_memos(client: SfRestClient, invoice_id: str, run_id: str) -> lis
 CANNOT_SETTLE = "This run cannot settle; start a new run."
 
 
+def get_credit_memo(client: SfRestClient, memo_id: str) -> Optional[dict]:
+    """The credit memo with ``memo_id`` (by Id, not by tag), or ``None``."""
+    rows = client.query(
+        "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
+        f"WHERE Id = '{memo_id}'"
+    )
+    return rows[0] if rows else None
+
+
 def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Optional[dict]:
     """This run's credit memo, or ``None``; two memos under the tag raise."""
     rows = find_credit_memos(client, invoice_id, run_id)

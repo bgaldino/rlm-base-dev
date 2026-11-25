@@ -658,7 +658,7 @@ def _check_fixed_amounts(spec: SettlementSpec, manifest: Manifest, places: int) 
             raise _below_minor_unit(what, manifest, places)
 
 
-def _check_memo_applied(memo: Optional[dict], applied: float, places: int) -> None:
+def _check_memo_applied(memo: dict, applied: float, places: int) -> None:
     """Fail unless this run's memo is applied in full to this invoice.
 
     Every memo the harness creates is for this one invoice, so what was
@@ -671,8 +671,6 @@ def _check_memo_applied(memo: Optional[dict], applied: float, places: int) -> No
     """
     from decimal import Decimal
 
-    if memo is None:
-        return
     total = lifecycle._money(memo.get("TotalAmountWithTax"), places)
     if Decimal(str(lifecycle._money(applied, places))) != Decimal(str(total)):
         raise SettlementError(
@@ -984,7 +982,17 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     ids, applied = _record_applications(manifest, apps, None, "credit")
     manifest.credit_application_ids = ids
     manifest.credit_amount_applied = applied
-    memo = _find_memo(ctx, manifest)
+    # By the recorded Id, not the tag: an edited Description must not skip
+    # the check.
+    memo_id = manifest.credit_memo_ids[0]
+    memo = lifecycle.get_credit_memo(ctx.client, memo_id)
+    if memo is None:
+        raise SettlementError(
+            "credit",
+            f"recorded credit memo {memo_id} is not readable in the org (deleted, or "
+            f"no access), so its application cannot be checked. {lifecycle.CANNOT_SETTLE}",
+            record_id=memo_id,
+        )
     _check_memo_applied(memo, applied, places)
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)

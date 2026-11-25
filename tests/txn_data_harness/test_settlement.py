@@ -551,6 +551,7 @@ class SettleOrg:
         if "FROM CreditMemo " in soql:
             self.memo_queries += 1
             ref, desc = _eq(soql, "ReferenceEntityId"), _eq(soql, "Description")
+            memo_id = _eq(soql, "Id")
             descs = _ids_in(soql, "Description")
             rows = []
             for m in self.memos:
@@ -559,6 +560,8 @@ class SettleOrg:
                 if ref is not None and m["ReferenceEntityId"] != ref:
                     continue
                 if desc is not None and m["Description"] != desc:
+                    continue
+                if memo_id is not None and m["Id"] != memo_id:
                     continue
                 if descs is not None and m["Description"] not in descs:
                     continue
@@ -3445,3 +3448,33 @@ def test_describe_response_keeps_json_errors() -> None:
         "errors [{'message': 'm'}]"
     assert lifecycle.describe_response(None) == "an empty response"
     assert "keys: ['success']" in lifecycle.describe_response({"success": True})
+
+
+# -- review round 15 (todo 275): the recorded memo is read by Id ------------------
+
+
+def test_memo_check_reads_the_recorded_id_not_the_tag(billable_account) -> None:
+    """The memo's Description was edited in the org after it was recorded:
+    the tag finds nothing, yet the exact-total check still runs (and fails
+    on a partial application)."""
+    org = SettleOrg("line")
+
+    def edit_and_short(memo):
+        memo.update(TotalAmountWithTax=30.0, Description="edited in the org")
+
+    _post_and_then(org, edit_and_short)
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    with pytest.raises(lifecycle.SettlementError, match="50g1 applied 20.0 .* total is 30.0"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+
+
+def test_recorded_memo_missing_from_the_org_fails(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest(credit_memo_ids=["50gGONE"], credit_submitted=True,
+                         application_level="line",
+                         settlement_baseline={"balance": 250.0, "decimal_places": 2})
+    with pytest.raises(lifecycle.SettlementError,
+                       match="recorded credit memo 50gGONE is not readable.*start a new run") as info:
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic"
