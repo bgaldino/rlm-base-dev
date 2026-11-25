@@ -22,9 +22,10 @@
  *
  * POST-SAVE READBACK
  * ------------------
- * savedAttributesJson is built from an actual DB query after both PST calls
- * complete, not from the input map. This ensures the agent and confirmation email
- * reflect what was truly persisted.
+ * When at least one submitted attribute exists on the line, savedAttributesJson
+ * is built from an actual DB query after both PST calls complete, not from the
+ * input map, so the agent and confirmation email reflect what was truly persisted.
+ * When none does, nothing is sent and the input is echoed back.
  */
 public with sharing class RLM_AI_ProductAttributeSaveService {
 
@@ -231,9 +232,9 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
     }
 
     // Step 2: per picklist, the value id under its Value (a later Value replaces an
-    // earlier key); under its Name when set, not already a key, and not equal to its
-    // Value (Apex String != ignores case); and under its Code when set and not already
-    // a key.
+    // earlier key); under its Name when not blank, not already a key, and not equal to
+    // its Value (Apex String != ignores case); and under its Code when not blank and
+    // not already a key.
     @TestVisible
     private static Map<Id, Map<String, Id>> picklistValueIds(List<AttributePicklistValue> rows) {
         Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>();

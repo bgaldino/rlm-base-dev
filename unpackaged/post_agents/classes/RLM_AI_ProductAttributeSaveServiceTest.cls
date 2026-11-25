@@ -106,8 +106,8 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
     // a row that does not exist, so its failure path runs against the
     // platform. Live-only: a successful PST call, the order of the two calls
     // in doSave (Number before Picklist, stopping at the first failure), the
-    // picklist-value query (it runs only for Picklist rows), and the readback
-    // query.
+    // picklist-value query (it runs only for Picklist rows with a picklist
+    // id), and the readback query.
 
     // ── Input guards ─────────────────────────────────────────────────────────
 
