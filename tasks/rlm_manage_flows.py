@@ -279,7 +279,7 @@ class ManageFlows(BaseSalesforceTask):
                     f"sort_by must be one of DeveloperName, Label, Status, ProcessType, "
                     f"VersionNumber, CreatedDate; got {self.options.get('sort_by')!r}"
                 )
-            sort_order = str(self.options.get("sort_order") or "Desc").capitalize()
+            sort_order = str(self.options.get("sort_order") or "Desc").strip().capitalize()
             if sort_order not in ("Asc", "Desc"):
                 raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
             soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
@@ -317,6 +317,21 @@ class ManageFlows(BaseSalesforceTask):
             by_definition.setdefault(row["DefinitionId"], []).append(row)
 
         self._raise_on_missing(names, rows)
+        # A managed package's flow can share a DeveloperName with an org flow; changing both
+        # would be a surprise, so a DeveloperName that resolves to more than one flow is refused
+        # (a DefinitionId names exactly one).
+        requested = {n.lower() for n in names if not _DEFINITION_ID.match(n)}
+        names_seen: Dict[str, List[str]] = {}
+        for def_id, versions in by_definition.items():
+            name = self._developer_name(versions[0])
+            if name.lower() in requested:
+                names_seen.setdefault(name, []).append(def_id)
+        ambiguous = {n: ids for n, ids in names_seen.items() if len(ids) > 1}
+        if ambiguous:
+            detail = "; ".join(f"{n}: {', '.join(sorted(ids))}" for n, ids in sorted(ambiguous.items()))
+            raise TaskOptionsError(
+                f"Cannot {verb}: these names match more than one flow (pass the DefinitionId instead): {detail}"
+            )
         return by_definition
 
     def _change_activation(self, activate: bool):

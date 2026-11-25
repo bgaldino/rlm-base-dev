@@ -120,6 +120,7 @@ fake, err = run({"operation": "list", "interface_source_type": "PricingProcedure
                  "process_type": "DefaultPricing", "limit": "1"})
 check("the SOQL carries no LIMIT (it would cut before the filter)", "LIMIT" not in fake.queries[0], fake.queries[0])
 check("one set returned", "Query returned 1 expression set(s)." in JOINED(LOGS), JOINED(LOGS))
+check("metadata reads stop once the limit is met", len(fake.gets) == 1, repr(fake.gets))
 check("the matched columns are printed", "InterfaceSourceType" in JOINED(LOGS) and "Pricing_One" in JOINED(LOGS),
       JOINED(LOGS))
 
@@ -141,6 +142,8 @@ for opts, needle in (({"sort_by": "Id; x"}, "sort_by must be"),
     check(f"rejects {list(opts)[0]}", err is not None and needle in str(err), repr(err))
 fake, _ = run({"operation": "list", "sort_by": "developer_name", "sort_order": "asc"})
 check("DeveloperName Asc", fake.queries[0].endswith("ORDER BY DeveloperName Asc"), fake.queries[0])
+fake, _ = run({"operation": "list", "sort_order": " asc "})
+check("sort_order is trimmed", fake.queries[0].endswith("Asc"), fake.queries[0])
 
 print("list_versions selects only fields that exist on the version object")
 fake, err = run({"operation": "list_versions", "developer_names": "Pricing_One"})

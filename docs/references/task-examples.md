@@ -222,7 +222,7 @@ cci task run manage_expression_sets --org <org> -o operation list_versions -o de
 - **Version Full Names**: Expression set versions use the format `{DeveloperName}_V{VersionNumber}` (e.g., `RLM_DefaultPricingProcedure_V1`).
 - **Process Types**: Common flow process types include `Flow` (screen flow), `AutoLaunchedFlow`, `Workflow`.
 - **Interface Source Types & Process Types**: these exist only in an expression set definition's metadata, not as queryable fields. `list`, `query` and `list_versions` read each candidate set to filter on them, so they cost one request per set.
-- **Status Values**: flow versions are `Active`, `Draft`, `Obsolete` or `InvalidDraft`. Expression set versions are `Active`, `Draft` or `Inactive`; `--status` keeps the sets that have at least one version with that Status.
+- **Status Values**: flow versions are `Active`, `Draft`, `Obsolete` or `InvalidDraft`. Expression set versions are `Active`, `Draft` or `Inactive`; `-o status` keeps the sets that have at least one version with that Status.
 - **Field Names**:
   - Flows (one row per version) use: `Definition.DeveloperName`, `MasterLabel`, `VersionNumber`, `CreatedDate`
   - Expression Sets use: `DeveloperName`, `MasterLabel`, `LastModifiedDate`

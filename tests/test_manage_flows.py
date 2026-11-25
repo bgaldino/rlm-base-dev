@@ -337,6 +337,17 @@ check("with nothing Draft or Active, the newest Obsolete version is re-activated
 _, err = run([row(A, "Flow_A", 1, "InvalidDraft")], {"operation": "activate", "developer_names": "Flow_A"})
 check("only InvalidDraft versions is a per-flow failure", err is not None and "1 flow(s)" in str(err), repr(err))
 
+print("a DeveloperName shared by two flows (a managed package's and the org's) is refused; a DefinitionId is not")
+SHARED = [row(A, "Flow_A", 1, "Active"), row(B, "Flow_A", 1, "Active")]
+for verb in ("activate", "deactivate"):
+    fake, err = run(SHARED, {"operation": verb, "developer_names": "Flow_A"})
+    check(f"{verb}: refused before any change, naming both flows",
+          err is not None and "more than one flow" in str(err) and A in str(err) and B in str(err)
+          and not fake.patches, repr((err, fake.patches)))
+fake, err = run(SHARED, {"operation": "deactivate", "developer_names": A})
+check("deactivate by DefinitionId changes only that flow",
+      err is None and len(fake.patches) == 1 and A in fake.patches[0][0], repr((err, fake.patches)))
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")
