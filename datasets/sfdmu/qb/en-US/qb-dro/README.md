@@ -61,7 +61,7 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
 - The failed step stalls the plan [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
   Provision Licensing/Features gates Initiate Billing, which gates Post Invoice, which gates Receive Payment (it also
   gates Activate Tokens, which was not on these plans). Initiate Billing also depends on Start Project; whether that step
-  was on these plans was not checked. All stayed `Pending` and the plan stayed `InProgress` (observed), so billing was
+  was on these plans was not checked, so Initiate Billing staying `Pending` does not by itself show the callout is the blocker. All stayed `Pending` and the plan stayed `InProgress` (observed), so billing was
   not initiated in the measured run.
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
   not the exception text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
@@ -72,7 +72,7 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   leave Draft was not measured.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
-  stayed `Draft` there (see the previous bullet), DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
+  stayed `Draft` even for a plan with no failed step, so a Draft order is not evidence about a step (see the previous bullet), DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
   records rather than Flow Orchestration instances [inferred from the zero count], and the orders it used contained only `QB-API`/`QB-API-FLEX`.
   See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 

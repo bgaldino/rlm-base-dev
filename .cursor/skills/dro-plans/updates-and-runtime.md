@@ -562,7 +562,7 @@ remove or condition the step. This section records behaviour, not a fix.
    existed [Measured: 2026-11-25, 264, scratch, one org]; that it ran at activation rather than from a queued job is
    [inferred], since DRO's own async work need not appear as an `AsyncApexJob`.
 5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error was
-   not in the record on the builds measured (both lacked the tables). Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
+   not in the record on the measured build, which lacked the tables [Measured: 2026-11-25, 264, scratch, one org]. Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
    log (trace flag on the activating user).
 
 ## Update Acceptance Scenarios
