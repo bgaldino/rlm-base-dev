@@ -18,7 +18,8 @@ Checks (formulas are documented in
 ``invoice_balance``
     ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
     each rollup equals the net of the invoice's application rows. Skipped for an
-    invoice whose ``Status`` is not Posted (the rollups were measured on Posted
+    invoice whose own evidence includes header level (header rows or
+    ``SettlementLevel`` Invoice), for an invoice whose ``Status`` is not Posted (the rollups were measured on Posted
     invoices only), for an invoice with ``Type`` Tax lines or a non-zero
     ``TotalTaxesCapturedAtHeader`` (separate and header tax are unmeasured), and when
     a converted-negative, write-off or adjustment field is set (effect unmeasured).
@@ -32,16 +33,19 @@ Checks (formulas are documented in
     or adjustment amount. An invoice with no lines fails.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
-    payment's application rows on any invoice. Checked for a Processed payment, and a
+    payment's application rows on any invoice. Skipped for a payment with any
+    header-level application row. Checked for a Processed payment, and a
     Canceled payment with no application rows (the two measured cases); any other
     status, or a Canceled payment with rows, is skipped. Also skipped for a payment
     whose ``NetRefundApplied`` or ``NetPaymentCreditApplied`` is non-zero.
 
-Unapplied application rows have not been measured on 264 (the org read had none), so
-an invoice or payment with any row of ``Type`` Unapplied, or any row flagged unapplied
-(``UnappliedStatus`` or ``HasBeenUnapplied`` = Yes), skips every balance check that
-reads its application rows. Otherwise the net of a set of application rows is the
-sum of their ``Applied`` amounts. Amounts compare exactly as Decimals; ids may be 15
+Header Level was never measured (the header fixture is built from field shapes), so
+the balance checks are skip-only there; ``application_level`` still runs. Unapplied
+application rows have not been measured on 264 (the org read had none), so an invoice
+or payment with any row whose ``Type`` is not Applied (Unapplied, another value or
+null), or any row flagged unapplied (``UnappliedStatus`` or ``HasBeenUnapplied`` =
+Yes), skips every balance check that reads its application rows. Otherwise the net of
+a set of application rows is the sum of their amounts. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.
 """
@@ -135,7 +139,8 @@ APP_OBJECTS = (
                "HasBeenUnapplied"),
 )
 _UNAPPLIED_FLAGS = tuple(sorted({o.unapplied_flag for o in APP_OBJECTS}))
-_UNAPPLIED_REASON = "has unapplied application rows (not measured on 264)"
+_UNAPPLIED_REASON = ("has unapplied application rows, or rows not of Type Applied "
+                     "(not measured on 264)")
 _PAYMENT_APP_OBJECTS = tuple(o for o in APP_OBJECTS if o.kind == "payment")
 _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
 # The balance formulas were measured on Posted invoices; any other Status is skipped.
@@ -343,14 +348,14 @@ def _fmt(value: Optional[Decimal]) -> str:
 
 
 def _net(rows: Iterable[dict]) -> Decimal:
-    """Sum of the Applied amounts. Callers skip any set with unapplied rows first."""
-    return sum((_zero(r.get("Amount")) for r in rows if r.get("Type") == "Applied"),
-               Decimal("0"))
+    """Sum of the amounts. Callers skip any set with a non-Applied row first."""
+    return sum((_zero(r.get("Amount")) for r in rows), Decimal("0"))
 
 
 def _has_unapplied(rows: Iterable[dict]) -> bool:
-    """True when any row is of Type Unapplied or flagged unapplied (not measured)."""
-    return any(r.get("Type") == "Unapplied"
+    """True when any row is not a plain Applied row: any Type other than Applied
+    (Unapplied, another value or null) or flagged unapplied. None is measured."""
+    return any(r.get("Type") != "Applied"
                or any(r.get(f) == "Yes" for f in _UNAPPLIED_FLAGS) for r in rows)
 
 
@@ -361,6 +366,7 @@ class _Index:
     line_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> line id -> rows
     header_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> invoice id -> rows
     rows_by_payment: dict[str, list[dict]] = field(default_factory=dict)
+    header_rows_by_payment: dict[str, int] = field(default_factory=dict)  # payment id -> count
 
 
 def _index(records: dict[str, list[dict]]) -> _Index:
@@ -378,6 +384,9 @@ def _index(records: dict[str, list[dict]]) -> _Index:
             bucket[obj.kind].setdefault(row.get(obj.target_field), []).append(row)
             if obj.kind == "payment":
                 idx.rows_by_payment.setdefault(row.get(obj.source_field), []).append(row)
+                if obj.level == "header":
+                    pid = row.get(obj.source_field)
+                    idx.header_rows_by_payment[pid] = idx.header_rows_by_payment.get(pid, 0) + 1
     return idx
 
 
@@ -494,6 +503,14 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
+        # Balances were measured at Line Level only (an unpaid invoice with no rows and
+        # no SettlementLevel included); any header-level evidence skips.
+        if "header" in _evidence(idx, invoice):
+            out.append(_result("invoice_balance", iid, "skip",
+                               f"this invoice's own evidence includes header level "
+                               f"({_facts(idx, invoice)}); balances at Header Level are "
+                               "not measured"))
+            continue
         not_posted = _not_posted(invoice)
         if not_posted:
             out.append(_result("invoice_balance", iid, "skip", not_posted))
@@ -610,6 +627,12 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
         pid = payment["Id"]
         status = payment.get("Status")
         rows = idx.rows_by_payment.get(pid, [])
+        header_n = idx.header_rows_by_payment.get(pid, 0)
+        if header_n:
+            out.append(_result("payment_balance", pid, "skip",
+                               f"Status {status}; {header_n} header-level application "
+                               "row(s); balances at Header Level are not measured"))
+            continue
         if status == _CANCELED_PAYMENT_STATUS and rows:
             out.append(_result("payment_balance", pid, "skip",
                                f"Status {status} with {len(rows)} application row(s); only a "

@@ -135,17 +135,48 @@ def test_line_level_fixture_passes_every_check():
     assert set(report["payment_ids"]) == {"0aQ000000000001EAA", "0aQ000000000002EAA"}
 
 
-def test_header_level_fixture_passes_and_skips_line_balances():
+def test_header_level_fixture_skips_every_balance_check():
+    # Header Level was never measured: only application_level runs on header evidence.
     report = _header()
     assert report["failed_checks"] == [], report["failed_checks"]
     assert (report["level"], report["level_source"]) == ("header", "records")
-    by_subject = {r["subject"]: r for r in report["checks"]
-                  if r["check"] == "invoice_line_balance"}
-    assert by_subject["3tt0000000000H1AAI"]["status"] == "skip"
-    # The payment's row on an invoice outside the set still counts for NetApplied.
-    payment = next(r for r in report["checks"] if r["check"] == "payment_balance")
-    assert payment["status"] == "pass"
+    by_key = {(r["check"], r["subject"][:18]): r for r in report["checks"]}
+    assert by_key[("application_level", "3tt0000000000H1AAI")]["status"] == "pass"
+    for check in ("invoice_balance", "invoice_line_balance"):
+        assert by_key[(check, "3tt0000000000H1AAI")]["status"] == "skip", check
+    assert "includes header level" in by_key[("invoice_balance", "3tt0000000000H1AAI")]["detail"]
+    payment = by_key[("payment_balance", "0aQ0000000000H1EAI")]
+    assert payment["status"] == "skip" and "2 header-level application row(s)" in payment["detail"]
+    # INVH2 is unpaid (no rows, no SettlementLevel): its invoice balance still runs.
+    assert by_key[("invoice_balance", "3tt0000000000H2AAI")]["status"] == "pass"
     assert report["invoice_ids"] == HEADER_INVOICES
+
+
+def test_header_level_balances_skip_even_when_wrong():
+    def mutate(data):
+        _row(data, "Invoice", "3tt0000000000H1AAI")["Balance"] = 1
+        _row(data, "Payment", "0aQ0000000000H1EAI")["Balance"] = 1
+    report = _header(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    statuses = {(r["check"], r["subject"]): r["status"] for r in report["checks"]}
+    assert statuses[("invoice_balance", "3tt0000000000H1AAI")] == "skip"
+    assert statuses[("payment_balance", "0aQ0000000000H1EAI")] == "skip"
+
+
+def test_settlement_level_invoice_alone_skips_invoice_balance():
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
+        SettlementLevel="Invoice", Balance=1))
+    result = next(r for r in report["checks"] if r["check"] == "invoice_balance"
+                  and r["subject"] == "3tt000000000002AAA")
+    assert result["status"] == "skip" and "includes header level" in result["detail"]
+
+
+def test_payment_rows_on_invoices_outside_the_set_count_for_net_applied():
+    # Only INV2 is verified; payment 0aQ...1's row is on INV1, read by payment id.
+    report = _verify(_load("line_level.json"), ["3tt000000000002AAA"],
+                     ["0aQ000000000001EAA"])
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance")
+    assert result["status"] == "pass", result["detail"]
 
 
 def test_verifier_only_reads():
@@ -212,7 +243,8 @@ def test_settlement_level_contradicting_expectation_fails():
 # ------------------------------------------------------------------ invoice_balance
 
 @pytest.mark.parametrize("runner, invoice", [
-    (_line, "3tt000000000001AAA"), (_header, "3tt0000000000H1AAI")])
+    (_line, "3tt000000000001AAA"), (_line, "3tt000000000002AAA"),
+    (_header, "3tt0000000000H2AAI")])
 def test_invoice_balance_off_by_one_fails(runner, invoice):
     report = runner(mutate=lambda d: _row(d, "Invoice", invoice).update(
         Balance=_row(d, "Invoice", invoice)["Balance"] + 1))
@@ -221,8 +253,7 @@ def test_invoice_balance_off_by_one_fails(runner, invoice):
     assert [r["subject"] for r in failed] == [invoice]
 
 
-@pytest.mark.parametrize("runner, invoice", [
-    (_line, "3tt000000000003AAA"), (_header, "3tt0000000000H1AAI")])
+@pytest.mark.parametrize("runner, invoice", [(_line, "3tt000000000003AAA")])
 def test_invoice_rollup_disagreeing_with_rows_fails(runner, invoice):
     def mutate(data):
         inv = _row(data, "Invoice", invoice)
@@ -253,7 +284,7 @@ def test_line_rollup_disagreeing_with_line_rows_fails():
 # ------------------------------------------------------------------ payment_balance
 
 @pytest.mark.parametrize("runner, payment", [
-    (_line, "0aQ000000000002EAA"), (_header, "0aQ0000000000H1EAI")])
+    (_line, "0aQ000000000001EAA"), (_line, "0aQ000000000002EAA")])
 def test_payment_balance_off_by_one_fails(runner, payment):
     report = runner(mutate=lambda d: _row(d, "Payment", payment).update(
         Balance=_row(d, "Payment", payment)["Balance"] + 1))
@@ -262,8 +293,8 @@ def test_payment_balance_off_by_one_fails(runner, payment):
 
 def test_payment_net_applied_disagreeing_with_rows_fails():
     def mutate(data):
-        _row(data, "Payment", "0aQ0000000000H1EAI").update(NetApplied=300, Balance=200)
-    report = _header(mutate=mutate)
+        _row(data, "Payment", "0aQ000000000001EAA").update(NetApplied=300, Balance=700)
+    report = _line(mutate=mutate)
     assert report["failed_checks"] == ["payment_balance"]
 
 
@@ -722,18 +753,23 @@ def test_settlement_level_alone_decides_whether_line_balances_run(settlement, ru
         assert "shows header level" in results[0]["detail"]
 
 
-@pytest.mark.parametrize("how", ["unapplied_row", "flag_only"])
+@pytest.mark.parametrize("how", ["unapplied_row", "flag_only", "null_type"])
 def test_unapplied_rows_skip_invoice_line_and_payment_balances(how):
     # Rollups left as they were, so any check that still ran would have to guess.
     def mutate(data):
-        _row(data, "PaymentLineInvoiceLine", "1Al000000000001CAA")["UnappliedStatus"] = "Yes"
+        applied = _row(data, "PaymentLineInvoiceLine", "1Al000000000001CAA")
         if how == "unapplied_row":
+            # The Type alone triggers the skip: the Applied row's flag stays "No".
             data["PaymentLineInvoiceLine"].append({
                 "Id": "1Al000000000009CAA", "InvoiceLineId": "5TV000000000011GAA",
                 "PaymentId": "0aQ000000000001EAA", "Amount": 400, "Type": "Unapplied",
                 "UnappliedStatus": "NA"})
-        else:
+        elif how == "flag_only":
+            applied["UnappliedStatus"] = "Yes"
             _row(data, "Invoice", "3tt000000000001AAA")["Balance"] = 1
+        else:
+            # A Type that is not Applied is not measured either: skip, not a silent 0.
+            applied["Type"] = None
     report = _line(mutate=mutate)
     assert report["ok"] is True, report["failed_checks"]
     skipped = [r for r in report["checks"]
@@ -745,18 +781,17 @@ def test_unapplied_rows_skip_invoice_line_and_payment_balances(how):
                for r in skipped)
 
 
-def test_header_unapplied_flag_skips_invoice_and_payment_balances():
+def test_unapplied_credit_row_alone_skips_the_invoice_balances():
+    # Only a credit-memo line row is flagged; INV3's balances are made inconsistent.
     def mutate(data):
-        _row(data, "PaymentLineInvoice", "0b8000000000001AAA")["HasBeenUnapplied"] = "Yes"
-        _row(data, "Invoice", "3tt0000000000H1AAI")["Balance"] = 1
-        _row(data, "Payment", "0aQ0000000000H1EAI")["Balance"] = 1
-    report = _header(mutate=mutate)
+        _row(data, "CreditMemoLineInvoiceLine", "4sG000000000001EAA")["UnappliedStatus"] = "Yes"
+        _row(data, "Invoice", "3tt000000000003AAA")["Balance"] = 1
+        _row(data, "InvoiceLine", "5TV000000000031GAA")["Balance"] = 1
+    report = _line(mutate=mutate)
     assert report["ok"] is True, report["failed_checks"]
-    for check, subject in (("invoice_balance", "3tt0000000000H1AAI"),
-                           ("payment_balance", "0aQ0000000000H1EAI")):
-        result = next(r for r in report["checks"]
-                      if r["check"] == check and r["subject"] == subject)
-        assert result["status"] == "skip" and "unapplied" in result["detail"], check
+    skipped = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
+               and r["check"] in ("invoice_balance", "invoice_line_balance")]
+    assert len(skipped) == 2 and all(r["status"] == "skip" for r in skipped)
 
 
 # ------------------------------------------------------------------ CLI

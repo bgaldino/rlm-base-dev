@@ -138,8 +138,10 @@ through the invoices' application rows, or passed with `--payment-ids`.
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Where
 nothing was measured a check skips with a reason: balances only on Posted
 invoices without tax lines or header tax, and on Processed payments or
-Canceled ones with no applications; nothing with unapplied application rows;
-line balances only on an invoice whose own evidence is line level alone.
+Canceled ones with no applications; nothing with unapplied or non-Applied
+application rows; nothing at Header Level (header rows or `SettlementLevel`
+Invoice); line balances only on an invoice whose own evidence is line level
+alone.
 `--expect-level line|header` forces the level (default: detect from the
 records). Checks and formulas: `billing-operations` → `verification.md`.
 

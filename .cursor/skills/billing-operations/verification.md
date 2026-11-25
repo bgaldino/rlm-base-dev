@@ -55,7 +55,8 @@ those payments.
 
 ## Checks
 
-The net of a set of application rows is the sum of their `Applied` amounts. Amounts compare exactly as decimals, with no rounding, so a
+The net of a set of application rows is the sum of their amounts; every row is
+`Applied`, or the check skips (below). Amounts compare exactly as decimals, with no rounding, so a
 currency with zero or three decimal places is checked as it is stored. A null `Balance`
 fails wherever the check runs (a skipped case skips).
 
@@ -67,19 +68,27 @@ application rows, the two measured cases; any other status, or a Canceled paymen
 rows, is skipped with the status named. Where nothing was measured, a check skips with a
 reason; it never guesses a formula.
 
+**Line Level only.** Header Level was never measured (its fixture is built from field
+shapes), so every balance check is skip-only there: `invoice_balance` skips an invoice
+whose own evidence includes header level (header application rows or `SettlementLevel`
+`Invoice`), `invoice_line_balance` runs only on line-level evidence (below), and
+`payment_balance` skips a payment with any header-level application row. Each skip names
+the evidence. An unpaid invoice with no rows and no `SettlementLevel` keeps
+`invoice_balance`, as measured on a Line Level org. `application_level` still runs.
+
 **No unapplied rows.** Unapplied application rows were not measured on 264 (the org read
-had none). An invoice or payment with any application row of `Type` Unapplied, or any
-row flagged unapplied (`UnappliedStatus` or `HasBeenUnapplied` = `Yes`; both are
-picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]), skips
+had none). An invoice or payment with any application row whose `Type` is not Applied
+(Unapplied, another value or null), or any row flagged unapplied (`UnappliedStatus` or
+`HasBeenUnapplied` = `Yes`; both are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]), skips
 `invoice_balance`, `invoice_line_balance` or `payment_balance`, with the reason "has
-unapplied application rows (not measured on 264)".
+unapplied application rows, or rows not of Type Applied (not measured on 264)".
 
 | Check | Passes when |
 | ----- | ----------- |
 | `application_level` | The invoice has no application rows of the other level, and its `SettlementLevel` does not name the other level. Line rows: `PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`. Header rows: `PaymentLineInvoice`, `CreditMemoInvApplication`. Skipped for an invoice with neither application rows nor a `SettlementLevel`, whether the level was detected or forced with `--expect-level`. |
-| `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows (both levels). Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted, has `Type` Tax lines, or has a non-zero `TotalTaxesCapturedAtHeader`. |
+| `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows. Skipped for an invoice whose own evidence includes header level. Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted, has `Type` Tax lines, or has a non-zero `TotalTaxesCapturedAtHeader`. |
 | `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Runs only on an invoice whose own evidence is line level alone: line application rows and/or `SettlementLevel` `InvoiceLine`, with no header rows and no `SettlementLevel` `Invoice`. Any other invoice (no evidence, header evidence, or both) is skipped with its evidence named, whatever level the set has or `--expect-level` forces. Also skipped for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
-| `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Checked for a Processed payment and for a Canceled payment with no application rows; skipped for any other status or a Canceled payment with rows. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
+| `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Skipped for a payment with any header-level application row. Checked for a Processed payment and for a Canceled payment with no application rows; skipped for any other status or a Canceled payment with rows. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
 
 The level to expect comes from `--expect-level`, or else from the records: application
 rows of one level, or a `SettlementLevel` of `InvoiceLine` or `Invoice`. An invoice with
@@ -102,7 +111,7 @@ posting and two credit memos applied to one line:
   `LineAmount` less its `NetCreditsApplied` and `NetPaymentsApplied`.
 - A Canceled payment with no applications kept `Balance` equal to `Amount`.
 
-Not measured: Header Level (its fixture is built from field shapes), unapplied rows
+Not measured: Header Level (balance checks skip there, as above), unapplied rows
 (their sign, pairing, and whether an unapply can be partial; such invoices and payments
 are skipped, as above), how
 `NetRefundApplied` and `NetPaymentCreditApplied` change a payment's `Balance` (both were
