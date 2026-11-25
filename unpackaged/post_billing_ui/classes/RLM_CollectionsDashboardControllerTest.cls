@@ -809,7 +809,7 @@ private class RLM_CollectionsDashboardControllerTest {
     // catch dropping the whole section; the last-resort and critical follow-up builders share the
     // lookup.
     @isTest
-    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account acc = newAccount('RLM High Value Unreadable');
         Date today = Date.newInstance(2026, 6, 30);

@@ -532,7 +532,7 @@ private class RLM_BSGContextControllerTest {
 
     // A user who cannot read Account gets no names back; the lines are still listed, with a dash.
     @isTest
-    static void addArrangementLines_forAUserWhoCannotReadAccounts_keepsLinesWithoutNames() {
+    static void addArrangementLines_forAUserWhoCannotReadAccounts_keepsLinesWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Id accountId = fakeId(Account.SObjectType, 1);
         List<BillingArrangementLine> lines = new List<BillingArrangementLine>{

@@ -132,7 +132,7 @@ private class RLM_SplitInvoicesControllerTest {
     // The account name is filled in from a separate read: present for a user who can read Account,
     // a dash (rows kept) for one who cannot, and for a row with no account.
     @isTest
-    static void applyAccountNames_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+    static void applyAccountNames_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account acc = new Account(Name = 'RLM Split Named');
         insert acc;
