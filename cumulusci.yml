@@ -110,7 +110,7 @@ project:
     tax: true                 # Tax engine
     quote_est_tax: false      # Estimated tax on quotes and orders; needs tax (turned on after the tax engine). Off: a price-lowering Sales Price Amendment fails with it on
     calmdelete: true          # CALM Delete
-    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
+    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. On by default; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
