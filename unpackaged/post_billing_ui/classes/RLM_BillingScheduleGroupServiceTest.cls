@@ -1441,10 +1441,12 @@ private class RLM_BillingScheduleGroupServiceTest {
             its.add(new BillingTreatmentItem(Name = 'BSG Cap Item ' + t.Name, BillingTreatmentId = t.Id, BillingType = 'Advance', Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice'));
         }
         insert its;
-        for (BillingTreatmentItem item : its) {
+        // Re-read for the update: the inserted records carry fields the update refuses to write back.
+        List<BillingTreatmentItem> toActivate = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId IN :new Map<Id, BillingTreatment>(ts).keySet()];
+        for (BillingTreatmentItem item : toActivate) {
             item.Status = 'Active';
         }
-        update its;
+        update toActivate;
         for (BillingTreatment t : ts) {
             t.Status = 'Active';
         }
