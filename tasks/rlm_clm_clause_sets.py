@@ -93,7 +93,7 @@ class LoadClmClauseSets(BaseSalesforceApiTask):
             for r in self.sf.query_all("SELECT Id, DeveloperName FROM ClauseCatgConfiguration")["records"]
         }
         existing = {
-            (r["Name"], category_value(r["Category"]))
+            (r["Name"], r["Category"])
             for r in self.sf.query_all("SELECT Name, Category FROM DocumentClauseSet")["records"]
         }
         todo = missing_rows(rows, categories, existing)
