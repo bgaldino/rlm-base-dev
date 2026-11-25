@@ -8,8 +8,8 @@ from typing import Dict, Any, List
 import json
 import os
 
-# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
-# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
 from tasks.soql_utils import soql_quote
 
 try:

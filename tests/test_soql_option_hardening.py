@@ -10,6 +10,7 @@ Covers the pack 457 class sweep of tasks no flow calls: tasks/soql_utils.py, man
 (sort_by / sort_order / limit), export_cml (developer_name, version), manage_transaction_processing_types
 (key value), and extend_standard_context (the activate option was accepted and ignored).
 """
+import re
 import sys
 import types
 from pathlib import Path
@@ -42,7 +43,7 @@ _TASKS_PATH = [str(REPO / "tasks")]
 
 
 def load(name):
-    """Import tasks.<name>. Importing cumulusci replaces `tasks` in sys.modules, so restore it first."""
+    """Import tasks.<name>. Importing cumulusci setdefaults a synthetic `tasks` and sets its __path__ to [], so restore both first."""
     sys.modules["tasks"] = _tasks_pkg
     _tasks_pkg.__path__ = list(_TASKS_PATH)
     return importlib.import_module(f"tasks.{name}")
@@ -88,10 +89,11 @@ task = ExportCML.__new__(ExportCML)
 task.options = {"developer_name": "Bad'Name", "version": "1", "output_dir": "/nonexistent-457"}
 task.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None,
                                     error=lambda *a, **k: None, debug=lambda *a, **k: None)
-task._export_esdv = lambda dev, ver, api, out: queries.append(("esdv", dev))
-task._export_query = lambda soql, fields, dest: queries.append((soql, None)) or True
+blobs = []
+# False for the ConstraintModel query, so both ExpressionSetDefinitionVersion queries are built.
+task._export_query = lambda soql, fields, dest: queries.append((soql, fields)) or "ConstraintModel" not in fields
 task._export_referenced_objects = lambda out: None
-task._download_blob = lambda api, out: None
+task._download_blob = lambda api, out: blobs.append(api)
 import os  # noqa: E402
 _makedirs = os.makedirs
 os.makedirs = lambda *a, **k: None
@@ -99,8 +101,23 @@ try:
     task._run_task()
 finally:
     os.makedirs = _makedirs
-sent = " ".join(q for q, _ in queries if q != "esdv")
+sent = " ".join(q for q, _ in queries)
+esdv = [q for q, _ in queries if "FROM ExpressionSetDefinitionVersion" in q]
+check("both ExpressionSetDefinitionVersion queries are built", len(esdv) == 2, repr(esdv))
 check("developer_name quote escaped in every query", "'Bad\\'Name'" in sent and "'Bad'Name'" not in sent, sent)
+check("developer_name escaped in each ESDV query", all("'Bad\\'Name'" in q for q in esdv), repr(esdv))
+queries.clear()
+blobs.clear()
+task.options["version"] = " 007 "
+os.makedirs = lambda *a, **k: None
+try:
+    task._run_task()
+finally:
+    os.makedirs = _makedirs
+esdv = [q for q, _ in queries if "FROM ExpressionSetDefinitionVersion" in q]
+check("version reaches SOQL only as a plain integer ('007' becomes 7)",
+      len(esdv) == 2 and all(re.search(r"VersionNumber = 7\s*$", q) for q in esdv), repr(esdv))
+check("the blob lookup uses the same normalised version (_V7, not _V007)", blobs == ["Bad'Name_V7"], repr(blobs))
 task.options["version"] = "1 OR 1=1"
 check("version fragment rejected", raises(task._run_task, "version must be a whole number"))
 for bad in ("\u0661", "\uff11", "0"):

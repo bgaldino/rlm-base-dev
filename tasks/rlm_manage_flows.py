@@ -15,8 +15,8 @@ Tooling API model (verified live on 264):
 import re
 from typing import Dict, List
 
-# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
-# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
 from tasks.soql_utils import positive_int, soql_quote, split_names
 
 try:
@@ -106,7 +106,8 @@ class ManageFlows(BaseSalesforceTask):
         if operation == "list":
             self._list_flows()
         elif operation == "query":
-            self._query_flows()
+            # The rows go to flow steps (^^step.flows) and Python callers; the CLI prints only a count.
+            self.return_values = {"flows": self._query_flows()}
         elif operation == "activate":
             self._activate_flows()
         elif operation == "deactivate":
@@ -202,12 +203,16 @@ class ManageFlows(BaseSalesforceTask):
 
     def _raise_on_missing(self, names: List[str], rows: List[Dict]):
         """Raise when a requested name (DeveloperName or FlowDefinition Id) matches no flow."""
-        # SOQL string comparison is case-insensitive, so the check against the names asked for is too.
-        found = set()
+        # DeveloperName comparison in SOQL is case-insensitive, so that check is too; Ids are case-sensitive
+        # (a 15-character Id matches its 18-character form, by prefix, but only with the same case).
+        found_names = {self._developer_name(row).lower() for row in rows}
+        found_ids = set()
         for row in rows:
-            def_id = row["DefinitionId"]
-            found.update(v.lower() for v in (def_id, def_id[:15], self._developer_name(row)))
-        missing = [n for n in names if n.lower() not in found]
+            found_ids.update((row["DefinitionId"], row["DefinitionId"][:15]))
+        missing = [
+            n for n in names
+            if (n not in found_ids if _DEFINITION_ID.match(n) else n.lower() not in found_names)
+        ]
         if missing:
             raise TaskOptionsError(
                 "No flow matches: " + ", ".join(missing)

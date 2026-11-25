@@ -67,11 +67,26 @@ class FakeTooling(types.ModuleType):
         q = params["q"]
         self.queries.append(q)
         rows = self.rows
-        m = re.search(r"Status = '([^']*)'", q)
+        where = q.split(" WHERE ", 1)[1].split(" ORDER BY ")[0].split(" LIMIT ")[0] if " WHERE " in q else ""
+
+        def in_list(field):
+            m = re.search(r"(?<![\w.])" + re.escape(field) + r" IN \((.*?)\)(?= AND | OR |\)|$)", where)
+            return [v.replace("\\'", "'") for v in re.findall(r"'((?:[^'\\]|\\.)*)'", m.group(1))] if m else None
+
+        dev, def_ids, ids = in_list("Definition.DeveloperName"), in_list("DefinitionId"), in_list("Id")
+        if dev is not None or def_ids is not None:  # the two name clauses are OR-ed
+            dev_l = {v.lower() for v in dev or []}  # DeveloperName compares case-insensitively; Ids do not
+            rows = [r for r in rows if r["Definition"]["DeveloperName"].lower() in dev_l or r["DefinitionId"][:15] in [d[:15] for d in def_ids or []]]
+        if ids is not None:
+            rows = [r for r in rows if r["Id"] in ids]
+        m = re.search(r"Status = '([^']*)'", where)
         if m:
             rows = [r for r in rows if r["Status"] == m.group(1)]
+        m = re.search(r" LIMIT (\d+)$", q)
+        if m:
+            rows = rows[: int(m.group(1))]
         body = {"records": [dict(r, attributes={}) for r in rows], "done": True}
-        if self.pages is not None and not m:
+        if self.pages is not None and "Status = " not in where:
             body.update(done=False, nextRecordsUrl="/services/data/next")
         return FakeResponse(200, body)
 
@@ -95,6 +110,8 @@ def run(rows, options, fail_patch_for=(), pages=None):
     task.org_config = types.SimpleNamespace(
         access_token="t", instance_url="https://example.my.salesforce.com", api_version="68.0")
     task.project_config = None
+    task.return_values = {}
+    fake.task = task
     task.options = options
     log = lambda msg, *a, **k: LOGS.append(msg)  # noqa: E731
     task.logger = types.SimpleNamespace(info=log, error=log, warning=log, debug=lambda *a, **k: None)
@@ -226,6 +243,18 @@ fake, err = run([row(A, "Flow_A", 1, "Active"), row(B, "Flow_B", 1, "Active")],
 check("a limit does not make an existing name missing",
       err is None and len(fake.queries) == 2 and fake.queries[0].endswith("LIMIT 1") and "LIMIT" not in fake.queries[1],
       repr((err, fake.queries)))
+_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "300000000000aaa"})
+check("a FlowDefinition Id of the wrong case is a missing name (Ids are case-sensitive)",
+      err is not None and "300000000000aaa" in str(err), repr(err))
+_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,300000000000aaa"})
+check("a wrong-case Id is not satisfied by another name's row", err is not None and "300000000000aaa" in str(err), repr(err))
+fake, err = run([row(A, "Flow_A", 1, "Active"), row(A, "Flow_A", 2, "Draft")], {"operation": "query", "developer_names": "FLOW_A"})
+check("query returns the rows in return_values['flows'] (case-insensitive DeveloperName)",
+      err is None and [f["VersionNumber"] for f in fake.task.return_values.get("flows", [])] == [1, 2]
+      and all("attributes" not in f for f in fake.task.return_values["flows"]),
+      repr((err, fake.task.return_values)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list"})
+check("list returns no values", err is None and fake.task.return_values == {}, repr(fake.task.return_values))
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"},
                 pages=[row(B, "Flow_B", 1, "Active")])
 check("a paginated query follows nextRecordsUrl", err is None and "<next page>" in fake.queries, repr((err, fake.queries)))

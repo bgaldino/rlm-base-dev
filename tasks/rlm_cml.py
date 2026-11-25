@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 
-# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
-# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
 from tasks.soql_utils import soql_quote
 
 try:
@@ -434,6 +434,7 @@ class ExportCML(CMLBaseTask):
         version = str(self.options.get("version", "1")).strip()
         if not (version.isascii() and version.isdigit() and int(version) > 0):
             raise TaskOptionsError(f"version must be a whole number, got {version!r}")
+        version = str(int(version))  # "01" -> "1": the SOQL and the X_V<n> DeveloperName must agree
         output_dir = self.options["output_dir"]
         api_name_versioned = f"{dev_name}_V{version}"
 

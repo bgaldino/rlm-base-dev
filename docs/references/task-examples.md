@@ -27,7 +27,9 @@ cci task run manage_flows --org <org> -o operation list
 # First 10
 cci task run manage_flows --org <org> -o operation list -o limit 10
 
-# Same rows, returned to the caller
+# Same query without the table: the rows are not printed, only a count is logged. The task
+# returns them in return_values["flows"] (a flow step reads them as ^^<step>.flows;
+# a Python caller reads task.return_values). `list` returns nothing.
 cci task run manage_flows --org <org> -o operation query -o limit 5
 ```
 
@@ -201,8 +203,8 @@ cci task run manage_expression_sets --org <org> -o operation activate_version -o
 
 ### Audit Flow Status
 ```bash
-# Get all flow versions with their status
-cci task run manage_flows --org <org> -o operation query -o sort_by Status -o sort_order Asc
+# Print all flow versions with their status (list prints the table; query only logs a count)
+cci task run manage_flows --org <org> -o operation list -o sort_by Status -o sort_order Asc
 ```
 
 ### Find Inactive Expression Set Versions
