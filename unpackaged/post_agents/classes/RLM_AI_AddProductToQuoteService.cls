@@ -326,11 +326,12 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         if (String.isNotBlank(input.productId)) {
             // A product Id takes precedence. The planner fills it and can leave a name, a deleted
             // product's Id or another record's Id in it; when that finds no product, a product name
-            // given with it still identifies the product, so the name is matched instead.
+            // given with it still identifies the product, so the name is matched instead. An inactive
+            // product counts as not found, like the name path (active products only).
             Id productId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.productId);
             if (isProductId(productId)) {
                 List<Product2> byId = [
-                    SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1
+                    SELECT Id, Name FROM Product2 WHERE Id = :productId AND IsActive = true LIMIT 1
                 ];
                 if (!byId.isEmpty()) {
                     return byId[0];

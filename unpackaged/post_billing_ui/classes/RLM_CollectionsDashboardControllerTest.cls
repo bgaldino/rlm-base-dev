@@ -803,6 +803,31 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
+    // A user who cannot read Account still gets the rows (without a name) rather than the caller's
+    // catch dropping the whole section.
+    @isTest
+    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = newAccount('RLM High Value Unreadable');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
+                'PRECONDITION: the user cannot read Account.');
+            RLM_CollectionsDashboardController.addHighValueDelinquents(wl, invoices, 'BillingAccountId', today);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
+        Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
+        Assert.isNull(wl.highValueDelinquents[0].accountName, 'The name is blank, not a raw exception.');
+    }
+
     // A critical follow-up row per invoice: days overdue from the field when the org has it and it
     // is set, else from the due date; a blank invoice number or account name shows a dash.
     @isTest

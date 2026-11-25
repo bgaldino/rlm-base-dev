@@ -608,7 +608,13 @@ public with sharing class RLM_CollectionsDashboardController {
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
         Map<Id, String> m = new Map<Id, String>();
         if (accountIds == null || accountIds.isEmpty()) return m;
-        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
+        // A refused Account read (no object access) must not abort the caller: the rows are still
+        // listed, just without a name, instead of the whole section being dropped by the caller's catch.
+        try {
+            for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.getAccountNames: ' + e.getTypeName());
+        }
         return m;
     }
 

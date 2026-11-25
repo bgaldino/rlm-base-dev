@@ -622,9 +622,11 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         insert gone;
         Id goneId = gone.Id;
         delete gone;
+        Id inactiveId = insertProduct('Quinn Inactive Id Product', false, false).productId;
 
         // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
-        for (String productId : new List<String>{ 'not-an-id', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId) }) {
+        // An inactive product's Id finds no product either, as the name path matches active products only.
+        for (String productId : new List<String>{ 'not-an-id', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId), String.valueOf(inactiveId) }) {
             RLM_AI_AddProductToQuoteService.AddInput input =
                 new RLM_AI_AddProductToQuoteService.AddInput();
             input.quoteId = String.valueOf(f.quoteId);
@@ -653,10 +655,12 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         insert gone;
         Id goneId = gone.Id;
         delete gone;
+        Id inactiveId = insertProduct('Quinn Inactive Fallback Product', false, false).productId;
 
         // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
         List<String> staleIds = new List<String>{
-            'Quinn Fallback Product', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId)
+            'Quinn Fallback Product', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId),
+            String.valueOf(inactiveId)
         };
         for (String productId : staleIds) {
             RLM_AI_AddProductToQuoteService.AddInput input =
