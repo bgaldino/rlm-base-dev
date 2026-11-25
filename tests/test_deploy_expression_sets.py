@@ -245,6 +245,8 @@ check("the failure names the remedies: run the steps after this one (a harness r
       and "re-rank the executing version" in str(raised)
       and "set_step_formula.py" in str(raised)
       and "activate_and_deploy_expression_sets__version_check warn" in str(raised)
+      and "cci task run activate_and_deploy_expression_sets -o version_check warn"
+      in str(raised)
       and "future builds" in str(raised), raised)
 
 

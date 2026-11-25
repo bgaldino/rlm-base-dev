@@ -70,7 +70,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 |--------|---------|
 | `_client.py` | The `sf api request rest` wrapper; Connect base `connect/business-rules/expression-set/{9QL}`; SOQL with `nextRecordsUrl` paging; the injectable `Transport` seam (binds `target_org` / `api_version` / `dry_run` / `logger`, short-circuits mutating verbs under dry-run). |
 | `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / `ExpressionSetVersion`. The mutators' default version (`resolve_version_by_es_id`) is the executing one from `_guards.executing_version` (then the highest-numbered active, then the highest-numbered), with a warning when several are active. |
-| `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (the highest `Rank` among active versions whose date window covers now; earliest created among null Ranks; measured on 264), `rank_order_warning`, `target_version_warning`, `VERSION_FIELDS` (the fields every caller selects for it) and `import_target_refusal` (the measured multi-version import rule). |
+| `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (the highest `Rank` among active versions whose date window covers now; earliest created among null Ranks; measured on 264), `rank_order_warning`, `target_version_warning`, `VERSION_FIELDS` (the fields every caller selects for it), `import_target_refusal` (the measured multi-version import rule), `version_name_collision_refusal` and `other_active_versions_refusal` (the overlay's multi-version refusals), and `null_rank_reactivation_refusal` / `null_rank_delete_refusal` (a version with no Rank cannot be reactivated). |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` or `updateSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
@@ -213,84 +213,101 @@ An org can hold several versions of one set, several of them active, and the
 runtime runs one. Which one (`_guards.executing_version`, over the active versions
 whose window covers now; the platform uses the call's effective date):
 
-- the **highest Rank** — the 264 object reference (`ExpressionSetVersion.Rank`), and
-  measured: Rank 2 ran over Rank 1 whatever the VersionNumbers, and a numeric Rank
-  ran over a null one;
-- among **null Ranks, the earliest created** — measured: VersionNumber 2 created
-  before VersionNumber 1 ran, and in a one-deploy pair the first-created V1 ran;
-- **equal numeric Ranks** cannot be set up: a deploy is refused ("Assign a unique
-  rank to expression set version …"), and activating a version through the sObject
-  API needs a Rank ("Enter a valid rank to enable …"), so null Ranks only come from
-  a Metadata API deploy.
+- the **highest Rank** [Dev guide: `sforce_api_objects_expressionsetversion`]: Rank 2
+  ran over Rank 1 whatever the VersionNumbers, and a numeric Rank ran over a null one
+  [Measured: 2026-11-24, 264, QB scratch build, disposable sets];
+- among **null Ranks, the earliest created**: VersionNumber 2 created before
+  VersionNumber 1 ran, and in a one-deploy pair the first-created V1 ran [Measured:
+  2026-11-25, 264, QB scratch build, disposable sets];
+- **equal numeric Ranks**: a deploy is refused ("Assign a unique rank to expression
+  set version …"), and activating a version through the sObject API needs a Rank
+  ("Enter a valid rank to enable …"), so null Ranks only come from a Metadata API
+  deploy [Measured: 2026-11-24/25, 264, QB scratch build, disposable sets]. [Open:
+  which version runs when two active versions share a numeric Rank; settle it by
+  setting an inactive version's Rank equal to the active one's with an sObject
+  update, activating it, and invoking the set, or record that the activation is
+  refused.]
 
-All measured on Release 264 on 2026-11-24/25 by invoking disposable sets directly
-(Connect `POST connect/business-rules/expressionSet/{name}`, 3 of 3 calls each). The
-tools note when the version that runs is not the highest-numbered one. An upgraded
-org can carry `RLM_DefaultPricingProcedure` as such a chain (one 264 org had v1 to
-v4, three active; v4 ran). Consequences:
+The rules were measured by invoking the sets directly (Connect `POST
+connect/business-rules/expressionSet/{name}`, 3 of 3 calls each). The tools note
+when the version that runs is not the highest-numbered one. An upgraded org can
+carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 ran
+[Measured: 2026-11-24, 264, upgraded org]. Consequences:
 
 - **A whole-set import works on a multi-version set in one shape only.**
   `import_expression_set` (toolkit and CCI) rewrites the payload's first version id
-  to the version it targets (the executing one). Measured on 264 on two-version
-  sets: two-version payloads failed (2026-11-24: named alike, on the version-name
-  collision; target first with the other version renamed in the payload, on a
-  duplicate `CalculationProcedureId`); a one-version payload for the target failed
-  on the version-name collision when the other version's `Name` equalled its label,
-  and succeeded when it did not, both where that `Name` had been changed by an
-  sObject update (2026-11-24) and on versions deployed with their own labels
-  (2026-11-25, CLI and CCI; the other version was left untouched). A two-version
-  payload on versions with their own labels is refused by the importers' guard, so the
-  platform's answer to it is not measured. To change every version in one PATCH, an
-  overlay sends each under its own id. Both importers allow
-  only that last shape — exactly one payload version, the targeted one, no other
-  version with its label — and refuse everything else before any write, naming the
-  condition that failed. Platform version chains share one label, so expect a
-  refusal there.
+  to the version it targets (the executing one). On two-version sets, two-version
+  payloads failed: named alike, on the version-name collision; target first with the
+  other version renamed in the payload, on a duplicate `CalculationProcedureId`
+  [Measured: 2026-11-24, 264, QB scratch build, disposable sets]. A one-version
+  payload for the target failed on the version-name collision when the other
+  version's `Name` equalled its label, and succeeded when it did not, where that
+  `Name` had been changed by an sObject update [Measured: 2026-11-24, 264, QB scratch
+  build, disposable sets] and on versions deployed with their own labels, CLI and
+  CCI, the other version left untouched [Measured: 2026-11-25, 264, QB scratch build,
+  disposable sets]. Both importers allow only that last shape — exactly one payload
+  version, the targeted one, no other version with its label — and refuse
+  everything else before any write, naming the condition that failed. [Open: the
+  platform's answer to a two-version import payload on versions with their own
+  labels; the importers' guard refuses it first, so settle it with a raw Connect
+  PATCH of that payload on a disposable set.] To change every version in one PATCH,
+  an overlay sends each under its own id. Platform version chains share one label,
+  so expect a refusal there.
 - **Edit the version that executes.** A change to any other version changes no
   price. Use `set_step_formula.py` for formula edits; it defaults to the executing
   version and reads the result back.
 - **A version with no Rank cannot be cycled.** Activating a version through the API
-  needs a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so a
-  run that would end by activating a null-Rank version fails after its change is
-  written: an active version would be left off, a draft changed but not activated.
-  Every path that would activate one refuses before any write and says to give the
-  version a Rank first: `set_step_formula`, relabel and label restore, import,
-  overlay, `activate_expression_set --activate`, and a whole-set delete (whose
-  rollback reactivates), toolkit and CCI. `--no-activate` runs are allowed;
-  `activate_expression_set --deactivate` warns that the step is one-way. To give a
-  version a Rank (measured on 264, 2026-11-25): an sObject update
-  (`sf data update record --sobject ExpressionSetVersion --record-id <Id> --values
-  Rank=<n>`) works on an inactive version; on an active one it is refused ("An
+  needs a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
+  scratch build, disposable sets], so a run that would end by activating a null-Rank
+  version fails after its change is written: an active version would be left off, a
+  draft changed but not activated. Every path that would activate one refuses before
+  any write and says to give the version a Rank first: `set_step_formula`, relabel
+  and label restore, import, overlay, `activate_expression_set --activate`, and a
+  whole-set delete (whose rollback reactivates), toolkit and CCI. Runs without
+  activation (`--no-activate`; CCI `activate_after_apply` / `activate_after_import`
+  false) are allowed; `activate_expression_set --deactivate` warns that the step is
+  one-way. To give a version a Rank: an sObject update (`sf data update record
+  --target-org <alias> --sobject ExpressionSetVersion --record-id <Id> --values
+  "Rank=<n>"`) works on an inactive version; on an active one it is refused ("An
   enabled Expression Set Version cannot be updated/deleted."), as is a redeploy, so
-  deactivate it, set the Rank and activate it again (it does not run while off).
-- **An overlay sends every version, so their names must differ.**
-  `apply_expression_set_overlay` (toolkit and CCI) PATCHes the whole definition its
-  GET returned. Measured on 264 (2026-11-25) on two-version sets, active and draft:
-  it succeeded when the versions were deployed with their own labels, and was
-  rejected ("An expression set version with the name … exists in this expression
-  set") when the GET returned one name for both — whether the rows' `Name` was
-  shared or had been made distinct by an sObject update, which does not change the
-  name the GET returns. Both surfaces refuse before any write when a version in the
-  PATCH has no name, shares one with another, or carries another version's `Name`.
-  With no version named, an overlay edits the executing version (it used to edit the
-  GET's first version, measured to be the draft); naming another version warns that
-  pricing does not run it. Platform version chains share one label, so expect a
-  refusal there and use `set_step_formula.py`.
+  deactivate it, set the Rank and activate it again (it does not run while off)
+  [Measured: 2026-11-25, 264, QB scratch build, disposable sets].
+- **An overlay sends every version.** `apply_expression_set_overlay` (toolkit and
+  CCI) PATCHes the whole definition its GET returned. On two-version sets, active
+  and draft, it succeeded when the versions were deployed with their own labels, and
+  was rejected ("An expression set version with the name … exists in this expression
+  set") when the GET returned one name for both, whether the rows' `Name` was shared
+  or had been made distinct by an sObject update, which does not change the name the
+  GET returns; with no version named it edited the GET's first version, the draft
+  [Measured: 2026-11-25, 264, QB scratch build, disposable sets]. So both surfaces
+  edit the executing version when none is named (naming another warns that pricing
+  does not run it), and refuse before any write when a version in the PATCH has no
+  name, shares one with another, or carries another version's `Name`, and when any
+  version other than the executing one is active: the run deactivates only the
+  executing version, so the PATCH would rewrite an active one. [Open: whether a
+  PATCH that rewrites an active version is accepted; settle it with an overlay on a
+  disposable set with two active versions, each with its own label, with the guard
+  bypassed.] Deactivate the other active versions first, or use
+  `set_step_formula.py`. Platform version chains share one label and keep several
+  versions active, so expect a refusal there.
 
 In the build, `activate_and_deploy_expression_sets` reads back which version each
 deployed repo procedure executes and fails when it is not the deployed one. The
 deploy handler matches versions by VersionNumber, and its code path suggests a
 version found under another number can be skipped silently [Platform behaviour,
-traced]; the one construction measured (264, 2026-11-24: lower version deleted,
-`_V1` redeployed at the freed number) failed the deploy loudly instead. The
-read-back reports any VersionNumber mismatch either way. It runs only after a
-successful deploy, and that step cannot be re-run in place on a built org: the
-redeploy is refused ("You can't update the expression set version … because it's
-active", measured on 264, 2026-11-24). When it fails, run the build's remaining
-steps after it, in order (`cci flow info prepare_rlm_org` lists them; a build-harness
-`resume` restarts at the failed step, so it would re-run it) and, if the wrong
-version executes, edit or re-rank the executing version;
-`-o version_check warn` is for future builds on an org whose chain is known.
+traced]; the one construction measured (lower version deleted, `_V1` redeployed at
+the freed number) failed the deploy loudly instead [Measured: 2026-11-24, 264, QB
+scratch build, disposable sets]. The read-back reports any VersionNumber mismatch
+either way. It runs only after a successful deploy, and that step cannot be re-run
+in place on a built org: the redeploy is refused ("You can't update the expression
+set version … because it's active") [Measured: 2026-11-24, 264, QB scratch build].
+When it fails, run the build's remaining steps after it, in order (`cci flow info
+prepare_rlm_org` lists them; a build-harness `resume` restarts at the failed step,
+so it would re-run it) and, if the wrong version executes, edit or re-rank the
+executing version. For future builds on an org whose chain is known, set the check
+to warn: `-o version_check warn` on `cci task run activate_and_deploy_expression_sets`,
+or `-o activate_and_deploy_expression_sets__version_check warn` on `cci flow run
+prepare_rlm_org`.
 
 ### Discovery Procedure "Unused" Outputs
 

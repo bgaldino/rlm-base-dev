@@ -283,7 +283,8 @@ class DeployExpressionSets(Deploy):
                 "version executes, edit or re-rank the executing version "
                 "(scripts/expression_sets/set_step_formula.py for formulas). "
                 "version_check warn is for future builds on an org whose version chain "
-                "is known (cci flow run prepare_rlm_org -o "
+                "is known (cci task run activate_and_deploy_expression_sets -o "
+                "version_check warn, or cci flow run prepare_rlm_org -o "
                 "activate_and_deploy_expression_sets__version_check warn).\n"
                 + READBACK_FAILURE_SIGNATURE
             )
