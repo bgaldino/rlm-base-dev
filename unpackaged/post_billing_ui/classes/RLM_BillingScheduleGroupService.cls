@@ -24,18 +24,21 @@
  * The account: the modal passes the id of the account page it opened on (pageAccountId). When that
  * account is the billing account's own, or is linked to it through AccountBillingAccount, it is the
  * account sent (AccountId__std) and read for the shipping city; otherwise the billing account's own
- * account is used, else its oldest link. The page account is only a preference: if the read of the
- * links is refused, the billing account's own account is kept as before. getAccountBillingInfo returns
- * the billing city of that same account (the page account's when the billing account is reached
- * through a link, since create sends that account), so the city the modal submits matches it. No billing treatment read can be hidden by sharing:
+ * account is used (if it has none, create refuses), else its oldest link. The page account must be
+ * readable by the user (an Account read in USER_MODE); when it differs from the billing account's own
+ * and its link read is refused or returns nothing readable, create refuses rather than fall back, since
+ * the city the modal submitted came from the page account. getAccountBillingInfo returns
+ * the billing city of the requested account, which is the account create sends, so the city the modal
+ * submits matches it. No billing treatment read can be hidden by sharing:
  * BillingTreatment's organization-wide default is public (measured on a 264 org; BillingTreatmentItem
  * is controlled by its parent), so "no treatment" means none exists, not that sharing hid one.
  *
  * Treatment selection (one wording; chooseTreatment implements it). Candidates are the oldest-first
  * active, non-milestone, billable treatments of the legal entity, in the charge's currency, counting
  * only their active items typed Advance or Arrears (a None-type item is ignored; several items of the
- * same timing are fine). At most 1000 items are read, oldest treatment first; candidates beyond that
- * are not considered. Recurring charge: the first treatment whose items all bill in the chosen
+ * same timing are fine). The read filters on the charge's currency and is capped at 1000 items, oldest
+ * treatment first; when the cap is hit the last treatment read is dropped (it may be cut short), and
+ * treatments beyond the cap are not considered. Recurring charge: the first treatment whose items all bill in the chosen
  * timing; a treatment with items in both timings is ambiguous and skipped. One-time charge (the
  * billing term unit is OneTime): timing is moot, so ambiguity does not apply; the first Advance-only
  * treatment, else the first Arrears-only one, else (last, because what the platform bills for it on a
@@ -206,7 +209,7 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         List<Account> accounts;
         try {
-            accounts = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+            accounts = [SELECT Id, Name, BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
         } catch (QueryException qe) {
             throw readRefused('the account', qe);
         }
@@ -231,11 +234,10 @@ public with sharing class RLM_BillingScheduleGroupService {
         // BillingAccount.IsDefaultBillingProfile in ORDER BY adds no field-level-security dependency:
         // measured on a 264 org, describe reports it not permissionable and a FieldPermissions row for
         // it is refused, so USER_MODE does not check it and no permission set can grant it.
-        Boolean reachedThroughLink = false;
         List<BillingAccount> billingAccounts;
         try {
             billingAccounts = [
-                SELECT Id, Name, Account.BillingCity
+                SELECT Id, Name
                 FROM BillingAccount
                 WHERE AccountId = :accountId
                 WITH USER_MODE
@@ -280,11 +282,10 @@ public with sharing class RLM_BillingScheduleGroupService {
                 return billingAccountUnreadable(acc.Name);
             }
             if (!links.isEmpty()) {
-                reachedThroughLink = true;
                 // Same BillingCity read as above: covered by the compound BillingAddress grant (see there).
                 try {
                     billingAccounts = [
-                        SELECT Id, Name, Account.BillingCity
+                        SELECT Id, Name
                         FROM BillingAccount
                         WHERE Id = :links[0].BillingAccountId
                         WITH USER_MODE
@@ -309,20 +310,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
 
         BillingAccount ba = billingAccounts[0];
-        String city;
-        if (!reachedThroughLink && ba.Account != null) {
-            city = ba.Account.BillingCity;
-        } else {
-            // A billing account reached only through AccountBillingAccount (it has no owning account, or
-            // another account owns it) is created for the requesting account when that account is linked
-            // to it, so the city is the requesting account's, not the owner's. The modal sends this city on create and has no
-            // city input, so a null here would refuse every create with "Billing City is required.".
-            try {
-                city = [SELECT BillingCity FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1].BillingCity;
-            } catch (QueryException qe) {
-                throw readRefused('the account', qe);
-            }
-        }
+        // The city is the requested account's: create sends the page account when it is linked, and a
+        // billing account's own account when the page is that account, so both match this read.
+        String city = acc.BillingCity;
         return new AccountInfo(acc.Name, ba.Id, ba.Name, city);
     }
 
@@ -470,19 +460,21 @@ public with sharing class RLM_BillingScheduleGroupService {
         Id accountId = billingAccounts[0].AccountId;
 
         // The account page the modal opened on wins when it is linked to the billing account through
-        // AccountBillingAccount (when it is the billing account's own, accountId already is it).
+        // AccountBillingAccount (when it is the billing account's own, accountId already is it). The
+        // page account must be one the user reads; a refused or vanished read refuses create, since
+        // the city the modal submitted came from that account.
         if (pageAccountId != null && pageAccountId != accountId) {
             try {
+                if ([SELECT Id FROM Account WHERE Id = :pageAccountId WITH USER_MODE LIMIT 1].isEmpty()) {
+                    throw RLM_AuraErrors.handled('The account you opened this from was not found or is not visible to you.');
+                }
                 if (![SELECT Id FROM AccountBillingAccount
                       WHERE BillingAccountId = :billingAccountId AND AccountId = :pageAccountId
                       WITH USER_MODE LIMIT 1].isEmpty()) {
                     accountId = pageAccountId;
                 }
             } catch (QueryException qe) {
-                // The page account is only a preference: a refused read of the links keeps the billing
-                // account's own account (and the oldest-link read below, if it has none, refuses on its own).
-                System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService page account link check refused: '
-                    + qe.getTypeName() + ': ' + qe.getMessage());
+                throw readRefused('the account links', qe);
             }
         }
 
@@ -713,6 +705,9 @@ public with sharing class RLM_BillingScheduleGroupService {
     // currency (a treatment item's BillingType is where Advance or Arrears lives). timing is not used for
     // a one-time charge. Both timings are read so a recurring charge can skip a treatment carrying both.
     @TestVisible
+    private static final Integer ITEM_READ_CAP = 1000;
+
+    @TestVisible
     private static Id findBillingTreatmentId(Id legalEntityId, Boolean isOneTime, String timing, String currencyIsoCode) {
         List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
         if (Test.isRunningTest() && mockTreatmentCandidates != null) {
@@ -728,9 +723,10 @@ public with sharing class RLM_BillingScheduleGroupService {
                     AND BillingTreatment.LegalEntityId = :legalEntityId
                     AND BillingTreatment.IsMilestoneBilling = false
                     AND BillingTreatment.ExcludeFromBilling = 'No'
+                    AND BillingTreatment.CurrencyIsoCode = :currencyIsoCode
                     WITH USER_MODE
                     ORDER BY BillingTreatment.CreatedDate, BillingTreatmentId
-                    LIMIT 1000
+                    LIMIT :ITEM_READ_CAP
                 ]) {
                     candidates.add(new TreatmentCandidate(
                         item.BillingTreatmentId, item.BillingType, item.BillingTreatment.CurrencyIsoCode));
@@ -738,6 +734,7 @@ public with sharing class RLM_BillingScheduleGroupService {
             } catch (QueryException qe) {
                 throw readRefused('the billing treatments', qe);
             }
+            candidates = dropPartialLastTreatment(candidates, ITEM_READ_CAP);
         }
         TreatmentChoice choice = chooseTreatment(candidates, isOneTime, timing, currencyIsoCode);
         if (choice.chosen != null) {
@@ -756,6 +753,24 @@ public with sharing class RLM_BillingScheduleGroupService {
             + (isOneTime
                 ? 'Choose another legal entity or currency, or ask your administrator to set one up.'
                 : 'Choose another legal entity, timing or currency, or ask your administrator to set one up.'));
+    }
+
+    // The item read is capped. Rows come treatment by treatment, so when the cap is hit the last
+    // treatment may be cut short (a mixed treatment would look Advance-only or Arrears-only): drop every
+    // row of the last treatment id read. Under the cap nothing is dropped.
+    @TestVisible
+    private static List<TreatmentCandidate> dropPartialLastTreatment(List<TreatmentCandidate> candidates, Integer cap) {
+        if (candidates.size() < cap) {
+            return candidates;
+        }
+        Id lastTreatmentId = candidates[candidates.size() - 1].treatmentId;
+        List<TreatmentCandidate> kept = new List<TreatmentCandidate>();
+        for (TreatmentCandidate c : candidates) {
+            if (c.treatmentId != lastTreatmentId) {
+                kept.add(c);
+            }
+        }
+        return kept;
     }
 
     // Applies the selection rule in the class header to candidates in the order given (the query's:

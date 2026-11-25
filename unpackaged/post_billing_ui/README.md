@@ -55,7 +55,7 @@ billing term when a caller gives one (`BillingTerm__std`; the modal has no input
 shipping city (`ShippingCity__std`: the account's `ShippingCity`, else the `billingCity` the
 caller submitted, which create requires). The account sent (`AccountId__std`) is the account page
 the modal opened on (`pageAccountId`) when it is the billing account's own or is linked to it through
-`AccountBillingAccount`; otherwise the billing account's own account, else its oldest link.
+`AccountBillingAccount`; otherwise the billing account's own account (if it has none, create refuses), else its oldest link.
 `getAccountBillingInfo` returns the billing city of that same account (the page account's when the
 billing account is reached through a link), so the submitted city matches the account sent. Treatments considered are the oldest-first active,
 non-milestone, billable ones of the legal entity in the charge's currency, counting only their active
@@ -67,8 +67,7 @@ ignores one if sent, so ambiguity does not apply: it takes the first Advance-onl
 what the platform bills for it on a one-time charge is unmeasured) the first with both timings
 (measured: left to itself the platform picks a treatment of the legal entity whatever the currency,
 so one is sent). The charge currency must be an active `CurrencyType`, or create refuses before the
-lookup. At most 1000 treatment items are read, oldest first. If the read of the account links for the
-page-account check is refused, the billing account's own account is kept. It reads `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity`, `CurrencyType` and
+lookup. The treatment read filters on the charge currency and is capped at 1000 items, oldest first; when the cap is hit the last treatment read is dropped (it may be cut short). The page account must be readable (Account read in USER_MODE); if it differs from the billing account's own and its link read is refused or unreadable, create refuses. It reads `BillingTreatment`, `BillingTreatmentItem`, `LegalEntity`, `CurrencyType` and
 `Account.ShippingCity` in USER_MODE. `RLM_BillingUI` grants object read on `BillingTreatment` and
 `LegalEntity` (the item follows its master, below) and field read on the shipping city through the
 `Account.ShippingAddress` compound grant; the treatment and item fields it reads (`Status`,

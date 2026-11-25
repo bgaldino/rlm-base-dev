@@ -1322,6 +1322,120 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('Page Ship', txn.get('ShippingCity__std'));
     }
 
+    // A page account the user cannot find (or read) refuses create instead of being ignored.
+    @isTest
+    static void createViaAPI_pageAccountNotReadable_isRefused() {
+        Account own = new Account(Name = 'BSG Own For Missing Page');
+        insert own;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Missing Page BA', AccountId = own.Id);
+        insert ba;
+        CreateArgs args = new CreateArgs(ba.Id);
+        args.pageAccountId = fakeId(Account.SObjectType);
+
+        AuraHandledException thrown;
+        Test.startTest();
+        try {
+            args.call();
+        } catch (AuraHandledException e) {
+            thrown = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'An unreadable page account is refused.');
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // A refused read of the account links refuses create when the page account is not the owner: the
+    // city came from the page account, so the owner's account must not be sent silently.
+    @isTest
+    static void createViaAPI_pageAccountLinkReadRefused_isRefused() {
+        Account own = new Account(Name = 'BSG Own Link Refused');
+        Account page = new Account(Name = 'BSG Page Link Refused');
+        insert new List<Account>{ own, page };
+        BillingAccount ba = new BillingAccount(Name = 'BSG Link Refused BA', AccountId = own.Id);
+        insert ba;
+        insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>{ 'Account' },
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress' });
+        CreateArgs args = new CreateArgs(ba.Id);
+        args.pageAccountId = page.Id;
+
+        AuraHandledException thrown;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM AccountBillingAccount LIMIT 1'),
+                'PRECONDITION: the user cannot read AccountBillingAccount.');
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'A refused link read refuses create.');
+        Assert.isTrue(thrown.getMessage().contains('the account links'), 'It names the read: ' + thrown.getMessage());
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // A billing account with no account of its own, for a user who cannot read the links, refuses
+    // (at the page-account link check when a page account is sent).
+    @isTest
+    static void createViaAPI_noOwnAccountAndLinksRefused_isRefused() {
+        Account page = new Account(Name = 'BSG Page No Own');
+        insert page;
+        BillingAccount ba = new BillingAccount(Name = 'BSG No Own Account BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>{ 'Account' },
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress' });
+        CreateArgs args = new CreateArgs(ba.Id);
+        args.pageAccountId = page.Id;
+
+        AuraHandledException thrown;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                thrown = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(thrown, 'No own account and no readable links refuses create.');
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The item read is capped: at the cap the last treatment read is dropped (it may be cut short, so a
+    // mixed treatment would look single-timing); under the cap nothing is dropped.
+    @isTest
+    static void dropPartialLastTreatment_dropsTheLastTreatmentOnlyAtTheCap() {
+        Id t1 = (Id) (BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+        Id t2 = (Id) (BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> rows = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(t1, 'Advance', CUR),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(t2, 'Advance', CUR),
+            new RLM_BillingScheduleGroupService.TreatmentCandidate(t2, 'Arrears', CUR)
+        };
+
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> atCap =
+            RLM_BillingScheduleGroupService.dropPartialLastTreatment(rows, 3);
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> underCap =
+            RLM_BillingScheduleGroupService.dropPartialLastTreatment(rows, 4);
+
+        Assert.areEqual(1, atCap.size(), 'The possibly partial last treatment is dropped.');
+        Assert.areEqual(t1, atCap[0].treatmentId);
+        Assert.areEqual(3, underCap.size(), 'Under the cap nothing is dropped.');
+        Assert.areEqual(1000, RLM_BillingScheduleGroupService.ITEM_READ_CAP, 'The cap is the documented 1000.');
+    }
+
     // With no own account, the page account wins over the oldest link.
     @isTest
     static void createViaAPI_pageAccount_winsOverTheOldestLink() {
