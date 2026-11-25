@@ -254,28 +254,30 @@ In this repo:
   and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
-- **The q3 plan uses one shipped placeholder.** The 39 rows of
-  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` that carry a `DisplayUrl` (`CERT007` among
-  them) point at `/resource/RLM_product_placeholder`, a neutral image in
-  `force-app/main/default/staticresources/`; the other 39 have none. They used to hotlink
-  third-party hosts, which break without notice and which the repo has no license to use; do not
-  reintroduce such addresses. The dev guide's example responses still show external `https`
-  addresses.
+- **The q3 plan uses one shipped placeholder for every product.** All 78 rows of
+  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at `/resource/RLM_product_placeholder`, a
+  neutral image in `force-app/main/default/staticresources/`, so q3 follows the rule above: one
+  deliberate fallback, not a split by whichever rows happened to have an address. Half of them
+  used to hotlink third-party hosts, which break without notice and which the repo has no license
+  to use; do not reintroduce such addresses. The dev guide's example responses still show
+  external `https` addresses.
 - **An external `https` address loads only from an allowed host.** In Lightning, the page's
   `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
   (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no
-  `https:` wildcard. An image whose host is in neither is blocked by the browser
-  (`securitypolicyviolation`); `images.ctfassets.net` loaded with no trusted site, a `gstatic`
-  host loaded through its trusted site. The record's Details tab shows `DisplayUrl` as text, not
-  as an image. [Measured: 2026-11-24, 264, fresh build; Product2 record page in Chrome] So ship
+  `https:` wildcard; a host in neither is blocked by the browser. Method: the policy was read off
+  a Lightning Product2 record page in Chrome, and each address was loaded in that page as a test
+  image (`new Image()` with a `securitypolicyviolation` listener): `images.ctfassets.net` loaded
+  with no trusted site, a `gstatic` host loaded through its trusted site, and hosts in neither
+  list were blocked. A record page does not render the product image itself; its Details tab
+  shows `DisplayUrl` as text. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] So ship
   images as static resources rather than adding a trusted site per host.
 - **Catalog cards and the configurator header follow the same rule, and fail silently.** Browse
   Catalogs product cards and the configurator header render `DisplayUrl`; an allowed host
   (`images.ctfassets.net` with no trusted site) and a static resource (`/resource/powerswerve`,
   `/resource/RLM_product_placeholder`) both render. A host outside `img-src` shows no error: the
   card falls back to Salesforce's own `/img/industriesCpq/plp-image-placeholder.svg`, the image a
-  blank `DisplayUrl` gets, and the configurator leaves the image block out.
-  [Measured: 2026-11-24, 264, fresh build] So a bad or disallowed external `DisplayUrl` goes
+  blank `DisplayUrl` gets, and the configurator leaves the image block out. Seen on test quotes in
+  Chrome. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] So a bad or disallowed external `DisplayUrl` goes
   unnoticed in a demo until someone looks for the picture.
 
 In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
