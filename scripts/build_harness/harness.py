@@ -54,6 +54,7 @@ from scripts.build_harness.harness.reporting import (
     write_analysis_artifacts,
 )
 from scripts.build_harness.harness.scenario_runner import run_single_scenario
+from scripts.build_harness.tui.dotenv_local import apply_to_environ
 
 EXIT_SUCCESS = 0
 EXIT_BUILD_FAILED = 10
@@ -434,6 +435,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Iterable[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # The workstation overrides in .env.local (the Chrome for Testing pair) reach
+    # every build step, as they do under direnv and ./tui-cci; exported values win.
+    for warning in apply_to_environ(ROOT / ".env.local"):
+        print(f"[harness] {warning}", file=sys.stderr)
     try:
         return int(args.func(args))
     except FileNotFoundError as exc:
