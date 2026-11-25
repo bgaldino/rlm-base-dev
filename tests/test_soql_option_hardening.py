@@ -187,6 +187,15 @@ check("a null or blank activate takes the default (true)", activate_requested(""
 check("a non-boolean string is rejected", raises(lambda: activate_requested("maybe"), "activate must be"))
 check("a non-bool, non-string value is rejected", raises(lambda: activate_requested(1), "activate must be"))
 
+t = ExtendStandardContext.__new__(ExtendStandardContext)
+t.instance_url, t.access_token = "https://x", "tok"
+t.project_config = types.SimpleNamespace(project__package__api_version="v68.0")
+url, _ = t._build_url_and_headers("connect/context-definitions")
+check("extend_standard_context strips a 'v' from the project version", "/services/data/v68.0/" in url, url)
+t.project_config = types.SimpleNamespace(project__package__api_version=None)
+check("extend_standard_context refuses a missing project version",
+      raises(lambda: t._build_url_and_headers("x"), "No API version"))
+
 print("extend_standard_context: _init_options rejects bad options before any change")
 from unittest import mock  # noqa: E402
 from cumulusci.tasks.sfdx import SFDXBaseTask  # noqa: E402

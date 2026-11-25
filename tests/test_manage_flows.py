@@ -234,9 +234,10 @@ print("LastModifiedDate maps to CreatedDate (Flow has no LastModifiedDate)")
 fake, _ = run([], {"operation": "list", "sort_by": "LastModifiedDate"})
 check("ORDER BY CreatedDate Desc", fake.queries[0].endswith("ORDER BY CreatedDate Desc"), fake.queries[0])
 
-print("list prints DeveloperName, not the DefinitionId")
+print("list prints the DeveloperName and the DefinitionId (which tells apart flows sharing a name)")
 run(TWO, {"operation": "list"})
 check("names in the table", "Flow_A" in JOINED(LOGS) and "Flow_B" in JOINED(LOGS), JOINED(LOGS))
+check("DefinitionIds in the table", A in JOINED(LOGS) and B in JOINED(LOGS), JOINED(LOGS))
 
 print("names match case-insensitively, as the SOQL IN does")
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": "flow_a"})

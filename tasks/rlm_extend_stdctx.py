@@ -549,7 +549,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
-        url = f"{self.instance_url}/services/data/v{self.project_config.project__package__api_version}/{endpoint}"
+        api_version = self.project_config.project__package__api_version
+        if not api_version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        url = f"{self.instance_url}/services/data/v{str(api_version).lstrip('v')}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",

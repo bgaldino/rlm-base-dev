@@ -204,7 +204,7 @@ class ManageExpressionSets(BaseSalesforceTask):
                 matched.append(es)
                 if limit and len(matched) == limit:
                     break
-            expression_sets = matched[:limit] if limit else matched
+            expression_sets = matched
 
         self.logger.info(f"Query returned {len(expression_sets)} expression set(s).")
         return expression_sets
@@ -287,7 +287,7 @@ class ManageExpressionSets(BaseSalesforceTask):
                 "sort_by must be one of DeveloperName, Label, LastModifiedDate, CreatedDate; "
                 f"got {self.options.get('sort_by')!r}"
             )
-        sort_order = str(self.options.get("sort_order") or "Desc").strip().capitalize()
+        sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
         if sort_order not in ("Asc", "Desc"):
             raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"

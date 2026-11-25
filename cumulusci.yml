@@ -3348,7 +3348,8 @@ tasks:
       process_type: null  # list/query only: filter by ProcessType (AutoLaunchedFlow, Flow, Workflow, etc.)
       sort_by: LastModifiedDate  # list/query only; mapped to CreatedDate (flow versions are immutable)
       sort_order: Desc
-      # developer_names: comma-separated DeveloperNames; required for activate/deactivate
+      # developer_names: comma-separated DeveloperNames or FlowDefinition Ids; required for activate/deactivate
+      # (a DeveloperName shared by two flows, e.g. a managed package's, is refused there: pass the Id)
 
   manage_expression_sets:
     group: Revenue Lifecycle Management

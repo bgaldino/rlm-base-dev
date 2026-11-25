@@ -176,12 +176,16 @@ class ManageFlows(BaseSalesforceTask):
 
         self.logger.info(f"Found {len(flows)} flow version(s):")
         self.logger.info("")
-        self.logger.info(f"{'DeveloperName':<50} {'MasterLabel':<50} {'Status':<12} {'ProcessType':<20} {'Version':<10}")
-        self.logger.info("-" * 142)
+        # DefinitionId tells apart two flows that share a DeveloperName (a managed package's and the org's).
+        self.logger.info(
+            f"{'DeveloperName':<50} {'DefinitionId':<19} {'MasterLabel':<50} {'Status':<12} {'ProcessType':<20} {'Version':<10}"
+        )
+        self.logger.info("-" * 162)
 
         for flow in flows:
             self.logger.info(
-                f"{self._developer_name(flow):<50} {flow.get('MasterLabel') or 'N/A':<50} "
+                f"{self._developer_name(flow):<50} {flow.get('DefinitionId') or 'N/A':<19} "
+                f"{flow.get('MasterLabel') or 'N/A':<50} "
                 f"{flow.get('Status') or 'N/A':<12} {flow.get('ProcessType') or 'N/A':<20} "
                 f"{str(flow.get('VersionNumber', 'N/A')):<10}"
             )
@@ -279,7 +283,7 @@ class ManageFlows(BaseSalesforceTask):
                     f"sort_by must be one of DeveloperName, Label, Status, ProcessType, "
                     f"VersionNumber, CreatedDate; got {self.options.get('sort_by')!r}"
                 )
-            sort_order = str(self.options.get("sort_order") or "Desc").strip().capitalize()
+            sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
             if sort_order not in ("Asc", "Desc"):
                 raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
             soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
