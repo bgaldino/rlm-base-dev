@@ -77,14 +77,19 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 
 The step is now **conditional** (todo 419, item 3). `conditional_steps.json` names it with
-`"requires": {"namedCredential": "RLM"}`. When the target org has no `RLM` named credential, the load
-(`LoadSFDMUData`, and the idempotency test's loads) removes the step's row from `FulfillmentStepDefinition.csv`
-and its two dependency rows from `FulfillmentStepDependencyDef.csv`. The removal happens in a temp copy, so the
-tracked CSVs stay whole. Receive Key + Assign to Asset and Provision Licensing/Features then have no predecessor
-and start with the plan. An org that has the credential loads the step as before.
+`"requires": {"namedCredential": "RLM"}`. When the target org has no unnamespaced `RLM` named credential
+record, the load (`LoadSFDMUData`, and the idempotency test's loads) removes the step's row from
+`FulfillmentStepDefinition.csv` and its two dependency rows from `FulfillmentStepDependencyDef.csv`. The check
+is that the credential exists, not that its endpoint answers. The removal happens in a temp copy, so the
+tracked CSVs stay whole. Receive Key + Assign to Asset (a Milestone step) and Provision Licensing/Features then
+have no predecessor and start with the plan [inferred from the dependency rows]. An org that has the credential
+loads the step as before.
 
 The load never deletes anything, so an org that already holds the step keeps it. The load logs a warning
-naming the step; remove it by hand on that org. Logic: `scripts/sfdmu_conditional_steps.py`.
+naming the step; remove it by hand on that org. A plan that already lacks the step (for example, an
+extraction from such an org) loads without it when the credential is missing, and fails when the credential
+exists, so a renamed step cannot slip past. Only the plan-root CSVs are filtered: the load fails if
+`objectset_source/` holds a copy of either one. Logic: `scripts/sfdmu_conditional_steps.py`.
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`

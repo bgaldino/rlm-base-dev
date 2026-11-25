@@ -52,8 +52,11 @@ def load_conditions(plan_dir: str) -> List[dict]:
     path = os.path.join(plan_dir, CONDITIONS_FILENAME)
     if not os.path.isfile(path):
         return []
-    with open(path, encoding="utf-8") as handle:
-        spec = json.load(handle)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            spec = json.load(handle)
+    except (OSError, ValueError) as exc:
+        raise ConditionalStepError(f"{path}: not readable JSON: {exc}")
     steps = spec.get("steps") if isinstance(spec, dict) else None
     if not isinstance(steps, list) or not steps:
         raise ConditionalStepError(f"{path}: expected a non-empty 'steps' list")
@@ -92,7 +95,10 @@ def requirement_met(requires: Dict[str, str], query: Callable[[str], List[dict]]
     """`(met, description of what was checked)`. Every listed requirement must exist."""
     for key, value in requires.items():
         if key == "namedCredential":
-            found = query(f"SELECT DeveloperName FROM NamedCredential WHERE DeveloperName = '{value}'")
+            # `callout:<name>` resolves the unnamespaced credential, so a managed package's does not count.
+            # This checks the record exists, not that its endpoint answers.
+            found = query(f"SELECT DeveloperName FROM NamedCredential WHERE DeveloperName = '{value}' "
+                          f"AND NamespacePrefix = null")
             if not found:
                 return False, f"Named Credential {value!r} does not exist on the target org"
     return True, ", ".join(f"{k} {v!r}" for k, v in requires.items())
@@ -111,6 +117,14 @@ def apply_conditions(plan_dir: str, query: Callable[[str], List[dict]],
     for path in (definition_path, dependency_path):
         if not os.path.isfile(path):
             raise ConditionalStepError(f"{path} not found; {CONDITIONS_FILENAME} needs it")
+    # Only the plan-root CSVs are filtered; a per-pass copy would load the dropped step unseen.
+    objectsets = os.path.join(plan_dir, "objectset_source")
+    for root, _dirs, files in os.walk(objectsets):
+        for name in (DEFINITION_CSV, DEPENDENCY_CSV):
+            if name in files:
+                raise ConditionalStepError(
+                    f"{os.path.join(root, name)}: {CONDITIONS_FILENAME} filters only the plan-root CSVs, "
+                    f"not per-pass copies under objectset_source/")
     def_header, def_rows = _read_csv(definition_path)
     dep_header, dep_rows = _read_csv(dependency_path)
     if DEFINITION_NAME_COLUMN not in def_header:
@@ -122,12 +136,18 @@ def apply_conditions(plan_dir: str, query: Callable[[str], List[dict]],
     removed: List[str] = []
     for item in conditions:
         name = item["name"]
-        if not any(row[DEFINITION_NAME_COLUMN] == name for row in def_rows):
-            raise ConditionalStepError(
-                f"{CONDITIONS_FILENAME} names step {name!r}, which is not in {DEFINITION_CSV}")
+        present = any(row[DEFINITION_NAME_COLUMN] == name for row in def_rows)
         met, what = requirement_met(item["requires"], query)
         if met:
+            if not present:
+                # The rename guard: the org can run the step, so the plan must carry it.
+                raise ConditionalStepError(
+                    f"{CONDITIONS_FILENAME} names step {name!r}, which is not in {DEFINITION_CSV}")
             log(f"Conditional step kept: {name!r} ({what})")
+            continue
+        if not present:
+            # Already dropped, e.g. an extraction of an org that never had it (round-trip reload).
+            log(f"Conditional step already absent: {name!r} ({what}); nothing to drop.")
             continue
         def_rows = [row for row in def_rows if row[DEFINITION_NAME_COLUMN] != name]
         kept, dropped = [], []

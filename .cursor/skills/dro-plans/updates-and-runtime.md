@@ -532,8 +532,9 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
   records. Both signals are uninformative here (see **Verify a DRO Step on a Fresh Build**, below).
 
 The step is now conditional (todo 419, item 3). qb-dro's `conditional_steps.json` drops it from a load
-when the target org has no `RLM` named credential. The two steps that depended on it then have no
-predecessor and start with the plan. Details are in the
+when the target org has no unnamespaced `RLM` named credential record (it checks that the credential exists,
+not that it answers). The two steps that depended on it then have no predecessor and start with the plan
+[inferred from the dependency rows]. Details are in the
 [qb-dro README](../../../datasets/sfdmu/qb/en-US/qb-dro/README.md). A load never deletes the step from an org
 that already has it. `mfg-dro` has no conditions file yet, so it still loads both of its tenant steps.
 

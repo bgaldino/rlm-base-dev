@@ -482,8 +482,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
     def _apply_conditional_steps(self) -> None:
         """Drop the plan's conditional DRO steps whose requirement the target org lacks, in a temp copy."""
-        if not sfdmu_conditional_steps.load_conditions(self.pathtoexportjson):
-            return
+        try:
+            if not sfdmu_conditional_steps.load_conditions(self.pathtoexportjson):
+                return
+        except sfdmu_conditional_steps.ConditionalStepError as exc:
+            raise CommandException(str(exc))
         self._ensure_temp_plan_copy("sfdmu_cond_")
         org = sfdmu_cli_org(self.org_config, self.options.get("targetusername"))
         try:
@@ -1109,7 +1112,10 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
     def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
         lookups = sfdmu_id_lookups.load_lookups(plan_dir)
-        conditions = sfdmu_conditional_steps.load_conditions(plan_dir)
+        try:
+            conditions = sfdmu_conditional_steps.load_conditions(plan_dir)
+        except sfdmu_conditional_steps.ConditionalStepError as exc:
+            raise CommandException(str(exc))
         user_name = self._assigned_to_user_name()
         if not lookups and not user_name and not conditions:
             self._run_load_in(plan_dir, strict)

@@ -4,8 +4,9 @@
 Runs the real qb-dro plan through `apply_conditions` with a fake `query`: the tenant callout
 step and its two dependency rows go when the `RLM` Named Credential is missing, the rest of the
 plan (the billing chain, `Start Project`) is untouched, and a plan that has the credential is left
-byte-for-byte as tracked. A stale step on the org is reported, and a conditions file that names a
-step the plan does not have fails instead of turning the guard into a no-op.
+byte-for-byte as tracked. A stale step on the org is reported. A plan that already lacks the step
+(a round-trip extract) loads when the credential is missing, but fails when the credential exists,
+so a renamed step cannot turn the guard into a no-op.
 
 Run: `python tests/test_sfdmu_conditional_steps.py` (offline, no org).
 """
@@ -59,6 +60,7 @@ def pairs_of(plan: pathlib.Path) -> set:
 def fake_query(credential: bool, stale: bool = False):
     def query(soql: str):
         if "FROM NamedCredential" in soql:
+            assert "NamespacePrefix = null" in soql, soql
             return [{"DeveloperName": "RLM"}] if credential else []
         if "FROM FulfillmentStepDefinition" in soql:
             return [{"Id": "x"}] if stale else []
@@ -99,6 +101,25 @@ check("the log names the re-rooted steps",
       any("now without a predecessor: Provision Licensing/Features, Receive Key + Assign to Asset" in line
           for line in logs), True)
 check("no stale warning when the org lacks the step", any("WARNING" in line for line in logs), False)
+key = lambda r: tuple(sorted(r.items()))  # noqa: E731
+check("every kept dependency row keeps all its columns",
+      sorted(map(key, after_deps)), sorted(key(r) for r in before_deps if not names_step(r)))
+check("every kept definition row keeps all its columns",
+      sorted(map(key, rows(plan, cs.DEFINITION_CSV))),
+      sorted(key(r) for r in rows(PLAN, cs.DEFINITION_CSV) if r["Name"] != STEP))
+
+print("a plan that already lacks the step (round-trip extract)")
+plan = fresh_plan()
+cs.apply_conditions(str(plan), fake_query(False), [].append)
+logs = []
+check("no credential: nothing more to drop", cs.apply_conditions(str(plan), fake_query(False), logs.append), [])
+check("the log says it was already absent", any("already absent" in line for line in logs), True)
+try:
+    cs.apply_conditions(str(plan), fake_query(True))
+    got = "returned"
+except cs.ConditionalStepError:
+    got = "ConditionalStepError"
+check("credential exists: the missing step fails (rename guard)", got, "ConditionalStepError")
 
 print("the RLM credential exists: the plan is byte-for-byte unchanged")
 plan = fresh_plan()
@@ -127,17 +148,23 @@ check("the log reports it as still gated",
       any("still gated by other steps: Initiate Billing" in line for line in logs), True)
 
 print("bad input fails loudly")
-for label, body in (
-        ("a step the plan does not have",
-         {"steps": [{"name": "No Such Step", "requires": {"namedCredential": "RLM"}}]}),
-        ("an unsupported requirement", {"steps": [{"name": STEP, "requires": {"remoteSite": "x"}}]}),
+for label, body, credential in (
+        ("a step the plan does not have, on an org that can run it",
+         {"steps": [{"name": "No Such Step", "requires": {"namedCredential": "RLM"}}]}, True),
+        ("an unsupported requirement", {"steps": [{"name": STEP, "requires": {"remoteSite": "x"}}]}, False),
         ("a quote in the credential name",
-         {"steps": [{"name": STEP, "requires": {"namedCredential": "R'LM"}}]}),
-        ("an empty list", {"steps": []})):
+         {"steps": [{"name": STEP, "requires": {"namedCredential": "R'LM"}}]}, False),
+        ("an empty list", {"steps": []}, False),
+        ("malformed JSON", "{not json", False),
+        ("a per-pass copy of the definitions", None, False)):
     plan = fresh_plan()
-    (plan / "conditional_steps.json").write_text(json.dumps(body))
+    if body is None:
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True, exist_ok=True)
+        shutil.copy(plan / cs.DEFINITION_CSV, plan / "objectset_source" / "object-set-2" / cs.DEFINITION_CSV)
+    else:
+        (plan / "conditional_steps.json").write_text(body if isinstance(body, str) else json.dumps(body))
     try:
-        cs.apply_conditions(str(plan), fake_query(False))
+        cs.apply_conditions(str(plan), fake_query(credential))
         got = "returned"
     except cs.ConditionalStepError:
         got = "ConditionalStepError"
