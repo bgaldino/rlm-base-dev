@@ -1,5 +1,7 @@
 global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter {
 
+    // The numeric codes below ('404', '504', '400', '500') stand in for engine HTTP statuses; they are not
+    // RLM_TAX_ adapter codes (RLM_CalculateTaxService owns those).
     global commercetax.TaxEngineResponse processRequest(commercetax.TaxEngineContext taxEngineContext) {
         commercetax.RequestType requestType = taxEngineContext.getRequestType();
         commercetax.CalculateTaxRequest request = (commercetax.CalculateTaxRequest)taxEngineContext.getRequest();
@@ -19,7 +21,6 @@ global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter 
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, null, 'malformed adapter error response');
         }
         if(request.documentCode == 'simulateTaxEngineProcessFailure') {
-            // '500' stands in for an engine HTTP status, not an RLM_TAX_ adapter code.
             return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '500', 'Tax Engine couldnt process your request');
         }
 

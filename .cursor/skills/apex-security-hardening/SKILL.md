@@ -62,13 +62,15 @@ description: >-
 
 ## Admin-only raw diagnostics (owner decision, 2026-11-25)
 
-Raw exception or row-error text is kept on admin-only screens: ExpressionSetManager partial apply, UsageUploader
-row errors and `RLM_DFOTenantProvisioningCallout` failures. It is acceptable **only while the permission set that
-grants the screen stays admin-only** (never assigned to sales reps). Widen the grant and every such message must
-become a fixed sentence plus `System.debug` of the detail. `RLM_RebuildSearchIndex` already returns a fixed
+Raw text is kept where the audience is admin or back-office: ExpressionSetManager errors (its banner shows
+every failure's text), `RLM_DFOTenantProvisioningCallout` failures (the DRO step's error: exception text, record
+ids, and up to 255 characters of the tenant response body), and UsageUploader validation-rule and `addError` text
+(passed through deliberately; every other row error is a fixed sentence). This is acceptable **only while the
+permission set or step stays admin or back-office** (never assigned to sales reps). Widen the audience and the raw
+text must become a fixed sentence plus `System.debug` of the detail. `RLM_RebuildSearchIndex` already returns a fixed
 sentence with the response body in the debug log (tested). Tax adapter error codes are `RLM_TAX_500` to
 `RLM_TAX_503`, outside the HTTP range; a non-2xx engine response keeps its real HTTP status as the code and unmapped engine
-transaction statuses (Saved, Posted, ...) are logged, not mapped.
+transaction statuses (Saved, Posted, ...) are logged when code-shaped, not mapped.
 
 ## Entry Conditions
 

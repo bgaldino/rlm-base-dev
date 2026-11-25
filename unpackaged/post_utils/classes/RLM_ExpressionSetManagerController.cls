@@ -22,6 +22,7 @@
  * ApiEnabled for the session loopback, and the build deliberately does not give it to the sales
  * representative persona, so the people who see the text are the ones who can act on it. Do not
  * assign the permission set to end users without first replacing that text with fixed sentences.
+ * Owner decision (todo 433, 2026-11-25): confirmed as raw text by design; it holds only while the set stays admin-only.
  *
  * ⚠ Atomicity: a bulk action is NOT one transaction. Each Composite request is
  * sent with allOrNone=true, and each sObject-Collections delete batch likewise,
@@ -359,10 +360,6 @@ public with sharing class RLM_ExpressionSetManagerController {
                     try {
                         deleteRecords(baseUrl, sessionId, ids);
                     } catch (Exception e) {
-                        // Raw text by design (owner decision, todo 433, 2026-11-25): e.getMessage() is shown
-                        // to the person who opened the screen. That is acceptable only while
-                        // RLM_ExpressionSetManager stays admin-only (never assigned to sales reps); if it
-                        // is ever granted more widely, convert this to a fixed sentence plus System.debug.
                         // The version PATCHes above have already committed, so a
                         // junction-delete failure leaves the operation partially
                         // applied — report that explicitly rather than surfacing

@@ -587,9 +587,9 @@ public with sharing class RLM_UsageUploaderController {
     private static final String ROW_SAVE_FAILED_MESSAGE =
         'This usage record could not be saved. Check the values and try again, or contact your administrator.';
 
-    // Owner decision (todo 433, 2026-11-25): the uploader is admin-only by design, and its row errors are
-    // shown as described below. That holds only while RLM_UsageUploader stays admin-only; widen the
-    // grant and every row error must be a fixed sentence.
+    // Owner decision (todo 433, 2026-11-25): row errors already follow the user-facing standard below, with
+    // one deliberate pass-through: a validation rule's or trigger addError's own text is shown as written.
+    // The uploader is admin-only by design; if its grant widens, review whether that pass-through is still wanted.
     //
     // The text for a usage record that failed to save. bulkUploadUsage returns it in
     // BulkUploadResult.errors and uploadUsage throws it to the caller. For a bulk upload the shipped
