@@ -471,8 +471,7 @@ value (null) means no payment, like leaving the key out.
   invoice — possibly another scenario's in the same batch — may absorb it.
 - **Manifest fields:** `settlement`, `application_level`,
   `application_level_source`, `settlement_baseline`, `credit_memo_ids`,
-  `credit_application_ids`, `credit_submitted`, `credit_attempt`,
-  `credit_adopted_attempt`, `credit_baselines`,
+  `credit_application_ids`, `credit_submitted`, `credit_baseline`,
   `credit_amount_requested`, `credit_amount_applied`,
   `payment_ids`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
@@ -498,23 +497,13 @@ value (null) means no payment, like leaving the key out.
   with `settlement.application_level` pinned). The recipe is "run to `invoice_posted`, then `cli
   step --to-stage payment_applied --config <file>`"; a run that stopped at
   `credit_applied` recorded no payment and cannot be given one.
-- **The credit POST is sent at most once per attempt.** `credit_submitted`
-  is recorded before the POST; a 5xx or lost response fails the stage (not
-  retried) with the next command, and every later resume only polls for the
-  memo by tag. Only an HTTP 4xx refusal clears the flag; a 2xx without
-  `success` counts as accepted. If the memo is in `Error`, `Canceled` or `Voided`, or never
-  appears, run `cli step --manifest <id> --to-stage <the run's target>
-  --resubmit-credit` (the error prints it). Every send checks the org first:
-  a live memo of any attempt of this run is adopted and nothing is sent;
-  otherwise the recorded credit goes out as the next attempt (`<run> credit
-  2`, …; attempts only increase, tags are never reused). A refused credit
-  (4xx) created nothing and is re-sent under its own tag by a plain rerun.
-  Options the API refused are corrected in a new run.
-- **A second credit fails the stage.** After `credit_applied`, every memo of
-  the run's tags on the invoice together, and the invoice's
-  `NetCreditsApplied` gain since the attempt's baseline (read before its memo
-  lookup and POST), must both equal what the followed memo applied;
-  otherwise the stage fails and names the amounts.
+- **One credit per run.** `credit_submitted` and the `NetCreditsApplied`
+  baseline are recorded before the one POST (memo tagged `<run> credit`); a
+  5xx or lost response fails the stage (not retried) and every later resume
+  only polls for the memo by the tag. A 4xx refusal, a memo in `Error`,
+  `Canceled` or `Voided`, two memos under the tag, an application reversed
+  in the org, or a `NetCreditsApplied` gain the memo does not explain fail
+  the stage for good: recovering a failed credit needs a new run.
 
 ## What makes an account / product a valid target
 

@@ -89,8 +89,7 @@ def settlement_summary(m: Manifest) -> Optional[dict[str, Any]]:
             "requested": m.credit_amount_requested,
             "applied": m.credit_amount_applied,
             "submitted": m.credit_submitted,
-            "attempt": m.credit_attempt,
-            "adopted_attempt": m.credit_adopted_attempt,
+            "baseline": m.credit_baseline,
         },
         "payment": {
             "ids": m.payment_ids,

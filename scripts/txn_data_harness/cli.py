@@ -17,7 +17,12 @@ import requests
 from . import generate
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
-from .config import ConfigError, load_scenarios, settlement_from_dict
+from .config import (
+    ConfigError,
+    check_settlement_stage,
+    load_scenarios,
+    settlement_from_dict,
+)
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
 from .failure import classify_exception
 from .lifecycle import LifecycleError, SettlementError
@@ -333,7 +338,6 @@ def _build_step_context(
             invoice_spec=None,
             settlement=settlement,
             application_level_override=getattr(args, "application_level", None),
-            resubmit_credit=bool(getattr(args, "resubmit_credit", False)),
         )
 
     # Persisted selection wins; do not run unrelated default discovery first.
@@ -367,7 +371,6 @@ def _build_step_context(
         target_stage=args.to_stage,
         settlement=settlement,
         application_level_override=getattr(args, "application_level", None),
-        resubmit_credit=bool(getattr(args, "resubmit_credit", False)),
     )
 
 
@@ -448,6 +451,8 @@ def _config_settlement(args: argparse.Namespace, manifest, client):
         if settlement not in matches:
             matches.append(settlement)
     if len(matches) == 1:
+        # The --to-stage check runs on the matching scenario only.
+        check_settlement_stage(matches[0], args.to_stage, "--config")
         return matches[0]
     if len(matches) > 1:
         raise SettlementError(
@@ -663,13 +668,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
     step.add_argument("--application-level", choices=["line", "header"],
-                      help="Settlement stages: replace the application level recorded "
-                           "on the manifest (to correct a wrong read).")
-    step.add_argument("--resubmit-credit", action="store_true",
-                      help="credit_applied: send the recorded credit again as a new "
-                           "attempt when no memo this run tagged on the invoice is live "
-                           "(all in Error/Canceled/Voided, or none). A live memo is "
-                           "adopted instead. Options never change on a resume.")
+                      help="Settlement stages: set the application level when it could "
+                           "not be read or was read wrong (refused once the payment is "
+                           "planned).")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")

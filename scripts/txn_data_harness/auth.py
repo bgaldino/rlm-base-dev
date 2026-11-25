@@ -138,6 +138,19 @@ def resolve_auth(alias: str) -> tuple[str, str]:
     return access_token, instance_url.rstrip("/")
 
 
+# SOAP faultcodes that refuse a Metadata read for good (they arrive as HTTP 500).
+_SOAP_REFUSALS = frozenset({
+    "INVALID_SESSION_ID", "INSUFFICIENT_ACCESS", "INVALID_TYPE",
+    "INSUFFICIENT_ACCESS_OR_READONLY", "API_DISABLED_FOR_ORG",
+})
+
+
+def soap_faultcode(text: str) -> Optional[str]:
+    """The ``faultcode`` of a SOAP fault body without its prefix, else ``None``."""
+    m = re.search(r"<faultcode>\s*(?:[\w-]+:)?(\w+)\s*</faultcode>", text or "")
+    return m.group(1) if m else None
+
+
 # BillingSettings retrieve on the cli transport: sf's --wait and our own cap.
 _RETRIEVE_WAIT_MINUTES = 1
 _RETRIEVE_TIMEOUT_S = 90
@@ -370,10 +383,13 @@ class SfRestClient:
     def read_billing_settings_xml(self) -> Optional[str]:
         """The org's ``BillingSettings`` XML, or ``None`` when refused.
 
-        A refusal (HTTP 4xx) returns ``None``; anything that may clear on a
-        retry (5xx, network error, a CLI retrieve that failed or timed out)
-        raises ``SfApiError`` / ``requests.RequestException`` so the caller
-        can classify it as transient.
+        A refusal returns ``None``: an HTTP 4xx other than 420/429, or a SOAP
+        fault whose ``faultcode`` is a refusal (:data:`_SOAP_REFUSALS`; SOAP
+        faults come back as HTTP 500 -- measured: ``INVALID_SESSION_ID``).
+        Anything that may clear on a retry (another 5xx, 420/429, a network
+        error, a CLI retrieve that failed or timed out) raises ``SfApiError``
+        / ``requests.RequestException`` so the caller can classify it as
+        transient.
 
         There is no REST read for it. ``requests``: Metadata SOAP
         ``readMetadata`` through this thread's session (the SOAP API takes the
@@ -390,8 +406,11 @@ class SfRestClient:
             headers={"Content-Type": "text/xml; charset=UTF-8", "SOAPAction": '""'},
             timeout=60,
         )
-        if 400 <= resp.status_code < 500:
-            log.warning("BillingSettings read refused: HTTP %s", resp.status_code)
+        fault = soap_faultcode(resp.text) if resp.status_code != 200 else None
+        if (
+            400 <= resp.status_code < 500 and resp.status_code not in _RETRYABLE_STATUS
+        ) or fault in _SOAP_REFUSALS:
+            log.warning("BillingSettings read refused: HTTP %s %s", resp.status_code, fault or "")
             return None
         if resp.status_code != 200:
             raise SfApiError(resp.status_code, resp.text, "POST", "/services/Soap/m")

@@ -384,8 +384,10 @@ class InvoiceIngestionScenarioSpec:
 class CreditSpec:
     """``settlement.credit``: credit the posted invoice with a credit memo.
 
-    Exactly one of ``amount`` (currency) or ``percent`` (0-100, of the open
-    balance of the chosen lines when the stage runs) is set. ``lines`` picks
+    Exactly one of ``amount`` (currency) or ``percent`` (0-100, of the
+    creditable pre-tax amount of the chosen lines when the stage runs: each
+    line's capacity per ``tax_strategy``, see ``lifecycle.credit_capacity``)
+    is set. ``lines`` picks
     the invoice lines to credit: ``None`` means every charge line; otherwise a
     list of 0-based line indexes and/or line names or SKUs. The amount is the
     pre-tax amount credited; tax is added per ``tax_strategy`` (``auto``:
@@ -606,12 +608,15 @@ def _resolve_settlement(
     config can share settlement defaults across scenarios that stop at
     different stages. A block set on the scenario itself is kept whatever the
     stage (the steps record only the parts the run's target reaches). Only
-    real contradictions are errors (see :func:`_check_settlement_stage`).
+    real contradictions are errors (see :func:`check_settlement_stage`).
 
     ``cli step`` evaluates the block against its ``--to-stage`` instead of the
     file's own ``target_stage`` (``merged["_settlement_stage"]``, set by
     :func:`load_scenarios`); a scenario without any block is then skipped
-    rather than refused.
+    rather than refused, and the stage check is left to the caller, which
+    applies it to the one scenario matching the manifest
+    (:func:`check_settlement_stage`) -- an unrelated scenario in the same
+    file must not make the resume fail.
     """
     override = merged.get("_settlement_stage")
     if override:
@@ -629,11 +634,12 @@ def _resolve_settlement(
                 credit=settlement.credit,
                 payment=None,
             )
-    _check_settlement_stage(settlement, stage, where)
+    if not override:
+        check_settlement_stage(settlement, stage, where)
     return settlement
 
 
-def _check_settlement_stage(
+def check_settlement_stage(
     settlement: Optional[SettlementSpec], stage: str, where: str
 ) -> None:
     """Reject a settlement stage with nothing to do.

@@ -238,39 +238,33 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `account_id`; an `--account` resolving to another Id, or a manifest whose
   `account_id` differs from the invoice's, is refused before any write, so a
   resume can never find-or-create a second payment under another account.
-- **One credit POST per attempt, never re-sent automatically.** The harness
-  records `credit_submitted` (checkpointed) **before** the credit POST. From
-  then on neither a scenario retry nor a `cli step` resume POSTs again: they
-  poll for the memo by its tag (`<run> credit`, `<run> credit N` for later
-  attempts). Only a confirmed refusal (HTTP 4xx: nothing was created) clears
-  it; a 2xx without `success: true` (or a body that is not JSON) counts as
-  accepted. After a 5xx, a transport failure or such a 2xx the step waits up
-  to 15 s for the memo (a
-  convenience, not a safety measure); if none shows up it fails with an error
-  pinned non-retryable that names the next command. A late memo is picked up
-  by the next resume.
-- **`--resubmit-credit`.** `cli step --manifest <id> --to-stage <the run's
-  target> --resubmit-credit` (the command the failing step prints) gives up
-  the followed attempt only when its memo is in `Error`, `Canceled` or
-  `Voided`, or, for a submitted attempt, none appears within 15 s. The next
-  attempt is numbered `credit_attempt + 1`: `credit_attempt` only increases
-  and a tag is never reused. Every send -- first, rerun or resubmit -- reads
-  the `NetCreditsApplied` baseline first, then every memo this run tagged on
-  the invoice (all attempts), and POSTs only when none is live; a live one is
-  adopted (`credit_adopted_attempt`) and nothing is sent, more than one live
-  fails (credited twice, settle by hand). A refused attempt (4xx) created
-  nothing: a plain rerun or resubmit re-sends it under its own tag without
-  waiting. Options never change on a resume (a new run).
-- **Double-credit check.** The baseline is stored in
-  `credit_baselines[<attempt>]` just before that attempt's POST. After the
-  credit stage, two checks fail the stage (not a warning): every memo of the
-  run's tags on the invoice together must have applied exactly what the
-  followed memo applied (a late memo of an abandoned attempt, wherever it
-  landed), and `NetCreditsApplied` less the followed attempt's baseline must
-  equal it too (another process's credit, a reversal). A credit the platform
-  applied before an attempt's baseline is not counted. Older manifests
-  without `credit_baselines` compare against
+- **One credit per run, never re-sent automatically.** The credit memo is
+  tagged `<run> credit` (its `Description`). Just before the one POST the
+  harness checkpoints `credit_submitted` and `credit_baseline` (the invoice's
+  `NetCreditsApplied`). From then on neither a scenario retry nor a `cli
+  step` resume POSTs again: they poll for the memo by the tag. A confirmed
+  refusal (HTTP 4xx: nothing was created) clears `credit_submitted` and fails
+  the stage: the options are fixed, so start a new run. A 2xx without
+  `success: true` (or a body that is not JSON), a 5xx or a transport failure
+  counts as accepted: the step waits up to 15 s for the memo (a convenience,
+  not a safety measure) and otherwise fails naming the `cli step` command
+  that keeps waiting. A memo that ends in `Error`, `Canceled` or `Voided`, or
+  two memos under the tag, fails the stage for good: this run cannot settle;
+  start a new run. Recovering a failed credit needs a new run.
+- **Double-credit check.** After the credit stage the invoice's
+  `NetCreditsApplied` gain since `credit_baseline` must equal what the run's
+  memo applied; any difference (another credit, a reversal) fails the stage
+  rather than warning. A credit the platform applied before the POST is not
+  counted. Manifests without `credit_baseline` compare against
   `settlement_baseline.net_credits_applied`.
+- **Reversed applications.** Unapplying or voiding keeps the original
+  `Applied` row, flags it (`UnappliedStatus` on `CreditMemoLineInvoiceLine` /
+  `PaymentLineInvoiceLine`, `HasBeenUnapplied` on `CreditMemoInvApplication` /
+  `PaymentLineInvoice` = `Yes`; field names from describe on 264) and adds an
+  `Unapplied` row. Reversals are not measured, so the read-backs of this
+  run's memo and payment read every row: any `Unapplied` row or flag `Yes`
+  fails the stage (an application was reversed outside the harness; this run
+  cannot settle; start a new run) instead of computing amounts from it.
 - **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
   scenario pinning an account's new name matches the manifest when that name
   resolves to the manifest's `account_id`. The check runs before the
@@ -280,11 +274,16 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   settlement error is a `SettlementError`, pinned `deterministic` (its text
   holds run and record ids whose digits, `...T150342Z` holds "503", would
   match the transient patterns), and a raw 4xx `SfApiError` from a settlement
-  query or write is wrapped into one at the step boundary. Two stay
-  transient: a 5xx / transport `SfApiError`, and an application level that
-  could not be read because the BillingSettings read failed in a way that may
-  clear (5xx, network, CLI retrieve failure or timeout) with no invoice
-  evidence; if the read was refused, that is deterministic. Both level
+  query or write is wrapped into one at the step boundary -- except 420/429
+  and 4xx bodies `failure.py` reads as transient (`UNABLE_TO_LOCK_ROW`,
+  `QUERY_TIMEOUT`, `REQUEST_LIMIT_EXCEEDED`, ...), which are not refusals
+  (`lifecycle.is_api_refusal` uses failure.py's own lists). Also transient: a
+  5xx / transport `SfApiError`, and an application level that could not be
+  read because the BillingSettings read failed in a way that may clear (5xx,
+  420/429, network, CLI retrieve failure or timeout) with no invoice
+  evidence. A refused read is deterministic: a 4xx, or a SOAP fault whose
+  `faultcode` is `INVALID_SESSION_ID`, `INSUFFICIENT_ACCESS`, `INVALID_TYPE`
+  (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Both level
   errors name `cli step --application-level line|header`. A successful `cli
   step` clears `error` and `failure_class`, as does a `cli step` to a stage
   the manifest already reached.
@@ -323,18 +322,18 @@ settled live; JPY and 3-place currencies (KWD) are covered offline only.
 ## Read-back queries the harness uses
 
 ```sql
--- credit (memo ids from the manifest), on this invoice only
-SELECT Id, Amount, InvoiceLineId FROM CreditMemoLineInvoiceLine
+-- credit (the run's memo id), on this invoice only; every row is read and any
+-- Type 'Unapplied' row or UnappliedStatus / HasBeenUnapplied = 'Yes' fails
+SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM CreditMemoLineInvoiceLine
  WHERE CreditMemoLine.CreditMemoId IN (...)
-   AND InvoiceLine.InvoiceId = '<invoiceId>' AND Type = 'Applied'       -- Line Level
-SELECT Id, Amount, InvoiceId FROM CreditMemoInvApplication
- WHERE CreditMemoId IN (...) AND InvoiceId = '<invoiceId>' AND Type = 'Applied'  -- Header Level
--- payment, on this invoice only
-SELECT Id, Amount, InvoiceLineId FROM PaymentLineInvoiceLine
- WHERE PaymentId IN (...) AND InvoiceLine.InvoiceId = '<invoiceId>'
-   AND Type = 'Applied'                                                 -- Line Level
-SELECT Id, Amount, InvoiceId FROM PaymentLineInvoice
- WHERE PaymentId IN (...) AND InvoiceId = '<invoiceId>' AND Type = 'Applied'     -- Header Level
+   AND InvoiceLine.InvoiceId = '<invoiceId>'                            -- Line Level
+SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM CreditMemoInvApplication
+ WHERE CreditMemoId IN (...) AND InvoiceId = '<invoiceId>'                 -- Header Level
+-- payment, on this invoice only (same reversal rule)
+SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM PaymentLineInvoiceLine
+ WHERE PaymentId IN (...) AND InvoiceLine.InvoiceId = '<invoiceId>'     -- Line Level
+SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM PaymentLineInvoice
+ WHERE PaymentId IN (...) AND InvoiceId = '<invoiceId>'                    -- Header Level
 -- invoice
 SELECT Balance, NetCreditsApplied, NetPaymentsApplied, SettlementStatus, SettlementLevel
   FROM Invoice WHERE Id = '<invoiceId>'

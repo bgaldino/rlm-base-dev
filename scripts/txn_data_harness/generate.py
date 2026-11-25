@@ -208,7 +208,8 @@ def _print_settlement(settlement) -> None:
     lines_of = lambda sel: "all lines" if sel is None else f"lines {sel}"  # noqa: E731
     if settlement.credit is not None:
         c = settlement.credit
-        how = f"{c.amount:g}" if c.amount is not None else f"{c.percent:g}% of open balance"
+        how = (f"{c.amount:g}" if c.amount is not None
+               else f"{c.percent:g}% of the creditable pre-tax amount")
         print(f"    • credit   : {how} on {lines_of(c.lines)} "
               f"(tax_strategy={c.tax_strategy})")
     if settlement.payment is not None:

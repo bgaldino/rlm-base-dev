@@ -1227,16 +1227,25 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
 
 
 def is_api_refusal(exc: BaseException) -> bool:
-    """True when ``exc`` is the API refusing the request (HTTP 4xx).
+    """True when ``exc`` is the API refusing the request for good (HTTP 4xx).
 
     Both transports carry the HTTP status on ``SfApiError.status`` (the cli
-    transport reads it from ``sf api request rest --include``). A 5xx, a
-    transport failure, or a CLI failure that never reached the API is not a
-    refusal: the outcome of a write is then unknown.
+    transport reads it from ``sf api request rest --include``). Not refusals:
+    a 5xx, a transport failure or a CLI failure that never reached the API
+    (the outcome of a write is then unknown), and a 4xx that clears on retry
+    -- 420/429, or a body ``failure.classify_signature`` reads as transient
+    (``UNABLE_TO_LOCK_ROW``, ``QUERY_TIMEOUT``, ``REQUEST_LIMIT_EXCEEDED``...).
+    One source of truth: failure.py's own lists.
     """
     from .auth import SfApiError
+    from .failure import _TRANSIENT_STATUS, classify_signature
 
-    return isinstance(exc, SfApiError) and 400 <= exc.status < 500
+    return (
+        isinstance(exc, SfApiError)
+        and 400 <= exc.status < 500
+        and exc.status not in _TRANSIENT_STATUS
+        and classify_signature(exc.body or "") != "transient"
+    )
 
 
 def is_missing_column(exc: BaseException, name: str) -> bool:
@@ -1494,14 +1503,9 @@ def allocate(
     return out
 
 
-def credit_tag(run_id: str, attempt: int = 1) -> str:
-    """Description stamped on the harness's credit memo (retry correlation).
-
-    ``attempt`` > 1 is a credit sent again with ``cli step --resubmit-credit``
-    after the first one failed: its memo carries its own tag so the failed
-    memo is never read as the new one.
-    """
-    return f"{run_id} credit" if attempt <= 1 else f"{run_id} credit {attempt}"
+def credit_tag(run_id: str) -> str:
+    """Description stamped on the harness's credit memo (one per run)."""
+    return f"{run_id} credit"
 
 
 def payment_tag(run_id: str) -> str:
@@ -1514,7 +1518,6 @@ def build_credit_payload(
     run_id: str,
     line_strategies: Optional[dict[str, str]] = None,
     effective_date: Optional[str] = None,
-    attempt: int = 1,
 ) -> dict:
     """Body for ``POST .../invoices/{id}/actions/credit`` (live-verified shape).
 
@@ -1537,37 +1540,39 @@ def build_credit_payload(
         "type": "POSTED",
         "taxStrategy": lines[0]["taxStrategy"],
         "effectiveDate": effective_date or _iso_today(),
-        "description": credit_tag(run_id, attempt),
+        "description": credit_tag(run_id),
         "invoiceLines": lines,
     }
 
 
-def find_credit_memo(
-    client: SfRestClient, invoice_id: str, run_id: str, attempt: int = 1
-) -> Optional[dict]:
-    rows = client.query(
+def find_credit_memos(client: SfRestClient, invoice_id: str, run_id: str) -> list[dict]:
+    """Every memo on ``invoice_id`` carrying this run's tag (newest first).
+
+    A run sends one credit, so more than one row means the invoice was
+    credited twice; callers fail on it.
+    """
+    return client.query(
         "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
         f"WHERE ReferenceEntityId = '{invoice_id}' "
-        f"AND Description = '{credit_tag(run_id, attempt)}' ORDER BY CreatedDate DESC LIMIT 1"
+        f"AND Description = '{credit_tag(run_id)}' ORDER BY CreatedDate DESC"
     )
+
+
+CANNOT_SETTLE = "This run cannot settle; start a new run."
+
+
+def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Optional[dict]:
+    """This run's credit memo, or ``None``; two memos under the tag raise."""
+    rows = find_credit_memos(client, invoice_id, run_id)
+    if len(rows) > 1:
+        raise SettlementError(
+            "credit",
+            f"{len(rows)} credit memos carry this run's tag '{credit_tag(run_id)}' "
+            f"({', '.join(r['Id'] for r in rows)}): the invoice was credited more than "
+            f"once. {CANNOT_SETTLE}",
+            record_id=invoice_id,
+        )
     return rows[0] if rows else None
-
-
-def find_run_credit_memos(
-    client: SfRestClient, invoice_id: str, run_id: str, attempts: int
-) -> list[dict]:
-    """Every memo on ``invoice_id`` tagged by this run, attempts 1..``attempts``.
-
-    Newest first; each row carries ``attempt`` (parsed from its Description).
-    """
-    tags = {credit_tag(run_id, n): n for n in range(1, max(1, attempts) + 1)}
-    in_list = ", ".join(f"'{t}'" for t in tags)
-    rows = client.query(
-        "SELECT Id, Status, Balance, Description FROM CreditMemo "
-        f"WHERE ReferenceEntityId = '{invoice_id}' AND Description IN ({in_list}) "
-        "ORDER BY CreatedDate DESC"
-    )
-    return [{**r, "attempt": tags.get(r.get("Description"), 0)} for r in rows]
 
 
 def api_error_text(body: str) -> str:
@@ -1641,23 +1646,24 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
 
 
 def poll_credit_memo(
-    client: SfRestClient, invoice_id: str, run_id: str, timeout: int = 180, attempt: int = 1
+    client: SfRestClient, invoice_id: str, run_id: str, timeout: int = 180
 ) -> dict:
     """Wait for the credit memo to reach Posted; return its row.
 
     The memo appears Pending right after the POST and turns Posted (applied)
-    a few seconds later. Error/Canceled/Voided raise.
+    a few seconds later. Error/Canceled/Voided fail for good: the run sends
+    one credit and never another.
     """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        memo = find_credit_memo(client, invoice_id, run_id, attempt)
+        memo = find_credit_memo(client, invoice_id, run_id)
         if memo is not None:
             status = memo.get("Status")
             if status in _CREDIT_MEMO_DONE:
                 return memo
             if status in _CREDIT_MEMO_FAIL:
                 raise SettlementError(
-                    "credit", f"credit memo in {status}", record_id=memo["Id"]
+                    "credit", f"credit memo in {status}. {CANNOT_SETTLE}", record_id=memo["Id"]
                 )
         time.sleep(_POLL_INTERVAL)
     raise SettlementError(
@@ -1665,28 +1671,50 @@ def poll_credit_memo(
     )
 
 
+def _unreversed(rows: list[dict], flag: str, what: str) -> list[dict]:
+    """``rows`` when none was reversed; otherwise fail the stage.
+
+    Unapplying or voiding keeps the original ``Applied`` row, flags it
+    (``UnappliedStatus`` on the line junctions, ``HasBeenUnapplied`` on the
+    header ones = ``Yes``) and adds an ``Unapplied`` row. The harness does not
+    model reversals (not measured), so any such row means the amounts it reads
+    back can no longer be trusted.
+    """
+    for r in rows:
+        if r.get("Type") != "Applied" or r.get(flag) == "Yes":
+            raise SettlementError(
+                what,
+                f"an application was reversed outside the harness (row {r.get('Id')}: "
+                f"Type {r.get('Type')}, {flag} {r.get(flag)}). {CANNOT_SETTLE}",
+            )
+    return rows
+
+
 def read_credit_applications(
     client: SfRestClient, memo_ids: list[str], invoice_id: str
 ) -> dict:
-    """Applied rows for ``memo_ids`` on ``invoice_id``, at both levels.
+    """Application rows for ``memo_ids`` on ``invoice_id``, at both levels.
 
     Returns ``{"line": [...], "header": [...]}`` of ``{"Id", "Amount"}`` rows.
-    Applications of the same memo to any other invoice are not counted.
+    Applications of the same memo to any other invoice are not counted. Every
+    row is read (any ``Type``); a reversed one fails (:func:`_unreversed`).
     """
     if not memo_ids:
         return {LEVEL_LINE: [], LEVEL_HEADER: []}
     in_list = ", ".join(f"'{i}'" for i in memo_ids)
     line_rows = client.query(
-        "SELECT Id, Amount, InvoiceLineId FROM CreditMemoLineInvoiceLine "
+        "SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM CreditMemoLineInvoiceLine "
         f"WHERE CreditMemoLine.CreditMemoId IN ({in_list}) "
-        f"AND InvoiceLine.InvoiceId = '{invoice_id}' AND Type = 'Applied'"
+        f"AND InvoiceLine.InvoiceId = '{invoice_id}'"
     )
     header_rows = client.query(
-        "SELECT Id, Amount, InvoiceId FROM CreditMemoInvApplication "
-        f"WHERE CreditMemoId IN ({in_list}) AND InvoiceId = '{invoice_id}' "
-        "AND Type = 'Applied'"
+        "SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM CreditMemoInvApplication "
+        f"WHERE CreditMemoId IN ({in_list}) AND InvoiceId = '{invoice_id}'"
     )
-    return {LEVEL_LINE: line_rows, LEVEL_HEADER: header_rows}
+    return {
+        LEVEL_LINE: _unreversed(line_rows, "UnappliedStatus", "credit"),
+        LEVEL_HEADER: _unreversed(header_rows, "HasBeenUnapplied", "credit"),
+    }
 
 
 def build_payment_record(
@@ -1806,25 +1834,27 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
 def read_payment_applications(
     client: SfRestClient, payment_ids: list[str], invoice_id: str
 ) -> dict:
-    """Applied rows for ``payment_ids`` on ``invoice_id``, at both levels.
+    """Application rows for ``payment_ids`` on ``invoice_id``, at both levels.
 
     An over-payment's rest can be applied to another invoice (the account's
     next one posted); those rows are not this scenario's and are not counted.
+    Every row is read (any ``Type``); a reversed one fails (:func:`_unreversed`).
     """
     if not payment_ids:
         return {LEVEL_LINE: [], LEVEL_HEADER: []}
     in_list = ", ".join(f"'{i}'" for i in payment_ids)
     line_rows = client.query(
-        "SELECT Id, Amount, InvoiceLineId FROM PaymentLineInvoiceLine "
-        f"WHERE PaymentId IN ({in_list}) AND InvoiceLine.InvoiceId = '{invoice_id}' "
-        "AND Type = 'Applied'"
+        "SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM PaymentLineInvoiceLine "
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceLine.InvoiceId = '{invoice_id}'"
     )
     header_rows = client.query(
-        "SELECT Id, Amount, InvoiceId FROM PaymentLineInvoice "
-        f"WHERE PaymentId IN ({in_list}) AND InvoiceId = '{invoice_id}' "
-        "AND Type = 'Applied'"
+        "SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM PaymentLineInvoice "
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceId = '{invoice_id}'"
     )
-    return {LEVEL_LINE: line_rows, LEVEL_HEADER: header_rows}
+    return {
+        LEVEL_LINE: _unreversed(line_rows, "UnappliedStatus", "payment"),
+        LEVEL_HEADER: _unreversed(header_rows, "HasBeenUnapplied", "payment"),
+    }
 
 
 def read_invoice_applications(client: SfRestClient, invoice_id: str) -> dict:

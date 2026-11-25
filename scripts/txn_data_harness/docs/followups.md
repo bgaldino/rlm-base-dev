@@ -348,10 +348,13 @@ Line Level is live-verified on 264; everything below is not.
   - `[probe]` Ingest a JPY invoice and settle it with percent credit and
     payment; confirm the credit and apply actions accept whole-yen amounts and
     the memo carries no fractional tax under `Calculate`.
-- `[verify]` **Credit recovery live.** The unknown-outcome failure, the
-  `--resubmit-credit` paths (memo in `Error`, no memo after the wait, a late
-  memo adopted) and the `NetCreditsApplied` double-credit check are covered
-  offline only; no credit memo has been seen failing on a live org.
+- `[gap]` **Recovering a failed credit needs a new run.** One credit per
+  run: a refused credit, a memo in `Error`/`Canceled`/`Voided`, or two memos
+  under the run's tag fail the stage for good. The unknown-outcome path and
+  the `NetCreditsApplied` check are covered offline only.
+- `[gap]` **Reversals are not modeled.** Unapply and void were not measured;
+  an `Unapplied` row or an unapplied flag on this run's applications fails
+  the stage (field names from describe on 264).
 - `[gap]` **Changing settlement options means a new run.** The block is
   fixed once recorded; a run that stopped at `credit_applied` cannot be given
   a payment, and refused options cannot be corrected on the same invoice.
