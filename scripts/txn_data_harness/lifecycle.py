@@ -1547,6 +1547,52 @@ def credit_capacity(line: dict, strategy: str, places: int) -> float:
     return max(0.0, min(cap, charge)) if charge > 0 else max(0.0, cap)
 
 
+def credit_with_tax(line: dict, amount: float, strategy: str, places: int) -> float:
+    """The memo amount (tax included) that a pre-tax credit of ``amount`` on
+    ``line`` makes, rounded UP to the minor unit (a safe upper bound)."""
+    import math
+
+    if amount <= 0:
+        return 0.0
+    charge = _money(line.get("ChargeAmount"), places)
+    tax = _money(line.get("TaxAmount"), places)
+    line_amount = _money(line.get("LineAmount"), places) or _money(charge + tax, places)
+    effective = line_tax_strategy(line, strategy)
+    if effective == "Calculate" and charge > 0 and line_amount > 0:
+        factor = 10 ** places
+        return math.ceil(round(amount * line_amount / charge * factor, 6)) / factor
+    if effective == "CopyFromInvoiceLine":
+        return _money(amount + tax, places)
+    return _money(amount, places)
+
+
+def allocate_credit(
+    amount: float, lines: list[dict], strategy: str, places: int, invoice_open: float
+) -> list[tuple[str, float]]:
+    """Spread a pre-tax credit over ``lines`` in order, each up to its
+    :func:`credit_capacity`, and the whole memo (tax included, per
+    :func:`credit_with_tax`) up to the invoice's own Balance
+    (``invoice_open``): the lines' balances can add up to more than it.
+
+    Per line the invoice budget left is turned into its pre-tax share with
+    the same per-strategy rule the capacity uses (Calculate: in proportion;
+    CopyFromInvoiceLine: less the line's tax; Ignore: as is), rounded down.
+    """
+    remaining = _money(amount, places)
+    budget = _money(invoice_open, places)
+    out: list[tuple[str, float]] = []
+    for line in lines:
+        if remaining <= 0 or budget <= 0:
+            break
+        within = credit_capacity({**line, "Balance": budget}, strategy, places)
+        take = _money(min(remaining, credit_capacity(line, strategy, places), within), places)
+        if take > 0:
+            out.append((line["Id"], take))
+            remaining = _money(remaining - take, places)
+            budget = _money(budget - credit_with_tax(line, take, strategy, places), places)
+    return out
+
+
 def allocate(
     amount: float, lines: list[dict], capacity, places: int
 ) -> list[tuple[str, float]]:

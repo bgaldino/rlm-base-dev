@@ -341,8 +341,9 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
   currency and its decimal places; fixed amounts are checked before the
   first write of the run (so a sub-unit payment refuses before the credit
-  is sent), percents where they are computed. Only lines with no open
-  balance at all skip the stage with a warning.
+  is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes. Only lines with no
+  open balance, or an invoice whose `Balance` is 0, skip the stage with a
+  warning (naming which).
 - **The memo must apply its whole total to this invoice.** Every memo the
   harness creates is for this one invoice, so the amount applied to it
   (application rows filtered by this invoice) must equal the memo's
@@ -355,7 +356,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `Calculate` credit above what was applied -- either stays on the memo and
   would settle the account's next posted invoice, or was already absorbed by
   another invoice (measured: memo `50gWt000001BElRIAW` has a second row on
-  another invoice).
+  another invoice). A Posted memo with no application rows on this invoice
+  yet is different: rows can lag, so the stage fails naming the `cli step`
+  rerun to look again (nothing is sent again); only if a rerun still finds
+  none, start a new run.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without

@@ -3655,3 +3655,54 @@ def test_credit_is_capped_at_the_invoice_balance(billable_account) -> None:
     body = next(b for p, b, _ in org.posts if p.endswith("/actions/credit"))
     assert sum(ln["amountToCredit"] for ln in body["invoiceLines"]) == 200.0
     assert any("credit capped" in w and "200.0 of 230.0" in w for w in m.settlement_warnings)
+
+
+# -- review round 21 (todo 275): the invoice cap is tax-aware ---------------------
+
+
+@pytest.mark.parametrize("strategy", ["Calculate", "CopyFromInvoiceLine"])
+def test_taxed_credit_capped_at_the_invoice_balance_tax_included(strategy, billable_account) -> None:
+    """Balance 150 (tax included) below the taxed line's capacity: the memo,
+    tax included, stays within the Balance."""
+    org = SettleOrg("line")
+    org.lines[0].update(ChargeAmount=200.0, TaxAmount=20.0, LineAmount=220.0, Balance=220.0)
+    org.invoice_balance_override = 150.0
+    spec = SettlementSpec(application_level="line",
+                          credit=CreditSpec(amount=300.0, lines=[0], tax_strategy=strategy))
+    m = _posted_manifest()
+    steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    body = next(b for p, b, _ in org.posts if p.endswith("/actions/credit"))
+    (line,) = body["invoiceLines"]
+    pre_tax = line["amountToCredit"]
+    with_tax = pre_tax * 220.0 / 200.0 if strategy == "Calculate" else pre_tax + 20.0
+    assert with_tax <= 150.0 + 1e-9 and pre_tax > 0
+    expected = 136.36 if strategy == "Calculate" else 130.0
+    assert pre_tax == expected
+    assert any("capped at the invoice Balance 150.0 (tax included)" in w
+               for w in m.settlement_warnings)
+
+
+def test_invoice_with_no_open_balance_skips_the_credit(billable_account) -> None:
+    org = SettleOrg("line")
+    org.invoice_balance_override = 0.0
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert org.posts == [] and m.reached_stage == "credit_applied"
+    assert any("the invoice has no open balance (Balance 0.0)" in w for w in m.settlement_warnings)
+
+
+def test_invoice_budget_counts_each_lines_tax(billable_account) -> None:
+    """Two lines with copied tax: the first uses the whole Balance (tax
+    included), so the second gets nothing."""
+    lines = [
+        {"Id": "5TVA", "ChargeAmount": 200.0, "TaxAmount": 20.0, "LineAmount": 220.0,
+         "Balance": 220.0},
+        {"Id": "5TVB", "ChargeAmount": 150.0, "TaxAmount": 15.0, "LineAmount": 165.0,
+         "Balance": 165.0},
+    ]
+    allocs = lifecycle.allocate_credit(1000.0, lines, "CopyFromInvoiceLine", 2, 200.0)
+    assert allocs == [("5TVA", 180.0)]
+    memo_total = sum(lifecycle.credit_with_tax(ln, a, "CopyFromInvoiceLine", 2)
+                     for (lid, a), ln in zip(allocs, lines))
+    assert memo_total <= 200.0
+    assert lifecycle.credit_with_tax(lines[0], 136.36, "Calculate", 2) == 150.0

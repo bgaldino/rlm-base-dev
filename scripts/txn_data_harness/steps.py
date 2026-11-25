@@ -887,8 +887,11 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
 
     One credit memo per run via the credit action, tagged ``<run> credit``.
     The amount is spread over the chosen lines, each capped at its open
-    balance, so the memo is fully applied (a memo with an unapplied balance
-    would settle the account's next posted invoice).
+    balance, and the memo (tax included) capped at the invoice's Balance
+    (``lifecycle.allocate_credit``), so the memo is fully applied (a memo with
+    an unapplied balance would settle the account's next posted invoice). A
+    Posted memo with no application rows yet fails naming the ``cli step``
+    rerun (rows can lag; nothing is sent again).
 
     What is guaranteed: at most one credit memo is created per run.
     ``credit_submitted`` is checkpointed before the POST; after that neither
@@ -929,14 +932,22 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 return lifecycle.credit_capacity(line, strategy, places)
 
             # The lines' balances can add up to more than the invoice's own
-            # Balance; the credit never exceeds what the invoice still owes.
+            # Balance (tax included): the memo, tax included, never exceeds
+            # what the invoice still owes (lifecycle.allocate_credit).
             invoice_open = lifecycle._money(
                 lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id).get("Balance"),
                 places,
             )
-            open_amount = lifecycle._money(
-                min(sum(capacity(r) for r in chosen), invoice_open), places
-            )
+            lines_open = lifecycle._money(sum(capacity(r) for r in chosen), places)
+            if invoice_open <= 0 and lines_open > 0:
+                _warn(manifest, f"credit skipped: the invoice has no open balance "
+                                f"(Balance {invoice_open})")
+                manifest.reached_stage = "credit_applied"
+                return manifest
+            open_amount = lifecycle._money(sum(
+                a for _, a in lifecycle.allocate_credit(
+                    float("inf"), chosen, strategy, places, invoice_open)
+            ), places)
             requested = lifecycle._money(
                 spec.credit.amount if spec.credit.amount is not None
                 else open_amount * spec.credit.percent / 100.0,
@@ -945,8 +956,8 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             manifest.credit_amount_requested = requested
             if open_amount > 0 and requested <= 0:
                 raise _below_minor_unit("credit", manifest, places)
-            allocations = lifecycle.allocate(
-                min(requested, open_amount), chosen, capacity, places
+            allocations = lifecycle.allocate_credit(
+                requested, chosen, strategy, places, invoice_open
             )
             if not allocations:
                 _warn(manifest, "credit skipped: the chosen lines have no open balance")
@@ -954,10 +965,14 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 return manifest
             total = lifecycle._money(sum(a for _, a in allocations), places)
             if total < requested:
+                limit = (
+                    f"the invoice Balance {invoice_open} (tax included)"
+                    if open_amount < lines_open
+                    else "the open balance of the chosen lines"
+                )
                 _warn(
                     manifest,
-                    f"credit capped at the open balance of the chosen lines: "
-                    f"{total} of {requested} requested",
+                    f"credit capped at {limit}: {total} of {requested} requested",
                 )
             body = lifecycle.build_credit_payload(
                 allocations,

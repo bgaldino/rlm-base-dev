@@ -459,8 +459,11 @@ value (null) means no payment, like leaving the key out.
 - **Amounts** are computed against the open balance when the stage runs.
   `percent` on a credit is a share of the creditable pre-tax amount of the
   chosen lines; on a payment, of their open balance. A credit is capped per
-  line so the memo (tax included) fits the line's balance; a larger request
-  is capped with a warning.
+  line so the memo (tax included) fits the line's balance, and in total so
+  the memo (tax included) fits the invoice's `Balance` (the budget's pre-tax
+  share per line); a larger request is capped with a warning naming the
+  limit. A Posted memo with no application rows yet means: rerun `cli step`
+  to look again.
 - **`tax_strategy: auto`** sends `Calculate` on lines with tax (tax added in
   proportion) and `Ignore` on lines without. `CopyFromInvoiceLine` was
   measured copying the line's **whole** tax onto a partial credit.
