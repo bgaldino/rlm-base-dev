@@ -45,7 +45,7 @@ Gateway Adapter](https://github.com/salesforce-misc/salesforce-tax-engine-refere
 adapter.
 
 - Get the tax rates from the created custom object. See [TaxEngineAdapter
-  Interface](./billing_tax_engine_adapter_interface_for_standard_tax.htm.md "Retrieves and evaluates the details from a tax engine to define tax details.").
+  Interface](./billing-tax-engine-adapter-interface-for-standard-tax.md "Retrieves and evaluates the details from a tax engine to define tax details.").
 - The custom adapter class implements the `TaxEngineAdapter` interface. The `processRequest` method takes an instance of `TaxEngineContext` class and returns a response
   with the calculated tax details through the `TaxDetailsResponse` class or an error response through the
   `ErrorResponse` class.

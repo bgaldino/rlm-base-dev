@@ -610,6 +610,44 @@ def main():
               and any("typo.htm" in m for m in lg.logger.lines))
     with tempfile.TemporaryDirectory() as tmp:
         atlas_dir(tmp)
+        gone = Path(tmp) / "articles" / "gone.htm.md"
+        gone.write_text("# Old\n\nSee [a](./odd_old_name.htm.md#sec), [b](./nowhere.htm.md), "
+                        "[c](https://example.com/x.md), [d](./gone.htm.md) and "
+                        "[e](./odd_old_name.htm.md \"Input representation\"), "
+                        "[f](./odd_old_name.htm.md \"say \\\"x\\\"\"), [g](<./nowhere2.htm.md>) and [h](./nowhere3.htm.md (t)).\n", encoding="utf-8")
+        lk = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
+        lk.run()
+        body = gone.read_text(encoding="utf-8")
+        check("a retained atlas article's link to a superseded file is pointed at its site slug, fragment kept",
+              "[a](./deployment-overview.md#sec)" in body)
+        check("a titled link is rewritten and keeps its title",
+              '[e](./deployment-overview.md "Input representation")' in body)
+        check("a link with no site replacement is left as is and reported, not dropped",
+              "[b](./nowhere.htm.md)" in body
+              and any("nowhere.htm.md" in m and "left as is" in m for m in lk.logger.lines))
+        check("external links and links to a file that stays are untouched",
+              "[c](https://example.com/x.md)" in body and "[d](./gone.htm.md)" in body)
+        check("an escaped-quote title is handled, and a link form it cannot handle is reported",
+              '[f](./deployment-overview.md "say \\"x\\"")' in body
+              and any("nowhere3.htm.md" in m and "left as is" in m for m in lk.logger.lines))
+        a_dir = Path(tmp) / "unit"
+        (a_dir / "articles").mkdir(parents=True)
+        (a_dir / "articles" / "old.htm.md").write_text(
+            "[1](./nowhere.htm.md) [2](./nowhere.htm.md) [3](./nowhere3.htm.md (t)) [4](<./nowhere2.htm.md>) [5](./nowhere4.mdx)\n",
+            encoding="utf-8")
+        n_, un_ = sg.rewrite_retained_links(a_dir, {"legacy_id_map": {}, "unmapped_legacy_ids": {"old.htm": ""}})
+        check("an unresolved target is reported once per file, in any link form, and the file is untouched",
+              n_ == 0 and sorted(un_) == [("old.htm.md", "nowhere.htm.md"), ("old.htm.md", "nowhere2.htm.md"),
+                                          ("old.htm.md", "nowhere3.htm.md")]  # nowhere4.mdx is not a .md link
+              and (a_dir / "articles" / "old.htm.md").read_text(encoding="utf-8").count("nowhere") == 5)
+        check("the rewrite says how many links it changed",
+              any("rewrote 3 local link" in m for m in lk.logger.lines))
+        again = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
+        again.run()
+        check("a rerun finds nothing left to rewrite",
+              gone.read_text(encoding="utf-8") == body and not any("rewrote" in m for m in again.logger.lines))
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
         wg = snap(tmp, redirects=redir, mode="refresh", accept_uncovered=["gone.htm"],
                   probe_page="connect-resources-get-catalogs")
         try:

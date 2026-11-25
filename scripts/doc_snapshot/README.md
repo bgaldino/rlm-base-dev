@@ -270,6 +270,10 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   and an id that maps to nothing (see `unmapped_legacy_ids`), leave it as the only copy
   and it is not offered for removal. A rerun retries the ids that stayed unmapped. (A
   switch to a different guide abandons the old corpus whole and lists all its files.)
+  Every run also rewrites the relative links in the atlas articles that stay behind
+  (`unmapped_legacy_ids`, held pages) from a missing or superseded `<id>.md` target to its
+  site slug file, keeping the `#fragment`; a link that stays dangling (no site file for the target, or a link form the
+  rewrite does not handle) is left as is and named in a warning.
 - Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
   batches (default 500), three attempts with backoff on a failed connection, 429 or
   5xx. The capture guard (not-found and stub) applies as for atlas.
