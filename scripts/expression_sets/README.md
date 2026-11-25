@@ -393,8 +393,9 @@ expected behavior; the outputs are not dead code.
   error never knocks a live procedure offline; the error is still reported.
 - **Row locks are retried.** Every sObject PATCH the engine sends (version and plan
   `IsActive`, `ResourceInitializationType`) retries `UNABLE_TO_LOCK_ROW` up to four
-  attempts, waiting 2, 4 and 6 seconds, as the CCI task does; any other error
-  fails at once.
+  attempts, waiting 2, 4 and 6 seconds, as the CCI task does, whether the code is
+  the error's own or quoted in its message; any error that does not mention
+  `UNABLE_TO_LOCK_ROW` fails at once.
 - **Default reactivation.** Every mutator defaults to `activate_after=True`, so
   applying/importing/relabeling reactivates the version on success. If you are
   operating on an **intentionally inactive** version, pass `--no-activate` or it

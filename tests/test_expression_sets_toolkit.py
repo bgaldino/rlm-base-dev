@@ -3063,6 +3063,26 @@ def test_row_lock_retry():
           t.plans == {"1Cv1": True} and t.esv_active is True and waits == [2],
           (t.plans, t.esv_active, waits))
 
+    # With no sleep passed, the engine helpers look time.sleep up when they wait,
+    # so a patched time.sleep applies.
+    import time as _time
+    from scripts.expression_sets import _engine
+    slept, calls = [], []
+    real_sleep = _time.sleep
+    _time.sleep = slept.append
+    try:
+        def locked_once():
+            calls.append(1)
+            if len(calls) == 1:
+                raise lock
+            return "ok"
+        result = _engine.retry_on_row_lock(locked_once, what="x",
+                                           emit=lambda level, msg: None)
+    finally:
+        _time.sleep = real_sleep
+    check("retry_on_row_lock's default sleep is time.sleep at call time",
+          result == "ok" and slept == [2], (result, slept))
+
 
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""

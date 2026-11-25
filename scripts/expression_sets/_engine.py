@@ -72,13 +72,14 @@ def is_row_lock(exc: BaseException) -> bool:
 
 def retry_on_row_lock(call: Callable[[], Any], *, what: str,
                       emit: Callable[[str, str], None],
-                      sleep: Callable[[float], None] = time.sleep,
+                      sleep: Optional[Callable[[float], None]] = None,
                       attempts: int = ROW_LOCK_ATTEMPTS) -> Any:
     """Run ``call``, retrying while it fails with ``UNABLE_TO_LOCK_ROW``.
 
     Up to ``attempts`` tries with :func:`row_lock_backoff` waits; any other
     failure, or a lock on the last try, raises. The CCI task applies the same
-    policy at its HTTP layer (``_patch_sobject``).
+    policy at its HTTP layer (``_patch_sobject``). ``sleep`` defaults to
+    ``time.sleep`` looked up at call time, so a patched ``time.sleep`` applies.
     """
     for attempt in range(1, attempts + 1):
         try:
@@ -88,7 +89,7 @@ def retry_on_row_lock(call: Callable[[], Any], *, what: str,
                 wait = row_lock_backoff(attempt)
                 emit("warning", f"Row lock on {what} (attempt {attempt}/{attempts}). "
                                 f"Retrying in {wait}s.")
-                sleep(wait)
+                (sleep or time.sleep)(wait)
                 continue
             raise
 
@@ -240,15 +241,17 @@ class LifecycleCore:
         self.emit("info", f"Set ExpressionSetVersion {version_id} IsActive={active}.")
 
     def poll_version_state(self, version_id: str, active: bool, *, max_wait: int,
-                           poll: int, sleep: Callable[[float], None] = time.sleep) -> None:
-        """Poll until the version reads ``IsActive=active``; raise after ``max_wait``s."""
+                           poll: int,
+                           sleep: Optional[Callable[[float], None]] = None) -> None:
+        """Poll until the version reads ``IsActive=active``; raise after ``max_wait``s.
+        ``sleep`` defaults to ``time.sleep`` looked up at call time."""
         waited = 0
         while waited <= max_wait:
             if self._version_state(version_id) is active:
                 self.emit("info", f"Confirmed ExpressionSetVersion {version_id} "
                                   f"IsActive={active} after {waited}s.")
                 return
-            sleep(poll)
+            (sleep or time.sleep)(poll)
             waited += poll
         raise self.error_class(
             f"ExpressionSetVersion {version_id} did not reach IsActive={active} "
