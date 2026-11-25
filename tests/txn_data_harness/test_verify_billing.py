@@ -26,7 +26,7 @@ from scripts.txn_data_harness.verify import (
     CHECK_NAMES,
     VerifyError,
     _check_ids,
-    fetch_billing_records,
+    fetch_records,
     ids_from_manifest,
     render_text,
     run_checks,
@@ -94,7 +94,7 @@ def _row(data: dict, obj: str, row_id: str) -> dict:
 
 def _verify(data: dict, invoices: list[str], payments=None, level="auto") -> dict:
     client = RecordedClient(data)
-    records = fetch_billing_records(client, invoices, payments)
+    records = fetch_records(client, invoices, payments)
     assert client.writes == []
     return run_checks(records, level)
 
@@ -184,7 +184,7 @@ def test_payment_rows_on_invoices_outside_the_set_count_for_net_applied():
 def test_verifier_only_reads():
     data = _load("line_level.json")
     client = RecordedClient(data)
-    fetch_billing_records(client, LINE_INVOICES, LINE_EXTRA_PAYMENTS)
+    fetch_records(client, LINE_INVOICES, LINE_EXTRA_PAYMENTS)
     assert client.writes == []
     assert client.queries and all(q.startswith("SELECT ") for q in client.queries)
 
@@ -481,7 +481,7 @@ def test_more_ids_than_one_chunk_are_all_read():
     data = {"Invoice": invoices, "InvoiceLine": lines, "Payment": payments,
             "PaymentLineInvoiceLine": rows}
     client = RecordedClient(data)
-    records = fetch_billing_records(client, [r["Id"] for r in invoices])
+    records = fetch_records(client, [r["Id"] for r in invoices])
     assert len(records["Invoice"]) == n and len(records["InvoiceLine"]) == n
     assert sum(1 for q in client.queries if " FROM Invoice " in q) == 3
     # Payments are found through the rows, read in chunks, and their rows read again by
@@ -498,20 +498,20 @@ def test_more_ids_than_one_chunk_are_all_read():
 
 def test_unknown_invoice_id_is_an_error():
     with pytest.raises(VerifyError, match="not found"):
-        fetch_billing_records(RecordedClient(_load("line_level.json")),
+        fetch_records(RecordedClient(_load("line_level.json")),
                               ["3tt00000000000ZAAQ"])
 
 
 def test_unknown_payment_id_is_an_error():
     with pytest.raises(VerifyError, match="payment ids not found"):
-        fetch_billing_records(RecordedClient(_load("line_level.json")),
+        fetch_records(RecordedClient(_load("line_level.json")),
                               [LINE_INVOICES[1]], ["0aQ00000000000ZEAQ"])
 
 
 def test_fifteen_character_ids_are_normalized_and_deduplicated():
     data = _load("line_level.json")
     client = RecordedClient(data)
-    records = fetch_billing_records(
+    records = fetch_records(
         client, [LINE_INVOICES[0][:15], LINE_INVOICES[0], LINE_INVOICES[0][:15]],
         [LINE_EXTRA_PAYMENTS[0][:15]])
     assert [r["Id"] for r in records["Invoice"]] == [LINE_INVOICES[0]]
@@ -545,7 +545,7 @@ def test_eighteen_character_id_whose_suffix_fits_no_casing_is_refused(bad):
 def test_malformed_id_is_rejected_before_any_query():
     client = RecordedClient({})
     with pytest.raises(VerifyError, match="not a Salesforce id"):
-        fetch_billing_records(client, ["3tt' OR Id != '"])
+        fetch_records(client, ["3tt' OR Id != '"])
     assert client.queries == []
 
 
@@ -563,7 +563,7 @@ def test_selected_field_missing_from_recorded_rows_fails(monkeypatch):
     monkeypatch.setattr(verify_mod, "INVOICE_FIELDS",
                         verify_mod.INVOICE_FIELDS + ("CurrencyIsoCode",))
     with pytest.raises(AssertionError, match="CurrencyIsoCode"):
-        fetch_billing_records(RecordedClient(_load("line_level.json")), LINE_INVOICES)
+        fetch_records(RecordedClient(_load("line_level.json")), LINE_INVOICES)
 
 
 def test_no_selected_field_is_multi_currency_only():
@@ -737,7 +737,7 @@ def test_header_rows_are_read_for_every_invoice():
     # H1's header rows come second: a fetch that read only the first invoice's rows
     # would miss them (and the payment found through them).
     client = RecordedClient(_load("header_level.json"))
-    records = fetch_billing_records(client, list(reversed(HEADER_INVOICES)))
+    records = fetch_records(client, list(reversed(HEADER_INVOICES)))
     for obj in ("PaymentLineInvoice", "CreditMemoInvApplication"):
         assert "3tt0000000000H1AAI" in {r["InvoiceId"] for r in records[obj]}, obj
     assert [r["Id"] for r in records["Payment"]] == ["0aQ0000000000H1EAI"]
@@ -1343,7 +1343,7 @@ def test_cli_verify_unreadable_credit_memo_exits_two(monkeypatch, capsys, drop, 
 def test_header_credit_rows_read_their_memo():
     # The memo is reached only through a CreditMemoInvApplication row.
     data = _load("header_level.json")
-    records = fetch_billing_records(RecordedClient(data), ["3tt0000000000H1AAI"])
+    records = fetch_records(RecordedClient(data), ["3tt0000000000H1AAI"])
     assert [r["Id"] for r in records["CreditMemo"]] == ["50g000000000001AAA"]
     assert records["CreditMemoLine"] == []
 
@@ -1442,7 +1442,7 @@ def test_cli_verify_checks_the_payment_ids_a_manifest_names(recorded_org, tmp_pa
 def test_fetch_with_no_ids_is_an_error():
     client = RecordedClient({})
     with pytest.raises(VerifyError, match="no invoice or payment ids to verify"):
-        fetch_billing_records(client, [], [])
+        fetch_records(client, [], [])
     assert client.queries == []
 
 

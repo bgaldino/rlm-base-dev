@@ -70,7 +70,7 @@ from typing import Any, Iterable, Optional
 __all__ = [
     "CHECK_NAMES",
     "VerifyError",
-    "fetch_billing_records",
+    "fetch_records",
     "ids_from_manifest",
     "render_text",
     "run_checks",
@@ -291,7 +291,7 @@ def _merge(rows: list[dict], more: list[dict]) -> list[dict]:
     return rows + [r for r in more if r["Id"] not in seen]
 
 
-def fetch_billing_records(client, invoice_ids: list[str],
+def fetch_records(client, invoice_ids: list[str],
                           payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
     """Read everything the checks need, by id. SOQL reads only.
 

@@ -383,7 +383,7 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         client = SfRestClient.from_alias(
             args.org, api_version=args.api_version, transport=args.transport
         )
-        records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records, args.expect_level)
     except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
         # Exit 1 means a check failed, so no error may reach main() (which maps
