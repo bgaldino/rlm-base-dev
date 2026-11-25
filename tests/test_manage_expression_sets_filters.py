@@ -10,7 +10,9 @@ Stdlib only: `requests` is replaced by a fake Tooling API.
 Why this file exists (pack 457, measured live on 264)
 -----------------------------------------------------
 ExpressionSetDefinition has neither Status nor InterfaceSourceType nor ProcessType as a field.
-Status lives on ExpressionSetDefinitionVersion (semi-join); the other two exist only in the
+Status lives on ExpressionSetDefinitionVersion (semi-join; the Tooling API accepts it and it
+filters: on a 264 scratch org, 12 sets listed unfiltered, 11 Active, 1 Draft, 2026-11-26); the
+other two exist only in the
 set's Metadata, which the Tooling API returns one record at a time. The task used to ignore
 status and warn-and-ignore the other two. list_versions also selected Rank, StartDate, Label and
 Description, none of which exist on ExpressionSetDefinitionVersion, so it failed on every org.
@@ -144,6 +146,10 @@ fake, _ = run({"operation": "list", "sort_by": "developer_name", "sort_order": "
 check("DeveloperName Asc", fake.queries[0].endswith("ORDER BY DeveloperName Asc"), fake.queries[0])
 fake, _ = run({"operation": "list", "sort_order": " asc "})
 check("sort_order is trimmed", fake.queries[0].endswith("Asc"), fake.queries[0])
+fake, _ = run({"operation": "list", "sort_by": " "})
+check("blank sort_by orders by LastModifiedDate", "ORDER BY LastModifiedDate" in fake.queries[0], fake.queries[0])
+fake, _ = run({"operation": "list", "sort_by": " developer_name "})
+check("padded sort_by is trimmed", "ORDER BY DeveloperName" in fake.queries[0], fake.queries[0])
 
 print("list_versions selects only fields that exist on the version object")
 fake, err = run({"operation": "list_versions", "developer_names": "Pricing_One"})

@@ -65,7 +65,8 @@ class ManageFlows(BaseSalesforceTask):
         "developer_names": {
             "description": (
                 "Flow DeveloperNames to operate on: a comma-separated string or a list "
-                "(a FlowDefinition Id also works). Required for activate and deactivate. "
+                "(a FlowDefinition Id also works; list shows it). Required for activate and "
+                "deactivate, which refuse a DeveloperName shared by two flows (pass the Id). "
                 "For list and query, omitted means all flows. Names that match no flow "
                 "are an error."
             ),
@@ -277,7 +278,7 @@ class ManageFlows(BaseSalesforceTask):
             soql += " WHERE " + " AND ".join(where)
 
         if ordered:
-            sort_key = str(self.options.get("sort_by") or "CreatedDate").replace("_", "").lower()
+            sort_key = (str(self.options.get("sort_by") or "").strip() or "CreatedDate").replace("_", "").lower()
             if sort_key not in _SORT_FIELDS:
                 raise TaskOptionsError(
                     f"sort_by must be one of DeveloperName, Label, Status, ProcessType, "
@@ -324,15 +325,19 @@ class ManageFlows(BaseSalesforceTask):
         # A managed package's flow can share a DeveloperName with an org flow; changing both
         # would be a surprise, so a DeveloperName that resolves to more than one flow is refused
         # (a DefinitionId names exactly one).
+        # Names compare case-insensitively, as the lookup does (MyFlow and myflow are the same request).
         requested = {n.lower() for n in names if not _DEFINITION_ID.match(n)}
         names_seen: Dict[str, List[str]] = {}
         for def_id, versions in by_definition.items():
-            name = self._developer_name(versions[0])
-            if name.lower() in requested:
-                names_seen.setdefault(name, []).append(def_id)
+            key = self._developer_name(versions[0]).lower()
+            if key in requested:
+                names_seen.setdefault(key, []).append(def_id)
         ambiguous = {n: ids for n, ids in names_seen.items() if len(ids) > 1}
         if ambiguous:
-            detail = "; ".join(f"{n}: {', '.join(sorted(ids))}" for n, ids in sorted(ambiguous.items()))
+            detail = "; ".join(
+                ", ".join(f"{self._developer_name(by_definition[i][0])} ({i})" for i in sorted(ids))
+                for _, ids in sorted(ambiguous.items())
+            )
             raise TaskOptionsError(
                 f"Cannot {verb}: these names match more than one flow (pass the DefinitionId instead): {detail}"
             )

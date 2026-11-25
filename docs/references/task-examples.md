@@ -14,7 +14,7 @@ This document provides working examples for the `manage_flows` and `manage_expre
 | `developer_names` | all | Comma-separated flow DeveloperNames (a FlowDefinition Id, `300…`, 15 or 18 characters, also works; `list` shows it). **Required** for `activate` and `deactivate`. For `list` and `query`, omitted means all flows. A name that matches no flow is an error and nothing is changed. A DeveloperName shared by two flows (for example a managed package's and the org's) is refused by `activate` and `deactivate`; pass the FlowDefinition Id instead. |
 | `status` | list, query | `Active`, `Draft`, `Obsolete` or `InvalidDraft`. Rejected by `activate` and `deactivate`. |
 | `process_type` | list, query | For example `AutoLaunchedFlow`, `Flow` (screen flow), `Workflow`. Rejected by `activate` and `deactivate`. |
-| `sort_by` | list, query | `DeveloperName`, `Label`, `Status`, `ProcessType`, `VersionNumber`, `CreatedDate` (default). `LastModifiedDate` is accepted as `CreatedDate`. |
+| `sort_by` | list, query | `DeveloperName`, `Label`, `Status`, `ProcessType`, `VersionNumber`, `CreatedDate` (default; blank also means the default). `LastModifiedDate` is accepted as `CreatedDate`. |
 | `sort_order` | list, query | `Asc` or `Desc` (default; blank also means the default). |
 | `limit` | list, query | Positive integer. Rejected by `activate` and `deactivate`. |
 
@@ -93,7 +93,7 @@ Expression set **version** activation and deactivation are performed by this tas
 | `process_type` | list, query, list_versions | For example `DefaultPricing`, `DefaultRating`, `PricingDiscovery`. Same cost note as above. |
 | `version_full_name` | activate_version, deactivate_version | Version FullName, for example `RLM_DefaultPricingProcedure_V1`. |
 | `version_full_names` | activate_versions, deactivate_versions | Comma-separated FullNames; otherwise every version under `metadata_path`. |
-| `sort_by` | list, query, list_versions | `DeveloperName`, `Label`, `LastModifiedDate` (default), `CreatedDate`. |
+| `sort_by` | list, query, list_versions | `DeveloperName`, `Label`, `LastModifiedDate` (default; blank also means the default), `CreatedDate`. |
 | `sort_order` | list, query, list_versions | `Asc` or `Desc` (default; blank also means the default). |
 | `limit` | list, query, list_versions | Positive integer, applied after every filter. |
 

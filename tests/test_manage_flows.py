@@ -348,6 +348,17 @@ for verb in ("activate", "deactivate"):
 fake, err = run(SHARED, {"operation": "deactivate", "developer_names": A})
 check("deactivate by DefinitionId changes only that flow",
       err is None and len(fake.patches) == 1 and A in fake.patches[0][0], repr((err, fake.patches)))
+fake, err = run([row(A, "MyFlow", 1, "Active"), row(B, "myflow", 1, "Active")],
+                {"operation": "deactivate", "developer_names": "MyFlow"})
+check("names differing only in case are the same name: refused, both shown",
+      err is not None and "more than one flow" in str(err) and "MyFlow" in str(err) and "myflow" in str(err)
+      and not fake.patches, repr((err, fake.patches)))
+
+print("a blank or padded sort_by means the default or the trimmed value")
+fake, _ = run([], {"operation": "list", "sort_by": " "})
+check("blank sort_by orders by CreatedDate", "ORDER BY CreatedDate" in fake.queries[0], fake.queries[0])
+fake, _ = run([], {"operation": "list", "sort_by": " DeveloperName "})
+check("padded sort_by is trimmed", "ORDER BY Definition.DeveloperName" in fake.queries[0], fake.queries[0])
 
 print()
 if FAILURES:

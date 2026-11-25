@@ -393,7 +393,9 @@ class ManageDecisionTables(BaseTask):
             soql += " WHERE " + " AND ".join(where_clauses)
         
         # Add sorting
-        sort_by = require_identifier(self.options.get("sort_by") or "LastSyncDate", "sort_by", TaskOptionsError)
+        sort_by = require_identifier(
+            str(self.options.get("sort_by") or "").strip() or "LastSyncDate", "sort_by", TaskOptionsError
+        )
         sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
         if sort_order not in ("Asc", "Desc"):
             raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")

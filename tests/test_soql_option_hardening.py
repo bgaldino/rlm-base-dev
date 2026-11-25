@@ -81,6 +81,10 @@ check("valid values pass through", soql.endswith("ORDER BY DeveloperName Asc LIM
 check("sort_by fragment rejected", raises(lambda: dt_soql({"sort_by": "Id; x"}), "sort_by"))
 check("sort_order fragment rejected", raises(lambda: dt_soql({"sort_order": "Desc; x"}), "sort_order"))
 check("limit fragment rejected", raises(lambda: dt_soql({"limit": "1 OFFSET 2"}), "limit"))
+soql = dt_soql({"sort_by": " ", "sort_order": " "})
+check("blank sort_by and sort_order mean the defaults", soql.endswith("ORDER BY LastSyncDate Desc"), soql)
+soql = dt_soql({"sort_by": " DeveloperName "})
+check("padded sort_by is trimmed", "ORDER BY DeveloperName Desc" in soql, soql)
 
 print("export_cml: developer_name is escaped and version must be a whole number")
 ExportCML = load("rlm_cml").ExportCML

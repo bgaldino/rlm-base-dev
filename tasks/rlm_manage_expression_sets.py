@@ -281,7 +281,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         if where_clauses:
             soql += " WHERE " + " AND ".join(where_clauses)
 
-        sort_key = str(self.options.get("sort_by") or "LastModifiedDate").replace("_", "").lower()
+        sort_key = (str(self.options.get("sort_by") or "").strip() or "LastModifiedDate").replace("_", "").lower()
         if sort_key not in _SORT_FIELDS:
             raise TaskOptionsError(
                 "sort_by must be one of DeveloperName, Label, LastModifiedDate, CreatedDate; "
