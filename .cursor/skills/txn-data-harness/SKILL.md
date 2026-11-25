@@ -84,7 +84,8 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     Settlement batches with more than one transaction on an account must run
     `--concurrency 1` (`cli run` refuses otherwise). Amounts round to the
     invoice currency's decimal places; the credit and payment use the
-    invoice's account (`cli step` refuses an `--account` with another Id).
+    invoice's account (`cli step` accepts an `--account` name only when the
+    manifest's Id is among the accounts with that name).
     At most one credit and one payment are created per run (the submitted
     flag is recorded first; any 4xx clears it, a lost response fails and is
     not retried). A refused write is resent by a rerun and normally refused

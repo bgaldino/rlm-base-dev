@@ -75,13 +75,16 @@ class LifecycleError(RuntimeError):
 
 
 class SettlementError(LifecycleError):
-    """A credit/payment settlement failure: never retried automatically.
+    """A credit/payment settlement failure with a pinned retry class.
 
-    Classified ``deterministic`` (``failure_class``) whatever the message
-    says: settlement messages embed run ids and record ids whose digits
-    (``...T150342Z`` holds "503") would match the transient patterns in
-    ``failure.py``, and a settlement write must not be replayed by a scenario
-    retry. Resume with ``cli step``.
+    ``failure_class`` defaults to ``deterministic``; it is pinned
+    ``transient`` where a retry is safe and may succeed: a retryable 4xx
+    (420/429 or a retryable ``errorCode``; nothing was created), a 5xx or
+    timeout outside a write (``settlement_failure_class``), or an application
+    level whose read failed transiently. Pinned either way, so the message
+    text never decides: settlement messages embed run and record ids whose
+    digits (``...T150342Z`` holds "503") would match ``failure.py``'s
+    transient patterns. A write whose outcome is unknown is never transient.
     """
 
     def __init__(

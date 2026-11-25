@@ -484,8 +484,12 @@ value (null) means no payment, like leaving the key out.
   minor units (JPY 0, KWD 3, most others 2). Only USD was settled live.
 - **Account:** the credit and the payment belong to the invoice's account
   (`Invoice.BillingAccountId`, else the manifest's `account_id`). `cli step`
-  looks the account up by the manifest's `account_id`; an `--account` that
-  resolves to another Id is refused before anything is written.
+  looks the account up by the manifest's `account_id`; an `--account` name is
+  accepted when the manifest's Id is among the accounts with that name (names
+  are not unique), else refused before anything is written. Before the
+  payment insert, the recorded application level is checked against the
+  invoice's `SettlementLevel` or any application row on it; a mismatch fails
+  before inserting.
 - **Resume:** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. The config must hold exactly one
   `settlement:` block among the scenarios of the manifest's `kind` and
   account (a renamed account matches by Id). A `--config` identical to the

@@ -494,6 +494,7 @@ class SettleOrg:
         self.memo_statuses: list[str] = ["Posted"]
         self.memo_visible_after = 0
         self.memo_queries = 0
+        self.payment_queries = 0
         self.fail_next_post: Optional[Exception] = None
         self._pending_credit: list[tuple[str, float]] = []
 
@@ -567,10 +568,12 @@ class SettleOrg:
                 rows.append({k: v for k, v in m.items() if not k.startswith("_")})
             return rows[::-1] if "LIMIT 1" not in soql else rows[-1:]
         if "FROM Payment " in soql:
+            self.payment_queries += 1
             acct, tag = _eq(soql, "AccountId"), _eq(soql, "GatewayRefNumber")
             return [{"Id": p["Id"]} for p in self.payments
                     if (acct is None or p["AccountId"] == acct)
-                    and (tag is None or p.get("GatewayRefNumber") == tag)]
+                    and (tag is None or p.get("GatewayRefNumber") == tag)
+                    and self.payment_queries > p.get("_visible_after", 0)]
         if "FROM CreditMemoLineInvoiceLine" in soql or "FROM CreditMemoInvApplication" in soql:
             level = "line" if "CreditMemoLineInvoiceLine" in soql else "header"
             memos = _ids_in(soql, "CreditMemoId")
@@ -2881,3 +2884,149 @@ def test_reversal_flag_is_read_from_each_objects_own_field(obj, level, flag, bil
         m.reached_stage = "credit_applied"
         with pytest.raises(lifecycle.SettlementError, match=f"reversed outside the harness.*{flag} Yes"):
             steps.run_payment(ctx, m)
+
+
+# -- review round 9 (todo 275) --------------------------------------------------
+
+
+def test_step_to_a_reached_target_keeps_the_error_while_a_write_is_pending(
+    monkeypatch, billable_account
+) -> None:
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
+                         error="[payment] payment outcome unknown", failure_class="deterministic",
+                         payment_submitted=True,
+                         settlement={"application_level": "line", "credit": {"amount": 5}})
+    cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
+    assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
+    assert ran == [] and m.error and m.failure_class == "deterministic"
+    m.payment_submitted, m.credit_submitted = False, True  # credit pending instead
+    assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
+    assert m.error
+    m.credit_memo_ids = ["50g1"]  # recorded: nothing pending
+    assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
+    assert m.error is None
+
+
+@pytest.mark.parametrize("evidence", ["settlement_level", "application_row"])
+def test_level_mismatch_with_evidence_fails_before_the_insert(evidence, billable_account) -> None:
+    org = SettleOrg("line")
+    if evidence == "settlement_level":
+        org.invoice["SettlementLevel"] = "InvoiceLine"
+    else:
+        org.credit_apps.append({"Id": "4sGX", "Amount": 5.0, "level": "line", "memo": "50gX",
+                                "invoice": "3ttINV"})
+    spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=10.0))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match="level is header but .* says line; no payment was inserted"
+                             ".*--application-level line") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic"
+    assert org.payments == [] and org.posts == [] and m.payment_apply_target is None
+
+
+def test_level_without_evidence_proceeds(billable_account) -> None:
+    org = SettleOrg("header")
+    spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=10.0))
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert len(org.payments) == 1 and m.reached_stage == "payment_applied"
+    org = SettleOrg("header")
+    org.invoice["SettlementLevel"] = "Invoice"  # agreeing evidence
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert len(org.payments) == 1
+
+
+@pytest.mark.parametrize("call", ["credit", "payment", "apply"])
+def test_requests_transport_sends_settlement_writes_once(call, monkeypatch) -> None:
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    monkeypatch.setattr(auth.time, "sleep", lambda s: None)
+    client = _client("requests")
+    calls = _fake_requests(client, 503, "unavailable")
+    with pytest.raises(SfApiError):
+        if call == "credit":
+            lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []})
+        elif call == "payment":
+            lifecycle.create_payment(client, {"Amount": 1})
+        else:
+            lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "3ttINV", "amount": 1})
+    assert len(calls) == 1
+
+
+def test_header_level_apply_that_committed_then_failed_is_not_applied_twice(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("header")
+    spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=120.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    real = org._do_post
+    calls = {"n": 0}
+
+    def commit_then_fail(path, body):
+        result = real(path, body)
+        if path.endswith("/actions/apply"):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise SfApiError(500, "internal", "POST", path)
+        return result
+
+    org._do_post = commit_then_fail
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError):
+        steps.execute_step("payment_applied", ctx, m)
+    org.posts.clear()
+    m = steps.run_payment(ctx, m)
+    assert _applies(org) == []
+    assert m.payment_amount_applied == 120.0 and sum(a["Amount"] for a in org.payment_apps) == 120.0
+
+
+@pytest.mark.parametrize("status, code", [
+    (403, "REQUEST_LIMIT_EXCEEDED"),
+    (400, "QUERY_TIMEOUT"),
+    (400, "TOO_MANY_CONCURRENT_REQUESTS"),
+])
+def test_each_retryable_error_code_is_not_a_refusal(status, code) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    exc = SfApiError(status, json.dumps([{"errorCode": code, "message": "m"}]), "GET", "/q")
+    assert lifecycle.is_retryable_client_error(exc) and not lifecycle.is_api_refusal(exc)
+
+
+def test_reference_line_error_codes_are_read() -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    body = json.dumps({"message": "Couldn't create credit memo.", "output": {
+        "errors": [], "referenceLineErrorResults": [
+            {"errors": [{"errorCode": "UNABLE_TO_LOCK_ROW", "message": "busy"}]}]}})
+    exc = SfApiError(400, body, "POST", "/credit")
+    assert lifecycle.api_error_codes(body) == ["UNABLE_TO_LOCK_ROW"]
+    assert not lifecycle.is_api_refusal(exc)
+
+
+def test_submitted_payment_waits_for_a_late_one(billable_account) -> None:
+    """A resume after an unknown insert waits briefly for the payment to show
+    up by its tag instead of failing at once."""
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQLATE", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0, "_visible_after": 3})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.poll_timeout = 30
+    m = steps.run_payment(ctx, _payment_planned_manifest(payment_submitted=True))
+    assert m.payment_ids == ["0aQLATE"] and len(org.payments) == 1
+
+
+def test_payment_refusal_clears_submitted_on_disk(tmp_path, billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.manifests import load_manifest, write_manifest
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(400, '[{"errorCode":"FIELD_INTEGRITY_EXCEPTION"}]',
+                                    "POST", "/sobjects/Payment")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.checkpoint = lambda mm: write_manifest(mm, manifest_dir=tmp_path)
+    with pytest.raises(lifecycle.SettlementError, match="payment refused"):
+        steps.run_payment(ctx, _posted_manifest())
+    assert load_manifest(str(tmp_path / "RUN.json")).payment_submitted is False

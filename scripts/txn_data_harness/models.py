@@ -208,7 +208,7 @@ class Manifest:
     credit_application_ids: list[str] = field(default_factory=list)
     # Set (and checkpointed) just before the run's one credit POST: the action
     # has no idempotency key, so a retry polls for the memo by its tag instead
-    # of POSTing again. Only a 4xx refusal clears it.
+    # of POSTing again. Any 4xx (nothing was created) clears it.
     credit_submitted: bool = False
     # Invoice.NetCreditsApplied read just before the credit POST; the
     # double-credit check compares the gain since then with the memo's amount.

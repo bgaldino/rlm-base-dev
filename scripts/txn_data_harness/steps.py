@@ -612,9 +612,10 @@ def _poll_applications(read, timeout: int) -> dict:
 
 
 # How long the credit step waits for the memo after a credit POST whose
-# outcome is unknown (5xx / transport / 2xx without success). A convenience
-# only: safety comes from credit_submitted, set before the POST and never
-# cleared except by a 4xx refusal.
+# outcome is unknown (5xx / transport / 2xx without success), and the
+# payment step for its insert. A convenience only: safety comes from
+# credit_submitted / payment_submitted, set before the write and cleared only
+# by a 4xx (any 4xx: nothing was created).
 _CREDIT_LOOKUP_WINDOW = 15
 
 
@@ -719,6 +720,42 @@ def _find_payment(
         if payment_id is not None or not wait or time.monotonic() >= deadline:
             return payment_id
         time.sleep(lifecycle._POLL_INTERVAL)
+
+
+def _check_level_evidence(ctx: StepContext, manifest: Manifest, level: str) -> None:
+    """Fail before the Payment insert when the org contradicts ``level``.
+
+    A wrong level is otherwise first exercised by the apply, after the
+    insert, leaving an unapplied Processed payment. Evidence, when there is
+    any: the invoice's ``SettlementLevel`` (set once something was applied,
+    e.g. by the credit stage), else the junction of any application row on
+    the invoice. No evidence: proceed.
+    """
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    evidence = {"InvoiceLine": lifecycle.LEVEL_LINE, "Invoice": lifecycle.LEVEL_HEADER}.get(
+        header.get("SettlementLevel") or ""
+    )
+    source = "Invoice.SettlementLevel"
+    if evidence is None:
+        apps = lifecycle.read_invoice_applications(ctx.client, manifest.invoice_id)
+        if apps["payment_line"] or apps["credit_line"]:
+            evidence, source = lifecycle.LEVEL_LINE, "an application row on the invoice lines"
+        elif apps["payment_header"] or apps["credit_header"]:
+            evidence, source = lifecycle.LEVEL_HEADER, "an application row on the invoice"
+    if evidence is None or evidence == level:
+        return
+    if manifest.payment_apply_target is None:
+        how = (f"rerun {_step_command(ctx, manifest)[:-1]} --application-level {evidence}` "
+               "to correct it")
+    else:
+        how = ("the payment is already planned, so start a new run with "
+               f"settlement.application_level: {evidence}")
+    raise SettlementError(
+        "payment",
+        f"the recorded application level is {level} but {source} says {evidence}; no "
+        f"payment was inserted. {how}.",
+        record_id=manifest.invoice_id,
+    )
 
 
 def _insert_payment_once(
@@ -966,6 +1003,8 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
     places = _places(manifest)
+    if not manifest.payment_ids and not manifest.payment_submitted:
+        _check_level_evidence(ctx, manifest, level)
 
     if manifest.payment_apply_target is None:
         open_amount = _payment_open_amount(ctx, manifest, spec, level)

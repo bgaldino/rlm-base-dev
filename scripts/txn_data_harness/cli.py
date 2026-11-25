@@ -226,9 +226,14 @@ def _cmd_step(args: argparse.Namespace) -> int:
     # even on a manifest that already reached the target.
     settlement = _settlement_for_step(args, manifest, client)
     if not steps:
-        # Already at the target: an earlier failure on a later stage (a
-        # credit-only run whose payment stage failed) no longer applies.
-        if manifest.error or manifest.failure_class:
+        # Already at the target: an error left by a later stage (run to a
+        # further target, then stepped back) no longer blocks this one --
+        # unless a write's outcome is unknown (submitted, no id recorded): a
+        # credit memo or Processed payment may exist, so the error stays.
+        pending = (manifest.credit_submitted and not manifest.credit_memo_ids) or (
+            manifest.payment_submitted and not manifest.payment_ids
+        )
+        if (manifest.error or manifest.failure_class) and not pending:
             manifest.error = None
             manifest.failure_class = None
             write_manifest(manifest)

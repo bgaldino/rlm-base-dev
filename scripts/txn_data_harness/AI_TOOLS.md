@@ -351,8 +351,8 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   step starts). A `--config` that differs from it is refused, naming the
   keys: different options need a new run. `payment_applied` refuses a block
   without `payment` (stop at `credit_applied` for a credit only).
-- `cli step` uses the manifest's `account_id`; an `--account` that resolves to
-  another account is refused. Amounts round to the invoice currency's
+- `cli step` uses the manifest's `account_id`; an `--account` name is accepted
+  when the manifest's Id is among the accounts with that name, else refused. Amounts round to the invoice currency's
   decimal places (KWD = 3, JPY = 0).
 - Line Level is live-verified on 264; Header Level is not. Contract:
   `docs/contracts-billing-settlement.md`.

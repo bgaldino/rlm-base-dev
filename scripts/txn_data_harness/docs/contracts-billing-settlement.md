@@ -235,9 +235,21 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
 - **The account.** The memo and the payment belong to the invoice's account:
   `Invoice.BillingAccountId` (an Account id), else the manifest's
   `account_id`. `cli step` resolves the account by the manifest's
-  `account_id`; an `--account` resolving to another Id, or a manifest whose
-  `account_id` differs from the invoice's, is refused before any write, so a
+  `account_id`; an `--account` name whose accounts do not include that Id
+  (names are not unique), or a manifest whose `account_id` differs from the
+  invoice's, is refused before any write, so a
   resume can never find-or-create a second payment under another account.
+- **Level check before the payment insert.** A wrong level would first show
+  at the apply, after the insert, leaving an unapplied Processed payment. So
+  before inserting, the recorded level is checked against the invoice's
+  `SettlementLevel` (set once something was applied, e.g. the credit) or,
+  failing that, the junction of any application row on the invoice; a
+  mismatch fails deterministically with nothing inserted (`--application-level`
+  while the payment is not yet planned, else a new run). No evidence: the
+  insert proceeds as before.
+- **`cli step` to a reached stage** clears an earlier `error` unless a write's
+  outcome is unknown (`credit_submitted` / `payment_submitted` with no id
+  recorded): a memo or a Processed payment may exist, so the error stays.
 - **The write rule (credit and payment).** At most one credit memo and one
   payment are created per run. The memo is tagged `<run> credit` (its
   `Description`), the payment `<run>-PAY` (`GatewayRefNumber`). Just before
