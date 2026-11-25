@@ -1456,11 +1456,11 @@ private class RLM_BillingScheduleGroupServiceTest {
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only
     // treatments of one entity, cap 2: the read returns a third row, so it was cut off; asking for Arrears
     // finds nothing and says so (not "no treatment"); asking for Advance still finds one of them. At cap 3
-    // the same read is complete and the plain message returns. Which two are read is the query's order, so the assertions do not depend
-    // on it. The currency filter is exercised by findBillingTreatmentId_findsTheTreatmentOfTheEntityFor
+    // the same read is complete and the plain message returns. Which two are read is the query's order,
+    // so the assertions do not depend on it. The currency filter is exercised by findBillingTreatmentId_findsTheTreatmentOfTheEntityFor
     // TheTimingAndCurrency, and only when the org has a second active currency.
     @isTest
-    static void findBillingTreatmentId_atTheCap_saysTheLookupWasCutOff() {
+    static void findBillingTreatmentId_pastTheCap_saysTheLookupWasCutOff() {
         LegalEntity le = new LegalEntity(Name = 'BSG Cap LE', Status = 'Active');
         insert le;
         String cur = UserInfo.getDefaultCurrency();
@@ -1525,6 +1525,68 @@ private class RLM_BillingScheduleGroupServiceTest {
             'A read of exactly the cap is complete: ' + atCap.getMessage());
     }
 
+    // The extra row past the cap belongs to a different treatment, so the last treatment kept is complete
+    // and still matches. Cap 2 over T1 Arrears-only, T2 and T3 Advance-only: Advance finds T2 (the oldest
+    // fit), where "drop the last treatment whenever the read was cut off" would have refused it.
+    @isTest
+    static void findBillingTreatmentId_extraRowOfAnotherTreatment_keepsTheLastTreatmentRead() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap Keep LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        BillingTreatment t1 = insertActiveTreatment(le, 'BSG Cap Keep T1', 'Arrears', cur);
+        BillingTreatment t2 = insertActiveTreatment(le, 'BSG Cap Keep T2', 'Advance', cur);
+        insertActiveTreatment(le, 'BSG Cap Keep T3', 'Advance', cur);
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 2;
+        Test.startTest();
+        Id found = RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, false, 'Advance', cur);
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Test.stopTest();
+
+        Assert.areEqual(t2.Id, found, 'The last treatment read is complete and is the oldest Advance fit.');
+        Assert.areNotEqual(t1.Id, found);
+    }
+
+    // A one-time charge prefers an Advance-only treatment, which may lie past the cap: a cut-off read
+    // that holds only an Arrears-only treatment is refused rather than taken.
+    @isTest
+    static void findBillingTreatmentId_oneTimeCutOffWithOnlyArrears_isRefused() {
+        LegalEntity le = new LegalEntity(Name = 'BSG Cap OneTime LE', Status = 'Active');
+        insert le;
+        String cur = UserInfo.getDefaultCurrency();
+        insertActiveTreatment(le, 'BSG Cap OneTime T1', 'Arrears', cur);
+        insertActiveTreatment(le, 'BSG Cap OneTime T2', 'Advance', cur);
+
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1;
+        Test.startTest();
+        AuraHandledException cutOff;
+        try {
+            RLM_BillingScheduleGroupService.findBillingTreatmentId(le.Id, true, null, cur);
+        } catch (AuraHandledException e) {
+            cutOff = e;
+        }
+        RLM_BillingScheduleGroupService.ITEM_READ_CAP = 1000;
+        Test.stopTest();
+
+        Assert.isNotNull(cutOff, 'An Arrears-only choice from a cut-off read is not taken for a one-time charge.');
+        Assert.isTrue(cutOff.getMessage().contains('cut off at 1 item'), cutOff.getMessage());
+    }
+
+    // One active treatment of the entity with a single active item of the timing.
+    private static BillingTreatment insertActiveTreatment(LegalEntity le, String name, String billingType, String cur) {
+        BillingTreatment t = new BillingTreatment(Name = name, LegalEntityId = le.Id, Status = 'Draft', ExcludeFromBilling = 'No', CurrencyIsoCode = cur);
+        insert t;
+        insert new BillingTreatmentItem(Name = name + ' Item', BillingTreatmentId = t.Id, BillingType = billingType, Controller = 'BillingScheduleGroup', Status = 'Draft', Type = 'Remainder', ProcessingOrder = 1, Sequencing = 'Manual', Handling0Amount = 'CreateInvoice');
+        List<BillingTreatmentItem> items = [SELECT Id FROM BillingTreatmentItem WHERE BillingTreatmentId = :t.Id];
+        for (BillingTreatmentItem item : items) {
+            item.Status = 'Active';
+        }
+        update items;
+        t.Status = 'Active';
+        update t;
+        return t;
+    }
+
     // A mixed treatment cut by the cap must not look single-timing: one treatment with an Advance and an
     // Arrears item, cap 1. The read sees one row and one more, so the treatment is dropped and both timings
     // get the cut-off message (kept, it would match whichever timing its one seen row had).
@@ -1566,10 +1628,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
     }
 
-    // The item read is capped: at the cap the last treatment read is dropped (it may be cut short, so a
-    // mixed treatment would look single-timing); under the cap nothing is dropped.
+    // Dropping a treatment removes every row of it and leaves the others.
     @isTest
-    static void dropPartialLastTreatment_dropsTheLastTreatmentOnlyAtTheCap() {
+    static void dropTreatment_removesEveryRowOfThatTreatmentOnly() {
         Id t1 = (Id) (BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
         Id t2 = (Id) (BillingTreatment.SObjectType.getDescribe().getKeyPrefix() + '000000000002');
         List<RLM_BillingScheduleGroupService.TreatmentCandidate> rows = new List<RLM_BillingScheduleGroupService.TreatmentCandidate>{
@@ -1578,14 +1639,11 @@ private class RLM_BillingScheduleGroupServiceTest {
             new RLM_BillingScheduleGroupService.TreatmentCandidate(t2, 'Arrears', CUR)
         };
 
-        List<RLM_BillingScheduleGroupService.TreatmentCandidate> atCap =
-            RLM_BillingScheduleGroupService.dropPartialLastTreatment(rows, 3);
-        List<RLM_BillingScheduleGroupService.TreatmentCandidate> underCap =
-            RLM_BillingScheduleGroupService.dropPartialLastTreatment(rows, 4);
+        List<RLM_BillingScheduleGroupService.TreatmentCandidate> kept = RLM_BillingScheduleGroupService.dropTreatment(rows, t2);
 
-        Assert.areEqual(1, atCap.size(), 'The possibly partial last treatment is dropped.');
-        Assert.areEqual(t1, atCap[0].treatmentId);
-        Assert.areEqual(3, underCap.size(), 'Under the cap nothing is dropped.');
+        Assert.areEqual(1, kept.size());
+        Assert.areEqual(t1, kept[0].treatmentId);
+        Assert.areEqual(3, rows.size(), 'The input list is not changed.');
         Assert.areEqual(1000, RLM_BillingScheduleGroupService.ITEM_READ_CAP, 'The cap is the documented 1000.');
     }
 

@@ -486,7 +486,7 @@ public with sharing class RLM_BillingScheduleGroupService {
             }
             if (pageLinks.isEmpty()) {
                 throw RLM_AuraErrors.handled(
-                    'The account you opened this from is not linked to the billing account. Reopen it and try again.');
+                    'The account you opened this from is not linked to the billing account. Open the billing screen from a linked account and try again.');
             }
             accountId = pageAccountId;
         }
@@ -755,13 +755,17 @@ public with sharing class RLM_BillingScheduleGroupService {
             truncated = candidates.size() > ITEM_READ_CAP;
             if (truncated) {
                 Id extraTreatmentId = candidates.remove(candidates.size() - 1).treatmentId;
-                if (candidates[candidates.size() - 1].treatmentId == extraTreatmentId) {
-                    candidates = dropPartialLastTreatment(candidates, candidates.size());
+                if (!candidates.isEmpty() && candidates[candidates.size() - 1].treatmentId == extraTreatmentId) {
+                    candidates = dropTreatment(candidates, extraTreatmentId);
                 }
             }
         }
         TreatmentChoice choice = chooseTreatment(candidates, isOneTime, timing, currencyIsoCode);
-        if (choice.chosen != null) {
+        // A one-time charge prefers an Advance-only treatment, which may lie past the cap: a cut-off read
+        // accepts only an Advance-only choice.
+        Boolean acceptable = choice.chosen != null
+            && !(truncated && isOneTime && !isAdvanceOnly(candidates, choice.chosen));
+        if (acceptable) {
             return choice.chosen;
         }
         if (truncated) {
@@ -786,22 +790,28 @@ public with sharing class RLM_BillingScheduleGroupService {
                 : 'Choose another legal entity, timing or currency, or ask your administrator to set one up.'));
     }
 
-    // The item read is capped. Rows come treatment by treatment, so when the cap is hit the last
-    // treatment may be cut short (a mixed treatment would look Advance-only or Arrears-only): drop every
-    // row of the last treatment id read. Under the cap nothing is dropped.
+    // The item read is capped. Rows come treatment by treatment, so when the extra row past the cap belongs
+    // to the last treatment kept, that treatment may be cut short (a mixed treatment would look Advance-only
+    // or Arrears-only): drop every row of it.
     @TestVisible
-    private static List<TreatmentCandidate> dropPartialLastTreatment(List<TreatmentCandidate> candidates, Integer cap) {
-        if (candidates.size() < cap) {
-            return candidates;
-        }
-        Id lastTreatmentId = candidates[candidates.size() - 1].treatmentId;
+    private static List<TreatmentCandidate> dropTreatment(List<TreatmentCandidate> candidates, Id treatmentId) {
         List<TreatmentCandidate> kept = new List<TreatmentCandidate>();
         for (TreatmentCandidate c : candidates) {
-            if (c.treatmentId != lastTreatmentId) {
+            if (c.treatmentId != treatmentId) {
                 kept.add(c);
             }
         }
         return kept;
+    }
+
+    // True when every row read for the treatment is Advance.
+    private static Boolean isAdvanceOnly(List<TreatmentCandidate> candidates, Id treatmentId) {
+        for (TreatmentCandidate c : candidates) {
+            if (c.treatmentId == treatmentId && c.billingType != TIMING_ADVANCE) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Applies the selection rule in the class header to candidates in the order given (the query's:
