@@ -852,6 +852,10 @@ class SiteGuideSnapshot:
         self._section_ids = None
         self.refused, self.accepted, self.orphaned = [], [], []
 
+        if o["accept_uncovered"] and not (self._switching and o["section_filters"]):
+            self.logger.warning(
+                "  --accept-uncovered has no effect here: it applies only to a sectioned "
+                "atlas-to-site switch (--mode refresh with sections over an atlas corpus)")
         if mode in ("discover", "all", "refresh"):
             self._discover(manifest, manifest_path, legacy_ids, save=mode == "discover")
         (output_dir / "articles").mkdir(parents=True, exist_ok=True)

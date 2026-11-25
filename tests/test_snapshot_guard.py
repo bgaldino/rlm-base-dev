@@ -440,6 +440,10 @@ def main():
           and p.parse_args(["run", "--release", "264", "--accept-uncovered", "a.htm"]).accept_uncovered == ["a.htm"]
           and "accept_uncovered" in cli.DEV_GUIDE_FLAGS and "accept_uncovered" in cli.RUN_FLAGS
           and "accept_uncovered" not in cli.HELP_FLAGS)
+    check("a help snapshotter accepts the list --accept-uncovered that `run` passes every target",
+          HelpSnapshot({"root_article_id": "ind.x.htm", "article_id_prefix": "ind.x", "release_version": "264",
+                        "release_name": "Winter '27", "area": "x", "accept_uncovered": ["a.htm"]},
+                        logger=_Log()) is not None)
     try:
         with contextlib.redirect_stderr(io.StringIO()):
             p.parse_args(["run", "--release", "264", "--accept-shrinkage"])
