@@ -218,7 +218,7 @@ def _check_ids(ids: Iterable[str], label: str) -> list[str]:
 
 
 def split_ids(values: Optional[Iterable[str]], label: str) -> list[str]:
-    """Accept ``--invoice-ids a,b c`` (commas, spaces or repeated flags)."""
+    """Accept ``--invoice-ids a,b``, a quoted ``--invoice-ids "a b"``, or the flag repeated."""
     parts: list[str] = []
     for value in values or []:
         parts.extend(re.split(r"[\s,]+", value))
