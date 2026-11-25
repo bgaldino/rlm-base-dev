@@ -72,7 +72,7 @@ drop the `.md` suffix of the snapshot file name.
   child at 0 inside the bundle price; not compared with a matched-model bundle) and a
   `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
   configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's
-  selling-model check may skip static bundles [inferred] [Open: order, billing and renewal of a mismatched pair]
+  selling-model check may skip static bundles [inferred] [Open: order, billing and renewal of a mismatched pair] [Open: the same check on a matched-model bundle]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -357,7 +357,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
   A mismatched pair priced (each child at 0 inside the bundle price; not compared with a
   matched-model bundle) and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
   a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so
-  the configurator's selling-model check may skip static bundles [inferred]. [Open: order, billing and renewal of a mismatched pair] Whether
+  the configurator's selling-model check may skip static bundles [inferred]. [Open: order, billing and renewal of a mismatched pair] [Open: the same check on a matched-model bundle] Whether
   `CERT007`'s matched pairs price, order and renew correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;

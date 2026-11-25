@@ -31,16 +31,16 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
 
   Measured on 2026-11-24: the Default Payment Schedule Treatment read Grouping Source
-  **Account** and a blank Due Date Window (read that day; its value at creation was not
-  observed). Two invoices posted for one account with the same due date (currency and payment
-  method not recorded) produced one Draft payment schedule, which both invoices point to through
-  `PaymentScheduleId`. A second payment schedule with `ReferenceEntityId` set to one of them was
-  refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule
-  because its invoice is associated with another Payment Schedule that's in Draft or Open
-  status."). [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
-  [Open: Grouping Source Invoice; a non-blank Due Date Window; invoices with different due
-  dates; invoices with different currency or payment method; canceling or reusing the automatic
-  schedule]
+  **Account** and a blank Due Date Window. Two invoices posted for one account with the same due
+  date (currency and payment method not recorded) produced one Draft payment schedule, which
+  both invoices point to through `PaymentScheduleId`. A second payment schedule with
+  `ReferenceEntityId` set to one of them was refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`,
+  "We can't create this Payment Schedule because its invoice is associated with another Payment
+  Schedule that's in Draft or Open status.").
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: the treatment's
+  Grouping Source at creation; Grouping Source Invoice; a non-blank Due Date Window; invoices
+  with different due dates; invoices with different currency or payment method; canceling or
+  reusing the automatic schedule]
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during

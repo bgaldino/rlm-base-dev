@@ -61,7 +61,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   not compared with a matched-model bundle) and a `configure` call returned no message
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be configured at run time
   [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may skip
-  static bundles [inferred] (same section). [Open: order, billing and renewal of a mismatched pair] Whether `CERT007`'s matched Term Annual pairs
+  static bundles [inferred] (same section). [Open: order, billing and renewal of a mismatched pair] [Open: the same check on a matched-model bundle] Whether `CERT007`'s matched Term Annual pairs
   price, order and renew correctly is **Open — needs live verification**; do not copy the
   pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
@@ -122,9 +122,9 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   `IsQuantityEditable` as false). A configurator `configure` call on the root line, rules and
   pricing on, returned `success: true`, `solverStatus: "success"`, no messages
   and a null `ValidationResult` on every line; no `RevenueTransactionErrorLog` row was written.
-  Not compared against a matched-model bundle; ordering, billing and renewal of such a bundle
-  were not tried. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] This may not test the
-  traced configurator rule [above](#selling-models-inside-bundles): a static bundle cannot be
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]
+  [Open: order, billing and renewal of a mismatched pair]
+  [Open: the same check on a matched-model bundle] This may not test the traced configurator rule [above](#selling-models-inside-bundles): a static bundle cannot be
   configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the step
   may skip static bundles [inferred].
 - **Duplicates are allowed.** Several rows for one parent and child pair coexisted (four per
