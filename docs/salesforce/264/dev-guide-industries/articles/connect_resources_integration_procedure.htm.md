@@ -234,8 +234,8 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/omni-global/inte
               
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `input` | [Integration Procedure Service Run Input](./connect_requests_integration_procedure_service_run_input_list.htm.md) | Details to execute the integration procedure. | Required | 64.0 |
-| `options` | [Integration Procedure Service Run Options](./connect_requests_integration_procedure_service_run_options.htm.md) | Optional parameters to refine the execution of the integration procedure. | Optional | 64.0 |
+| `input` | [Integration Procedure Service Run Input](./connect-requests-integration-procedure-service-run-input-list.md) | Details to execute the integration procedure. | Required | 64.0 |
+| `options` | [Integration Procedure Service Run Options](./connect-requests-integration-procedure-service-run-options.md) | Optional parameters to refine the execution of the integration procedure. | Optional | 64.0 |
 
           
 
@@ -252,7 +252,7 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/omni-global/inte
 
           
 : [Integration Procedure
-              Execution Details](./connect_responses_integration_procedure_service_run_output.htm.md)
+              Execution Details](./connect-responses-integration-procedure-service-run-output.md)
 
 ---
 

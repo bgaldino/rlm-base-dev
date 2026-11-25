@@ -235,7 +235,7 @@ Input representation of the details of the invoice to be processed. The details 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Splunk correlation ID to track the messages that are related to the request and are logged in Splunk by the different services involved in the request. If the ID isn’t specified, the service creates a random Universally Unique Identifier (UUID). | Optional | 63.0 |
-| `graph` | [Object Graph Input](./connect_requests_object_graph_input.htm.md) | Graph that represents the invoice structure for invoice ingestion or generation. The supported Graph attribute types for invoice ingestion are Account, Contact, Invoice, InvoiceLine, InvoiceLineTax, and InvoiceAddressGroup. See [Graph Record for Invoice Ingestion](./connect_requests_graph_record_input.htm.md). | Required | 63.0 |
+| `graph` | [Object Graph Input](./connect-requests-object-graph-input.md) | Graph that represents the invoice structure for invoice ingestion or generation. The supported Graph attribute types for invoice ingestion are Account, Contact, Invoice, InvoiceLine, InvoiceLineTax, and InvoiceAddressGroup. See [Graph Record for Invoice Ingestion](./connect-requests-graph-record-input.md). | Required | 63.0 |
 | `should​CalculateTax` | Boolean | Indicates whether the estimated tax must be calculated for the ingested invoice (`true`) or not (`false`). The default value is `false`. | Optional | 63.0 |
 | `taxCalculation​Status` | String | Status of the tax calculation, which is saved on the invoice line. Valid values are: `Estimated` `Pending` `Posted` The default value is `Pending`. | Optional | 63.0 |
 

@@ -23,87 +23,87 @@ This section lists the standard objects associated with Discovery Framework with
   
 
 - 
-**[Assessment](./sforce_api_objects_assessment.htm.md)**  
+**[Assessment](./sforce-api-objects-assessment.md)**  
 
 Stores the header data for an assessment. This object is       available in API version 55.0 and later.
 
 - 
-**[AssessmentDefinition](./sforce_api_objects_assessmentdefinition.htm.md)**  
+**[AssessmentDefinition](./sforce-api-objects-assessmentdefinition.md)**  
 
        Represents the definition of an assessment including details such as the last          revised date and purpose. This object is available in API version 63.0 and later. 
 
 - 
-**[AssessmentQuestion](./sforce_api_objects_assessmentquestion.htm.md)**  
+**[AssessmentQuestion](./sforce-api-objects-assessmentquestion.md)**  
 
 Stores the questions required for an assessment. This object is       available in API version 55.0 and later.
 
 - 
-**[AssessmentQuestionAssignment](./sforce_api_objects_assessmentquestionassignment.htm.md)**  
+**[AssessmentQuestionAssignment](./sforce-api-objects-assessmentquestionassignment.md)**  
 
 Represents a junction between an assessment question set and an          assessment question. This object is available in API version 55.0 and       later.
 
 - 
-**[AssessmentQuestionResponse](./sforce_api_objects_assessmentquestionresponse.htm.md)**  
+**[AssessmentQuestionResponse](./sforce-api-objects-assessmentquestionresponse.md)**  
 
 Stores the responses submitted to an assessment. This object is       available in API version 55.0 and later.
 
 - 
-**[AssessmentQuestionSet](./sforce_api_objects_assessmentquestionset.htm.md)**  
+**[AssessmentQuestionSet](./sforce-api-objects-assessmentquestionset.md)**  
 
 Container object for assessment questions. This object is       available in API version 55.0 and later.
 
 - 
-**[AssessmentQuestionVersion](./sforce_api_objects_assessmentquestionversion.htm.md)**  
+**[AssessmentQuestionVersion](./sforce-api-objects-assessmentquestionversion.md)**  
 
 Stores the question versions for the assessment questions. This       object is available in API version 55.0 and later.
 
 - 
-**[AssessmentQstnVerChoice2](./sforce_api_objects_assessmentqstnverchoice2.htm.md)**  
+**[AssessmentQstnVerChoice2](./sforce-api-objects-assessmentqstnverchoice2.md)**  
 
        Represents a choice a user can select for an assessment question          version. This object is available in API version 63.0 and later. 
 
 - 
-**[AssessmentReason](./sforce_api_objects_assessmentreason.htm.md)**  
+**[AssessmentReason](./sforce-api-objects-assessmentreason.md)**  
 
        Represents the reasons for an assessment such as the associated coverage          information. This object is available in API version 63.0 and later. 
 
 - 
-**[AssessmentSavedSession](./sforce_api_objects_assessmentsavedsession.htm.md)**  
+**[AssessmentSavedSession](./sforce-api-objects-assessmentsavedsession.md)**  
 
        Represents a session of an assessment that's saved to resume for later.       This object is available in API version 62.0 and later.
 
 - 
-**[AssessmentSignature](./sforce_api_objects_assessmentsignature.htm.md)**  
+**[AssessmentSignature](./sforce-api-objects-assessmentsignature.md)**  
 
        Stores the respondent’s signature during an assessment. This object is       available in API version 57.0 and later. 
 
 - 
-**[AssessmentStagedData](./sforce_api_objects_assessmentstageddata.htm.md)**  
+**[AssessmentStagedData](./sforce-api-objects-assessmentstageddata.md)**  
 
        Represents the responses to assessment questions when a user captures and          submits information with the Discovery Framework Data Capture Flow on a mobile device. The          information is used to create assessment and related records. This object is available       in API version 63.0 and later. 
 
 - 
-**[DocumentDecisionRequirement](./sforce_api_objects_documentdecisionrequirement.htm.md)**  
+**[DocumentDecisionRequirement](./sforce-api-objects-documentdecisionrequirement.md)**  
 
        Represents the decision criteria that will be used to determine applicable          documents. This object is available in API version 59.0 and later. 
 
 - 
-**[ExternalAssessmentDefinition](./sforce_api_objects_externalassessmentdefinition.htm.md)**  
+**[ExternalAssessmentDefinition](./sforce-api-objects-externalassessmentdefinition.md)**  
 
        Stores information about external assessments. This object is available       in API version 60.0 and later. 
 
 - 
-**[OmniProcessAsmtQuestionVer](./sforce_api_objects_omniprocessasmtquestionver.htm.md)**  
+**[OmniProcessAsmtQuestionVer](./sforce-api-objects-omniprocessasmtquestionver.md)**  
 
 Represents a junction between an OmniScript process and an assessment          question version. This object is available in API version 55.0 and later.
 
 - 
-**[SuggestedAssessmentDef](./sforce_api_objects_suggestedassessmentdef.htm.md)**  
+**[SuggestedAssessmentDef](./sforce-api-objects-suggestedassessmentdef.md)**  
 
        Stores information about suggested assessments. This object is available       in API version 60.0 and later.
 
 - 
-**[SuggestedAssessmentReason](./sforce_api_objects_suggestedassessmentreason.htm.md)**  
+**[SuggestedAssessmentReason](./sforce-api-objects-suggestedassessmentreason.md)**  
 
        Stores the reasons for a suggested assessment. This object is available       in API version 60.0 and later.
 

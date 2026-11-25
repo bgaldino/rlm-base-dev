@@ -181,4 +181,4 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-r
 
           
 : [Query
-              Context Record Result](./connect_responses_query_context_record_result.htm.md)
+              Context Record Result](./connect-responses-query-context-record-result.md)

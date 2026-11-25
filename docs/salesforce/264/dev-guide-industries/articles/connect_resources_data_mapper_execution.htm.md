@@ -177,9 +177,9 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/omni-global/data
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `dataMapperInput` | [Data Mapper Execute Input Data](./connect_requests_data_mapper_execute_input_data.htm.md) | Details for executing the data mapper. | Required | 64.0 |
+| `dataMapperInput` | [Data Mapper Execute Input Data](./connect-requests-data-mapper-execute-input-data.md) | Details for executing the data mapper. | Required | 64.0 |
 | `inputType` | String | Type of data mapper input. For example, JSON, XML, or custom class. | Required | 64.0 |
-| `options` | [Data Mapper Execution Options](./connect_requests_data_mapper_execution_options.htm.md) | Optional parameters to refine the data mapper execution. | Optional | 64.0 |
+| `options` | [Data Mapper Execution Options](./connect-requests-data-mapper-execution-options.md) | Optional parameters to refine the data mapper execution. | Optional | 64.0 |
 
           
 
@@ -191,7 +191,7 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/omni-global/data
 
           
 : [Data Mapper Execution
-              Details](./connect_responses_data_mapper_execution_output.htm.md)
+              Details](./connect-responses-data-mapper-execution-output.md)
 
 ---
 
