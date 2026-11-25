@@ -367,7 +367,10 @@ for interactive TTY launches when `TERM` is missing or `dumb`, and always
 Before launch it loads gitignored `.env.local` (dotenv: `KEY="value"`, `$VAR`
 expansion, no command substitution) for any variable the shell has not already
 set, so Chrome for Testing overrides apply even when the direnv hook never
-exported them.
+exported them. `harness.py` applies the same rules itself at startup
+(`tui/dotenv_local.py::apply_to_environ`), so a bare `harness.py run` also picks
+up `CHROME_BINARY` and `CHROMEDRIVER_PATH` from `.env.local`; values already
+exported win, and one invalid line rejects the whole file with a warning.
 
 ### Scenario workspaces
 

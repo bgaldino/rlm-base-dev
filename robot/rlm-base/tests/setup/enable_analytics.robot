@@ -17,8 +17,9 @@ ${ANALYTICS_SETUP_PATH}        /lightning/setup/InsightsSetupGettingStarted/home
 *** Test Cases ***
 Enable CRM Analytics
     [Documentation]    Click the "Enable CRM Analytics" button on the CRM Analytics Getting
-    ...    Started page. Idempotent: if the button is absent (already enabled), returns
-    ...    'already_enabled' without clicking. No VF iframe involved — standard Lightning DOM.
+    ...    Started page. Idempotent: if Launch CRM Analytics is shown (already enabled), returns
+    ...    'already_enabled' without clicking. No VF iframe; the page is read with in-page JS
+    ...    that walks shadow roots (Chrome 158 breaks WebDriver XPath lookups on Setup).
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
     ${result}=    Enable CRM Analytics Via Getting Started Page
     Log    Enable CRM Analytics: ${result}

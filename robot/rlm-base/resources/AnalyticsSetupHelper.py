@@ -5,42 +5,65 @@ In Release 262+ (Summer '26), the Analytics Settings VF iframe page
 now enabled via the "Enable CRM Analytics" button on the Getting Started page:
   /lightning/setup/InsightsSetupGettingStarted/home
 
-The button lives in the main Lightning DOM (no VF iframe). Shadow DOM traversal
-is used to handle the lightning-button web component wrapper.
+Everything here runs as in-page JavaScript that walks shadow roots. No WebDriver
+element lookup (``find_element``, ``WebDriverWait``, XPath) is used, on purpose:
+on Release 264 orgs Lightning Setup is served from ``*.my.salesforce-setup.com``
+and the Getting Started content is out of XPath's reach (``document.evaluate``
+finds no button there), and under Chrome/ChromeDriver 158 a WebDriver XPath
+lookup on Setup pages either misses or raises ``StaleElementReferenceException``.
+``WebDriverWait`` ignores only ``NoSuchElementException``, so an XPath wait
+aborted before any fallback ran (measured 2026-11-24 on a fresh 264 scratch
+org; tests/test_analytics_setup_helper.py pins the behaviour).
 
 Usage in robot file:
     Library    ../../resources/AnalyticsSetupHelper.py
 """
 
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import time
+
+from selenium.common.exceptions import WebDriverException
 from robot.api.deco import keyword
 from robot.libraries.BuiltIn import BuiltIn
 
-_FIND_AND_CLICK_JS = """
-return (function(buttonText) {
-    function findButton(root) {
-        var candidates = root.querySelectorAll('button, input[type="button"], input[type="submit"]');
-        for (var i = 0; i < candidates.length; i++) {
-            var text = (candidates[i].textContent || candidates[i].value || '').trim();
-            if (text === buttonText) return candidates[i];
-        }
+_SHADOW_WALK_JS = """
+    function collect(root, out) {
+        var nodes = root.querySelectorAll('button, a, input[type="button"], input[type="submit"]');
+        for (var i = 0; i < nodes.length; i++) out.push(nodes[i]);
         var all = root.querySelectorAll('*');
-        for (var i = 0; i < all.length; i++) {
-            if (all[i].shadowRoot) {
-                var found = findButton(all[i].shadowRoot);
-                if (found) return found;
-            }
+        for (var j = 0; j < all.length; j++) {
+            if (all[j].shadowRoot) collect(all[j].shadowRoot, out);
         }
-        return null;
+        return out;
     }
-    var btn = findButton(document.body);
-    if (!btn) return 'not_found';
-    btn.click();
-    return 'clicked';
-})(arguments[0]);
+    function label(el) {
+        return (el.textContent || el.value || '').replace(/\\s+/g, ' ').trim();
+    }
+"""
+
+# Reports what the Getting Started page currently shows: "launch" (CRM Analytics is on, so
+# the page offers Launch CRM Analytics; wins even if a stale Enable button is still in the
+# DOM), "enable" (only the Enable CRM Analytics button is there), or "none" (not rendered).
+_PAGE_STATE_JS = "return (function() {" + _SHADOW_WALK_JS + """
+    var els = collect(document, []);
+    var enable = false;
+    for (var i = 0; i < els.length; i++) {
+        var text = label(els[i]);
+        if (text.indexOf('Launch CRM Analytics') === 0) return 'launch';
+        if (text === 'Enable CRM Analytics') enable = true;
+    }
+    return enable ? 'enable' : 'none';
+})();
+"""
+
+# Finds and clicks the Enable button in one call, so no element handle can go stale between
+# the lookup and the click. Returns "clicked" or "not_found".
+_CLICK_ENABLE_JS = "return (function() {" + _SHADOW_WALK_JS + """
+    var els = collect(document, []);
+    for (var i = 0; i < els.length; i++) {
+        if (label(els[i]) === 'Enable CRM Analytics') { els[i].click(); return 'clicked'; }
+    }
+    return 'not_found';
+})();
 """
 
 
@@ -49,80 +72,122 @@ class AnalyticsSetupHelper:
 
     ROBOT_LIBRARY_SCOPE = "TEST"
     BUTTON_LABEL = "Enable CRM Analytics"
-    BUTTON_WAIT_S = 20
-    POST_CLICK_WAIT_S = 30
+    BUTTON_WAIT_S = 30
+    POST_CLICK_WAIT_S = 60
+    POLL_S = 1
+    # An org with CRM Analytics already on renders the Enable button for ~0.5-1 s while
+    # the page loads, then replaces it with Launch CRM Analytics (measured 2026-11-24 on
+    # 264, every load, Chrome 157 and 158). Enable counts only once it has held this long. A longer
+    # loading state on a slow pod would click Enable on an enabled org (its effect there is
+    # unmeasured), so raise this if that is ever seen.
+    ENABLE_SETTLE_S = 3
 
     @property
     def _driver(self):
         selib = BuiltIn().get_library_instance("SeleniumLibrary")
         return selib.driver
 
+    def _page_state(self, driver):
+        try:
+            return driver.execute_script(_PAGE_STATE_JS)
+        except WebDriverException:
+            # The page is still moving to the Setup domain; read it again on the next poll.
+            return "none"
+
+    def _wait_for_state(self, driver, wanted, timeout):
+        deadline = time.monotonic() + timeout
+        while True:
+            state = self._page_state(driver)
+            if state in wanted:
+                return state
+            if time.monotonic() >= deadline:
+                return state
+            time.sleep(self.POLL_S)
+
+    def _settled_state(self, driver):
+        """'launch' as soon as the page shows it; 'enable' only once the Enable button has
+        stayed, with no Launch, for ENABLE_SETTLE_S; otherwise the last state read when
+        BUTTON_WAIT_S runs out. Only a non-Enable read checks the deadline, so an Enable first
+        read at or after it (up to the first read past it) still gets its full settle."""
+        deadline = time.monotonic() + self.BUTTON_WAIT_S
+        enable_since = None
+        while True:
+            state = self._page_state(driver)
+            now = time.monotonic()
+            if state == "launch":
+                return state
+            if state == "enable":
+                if enable_since is None:
+                    enable_since = now
+                if now - enable_since >= self.ENABLE_SETTLE_S:
+                    return state
+            else:
+                enable_since = None  # re-rendered: the Enable button must hold again
+                if now >= deadline:
+                    return state
+            time.sleep(self.POLL_S)
+
     @keyword
     def enable_crm_analytics_via_getting_started_page(self):
         """Click 'Enable CRM Analytics' on the Analytics Getting Started page.
 
-        Searches the main DOM and shadow DOM for the button. If absent (CRM
-        Analytics already enabled), returns 'already_enabled' without clicking.
+        Polls the page (main DOM and shadow DOM) until it shows the Launch CRM
+        Analytics button (already on) or the Enable button has held for
+        ENABLE_SETTLE_S, so the Enable button an enabled org renders while loading
+        is never clicked.
 
         Returns:
-            'already_enabled'  — button not found; CRM Analytics already on.
-            'clicked'          — button found, clicked, and page updated.
+            'already_enabled'  — the page shows CRM Analytics is already on.
+            'clicked'          — the button was clicked and the page confirmed it.
         Raises:
-            AssertionError     — button found but could not be clicked.
+            AssertionError     — the page showed neither state; the JS click found no
+                                 button although the page still shows one; or the
+                                 click (or a click the driver errored on) was not
+                                 confirmed by the page.
         """
         log = BuiltIn().log
         driver = self._driver
         driver.switch_to.default_content()
 
-        log(f"Waiting up to {self.BUTTON_WAIT_S}s for '{self.BUTTON_LABEL}' button...")
-
-        # Wait for page to settle then check for the button via JS
-        button_xpath = (
-            f"//button[normalize-space(.)='{self.BUTTON_LABEL}'] | "
-            f"//input[@type='button' and normalize-space(@value)='{self.BUTTON_LABEL}']"
-        )
-        btn = None
-        try:
-            btn = WebDriverWait(driver, self.BUTTON_WAIT_S).until(
-                EC.presence_of_element_located((By.XPATH, button_xpath))
+        log(f"Waiting up to {self.BUTTON_WAIT_S}s (plus a {self.ENABLE_SETTLE_S}s settle) for the "
+            "Getting Started page...")
+        state = self._settled_state(driver)
+        if state == "launch":
+            log("CRM Analytics is already enabled (page offers Launch CRM Analytics).")
+            return "already_enabled"
+        if state != "enable":
+            raise AssertionError(
+                f"The Analytics Getting Started page neither held '{self.BUTTON_LABEL}' for "
+                f"{self.ENABLE_SETTLE_S}s nor showed 'Launch CRM Analytics' within {self.BUTTON_WAIT_S}s."
             )
-        except TimeoutException:
-            pass
 
-        if btn is None:
-            # Button not in main DOM — may be inside a shadow root, try JS traversal
-            result = driver.execute_script(_FIND_AND_CLICK_JS, self.BUTTON_LABEL)
-            if result == "not_found":
-                log(
-                    f"'{self.BUTTON_LABEL}' button not found after {self.BUTTON_WAIT_S}s "
-                    "— CRM Analytics appears to already be enabled."
-                )
+        log(f"'{self.BUTTON_LABEL}' held for {self.ENABLE_SETTLE_S}s; clicking via JS...")
+        driver_error = ""
+        try:
+            clicked = driver.execute_script(_CLICK_ENABLE_JS)
+        except WebDriverException as exc:
+            # The script may have clicked before the driver failed: let the page decide below.
+            # Only the exception type is recorded: driver messages can echo page URLs.
+            clicked, driver_error = "unknown", type(exc).__name__
+            log(f"Driver raised {driver_error} during the click; checking the page.", "WARN")
+        if clicked == "not_found":
+            # It re-rendered between the read and the click: read the page again.
+            state = self._settled_state(driver)
+            if state == "launch":
+                log("CRM Analytics is already enabled (page offers Launch CRM Analytics).")
                 return "already_enabled"
-            # JS already clicked it
-            log(f"'{self.BUTTON_LABEL}' found in shadow DOM and clicked via JS.")
-        else:
-            # Use the element captured by WebDriverWait — avoids a second find_element
-            # call that races against Lightning re-renders.
-            log(f"'{self.BUTTON_LABEL}' button found in main DOM; clicking via JS...")
-            driver.execute_script("arguments[0].click();", btn)
+            if state == "enable":
+                raise AssertionError(f"'{self.BUTTON_LABEL}' is on the page but the JS click could not "
+                                     "find it (it re-rendered at click time).")
+            raise AssertionError(f"'{self.BUTTON_LABEL}' disappeared before it could be clicked.")
 
-        # Wait for the button to go stale (page reload/nav after enabling)
-        log(f"Waiting up to {self.POST_CLICK_WAIT_S}s for page to update...")
-        try:
-            if btn is not None:
-                WebDriverWait(driver, self.POST_CLICK_WAIT_S).until(
-                    EC.staleness_of(btn)
-                )
-            else:
-                # After JS click from shadow DOM, just give the page time to settle
-                import time
-                time.sleep(5)
-            log("CRM Analytics enabled successfully.")
-        except TimeoutException:
-            log(
-                "Page did not navigate/reload after clicking — "
-                "CRM Analytics may have been enabled without a page change.",
-                "WARN",
+        log(f"Waiting up to {self.POST_CLICK_WAIT_S}s for the page to confirm...")
+        if self._wait_for_state(driver, ("launch",), self.POST_CLICK_WAIT_S) != "launch":
+            attempt = ("Clicked" if clicked == "clicked"
+                       else f"The driver raised {driver_error} while clicking")
+            raise AssertionError(
+                f"{attempt} '{self.BUTTON_LABEL}' and the page did not confirm within "
+                f"{self.POST_CLICK_WAIT_S}s (no 'Launch CRM Analytics')."
             )
-
+        log("CRM Analytics enabled successfully.")
         return "clicked"

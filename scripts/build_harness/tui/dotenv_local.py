@@ -25,7 +25,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, MutableMapping
 from pathlib import Path
 
 # go-dotenv's LINE regexp after its own comment and whitespace stripping.
@@ -124,6 +124,27 @@ def load(data: str, environ: Mapping[str, str]) -> tuple[dict[str, str], list[st
         effective[key] = value
         exports[key] = value
     return exports, warnings
+
+
+def apply_to_environ(path: Path, environ: MutableMapping[str, str] = os.environ) -> list[str]:
+    """Export ``path`` (an ``.env.local``) into ``environ``; return warnings.
+
+    For ``scripts/build_harness/harness.py``, which no direnv or launcher wraps.
+    The same rules as ``./tui-cci``: an absent file does nothing, one invalid
+    line rejects the whole file (reported, nothing exported), and a variable
+    already in ``environ`` keeps its value.
+    """
+    try:
+        if not path.is_file():
+            return []
+        data = path.read_text(encoding="utf-8", errors="surrogateescape")
+        exports, warnings = load(data, environ)
+    except OSError as exc:
+        return [f"not loading {path.name}: {exc.strerror or exc}"]
+    except DotenvError as exc:
+        return [f"not loading {path.name}: {exc}"]
+    environ.update(exports)
+    return warnings
 
 
 def main(argv: list[str]) -> int:

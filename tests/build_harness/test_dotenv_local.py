@@ -80,3 +80,46 @@ def test_dotted_keys_parse_but_are_not_exported() -> None:
     exports, warnings = load("app.name=demo\nKEY=1", {})
     assert exports == {"KEY": "1"}
     assert warnings == ["skipping app.name: not a valid shell variable name"]
+
+
+def test_apply_to_environ_exports_file_and_keeps_existing(tmp_path) -> None:
+    from scripts.build_harness.tui.dotenv_local import apply_to_environ
+
+    env_file = tmp_path / ".env.local"
+    env_file.write_text('CHROME_BINARY="/cft/chrome"\nCHROMEDRIVER_PATH="/cft/driver"\n')
+    environ = {"CHROMEDRIVER_PATH": "/shell/driver"}
+    assert apply_to_environ(env_file, environ) == []
+    assert environ == {"CHROME_BINARY": "/cft/chrome", "CHROMEDRIVER_PATH": "/shell/driver"}
+
+
+def test_apply_to_environ_missing_file_is_a_no_op(tmp_path) -> None:
+    from scripts.build_harness.tui.dotenv_local import apply_to_environ
+
+    environ: dict[str, str] = {}
+    assert apply_to_environ(tmp_path / ".env.local", environ) == []
+    assert environ == {}
+
+
+def test_apply_to_environ_invalid_line_rejects_whole_file(tmp_path) -> None:
+    from scripts.build_harness.tui.dotenv_local import apply_to_environ
+
+    env_file = tmp_path / ".env.local"
+    env_file.write_text("GOOD=1\nthis is not valid\n")
+    environ: dict[str, str] = {}
+    warnings = apply_to_environ(env_file, environ)
+    assert environ == {} and len(warnings) == 1 and "not valid dotenv" in warnings[0]
+
+
+def test_apply_to_environ_unreadable_file_warns_instead_of_raising(tmp_path) -> None:
+    from scripts.build_harness.tui.dotenv_local import apply_to_environ
+
+    env_dir = tmp_path / ".env.local"
+    env_dir.write_text("A=1\n")
+    env_dir.chmod(0)
+    try:
+        environ: dict[str, str] = {}
+        warnings = apply_to_environ(env_dir, environ)
+    finally:
+        env_dir.chmod(0o600)
+    if warnings:  # root can still read a mode-0 file; then there is nothing to assert
+        assert environ == {} and "not loading .env.local" in warnings[0]
