@@ -194,9 +194,8 @@ is out of scope here [Help: `ind.billing_forecast_console`].
 - **Trigger.** A forecast is a scheduler with job type Forecast. In the UI: Billing Batch
   Schedulers, New Billing Forecast Scheduler, Start run now, a target date (up to 5 years),
   optional Recalculate All Forecast Lines (Once frequency) [Help: `ind.billing_forecast_schedule`].
-  Headless: the invoice-scheduler Connect resource with `jobType` Forecast
-  [Dev guide: `connect_resources_create_an_invoice_scheduler`], which needs the Billing
-  Operations User and Data Pipelines Base User permission sets
+  Headless: the invoice-scheduler Connect resource with `jobType` Forecast, which needs the
+  Billing Operations User and Data Pipelines Base User permission sets
   [Dev guide: `connect_resources_create_an_invoice_scheduler`].
   `BillingBatchScheduler` itself has no `create()`
   [Dev guide: `sforce_api_objects_billingbatchscheduler`].
@@ -218,8 +217,8 @@ is out of scope here [Help: `ind.billing_forecast_console`].
 ```bash
 # shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
 # false is the faster incremental run over PendingForecast schedules (unchecked by default
-# in the UI per ind.billing_forecast_schedule; the API default is not documented, so set it
-# explicitly).
+# in the UI [Help: ind.billing_forecast_schedule]; the API default was not found in the
+# dev guide [inferred from its silence], so set it explicitly).
 cat > forecast.json <<'JSON'
 {"schedulerName":"<unique name>","jobType":"Forecast","status":"Active",
  "frequencyCadence":"Once","frequencyCadenceOptions":{"shouldStartRunImmediately":true},
@@ -244,10 +243,8 @@ SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM Bil
 Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query. Schedules
 created after the run should show `PendingForecast` until a later run whose filters include
 them picks them up [inferred]. The third query lists every schedule in the org, including
-milestone and usage ones that Help excludes from forecasting. An org with more schedules
-than the three measured shows the extras as `PendingForecast`. `ForecastBatchRunId` read
-null even on `Forecasted` schedules, so link a schedule to its run through
-`BillingForecast.InvoiceBatchRunId`.
+milestone and usage ones that Help excludes from forecasting. To link a schedule to its
+run, use `BillingForecast.InvoiceBatchRunId` (see the measured block).
 
 [Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
 
@@ -270,6 +267,9 @@ null even on `Forecasted` schedules, so link a schedule to its run through
   incremental behaviour [Help: `ind.billing_forecast_schedule`]. Not measured: a
   non-recalculate run over `PendingForecast` schedules, and a recalculate run over
   schedules already `Forecasted` (the first run used recalculate, over `PendingForecast`).
+- A later read-only query of the same org also returned two schedules created after the run
+  (BS-000000004 and -005) still `PendingForecast` with null `LastForecastRunTargetDate`, and
+  `ForecastBatchRunId` null even on the three `Forecasted` schedules.
 - Not measured: multi-period or ramped schedules, amended or canceled schedules, run
   duration beyond "under a minute", the UI path, the Console, and a non-admin user.
 

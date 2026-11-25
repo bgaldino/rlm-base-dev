@@ -143,7 +143,7 @@ A snapshot; the files are the source [Repo]:
 Whether any of these has been run end to end for a given stage here: not measured, except the
 Line Level application, the Billing Forecast run and the invoice PDF fetch
 (*Measured: Line Level application* in [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
-*Billing Forecast* in [invoicing.md](invoicing.md)).
+*Billing Forecast: generate and read back* in [invoicing.md](invoicing.md)).
 
 ## Discovery
 
