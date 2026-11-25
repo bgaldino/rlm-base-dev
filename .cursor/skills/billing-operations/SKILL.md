@@ -2,7 +2,7 @@
 name: billing-operations
 description: >-
   Run and verify Revenue Cloud billing after setup: how billing schedules are created at
-  order activation, invoice generation (scheduled batch runs, on-demand, preview, catch-up,
+  order activation, invoice generation (scheduled batch runs, on-demand, preview, catch-up, billing forecast,
   draft vs posted), invoice documents, tax (tax policies and treatments, tax engines,
   estimated vs actual tax), payments and payment application, refunds, credit and debit
   memos, write-offs, collections and dunning, legal entities, accounting periods and the
@@ -20,8 +20,8 @@ the ledger. Every product claim comes from the 264 Help snapshot or the dev guid
 tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
 `[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
 live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application and
-automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe in
-[invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
+automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe and the
+Billing Forecast run in [invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
 the release patch in hand before relying on it or repeating it. Where billing-setup holds a
 measurement, link it instead of restating it.
 Object and field names are in `revenue-cloud-data-model` → `domains/billing.md`.
@@ -94,7 +94,8 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 
 Read the sub-file for the stage; for anything else, go to the neighbor:
 
-- Schedules, invoices, preview, documents, posting, batch runs: [invoicing.md](invoicing.md).
+- Schedules, invoices, preview, documents, posting, batch runs, Billing Forecast:
+  [invoicing.md](invoicing.md).
 - Tax engine choice, policies, treatments, estimated vs actual, header tax: [tax.md](tax.md).
 - Payments, retries, refunds, credit and debit memos, write-offs, collections:
   [payments-and-credits.md](payments-and-credits.md).
@@ -111,8 +112,8 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
 
 - [invoicing.md](invoicing.md): read when choosing how invoices are produced (batch,
   on-demand, preview, standalone ingestion), setting a run's dates, grouping or splitting
-  invoices, suspending billing, or generating invoice documents (including fetching an
-  invoice PDF through the API).
+  invoices, suspending billing, generating invoice documents (including fetching an
+  invoice PDF through the API), or running and reading back a Billing Forecast.
 - [tax.md](tax.md): read when choosing a tax engine, building tax policies and treatments,
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
@@ -140,10 +141,11 @@ A snapshot; the files are the source [Repo]:
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
-Line Level application, the automatic payment schedule on posting and the invoice PDF fetch
+Line Level application, the automatic payment schedule on posting, the Billing Forecast run and the
+invoice PDF fetch
 (*Measured: Line Level application* and *Billing Settings that change behavior* in
-[payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* in
-[invoicing.md](invoicing.md)).
+[payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
+*Billing Forecast: generate and read back* in [invoicing.md](invoicing.md)).
 
 ## Discovery
 

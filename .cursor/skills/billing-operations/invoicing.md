@@ -1,8 +1,8 @@
 # Billing Operations — Schedules and Invoicing
 
 Read this when choosing how invoices are produced or setting a run's dates. Parent:
-[SKILL.md](SKILL.md). A read of Help, except dated live observations under *Invoice
-documents and delivery*.
+[SKILL.md](SKILL.md). A read of Help and the dev guide, except the dated live observations under *Invoice
+documents and delivery* and *Billing Forecast*.
 
 ## Where billing schedules come from
 
@@ -52,7 +52,8 @@ recommends extending the standard definitions and using the extended copy
 - **Batch run.** A scheduler (App Launcher: Billing Batch Schedulers, New Invoice
   Scheduler) can run once, daily, weekly or monthly, immediately with Start run now, and
   only while Active. Job types are Invoice, Catch-Up Bill Run and Forecast
-  [Help: `ind.billing_automate_invoice_run_schedules`, `ind.billing_invoice_batch_run`].
+  [Help: `ind.billing_invoice_batch_run`]; scheduling [Help: `ind.billing_automate_invoice_run_schedules`];
+  forecast runs: *Billing Forecast* below.
   Limit: 30 active billing batch schedulers, and 2,000 invoice lines per invoice
   [Help: `ind.billing_limits`].
 - **On demand.** The Generate Invoices quick action takes a target date and invoices the
@@ -178,6 +179,102 @@ Invoice Lines permission, and Help warns of data integrity issues
 Gapless numbering for invoices and credit memos is a sequence policy
 [Help: `ind.billing_sequential_numbering_for_invoices_configure`]; the repo creates them
 [Repo: `tasks/rlm_billing.py`].
+
+## Billing Forecast: generate and read back
+
+Billing Forecast estimates upcoming invoice charges before invoices exist, before tax and
+before credit or debit memos; milestone and usage schedules are excluded
+[Help: `ind.billing_forecast_schedule`]. The Billing Forecast Console (Tableau Next, Data 360)
+is out of scope here [Help: `ind.billing_forecast_console`].
+
+- **Switch.** Setup: Billing Settings, Turn on Billing Forecast [Help: `ind.billing_forecast_enable`];
+  the metadata field is `BillingSettings.enableBillingForecast`, which the repo sets
+  [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`]. Confirm with a
+  Settings retrieve of `Billing`.
+- **Trigger.** A forecast is a scheduler with job type Forecast. In the UI: Billing Batch
+  Schedulers, New Billing Forecast Scheduler, Start run now, a target date (up to 5 years),
+  optional Recalculate All Forecast Lines (Once frequency) [Help: `ind.billing_forecast_schedule`].
+  Headless: the invoice-scheduler Connect resource with `jobType` Forecast, which needs the
+  Billing Operations User and Data Pipelines Base User permission sets
+  [Dev guide: `connect_resources_create_an_invoice_scheduler`].
+  `BillingBatchScheduler` itself has no `create()`
+  [Dev guide: `sforce_api_objects_billingbatchscheduler`].
+- **Read back.** `BillingForecast` rows (one per schedule and billing period
+  [inferred]; see the measured block below),
+  `InvoiceBatchRun` (JobType Forecast, `TotalForecastLines`, `TotalForecastedAmount`) and
+  `BillingSchedule.ForecastStatus` (`PendingForecast`, `Processing`, `Forecasted`, `Error`)
+  [Dev guide: `sforce_api_objects_billingforecast`, `sforce_api_objects_invoicebatchrun`,
+  `sforce_api_objects_billingschedule`]. `TotalForecastedAmount` is blank when a run
+  processes several currencies [Dev guide: `sforce_api_objects_invoicebatchrun`]. Reading
+  `BillingForecast` needs the Billing license and Billing Admin
+  [Dev guide: `sforce_api_objects_billingforecast`].
+- **Do not overlap** a forecast run with an invoice run, another forecast run or a catch-up
+  run: overlapping runs can give inaccurate forecast data. Generating invoices while a
+  forecast run is in progress is allowed [Help: `ind.billing_forecast_schedule`]. The same
+  paragraph also says not to run an invoice batch run meanwhile, so read "generate" as
+  on-demand generation [inferred].
+
+```bash
+# shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
+# false is the faster incremental run over PendingForecast schedules (unchecked by default
+# in the UI [Help: ind.billing_forecast_schedule]; the API default was not found in the
+# dev guide [inferred from its silence], so set it explicitly).
+cat > forecast.json <<'JSON'
+{"schedulerName":"<unique name>","jobType":"Forecast","status":"Active",
+ "frequencyCadence":"Once","frequencyCadenceOptions":{"shouldStartRunImmediately":true},
+ "targetDate":"<YYYY-MM-DD>","filterCriteria":[],"shouldRecalculateAllForecastLn":true}
+JSON
+sf api request rest /services/data/v68.0/commerce/invoicing/invoice-schedulers \
+  -X POST -b @forecast.json --target-org <sf-alias>
+```
+
+Read back with one `sf data query --target-org <sf-alias> -q "<SOQL>"` call per query
+(an empty result from the first query means no forecast run has happened yet; the POST
+above creates the data). The first query lists every Forecast run, newest last. A
+Completed non-recalculate run with 0 lines found nothing `PendingForecast` to forecast
+[inferred]; check Status before reading 0 lines as success.
+
+```sql
+SELECT Id, Status, JobType, CreatedDate, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId FROM InvoiceBatchRun WHERE JobType = 'Forecast' ORDER BY CreatedDate
+SELECT Name, BillingSchedule.BillingScheduleNumber, Category, BillingTermUnit, BillingPeriodStartDate, BillingPeriodEndDate, ChargeAmount, InvoiceBatchRunId FROM BillingForecast ORDER BY Name
+SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM BillingSchedule ORDER BY BillingScheduleNumber
+```
+
+Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query; that is the
+way to link a schedule to its run (see the measured block for `ForecastBatchRunId`).
+Schedules created after the run should show `PendingForecast` until a later run whose
+filters include them picks them up [inferred]. The third query lists every schedule in the
+org, including milestone and usage ones that Help excludes from forecasting. The forecast
+object and field names come from the dev-guide object pages cited above; the data-model
+skill does not cover them yet.
+
+[Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
+
+- The setting read back `true` in a Settings retrieve of `Billing`.
+- The org held three billing schedules (Type LineItemCharge, Category Original, Year term,
+  BillingMethod OrderAmount, 2026-11-24 to 2027-11-23; amounts 20000, 450, 450), all
+  `ForecastStatus = PendingForecast`, and no `BillingForecast` rows.
+- The POST above (target date 2027-12-31; no `startDate`, `preferredTime`, `invoiceStatus` or `invoiceDate`,
+  which the dev guide marks Required but its forecast example
+  [Dev guide: `connect_requests_batch_invoice_scheduler_input`] also omits) returned `{"billingBatchScheduler":{"id":...}}`
+  and nothing else. Within one minute the scheduler was `Inactive` (a Once run is spent [inferred]), and
+  one `InvoiceBatchRun` (JobType Forecast, Status `Completed`) had `TotalForecastLines` 3 and
+  `TotalForecastedAmount` 20900.
+- `BillingForecast` had three rows (Category Original, Year, 2026-11-24 to 2027-11-23,
+  `ChargeAmount` 450, 450, 20000 for BS-000000002, -003, -001), one per schedule, equal to the schedules' amounts
+  (annual term, one period). All three schedules became `Forecasted` with
+  `LastForecastRunTargetDate` 2027-12-31.
+- A second run with `shouldRecalculateAllForecastLn` false completed with 0 lines and
+  0 amount, and no rows were added: it skipped schedules already `Forecasted` [inferred], consistent with Help's
+  incremental behaviour [Help: `ind.billing_forecast_schedule`]. Not measured: a
+  non-recalculate run over `PendingForecast` schedules, and a recalculate run over
+  schedules already `Forecasted` (the first run used recalculate, over `PendingForecast`).
+- A later read-only query of the same org also returned two schedules created after the run
+  (BS-000000004 and -005) still `PendingForecast` with null `LastForecastRunTargetDate`, and
+  `ForecastBatchRunId` null even on the three `Forecasted` schedules, which differs from
+  the dev guide's description of that field as the forecast run reference.
+- Not measured: multi-period or ramped schedules, amended or canceled schedules, run
+  duration beyond "under a minute", the UI path, the Console, and a non-admin user.
 
 ## Read-backs
 
