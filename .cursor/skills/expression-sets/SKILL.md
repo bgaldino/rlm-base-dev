@@ -366,10 +366,12 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
 - **A whole-set import works in one shape only.** On a multi-version set both
   `import_expression_set` surfaces allow only a payload with exactly one version,
   the one the import targets, and no other version sharing its label; everything
-  else is refused before any write. Measured on 264 (2026-11-24): two-version
-  payloads failed (shared labels: version-name collision; distinct labels: duplicate
-  `CalculationProcedureId`), and a one-version payload failed whenever another
-  version shared its label. Platform version chains share one label.
+  else is refused before any write. Measured on 264: two-version payloads failed
+  (named alike: version-name collision; target first with the other version renamed
+  in the payload: duplicate `CalculationProcedureId`), and a one-version payload
+  failed whenever another version's `Name` equalled its label and succeeded
+  otherwise, including on versions deployed with their own labels (2026-11-25).
+  Platform version chains share one label.
 - **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
   deployed repo version is missing, sits under a different `VersionNumber` than the
   package, is inactive, or is not the version that executes. The deploy handler

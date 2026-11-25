@@ -231,11 +231,15 @@ v4, three active; v4 ran). Consequences:
 
 - **A whole-set import works on a multi-version set in one shape only.**
   `import_expression_set` (toolkit and CCI) rewrites the payload's first version id
-  to the version it targets (the executing one). Measured on 264 (2026-11-24) on a
-  two-version set: a two-version payload failed with shared labels (version-name
-  collision) and with distinct labels (duplicate `CalculationProcedureId`); a
-  one-version payload for the target failed on the version-name collision when the
-  other version shared its label, and succeeded when it did not. Both importers allow
+  to the version it targets (the executing one). Measured on 264 on two-version
+  sets: two-version payloads failed (2026-11-24: named alike, on the version-name
+  collision; target first with the other version renamed in the payload, on a
+  duplicate `CalculationProcedureId`); a one-version payload for the target failed
+  on the version-name collision when the other version's `Name` equalled its label,
+  and succeeded when it did not, both where that `Name` had been changed by an
+  sObject update (2026-11-24) and on versions deployed with their own labels
+  (2026-11-25, CLI and CCI; the other version was left untouched). To change every
+  version in one PATCH, an overlay sends each under its own id. Both importers allow
   only that last shape — exactly one payload version, the targeted one, no other
   version with its label — and refuse everything else before any write, naming the
   condition that failed. Platform version chains share one label, so expect a

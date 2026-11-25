@@ -21,13 +21,16 @@ Two facts drive these guards (todo packs 172 and 175):
 * **What a replace import can target.** A replace import is one full-graph Connect
   PATCH. It sends the payload's versions and rewrites the first one's ``id`` to the
   version the importer targets (the executing version by :func:`executing_version`,
-  else the active, then the highest-numbered one). Measured on
-  264 (2026-11-24) on a set with two versions: a payload carrying both versions
-  failed whether the versions shared a label (version-name collision) or not
-  (duplicate CalculationProcedureId); a one-version payload for the target failed
-  on the version-name collision when another version shared its label, and
-  succeeded when no other version did. :func:`import_target_refusal` allows only
-  that last shape.
+  else the active, then the highest-numbered one). Measured on 264 on two-version
+  sets: payloads carrying both versions failed (2026-11-24: with both named alike,
+  on the version-name collision; with the target first and the other version
+  renamed in the payload, on a duplicate CalculationProcedureId). A one-version
+  payload for the target failed on the version-name collision when another
+  version's ``Name`` equalled its label, and succeeded when none did (2026-11-24,
+  where the other version's ``Name`` had been changed by an sObject update; and
+  2026-11-25, on versions deployed with their own labels, CLI and CCI, the other
+  version left untouched). :func:`import_target_refusal` allows only that last
+  shape.
 * **What an overlay can send.** An overlay PATCH sends every version its GET
   returned, ids kept. Measured on 264 (2026-11-25): it succeeded when every version
   carried its own name and failed on the version-name collision when two carried
@@ -313,10 +316,13 @@ def import_target_refusal(
     payload_versions = payload_versions if isinstance(payload_versions, list) else []
     if len(payload_versions) != 1:
         return (
-            prefix + f"The payload carries {len(payload_versions)} versions; on a "
+            prefix + f"The payload carries {len(payload_versions)} versions; the "
+            "importer rewrites the first payload version's id to the target, so on a "
             "multi-version set only a one-version payload for the targeted version "
-            "imports (a two-version payload was rejected whether or not the versions "
-            f"shared a label, {MEASURED}). " + alternatives
+            f"imports (two-version import payloads failed, {MEASURED}). An overlay "
+            "(apply_expression_set_overlay.py) sends every version under its own id, "
+            "which succeeded when each version carried its own label (measured on "
+            "Release 264, 2026-11-25). " + alternatives
         )
     incoming = payload_versions[0] if isinstance(payload_versions[0], dict) else {}
     incoming_api = incoming.get("apiName")

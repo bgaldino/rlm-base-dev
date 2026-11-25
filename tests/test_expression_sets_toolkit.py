@@ -1945,13 +1945,23 @@ def test_import_guards():
     shared, distinct = chain("TK172 Chain"), chain("TK172 Chain V1 draft")
     pv1, pv2 = ("TK172_Chain_V1", "TK172 Chain"), ("TK172_Chain_V2", "TK172 Chain")
     pv1_distinct = ("TK172_Chain_V1", "TK172 Chain V1 draft")
+    # TK172_Chain's versions were deployed under one label; "renamed" is V1's Name
+    # changed by an sObject update (the label the GET returns stayed shared).
+    # TK172_ChainD's versions were deployed with their own labels (2026-11-25).
+    own = [{"Id": "9QMc", "ApiName": "TK172_ChainD_V1", "Name": "TK172 ChainD V1",
+            "IsActive": False, "VersionNumber": 1},
+           {"Id": "9QMe", "ApiName": "TK172_ChainD_V2", "Name": "TK172 ChainD V2",
+            "IsActive": True, "VersionNumber": 2}]
+    od1, od2 = ("TK172_ChainD_V1", "TK172 ChainD V1"), ("TK172_ChainD_V2", "TK172 ChainD V2")
     rows = [
         ("shared labels, payload V1 then V2", shared, payload(pv1, pv2), "carries 2 versions"),
         ("shared labels, payload V2 then V1", shared, payload(pv2, pv1), "carries 2 versions"),
-        ("distinct labels, payload V2 then V1", distinct, payload(pv2, pv1_distinct),
-         "carries 2 versions"),
-        ("distinct labels, payload V2 only", distinct, payload(pv2), None),
+        ("V1 renamed, payload V2 then V1 (V1 renamed in it)", distinct,
+         payload(pv2, pv1_distinct), "carries 2 versions"),
+        ("V1 renamed, payload V2 only", distinct, payload(pv2), None),
         ("shared labels, payload V2 only", shared, payload(pv2), "share the label"),
+        ("own labels, payload V2 only", own, payload(od2), None),
+        ("own labels, payload V1 then V2", own, payload(od1, od2), "carries 2 versions"),
     ]
     for label, versions, body, expected_text in rows:
         msg = import_target_refusal("TK172_Chain", versions, versions[1], body)
