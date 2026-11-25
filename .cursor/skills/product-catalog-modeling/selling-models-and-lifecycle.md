@@ -54,8 +54,8 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
   An insert of rows of that shape (static parent, both selling models set) was accepted when
   both products had their selling model options (inactive test bundle [Measured: 2026-11-10, 264, existing org];
-  inactive and active test bundles [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so Help's rule, written for a *new*
-  static bundle, looks like guidance [inferred] (see
+  inactive and active test bundles [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so the
+  both-set case is not guarded [inferred] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
   were not the ones inserted. A mismatched pair priced (each child at 0 inside the bundle price;
   not compared with a matched-model bundle) and a `configure` call returned no message
@@ -95,12 +95,12 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
 
 | Parent product | Insert | Result |
 |---|---|---|
-| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected: "The parent selling model is unsupported for configurable product bundles. Delete the parent selling model and try again." |
-| Configurable bundle | A component selling model | Rejected: "The component selling model is unsupported for configurable product bundles. Delete the component selling model and try again." |
-| Configurable bundle | Any row without a component group | Rejected: "Group is mandatory for configurable parent product." |
-| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false (or omitted, 2026-11-24 run) | Rejected: "Child component must be added by default for a Static Parent Product." |
-| Static bundle | One selling model set, the other blank | Rejected: "The parent and child product selling models must both have values or both be empty." |
-| Static bundle | Both set, a selling model option missing on either product | Rejected: "To create a Product Related Component, first add a product selling model option to the related product and product selling model." |
+| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected (INVALID_INPUT, "The parent selling model is unsupported for configurable product bundles. Delete the parent selling model and try again.") |
+| Configurable bundle | A component selling model | Rejected (INVALID_INPUT, "The component selling model is unsupported for configurable product bundles. Delete the component selling model and try again.") |
+| Configurable bundle | Any row without a component group | Rejected (INVALID_INPUT, "Group is mandatory for configurable parent product.") |
+| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false (or omitted, 2026-11-24 run) | Rejected (INVALID_INPUT, "Child component must be added by default for a Static Parent Product.") |
+| Static bundle | One selling model set, the other blank | Rejected (INVALID_INPUT, "The parent and child product selling models must both have values or both be empty.") |
+| Static bundle | Both set, a selling model option missing on either product | Rejected (INVALID_INPUT, "To create a Product Related Component, first add a product selling model option to the related product and product selling model.") |
 | Static bundle | Both set, each product has the option | Accepted. |
 | Static bundle | Both blank | Accepted. |
 
@@ -118,7 +118,7 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   a one-year term and billing frequency Annual), each linked to the root by a
   `QuoteLineRelationship` with pricing `IncludedInBundlePrice`. The quote priced
   (`CompletedWithPricing`) with the root at its price book entry and each child at 0; both
-  component rows, inserted without `DoesBundlePriceIncludeChild`, stored it as true (and
+  component rows, inserted without `DoesBundlePriceIncludeChild`, stored that field as true (and
   `IsQuantityEditable` as false). A configurator `configure` call on the root line, rules and
   pricing on, returned `success: true`, `solverStatus: "success"`, no messages
   and a null `ValidationResult` on every line; no `RevenueTransactionErrorLog` row was written.

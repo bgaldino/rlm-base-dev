@@ -23,7 +23,7 @@ Every product claim carries its source: `[Help: <article>]` (the 264 Help snapsh
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
 names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded), `[Platform behaviour, traced]` (a platform mechanism read in source), `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established), or `[inferred]` (a conclusion drawn from the cited evidence that no source states and no measurement shows). A claim only a live
-org could settle is marked **Open — needs live verification**. Help article ids below
+org could settle is marked **Open — needs live verification** or `[Open: <the check that would settle it>]`. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
 ## Quick Rules
@@ -68,7 +68,7 @@ drop the `.md` suffix of the snapshot file name.
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] and accepted for static test bundles
   (inactive [Measured: 2026-11-10, 264, existing org]; inactive and active [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so
-  Help's static rule looks like guidance, not a guard [inferred]. A mismatched pair priced (each
+  the both-set case is not guarded [inferred]. A mismatched pair priced (each
   child at 0 inside the bundle price; not compared with a matched-model bundle) and a
   `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
   configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's
@@ -309,7 +309,7 @@ configure one bundle in the configurator with rules on.
 
 ## Open questions
 
-Every item marked **Open — needs live verification** in this skill and its sub-files:
+Every item marked **Open — needs live verification** or `[Open: …]` in this skill and its sub-files:
 
 - **`IsSoldOnlyWithOtherProds`.** Whether search hides it for the flag or for the missing
   category, and what amend, renew or cancel do when its companion is removed. See
@@ -341,7 +341,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Recurring children in a fixed kit.** Which selling model a static kit's child is quoted
   on when it is Evergreen, sits under a root other than Evergreen, has no model on its
   component row, or has several options (a Term Annual child under an Evergreen root was quoted
-  on the model its row set, which was its only option [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which
+  on the model its component row set, which was the child's only option [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which
   model each child renews and bills on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
@@ -350,10 +350,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch], which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may skip static bundles [inferred]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch], which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may skip static bundles, a possible explanation for this static result only [inferred]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
-  were accepted on test bundles (not `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org].
+  were accepted on new test bundles (not `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org].
   A mismatched pair priced (each child at 0 inside the bundle price; not compared with a
   matched-model bundle) and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
   a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so

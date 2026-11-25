@@ -34,7 +34,7 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   **Account** and a blank Due Date Window. Two invoices posted for one account with the same due
   date (currency and payment method not recorded) produced one Draft payment schedule, which
   both invoices point to through `PaymentScheduleId`. A second payment schedule with
-  `ReferenceEntityId` set to one of them was refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`,
+  `ReferenceEntityId` set to one of those invoices was refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`,
   "We can't create this Payment Schedule because its invoice is associated with another Payment
   Schedule that's in Draft or Open status.").
   [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: the treatment's
@@ -110,7 +110,7 @@ fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
   as `appliedToId` failed (error `INVALID_FIELD`, "Specify an InvoiceLineId as the appliedToId
   because the Credit Application Level is Invoice Line."; the error code was first recorded
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]). With an invoice line id it created a
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]). With an invoice line id the call created a
   `PaymentLineInvoiceLine` (Type Applied) and no `PaymentLineInvoice`.
 - **Credit an invoice.** `POST /services/data/v68.0/commerce/invoicing/invoices/{id}/actions/credit` on a posted
   invoice, copying from the invoice lines, created a `CreditMemoLineInvoiceLine` and no
@@ -131,11 +131,11 @@ fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry 
   The subflow spreads a payment over the invoice's open lines in record Id order, capped at the
   smaller of the payment's balance and the invoice's balance. Copies ship in the
   billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
-  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On the 2026-10-15 harness build it spread a
+  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On the 2026-10-15 harness build the subflow spread a
   payment over a three-line invoice with no header-level rows. [Measured: 2026-10-15, 264,
   harness build, API 68.0, Line Level] Called directly
   (`/services/data/v68.0/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs
-  `paymentId`, `invoiceId`), it applied a 1,000 payment to lines of 250, 250 and 1,200 as 250,
+  `paymentId`, `invoiceId`), the subflow applied a 1,000 payment to lines of 250, 250 and 1,200 as 250,
   250 and 500. A second 1,000 payment on the remaining 700 applied 700 and reported
   `unappliedAmount` 0, while the payment kept a balance of 300.
   [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] That output is what was left
