@@ -31,7 +31,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     // class writes about the user's own input are shown as written; platform exception text and
     // non-validation save errors carry internal detail (record ids, trigger names and lines), so
     // the user gets a fixed sentence and the detail goes to the debug log.
-    @TestVisible
     private static final String UPDATE_FAILED_MESSAGE =
         'The update could not be completed. Try again, or contact your administrator.';
     @TestVisible
@@ -250,20 +249,21 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             Integer successCount = 0;
 
             if (!dmlRecords.isEmpty()) {
-                Database.SaveResult[] saveResults =
+                try {
+                    // All or none: one row that cannot be saved rolls the whole update back,
+                    // so a bulk edit never leaves a quote half changed.
                     Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
-
-                for (Integer i = 0; i < saveResults.size(); i++) {
-                    Database.SaveResult sr = saveResults[i];
-                    SObject rec = dmlTargets[i];
-                    String recLabel = recordLabel(typeName, rec);
-                    if (sr.isSuccess()) {
+                } catch (DmlException e) {
+                    for (Integer i = 0; i < e.getNumDml(); i++) {
+                        failedLines.add(recordLabel(typeName, dmlTargets[e.getDmlIndex(i)]) + ' — '
+                            + saveErrorText(e.getDmlType(i), e.getDmlMessage(i)));
+                    }
+                }
+                if (failedLines.isEmpty()) {
+                    for (SObject rec : dmlTargets) {
                         successCount++;
                         Map<String, CoercedField> applied = fieldsForRecord(typeName, rec, coercedFields);
-                        successLines.add(recLabel + ' — ' + summarizeChanges(rec, applied));
-                    } else {
-                        String err = summarizeErrors(sr.getErrors());
-                        failedLines.add(recLabel + ' — ' + err);
+                        successLines.add(recordLabel(typeName, rec) + ' — ' + summarizeChanges(rec, applied));
                     }
                 }
             }
@@ -274,18 +274,14 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // (or every targeted line was legitimately skipped).
             out.isSuccess = failedLines.isEmpty() && (successCount > 0 || !skippedLines.isEmpty());
             out.resultsDisplay = buildResultsDisplay(successLines, failedLines, skippedLines);
-            if (successCount == 0 && skippedLines.isEmpty()) {
+            if (!failedLines.isEmpty() || (successCount == 0 && skippedLines.isEmpty())) {
                 out.errorMessage = 'No records were updated.';
-            } else if (!failedLines.isEmpty()) {
-                out.errorMessage = 'Some records could not be updated.';
             }
 
         } catch (UserFacingException e) {
             out.isSuccess = false;
             out.errorMessage = e.getMessage();
         } catch (Exception e) {
-            // No test reaches this branch: the class runs in system mode, so nothing in a test
-            // makes its reads or describes throw, and a seam only to throw here would test the seam.
             System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService update failed: '
                 + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             out.isSuccess = false;
@@ -845,22 +841,12 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     // saving the record, so it is shown as written (the same rule as RLM_UsageUploaderController).
     // Every other save error becomes ROW_SAVE_FAILED_MESSAGE, with the detail in the debug log.
     @TestVisible
-    private static String summarizeErrors(List<Database.Error> errors) {
-        List<String> shown = new List<String>();
-        Boolean hidden = false;
-        for (Database.Error e : errors == null ? new List<Database.Error>() : errors) {
-            if (e.getStatusCode() == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION
-                    && String.isNotBlank(e.getMessage())) {
-                shown.add(e.getMessage());
-            } else {
-                hidden = true;
-                System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed: '
-                    + e.getStatusCode() + ' ' + e.getFields() + ': ' + e.getMessage());
-            }
+    private static String saveErrorText(StatusCode status, String message) {
+        if (status == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION && String.isNotBlank(message)) {
+            return message;
         }
-        if (hidden || shown.isEmpty()) {
-            shown.add(ROW_SAVE_FAILED_MESSAGE);
-        }
-        return String.join(shown, ' ');
+        System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed: '
+            + status + ': ' + message);
+        return ROW_SAVE_FAILED_MESSAGE;
     }
 }

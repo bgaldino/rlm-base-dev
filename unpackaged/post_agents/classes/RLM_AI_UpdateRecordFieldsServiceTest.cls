@@ -635,36 +635,46 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
             + '{"fieldApiName": "...", "value": "..."} entries.', out.errorMessage);
     }
 
-    private static List<Database.Error> saveErrors(String json) {
-        return (List<Database.Error>) System.JSON.deserialize(json, List<Database.Error>.class);
+    // A save the platform refuses (here a value longer than the field) rolls the update back and
+    // reports the line with the fixed sentence, not the platform's STRING_TOO_LONG text.
+    @isTest
+    static void refusedSaveReportsTheLineWithoutPlatformText() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"' + 'x'.repeat(300) + '"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals(0, out.updatedCount);
+        System.assertEquals('No records were updated.', out.errorMessage);
+        System.assertEquals('\nCould not update:\n- **Quinn Alpha** (Qty 1) — '
+            + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE, out.resultsDisplay);
+        QuoteLineItem unchanged = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        System.assertEquals('Original description', unchanged.Description);
     }
 
     // A validation rule's message (or a trigger's addError text; the platform gives both this
-    // status) is shown as written.
+    // status) is shown as written. A blank one, or any other status, gets the fixed sentence.
     @isTest
-    static void summarizeErrorsShowsAValidationMessage() {
-        System.assertEquals('End date must follow the start date.',
-            RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
-                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION",'
-                + '"message":"End date must follow the start date.","fields":[]}]')));
-    }
-
-    // Any other save error carries platform detail (here a record id), so it becomes the fixed
-    // sentence; a validation message next to it is still shown. An empty list gets the sentence.
-    @isTest
-    static void summarizeErrorsHidesSaveErrorsThatAreNotValidationMessages() {
+    static void saveErrorTextShowsOnlyValidationMessages() {
         String fixed = RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE;
-        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
-            '[{"statusCode":"DUPLICATE_VALUE",'
-            + '"message":"duplicate value found: Code__c duplicates value on record with id: 0QLxx0000000001",'
-            + '"fields":["Code__c"]}]')));
-        System.assertEquals('Too many units. ' + fixed,
-            RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
-                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"Too many units.","fields":[]},'
-                + '{"statusCode":"CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY",'
-                + '"message":"MyTrigger: execution of AfterUpdate caused by: line 12","fields":[]}]')));
-        System.assertEquals(fixed,
-            RLM_AI_UpdateRecordFieldsService.summarizeErrors(new List<Database.Error>()));
+        System.assertEquals('End date must follow the start date.',
+            RLM_AI_UpdateRecordFieldsService.saveErrorText(
+                StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION, 'End date must follow the start date.'));
+        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.saveErrorText(
+            StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION, ' '));
+        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.saveErrorText(
+            StatusCode.DUPLICATE_VALUE,
+            'duplicate value found: Code__c duplicates value on record with id: 0QLxx0000000001'));
     }
 
     // ---- Bulk applyToAll across many lines (no per-request cap) ----
