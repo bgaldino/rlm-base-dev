@@ -227,13 +227,20 @@ sf api request rest /services/data/v68.0/commerce/invoicing/invoice-schedulers \
   -X POST -b @forecast.json --target-org <sf-alias>
 ```
 
+Read back with one `sf data query --target-org <sf-alias> -q "<SOQL>"` call per query
+(an empty result means no forecast run has happened yet; the POST above creates the data).
+The first query lists every Forecast run, newest last; a run that shows 0 lines is a
+non-recalculate run that found nothing `PendingForecast`, not a failure.
+
 ```sql
-SELECT Id, Status, JobType, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId
-  FROM InvoiceBatchRun WHERE JobType = 'Forecast'
-SELECT Name, BillingScheduleId, Category, BillingTermUnit, BillingPeriodStartDate, BillingPeriodEndDate,
-       ChargeAmount, InvoiceBatchRunId FROM BillingForecast ORDER BY Name
-SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM BillingSchedule
+SELECT Id, Status, JobType, CreatedDate, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId FROM InvoiceBatchRun WHERE JobType = 'Forecast' ORDER BY CreatedDate
+SELECT Name, BillingSchedule.BillingScheduleNumber, Category, BillingTermUnit, BillingPeriodStartDate, BillingPeriodEndDate, ChargeAmount, InvoiceBatchRunId FROM BillingForecast ORDER BY Name
+SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM BillingSchedule ORDER BY BillingScheduleNumber
 ```
+
+Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query. Schedules
+created after the run show `PendingForecast` until the next run picks them up.
+
 
 [Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
 
@@ -248,7 +255,7 @@ SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM Bil
   one `InvoiceBatchRun` (JobType Forecast, Status `Completed`) had `TotalForecastLines` 3 and
   `TotalForecastedAmount` 20900.
 - `BillingForecast` had three rows (Category Original, Year, 2026-11-24 to 2027-11-23,
-  `ChargeAmount` 20000, 450, 450), one per schedule, equal to the schedules' amounts
+  `ChargeAmount` 450, 450, 20000 for BS-000000002, -003, -001), one per schedule, equal to the schedules' amounts
   (annual term, one period). All three schedules became `Forecasted` with
   `LastForecastRunTargetDate` 2027-12-31.
 - A second run with `shouldRecalculateAllForecastLn` false completed with 0 lines and
