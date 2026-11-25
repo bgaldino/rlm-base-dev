@@ -30,7 +30,8 @@ Two facts drive these guards (todo packs 172 and 175):
   where the other version's ``Name`` had been changed by an sObject update; and
   2026-11-25, on versions deployed with their own labels, CLI and CCI, the other
   version left untouched). :func:`import_target_refusal` allows only that last
-  shape.
+  shape; a two-version payload on versions with their own labels is refused here
+  too, and how the platform would answer it is not measured.
 * **What an overlay can send.** An overlay PATCH sends every version its GET
   returned, ids kept. Measured on 264 (2026-11-25): it succeeded when every version
   carried its own name and failed on the version-name collision when two carried
@@ -319,7 +320,9 @@ def import_target_refusal(
             prefix + f"The payload carries {len(payload_versions)} versions; the "
             "importer rewrites the first payload version's id to the target, so on a "
             "multi-version set only a one-version payload for the targeted version "
-            f"imports (two-version import payloads failed, {MEASURED}). An overlay "
+            f"imports (two-version import payloads failed, {MEASURED}; on versions "
+            "with their own labels this guard refuses them, and the platform's response "
+            "is not measured). An overlay "
             "(apply_expression_set_overlay.py) sends every version under its own id, "
             "which succeeded when each version carried its own label (measured on "
             "Release 264, 2026-11-25). " + alternatives

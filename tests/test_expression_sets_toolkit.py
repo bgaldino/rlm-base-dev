@@ -1930,8 +1930,10 @@ def test_import_guards():
     check("the version queries select Rank and the date window",
           all(f in VERSION_FIELDS for f in ("Rank", "StartDateTime", "EndDateTime")))
 
-    # The import rule, one check per row measured on 264 (2026-11-24) on TK172_Chain:
-    # V1 inactive draft, V2 the active target.
+    # The import rule, one check per row measured on 264: TK172_Chain (2026-11-24)
+    # and TK172_ChainD (2026-11-25), V1 an inactive draft, V2 the active target.
+    # Then the guard-only rows, which the importer refuses before the platform sees
+    # them.
     def payload(*versions):
         return {"apiName": "TK172_Chain",
                 "versions": [{"apiName": a, "name": n} for a, n in versions]}
@@ -1961,13 +1963,17 @@ def test_import_guards():
         ("V1 renamed, payload V2 only", distinct, payload(pv2), None),
         ("shared labels, payload V2 only", shared, payload(pv2), "share the label"),
         ("own labels, payload V2 only", own, payload(od2), None),
-        ("own labels, payload V1 then V2", own, payload(od1, od2), "carries 2 versions"),
     ]
     for label, versions, body, expected_text in rows:
-        msg = import_target_refusal("TK172_Chain", versions, versions[1], body)
+        msg = import_target_refusal(versions[1]["ApiName"].rsplit("_", 1)[0], versions,
+                                    versions[1], body)
         check(f"measured row — {label}: "
               + ("proceeds" if expected_text is None else "refused"),
               msg is None if expected_text is None else expected_text in (msg or ""), msg)
+    msg = import_target_refusal("TK172_ChainD", own, own[1], payload(od1, od2)) or ""
+    check("guard-only row — own labels, payload V1 then V2: refused, saying the platform's "
+          "response to it is not measured",
+          "carries 2 versions" in msg and "not measured" in msg, msg)
     msg = import_target_refusal("TK172_Chain", shared, shared[1], payload(pv2)) or ""
     check("the refusal names the condition, cites the measurement, points to "
           "set_step_formula.py and says nothing was written",

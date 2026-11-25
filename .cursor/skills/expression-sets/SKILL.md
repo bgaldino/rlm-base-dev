@@ -370,8 +370,9 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   (named alike: version-name collision; target first with the other version renamed
   in the payload: duplicate `CalculationProcedureId`), and a one-version payload
   failed whenever another version's `Name` equalled its label and succeeded
-  otherwise, including on versions deployed with their own labels (2026-11-25).
-  Platform version chains share one label.
+  otherwise, including on versions deployed with their own labels (2026-11-25). A
+  two-version payload on such versions is refused by the guard, so the platform's
+  answer to it is not measured. Platform version chains share one label.
 - **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
   deployed repo version is missing, sits under a different `VersionNumber` than the
   package, is inactive, or is not the version that executes. The deploy handler

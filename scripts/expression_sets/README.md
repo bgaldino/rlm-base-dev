@@ -238,8 +238,10 @@ v4, three active; v4 ran). Consequences:
   on the version-name collision when the other version's `Name` equalled its label,
   and succeeded when it did not, both where that `Name` had been changed by an
   sObject update (2026-11-24) and on versions deployed with their own labels
-  (2026-11-25, CLI and CCI; the other version was left untouched). To change every
-  version in one PATCH, an overlay sends each under its own id. Both importers allow
+  (2026-11-25, CLI and CCI; the other version was left untouched). A two-version
+  payload on versions with their own labels is refused by the importers' guard, so the
+  platform's answer to it is not measured. To change every version in one PATCH, an
+  overlay sends each under its own id. Both importers allow
   only that last shape — exactly one payload version, the targeted one, no other
   version with its label — and refuse everything else before any write, naming the
   condition that failed. Platform version chains share one label, so expect a
