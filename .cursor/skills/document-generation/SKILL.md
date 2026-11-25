@@ -545,6 +545,14 @@ read the sub-file when designing or debugging complex Extracts.
 | **No subqueries** | Cannot filter "only parents with children." Use child-first hierarchy + redundant join pattern. |
 | **Transform formulas are scalar** | `FormulaResultPath` cannot target per-array-element paths. Use section-as-conditional instead. |
 
+### Runtime permissions (owner decision, 2026-11-25)
+
+A sales rep cannot hold `DocGenRuntimeUser` without the `DocGenDesignerPsl` licence, whichever permission set
+carries it; the platform refuses the permission otherwise. `RLM_QuantumBit_Sales_Representative` therefore does
+not carry it by design, and a rep who generates documents needs a separately licensed DocGen set (`DocGenUser`,
+which the persona group adds). Without it `DocumentTemplate` is not visible. Do not move `DocGenRuntimeUser` into
+the rep set to "fix" this.
+
 ### Formula Quick Reference
 
 Supported: `IF`, `ISBLANK`, `CONCAT`, `SUBSTRING`, `LIST`, `FUNCTION`,

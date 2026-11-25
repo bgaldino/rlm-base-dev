@@ -587,6 +587,10 @@ public with sharing class RLM_UsageUploaderController {
     private static final String ROW_SAVE_FAILED_MESSAGE =
         'This usage record could not be saved. Check the values and try again, or contact your administrator.';
 
+    // Owner decision (todo 433, 2026-11-25): the uploader is admin-only by design, and its row errors are
+    // shown as described below. That holds only while RLM_UsageUploader stays admin-only; widen the
+    // grant and every row error must be a fixed sentence.
+    //
     // The text for a usage record that failed to save. bulkUploadUsage returns it in
     // BulkUploadResult.errors and uploadUsage throws it to the caller. For a bulk upload the shipped
     // component toasts the counts (including when no row was saved) and writes the row errors to

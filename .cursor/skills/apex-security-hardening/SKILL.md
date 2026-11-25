@@ -60,6 +60,16 @@ description: >-
   audit's least-privilege lens flags over-grants too. (A field touched only in a
   *system-mode* query does not need FLS.)
 
+## Admin-only raw diagnostics (owner decision, 2026-11-25)
+
+Raw exception or row-error text is kept on admin-only screens: ExpressionSetManager partial apply, UsageUploader
+row errors and `RLM_DFOTenantProvisioningCallout` failures. It is acceptable **only while the permission set that
+grants the screen stays admin-only** (never assigned to sales reps). Widen the grant and every such message must
+become a fixed sentence plus `System.debug` of the detail. `RLM_RebuildSearchIndex` already returns a fixed
+sentence with the response body in the debug log (tested). Tax adapter error codes are `RLM_TAX_500` to
+`RLM_TAX_503`, outside the HTTP range; engine statuses stay the real HTTP status and unmapped engine
+transaction statuses are logged, not mapped.
+
 ## Entry Conditions
 
 | Situation | Use this skill? |

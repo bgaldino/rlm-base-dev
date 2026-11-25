@@ -37,6 +37,9 @@ global without sharing class RLM_DFOTenantProvisioningCallout implements industr
         return response;
     } 
 
+    // Failure messages carry the raw exception text (owner decision, todo 433, 2026-11-25): the callout
+    // runs from the admin-only provisioning flow, not a rep-facing screen. That holds only while the
+    // callout stays admin-only; if a non-admin can reach it, return a fixed sentence and System.debug the detail.
     global static industriesintegrationfwk.IntegrationCalloutResponse executeCallout(String requestGuid, String inputRecordId, String payload, Map<String, Object> attributes) {
         system.debug('input record id is ' + inputRecordId);
 
