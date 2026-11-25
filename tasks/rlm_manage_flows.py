@@ -13,7 +13,7 @@ Tooling API model (verified live on 264):
   Metadata.activeVersionNumber (the version number to activate, 0 to deactivate).
 """
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
@@ -102,7 +102,7 @@ class ManageFlows(BaseSalesforceTask):
 
     def _run_task(self):
         """Execute the task based on the operation specified."""
-        operation = str(self.options.get("operation", "")).lower()
+        operation = (self._option_text("operation") or "").lower()
 
         if operation == "list":
             self._list_flows()
@@ -193,6 +193,11 @@ class ManageFlows(BaseSalesforceTask):
 
         return flows
 
+    def _option_text(self, name: str) -> Optional[str]:
+        """The option as stripped text; blank or whitespace means not set."""
+        value = str(self.options.get(name) or "").strip()
+        return value or None
+
     @staticmethod
     def _developer_name(flow: Dict) -> str:
         return (flow.get("Definition") or {}).get("DeveloperName") or flow.get("DefinitionId") or "N/A"
@@ -206,7 +211,7 @@ class ManageFlows(BaseSalesforceTask):
             # name is only "missing" when no flow of that name exists at all: check against an
             # unfiltered, unordered, unlimited query (the main query already is that when none is set).
             by_name = flows
-            if self.options.get("status") or self.options.get("process_type") or self.options.get("limit") not in (None, ""):
+            if self._option_text("status") or self._option_text("process_type") or self._option_text("limit"):
                 by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
             self._raise_on_missing(names, by_name)
         self.logger.info(f"Query returned {len(flows)} flow version(s).")
@@ -265,11 +270,11 @@ class ManageFlows(BaseSalesforceTask):
         if names:
             where.append(self._name_clause(names))
 
-        status = self.options.get("status")
+        status = self._option_text("status")
         if status and filtered:
             where.append(f"Status = {soql_quote(status)}")
 
-        process_type = self.options.get("process_type")
+        process_type = self._option_text("process_type")
         if process_type and filtered:
             where.append(f"ProcessType = {soql_quote(process_type)}")
 
@@ -278,19 +283,19 @@ class ManageFlows(BaseSalesforceTask):
             soql += " WHERE " + " AND ".join(where)
 
         if ordered:
-            sort_key = (str(self.options.get("sort_by") or "").strip() or "CreatedDate").replace("_", "").lower()
+            sort_key = (self._option_text("sort_by") or "CreatedDate").replace("_", "").lower()
             if sort_key not in _SORT_FIELDS:
                 raise TaskOptionsError(
                     f"sort_by must be one of DeveloperName, Label, Status, ProcessType, "
                     f"VersionNumber, CreatedDate; got {self.options.get('sort_by')!r}"
                 )
-            sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
+            sort_order = (self._option_text("sort_order") or "Desc").capitalize()
             if sort_order not in ("Asc", "Desc"):
                 raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
             soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
 
-            limit = self.options.get("limit")
-            if limit not in (None, ""):
+            limit = self._option_text("limit")
+            if limit:
                 soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
 
         return soql
@@ -308,7 +313,7 @@ class ManageFlows(BaseSalesforceTask):
     def _definitions_to_change(self, verb: str) -> Dict[str, List[Dict]]:
         """Resolve developer_names to {DefinitionId: [version rows]}; error on any miss."""
         for opt in _MUTATING_REJECTS:
-            if self.options.get(opt) not in (None, ""):
+            if self._option_text(opt):
                 raise TaskOptionsError(
                     f"{opt} is not used by {verb}; it only filters list and query. Remove it."
                 )

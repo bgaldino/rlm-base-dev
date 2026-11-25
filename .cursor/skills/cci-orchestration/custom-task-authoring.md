@@ -453,6 +453,7 @@ tasks:
 | `rlm_deploy_with_fragments.py` | `DeployWithFragments`, `SpliceFragmentsTransform` | Deploy a bundle with text spliced in at markers when a project flag is on (flag-dependent permission set grants and settings) |
 | `rlm_deactivate_changed_decision_tables.py` | `DeactivateChangedDecisionTables` | Check-only deploy active repo DTs; deactivate and deploy only those a structural change blocks |
 | `rlm_cml.py` | `ExportCML`, `ImportCML`, `ValidateCML` | Constraint Model Language operations |
+| `rlm_clm_clause_sets.py` | `LoadClmClauseSets` | Load the qb-clm DocumentClauseSet rows (`insert_clm_clause_sets`) |
 | `rlm_bre.py` | `ExportBRE` | BRE Rule Library export (SOQL → CSV + metadata retrieve) |
 | `rlm_manage_fulfillment_scope_cnfg.py` | `ManageFulfillmentScopeCnfg` | CustomFulfillmentScopeCnfg CRUD via Tooling API |
 | `rlm_billing.py` | `CreateSequencePolicies` | Create/configure billing sequence policies via Connect API |

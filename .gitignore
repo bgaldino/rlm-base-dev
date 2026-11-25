@@ -46,7 +46,7 @@ $RECYCLE.BIN/
 
 # Python Salesforce Functions
 **/__pycache__/
-**/.venv/
+**/.venv
 **/venv/
 
 .vscode

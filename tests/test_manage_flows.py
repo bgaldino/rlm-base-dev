@@ -360,6 +360,19 @@ check("blank sort_by orders by CreatedDate", "ORDER BY CreatedDate" in fake.quer
 fake, _ = run([], {"operation": "list", "sort_by": " DeveloperName "})
 check("padded sort_by is trimmed", "ORDER BY Definition.DeveloperName" in fake.queries[0], fake.queries[0])
 
+print("blank or padded status, process_type, limit and operation mean not set or the trimmed value")
+fake, err = run([], {"operation": " list ", "status": " ", "process_type": "  ", "limit": " "})
+q = fake.queries[0] if fake.queries else ""
+check("padded operation runs; blank filters add no WHERE and no LIMIT",
+      err is None and " WHERE " not in q and " LIMIT " not in q, repr((err, q)))
+fake, _ = run([], {"operation": "list", "status": " Active ", "process_type": " Flow "})
+check("padded filters are trimmed", "Status = 'Active'" in fake.queries[0] and "ProcessType = 'Flow'" in fake.queries[0],
+      fake.queries[0])
+fake, err = run([row(A, "Flow_A", 1, "Active")],
+                {"operation": "deactivate", "developer_names": "Flow_A", "status": " ", "limit": ""})
+check("deactivate does not reject blank list-only filters", err is None and len(fake.patches) == 1,
+      repr((err, fake.patches)))
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")
