@@ -22,14 +22,16 @@ Checks (formulas are documented in
     whose applications are header rows only.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
-    payment's application rows on any invoice.
+    payment's application rows on any invoice. Skipped for a payment whose
+    ``NetRefundApplied`` or ``NetPaymentCreditApplied`` is non-zero (effect unmeasured).
 ``unapplied_rows``
     Every ``Unapplied`` row pairs with an ``Applied`` row marked unapplied, and every
     ``Applied`` row marked unapplied has its ``Unapplied`` row.
 
 The net of a set of application rows is the sum of ``Applied`` amounts minus the sum
 of ``Unapplied`` amounts (absolute value, since the sign of an Unapplied row's
-``Amount`` has not been measured).
+``Amount`` has not been measured). Amounts compare exactly as Decimals; ids may be 15
+or 18 characters and are normalized to 18 before querying.
 """
 
 from __future__ import annotations
@@ -60,9 +62,10 @@ CHECK_NAMES = (
 
 LEVELS = ("line", "header")
 
-# Half a cent: currency fields carry two decimals, so any real difference is >= 0.01.
-_TOLERANCE = Decimal("0.005")
+# Amounts compare exactly as Decimals built from the API's own text, so no currency
+# precision is assumed (JPY has none, some currencies carry three places).
 _ID_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
+_SUFFIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
 _IN_CHUNK = 200
 
 INVOICE_FIELDS = (
@@ -73,7 +76,11 @@ INVOICE_LINE_FIELDS = (
     "Id", "InvoiceId", "Type", "LineAmount", "NetCreditsApplied", "NetPaymentsApplied",
     "Balance",
 )
-PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance")
+PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance", "NetRefundApplied",
+                  "NetPaymentCreditApplied")
+# Payment fields whose effect on Balance has not been measured: a non-zero value skips
+# payment_balance for that payment instead of guessing a formula.
+_UNMEASURED_PAYMENT_FIELDS = ("NetRefundApplied", "NetPaymentCreditApplied")
 
 
 @dataclass(frozen=True)
@@ -109,12 +116,23 @@ _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
 
 
 class VerifyError(ValueError):
-    """Bad input (unknown id, manifest with no invoice). ``cli.main`` prints it, exits 1."""
+    """Bad input (bad or unknown id, unreadable manifest). ``cli.main`` prints it, exits 1."""
 
 
 # --------------------------------------------------------------------------- inputs
 
+def _id18(value: str) -> str:
+    """Return the 18-character form the API returns, from a 15- or 18-character id."""
+    base = value[:15]
+    suffix = ""
+    for start in (0, 5, 10):
+        bits = sum(1 << i for i, ch in enumerate(base[start:start + 5]) if "A" <= ch <= "Z")
+        suffix += _SUFFIX_CHARS[bits]
+    return base + suffix
+
+
 def _check_ids(ids: Iterable[str], label: str) -> list[str]:
+    """Validate ids and return them in 18-character form, deduplicated, in order."""
     out: list[str] = []
     for raw in ids:
         value = (raw or "").strip()
@@ -122,8 +140,12 @@ def _check_ids(ids: Iterable[str], label: str) -> list[str]:
             continue
         if not _ID_RE.match(value):
             raise VerifyError(f"{label}: {value!r} is not a Salesforce id")
-        if value not in out:
-            out.append(value)
+        canonical = _id18(value)
+        if len(value) == 18 and value[15:].upper() != canonical[15:]:
+            raise VerifyError(f"{label}: {value!r} has a bad checksum suffix "
+                              f"(expected {canonical})")
+        if canonical not in out:
+            out.append(canonical)
     return out
 
 
@@ -149,8 +171,15 @@ def ids_from_manifest(path: Path) -> tuple[list[str], list[str]]:
     Reads the raw JSON rather than ``Manifest.from_dict`` so that keys added by
     later stages (payment ids, for example) are read without a model change.
     """
-    with open(path, encoding="utf-8") as handle:
-        data = json.load(handle)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        raise VerifyError(f"manifest not found: {path}") from None
+    except (OSError, json.JSONDecodeError) as exc:
+        raise VerifyError(f"manifest {path} could not be read as JSON: {exc}") from None
+    if not isinstance(data, dict):
+        raise VerifyError(f"manifest {path} is not a JSON object")
     invoices = _as_list(data.get("invoice_id")) + _as_list(data.get("invoice_ids"))
     payments = _as_list(data.get("payment_id")) + _as_list(data.get("payment_ids"))
     return (_check_ids(invoices, f"{path.name} invoice id"),
@@ -240,11 +269,11 @@ def _zero(value: Any) -> Decimal:
 
 
 def _eq(a: Optional[Decimal], b: Optional[Decimal]) -> bool:
-    return a is not None and b is not None and abs(a - b) <= _TOLERANCE
+    return a is not None and b is not None and a == b
 
 
 def _fmt(value: Optional[Decimal]) -> str:
-    return "null" if value is None else f"{value:.2f}"
+    return "null" if value is None else format(value, "f")
 
 
 def _net(rows: Iterable[dict]) -> Decimal:
@@ -433,6 +462,14 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
     out = []
     for payment in records.get("Payment", []):
         pid = payment["Id"]
+        status = payment.get("Status")
+        unmeasured = [f"{f} {_fmt(_dec(payment.get(f)))}" for f in _UNMEASURED_PAYMENT_FIELDS
+                      if _zero(payment.get(f)) != 0]
+        if unmeasured:
+            out.append(_result("payment_balance", pid, "skip",
+                               f"Status {status}; {', '.join(unmeasured)}: the effect on "
+                               "Balance is not measured"))
+            continue
         amount = _dec(payment.get("Amount"))
         applied = _zero(payment.get("NetApplied"))
         balance = _dec(payment.get("Balance"))
@@ -444,7 +481,6 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
                             f"{_fmt(applied)} = {_fmt(expected)}")
         if not _eq(applied, rec):
             problems.append(f"NetApplied {_fmt(applied)} != application rows {_fmt(rec)}")
-        status = payment.get("Status")
         if problems:
             out.append(_result("payment_balance", pid, "fail",
                                f"Status {status}; " + "; ".join(problems)))

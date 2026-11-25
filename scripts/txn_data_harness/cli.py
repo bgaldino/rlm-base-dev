@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import generate
-from .auth import SfRestClient
+from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
@@ -347,29 +347,40 @@ def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
         if not manifests:
             raise billing_verify.VerifyError("No manifests found.")
         paths.append(manifests[0])
+    empty = []
     for path in paths:
         inv, pay = billing_verify.ids_from_manifest(path)
         if not inv and not pay:
-            raise billing_verify.VerifyError(
-                f"manifest {path} names no invoice or payment id; "
-                f"pass --invoice-ids instead"
-            )
+            empty.append(str(path))
         invoice_ids += [i for i in inv if i not in invoice_ids]
         payment_ids += [p for p in pay if p not in payment_ids]
     if not invoice_ids and not payment_ids:
+        if empty:
+            raise billing_verify.VerifyError(
+                f"manifest {', '.join(empty)} names no invoice or payment id; "
+                f"pass --invoice-ids instead"
+            )
         raise billing_verify.VerifyError(
             "verify needs --manifest, --latest, --invoice-ids or --payment-ids"
         )
+    for path in empty:
+        print(f"WARNING: manifest {path} names no invoice or payment id", file=sys.stderr)
     return invoice_ids, payment_ids
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     """Read-only billing checks. Exit 0 when nothing fails, 1 when any check fails."""
     invoice_ids, payment_ids = _verify_ids(args)
-    client = SfRestClient.from_alias(
-        args.org, api_version=args.api_version, transport=args.transport
-    )
-    records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
+    try:
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
+    except (SfApiError, SfCliError) as exc:
+        # A refused read (missing object or field permission) is an input problem for
+        # this command, not a crash: say which query failed and exit 1.
+        print(f"ERROR: Salesforce request failed: {exc}", file=sys.stderr)
+        return 1
     report = billing_verify.run_checks(records, args.expect_level)
     if args.json:
         print(json.dumps(report, indent=2))

@@ -124,9 +124,10 @@ python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
 Checks, by id and with SOQL only, that each invoice, invoice line and payment
 balance agrees with its payment and credit applications, and that the
 applications are at one level (line or header). Exit 0 on pass, 1 on any
-failed check. `--expect-level line|header` forces the level (default: detect
-from the records). Checks and formulas: `billing-operations` →
-`verification.md`.
+failed check, and with an `ERROR:` line for bad input (unknown or malformed
+id, missing manifest, refused query). Ids may be 15 or 18 characters.
+`--expect-level line|header` forces the level (default: detect from the
+records). Checks and formulas: `billing-operations` → `verification.md`.
 
 ### Prune
 

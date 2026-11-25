@@ -1,8 +1,8 @@
 {
-  "_about": "Recorded query results, Header Level. Not measured live: built from the field shapes of the header application objects; ids are synthetic. INVH1: a payment and a credit memo applied at the header; the same payment also has a row on an invoice outside the set. INVH2: unpaid.",
+  "_about": "Recorded query results, Header Level. Not measured live: built from the field shapes of the header application objects; ids are synthetic. INVH1: a payment and a credit memo applied at the header, plus one payment and one credit applied then unapplied (the payment's Unapplied row carries a negative Amount, the credit's a positive one, since the sign is not measured); the same payment also has a row on an invoice outside the set. INVH2: unpaid.",
   "Invoice": [
     {
-      "Id": "3tt0000000000H1AAA",
+      "Id": "3tt0000000000H1AAI",
       "Status": "Posted",
       "SettlementLevel": "Invoice",
       "CurrencyIsoCode": "USD",
@@ -12,7 +12,7 @@
       "Balance": 700
     },
     {
-      "Id": "3tt0000000000H2AAA",
+      "Id": "3tt0000000000H2AAI",
       "Status": "Posted",
       "SettlementLevel": null,
       "CurrencyIsoCode": "USD",
@@ -22,7 +22,7 @@
       "Balance": 330
     },
     {
-      "Id": "3tt0000000000H9AAA",
+      "Id": "3tt0000000000H9AAI",
       "Status": "Posted",
       "SettlementLevel": "Invoice",
       "CurrencyIsoCode": "USD",
@@ -34,8 +34,8 @@
   ],
   "InvoiceLine": [
     {
-      "Id": "5TV00000000H11AAA",
-      "InvoiceId": "3tt0000000000H1AAA",
+      "Id": "5TV00000000H11AGAS",
+      "InvoiceId": "3tt0000000000H1AAI",
       "Type": "Charge",
       "LineAmount": 1100,
       "NetCreditsApplied": 0,
@@ -43,8 +43,8 @@
       "Balance": 1100
     },
     {
-      "Id": "5TV00000000H21AAA",
-      "InvoiceId": "3tt0000000000H2AAA",
+      "Id": "5TV00000000H21AGAS",
+      "InvoiceId": "3tt0000000000H2AAI",
       "Type": "Charge",
       "LineAmount": 330,
       "NetCreditsApplied": 0,
@@ -52,8 +52,8 @@
       "Balance": 330
     },
     {
-      "Id": "5TV00000000H91AAA",
-      "InvoiceId": "3tt0000000000H9AAA",
+      "Id": "5TV00000000H91AGAS",
+      "InvoiceId": "3tt0000000000H9AAI",
       "Type": "Charge",
       "LineAmount": 200,
       "NetCreditsApplied": 0,
@@ -66,8 +66,8 @@
   "PaymentLineInvoice": [
     {
       "Id": "0b8000000000001AAA",
-      "InvoiceId": "3tt0000000000H1AAA",
-      "PaymentId": "0aQ0000000000H1AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
       "Amount": 300,
       "Type": "Applied",
       "HasBeenUnapplied": "No",
@@ -75,28 +75,64 @@
     },
     {
       "Id": "0b8000000000002AAA",
-      "InvoiceId": "3tt0000000000H9AAA",
-      "PaymentId": "0aQ0000000000H1AAA",
+      "InvoiceId": "3tt0000000000H9AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
       "Amount": 200,
       "Type": "Applied",
       "HasBeenUnapplied": "No",
       "AssociatedPaymentLineId": null
+    },
+    {
+      "Id": "0b8000000000003AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
+      "Amount": 100,
+      "Type": "Applied",
+      "HasBeenUnapplied": "Yes",
+      "AssociatedPaymentLineId": null
+    },
+    {
+      "Id": "0b8000000000004AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
+      "Amount": -100,
+      "Type": "Unapplied",
+      "HasBeenUnapplied": "NA",
+      "AssociatedPaymentLineId": "0b8000000000003AAA"
     }
   ],
   "CreditMemoInvApplication": [
     {
       "Id": "0c0000000000001AAA",
-      "InvoiceId": "3tt0000000000H1AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
       "CreditMemoId": "50g000000000001AAA",
       "Amount": 100,
       "Type": "Applied",
       "HasBeenUnapplied": "No",
       "AssociatedLineId": null
+    },
+    {
+      "Id": "0c0000000000002AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "CreditMemoId": "50g000000000002AAA",
+      "Amount": 20,
+      "Type": "Applied",
+      "HasBeenUnapplied": "Yes",
+      "AssociatedLineId": null
+    },
+    {
+      "Id": "0c0000000000003AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "CreditMemoId": "50g000000000002AAA",
+      "Amount": 20,
+      "Type": "Unapplied",
+      "HasBeenUnapplied": "NA",
+      "AssociatedLineId": "0c0000000000002AAA"
     }
   ],
   "Payment": [
     {
-      "Id": "0aQ0000000000H1AAA",
+      "Id": "0aQ0000000000H1EAI",
       "Status": "Processed",
       "Amount": 500,
       "NetApplied": 500,
