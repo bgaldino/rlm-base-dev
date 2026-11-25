@@ -82,9 +82,8 @@ def run(options):
     sys.modules["requests"] = fake
     LOGS.clear()
     task = ManageExpressionSets.__new__(ManageExpressionSets)
-    task.org_config = types.SimpleNamespace(
-        access_token="t", instance_url="https://example.my.salesforce.com", api_version="68.0")
-    task.project_config = None
+    task.org_config = types.SimpleNamespace(access_token="t", instance_url="https://example.my.salesforce.com")
+    task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
     task.options = options
     log = lambda msg, *a, **k: LOGS.append(msg)  # noqa: E731
     task.logger = types.SimpleNamespace(info=log, error=log, warning=log, debug=lambda *a, **k: None)

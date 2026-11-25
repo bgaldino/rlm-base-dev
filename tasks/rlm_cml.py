@@ -249,10 +249,9 @@ class CMLBaseTask(BaseSalesforceTask):
     def _api_version(self) -> str:
         if self.options.get("api_version"):
             return str(self.options["api_version"])
-        return (
-            getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "68.0")
-        )
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR).
+        return str(self.project_config.project__package__api_version).lstrip("v")
 
     @property
     def _headers(self) -> Dict[str, str]:

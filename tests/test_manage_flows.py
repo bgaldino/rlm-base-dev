@@ -14,6 +14,7 @@ Why this file exists (pack 457, measured live on 264)
 - developer_names was not split on commas, and filtered DefinitionId rather than DeveloperName.
 - status, process_type, sort_by, sort_order and limit reached SOQL unescaped.
 """
+import copy
 import re
 import sys
 import types
@@ -44,13 +45,16 @@ class FakeResponse:
 
 
 def row(def_id, name, version, status, process_type="AutoLaunchedFlow"):
-    return {"Id": f"301{def_id}{version}", "DefinitionId": def_id, "Definition": {"DeveloperName": name},
+    return {"Id": f"301{def_id}{version}", "DefinitionId": def_id, "Definition": {"DeveloperName": name, "attributes": {}},
             "MasterLabel": name, "Status": status, "ProcessType": process_type, "VersionNumber": version}
 
 
 class FakeTooling(types.ModuleType):
-    """Answers queries from `rows`, honouring a Status = 'X' WHERE clause; records queries and PATCHes.
-    `fail_patch_for` ids get a 400. A nextRecordsUrl call (params None) returns the `pages` tail."""
+    """Answers queries from `rows`. Models: DeveloperName IN (case-insensitive), DefinitionId IN (an 18-character
+    Id compares case-insensitively, a 15-character one is a case-sensitive prefix), Id IN, Status = and
+    ProcessType = filters, ORDER BY on the row fields (not CreatedDate), LIMIT, and `attributes` on records.
+    Records queries, URLs and PATCHes. `fail_patch_for` ids get a 400. With `pages`, every query returns
+    a nextRecordsUrl and the follow-up call (params None) returns the `pages` tail."""
 
     ORDER_KEYS = {
         "Definition.DeveloperName": lambda r: r["Definition"]["DeveloperName"],
@@ -64,12 +68,14 @@ class FakeTooling(types.ModuleType):
         self.pages = pages
         self.fail_patch_for = set(fail_patch_for)
         self.queries = []
+        self.urls = []
         self.patches = []
 
     def get(self, url, headers=None, params=None):
+        self.urls.append(url)
         if params is None:  # follow-up page
             self.queries.append("<next page>")
-            return FakeResponse(200, {"records": [dict(r, attributes={}) for r in (self.pages or [])], "done": True})
+            return FakeResponse(200, {"records": [dict(copy.deepcopy(r), attributes={}) for r in (self.pages or [])], "done": True})
         q = params["q"]
         self.queries.append(q)
         rows = self.rows
@@ -81,8 +87,13 @@ class FakeTooling(types.ModuleType):
 
         dev, def_ids, ids = in_list("Definition.DeveloperName"), in_list("DefinitionId"), in_list("Id")
         if dev is not None or def_ids is not None:  # the two name clauses are OR-ed
-            dev_l = {v.lower() for v in dev or []}  # DeveloperName compares case-insensitively; Ids do not
-            rows = [r for r in rows if r["Definition"]["DeveloperName"].lower() in dev_l or r["DefinitionId"][:15] in [d[:15] for d in def_ids or []]]
+            dev_l = {v.lower() for v in dev or []}  # DeveloperName compares case-insensitively
+
+            def id_match(r):
+                return any(r["DefinitionId"].lower() == d.lower() if len(d) == 18 else r["DefinitionId"][:15] == d
+                           for d in def_ids or [])
+
+            rows = [r for r in rows if r["Definition"]["DeveloperName"].lower() in dev_l or id_match(r)]
         if ids is not None:
             rows = [r for r in rows if r["Id"] in ids]
         m = re.search(r"Status = '([^']*)'", where)
@@ -98,8 +109,8 @@ class FakeTooling(types.ModuleType):
         m = re.search(r" LIMIT (\d+)$", q)
         if m:
             rows = rows[: int(m.group(1))]
-        body = {"records": [dict(r, attributes={}) for r in rows], "done": True}
-        if self.pages is not None and "Status = " not in where:
+        body = {"records": [dict(copy.deepcopy(r), attributes={}) for r in rows], "done": True}
+        if self.pages is not None:
             body.update(done=False, nextRecordsUrl="/services/data/next")
         return FakeResponse(200, body)
 
@@ -115,14 +126,21 @@ from tasks.rlm_manage_flows import ManageFlows  # noqa: E402
 LOGS = []
 
 
+class StrictOrgConfig(types.SimpleNamespace):
+    """Like OrgConfig: no api_version attribute, and reading one fails hard (STRICT_GETATTR)."""
+
+    def __getattr__(self, name):
+        raise AssertionError(f"org_config.{name} is not an OrgConfig attribute")
+
+
 def run(rows, options, fail_patch_for=(), pages=None):
     fake = FakeTooling(rows, fail_patch_for, pages)
+    saved = sys.modules.get("requests")
     sys.modules["requests"] = fake
     LOGS.clear()
     task = ManageFlows.__new__(ManageFlows)
-    task.org_config = types.SimpleNamespace(
-        access_token="t", instance_url="https://example.my.salesforce.com", api_version="68.0")
-    task.project_config = None
+    task.org_config = StrictOrgConfig(access_token="t", instance_url="https://example.my.salesforce.com")
+    task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
     task.return_values = {}
     fake.task = task
     task.options = options
@@ -133,6 +151,11 @@ def run(rows, options, fail_patch_for=(), pages=None):
         return fake, None
     except Exception as exc:  # TaskOptionsError, or Exception when CumulusCI is absent
         return fake, exc
+    finally:
+        if saved is None:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = saved
 
 
 # The Tooling API returns 18-character Ids; a 15-character prefix is also accepted as a name.
@@ -260,15 +283,25 @@ fake, err = run([row(A, "Flow_A", 1, "Active"), row(B, "Flow_B", 1, "Active")],
 check("a limit does not make an existing name missing",
       err is None and len(fake.queries) == 2 and fake.queries[0].endswith("LIMIT 1") and "LIMIT" not in fake.queries[1],
       repr((err, fake.queries)))
-# A wrong-case Id is refused (raises, changes nothing), so it fails safe. How the org treats 18-character
-# Id case in a SOQL IN is unverified. This is the guard for the Id branch of _raise_on_missing: the wrong-case
-# Id matches nothing in SOQL, so only another name's row could (wrongly) satisfy it.
-_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,300000000000aaaqa2"})
-check("a wrong-case Id is not satisfied by another name's row", err is not None and "300000000000aaaqa2" in str(err), repr(err))
+# A 15-character Id is case-sensitive, so a wrong-case one is refused (raises, changes nothing: fail safe).
+# This is the guard for the 15-character Id branch of _raise_on_missing: the wrong-case Id matches nothing
+# in SOQL, so only another name's row could (wrongly) satisfy it. How the org treats a wrong-case
+# 15-character Id in a SOQL IN is unverified.
+_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,300000000000aaa"})
+check("a wrong-case 15-character Id is not satisfied by another name's row",
+      err is not None and "300000000000aaa" in str(err), repr(err))
+# An 18-character Id is case-insensitive by design, so a lowercased one that the org resolves is not missing.
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": A.lower()})
+check("a wrong-case 18-character Id matches", err is None and len(fake.patches) == 1, repr((err, fake.patches)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"})
+check("the project API version is used (org_config has no api_version)",
+      err is None and fake.urls and all("/v68.0/" in u for u in fake.urls), repr((err, fake.urls)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"})
+check("no status, process_type or limit: one query serves the missing-name check", err is None and len(fake.queries) == 1, repr(fake.queries))
 fake, err = run([row(A, "Flow_A", 1, "Active"), row(A, "Flow_A", 2, "Draft")], {"operation": "query", "developer_names": "FLOW_A"})
 check("query returns the rows in return_values['flows'] (case-insensitive DeveloperName)",
       err is None and [f["VersionNumber"] for f in fake.task.return_values.get("flows", [])] == [1, 2]
-      and all("attributes" not in f for f in fake.task.return_values["flows"]),
+      and all("attributes" not in f and "attributes" not in f["Definition"] for f in fake.task.return_values["flows"]),
       repr((err, fake.task.return_values)))
 fake, err = run([row(A, "Flow_A", 1, "Active", "AutoLaunchedFlow"), row(B, "Flow_B", 1, "Active", "Flow")],
                 {"operation": "query", "process_type": "Flow"})
@@ -283,6 +316,11 @@ check("list returns no values", err is None and fake.task.return_values == {}, r
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"},
                 pages=[row(B, "Flow_B", 1, "Active")])
 check("a paginated query follows nextRecordsUrl", err is None and "<next page>" in fake.queries, repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "query", "developer_names": "Flow_A"},
+                pages=[row(B, "Flow_B", 1, "Active")])
+check("the tail page's rows are returned",
+      err is None and [f["Definition"]["DeveloperName"] for f in fake.task.return_values["flows"]] == ["Flow_A", "Flow_B"],
+      repr((err, fake.task.return_values)))
 
 print("activate never undoes a rollback and does re-activate a deactivated flow")
 fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Active")],

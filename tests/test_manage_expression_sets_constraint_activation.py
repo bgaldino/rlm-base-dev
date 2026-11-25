@@ -91,9 +91,8 @@ def run(record, status, patch_response=None):
     sys.modules["requests"] = fake
     WARNINGS.clear()
     task = ManageExpressionSets.__new__(ManageExpressionSets)
-    task.org_config = types.SimpleNamespace(
-        access_token="t", instance_url="https://example.my.salesforce.com", api_version="68.0")
-    task.project_config = None
+    task.org_config = types.SimpleNamespace(access_token="t", instance_url="https://example.my.salesforce.com")
+    task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
     task.options = {}
     task.logger = types.SimpleNamespace(
         info=lambda *a, **k: None, error=lambda *a, **k: None,

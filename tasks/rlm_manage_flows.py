@@ -118,10 +118,9 @@ class ManageFlows(BaseSalesforceTask):
     # -- shared plumbing ------------------------------------------------
 
     def _api_version(self) -> str:
-        return (
-            getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "68.0")
-        )
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR). The project's API version is what the repo's tasks use.
+        return str(self.project_config.project__package__api_version).lstrip("v")
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -152,6 +151,8 @@ class ManageFlows(BaseSalesforceTask):
             )
         for record in records:
             record.pop("attributes", None)
+            if isinstance(record.get("Definition"), dict):
+                record["Definition"].pop("attributes", None)
         return records
 
     def _requested_names(self) -> List[str]:
@@ -195,24 +196,32 @@ class ManageFlows(BaseSalesforceTask):
         if names:
             # status, process_type and limit may legitimately leave out a flow that exists, so a
             # name is only "missing" when no flow of that name exists at all: check against an
-            # unfiltered, unordered, unlimited query.
-            by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
+            # unfiltered, unordered, unlimited query (the main query already is that when none is set).
+            by_name = flows
+            if self.options.get("status") or self.options.get("process_type") or self.options.get("limit") not in (None, ""):
+                by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
             self._raise_on_missing(names, by_name)
         self.logger.info(f"Query returned {len(flows)} flow version(s).")
         return flows
 
     def _raise_on_missing(self, names: List[str], rows: List[Dict]):
         """Raise when a requested name (DeveloperName or FlowDefinition Id) matches no flow."""
-        # DeveloperName comparison in SOQL is case-insensitive, so that check is too; Ids are case-sensitive
-        # (a 15-character Id matches its 18-character form, by prefix, but only with the same case).
+        # DeveloperName comparison in SOQL is case-insensitive, so that check is too. An 18-character Id is
+        # case-insensitive by design (the last three characters encode the case of the first 15); a
+        # 15-character Id is case-sensitive. A 15-character Id also matches the first 15 of the 18.
         found_names = {self._developer_name(row).lower() for row in rows}
-        found_ids = set()
-        for row in rows:
-            found_ids.update((row["DefinitionId"], row["DefinitionId"][:15]))
-        missing = [
-            n for n in names
-            if (n not in found_ids if _DEFINITION_ID.match(n) else n.lower() not in found_names)
-        ]
+        found_ids18 = {row["DefinitionId"].lower() for row in rows}
+        found_ids15 = {row["DefinitionId"][:15] for row in rows}
+        missing = []
+        for n in names:
+            if not _DEFINITION_ID.match(n):
+                ok = n.lower() in found_names
+            elif len(n) == 18:
+                ok = n.lower() in found_ids18
+            else:
+                ok = n in found_ids15
+            if not ok:
+                missing.append(n)
         if missing:
             raise TaskOptionsError(
                 "No flow matches: " + ", ".join(missing)
