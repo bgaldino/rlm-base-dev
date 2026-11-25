@@ -383,21 +383,25 @@ def _cmd_verify(args: argparse.Namespace) -> int:
             args.org, api_version=args.api_version, transport=args.transport
         )
         records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
-    except (billing_verify.VerifyError, SfApiError, SfCliError,
-            requests.RequestException, OSError) as exc:
-        # RequestException: the --api-version latest lookup; OSError: sf not runnable.
-        message = str(exc)
-        if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
+        report = billing_verify.run_checks(records, args.expect_level)
+    except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
+        # Exit 1 means a check failed, so no error may reach main() (which maps
+        # ValueError to 1) or escape as a traceback.
+        if isinstance(exc, billing_verify.VerifyError):
+            message = str(exc)
+        elif isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
+            # RequestException: the --api-version latest lookup.
             message = f"Salesforce request failed: {exc}"
         elif isinstance(exc, FileNotFoundError) and exc.filename == "sf":
             message = "the sf CLI was not found on PATH"
         elif isinstance(exc, OSError):
             message = f"could not run a command or read a file: {exc}"
+        else:
+            message = f"unexpected {type(exc).__name__}: {exc}"
         print(f"ERROR: {message}", file=sys.stderr)
         if args.json:
             print(json.dumps({"ok": False, "error": message}, indent=2))
         return 2
-    report = billing_verify.run_checks(records, args.expect_level)
     if args.json:
         print(json.dumps(report, indent=2))
     else:
@@ -419,21 +423,26 @@ def _cmd_prune(args: argparse.Namespace) -> int:
     return 0
 
 
-def _json_usage_errors(parser: argparse.ArgumentParser, as_json: bool) -> None:
-    """Under ``--json``, also print a usage error as the JSON error object.
+def _json_usage_errors(parsers: list[argparse.ArgumentParser], as_json: bool) -> None:
+    """For ``verify --json``, also print an argparse usage error as the JSON error object.
 
-    argparse still prints usage and the error to stderr and exits 2; this adds the
-    ``{"ok": false, "error": ...}`` object on stdout so a ``--json`` caller always
-    gets one, whether the input error is caught by argparse or by the command.
+    Installed on the top-level parser (unrecognized or extra arguments) and the
+    ``verify`` subparser (missing ``--org``, a bad choice), so every usage error of
+    a ``verify`` command line that contains the exact token ``--json`` prints one
+    ``{"ok": false, "error": "usage: ..."}`` object on stdout. argparse still prints
+    usage and the error on stderr and exits 2; the first error exits, so there is
+    never a second object. ``verify`` refuses abbreviated options, so ``--json`` is
+    the only spelling that sets JSON output.
     """
-    original = parser.error
+    for parser in parsers:
+        original = parser.error
 
-    def error(message: str):
-        if as_json:
-            print(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
-        original(message)
+        def error(message: str, _original=original):
+            if as_json:
+                print(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
+            _original(message)
 
-    parser.error = error  # type: ignore[method-assign]
+        parser.error = error  # type: ignore[method-assign]
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -485,6 +494,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     verify = sub.add_parser(
         "verify",
+        allow_abbrev=False,
         help="Read-only billing checks on invoices and payments "
              "(exit 1 on a failed check, 2 on bad input).",
     )
@@ -506,7 +516,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                              "records).")
     verify.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     verify.set_defaults(func=_cmd_verify)
-    _json_usage_errors(verify, "--json" in tokens)
+    # The top-level parser has no options but -h, so its first token is the command.
+    _json_usage_errors([parser, verify], tokens[:1] == ["verify"] and "--json" in tokens)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

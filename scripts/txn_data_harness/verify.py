@@ -25,7 +25,9 @@ Checks (formulas are documented in
 ``invoice_line_balance``
     ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
     each rollup equals the net of the line's application rows. Skipped at Header
-    Level, for an invoice that is not Posted or has Tax lines or header tax, for an
+    Level or when the level is undetermined (no application rows and no
+    ``SettlementLevel`` in the set), for an invoice that is not Posted or has Tax
+    lines or header tax, for an
     invoice whose applications are header rows only, and for a line with a
     converted-negative or adjustment amount. An invoice with no lines fails.
 ``payment_balance``
@@ -495,7 +497,7 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     return out
 
 
-def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
+def _check_line_balance(idx: _Index, level: Optional[str], source: str) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
@@ -503,6 +505,11 @@ def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
             out.append(_result("invoice_line_balance", iid, "skip",
                                "level is header; line balances at Header Level are not "
                                "measured"))
+            continue
+        if source == "undetermined":
+            out.append(_result("invoice_line_balance", iid, "skip",
+                               "level undetermined (no application rows or SettlementLevel "
+                               "in the set); line balances are measured at Line Level only"))
             continue
         not_posted = _not_posted(invoice)
         if not_posted:
@@ -671,7 +678,7 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
     results = (
         _check_level(idx, level, source)
         + _check_invoice_balance(idx)
-        + _check_line_balance(idx, level)
+        + _check_line_balance(idx, level, source)
         + _check_payment_balance(records, idx)
         + _check_unapplied(records)
     )

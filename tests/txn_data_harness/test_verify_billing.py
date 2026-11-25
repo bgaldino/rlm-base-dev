@@ -714,6 +714,29 @@ def test_second_unapplied_row_on_one_applied_row_fails():
     assert second["status"] == "fail" and "already paired" in second["detail"]
 
 
+def test_undetermined_level_skips_line_balances():
+    # INV2 alone: no rows, no SettlementLevel. Line Balance is measured at Line Level
+    # only, so an inconsistent line must skip, not fail.
+    data = _load("line_level.json")
+    _row(data, "InvoiceLine", "5TV000000000021GAA")["Balance"] = 1
+    report = _verify(data, ["3tt000000000002AAA"])
+    assert report["level_source"] == "undetermined"
+    result = next(r for r in report["checks"] if r["check"] == "invoice_line_balance")
+    assert result["status"] == "skip" and "level undetermined" in result["detail"]
+    assert report["ok"] is True
+
+
+def test_header_rows_are_read_for_every_invoice():
+    # H1's header rows come second: a fetch that read only the first invoice's rows
+    # would miss them (and the payment found through them).
+    client = RecordedClient(_load("header_level.json"))
+    records = fetch_billing_records(client, list(reversed(HEADER_INVOICES)))
+    for obj in ("PaymentLineInvoice", "CreditMemoInvApplication"):
+        assert "3tt0000000000H1AAI" in {r["InvoiceId"] for r in records[obj]}, obj
+    assert [r["Id"] for r in records["Payment"]] == ["0aQ0000000000H1EAI"]
+    assert run_checks(records)["ok"] is True
+
+
 # ------------------------------------------------------------------ CLI
 
 @pytest.fixture
@@ -915,3 +938,65 @@ def test_cli_verify_usage_error_without_json_prints_no_object(capsys):
     captured = capsys.readouterr()
     assert raised.value.code == 2 and captured.out == ""
     assert "usage:" in captured.err
+
+
+@pytest.mark.parametrize("argv, fragment", [
+    (["verify", "--org", "x", "--json", "--bogus"], "unrecognized arguments: --bogus"),
+    (["verify", "--org", "x", "--json", "extra"], "unrecognized arguments: extra"),
+    (["verify", "--org", "x", "--json", "--expect"], "unrecognized arguments: --expect"),
+])
+def test_cli_verify_top_level_usage_errors_print_one_json_object(capsys, argv, fragment):
+    with pytest.raises(SystemExit) as raised:
+        cli.main(argv)
+    captured = capsys.readouterr()
+    assert raised.value.code == 2
+    assert "usage:" in captured.err and fragment in captured.err
+    out = json.loads(captured.out)  # exactly one object: a second would not parse
+    assert out == {"ok": False, "error": f"usage: {fragment}"}
+
+
+def test_cli_verify_refuses_abbreviated_json(capsys):
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["verify", "--org", "x", "--invoice-ids", LINE_INVOICES[0], "--jso"])
+    captured = capsys.readouterr()
+    assert raised.value.code == 2
+    assert "unrecognized arguments: --jso" in captured.err and captured.out == ""
+
+
+def test_other_subcommands_keep_plain_usage_errors_and_abbreviations(capsys):
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["prune", "--older-than", "7d", "--json"])
+    captured = capsys.readouterr()
+    assert raised.value.code == 2 and captured.out == ""
+    assert "unrecognized arguments: --json" in captured.err
+    args = cli.parse_args(["prune", "--older", "7d"])  # abbreviation still accepted
+    assert args.older_than == "7d"
+
+
+def test_cli_verify_unexpected_value_error_exits_two(monkeypatch, capsys):
+    # Undecodable sf output: a ValueError main() would otherwise report as exit 1.
+    def bad_output(alias):
+        raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+    monkeypatch.setattr(auth, "resolve_auth", bad_output)
+    rc = cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0], "--json"])
+    _assert_error_exit(rc, capsys, "unexpected UnicodeDecodeError")
+
+
+def test_cli_verify_latest_api_version_with_odd_body_exits_two(monkeypatch, capsys):
+    # A non-list body from /services/data/ makes [-1] a KeyError, not a traceback.
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"versions": []}
+
+    class Session:
+        def get(self, url):
+            return Response()
+
+    monkeypatch.setattr(auth, "resolve_auth", lambda alias: ("token", "https://x.invalid"))
+    monkeypatch.setattr(auth.SfRestClient, "_session", property(lambda self: Session()))
+    rc = cli.main(["verify", "--org", "fake", "--api-version", "latest",
+                   "--invoice-ids", LINE_INVOICES[0], "--json"])
+    _assert_error_exit(rc, capsys, "unexpected KeyError")

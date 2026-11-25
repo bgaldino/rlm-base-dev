@@ -126,9 +126,12 @@ balance agrees with its payment and credit applications, and that the
 applications are at one level (line or header). Exit 0 on pass, 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
 id, missing or malformed manifest, refused query, failed connection, no `sf`
-on `PATH`); with `--json` an error also prints `{"ok": false, "error": ...}`.
-A usage error (no `--org`, bad `--expect-level`) exits 2 with argparse usage
-on stderr, plus the same JSON object under `--json`. Ids may be 15 or 18
+on `PATH`, any unexpected error); with `--json` an error also prints
+`{"ok": false, "error": ...}`. A usage error (no `--org`, bad
+`--expect-level`, an unrecognized or extra argument) exits 2 with argparse
+usage on stderr and, when the command line contains `--json`, one
+`{"ok": false, "error": "usage: ..."}` object on stdout. Abbreviated options
+are refused. Ids may be 15 or 18
 characters. Harness manifests carry no payment ids: payments are found
 through the invoices' application rows, or passed with `--payment-ids`.
 `--latest` checks only the newest manifest: after a batch of several

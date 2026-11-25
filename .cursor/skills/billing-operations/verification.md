@@ -31,10 +31,13 @@ Exit codes:
   unknown or unreadable id, a missing manifest, one that is not UTF-8 JSON or not a JSON
   object, or an id value in it that is not a string or a list of strings; a refused
   query or login, a failed connection (including the `--api-version latest` lookup), or
-  an `sf` CLI that is not on `PATH`. An `ERROR:` line goes to stderr; with `--json`,
-  stdout gets `{"ok": false, "error": "..."}`. A usage error (no `--org`, an unknown
-  `--expect-level` value) is reported by argparse instead: usage text and the error on
-  stderr, exit 2, and with `--json` the same error object on stdout.
+  an `sf` CLI that is not on `PATH`, or any other unexpected error (named with its
+  type). An `ERROR:` line goes to stderr; with `--json`, stdout gets
+  `{"ok": false, "error": "..."}`. A usage error (no `--org`, an unknown
+  `--expect-level` value, an unrecognized or extra argument) is reported by argparse
+  instead: usage text and the error on stderr, exit 2, and, when the command line
+  contains the token `--json`, one `{"ok": false, "error": "usage: ..."}` object on
+  stdout. `verify` refuses abbreviated options: `--jso` is an unrecognized argument.
 
 Ids may be 15 or 18 characters; they are converted to the 18-character form before
 querying. From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
@@ -66,7 +69,7 @@ reason; it never guesses a formula.
 | ----- | ----------- |
 | `application_level` | The invoice has no application rows of the other level, and its `SettlementLevel` does not name the other level. Line rows: `PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`. Header rows: `PaymentLineInvoice`, `CreditMemoInvApplication`. Skipped for an invoice with neither application rows nor a `SettlementLevel`, whether the level was detected or forced with `--expect-level`. |
 | `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows (both levels). Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted, has `Type` Tax lines, or has a non-zero `TotalTaxesCapturedAtHeader`. |
-| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected), for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
+| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected) or undetermined (no application rows or `SettlementLevel` in the set), for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
 | `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Checked for a Processed payment and for a Canceled payment with no application rows; skipped for any other status or a Canceled payment with rows. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
 | `unapplied_rows` | Every `Unapplied` row pairs, by its self-lookup, with an `Applied` row marked unapplied (`UnappliedStatus` or `HasBeenUnapplied` = `Yes`), and every `Applied` row marked unapplied has its pair, one to one: a second `Unapplied` row on the same `Applied` row fails. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. The pair's amounts are not compared (see below). |
 
