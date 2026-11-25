@@ -608,7 +608,13 @@ public with sharing class RLM_CollectionsDashboardController {
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
         Map<Id, String> m = new Map<Id, String>();
         if (accountIds == null || accountIds.isEmpty()) return m;
-        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
+        // A refused Account read (no object access) must not abort the caller: the rows are still
+        // listed, just without a name, instead of the whole section being dropped by the caller's catch.
+        try {
+            for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.getAccountNames: ' + e.getMessage());
+        }
         return m;
     }
 
@@ -807,30 +813,30 @@ public with sharing class RLM_CollectionsDashboardController {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return items;
             Id currentUserId = UserInfo.getUserId();
             String acctField = 'AccountId';
-            String acctNameExpr = 'Account.Name';
             Map<String, Schema.SObjectField> cpFields = Schema.SObjectType.CollectionPlan.fields.getMap();
             if (cpFields.containsKey('BillingAccountId')) {
                 acctField = 'BillingAccountId';
-                acctNameExpr = 'BillingAccount.Name';
             }
             if (cpFields.containsKey('AccountId')) {
                 acctField = 'AccountId';
-                acctNameExpr = 'Account.Name';
             }
-            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField + ', ' + acctNameExpr;
+            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField;
             String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC LIMIT 50';
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
+            // Names come from getAccountNames, not an Account.Name relationship in the plan query: a
+            // refused Account read then leaves the plans listed without a name instead of dropping them.
+            Set<Id> planAccountIds = new Set<Id>();
+            for (SObject cp : plans) {
+                if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));
+            }
+            Map<Id, String> planAccountNames = getAccountNames(planAccountIds);
             for (SObject cp : plans) {
                 Id cpId = (Id) cp.get('Id');
                 String cpName = (String) cp.get('Name');
                 Date dueDate = (Date) cp.get('Duedate');
                 Decimal totalInvBal = cp.get('TotalInvoiceBalance') != null ? (Decimal) cp.get('TotalInvoiceBalance') : 0;
                 Id accountId = (Id) cp.get(acctField);
-                String accountName = null;
-                try {
-                    SObject rel = cp.getSObject(acctField.replace('Id', ''));
-                    if (rel != null) accountName = (String) rel.get('Name');
-                } catch (Exception ex) { }
+                String accountName = accountId != null ? planAccountNames.get(accountId) : null;
                 items.add(new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal));
             }
         } catch (Exception e) { }

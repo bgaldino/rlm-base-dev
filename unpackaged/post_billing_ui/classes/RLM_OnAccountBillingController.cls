@@ -238,6 +238,13 @@ public with sharing class RLM_OnAccountBillingController {
      * that conversion and re-applies dated rates to match platform behavior:
      *   1. Undo standard conversion:  rawAmount = autoConverted * standardRate
      *   2. Apply dated conversion:    result    = rawAmount / datedRate * targetDatedRate
+     *
+     * Accepted behavior (owner decision, 2026-11-25, pack 433): when the group currency equals the
+     * target currency this returns the auto-converted SUM unchanged. SUM() has already converted
+     * into the corporate currency, so when the account and its invoices, memos, payments or refunds
+     * share a non-corporate currency, each such balance (and the net balance) shows the
+     * corporate-converted figure labelled in the account currency (pinned for payments by
+     * RLM_OnAccountBillingControllerTest). Revisit only if a customer reports a mismatch.
      */
     private static Decimal correctConversion(
         Decimal autoConverted, String fromCurrency, String toCurrency,

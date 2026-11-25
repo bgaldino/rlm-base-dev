@@ -8,12 +8,14 @@
  * worklist fallback and the disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
- * Records are created in admin context. Three tests then run as other users: a collections
+ * Records are created in admin context. Five tests then run as other users: a collections
  * specialist, who reads their own plan; a user with no access, who gets empty sections; and the
- * same kind of no-access user, for whom getAccountOptions throws (a pinned gap). The specialist
+ * same kind of no-access user, for whom getAccountOptions returns only the sentinel and the
+ * worklist builders keep their rows without account names. The specialist
  * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
  * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
- * list cannot show a refusal.
+ * list cannot show a refusal. getMyCollectionPlans keeping plans without names when Account is
+ * refused needs a user who owns a plan but cannot read Account, so it is verified live only.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
  * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
@@ -801,6 +803,58 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isNull(second.collectionPlanId, 'An account without a plan has none');
         Assert.areEqual('RLM High Value Three', second.accountName, 'The account name is looked up');
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
+    }
+
+    // A user who cannot read Account still gets the rows (without a name) rather than the caller's
+    // catch dropping the whole section; the last-resort and critical follow-up builders share the
+    // lookup.
+    @isTest
+    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = newAccount('RLM High Value Unreadable');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
+                'PRECONDITION: the user cannot read Account.');
+            RLM_CollectionsDashboardController.addHighValueDelinquents(wl, invoices, 'BillingAccountId', today);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
+        Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
+        Assert.isNull(wl.highValueDelinquents[0].accountName, 'The name is blank, not a raw exception.');
+    }
+
+    @isTest
+    static void lastResortAndCriticalFollowUps_forAUserWhoCannotReadAccounts_keepRows() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = newAccount('RLM Last Resort Unreadable');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData lastResort = new RLM_CollectionsDashboardController.WorklistData();
+        RLM_CollectionsDashboardController.WorklistData critical = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
+                'PRECONDITION: the user cannot read Account.');
+            RLM_CollectionsDashboardController.addLastResortDelinquents(lastResort, invoices, 'BillingAccountId', today);
+            RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, false, today);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, lastResort.highValueDelinquents.size(), 'The last-resort row is kept.');
+        Assert.isNull(lastResort.highValueDelinquents[0].accountName, 'Its name is blank.');
+        Assert.areEqual(1, critical.criticalFollowUpInvoices.size(), 'The critical follow-up row is kept.');
+        Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'Its name shows a dash.');
     }
 
     // A critical follow-up row per invoice: days overdue from the field when the org has it and it

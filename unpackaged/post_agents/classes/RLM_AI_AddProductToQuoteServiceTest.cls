@@ -611,7 +611,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
 
     // A product Id that finds no product, with no product name, gets a fixed sentence and nothing is
     // added: a value that is not an Id, a value that parses as an Id of no known object, another
-    // record's Id, and a deleted product's Id.
+    // record's Id, a deleted product's Id and an inactive product's Id.
     @isTest
     static void aProductIdThatFindsNoProductWithoutANameGetsAFixedSentence() {
         Fixture f = buildFixture('Quinn Bad Id Product', true, false);
@@ -622,9 +622,11 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         insert gone;
         Id goneId = gone.Id;
         delete gone;
+        Id inactiveId = insertProduct('Quinn Inactive Id Product', false, false).productId;
 
         // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
-        for (String productId : new List<String>{ 'not-an-id', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId) }) {
+        // An inactive product's Id finds no product either, as the name path matches active products only.
+        for (String productId : new List<String>{ 'not-an-id', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId), String.valueOf(inactiveId) }) {
             RLM_AI_AddProductToQuoteService.AddInput input =
                 new RLM_AI_AddProductToQuoteService.AddInput();
             input.quoteId = String.valueOf(f.quoteId);
@@ -641,7 +643,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     }
 
     // The planner can leave a name, a value that parses as an Id of no known object, another
-    // record's Id or a deleted product's Id in the Id slot; a product name given with it still
+    // record's Id, a deleted or an inactive product's Id in the Id slot; a product name given with it still
     // identifies the product.
     @isTest
     static void aProductIdThatFindsNoProductFallsBackToTheGivenName() {
@@ -653,10 +655,12 @@ private class RLM_AI_AddProductToQuoteServiceTest {
         insert gone;
         Id goneId = gone.Id;
         delete gone;
+        Id inactiveId = insertProduct('Quinn Inactive Fallback Product', false, false).productId;
 
         // 'zzz000000000000' parses as an Id, but its key prefix is unknown, so getSObjectType() throws.
         List<String> staleIds = new List<String>{
-            'Quinn Fallback Product', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId)
+            'Quinn Fallback Product', 'zzz000000000000', String.valueOf(f.quoteId), String.valueOf(goneId),
+            String.valueOf(inactiveId)
         };
         for (String productId : staleIds) {
             RLM_AI_AddProductToQuoteService.AddInput input =
