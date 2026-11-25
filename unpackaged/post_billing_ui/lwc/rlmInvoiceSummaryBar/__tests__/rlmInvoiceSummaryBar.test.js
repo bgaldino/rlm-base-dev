@@ -70,4 +70,28 @@ describe('rlmInvoiceSummaryBar wires', () => {
         expect(errorText(el)).toBe('Invoice summary is unavailable.');
         expect(el.shadowRoot.querySelector('.summary-container')).toBeNull();
     });
+
+    it('clears the error and shows the figures when the invoice wire then succeeds', async () => {
+        const el = mount();
+        getBillingSummary.emit(BILLING);
+        getInvoiceSummary.error({ message: 'Invoice summary is unavailable.' });
+        await flush();
+        getInvoiceSummary.emit(INVOICE);
+        await flush();
+        expect(errorText(el)).toBeUndefined();
+        expect(el.shadowRoot.querySelector('.summary-container')).not.toBeNull();
+    });
+
+    it.each([
+        ['invoice first', true],
+        ['billing first', false]
+    ])('shows the invoice error when both wires fail, %s', async (_order, invoiceFirst) => {
+        const el = mount();
+        const failInvoice = () => getInvoiceSummary.error({ message: 'Invoice summary is unavailable.' });
+        const failBilling = () => getBillingSummary.error(REFUSED);
+        if (invoiceFirst) { failInvoice(); failBilling(); } else { failBilling(); failInvoice(); }
+        await flush();
+        expect(errorText(el)).toBe('Invoice summary is unavailable.');
+        expect(el.shadowRoot.querySelector('.summary-container')).toBeNull();
+    });
 });
