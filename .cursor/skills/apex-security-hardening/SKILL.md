@@ -67,8 +67,8 @@ row errors and `RLM_DFOTenantProvisioningCallout` failures. It is acceptable **o
 grants the screen stays admin-only** (never assigned to sales reps). Widen the grant and every such message must
 become a fixed sentence plus `System.debug` of the detail. `RLM_RebuildSearchIndex` already returns a fixed
 sentence with the response body in the debug log (tested). Tax adapter error codes are `RLM_TAX_500` to
-`RLM_TAX_503`, outside the HTTP range; engine statuses stay the real HTTP status and unmapped engine
-transaction statuses are logged, not mapped.
+`RLM_TAX_503`, outside the HTTP range; a non-2xx engine response keeps its real HTTP status as the code and unmapped engine
+transaction statuses (Saved, Posted, ...) are logged, not mapped.
 
 ## Entry Conditions
 

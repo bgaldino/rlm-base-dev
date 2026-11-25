@@ -282,7 +282,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The word "error" in a value is not an engine error.');
     }
 
-    // Every error shape yields a RLM_TAX_501 response with the fixed sentence and never throws: a message,
+    // Every error shape yields an RLM_TAX_501 response with the fixed sentence and never throws: a message,
     // details only, a bare string, an error object with neither message nor details, and an error of
     // an unexpected type. The engine's text stays out of the response and out of the debug log; only
     // its error codes are logged.
@@ -353,7 +353,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     // A body that is not JSON cannot be read: a RLM_TAX_502 error response, not a JSONException. An empty or
-    // missing body is the same 502 (see the 2xx empty-body case in the non-2xx test).
+    // missing body is the same RLM_TAX_502 (see the 2xx empty-body case in the non-2xx test).
     @IsTest
     static void getTax_bodyThatIsNotJson_returnsAnUnreadableResponseError() {
         for (String body : new List<String>{ '<html>Bad gateway</html>', '[1,2]', ' ', '' }) {

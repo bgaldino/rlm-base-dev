@@ -19,7 +19,7 @@ global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter 
                     return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, null, 'malformed adapter error response');
         }
         if(request.documentCode == 'simulateTaxEngineProcessFailure') {
-            return new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '500', 'Tax Engine couldnt process your request');
+            return /* '500' stands in for an engine HTTP status, not an RLM_TAX_ adapter code */ new commercetax.ErrorResponse(commercetax.resultcode.TaxEngineError, '500', 'Tax Engine couldnt process your request');
         }
 
         if(requestType == commercetax.RequestType.CalculateTax){

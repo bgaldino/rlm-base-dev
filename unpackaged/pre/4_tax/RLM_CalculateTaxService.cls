@@ -299,7 +299,7 @@ global class RLM_CalculateTaxService {
                     if(jsonSuccessParserClass.status != 'Temporary' && jsonSuccessParserClass.status != 'Committed') {
                         // Owner decision (todo 433, B8): no platform status is invented for an unmapped
                         // engine status; the engine's own status is logged so it can be traced.
-                        debugEngineDetail('engine status not mapped, status left unset: ' + jsonSuccessParserClass.status);
+                        debugEngineDetail('engine status not mapped, status left unset: ' + (jsonSuccessParserClass.status == null ? null : jsonSuccessParserClass.status.left(40)));
                     }
                     response.setTaxType(requestType);
                     commercetax.AmountDetailsResponse headerAmountResponse = new commercetax.AmountDetailsResponse();
