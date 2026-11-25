@@ -2,8 +2,7 @@
 """Pure version guards shared by the toolkit CLIs and the CCI expression-set tasks.
 
 Stdlib only, no I/O and no CumulusCI import: ``tasks/rlm_expression_set_connect.py``
-imports this module, and ``tests/test_expression_set_schema.py`` must keep running
-under base Python.
+imports this module, so it must import nothing the toolkit's plain Python lacks.
 
 Two facts drive these guards (todo packs 172 and 175):
 
@@ -11,28 +10,35 @@ Two facts drive these guards (todo packs 172 and 175):
   them active at once (``ramp264``: v1, v3 and v4 active; v4 ran). The 264 object
   reference for ``ExpressionSetVersion.Rank`` says that when more than one enabled
   version matches and their start/end windows overlap, the version with the
-  **highest Rank** is chosen. :func:`executing_version` applies that rule; its
-  tie-break and null-Rank handling are not documented (see the function).
+  **highest Rank** is chosen. The rest of :func:`executing_version`'s rule was
+  measured live (264, 2026-11-24/25, direct Connect invocations of disposable sets,
+  3 of 3 calls each): a numeric Rank beats a null one; among null Ranks the
+  **earliest created** version runs (not the lower or higher VersionNumber); equal
+  numeric Ranks cannot be set up (a deploy is refused with "Assign a unique rank to
+  expression set version …", and activating a version through the sObject API
+  needs a Rank: "Enter a valid rank to enable …"), so null Ranks only come from a
+  Metadata API deploy.
 * **What a replace import can target.** A replace import is one full-graph Connect
-  PATCH. It sends the payload's first version and rewrites that version's ``id`` to
-  the org version the importer resolved (active first, then highest-numbered).
-  When the payload's version is a different version from that target, the PATCH
-  rebinds one version's content onto another existing version. On ``ramp264`` the
-  payload carried ``RLM_DefaultPricingProcedure_V1`` while the importer targeted the
-  executing ``..._Partner_Price_and_Ramp_v40``: the platform rejected the PATCH on a
-  version-name collision with the real ``_V1``, after writing a formula into
-  ``versions[0]``. A full-graph PATCH on a set with one active version and one
-  inactive draft, aimed at the version it names, succeeded live on 264 (the overlay
-  path, commit 68dccf7bd). :func:`import_target_refusal` refuses the first shape
-  and allows the second.
+  PATCH. It sends the payload's versions and rewrites the first one's ``id`` to the
+  version the importer targets (the executing version by :func:`executing_version`,
+  else the active, then the highest-numbered one). Measured on
+  264 (2026-11-24) on a set with two versions: a payload carrying both versions
+  failed whether the versions shared a label (version-name collision) or not
+  (duplicate CalculationProcedureId); a one-version payload for the target failed
+  on the version-name collision when another version shared its label, and
+  succeeded when no other version did. :func:`import_target_refusal` allows only
+  that last shape.
 """
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-# The ExpressionSetVersion fields executing_version reads. Every caller that resolves
-# the executing version selects these.
-VERSION_FIELDS = "Id, ApiName, VersionNumber, IsActive, Rank, StartDateTime, EndDateTime"
+# The ExpressionSetVersion fields executing_version and import_target_refusal read.
+# Every caller that resolves the executing version selects these.
+VERSION_FIELDS = ("Id, ApiName, Name, VersionNumber, IsActive, Rank, StartDateTime, "
+                  "EndDateTime, CreatedDate")
+
+MEASURED = "measured on Release 264, 2026-11-24"
 
 
 def _parse_datetime(value: Any) -> Optional[datetime]:
@@ -55,8 +61,8 @@ def in_window(version: Dict[str, Any], now: Optional[datetime] = None) -> bool:
     """Whether ``now`` lies in the version's StartDateTime/EndDateTime window.
 
     A missing (or unread) bound is open. The object reference says EndDateTime is
-    when the version becomes inactive, so ``now == EndDateTime`` is outside; the
-    exact boundary is not otherwise documented.
+    when the version becomes inactive, so ``now == EndDateTime`` is outside. The
+    platform matches against the call's effective date; the tooling uses now.
     """
     now = now or datetime.now(timezone.utc)
     start = _parse_datetime(version.get("StartDateTime"))
@@ -64,14 +70,18 @@ def in_window(version: Dict[str, Any], now: Optional[datetime] = None) -> bool:
     return (start is None or start <= now) and (end is None or now < end)
 
 
-def _rank_key(version: Dict[str, Any]):
-    # UNVERIFIED until the live check: the docs say the highest Rank wins among
-    # enabled versions whose windows overlap, but say nothing about a null Rank or
-    # equal Ranks. Here a null Rank sorts below every numeric Rank, and equal Ranks
-    # fall back to the higher VersionNumber.
-    rank = version.get("Rank")
-    has_rank = isinstance(rank, (int, float))
-    return (1 if has_rank else 0, rank if has_rank else 0, version.get("VersionNumber") or 0)
+def _has_rank(version: Dict[str, Any]) -> bool:
+    return isinstance(version.get("Rank"), (int, float))
+
+
+_LATEST = datetime.max.replace(tzinfo=timezone.utc)
+
+
+def _creation_key(version: Dict[str, Any]):
+    """Earliest created first: CreatedDate, then Id (Salesforce Ids grow with
+    creation), then VersionNumber when neither was read."""
+    return (_parse_datetime(version.get("CreatedDate")) or _LATEST,
+            version.get("Id") or "", version.get("VersionNumber") or 0)
 
 
 def running_candidates(versions: List[Dict[str, Any]],
@@ -80,58 +90,98 @@ def running_candidates(versions: List[Dict[str, Any]],
     return [v for v in versions if v.get("IsActive") and in_window(v, now)]
 
 
+def _top_tier(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The candidates that share the winning Rank: the highest numeric Rank, or every
+    null-Rank candidate when none has a number."""
+    ranked = [v for v in candidates if _has_rank(v)]
+    if not ranked:
+        return list(candidates)
+    top = max(v["Rank"] for v in ranked)
+    return [v for v in ranked if v["Rank"] == top]
+
+
 def executing_version(versions: List[Dict[str, Any]],
                       now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
-    """The version that runs: among active versions whose window covers ``now``,
-    the highest ``Rank`` (264 object reference, ``ExpressionSetVersion.Rank``).
+    """The version that runs, among active versions whose window covers ``now``.
 
-    The tie-break (higher ``VersionNumber``) and the null-Rank order (below any
-    number) are NOT documented and are unverified until a live check. Rows read
-    without ``Rank``/``StartDateTime``/``EndDateTime`` (see :data:`VERSION_FIELDS`)
-    fall back to the highest-numbered active version. Returns ``None`` when no
-    active version covers ``now``.
+    The highest numeric ``Rank`` wins (264 object reference; measured: a Rank of 2
+    beats 1 whatever the VersionNumbers, and any number beats a null Rank). Among
+    versions with no Rank, the earliest created runs (measured, 264, 2026-11-25:
+    VersionNumber 2 created before VersionNumber 1 ran, 3 of 3). Equal numeric
+    Ranks are refused by the platform, so how it would choose between them is not
+    measured; the same earliest-created rule is applied. Rows read without a
+    ``Rank`` field at all (not :data:`VERSION_FIELDS`) fall back to the
+    highest-numbered active version. Returns ``None`` when no active version
+    covers ``now``.
     """
     candidates = running_candidates(versions, now)
     if not candidates:
         return None
-    return max(candidates, key=_rank_key)
+    if not any("Rank" in v for v in candidates):
+        return max(candidates, key=lambda v: v.get("VersionNumber") or 0)
+    tier = _top_tier(candidates)
+    return tier[0] if len(tier) == 1 else min(tier, key=_creation_key)
 
 
 def rank_order_warning(versions: List[Dict[str, Any]],
                        now: Optional[datetime] = None) -> Optional[str]:
-    """A warning when the executing-version choice rests on something the platform
-    does not document (equal top Ranks, a null Rank) or when Rank and
-    VersionNumber disagree about which version runs; ``None`` otherwise."""
+    """A note when several versions could run and the choice is easy to misread:
+    Rank and VersionNumber point at different versions, the winner was chosen by
+    creation order among null Ranks, or numeric Ranks are equal (a state the
+    platform refuses to create); ``None`` otherwise."""
     candidates = running_candidates(versions, now)
-    if len(candidates) < 2:
+    if len(candidates) < 2 or not any("Rank" in v for v in candidates):
         return None
-    by_rank = max(candidates, key=_rank_key)
+    chosen = executing_version(versions, now)
     by_number = max(candidates, key=lambda v: v.get("VersionNumber") or 0)
+    tier = _top_tier(candidates)
     ranks = ", ".join(f"{v.get('ApiName')}={v.get('Rank')}" for v in candidates)
-    top = _rank_key(by_rank)[:2]
-    tied = [v for v in candidates if _rank_key(v)[:2] == top]
-    confirm = " Confirm which one runs with a constant-control formula."
-    if len(tied) > 1:
-        return (
-            f"{len(tied)} active versions share the top Rank ({ranks}); "
-            f"{by_rank.get('ApiName')} is taken as the executing version by the higher "
-            "VersionNumber, a tie-break the platform does not document." + confirm
-        )
     notes = []
-    if by_rank is not by_number:
+    if len(tier) > 1 and not any(_has_rank(v) for v in tier):
         notes.append(
-            f"{by_rank.get('ApiName')} has the highest Rank and is taken as the "
-            f"executing version, while {by_number.get('ApiName')} has the highest "
-            "VersionNumber"
+            f"none of the top candidates has a Rank, so {chosen.get('ApiName')}, the "
+            f"earliest created, runs ({MEASURED})"
         )
-    if any(v.get("Rank") is None for v in candidates):
+    elif len(tier) > 1:
         notes.append(
-            "a null Rank is assumed to rank below any number, which the platform "
-            "does not document"
+            f"{len(tier)} versions share the top Rank, which the platform refuses to "
+            f"create; {chosen.get('ApiName')} (earliest created) is assumed to run, "
+            "which is not measured"
+        )
+    if chosen is not by_number:
+        notes.append(
+            f"{chosen.get('ApiName')} runs, not {by_number.get('ApiName')}, which has "
+            "the highest VersionNumber"
         )
     if not notes:
         return None
-    return f"Among the active versions ({ranks}): " + "; ".join(notes) + "." + confirm
+    return f"Among the active versions ({ranks}): " + "; ".join(notes) + "."
+
+
+def target_version_warning(es_id: str, active: List[Dict[str, Any]],
+                           running: Optional[Dict[str, Any]],
+                           chosen: Dict[str, Any]) -> Optional[str]:
+    """What to say about a mutator's default target when it is not obvious, or None.
+
+    One wording for the toolkit and the CCI task: several active versions with one
+    running, or active versions none of whose date windows covers now (the target is
+    then the active, highest-numbered version, which is not running;
+    ``set_step_formula.py`` refuses that case and asks for a version name).
+    """
+    if active and running is None:
+        return (
+            f"ExpressionSet {es_id} has {len(active)} active version(s) but none has a "
+            f"date window covering now, so none is running; operating on "
+            f"{chosen.get('ApiName')} (active, highest-numbered), which is not the "
+            "executing version."
+        )
+    if len(active) > 1:
+        return (
+            f"ExpressionSet {es_id} has {len(active)} active versions; operating on "
+            f"{chosen.get('ApiName')}, the executing one (highest Rank among active "
+            "versions in their date window; earliest created among null Ranks)."
+        )
+    return None
 
 
 def version_rows(versions: List[Dict[str, Any]]) -> str:
@@ -144,13 +194,6 @@ def version_rows(versions: List[Dict[str, Any]]) -> str:
     )
 
 
-def _payload_version_api_name(payload: Dict[str, Any]) -> Optional[str]:
-    versions = payload.get("versions")
-    if isinstance(versions, list) and versions and isinstance(versions[0], dict):
-        return versions[0].get("apiName")
-    return None
-
-
 def import_target_refusal(
     api_name: str,
     versions: List[Dict[str, Any]],
@@ -159,63 +202,59 @@ def import_target_refusal(
 ) -> Optional[str]:
     """Why a replace import must not PATCH ``target``, or ``None`` to proceed.
 
-    ``versions`` are the org's ``ExpressionSetVersion`` rows for the set, ``target``
-    the one the importer resolved and will rewrite the payload's version id to, and
-    ``payload`` the definition being imported. A set with one version is never
-    refused here (the importers keep their existing single-version handling). On a
-    set with several versions the import is refused when:
+    ``versions`` are the org's ``ExpressionSetVersion`` rows for the set (with
+    ``Name``, the version label), ``target`` the version the importer resolved and
+    will rewrite the payload's version id to, and ``payload`` the definition being
+    imported. A set with one version is never refused here (the importers keep
+    their single-version handling). On a set with several versions the import
+    proceeds only when all three hold, the one shape that succeeded live
+    (:data:`MEASURED`):
 
-    1. more than one version is active, so which version the import should replace
-       is ambiguous and the one that executes may not be the one the payload
-       describes (the ``ramp264`` shape); or
-    2. the payload's version ``apiName`` is missing or differs from ``target``'s
-       ``ApiName``, so the PATCH would rebind the payload's version onto a different
-       existing version (also the ``ramp264`` failure).
+    1. the payload carries exactly one version;
+    2. that version's ``apiName`` is the target's ``ApiName``;
+    3. no other existing version shares its label (``name``; the target's ``Name``
+       when the payload has none).
 
-    A set with at most one active version, imported with a payload whose version is
-    the target, proceeds. The caller refuses before any write.
+    Anything else is refused, naming the condition that failed. The caller refuses
+    before any write.
     """
     if len(versions) <= 1:
         return None
     rows = version_rows(versions)
-    running = executing_version(versions)
     alternatives = (
         "Nothing was written. To change a step formula, use "
         "scripts/expression_sets/set_step_formula.py, which edits one version (the "
-        "executing one by default, or --version-api-name). To change an inactive "
-        "draft, apply an overlay aimed at it (apply_expression_set_overlay --version, "
-        "or the CCI task's -o version_api_name). To replace the whole "
+        "executing one by default, or --version-api-name). To replace the whole "
         "graph, import it as a new expression set (change the top-level apiName and "
         "name and the version apiName)."
     )
-    active = [v for v in versions if v.get("IsActive")]
-    if len(active) > 1:
-        runs = (
-            f"Only {running.get('ApiName')} executes (the highest Rank among the "
-            "active versions whose date window covers now)"
-            if running else "None of them has a date window covering now"
-        )
+    prefix = f"Expression set '{api_name}' has {len(versions)} versions: {rows}. "
+    payload_versions = [v for v in (payload.get("versions") or []) if isinstance(v, dict)]
+    if len(payload_versions) != 1:
         return (
-            f"Expression set '{api_name}' has {len(active)} active versions: {rows}. "
-            f"{runs}, and a whole-set import cannot tell which version it should "
-            "replace: on a version chain like this the platform rejected the PATCH on "
-            "a version-name collision after partially applying. " + alternatives
+            prefix + f"The payload carries {len(payload_versions)} versions; on a "
+            "multi-version set only a one-version payload for the targeted version "
+            "imports (a two-version payload was rejected whether or not the versions "
+            f"shared a label, {MEASURED}). " + alternatives
         )
-    incoming = _payload_version_api_name(payload)
-    if not incoming:
+    incoming = payload_versions[0]
+    incoming_api = incoming.get("apiName")
+    if incoming_api != target.get("ApiName"):
         return (
-            f"Expression set '{api_name}' has {len(versions)} versions: {rows}, and the "
-            "payload's version has no apiName, so the import cannot confirm it replaces "
-            f"{target.get('ApiName')}. Set versions[0].apiName to the version to "
-            "replace. " + alternatives
+            prefix + f"The payload's version is {incoming_api or '(no apiName)'}, but "
+            f"the import would replace {target.get('ApiName')} "
+            f"(v{target.get('VersionNumber')}), rebinding one version's content onto "
+            "a different existing version (rejected on a version-name collision after "
+            "partially applying, ramp264). " + alternatives
         )
-    if incoming != target.get("ApiName"):
+    label = incoming.get("name") or target.get("Name")
+    sharing = [v.get("ApiName") for v in versions
+               if v.get("ApiName") != target.get("ApiName") and label
+               and v.get("Name") == label]
+    if sharing:
         return (
-            f"Expression set '{api_name}' has {len(versions)} versions: {rows}. The "
-            f"payload's version is {incoming}, but the import would replace "
-            f"{target.get('ApiName')} (v{target.get('VersionNumber')}), rebinding one "
-            "version's content onto a different existing version; the platform "
-            "rejected that on a version-name collision after partially applying. "
-            + alternatives
+            prefix + f"Other version(s) {', '.join(sharing)} share the label "
+            f"'{label}', so the PATCH is rejected on a version-name collision even for "
+            f"a one-version payload aimed at the target ({MEASURED}). " + alternatives
         )
     return None

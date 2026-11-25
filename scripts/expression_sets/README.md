@@ -57,7 +57,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 
 | Script | Org? | Purpose |
 |--------|------|---------|
-| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). On a set with several versions it **refuses before any write** when more than one is active or the payload's version is not the one it would replace (see [Multi-version expression sets](#multi-version-expression-sets)). |
+| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). On a set with several versions it imports only a one-version payload for the targeted version whose label no other version shares, and **refuses anything else before any write** (see [Multi-version expression sets](#multi-version-expression-sets)). |
 | `set_step_formula.py` | **Mutates** | Set one step's formula (`formula-section-<N>-input`) on **one version** through the Tooling `Metadata` PATCH: the executing version by default (see [Multi-version expression sets](#multi-version-expression-sets)), or `--version-api-name`. Select the step by `--step`, or by `--parent-step` (the one child carrying the formula; stable when versions rename the child). Runs deactivate → PATCH → reactivate (an inactive target stays inactive), reads the formula, the version and every referencing plan back, and exits 1 on any mismatch. `--show` reads only. The tool for formula edits on a multi-version set. |
 | `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for added or updated steps, restores after — `--no-preserve-labels` to skip). |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
@@ -70,7 +70,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 |--------|---------|
 | `_client.py` | The `sf api request rest` wrapper; Connect base `connect/business-rules/expression-set/{9QL}`; SOQL with `nextRecordsUrl` paging; the injectable `Transport` seam (binds `target_org` / `api_version` / `dry_run` / `logger`, short-circuits mutating verbs under dry-run). |
 | `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / `ExpressionSetVersion`. The mutators' default version (`resolve_version_by_es_id`) is the executing one from `_guards.executing_version` (then the highest-numbered active, then the highest-numbered), with a warning when several are active. |
-| `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (the highest `Rank` among active versions whose date window covers now; tie-break unverified), `rank_order_warning`, `VERSION_FIELDS` (the fields every caller selects for it) and `import_target_refusal` (the multi-version import rule). |
+| `_guards.py` | Pure, stdlib-only version guards, also imported by the CCI task: `executing_version` (the highest `Rank` among active versions whose date window covers now; earliest created among null Ranks; measured on 264), `rank_order_warning`, `target_version_warning`, `VERSION_FIELDS` (the fields every caller selects for it) and `import_target_refusal` (the measured multi-version import rule). |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` or `updateSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
@@ -210,31 +210,47 @@ See `docs/salesforce/264/dev-guide/` (cml_* articles) for CML authoring guidance
 ### <a name="multi-version-expression-sets"></a>Multi-version expression sets
 
 An org can hold several versions of one set, several of them active, and the
-runtime runs one. The 264 object reference (`ExpressionSetVersion.Rank`) says that
-when more than one enabled version matches and their start/end windows overlap, the
-**highest Rank** is chosen; `_guards.executing_version` applies that to the active
-versions whose window covers now. What happens on equal or null Ranks is not
-documented: the toolkit assumes the higher `VersionNumber` wins and a null Rank sorts
-below any number, which is **unverified** until a live check, and it warns when the
-choice rests on that assumption or when Rank and `VersionNumber` disagree. An
-upgraded org can carry `RLM_DefaultPricingProcedure` as such a chain (one 264 org had
-v1 to v4, three active; v4 ran). Two consequences:
+runtime runs one. Which one (`_guards.executing_version`, over the active versions
+whose window covers now; the platform uses the call's effective date):
 
-- **A whole-set import cannot always target one version.** `import_expression_set`
-  (toolkit and CCI) rewrites the payload's version id to the version it resolves.
-  When more than one version is active, or the payload's version `apiName` is not
-  that version, the PATCH would rebind one version onto another: the platform
-  rejected that on a version-name collision after partially applying. Both
-  importers refuse it before any write. A set with one active version and an
-  inactive draft, imported with a payload for the active version, still runs.
+- the **highest Rank** — the 264 object reference (`ExpressionSetVersion.Rank`), and
+  measured: Rank 2 ran over Rank 1 whatever the VersionNumbers, and a numeric Rank
+  ran over a null one;
+- among **null Ranks, the earliest created** — measured: VersionNumber 2 created
+  before VersionNumber 1 ran, and in a one-deploy pair the first-created V1 ran;
+- **equal numeric Ranks** cannot be set up: a deploy is refused ("Assign a unique
+  rank to expression set version …"), and activating a version through the sObject
+  API needs a Rank ("Enter a valid rank to enable …"), so null Ranks only come from
+  a Metadata API deploy.
+
+All measured on Release 264 on 2026-11-24/25 by invoking disposable sets directly
+(Connect `POST connect/business-rules/expressionSet/{name}`, 3 of 3 calls each). The
+tools note when the version that runs is not the highest-numbered one. An upgraded
+org can carry `RLM_DefaultPricingProcedure` as such a chain (one 264 org had v1 to
+v4, three active; v4 ran). Consequences:
+
+- **A whole-set import works on a multi-version set in one shape only.**
+  `import_expression_set` (toolkit and CCI) rewrites the payload's first version id
+  to the version it targets (the executing one). Measured on 264 (2026-11-24) on a
+  two-version set: a two-version payload failed with shared labels (version-name
+  collision) and with distinct labels (duplicate `CalculationProcedureId`); a
+  one-version payload for the target failed on the version-name collision when the
+  other version shared its label, and succeeded when it did not. Both importers allow
+  only that last shape — exactly one payload version, the targeted one, no other
+  version with its label — and refuse everything else before any write, naming the
+  condition that failed. Platform version chains share one label, so expect a
+  refusal there.
 - **Edit the version that executes.** A change to any other version changes no
   price. Use `set_step_formula.py` for formula edits; it defaults to the executing
   version and reads the result back.
 
 `apply_expression_set_overlay` is not affected by the importer rule (it PATCHes the
-graph it read). After a build, `activate_and_deploy_expression_sets` reads back
-which version each repo procedure executes and fails when it is not the deployed
-one (`-o version_check warn` to continue).
+graph it read). In the build, `activate_and_deploy_expression_sets` reads back which
+version each deployed repo procedure executes and fails when it is not the deployed
+one (`-o version_check warn` to continue). The read-back runs only after a
+successful deploy, and that step cannot be re-run in place on a built org: the
+redeploy is refused ("You can't update the expression set version … because it's
+active"), measured on 264, 2026-11-24, with or without the read-back.
 
 ### Discovery Procedure "Unused" Outputs
 

@@ -83,6 +83,7 @@ from scripts.expression_sets._guards import (
     executing_version,
     import_target_refusal,
     rank_order_warning,
+    target_version_warning,
 )
 
 
@@ -252,17 +253,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 f"No ExpressionSetVersion found for ExpressionSet {es_id}."
             )
         try:
-            chosen = executing_version(records) or records[0]
+            running = executing_version(records)
             note = rank_order_warning(records)
         except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
             raise TaskOptionsError(str(exc)) from exc
+        chosen = running or records[0]
         active = [r for r in records if r.get("IsActive")]
-        if len(active) > 1:
-            self.logger.warning(
-                "ExpressionSet %s has %d active versions; operating on %s, the "
-                "executing one (highest Rank among active versions in their date "
-                "window).", es_id, len(active), chosen.get("ApiName"),
-            )
+        message = target_version_warning(es_id, active, running, chosen)
+        if message:
+            self.logger.warning(message)
             if note:
                 self.logger.warning(note)
         return chosen

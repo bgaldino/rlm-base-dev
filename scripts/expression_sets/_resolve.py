@@ -17,7 +17,12 @@ transport state beyond the ``target_org`` / ``api_version`` args.
 from typing import Any, Dict, List, Optional
 
 from . import _client
-from ._guards import VERSION_FIELDS, executing_version, rank_order_warning
+from ._guards import (
+    VERSION_FIELDS,
+    executing_version,
+    rank_order_warning,
+    target_version_warning,
+)
 
 
 class ResolveError(RuntimeError):
@@ -104,17 +109,15 @@ def resolve_version_by_es_id(
     if not records:
         raise ResolveError(f"No ExpressionSetVersion found for ExpressionSet {es_id}.")
     try:
-        chosen = executing_version(records) or records[0]
+        running = executing_version(records)
         note = rank_order_warning(records)
     except ValueError as exc:  # an unreadable StartDateTime/EndDateTime
         raise ResolveError(str(exc)) from exc
+    chosen = running or records[0]
     active = [r for r in records if r.get("IsActive")]
-    if len(active) > 1:
-        log(
-            f"WARNING: ExpressionSet {es_id} has {len(active)} active versions; "
-            f"operating on {chosen.get('ApiName')}, the executing one (highest Rank "
-            "among active versions in their date window)."
-        )
+    message = target_version_warning(es_id, active, running, chosen)
+    if message:
+        log(f"WARNING: {message}")
         if note:
             log(f"WARNING: {note}")
     return chosen

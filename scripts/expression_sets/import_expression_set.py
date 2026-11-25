@@ -14,12 +14,12 @@ via ``_lifecycle.LifecycleEngine``:
   DEACTIVATED (a failed PATCH is not atomic; re-enabling a half-mutated procedure
   is worse than leaving it offline).
 
-  On a set with **several versions** the replace is **refused before any write**
-  when more than one version is active, or when the payload's version ``apiName``
-  is not the version the import would replace (``_guards.import_target_refusal``):
-  the PATCH would rebind one version onto another, which the platform rejected on
-  a version-name collision after partially applying (todo pack 172). To change one
-  step's formula on such a set use ``set_step_formula.py``.
+  On a set with **several versions** the replace proceeds only when the payload
+  carries exactly one version, it is the version the import targets, and no other
+  version shares its label; anything else is **refused before any write**
+  (``_guards.import_target_refusal``, the shape measured to succeed on 264,
+  2026-11-24; todo pack 172). To change one step's formula on such a set use
+  ``set_step_formula.py``.
 * **create** (the set is new) → Connect **POST**. The version-level ``id`` is
   STRIPPED (a source-org id makes the server reject/mis-bind the new version);
   the created version is then activated/deactivated per ``--no-activate``.

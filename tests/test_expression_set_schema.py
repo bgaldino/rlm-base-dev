@@ -2210,17 +2210,20 @@ def test_resolve_version_targets_the_executing_version():
 
 
 def test_import_replace_refuses_a_version_rebind():
-    # Todo pack 172: on ramp264 the payload's _V1 was rebound onto the executing
-    # v40 and the platform rejected it on a version-name collision after partially
-    # applying. The CCI task refuses that shape before any write and still runs
-    # the active+draft shape the overlay path proved (commit 68dccf7bd).
+    # Todo pack 172: on a multi-version set the CCI task imports only a one-version
+    # payload for the targeted version whose label no other version shares — the
+    # one shape that succeeded live on 264 (2026-11-24) — and refuses the rest
+    # before any write.
     import json as _json
     import logging
     import tempfile as _tempfile
     from tasks.rlm_expression_set_connect import ImportExpressionSet
 
-    def run(versions, payload_version):
-        target = sorted(versions, key=lambda v: (not v["IsActive"], -v["VersionNumber"]))[0]
+    def run(versions, payload_version, target=None):
+        target = target or sorted(
+            versions, key=lambda v: (not v["IsActive"], -v["VersionNumber"]))[0]
+        payload_versions = (payload_version if isinstance(payload_version, list)
+                            else [{"apiName": payload_version}])
         writes = []
         task = object.__new__(ImportExpressionSet)
         task.logger = logging.getLogger("test_import_refusal")
@@ -2233,7 +2236,7 @@ def test_import_replace_refuses_a_version_rebind():
         task._run_connect_mutation = lambda **kw: writes.append("mutation")
         with _tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
             _json.dump({"apiName": "RLM_DefaultPricingProcedure",
-                        "versions": [{"apiName": payload_version}]}, fh)
+                        "versions": payload_versions}, fh)
         task.options = {"input_file": fh.name}
         try:
             task._run_task()
@@ -2244,22 +2247,33 @@ def test_import_replace_refuses_a_version_rebind():
             os.unlink(fh.name)
         return error, writes
 
-    error, writes = run(RAMP264_VERSIONS, "RLM_DefaultPricingProcedure_V1")
-    check("ramp264: the CCI import refuses a version chain with three active versions",
-          error is not None and "3 active versions" in str(error)
-          and "Partner_Price_and_Ramp_v40 executes" in str(error))
+    ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
+            for v in RAMP264_VERSIONS]
+    error, writes = run(ramp, "RLM_DefaultPricingProcedure_V1", target=ramp[3])
+    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+          error is not None and "rebinding" in str(error))
     check("ramp264: the refusal points to set_step_formula.py",
           "set_step_formula.py" in str(error))
     check("ramp264: nothing is written before the refusal", writes == [])
 
-    draft = [{"Id": "9QMa", "ApiName": "X_V1", "IsActive": True, "VersionNumber": 1},
-             {"Id": "9QMd", "ApiName": "X_V2", "IsActive": False, "VersionNumber": 2}]
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "Name": "X", "IsActive": True,
+              "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "Name": "X draft", "IsActive": False,
+              "VersionNumber": 2}]
     error, writes = run(draft, "X_V1")
-    check("active+draft: importing the active version runs",
+    check("active+draft, distinct labels: importing the active version runs",
           error is None and writes == ["rit", "mutation"])
     error, writes = run(draft, "X_V2")
     check("active+draft: a payload for the draft is refused (it would rebind onto X_V1)",
           error is not None and "payload's version is X_V2" in str(error) and writes == [])
+    error, writes = run(draft, [{"apiName": "X_V1", "name": "X"},
+                                {"apiName": "X_V2", "name": "X draft"}])
+    check("a two-version payload is refused (measured to fail on 264)",
+          error is not None and "carries 2 versions" in str(error) and writes == [])
+    shared = [dict(draft[0]), dict(draft[1], Name="X")]
+    error, writes = run(shared, [{"apiName": "X_V1", "name": "X"}])
+    check("a one-version payload is refused when another version shares its label",
+          error is not None and "share the label" in str(error) and writes == [])
 
 
 def test_resolve_label_version():

@@ -1041,9 +1041,10 @@ def test_cli_restore_boundary():
                                ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
                   restores)
 
-            # A version chain (ramp264: three active) is refused before ANY write
-            # (todo pack 172): no ResourceInitializationType alignment, no
-            # mutation, no restore — in preview as well as with --confirm.
+            # A version chain (ramp264: the importer targets the executing v40, the
+            # payload is TEST_V1) is refused before ANY write (todo pack 172): no
+            # ResourceInitializationType alignment, no mutation, no restore — in
+            # preview as well as with --confirm.
             calls = []
 
             class _RecordingEngine(_FakeEngine):
@@ -1062,6 +1063,7 @@ def test_cli_restore_boundary():
                     import_mod, LifecycleEngine=_RecordingEngine,
                     restore_labels_after_clobber=record_restore,
                     list_versions=lambda *a, **k: [dict(v) for v in RAMP264_VERSIONS],
+                    resolve_version_by_es_id=lambda *a, **k: dict(RAMP264_VERSIONS[3]),
                 )
                 rc_multi = import_mod.main(["--target-org", "x", "--input-file",
                                             str(import_path), *confirm])
@@ -1813,37 +1815,50 @@ def test_import_guards():
     check("no active version → no executing version",
           executing_version([dict(v, IsActive=False) for v in RAMP264_VERSIONS]) is None)
 
-    # The 264 object reference: among enabled versions whose windows overlap, the
-    # highest Rank runs. Tie-break and null-Rank order are unverified assumptions.
+    # Measured on 264 (2026-11-24/25) by invoking disposable sets directly, 3/3 each.
     from datetime import datetime, timezone
     from scripts.expression_sets._guards import rank_order_warning, VERSION_FIELDS
-    now = datetime(2026, 11, 24, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+
+    def probe(*specs):
+        """(ApiName, VersionNumber, Rank, CreatedDate) → active version rows."""
+        return [{"Id": f"9QM{i}", "ApiName": a, "VersionNumber": n, "Rank": r,
+                 "CreatedDate": c, "IsActive": True}
+                for i, (a, n, r, c) in enumerate(specs)]
+
+    t1, t2 = "2026-11-24T23:52:00.000+0000", "2026-11-25T00:02:14.000+0000"
+    t3 = "2026-11-25T00:02:32.000+0000"
+    rank_a = probe(("A_V1", 1, 2, t1), ("A_V2", 2, 1, t1))
+    check("measured TK226_RankA: Rank 2 (v1) runs over Rank 1 (v2)",
+          executing_version(rank_a, now)["ApiName"] == "A_V1")
+    warn = rank_order_warning(rank_a, now) or ""
+    check("…noted: it is not the highest-numbered version",
+          "highest VersionNumber" in warn and "A_V2" in warn, warn)
+    mix = probe(("M_V1", 1, 1, t1), ("M_V2", 2, None, t1))
+    check("measured TK226_RankMix: a numeric Rank runs over a null one",
+          executing_version(mix, now)["ApiName"] == "M_V1")
+    null_pair = [dict(r, Id=i) for r, i in zip(
+        probe(("N_V1", 1, None, t1), ("N_V2", 2, None, t1)), ("9QMxt", "9QMxu"))]
+    check("measured TK226_RankNull: null Ranks, same deploy → the first created (v1) runs",
+          executing_version(null_pair, now)["ApiName"] == "N_V1")
+    order = probe(("O_V2", 2, None, t2), ("O_V1", 1, None, t3))
+    check("measured TK226_RankOrder: null Ranks → the earliest created runs (v2, created "
+          "before v1), not the lower VersionNumber",
+          executing_version(order, now)["ApiName"] == "O_V2")
+    warn = rank_order_warning(order, now) or ""
+    check("…noted as measured, without calling it unverified",
+          "earliest created" in warn and "measured" in warn and "unverified" not in warn,
+          warn)
+    equal = probe(("E_V1", 1, 5, t3), ("E_V2", 2, 5, t2))
+    warn = rank_order_warning(equal, now) or ""
+    check("equal numeric Ranks (refused by the platform): earliest created, flagged unmeasured",
+          executing_version(equal, now)["ApiName"] == "E_V2"
+          and "refuses" in warn and "not measured" in warn, warn)
+    check("rows read without a Rank field keep the highest-numbered fallback",
+          executing_version([{k: v for k, v in r.items() if k != "Rank"} for r in rank_a],
+                            now)["ApiName"] == "A_V2")
     ranked = [dict(v, Rank=v["VersionNumber"]) for v in RAMP264_VERSIONS]
     ranked[0]["Rank"] = 9
-    check("the highest Rank wins over a higher VersionNumber",
-          executing_version(ranked, now)["Id"] == "9QM1")
-    warn = rank_order_warning(ranked, now) or ""
-    check("…and the Rank/VersionNumber disagreement is warned about (no tie claimed)",
-          "highest VersionNumber" in warn and "tie-break" not in warn, warn)
-    tied = [dict(v, Rank=5) for v in RAMP264_VERSIONS]
-    check("equal Ranks: the higher VersionNumber (unverified tie-break), with a warning",
-          executing_version(tied, now)["Id"] == "9QMv"
-          and "tie-break" in (rank_order_warning(tied, now) or ""))
-    top_tie = [dict(v) for v in RAMP264_VERSIONS]
-    for v, r in zip(top_tie, (5, None, 5, 1)):
-        v["Rank"] = r
-    warn = rank_order_warning(top_tie, now) or ""
-    check("ranks 5/5/1: v30 wins only by the tie-break, and the warning says so",
-          executing_version(top_tie, now)["Id"] == "9QM3" and "tie-break" in warn
-          and "share the top Rank" in warn, warn)
-    nulls = [dict(v, Rank=None) for v in RAMP264_VERSIONS]
-    nulls[2]["Rank"] = 1
-    nulls[3]["Rank"] = 2
-    warn = rank_order_warning(nulls, now) or ""
-    check("a null Rank sorts below any numeric Rank (unverified)",
-          executing_version(nulls, now)["Id"] == "9QMv")
-    check("ranks None/1/2: v40 wins on Rank; the warning names the null-Rank assumption, "
-          "not a tie-break", "null Rank" in warn and "tie-break" not in warn, warn)
     windowed = [dict(v) for v in RAMP264_VERSIONS]
     windowed[3]["StartDateTime"] = "2027-01-01T00:00:00.000+0000"
     windowed[2]["EndDateTime"] = "2026-01-01T00:00:00Z"
@@ -1884,46 +1899,100 @@ def test_import_guards():
           any("operating on RLM_DefaultPricingProcedure_V1, the executing one" in m
               for m in logs) and any("highest VersionNumber" in m for m in logs), logs)
     check("…and an unreadable date is a ResolveError", bad is not None, bad)
+
+    from scripts.expression_sets._guards import target_version_warning
+    expired = [dict(v, EndDateTime="2026-01-01T00:00:00Z") for v in RAMP264_VERSIONS]
+    logs = []
+    undo = _patch(resolve_mod, _query=lambda soql, **k: [dict(v) for v in expired])
+    try:
+        chosen = resolve_mod.resolve_version_by_es_id("9QLx", target_org="x",
+                                                      logger=logs.append)
+    finally:
+        undo()
+    check("no active version covers now: the fallback is not called the executing one",
+          any("none is running" in m and "not the executing version" in m for m in logs)
+          and not any("the executing one" in m for m in logs), logs)
+    check("one active, running version needs no target warning",
+          target_version_warning("9QLx", [RAMP264_VERSIONS[0]], RAMP264_VERSIONS[0],
+                                 RAMP264_VERSIONS[0]) is None)
     check("a single running version gives no Rank warning",
           rank_order_warning(RAMP264_VERSIONS[:1], now) is None)
     check("the version queries select Rank and the date window",
           all(f in VERSION_FIELDS for f in ("Rank", "StartDateTime", "EndDateTime")))
 
-    def payload(api):
-        return {"apiName": "RLM_DefaultPricingProcedure", "versions": [{"apiName": api}]}
+    # The import rule, one check per row measured on 264 (2026-11-24) on TK172_Chain:
+    # V1 inactive draft, V2 the active target.
+    def payload(*versions):
+        return {"apiName": "TK172_Chain",
+                "versions": [{"apiName": a, "name": n} for a, n in versions]}
 
-    v1, v40 = RAMP264_VERSIONS[0], RAMP264_VERSIONS[3]
-    # The importer's target on ramp264 was v40 (active first, then highest).
-    msg = import_target_refusal("RLM_DefaultPricingProcedure", RAMP264_VERSIONS, v40,
-                                payload(v1["ApiName"])) or ""
-    check("ramp264: three active versions are refused, naming every version and the executing one",
-          "3 active versions" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg
-          and "Only RLM_DefaultPricingProcedure_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40 executes"
-          in msg, msg)
-    check("ramp264: refused even when the payload names the executing version",
-          import_target_refusal("X", RAMP264_VERSIONS, v40, payload(v40["ApiName"])) is not None)
-    check("the refusal points to set_step_formula.py and says nothing was written",
-          "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
+    def chain(v1_label):
+        return [{"Id": "9QMa", "ApiName": "TK172_Chain_V1", "Name": v1_label,
+                 "IsActive": False, "VersionNumber": 1},
+                {"Id": "9QMb", "ApiName": "TK172_Chain_V2", "Name": "TK172 Chain",
+                 "IsActive": True, "VersionNumber": 2}]
+
+    shared, distinct = chain("TK172 Chain"), chain("TK172 Chain V1 draft")
+    pv1, pv2 = ("TK172_Chain_V1", "TK172 Chain"), ("TK172_Chain_V2", "TK172 Chain")
+    pv1_distinct = ("TK172_Chain_V1", "TK172 Chain V1 draft")
+    rows = [
+        ("shared labels, payload V1 then V2", shared, payload(pv1, pv2), "carries 2 versions"),
+        ("shared labels, payload V2 then V1", shared, payload(pv2, pv1), "carries 2 versions"),
+        ("distinct labels, payload V2 then V1", distinct, payload(pv2, pv1_distinct),
+         "carries 2 versions"),
+        ("distinct labels, payload V2 only", distinct, payload(pv2), None),
+        ("shared labels, payload V2 only", shared, payload(pv2), "share the label"),
+    ]
+    for label, versions, body, expected_text in rows:
+        msg = import_target_refusal("TK172_Chain", versions, versions[1], body)
+        check(f"measured row — {label}: "
+              + ("proceeds" if expected_text is None else "refused"),
+              msg is None if expected_text is None else expected_text in (msg or ""), msg)
+    msg = import_target_refusal("TK172_Chain", shared, shared[1], payload(pv2)) or ""
+    check("the refusal names the condition, cites the measurement, points to "
+          "set_step_formula.py and says nothing was written",
+          "TK172_Chain_V1 share the label" in msg and "2026-11-24" in msg
+          and "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
+
+    # ramp264: every version carried the same label; the importer targeted v40.
+    ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
+            for v in RAMP264_VERSIONS]
+    v1, v40 = ramp[0], ramp[3]
+    label = "RLM Revenue Management Default Pricing Procedure"
+    msg = import_target_refusal("RLM_DefaultPricingProcedure", ramp, v40,
+                                payload((v1["ApiName"], label))) or ""
+    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+          "rebinding" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg, msg)
+    check("ramp264: a payload for v40 is refused too (its label is shared)",
+          "share the label" in (import_target_refusal(
+              "RLM_DefaultPricingProcedure", ramp, v40,
+              payload((v40["ApiName"], label))) or ""))
 
     single = [dict(v1)]
     check("a single-version set is never refused here (even on a name mismatch)",
-          import_target_refusal("X", single, single[0], payload("Other")) is None)
+          import_target_refusal("X", single, single[0], payload(("Other", "x"))) is None)
     check("an empty version list is not refused",
-          import_target_refusal("X", [], {}, payload("A")) is None)
+          import_target_refusal("X", [], {}, payload(("A", "a"))) is None)
 
-    draft = [{"Id": "9QMa", "ApiName": "X_V1", "IsActive": True, "VersionNumber": 1},
-             {"Id": "9QMd", "ApiName": "X_V2", "IsActive": False, "VersionNumber": 2}]
-    check("active+draft: a payload for the targeted active version proceeds",
-          import_target_refusal("X", draft, draft[0], payload("X_V1")) is None)
-    rebind = import_target_refusal("X", draft, draft[0], payload("X_V2")) or ""
+    draft = [{"Id": "9QMa", "ApiName": "X_V1", "Name": "X", "IsActive": True,
+              "VersionNumber": 1},
+             {"Id": "9QMd", "ApiName": "X_V2", "Name": "X draft", "IsActive": False,
+              "VersionNumber": 2}]
+    check("active+draft, distinct labels: a one-version payload for the active target proceeds",
+          import_target_refusal("X", draft, draft[0], payload(("X_V1", "X"))) is None)
+    check("active+draft, distinct labels: a payload without a name uses the target's label",
+          import_target_refusal("X", draft, draft[0],
+                                {"versions": [{"apiName": "X_V1"}]}) is None)
+    rebind = import_target_refusal("X", draft, draft[0], payload(("X_V2", "X draft"))) or ""
     check("active+draft: a payload for the draft is refused as a rebind onto X_V1",
           "payload's version is X_V2" in rebind and "X_V1 (v1)" in rebind, rebind)
     check("a payload version without apiName is refused on a multi-version set",
-          "has no apiName" in (import_target_refusal("X", draft, draft[0],
-                                                      {"versions": [{}]}) or ""))
-    none_active = [dict(v, IsActive=False) for v in draft]
-    check("no active version: a payload for the target (highest-numbered) proceeds",
-          import_target_refusal("X", none_active, none_active[1], payload("X_V2")) is None)
+          "(no apiName)" in (import_target_refusal("X", draft, draft[0],
+                                                    {"versions": [{}]}) or ""))
+    shared_draft = [dict(draft[0]), dict(draft[1], Name="X")]
+    check("active+draft with a shared label: refused even for the target",
+          "share the label" in (import_target_refusal(
+              "X", shared_draft, shared_draft[0], payload(("X_V1", "X"))) or ""))
 
 
 class _FormulaTransport(_PlanTransport):

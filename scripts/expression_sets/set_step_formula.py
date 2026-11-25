@@ -12,10 +12,9 @@ at::
     Metadata.steps[N].customElement.parameters[name == "formula-section-<S>-input"].value
 
 **Which version.** By default the **executing** version (``_guards.executing_version``):
-among the ACTIVE versions whose date window covers now, the highest ``Rank``, as
-the 264 object reference documents. The tie-break on equal or null Ranks (the
-higher ``VersionNumber``) is not documented and is unverified; the tool warns when
-the choice rests on it or when Rank and VersionNumber disagree. Several versions can
+among the ACTIVE versions whose date window covers now, the highest ``Rank`` (264
+object reference); among null Ranks, the earliest created (measured on 264). The
+tool notes when the version that runs is not the highest-numbered one. Several versions can
 be active at once and only one runs, so editing any other changes no price (todo
 pack 175: a constant written into ``_V1`` of a four-version chain changed nothing;
 written into the version that ran it changed every price). ``--version-api-name``

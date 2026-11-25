@@ -329,11 +329,12 @@ source-controlled edit.
 ## <a name="multi-version-orgs"></a>Multi-version orgs
 
 An expression set can hold several versions, several of them **active at once**,
-and the runtime runs one: per the 264 object reference (`ExpressionSetVersion.Rank`),
-the **highest Rank** among enabled versions whose start/end windows overlap. The
-tools resolve it with `scripts/expression_sets/_guards.executing_version`; the
-tie-break on equal or null Ranks (the higher `VersionNumber`) is not documented and
-is unverified, and the tools warn when they rely on it. An upgraded org can carry
+and the runtime runs one: the **highest Rank** among enabled versions whose start/end
+windows cover the call's effective date (264 object reference; measured), and among
+null Ranks the **earliest created** (measured). Equal numeric Ranks are refused by
+the platform. Measured on Release 264, 2026-11-24/25, by invoking disposable sets
+directly. The tools resolve it with
+`scripts/expression_sets/_guards.executing_version`, using now as the date. An upgraded org can carry
 `RLM_DefaultPricingProcedure` as such a chain (one 264 org: v1 to v4, v1, v3 and v4
 active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
 `CompoundUplift` in v4). Before any edit, list the versions:
@@ -348,18 +349,22 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   since a Tooling sObject update is atomic), and exits 1 when the read-back formula,
   the version state or any referencing `ProcedurePlanDefinitionVersion.IsActive`
   differs from what it should be.
-- **A whole-set import is refused on a version rebind.** Both `import_expression_set`
-  surfaces refuse, before any write, a multi-version set with more than one active
-  version, or a payload whose version `apiName` is not the version the import would
-  replace: the PATCH rebinds one version onto another, which the platform rejected
-  on a version-name collision after partially applying. One active version plus an
-  inactive draft, with a payload for the active version, still imports.
+- **A whole-set import works in one shape only.** On a multi-version set both
+  `import_expression_set` surfaces allow only a payload with exactly one version,
+  the one the import targets, and no other version sharing its label; everything
+  else is refused before any write. Measured on 264 (2026-11-24): two-version
+  payloads failed (shared labels: version-name collision; distinct labels: duplicate
+  `CalculationProcedureId`), and a one-version payload failed whenever another
+  version shared its label. Platform version chains share one label.
 - **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
   deployed repo version is missing, sits under a different `VersionNumber` (the
   deploy handler matches versions by number, so it changed nothing), is inactive, or
   is not the version that executes. `-o version_check warn` logs instead, for an org
-  whose chain is intended. Toolkit detail: `scripts/expression_sets/README.md` →
-  *Multi-version expression sets*.
+  whose chain is intended. The step runs in the build; re-running it on a built org
+  is refused by the platform at the deploy ("You can't update the expression set
+  version … because it's active", measured on 264, 2026-11-24), so the read-back is
+  not a way to audit a built org. Toolkit detail: `scripts/expression_sets/README.md`
+  → *Multi-version expression sets*.
 
 ## Overlays & dependency capture (summary)
 
