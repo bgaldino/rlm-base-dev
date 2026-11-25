@@ -161,6 +161,22 @@ check("whitespace-only developer_names means not set", err is None and "Develope
       repr((err, fake.queries)))
 _, err = run({"operation": "list", "sort_by": 0})
 check("an int 0 sort_by is rejected, not defaulted", err is not None and "sort_by must be" in str(err), repr(err))
+fake, _ = run({"operation": "list", "developer_names": ["A", "B"]})
+check("a list developer_names still works", "DeveloperName IN ('A', 'B')" in fake.queries[0], fake.queries[0])
+def parsed_versions(value):
+    task = ManageExpressionSets.__new__(ManageExpressionSets)
+    task.options = {"version_full_names": value}
+    return task._parse_version_names_option()
+
+
+check("version_full_names: string, list, tuple and comma items parse alike",
+      parsed_versions("A_V1, B_V1") == parsed_versions(["A_V1", "B_V1"]) == parsed_versions(("A_V1", "B_V1"))
+      == parsed_versions(["A_V1,B_V1"]) == ["A_V1", "B_V1"])
+for op in ("activate_version", "deactivate_version"):
+    _, err = run({"operation": op, "version_full_name": "  "})
+    check(f"{op}: a blank version_full_name is missing", err is not None and "is required" in str(err), repr(err))
+    _, err = run({"operation": op, "version_full_name": ["A_V1"]})
+    check(f"{op}: a list version_full_name is refused", err is not None and "single value" in str(err), repr(err))
 for opt in ("status", "process_type", "interface_source_type"):
     _, err = run({"operation": "list", opt: ["Active"]})
     check(f"a list {opt} is refused", err is not None and "single value" in str(err), repr(err))

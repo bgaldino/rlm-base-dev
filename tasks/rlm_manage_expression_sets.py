@@ -210,6 +210,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         return expression_sets
 
     def _option_text(self, name: str):
+        """The option as stripped text; blank means not set; a list or dict is refused."""
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _tooling_headers(self) -> Dict[str, str]:
@@ -384,7 +385,7 @@ class ManageExpressionSets(BaseSalesforceTask):
 
     def _parse_version_names_option(self) -> List[str]:
         """Get version names from options or discover from metadata files."""
-        version_names = self.options.get("version_full_names")
+        version_names = requested_names(self.options.get("version_full_names"), "version_full_names", TaskOptionsError)
         if not version_names:
             discovered_names = self._discover_version_names_from_metadata()
             if not discovered_names:
@@ -393,23 +394,11 @@ class ManageExpressionSets(BaseSalesforceTask):
                 )
             return discovered_names
 
-        if isinstance(version_names, str):
-            parsed_names = [name.strip() for name in version_names.split(",") if name.strip()]
-        elif isinstance(version_names, list):
-            parsed_names = [str(name).strip() for name in version_names if str(name).strip()]
-        else:
-            raise TaskOptionsError("version_full_names must be a list or comma-separated string")
-
-        if not parsed_names:
-            raise TaskOptionsError("No valid values provided in version_full_names")
-
-        return parsed_names
+        return version_names
 
     def _discover_version_names_from_metadata(self) -> List[str]:
         """Discover version full names from expression set metadata XML files."""
-        metadata_path = self.options.get(
-            "metadata_path", "force-app/main/default/expressionSetDefinition"
-        )
+        metadata_path = self._option_text("metadata_path") or "force-app/main/default/expressionSetDefinition"
 
         metadata_dir = Path(metadata_path)
         if not metadata_dir.is_absolute():
