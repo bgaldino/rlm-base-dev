@@ -162,7 +162,26 @@ def test_header_row_on_line_level_invoice_is_mixed():
             "HasBeenUnapplied": "No", "AssociatedPaymentLineId": None})
     report = _line(mutate=add_header_row)
     assert report["level_source"] == "mixed"
-    assert "application_level" in report["failed_checks"]
+    assert report["failed_checks"] == ["application_level"]
+    level = {r["subject"]: r["status"] for r in report["checks"]
+             if r["check"] == "application_level"}
+    # INV2 shows the header row; INV1 and INV3 show line rows; all three have rows.
+    assert level == {"3tt000000000001AAA": "fail", "3tt000000000002AAA": "fail",
+                     "3tt000000000003AAA": "fail"}
+
+
+def test_mixed_level_skips_invoices_with_no_rows():
+    def mutate(data):
+        data["PaymentLineInvoice"].append({
+            "Id": "0b8000000000099AAA", "InvoiceId": "3tt000000000001AAA",
+            "PaymentId": "0aQ000000000002EAA", "Amount": 0, "Type": "Applied",
+            "HasBeenUnapplied": "No", "AssociatedPaymentLineId": None})
+    report = _line(mutate=mutate)
+    level = {r["subject"]: r for r in report["checks"] if r["check"] == "application_level"}
+    assert level["3tt000000000002AAA"]["status"] == "skip"
+    assert level["3tt000000000001AAA"]["status"] == "fail"
+    assert "both levels" in level["3tt000000000001AAA"]["detail"]
+    assert level["3tt000000000003AAA"]["status"] == "fail"
 
 
 def test_settlement_level_contradicting_expectation_fails():
@@ -333,6 +352,113 @@ def test_unapplied_pair_whose_applied_row_is_not_marked_fails():
     assert report["failed_checks"] == ["unapplied_rows"]
 
 
+# ------------------------------------------------------------------ unmeasured fields
+
+@pytest.mark.parametrize("field", ["TotalConvertedNegAmount", "WriteOffTotalChargeAmount",
+                                   "WriteOffTotalTaxAmount", "TotalAdjustmentAmount"])
+def test_invoice_with_unmeasured_field_is_skipped_not_failed(field):
+    # Balance deliberately inconsistent: the skip must win over a fail.
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
+        {field: -10, "Balance": 485}))
+    assert report["ok"] is True, report["failed_checks"]
+    result = next(r for r in report["checks"]
+                  if r["check"] == "invoice_balance" and r["subject"] == "3tt000000000002AAA")
+    assert result["status"] == "skip" and field in result["detail"]
+
+
+def test_invoice_with_write_off_status_is_skipped():
+    report = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
+        WriteOffStatus="Completed", Balance=0))
+    assert report["ok"] is True
+    assert "WriteOffStatus" in next(
+        r["detail"] for r in report["checks"]
+        if r["check"] == "invoice_balance" and r["subject"] == "3tt000000000002AAA")
+
+
+@pytest.mark.parametrize("field", ["ConvertedNegAmount", "ChargeConvertedNegAmount",
+                                   "AdjustmentAmount"])
+def test_line_with_unmeasured_field_is_skipped_not_failed(field):
+    report = _line(mutate=lambda d: _row(d, "InvoiceLine", "5TV000000000021GAA").update(
+        {field: -5, "Balance": 1}))
+    assert report["ok"] is True, report["failed_checks"]
+    result = next(r for r in report["checks"]
+                  if r["subject"] == "3tt000000000002AAA/5TV000000000021GAA")
+    assert result["status"] == "skip" and field in result["detail"]
+
+
+def test_adjustment_type_line_is_skipped():
+    report = _line(mutate=lambda d: _row(d, "InvoiceLine", "5TV000000000021GAA").update(
+        Type="Adjustment", Balance=1))
+    assert report["ok"] is True
+    result = next(r for r in report["checks"]
+                  if r["subject"] == "3tt000000000002AAA/5TV000000000021GAA")
+    assert result["status"] == "skip" and "Adjustment" in result["detail"]
+
+
+@pytest.mark.parametrize("value", [0, None])
+def test_zero_or_null_unmeasured_invoice_and_line_fields_are_still_checked(value):
+    def mutate(data):
+        for row in data["Invoice"]:
+            row.update({f: value for f in ("TotalConvertedNegAmount", "WriteOffTotalChargeAmount",
+                                           "WriteOffTotalTaxAmount", "TotalAdjustmentAmount")},
+                       WriteOffStatus=None)
+        for row in data["InvoiceLine"]:
+            row.update({f: value for f in ("ConvertedNegAmount", "ChargeConvertedNegAmount",
+                                           "AdjustmentAmount")})
+        _row(data, "Invoice", "3tt000000000002AAA")["Balance"] = 494
+        _row(data, "InvoiceLine", "5TV000000000021GAA")["Balance"] = 494
+    report = _line(mutate=mutate)
+    assert report["failed_checks"] == ["invoice_balance", "invoice_line_balance"]
+
+
+# ------------------------------------------------------------------ nulls, lines, chunks
+
+def test_null_balance_fails_even_when_the_expected_value_is_null():
+    def mutate(data):
+        _row(data, "Invoice", "3tt000000000002AAA").update(TotalAmountWithTax=None,
+                                                           Balance=None)
+        _row(data, "InvoiceLine", "5TV000000000021GAA").update(LineAmount=None, Balance=None)
+    report = _line(mutate=mutate)
+    assert report["failed_checks"] == ["invoice_balance", "invoice_line_balance"]
+
+
+def test_invoice_with_no_lines_fails_the_line_check():
+    def mutate(data):
+        data["InvoiceLine"] = [r for r in data["InvoiceLine"]
+                               if r["InvoiceId"] != "3tt000000000002AAA"]
+    report = _line(mutate=mutate)
+    assert report["failed_checks"] == ["invoice_line_balance"]
+    result = next(r for r in report["checks"] if r["status"] == "fail")
+    assert result["subject"] == "3tt000000000002AAA" and "no lines" in result["detail"]
+
+
+def test_line_balances_are_skipped_at_header_level():
+    # Forced header on a line-level set: the level check fails, line balances skip.
+    report = _line(level="header")
+    assert _statuses(report, "invoice_line_balance") == {"skip"}
+    assert report["failed_checks"] == ["application_level"]
+
+
+def test_more_ids_than_one_chunk_are_all_read():
+    from scripts.txn_data_harness.verify import _id18
+    n = 450
+    invoices, lines = [], []
+    for i in range(n):
+        iid = _id18(f"3tt{i:012d}")
+        invoices.append({"Id": iid, "Status": "Posted", "SettlementLevel": None,
+                         "TotalAmountWithTax": 10, "NetCreditsApplied": 0,
+                         "NetPaymentsApplied": 0, "Balance": 10})
+        lines.append({"Id": _id18(f"5TV{i:012d}"), "InvoiceId": iid, "Type": "Charge",
+                      "LineAmount": 10, "NetCreditsApplied": 0, "NetPaymentsApplied": 0,
+                      "Balance": 10})
+    data = {"Invoice": invoices, "InvoiceLine": lines}
+    client = RecordedClient(data)
+    records = fetch_billing_records(client, [r["Id"] for r in invoices])
+    assert len(records["Invoice"]) == n and len(records["InvoiceLine"]) == n
+    assert sum(1 for q in client.queries if " FROM Invoice " in q) == 3
+    assert run_checks(records)["ok"] is True
+
+
 # ------------------------------------------------------------------ inputs
 
 def test_unknown_invoice_id_is_an_error():
@@ -454,7 +580,7 @@ def test_cli_verify_empty_manifest_is_not_fatal_with_other_ids(recorded_org, tmp
 def test_cli_verify_missing_manifest_is_a_clean_error(recorded_org, tmp_path, capsys):
     rc = cli.main(["verify", "--org", "fake", "--manifest", str(tmp_path / "nope.json")])
     err = capsys.readouterr().err
-    assert rc == 1
+    assert rc == 2
     assert err.startswith("ERROR: manifest not found")
 
 
@@ -465,7 +591,7 @@ def test_cli_verify_manifest_that_is_not_an_object_is_a_clean_error(
     path.write_text(payload)
     rc = cli.main(["verify", "--org", "fake", "--manifest", str(path)])
     err = capsys.readouterr().err
-    assert rc == 1
+    assert rc == 2
     assert err.startswith("ERROR: manifest") and "Traceback" not in err
 
 
@@ -480,19 +606,37 @@ def test_cli_verify_refused_read_is_a_clean_error(monkeypatch, capsys, exc):
     monkeypatch.setattr(cli.SfRestClient, "from_alias",
                         classmethod(lambda cls, *a, **k: Refusing({})))
     rc = cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0]])
-    assert rc == 1
+    assert rc == 2
     assert capsys.readouterr().err.startswith("ERROR: Salesforce request failed")
 
 
-def test_cli_verify_manifest_without_ids_exits_one(recorded_org, tmp_path, capsys):
+def test_cli_verify_manifest_without_ids_exits_two(recorded_org, tmp_path, capsys):
     path = _manifest(tmp_path)
     rc = cli.main(["verify", "--org", "fake", "--manifest", str(path)])
-    assert rc == 1
+    assert rc == 2
     assert "names no invoice or payment id" in capsys.readouterr().err
+
+
+def test_cli_verify_error_with_json_prints_an_error_object(recorded_org, capsys):
+    rc = cli.main(["verify", "--org", "fake", "--invoice-ids", "3tt00000000000ZAAQ",
+                   "--json"])
+    out = json.loads(capsys.readouterr().out)
+    assert rc == 2
+    assert out["ok"] is False and "not found" in out["error"]
+
+
+def test_cli_verify_payment_ids_only(recorded_org, capsys):
+    rc = cli.main(["verify", "--org", "fake", "--payment-ids", "0aQ000000000001EAA",
+                   "--json"])
+    report = json.loads(capsys.readouterr().out)
+    assert rc == 0, report["failed_checks"]
+    assert report["invoice_ids"] == []
+    assert report["payment_ids"] == ["0aQ000000000001EAA"]
+    assert {r["check"] for r in report["checks"]} == {"payment_balance", "unapplied_rows"}
 
 
 def test_cli_verify_needs_some_ids(recorded_org, capsys):
     rc = cli.main(["verify", "--org", "fake"])
-    assert rc == 1
+    assert rc == 2
     assert "verify needs" in capsys.readouterr().err
 

@@ -192,7 +192,8 @@ before adding any quote-creation path to either tool.
    ```
 
 1. For invoices with payments or credits applied, run the read-only billing checks
-   (exit 1 on any failure; formulas in `billing-operations` → `verification.md`):
+   (exit 1 on a failed check, 2 on bad input; formulas in `billing-operations` →
+   `verification.md`):
 
    ```bash
    python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json

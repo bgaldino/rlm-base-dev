@@ -369,18 +369,26 @@ def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
-    """Read-only billing checks. Exit 0 when nothing fails, 1 when any check fails."""
-    invoice_ids, payment_ids = _verify_ids(args)
+    """Read-only billing checks.
+
+    Exit 0 when nothing fails, 1 when any check fails, 2 when the input or a
+    Salesforce request is bad (no report). With ``--json`` an error prints
+    ``{"ok": false, "error": ...}`` on stdout too.
+    """
     try:
+        invoice_ids, payment_ids = _verify_ids(args)
         client = SfRestClient.from_alias(
             args.org, api_version=args.api_version, transport=args.transport
         )
         records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
-    except (SfApiError, SfCliError) as exc:
-        # A refused read (missing object or field permission) is an input problem for
-        # this command, not a crash: say which query failed and exit 1.
-        print(f"ERROR: Salesforce request failed: {exc}", file=sys.stderr)
-        return 1
+    except (billing_verify.VerifyError, SfApiError, SfCliError) as exc:
+        message = str(exc)
+        if isinstance(exc, (SfApiError, SfCliError)):
+            message = f"Salesforce request failed: {exc}"
+        print(f"ERROR: {message}", file=sys.stderr)
+        if args.json:
+            print(json.dumps({"ok": False, "error": message}, indent=2))
+        return 2
     report = billing_verify.run_checks(records, args.expect_level)
     if args.json:
         print(json.dumps(report, indent=2))
@@ -451,12 +459,13 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     verify = sub.add_parser(
         "verify",
-        help="Read-only billing checks on invoices and payments (exit 1 on any failure).",
+        help="Read-only billing checks on invoices and payments "
+             "(exit 1 on a failed check, 2 on bad input).",
     )
     add_connection_args(verify)
     verify.add_argument("--manifest", action="append",
-                        help="Run id or manifest path (repeatable); reads its invoice "
-                             "and payment ids.")
+                        help="Run id or manifest path (repeatable); reads its "
+                             "invoice_id(s) and, when present, payment_id(s).")
     verify.add_argument("--latest", action="store_true",
                         help="Add the newest manifest's ids.")
     verify.add_argument("--invoice-ids", action="append",

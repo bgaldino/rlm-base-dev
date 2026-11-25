@@ -228,7 +228,8 @@ python -m scripts.txn_data_harness.cli prune --older-than 7d --yes     # delete
 `verify` is read-only. It checks, by id, that each invoice, invoice line and
 payment balance agrees with its payment and credit applications, and that the
 applications are all at one level (line or header). Ids may be 15 or 18
-characters. It exits 1 if any check fails or the input is bad:
+characters. It exits 1 if any check fails, and 2 if the input or a
+Salesforce request is bad:
 
 ```bash
 python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json

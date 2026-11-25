@@ -3,7 +3,7 @@
 ``cli verify`` reads invoice and payment ids from harness manifests (or from
 ``--invoice-ids`` / ``--payment-ids``), runs SOQL reads only, and checks the billing
 records against each other. It never writes. Exit 0 when every check passes or is
-skipped, 1 when any check fails.
+skipped, 1 when any check fails, 2 on bad input or a refused request.
 
 Checks (formulas are documented in
 ``.cursor/skills/billing-operations/verification.md``):
@@ -15,11 +15,13 @@ Checks (formulas are documented in
     level, or when its ``SettlementLevel`` names the other level.
 ``invoice_balance``
     ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
-    each rollup equals the net of the invoice's application rows.
+    each rollup equals the net of the invoice's application rows. Skipped when a
+    converted-negative, write-off or adjustment field is set (effect unmeasured).
 ``invoice_line_balance``
     ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
-    each rollup equals the net of the line's application rows. Skipped for an invoice
-    whose applications are header rows only.
+    each rollup equals the net of the line's application rows. Skipped at Header
+    Level, for an invoice whose applications are header rows only, and for a line with
+    a converted-negative or adjustment amount. An invoice with no lines fails.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
     payment's application rows on any invoice. Skipped for a payment whose
@@ -62,20 +64,33 @@ CHECK_NAMES = (
 
 LEVELS = ("line", "header")
 
-# Amounts compare exactly as Decimals built from the API's own text, so no currency
-# precision is assumed (JPY has none, some currencies carry three places).
+# Amounts compare exactly as Decimals, with no tolerance, so no currency precision is
+# assumed (JPY has none, some currencies carry three places). The REST client parses
+# JSON numbers as floats; each is converted with ``Decimal(str(value))``, and ``str`` of
+# a float gives the shortest text that reads back as the same float. For currency
+# amounts (at most about 15 significant digits) that is the value the API sent, so the
+# Decimal arithmetic below is exact.
 _ID_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
 _SUFFIX_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
 _IN_CHUNK = 200
 
+# Fields that may settle or change a balance outside the four application objects.
+# Their effect has not been measured: a non-zero value skips the balance check for
+# that invoice or line instead of guessing a formula.
+_UNMEASURED_INVOICE_FIELDS = (
+    "TotalConvertedNegAmount", "WriteOffTotalChargeAmount", "WriteOffTotalTaxAmount",
+    "TotalAdjustmentAmount",
+)
+_UNMEASURED_LINE_FIELDS = ("ConvertedNegAmount", "ChargeConvertedNegAmount", "AdjustmentAmount")
+
 INVOICE_FIELDS = (
     "Id", "Status", "SettlementLevel", "CurrencyIsoCode", "TotalAmountWithTax",
-    "NetCreditsApplied", "NetPaymentsApplied", "Balance",
-)
+    "NetCreditsApplied", "NetPaymentsApplied", "Balance", "WriteOffStatus",
+) + _UNMEASURED_INVOICE_FIELDS
 INVOICE_LINE_FIELDS = (
     "Id", "InvoiceId", "Type", "LineAmount", "NetCreditsApplied", "NetPaymentsApplied",
     "Balance",
-)
+) + _UNMEASURED_LINE_FIELDS
 PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance", "NetRefundApplied",
                   "NetPaymentCreditApplied")
 # Payment fields whose effect on Balance has not been measured: a non-zero value skips
@@ -113,6 +128,11 @@ APP_OBJECTS = (
 )
 _PAYMENT_APP_OBJECTS = tuple(o for o in APP_OBJECTS if o.kind == "payment")
 _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
+
+
+def _unmeasured(row: dict, fields: Iterable[str]) -> list[str]:
+    """Name each listed field that is non-zero on ``row``, with its value."""
+    return [f"{f} {_fmt(_dec(row.get(f)))}" for f in fields if _zero(row.get(f)) != 0]
 
 
 class VerifyError(ValueError):
@@ -360,12 +380,19 @@ def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict
         facts = (f"{line_n} line application row(s), {head_n} header application row(s), "
                  f"SettlementLevel {settlement or 'null'}")
         if expected is None:
-            if source == "mixed":
-                out.append(_result("application_level", iid, "fail",
-                                   f"the invoices disagree on the level; {facts}"))
-            else:
+            own = _evidence(idx, invoice)
+            if not own:
                 out.append(_result("application_level", iid, "skip",
                                    f"no application rows and no SettlementLevel to compare; {facts}"))
+            elif len(own) > 1:
+                out.append(_result("application_level", iid, "fail",
+                                   f"this invoice shows both levels; {facts}"))
+            else:
+                # Mixed: this invoice is consistent with itself but another invoice in
+                # the set shows the other level. Fail the ones that have rows.
+                out.append(_result("application_level", iid, "fail",
+                                   f"this invoice is {next(iter(own))} level but other "
+                                   f"invoices in the set are not; {facts}"))
             continue
         other = "header" if expected == "line" else "line"
         wrong_rows = head_n if expected == "line" else line_n
@@ -389,6 +416,14 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
+        unmeasured = _unmeasured(invoice, _UNMEASURED_INVOICE_FIELDS)
+        if invoice.get("WriteOffStatus"):
+            unmeasured.append(f"WriteOffStatus {invoice['WriteOffStatus']}")
+        if unmeasured:
+            out.append(_result("invoice_balance", iid, "skip",
+                               f"{', '.join(unmeasured)}: the effect on Balance is not "
+                               "measured"))
+            continue
         total = _dec(invoice.get("TotalAmountWithTax"))
         credits = _zero(invoice.get("NetCreditsApplied"))
         payments = _zero(invoice.get("NetPaymentsApplied"))
@@ -413,10 +448,15 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     return out
 
 
-def _check_line_balance(idx: _Index) -> list[dict]:
+def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
+        if level == "header":
+            out.append(_result("invoice_line_balance", iid, "skip",
+                               "level is header; line balances at Header Level are not "
+                               "measured"))
+            continue
         has_line = any(_invoice_rows(idx, iid, k, "line") for k in ("payment", "credit"))
         has_head = any(_invoice_rows(idx, iid, k, "header") for k in ("payment", "credit"))
         lines = idx.lines_by_invoice.get(iid, [])
@@ -426,10 +466,22 @@ def _check_line_balance(idx: _Index) -> list[dict]:
                                "Level are not measured"))
             continue
         if not lines:
-            out.append(_result("invoice_line_balance", iid, "fail", "invoice has no lines"))
+            # A posted invoice always has lines; none read means the lines are missing
+            # or not readable, so the line check cannot pass.
+            out.append(_result("invoice_line_balance", iid, "fail",
+                               "invoice has no lines (none readable)"))
             continue
         for line in lines:
             lid = line["Id"]
+            subject = f"{iid}/{lid}"
+            unmeasured = _unmeasured(line, _UNMEASURED_LINE_FIELDS)
+            if line.get("Type") == "Adjustment":
+                unmeasured.insert(0, "Type Adjustment")
+            if unmeasured:
+                out.append(_result("invoice_line_balance", subject, "skip",
+                                   f"{', '.join(unmeasured)}: the effect on Balance is not "
+                                   "measured"))
+                continue
             amount = _dec(line.get("LineAmount"))
             credits = _zero(line.get("NetCreditsApplied"))
             payments = _zero(line.get("NetPaymentsApplied"))
@@ -448,7 +500,6 @@ def _check_line_balance(idx: _Index) -> list[dict]:
             if not _eq(credits, rec_cred):
                 problems.append(f"NetCreditsApplied {_fmt(credits)} != "
                                 f"CreditMemoLineInvoiceLine rows {_fmt(rec_cred)}")
-            subject = f"{iid}/{lid}"
             if problems:
                 out.append(_result("invoice_line_balance", subject, "fail", "; ".join(problems)))
             else:
@@ -463,8 +514,7 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
     for payment in records.get("Payment", []):
         pid = payment["Id"]
         status = payment.get("Status")
-        unmeasured = [f"{f} {_fmt(_dec(payment.get(f)))}" for f in _UNMEASURED_PAYMENT_FIELDS
-                      if _zero(payment.get(f)) != 0]
+        unmeasured = _unmeasured(payment, _UNMEASURED_PAYMENT_FIELDS)
         if unmeasured:
             out.append(_result("payment_balance", pid, "skip",
                                f"Status {status}; {', '.join(unmeasured)}: the effect on "
@@ -545,7 +595,7 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
     results = (
         _check_level(idx, level, source)
         + _check_invoice_balance(idx)
-        + _check_line_balance(idx)
+        + _check_line_balance(idx, level)
         + _check_payment_balance(records, idx)
         + _check_unapplied(records)
     )
