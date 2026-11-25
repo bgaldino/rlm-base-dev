@@ -587,7 +587,8 @@ def main():
         except OptionsError as exc:
             refusal = str(exc)
         check("the refusal marks an id that is not on the site, and not one that merely falls outside the section",
-              "gone.htm (not on the site)" in refusal and "rlm_get_started.htm (not on the site)" not in refusal)
+              "gone.htm (not on the site)" in refusal and "rlm_get_started.htm" in refusal
+              and "rlm_get_started.htm (not on the site)" not in refusal)
         check("accepting only some of the uncovered pages still refuses",
               raises(OptionsError, snap(tmp, accept_uncovered=["gone.htm"], **sect).run)
               and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
