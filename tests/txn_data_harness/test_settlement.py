@@ -1255,7 +1255,7 @@ def test_api_error_text_shapes() -> None:
             '[{"errors":[{"errorCode":"E","message":"Couldn&#39;t credit"}]}]}}')
     assert lifecycle.api_error_text(body) == "E: Couldn't credit"
     assert lifecycle.api_error_text('{"message":"only top"}') == "only top"
-    assert lifecycle.api_error_text("not json") == "not json"
+    assert lifecycle.api_error_text("not json") == "a non-JSON body (8 characters, not shown)"
 
 
 def _step_cfg(tmp_path, body: str) -> str:
@@ -3626,7 +3626,8 @@ def test_submitted_credit_with_no_memo_fails_as_unknown_outcome(billable_account
     assert info.value.failure_class == "deterministic" and org.posts == []
 
 
-@pytest.mark.parametrize("level, where", [("line", "the chosen lines"), ("header", "the invoice")])
+@pytest.mark.parametrize("level, where", [("line", "the chosen lines' open balance"),
+                                          ("header", "the invoice Balance 100.0")])
 def test_short_application_warning_names_the_unapplied_rest(level, where, billable_account) -> None:
     org = SettleOrg(level)
     org.lines[0]["Balance"] = 0.0
@@ -3636,7 +3637,7 @@ def test_short_application_warning_names_the_unapplied_rest(level, where, billab
     spec = SettlementSpec(application_level=level, payment=PaymentSpec())
     m = steps.run_payment(_settle_ctx(org, billable_account, spec),
                           _payment_planned_manifest(payment_ids=["0aQ1"]))
-    assert any(f"({where} had less open balance" in w and "0aQ1 keeps 150.0 unapplied" in w
+    assert any(f"(limited by {where})" in w and "0aQ1 keeps 150.0 unapplied" in w
                for w in m.settlement_warnings)
 
 
@@ -3765,7 +3766,8 @@ def test_invoice_balance_too_small_for_any_credit_is_refused(billable_account) -
                                             tax_strategy="CopyFromInvoiceLine"))
     m = _posted_manifest()
     with pytest.raises(lifecycle.SettlementError,
-                       match=r"invoice Balance 15.0 is too small .* would be 20.01 with tax "
+                       match=r"none of the chosen lines can take any credit within the invoice "
+                             r"Balance 15.0: line 5TV1 needs at least 20.01 with tax "
                              r"\(CopyFromInvoiceLine\)") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic"
@@ -3793,3 +3795,45 @@ def test_line_level_apply_capped_at_the_invoice_balance_on_resume(billable_accou
                           _payment_planned_manifest(payment_ids=["0aQ1"], application_level="line"))
     assert sum(a for _, a in _applies(org)) == 200.0
     assert any("payment applied 200.0 of the 250.0 planned" in w for w in m.settlement_warnings)
+
+
+# -- review round 23 (todo 275) -------------------------------------------------
+
+
+def test_non_json_error_body_is_never_shown(billable_account) -> None:
+    """A 503 HTML maintenance page reaches manifest.error by length only."""
+    from scripts.txn_data_harness.auth import SfApiError
+
+    page = "<html><body>Down for maintenance SECRET-ISH</body></html>"
+    assert "SECRET" not in lifecycle.api_error_text(page)
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(400, page, "POST", "/sobjects/Payment")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(lifecycle.SettlementError) as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert "SECRET" not in str(info.value)
+    assert f"a non-JSON body ({len(page)} characters, not shown)" in str(info.value)
+    # JSON errors keep their codes and messages.
+    assert lifecycle.api_error_text('[{"errorCode":"E","message":"m"}]') == "E: m"
+
+
+def test_refusal_names_every_line_that_cannot_take_credit(billable_account) -> None:
+    org = SettleOrg("line")
+    for line, tax in ((org.lines[0], 20.0), (org.lines[1], 30.0)):
+        line.update(TaxAmount=tax, LineAmount=line["ChargeAmount"] + tax,
+                    Balance=line["ChargeAmount"] + tax)
+    org.invoice_balance_override = 15.0
+    spec = SettlementSpec(application_level="line",
+                          credit=CreditSpec(amount=10.0, tax_strategy="CopyFromInvoiceLine"))
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"line 5TV1 needs at least 20.01 .*, line 5TV2 needs at least 30.01"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+
+
+def test_line_level_over_payment_warning_names_the_invoice_cap(billable_account) -> None:
+    org = SettleOrg("line")
+    org.invoice_balance_override = 200.0
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(percent=120.0))
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert any("over-payment leaves 40.0 unapplied on the payment (the open amount is the "
+               "invoice Balance 200.0)" in w for w in m.settlement_warnings)

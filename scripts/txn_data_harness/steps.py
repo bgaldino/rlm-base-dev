@@ -949,17 +949,20 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                     float("inf"), chosen, strategy, places, invoice_open)
             ), places)
             if open_amount <= 0 and lines_open > 0:
-                # The invoice owes something, but less than the smallest
-                # credit (tax included) on the first chosen line: refuse,
+                # The invoice owes something, but no chosen line can take
+                # even the smallest credit (tax included) within it: refuse,
                 # like a sub-unit amount, rather than skip with nothing done.
-                first = chosen[0]
-                smallest = lifecycle.credit_with_tax(first, 10 ** -places, strategy, places)
+                needs = ", ".join(
+                    f"line {r['Id']} needs at least "
+                    f"{lifecycle.credit_with_tax(r, 10 ** -places, strategy, places)} with tax "
+                    f"({lifecycle.line_tax_strategy(r, strategy)})"
+                    for r in chosen if capacity(r) > 0
+                )
                 raise SettlementError(
                     "credit",
-                    f"the invoice Balance {invoice_open} is too small to credit anything: "
-                    f"the smallest credit on line {first['Id']} would be {smallest} with tax "
-                    f"({lifecycle.line_tax_strategy(first, strategy)}). Nothing was sent; "
-                    "start a new run with a different tax_strategy or lines.",
+                    f"none of the chosen lines can take any credit within the invoice "
+                    f"Balance {invoice_open}: {needs}. Nothing was sent; start a new run "
+                    "with a different tax_strategy or lines.",
                     record_id=manifest.invoice_id,
                 )
             requested = lifecycle._money(
@@ -1058,21 +1061,22 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
 
 def _payment_open_amount(
     ctx: StepContext, manifest: Manifest, spec: SettlementSpec, level: str
-) -> float:
+) -> tuple[float, str]:
+    """``(open amount, what limits it)`` for the payment plan."""
     places = _places(manifest)
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    invoice_open = lifecycle._money(header.get("Balance"), places)
     if level == lifecycle.LEVEL_HEADER:
         if spec.payment.lines is not None:
             _warn(manifest, "payment 'lines' ignored at Header Level (applied to the invoice)")
-        header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-        return lifecycle._money(header.get("Balance"), places)
+        return invoice_open, f"the invoice Balance {invoice_open}"
     chosen = _chosen_lines(ctx, manifest, spec.payment.lines)
     # The lines' balances can add up to more than the invoice owes: cap at
     # the invoice's Balance, as the Header path does (no tax split here).
-    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-    return lifecycle._money(min(
-        sum(float(r.get("Balance") or 0) for r in chosen),
-        float(header.get("Balance") or 0),
-    ), places)
+    lines_open = lifecycle._money(sum(float(r.get("Balance") or 0) for r in chosen), places)
+    if invoice_open < lines_open:
+        return invoice_open, f"the invoice Balance {invoice_open}"
+    return lines_open, "the chosen lines' open balance"
 
 
 def plan_payment(
@@ -1142,9 +1146,9 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         _check_level_evidence(ctx, manifest, level)
 
     if manifest.payment_apply_target is None:
-        open_amount = _payment_open_amount(ctx, manifest, spec, level)
+        open_amount, limit = _payment_open_amount(ctx, manifest, spec, level)
         if open_amount <= 0:
-            _warn(manifest, "payment skipped: no open balance on the chosen lines")
+            _warn(manifest, f"payment skipped: no open balance ({limit})")
             manifest.reached_stage = "payment_applied"
             return manifest
         amount, target, mode = plan_payment(spec.payment, open_amount, places)
@@ -1157,7 +1161,8 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             _warn(
                 manifest,
                 f"over-payment leaves {lifecycle._money(amount - target, places)} unapplied "
-                "on the payment; the platform may apply it to the account's next posted invoice",
+                f"on the payment (the open amount is {limit}); the platform may apply it to "
+                "the account's next posted invoice",
             )
         _checkpoint(ctx, manifest)
 
@@ -1176,6 +1181,8 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         rows = apps[lifecycle.LEVEL_LINE] + apps[lifecycle.LEVEL_HEADER]
         return lifecycle._money(sum(float(r.get("Amount") or 0) for r in rows), places)
 
+    # What limits the open amount, read before this run's applies change it.
+    _, where = _payment_open_amount(ctx, manifest, spec, level)
     remaining = lifecycle._money(manifest.payment_apply_target - _total(_read()), places)
     if remaining > 0:
         if level == lifecycle.LEVEL_LINE:
@@ -1216,12 +1223,11 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             record_id=payment_id,
         )
     if applied < manifest.payment_apply_target:
-        where = "the invoice" if level == lifecycle.LEVEL_HEADER else "the chosen lines"
         rest = lifecycle._money((manifest.payment_amount or 0) - applied, places)
         _warn(
             manifest,
             f"payment applied {applied} of the {manifest.payment_apply_target} planned "
-            f"({where} had less open balance than planned); payment {payment_id} keeps "
+            f"(limited by {where}); payment {payment_id} keeps "
             f"{rest} unapplied, which the platform may apply to the account's next "
             "posted invoice",
         )

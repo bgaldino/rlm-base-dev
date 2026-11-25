@@ -343,9 +343,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   first write of the run (so a sub-unit payment refuses before the credit
   is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
   A credit `percent` is taken of that capped amount (a warning says when the
-  cap reduced its base). An invoice that owes something, but less than the
-  smallest credit with tax on the first chosen line, is refused (nothing is
-  sent). Only lines with no open balance, or an invoice whose `Balance` is 0,
+  cap reduced its base). When the invoice owes something but none of the
+  chosen lines can take even the smallest credit (tax included) within it,
+  the credit is refused (nothing is sent), naming each such line and the
+  least it would need. Only lines with no open balance, or an invoice whose `Balance` is 0,
   skip the stage with a warning (naming which). The payment's open amount is
   capped at the invoice's `Balance` at Line Level too (no tax split), at
   planning and at every apply.

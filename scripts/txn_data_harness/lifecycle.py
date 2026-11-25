@@ -1721,7 +1721,9 @@ def api_error_text(body: str) -> str:
     Handles the list shape (``[{"errorCode", "message"}]``) and the billing
     record-error shape (``{"message", "output": {"errors": [...],
     "referenceLineErrorResults": [{"errors": [...]}]}}``). Falls back to the
-    raw body.
+    JSON body when it holds no message. A body that is not JSON (an HTML
+    maintenance page, a proxy error) is described by its length only, never
+    shown -- the rule :func:`describe_response` applies.
     """
     import html
     import json as _json
@@ -1729,7 +1731,7 @@ def api_error_text(body: str) -> str:
     try:
         data = _json.loads(body)
     except (TypeError, ValueError):
-        return body or ""
+        return f"a non-JSON body ({len(body or '')} characters, not shown)"
     msgs: list[str] = []
 
     def add(errors):
