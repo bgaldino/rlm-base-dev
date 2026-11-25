@@ -4011,7 +4011,8 @@ flows:
       15:
         # DRO callout steps send through named credentials that share
         # BillingSystemExtCredentials; without principal access they fail with
-        # SF_DRO_STEP_API_00124. Reaches only the running user (the activator).
+        # SF_DRO_STEP_API_00124. Reaches only the running user; a different
+        # activating user needs its own grant.
         # Persona and tso coverage: docs/references/revenue-cloud-permissions.md.
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__dro
