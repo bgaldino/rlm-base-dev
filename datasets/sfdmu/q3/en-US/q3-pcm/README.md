@@ -103,17 +103,19 @@ ProductCategoryProduct.csv               # 72 records
   by whichever rows happened to have an address. 39 of them used to hotlink images on 18
   third-party hosts, which break without notice and which the repo has no license to use; the
   other 39 had none. To give a product its own image, ship it as a static resource and point the
-  row at `/resource/<name>`. To move an org loaded before this change, deploy that one static
-  resource first
+  row at `/resource/<name>`.
+
+  To move an org loaded before this change, first deploy that one static resource
   (`sf project deploy start --metadata StaticResource:RLM_product_placeholder --target-org <sf_alias>`;
-  do not rerun `deploy_full` on a built org, since it redeploys force-app's expression set
-  definitions and the platform refuses an update to an active version), then reload this plan
-  (`cci task run insert_q3_pcm_data --org <cci_alias>`), then refresh the decision tables
-  (`cci flow run refresh_all_decision_tables --org <cci_alias>`) and rebuild the search index
-  (`cci task run rebuild_search_index --org <cci_alias>`), in that order, which
-  `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md` step 6 requires after a
-  catalog load. An org loaded before todo 325 should be rebuilt rather than reloaded (see the
-  note at the top of this README). Until the resource is in the org, the 78 rows point at an image that does not resolve.
+  not `deploy_full`, which a built org refuses because it redeploys active expression set
+  versions). Then either set `Product2.DisplayUrl` to `/resource/RLM_product_placeholder` on the
+  plan's products, identified by the `StockKeepingUnit` values in `Product2.csv`, or reload this
+  plan (`insert_q3_pcm_data`, then the `refresh_all_decision_tables` flow and the
+  `rebuild_search_index` task, as `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md`
+  step 6 orders them). A reload resets every q3-pcm record to the plan's values, overwriting
+  edits made on the org, so it is the simpler choice only on an org with no catalog edits; an
+  org loaded before todo 325 should be rebuilt rather than reloaded (see the note at the top of
+  this README).
 - **The trusted sites added for the hotlinked images are gone from the repo.**
   `unpackaged/post_quantumbit` used to deploy 16 CSP trusted sites (`img-src` only) that were
   added for those images; nothing else in the repo used them, so they were removed. They

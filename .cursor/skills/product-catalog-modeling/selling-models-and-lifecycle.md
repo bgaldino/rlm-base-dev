@@ -242,12 +242,10 @@ In this repo:
   (`PROD-455868158` reuses `powerswerve`). [Repo:
   `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
   `force-app/main/default/staticresources/`] An org built before that fix keeps
-  `/resource/omniserver`, which does not resolve, on `PROD-455868158` until the qb-pcm plan is
-  reloaded: `cci task run insert_quantumbit_pcm_data --org <cci_alias>`, then
-  `cci flow run refresh_all_decision_tables --org <cci_alias>` and
-  `cci task run rebuild_search_index --org <cci_alias>`, in the order
-  [`catalogs-and-loading.md`](catalogs-and-loading.md) step 6 gives. The reload was checked on a
-  built 264 org and set the new image.
+  `/resource/omniserver`, which does not resolve, on `PROD-455868158`. Fix that one record:
+  `sf data update record --sobject Product2 --where "StockKeepingUnit='PROD-455868158'" --values "DisplayUrl=/resource/powerswerve" --target-org <sf_alias>`
+  (checked on a built 264 org). Reloading qb-pcm also works, but its Upsert resets every qb-pcm
+  record to the plan's values, overwriting edits made on the org.
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
   after the product plan blanked the images whenever the product plan was reloaded alone; the
   URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
