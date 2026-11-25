@@ -640,6 +640,37 @@ def main():
               n_ == 0 and sorted(un_) == [("old.htm.md", "nowhere.htm.md"), ("old.htm.md", "nowhere2.htm.md"),
                                           ("old.htm.md", "nowhere3.htm.md")]  # nowhere4.mdx is not a .md link
               and (a_dir / "articles" / "old.htm.md").read_text(encoding="utf-8").count("nowhere") == 5)
+        u2 = Path(tmp) / "unit2"
+        (u2 / "articles").mkdir(parents=True)
+        for name, body_ in {
+            "a.md": "[y](./a.htm.md)\n", "b.md": "# b\n",
+            "keep.htm.md": "[1](./a.htm.md) [2](a.htm.md#f) [3](./ghost.htm.md) [4](../x.md) [5](sub/x.md) "
+                           "[6](<./sup.htm.md>) [7](./sup.htm.md (t))\n",
+            "sup.htm.md": "[z](./a.htm.md)\n",
+        }.items():
+            (u2 / "articles" / name).write_text(body_, encoding="utf-8")
+        man2 = {"legacy_id_map": {"a.htm": "a", "b.htm": "b", "ghost.htm": "ghost", "sup.htm": "b"},
+                "unmapped_legacy_ids": {"keep.htm": ""}, "superseded_files": ["articles/sup.htm.md"]}
+        n2, un2 = sg.rewrite_retained_links(u2, man2)
+        kept = (u2 / "articles" / "keep.htm.md").read_text(encoding="utf-8")
+        check("a link to a mapped slug with no article is reported, not rewritten into a dead link",
+              "[3](./ghost.htm.md)" in kept and ("keep.htm.md", "ghost.htm.md") in un2)
+        check("a bare sibling link is rewritten, a path link is left alone",
+              "[1](./a.md)" in kept and "[2](./a.md#f)" in kept and "[4](../x.md)" in kept and "[5](sub/x.md)" in kept)
+        check("a link form the rewrite cannot handle to a superseded file is reported",
+              ("keep.htm.md", "sup.htm.md") in un2 and n2 == 2)
+        check("a superseded article and the site slug files are not rewritten",
+              (u2 / "articles" / "sup.htm.md").read_text(encoding="utf-8") == "[z](./a.htm.md)\n"
+              and (u2 / "articles" / "a.md").read_text(encoding="utf-8") == "[y](./a.htm.md)\n")
+        order = []
+        og = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
+        for nm in ("_save_manifest", "_relink_retained"):
+            orig_ = getattr(og, nm)
+            setattr(og, nm, lambda *a_, _o=orig_, _n=nm, **k_: (order.append(_n), _o(*a_, **k_))[1])
+        og.run()
+        check("the retained-link rewrite runs after the manifest settles superseded_files",
+              order and order[-1] == "_relink_retained" and order.index("_relink_retained") > max(
+                  i_ for i_, n_ in enumerate(order) if n_ == "_save_manifest"))
         check("the rewrite says how many links it changed",
               any("rewrote 3 local link" in m for m in lk.logger.lines))
         again = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
