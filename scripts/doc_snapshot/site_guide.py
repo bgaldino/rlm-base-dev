@@ -265,9 +265,10 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
     A switch removes the atlas files it replaces, so a link such as ``./a_b.htm.md`` in an
     atlas article that stays behind (an atlas-only page, or one held by the shrinkage guard)
     would dangle. Each link whose target is missing (or listed for removal) but is a ``legacy_id_map`` id with an
-    article on disk is rewritten to ``./<slug>.md`` (fragment kept). A missing target with no
-    replacement is left as is and returned so the caller can report it. Returns the number of
-    links rewritten and the unresolved ``(file, target)`` pairs, one per target per file. Idempotent.
+    article on disk is rewritten to ``./<slug>.md`` (fragment kept). A link left
+    dangling (no site file for the target, or a link form the rewrite does not handle) stays as
+    is and is returned so the caller can report it. Returns the number of links rewritten and
+    those unresolved ``(file, target)`` pairs, one per target per file. Idempotent.
     """
     articles = out / "articles"
     mapping = _legacy_map(manifest)

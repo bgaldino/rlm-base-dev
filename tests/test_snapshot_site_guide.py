@@ -631,13 +631,13 @@ def main():
         a_dir = Path(tmp) / "unit"
         (a_dir / "articles").mkdir(parents=True)
         (a_dir / "articles" / "old.htm.md").write_text(
-            "[1](./nowhere.htm.md) [2](./nowhere.htm.md) [3](./nowhere3.htm.md (t)) [4](<./nowhere2.htm.md>)\n",
+            "[1](./nowhere.htm.md) [2](./nowhere.htm.md) [3](./nowhere3.htm.md (t)) [4](<./nowhere2.htm.md>) [5](./nowhere4.mdx)\n",
             encoding="utf-8")
         n_, un_ = sg.rewrite_retained_links(a_dir, {"legacy_id_map": {}, "unmapped_legacy_ids": {"old.htm": ""}})
         check("an unresolved target is reported once per file, in any link form, and the file is untouched",
               n_ == 0 and sorted(un_) == [("old.htm.md", "nowhere.htm.md"), ("old.htm.md", "nowhere2.htm.md"),
-                                          ("old.htm.md", "nowhere3.htm.md")]
-              and (a_dir / "articles" / "old.htm.md").read_text(encoding="utf-8").count("nowhere") == 4)
+                                          ("old.htm.md", "nowhere3.htm.md")]  # nowhere4.mdx is not a .md link
+              and (a_dir / "articles" / "old.htm.md").read_text(encoding="utf-8").count("nowhere") == 5)
         check("the rewrite says how many links it changed",
               any("rewrote 3 local link" in m for m in lk.logger.lines))
         again = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
