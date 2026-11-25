@@ -2,6 +2,13 @@
 #
 #   python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
 #       --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml \
+#       --concurrency 1
+#
+# --concurrency 1 is required: both scenarios use one account, and posting an
+# invoice applies the account's open payment balance to it, so parallel
+# scenarios could take each other's payment. `cli run` refuses otherwise.
 #
 # After `invoice_posted`, `credit_applied` credits the invoice with one credit
 # memo and `payment_applied` creates one processed payment (no gateway) and

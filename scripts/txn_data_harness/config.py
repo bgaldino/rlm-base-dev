@@ -443,11 +443,15 @@ class SettlementSpec:
     payment: Optional[PaymentSpec] = None
 
     def to_dict(self) -> dict:
-        return {
-            "application_level": self.application_level,
-            "credit": self.credit.to_dict() if self.credit else None,
-            "payment": self.payment.to_dict() if self.payment else None,
-        }
+        # Absent sub-blocks are omitted, not written as None: a None here
+        # must never read back as a block (a credit-only manifest resumed to
+        # payment_applied would otherwise pay the open balance unasked).
+        data: dict = {"application_level": self.application_level}
+        if self.credit is not None:
+            data["credit"] = self.credit.to_dict()
+        if self.payment is not None:
+            data["payment"] = self.payment.to_dict()
+        return data
 
 
 def settlement_from_dict(data: Optional[dict]) -> Optional[SettlementSpec]:
@@ -520,7 +524,7 @@ def _coerce_credit(raw: Any, where: str) -> CreditSpec:
 
 
 def _coerce_payment(raw: Any, where: str) -> PaymentSpec:
-    if raw is None or raw == "exact":
+    if raw == "exact":
         return PaymentSpec()
     if not isinstance(raw, dict):
         raise ConfigError(f"{where}: payment must be a mapping (or 'exact')")
@@ -570,9 +574,11 @@ def _coerce_settlement(raw: Any, where: str) -> Optional[SettlementSpec]:
         _coerce_credit(raw["credit"], f"{where}.settlement.credit")
         if raw.get("credit") is not None else None
     )
+    # ``payment: null`` (or a bare ``payment:``) is absent, like a missing
+    # key; ask for an exact payment with ``payment: exact`` or ``payment: {}``.
     payment = (
         _coerce_payment(raw["payment"], f"{where}.settlement.payment")
-        if "payment" in raw else None
+        if raw.get("payment") is not None else None
     )
     return SettlementSpec(application_level=level, credit=credit, payment=payment)
 
@@ -583,15 +589,24 @@ def _resolve_settlement(
     """Parse ``settlement:`` and check it against ``stage``.
 
     A block inherited from the config-level ``defaults`` is dropped on a
-    scenario that stops before the settlement stages, so one config can share
-    settlement defaults across scenarios that stop at different stages. A
-    block set on the scenario itself (or a settlement target with no block) is
-    an error, since it would silently never run.
+    scenario that stops before the settlement stages, and its ``payment``
+    part is dropped on a scenario that stops at ``credit_applied``, so one
+    config can share settlement defaults across scenarios that stop at
+    different stages. A block set on the scenario itself (or a settlement
+    target with no block) is checked strictly: a part that would never run is
+    an error.
     """
     settlement = _coerce_settlement(merged.get("settlement"), where)
     explicit = "settlement" in merged.get("_explicit_keys", set(merged))
-    if stage not in _SETTLEMENT_STAGES and not explicit:
-        return None
+    if not explicit:
+        if stage not in _SETTLEMENT_STAGES:
+            return None
+        if stage == "credit_applied" and settlement is not None:
+            settlement = SettlementSpec(
+                application_level=settlement.application_level,
+                credit=settlement.credit,
+                payment=None,
+            )
     _check_settlement_stage(settlement, stage, where)
     return settlement
 

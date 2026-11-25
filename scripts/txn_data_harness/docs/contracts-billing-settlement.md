@@ -71,8 +71,16 @@ How the harness designs around it:
 4. Credits are capped so the memo is fully applied (an over-balance memo keeps
    an unapplied balance, measured below), and an `over` payment warns, because
    either leftover will settle the account's next invoice posted through the
-   post action — including another scenario's in the same batch.
-5. What was applied is read back from the application records, not assumed.
+   post action.
+5. What was applied is read back from the application records **on this
+   invoice**, not assumed: an over-payment's rest applied to another invoice is
+   not counted (measured: the 99 left on `0aQWt000000XOtBMAW` was applied to
+   the next posted invoice, `3ttWt000002lgx7IAA`, row `1AlWt000000fkDNKAY`).
+6. **Serial runs per account.** A payment is open between its create and apply
+   calls, so a sibling scenario posting an invoice for the same account in that
+   gap would absorb it. `cli run` refuses `--concurrency > 1` when a batch has a
+   settlement target on an account with more than one transaction (`cli plan`
+   warns). Separate harness processes against one account are not guarded.
 
 ## Credit — `POST /commerce/invoicing/invoices/{invoiceId}/actions/credit`
 
@@ -191,19 +199,45 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
 | `amount` 5 on a line with balance 0 | same as above |
 | `amount` 150 > payment balance 100 | `[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"Enter an amount that’s less than or equal to the balance of the related payment."}]` |
 
+## Writes, retries and errors
+
+- The credit POST, the Payment insert and each apply are sent **once**
+  (`SfRestClient.post(..., retry=False)`): none has an idempotency key, so a
+  transport-level retry after a 5xx the server had committed would credit,
+  pay or apply twice. Recovery is by read-back instead: after a failed credit
+  POST the memo is looked for (by description tag) for up to 15 s before the
+  error is raised; the payment is found by its `GatewayRefNumber` tag; a retry
+  applies only what is not yet applied to this invoice.
+- A 4xx from the credit action or the apply becomes a `LifecycleError` with the
+  API's own messages. An apply `INVALID_FIELD` on `appliedToId` is reported as a
+  likely wrong application level: the payment is then Processed and unapplied
+  (and may be absorbed by the account's next posted invoice), and
+  `cli step --to-stage payment_applied --application-level line|header`
+  replaces the recorded level and applies it.
+
+## Currency precision
+
+Amounts the harness computes (percent shares, per-line caps) are rounded to
+`CurrencyType.DecimalPlaces` of the invoice currency, recorded in
+`settlement_baseline.decimal_places` (2 when the org has no `CurrencyType`).
+Read on the verification org: USD, EUR, GBP, CAD, AUD, CHF = 2, **JPY = 0**.
+Only USD invoices were settled live; a JPY run is an open item.
+
 ## Read-back queries the harness uses
 
 ```sql
--- credit (memo ids from the manifest)
+-- credit (memo ids from the manifest), on this invoice only
 SELECT Id, Amount, InvoiceLineId FROM CreditMemoLineInvoiceLine
- WHERE CreditMemoLine.CreditMemoId IN (...) AND Type = 'Applied'      -- Line Level
+ WHERE CreditMemoLine.CreditMemoId IN (...)
+   AND InvoiceLine.InvoiceId = '<invoiceId>' AND Type = 'Applied'       -- Line Level
 SELECT Id, Amount, InvoiceId FROM CreditMemoInvApplication
- WHERE CreditMemoId IN (...) AND Type = 'Applied'                      -- Header Level
--- payment
+ WHERE CreditMemoId IN (...) AND InvoiceId = '<invoiceId>' AND Type = 'Applied'  -- Header Level
+-- payment, on this invoice only
 SELECT Id, Amount, InvoiceLineId FROM PaymentLineInvoiceLine
- WHERE PaymentId IN (...) AND Type = 'Applied'                         -- Line Level
+ WHERE PaymentId IN (...) AND InvoiceLine.InvoiceId = '<invoiceId>'
+   AND Type = 'Applied'                                                 -- Line Level
 SELECT Id, Amount, InvoiceId FROM PaymentLineInvoice
- WHERE PaymentId IN (...) AND Type = 'Applied'                         -- Header Level
+ WHERE PaymentId IN (...) AND InvoiceId = '<invoiceId>' AND Type = 'Applied'     -- Header Level
 -- invoice
 SELECT Balance, NetCreditsApplied, NetPaymentsApplied, SettlementStatus, SettlementLevel
   FROM Invoice WHERE Id = '<invoiceId>'
@@ -225,6 +259,8 @@ are from SOQL on the invoice, payment and credit memo by manifest id.
 | `DEMO-20261125T142843Z` | `invoice_ingestion` | credit 30 on line "Partial Line B" (`auto` → `Ignore`), payment 50% | `3ttWt000002lgYvIAI` (300) | `50gWt000001BEwjIAG` (30) | `0aQWt000000XOrZMAW` 135 / 135 / partial (2 line applications) | 135 |
 | `DEMO-20261125T142934Z` | `sales_txn_order` | payment 120% | `3ttWt000002lgaXIAQ` (495) | — | `0aQWt000000XOtBMAW` 594 / 495 / over (payment keeps 99) | 0, Settled |
 | `DEMO-20261125T143052Z` | `invoice_ingestion` | run to `invoice_posted`, then `cli step --to-stage payment_applied --config ...` (credit 30 on "Partial Line B", payment 50%) | `3ttWt000002lgc9IAA` (300) | `50gWt000001BEyLIAW` (30) | `0aQWt000000XOunMAG` 135 / 135 / partial | 135 |
+| `DEMO-20261125T145514Z-001` | `sales_txn_quote` | `scenarios/sales_txn_quote/17-settlement.yaml` #1: credit 10% (`auto`), payment exact; `--concurrency 1` | `3ttWt000002lgx7IAA` (495) | `50gWt000001BFBFIA4` (39.6: 36 + 3.6 tax) | `0aQWt000000XPPRMA4` 356.4 / 356.4 / exact | 0, Settled (99 applied by the platform at post) |
+| `DEMO-20261125T145514Z-002` | `sales_txn_quote` | same file #2: credit 50, payment 300 | `3ttWt000002lgyjIAA` (990) | `50gWt000001BFCrIAO` (55: 50 + 5 tax) | `0aQWt000000XPR3MAO` 300 / 300 / partial | 635 |
 
 Every application row landed in `CreditMemoLineInvoiceLine` /
 `PaymentLineInvoiceLine`; `PaymentLineInvoice` and `CreditMemoInvApplication`
@@ -236,8 +272,10 @@ Probe records left on the org (not from a harness run): invoice
 `50gWt000001BEiDIAW`, `50gWt000001BElRIAW`, payment `0aQWt000000XOefMAG`;
 probe memos `50gWt000001BEqHIAW`, `50gWt000001BErtIAG` on `3ttWt000002lgVhIAI`
 (its balance is 234 after them). Payment `0aQWt000000XOtBMAW` still holds 99
-unapplied, which the next Infinitech invoice posted through the post action will
-likely absorb.
+unapplied after its run; the next Infinitech post (`DEMO-20261125T145514Z-001`)
+absorbed it, as the baseline of that run shows. The same file run at the
+default `--concurrency 4` was refused before any write (and `cli plan`
+warned).
 
 ## Cleanup
 

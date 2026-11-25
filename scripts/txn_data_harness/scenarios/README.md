@@ -39,7 +39,7 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | `12-usage-consumption.yaml` | `usage_upload` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops after journals; kick off org-wide rating separately. |
 | `13-multi-year-terms.yaml` | `invoice_posted` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 | `14-end-date-overrides.yaml` | `order_activated` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence orders. |
-| `17-settlement.yaml` | `payment_applied` | 2 | **Settlement** after the Posted invoice: a 10% credit then an exact payment (fully settled), and a fixed credit then a smaller fixed payment (partially paid). See [Settlement](#settlement). Live-verified at Line Level on 264 — see [`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md). |
+| `17-settlement.yaml` | `payment_applied` | 2 | **Settlement** after the Posted invoice: a 10% credit then an exact payment (fully settled), and a fixed credit then a smaller fixed payment (partially paid). Run with `--concurrency 1` (both scenarios use one account). See [Settlement](#settlement). Both scenarios ran live at Line Level on 264 — see [`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md). |
 
 ### `sales_txn_order/`
 
@@ -55,7 +55,7 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | `15-standalone-billing.yaml` | `invoice_posted` (ingest) | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted` — mints a Posted invoice directly. **Prereq:** the org must have an active non-taxable `TaxTreatment` (`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice` raises `LifecycleError` with seed instructions (see the scenario YAML header). Every line is non-taxable in this scenario; tax-on Posted lives in `15-standalone-billing-taxable.yaml`. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Posted ingested invoices are not deletable. |
 | `15-standalone-billing-expanded.yaml` | `invoice_posted` (ingest) | 4 | Companion stress scenario for the non-taxable Posted path. Same prereq as `15-standalone-billing.yaml` (active non-taxable `TaxTreatment`). Exercises shapes the canonical smoke doesn't: multi-line invoices, the `charge_amount` override (line bills at the override, not `quantity × unit_price`), per-line `description` + `line_start_date`/`line_end_date`, invoice-level `currency` override on a multi-currency org (EUR on a USD account), and explicit `invoice_date`/`due_date`/`posted_date` (not derived from defaults). Live-verified on R262 — see the **Verified Posted shapes** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
 | `15-standalone-billing-taxable.yaml` | `invoice_posted` (ingest) | 4 | **Tax-on Posted** — each `taxable: true` line ships its own `InvoiceLineTax` graph record in the same composite-graph POST. **Prereqs:** both an active non-taxable `TaxTreatment` (stamped on non-taxable lines) and an active taxable `TaxTreatment` (stamped on taxable lines, picked by `discovery.resolve_taxable_tax_treatment` with most-recent `CreatedDate`; override via `invoice.taxable_tax_treatment_name`). Covers uniform-rate, mixed taxable+exempt on one invoice, and per-line tax overrides (flat amount, different jurisdiction/rate). Live-verified on R262 — see the **Tax-on Posted Path** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
-| `17-settlement.yaml` | `payment_applied` (ingest) | 2 | **Settlement on ingested invoices** — ingests Posted (same non-taxable `TaxTreatment` prereq as `15-standalone-billing.yaml`), credits one line by name, pays 50% of the rest; a second scenario over-pays (120%). See [Settlement](#settlement). |
+| `17-settlement.yaml` | `payment_applied` (ingest) | 2 | **Settlement on ingested invoices** — ingests Posted (same non-taxable `TaxTreatment` prereq as `15-standalone-billing.yaml`), credits one line by name, pays 50% of the rest; a second scenario over-pays (120%). Run with `--concurrency 1`. The first scenario's shape ran live; the 120% over-payment ran live on the direct-order path, not from this file. See [Settlement](#settlement). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -424,9 +424,23 @@ settlement:
     lines: [0, "Onboarding"]   # optional: 0-based index (ingest order, else Id order) or line name / SKU
     tax_strategy: auto         # auto | Calculate | Ignore | CopyFromInvoiceLine
   payment:                     # one processed payment (no gateway), applied after the invoice posts
-    amount: exact              # exact (default) | a number | percent: N (over 100 = over-payment)
+    amount: exact              # exact | a number | percent: N (over 100 = over-payment)
     lines: all                 # optional; ignored at Header Level
 ```
+
+`payment: exact` or `payment: {}` asks for an exact payment; `payment:` with no
+value (null) means no payment, like leaving the key out.
+
+- **Run settlement serially per account.** Posting an invoice applies the
+  account's open payment balance to it, and a payment is open between its
+  create and apply calls. `cli run` refuses `--concurrency > 1` when a batch
+  has a settlement target on an account with more than one transaction;
+  `cli plan` warns. Pass `--concurrency 1`.
+- **Shared `defaults.settlement`:** a block inherited from `defaults` is
+  dropped on scenarios that stop before `credit_applied`, and its `payment`
+  part is dropped on scenarios that stop at `credit_applied`. A block set on
+  the scenario itself is checked strictly (a part that would never run is an
+  error).
 
 - **Order:** credit first, then payment, so `amount: exact` pays what is left
   after the credit.
@@ -454,9 +468,14 @@ settlement:
   `payment_ids`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
   (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`.
+- **Amounts** the harness computes are rounded to the invoice currency's
+  `CurrencyType.DecimalPlaces` (JPY = 0); only USD was settled live.
 - **Resume:** `cli step --to-stage payment_applied` uses the manifest's
   persisted `settlement`; a manifest from a run without one needs
-  `--config` pointing at a scenario with a `settlement:` block.
+  `--config` with exactly one `settlement:` block among the scenarios of the
+  manifest's `kind` and account. `--application-level line|header` replaces
+  a wrongly recorded level (an apply refused with `INVALID_FIELD` on
+  `appliedToId` says so).
 
 ## What makes an account / product a valid target
 

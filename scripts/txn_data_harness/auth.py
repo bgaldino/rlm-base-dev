@@ -206,8 +206,11 @@ class SfRestClient:
     def get(self, path: str) -> Any:
         return self._request("GET", path)
 
-    def post(self, path: str, body: Any) -> Any:
-        return self._request("POST", path, body)
+    def post(self, path: str, body: Any, *, retry: bool = True) -> Any:
+        """POST ``body``. ``retry=False`` sends it once: for actions with no
+        idempotency key, where a 5xx after the server committed would make a
+        transport-level retry act twice. The caller decides what to do."""
+        return self._request("POST", path, body, retry=retry)
 
     def patch(self, path: str, body: Any) -> Any:
         return self._request("PATCH", path, body)
@@ -236,11 +239,11 @@ class SfRestClient:
         return records
 
     # ----- transport dispatch ------------------------------------------------
-    def _request(self, method: str, path: str, body: Any = None) -> Any:
+    def _request(self, method: str, path: str, body: Any = None, *, retry: bool = True) -> Any:
         path = self._normalize_path(path)
         if self.transport == "cli":
             return self._request_cli(method, path, body)
-        return self._request_requests(method, path, body)
+        return self._request_requests(method, path, body, retry=retry)
 
     @staticmethod
     def _normalize_path(path: str) -> str:
@@ -259,18 +262,22 @@ class SfRestClient:
             return parts.path + (f"?{parts.query}" if parts.query else "")
         return path
 
-    def _request_requests(self, method: str, path: str, body: Any) -> Any:
+    def _request_requests(
+        self, method: str, path: str, body: Any, *, retry: bool = True
+    ) -> Any:
         url = f"{self.instance_url}{path}"
         data = json.dumps(body) if body is not None else None
         last_exc: Optional[Exception] = None
-        for attempt in range(_MAX_RETRIES):
+        attempts = _MAX_RETRIES if retry else 1
+        for attempt in range(attempts):
             try:
                 resp = self._session.request(method, url, data=data)
             except requests.RequestException as exc:
                 last_exc = exc
-                self._sleep_backoff(attempt, reason=str(exc))
+                if attempt < attempts - 1:
+                    self._sleep_backoff(attempt, reason=str(exc))
                 continue
-            if resp.status_code in _RETRYABLE_STATUS and attempt < _MAX_RETRIES - 1:
+            if resp.status_code in _RETRYABLE_STATUS and attempt < attempts - 1:
                 self._sleep_backoff(attempt, reason=f"HTTP {resp.status_code}")
                 continue
             if not (200 <= resp.status_code < 300):

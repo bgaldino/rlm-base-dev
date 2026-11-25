@@ -333,8 +333,12 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
 - Continue a Posted manifest: `cli step --manifest <id> --to-stage
   payment_applied` (add `--config` with a `settlement:` scenario when the
   manifest has none).
-- Use `--concurrency 1` with over-payments: posting another scenario's invoice
-  can absorb the unapplied rest.
+- `--concurrency 1` is required when a settlement target shares its account
+  with another transaction in the batch (`cli run` refuses otherwise; `cli
+  plan` warns): posting an invoice applies the account's open payment balance.
+- A wrong recorded application level (apply refused with `INVALID_FIELD` on
+  `appliedToId`): resume with `cli step ... --to-stage payment_applied
+  --application-level line|header`.
 - Line Level is live-verified on 264; Header Level is not. Contract:
   `docs/contracts-billing-settlement.md`.
 

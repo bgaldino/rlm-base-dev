@@ -96,7 +96,9 @@ python -m scripts.txn_data_harness.cli run --org <sf-alias> \
   --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml --concurrency 1
 ```
 
-The manifest's `settlement` block (via `cli inspect`) gives the application
+`--concurrency 1` is required when a settlement target shares its account with
+another transaction in the batch: posting an invoice applies the account's open
+payment balance to it. The manifest's `settlement` block (via `cli inspect`) gives the application
 level read from the org, the credit memo and payment ids, the application
 records, the amounts applied, and anything the platform applied at post.
 Contract: `scripts/txn_data_harness/docs/contracts-billing-settlement.md`

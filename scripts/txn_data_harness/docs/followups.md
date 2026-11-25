@@ -335,13 +335,18 @@ Line Level is live-verified on 264; everything below is not.
   scheduled invoice or payment run apply a standalone payment later (Help:
   standalone processed payments apply "during an invoice run")? Does
   Draft-ingest-then-post (`promote_to_posted`) trigger it like the PST post?
-- `[gap]` **Over-payment and concurrency.** An `over` payment (or any memo
-  left with a balance) is absorbed by the account's next invoice posted
-  through the post action — with `--concurrency > 1` that can be a sibling
-  scenario's invoice in the same batch, which then shows the amount in its
-  `settlement_baseline`. The harness warns but does not serialize.
-- `[gap]` **Multi-currency payments.** The payment copies
-  `Invoice.CurrencyIsoCode`; only USD was exercised.
+- `[gap]` **Over-payment rest and parallel processes.** An `over` payment (or
+  any memo left with a balance) is absorbed by the account's next invoice
+  posted through the post action (measured). Within one batch the runner
+  refuses `--concurrency > 1` for settlement on a shared account; two separate
+  harness processes against one account are not guarded.
+- `[gap]` **Multi-currency and zero-decimal currencies.** The payment copies
+  `Invoice.CurrencyIsoCode` and computed amounts round to
+  `CurrencyType.DecimalPlaces` (JPY reads 0 on the verification org). Only USD
+  invoices were settled live.
+  - `[probe]` Ingest a JPY invoice and settle it with percent credit and
+    payment; confirm the credit and apply actions accept whole-yen amounts and
+    the memo carries no fractional tax under `Calculate`.
 - `[gap]` **Settlement cleanup.** No unapply, payment cancel or credit memo
   void was probed; settlement records are treated as leftovers like Posted
   invoices.

@@ -23,7 +23,13 @@ from .cli_args import add_generate_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, OrgContext, discover
 from .handlers import SCENARIO_HANDLERS
-from .models import IMPLEMENTED_MAX_STAGE, POSTED_STAGES, Manifest, ResolvedSpec
+from .models import (
+    IMPLEMENTED_MAX_STAGE,
+    POSTED_STAGES,
+    STAGES_SETTLEMENT,
+    Manifest,
+    ResolvedSpec,
+)
 from .report import build_batch_report, write_batch_report
 from .runner import current_run_id, run_batch
 
@@ -170,6 +176,28 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
     return spec.count
 
 
+def settlement_concurrency_conflicts(resolved: list) -> list[str]:
+    """Accounts where a settlement target shares the account with another
+    transaction in the batch.
+
+    Posting an invoice through the post action applies the account's open
+    payment and credit balances to it (measured), and a settlement payment is
+    open between its create and apply calls. Two transactions on one account
+    running in parallel can therefore take each other's payment, so such a
+    batch must run with ``--concurrency 1``.
+    """
+    totals: dict[str, int] = {}
+    names: dict[str, str] = {}
+    settles: set[str] = set()
+    for r in resolved:
+        acct = r.account.id
+        names[acct] = r.account.name
+        totals[acct] = totals.get(acct, 0) + r.spec.count
+        if r.effective_stage in STAGES_SETTLEMENT:
+            settles.add(acct)
+    return sorted(names[a] for a in settles if totals[a] > 1)
+
+
 def _print_settlement(settlement) -> None:
     """Render a scenario's ``settlement:`` block (credit/payment options)."""
     if settlement is None:
@@ -270,9 +298,23 @@ def main(argv: Optional[list[str]] = None) -> int:
               file=sys.stderr)
         return 3
 
+    conflicts = settlement_concurrency_conflicts(resolved)
+    serial_note = (
+        f"settlement on account(s) {', '.join(conflicts)} with more than one "
+        "transaction needs --concurrency 1: posting an invoice applies the "
+        "account's open payment balance, so parallel scenarios on one account "
+        "can take each other's payment."
+    )
+
     if args.dry_run:
         _print_plan(args, ctx, resolved)
+        if conflicts and args.concurrency > 1:
+            print(f"\n⚠  This run will be refused: {serial_note}")
         return 0
+
+    if conflicts and args.concurrency > 1:
+        print(f"ERROR: bad config:\n  {serial_note}", file=sys.stderr)
+        return 4
 
     # ----- live execution -----
     for r in resolved:

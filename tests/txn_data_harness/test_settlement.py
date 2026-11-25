@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 from types import SimpleNamespace
+from typing import Optional
 
 import pytest
 
@@ -139,10 +140,16 @@ def test_config_parses_full_settlement_block() -> None:
     assert s.payment == PaymentSpec(amount=150.0, percent=None, lines=None)
 
 
-@pytest.mark.parametrize("payment", [None, "exact", {"amount": "exact"}, {}])
+@pytest.mark.parametrize("payment", ["exact", {"amount": "exact"}, {}])
 def test_config_payment_defaults_to_exact(payment) -> None:
     spec = _pst(target_stage="payment_applied", settlement={"payment": payment})
     assert spec.settlement.payment.is_exact
+
+
+def test_config_payment_null_is_absent() -> None:
+    spec = _pst(target_stage="payment_applied",
+                settlement={"credit": {"amount": 5}, "payment": None})
+    assert spec.settlement.payment is None
 
 
 def test_config_ingestion_accepts_settlement() -> None:
@@ -213,6 +220,36 @@ def test_settlement_round_trips_through_dict() -> None:
     exact = SettlementSpec(payment=PaymentSpec())
     assert settlement_from_dict(exact.to_dict()) == exact
     assert settlement_from_dict(None) is None
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        SettlementSpec(credit=CreditSpec(percent=10.0)),
+        SettlementSpec(payment=PaymentSpec(amount=50.0)),
+        SettlementSpec(application_level="line", payment=PaymentSpec()),
+    ],
+)
+def test_partial_settlement_round_trips_without_inventing_blocks(spec) -> None:
+    data = json.loads(json.dumps(spec.to_dict()))
+    assert None not in data.values()
+    assert settlement_from_dict(data) == spec
+
+
+def test_shared_defaults_with_credit_and_payment_allow_credit_only_target(tmp_path) -> None:
+    from scripts.txn_data_harness.config import load_scenarios
+
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text(
+        "defaults:\n"
+        "  settlement: {credit: {amount: 5}, payment: {amount: exact}}\n"
+        "scenarios:\n"
+        "  - {account: Infinitech, target_stage: credit_applied}\n"
+        "  - {account: Infinitech, target_stage: payment_applied}\n"
+    )
+    a, b = load_scenarios(SimpleNamespace(config=str(cfg)))
+    assert a.settlement.credit.amount == 5.0 and a.settlement.payment is None
+    assert b.settlement.payment.is_exact
 
 
 # -- payload builders and pure helpers ------------------------------------------
@@ -377,107 +414,186 @@ def test_read_application_level_errors_when_unknown(fake_client, monkeypatch) ->
 # -- steps against an in-memory org -----------------------------------------------
 
 
+def _ids_in(soql: str, field: str) -> Optional[set[str]]:
+    m = re.search(rf"{re.escape(field)} IN \(([^)]*)\)", soql)
+    return None if m is None else {x.strip(" '") for x in m.group(1).split(",")}
+
+
+def _eq(soql: str, field: str) -> Optional[str]:
+    m = re.search(rf"(?<![\w.]){re.escape(field)} = '([^']*)'", soql)
+    return None if m is None else m.group(1)
+
+
 class SettleOrg:
-    """Routes the settlement steps' SOQL/REST calls onto in-memory records."""
+    """In-memory org for the settlement steps.
+
+    Honors the WHERE filters the steps send (tags, ids, invoice), so a step
+    that drops a filter sees records it should not. Credit memos can be made
+    to appear late (``memo_visible_after`` CreditMemo queries) and to move
+    through ``memo_statuses`` (one status per CreditMemo query); a memo's
+    application rows appear when it reaches Posted.
+    """
 
     api_version = "68.0"
     instance_url = "https://settle.example"
     access_token = "x"
 
-    def __init__(self, level: str = "line"):
+    def __init__(self, level: str = "line", places: int = 2):
         self.level = level
+        self.places = places
         self.invoice = {"Id": "3ttINV", "Status": "Posted", "CurrencyIsoCode": "USD",
                         "TotalAmountWithTax": 250.0, "NetCreditsApplied": 0.0,
                         "NetPaymentsApplied": 0.0, "SettlementLevel": None}
         self.lines = [
             {"Id": "5TV1", "Name": "Line A", "Type": "Charge", "ChargeAmount": 100.0,
-             "TaxAmount": 0.0, "LineAmount": 100.0, "Balance": 100.0, "Product2": None},
+             "TaxAmount": 0.0, "LineAmount": 100.0, "Balance": 100.0, "Product2": None,
+             "InvoiceId": "3ttINV"},
             {"Id": "5TV2", "Name": "Line B", "Type": "Charge", "ChargeAmount": 150.0,
-             "TaxAmount": 0.0, "LineAmount": 150.0, "Balance": 150.0, "Product2": None},
+             "TaxAmount": 0.0, "LineAmount": 150.0, "Balance": 150.0, "Product2": None,
+             "InvoiceId": "3ttINV"},
         ]
         self.memos: list[dict] = []
         self.payments: list[dict] = []
-        self.credit_apps: list[dict] = []   # {"Id","Amount","level","memo"}
-        self.payment_apps: list[dict] = []  # {"Id","Amount","level","payment"}
-        self.posts: list[tuple[str, dict]] = []
-
-    # helpers
-    def _balance(self) -> float:
-        return round(sum(r["Balance"] for r in self.lines), 2)
+        self.credit_apps: list[dict] = []   # Id, Amount, level, memo, invoice
+        self.payment_apps: list[dict] = []  # Id, Amount, level, payment, invoice
+        self.posts: list[tuple[str, dict, bool]] = []
+        self.memo_statuses: list[str] = ["Posted"]
+        self.memo_visible_after = 0
+        self.memo_queries = 0
+        self.fail_next_post: Optional[Exception] = None
+        self._pending_credit: list[tuple[str, float]] = []
 
     def _line(self, lid):
         return next(r for r in self.lines if r["Id"] == lid)
 
+    def _balance(self) -> float:
+        return round(sum(r["Balance"] for r in self.lines if r["InvoiceId"] == "3ttINV"), 2)
+
+    def _post_memo(self, memo: dict) -> None:
+        for line_id, amt in memo.pop("_allocs", []):
+            line = self._line(line_id)
+            line["Balance"] = round(line["Balance"] - amt, 2)
+            self.credit_apps.append({"Id": f"4sG{len(self.credit_apps) + 1}", "Amount": amt,
+                                     "level": self.level, "memo": memo["Id"],
+                                     "invoice": line["InvoiceId"]})
+
     def query(self, soql: str):
+        if soql.startswith("SELECT DecimalPlaces FROM CurrencyType"):
+            return [{"DecimalPlaces": self.places}]
         if soql.startswith("SELECT Id, Status, BillingAccountId"):
+            assert _eq(soql, "Id") == self.invoice["Id"]
             return [{**self.invoice, "Balance": self._balance()}]
-        if "FROM InvoiceLine" in soql:
-            return [dict(r) for r in self.lines]
+        if "FROM InvoiceLine " in soql:
+            inv = _eq(soql, "InvoiceId")
+            return [dict(r) for r in self.lines if r["InvoiceId"] == inv]
         if "FROM CreditMemo " in soql:
-            return [dict(m) for m in self.memos][-1:]
+            self.memo_queries += 1
+            ref, desc = _eq(soql, "ReferenceEntityId"), _eq(soql, "Description")
+            rows = []
+            for m in self.memos:
+                if self.memo_queries <= m.get("_visible_after", 0):
+                    continue
+                if ref is not None and m["ReferenceEntityId"] != ref:
+                    continue
+                if desc is not None and m["Description"] != desc:
+                    continue
+                statuses = m.setdefault("_statuses", list(self.memo_statuses))
+                m["Status"] = statuses.pop(0) if len(statuses) > 1 else statuses[0]
+                if m["Status"] == "Posted":
+                    self._post_memo(m)
+                rows.append({k: v for k, v in m.items() if not k.startswith("_")})
+            return rows[-1:]
         if "FROM Payment " in soql:
-            return [{"Id": p["Id"]} for p in self.payments]
-        if "FROM CreditMemoLineInvoiceLine" in soql:
-            return [a for a in self.credit_apps if a["level"] == "line"]
-        if "FROM CreditMemoInvApplication" in soql:
-            return [a for a in self.credit_apps if a["level"] == "header"]
-        if "FROM PaymentLineInvoiceLine" in soql:
-            return [a for a in self.payment_apps if a["level"] == "line"]
-        if "FROM PaymentLineInvoice " in soql:
-            return [a for a in self.payment_apps if a["level"] == "header"]
+            acct, tag = _eq(soql, "AccountId"), _eq(soql, "GatewayRefNumber")
+            return [{"Id": p["Id"]} for p in self.payments
+                    if (acct is None or p["AccountId"] == acct)
+                    and (tag is None or p.get("GatewayRefNumber") == tag)]
+        if "FROM CreditMemoLineInvoiceLine" in soql or "FROM CreditMemoInvApplication" in soql:
+            level = "line" if "CreditMemoLineInvoiceLine" in soql else "header"
+            memos = _ids_in(soql, "CreditMemoId")
+            inv = _eq(soql, "InvoiceLine.InvoiceId") or _eq(soql, "InvoiceId")
+            return [a for a in self.credit_apps if a["level"] == level
+                    and (memos is None or a["memo"] in memos)
+                    and (inv is None or a["invoice"] == inv)]
+        if "FROM PaymentLineInvoiceLine" in soql or "FROM PaymentLineInvoice " in soql:
+            level = "line" if "PaymentLineInvoiceLine" in soql else "header"
+            pays = _ids_in(soql, "PaymentId")
+            inv = _eq(soql, "InvoiceLine.InvoiceId") or _eq(soql, "InvoiceId")
+            return [a for a in self.payment_apps if a["level"] == level
+                    and (pays is None or a["payment"] in pays)
+                    and (inv is None or a["invoice"] == inv)]
         raise AssertionError(f"unexpected SOQL: {soql}")
 
-    def post(self, path: str, body: dict):
-        self.posts.append((path, body))
+    def post(self, path: str, body: dict, retry: bool = True):
+        self.posts.append((path, body, retry))
+        if self.fail_next_post is not None:
+            exc, self.fail_next_post = self.fail_next_post, None
+            if getattr(exc, "_commit_first", False):
+                self._do_post(path, body)
+            raise exc
+        return self._do_post(path, body)
+
+    def _do_post(self, path: str, body: dict):
         if path.endswith("/actions/credit"):
-            memo_id = f"50g{len(self.memos) + 1}"
-            total = 0.0
-            for ln in body["invoiceLines"]:
-                line = self._line(ln["invoiceLineId"])
-                line["Balance"] = round(line["Balance"] - ln["amountToCredit"], 2)
-                total += ln["amountToCredit"]
-                self.credit_apps.append({
-                    "Id": f"4sG{len(self.credit_apps) + 1}", "Amount": ln["amountToCredit"],
-                    "level": self.level,
-                })
-            self.memos.append({"Id": memo_id, "Status": "Posted", "Balance": 0.0,
-                               "TotalAmountWithTax": total})
+            inv_id = path.split("/invoices/")[1].split("/")[0]
+            memo = {"Id": f"50g{len(self.memos) + 1}", "ReferenceEntityId": inv_id,
+                    "Description": body["description"], "Status": "Pending", "Balance": 0.0,
+                    "_visible_after": self.memo_queries + self.memo_visible_after,
+                    "_allocs": [(ln["invoiceLineId"], ln["amountToCredit"])
+                                for ln in body["invoiceLines"]]}
+            self.memos.append(memo)
             return {"success": True, "requestIdentifier": "r", "statusURL": "", "errors": []}
         if path.endswith("/sobjects/Payment"):
             pid = f"0aQ{len(self.payments) + 1}"
             self.payments.append({"Id": pid, **body})
             return {"id": pid, "success": True, "errors": []}
         if path.endswith("/actions/apply"):
+            pid = path.split("/payments/")[1].split("/")[0]
             target = body["appliedToId"]
             if self.level == "line":
                 assert target.startswith("5TV"), "line level applies to invoice lines"
                 line = self._line(target)
                 line["Balance"] = round(line["Balance"] - body["amount"], 2)
+                inv = line["InvoiceId"]
             else:
-                assert target == self.invoice["Id"], "header level applies to the invoice"
-                remaining = body["amount"]
+                assert target.startswith("3tt"), "header level applies to the invoice"
+                remaining, inv = body["amount"], target
                 for line in self.lines:
+                    if line["InvoiceId"] != target:
+                        continue
                     take = min(remaining, line["Balance"])
                     line["Balance"] = round(line["Balance"] - take, 2)
                     remaining -= take
             app_id = f"1Al{len(self.payment_apps) + 1}"
-            self.payment_apps.append({"Id": app_id, "Amount": body["amount"], "level": self.level})
+            self.payment_apps.append({"Id": app_id, "Amount": body["amount"],
+                                      "level": self.level, "payment": pid, "invoice": inv})
             return {"id": app_id, "appliedDate": "2026-11-25T00:00:00Z"}
         raise AssertionError(f"unexpected POST {path}")
 
 
-def _settle_ctx(org, account, settlement, checkpoints=None):
+@pytest.fixture(autouse=True)
+def _no_sleep(monkeypatch):
+    monkeypatch.setattr(lifecycle.time, "sleep", lambda s: None)
+    monkeypatch.setattr(steps.time, "sleep", lambda s: None)
+    lifecycle._decimals_cache.clear()
+
+
+def _settle_ctx(org, account, settlement, override=None):
     return StepContext(
         client=org, org_context=None, run_id="RUN", account=account, lines=[],
-        with_opportunity=False, poll_timeout=1,
-        checkpoint=(checkpoints.append if checkpoints is not None else None),
-        settlement=settlement,
+        with_opportunity=False, poll_timeout=1, checkpoint=None,
+        settlement=settlement, application_level_override=override,
     )
 
 
 def _posted_manifest(**kw):
     return Manifest(run_id="RUN", kind="invoice_ingestion", invoice_id="3ttINV",
-                    invoice_line_ids=["5TV1", "5TV2"], reached_stage="invoice_posted", **kw)
+                    invoice_line_ids=["5TV1", "5TV2"], reached_stage="invoice_posted",
+                    account_name="Infinitech", **kw)
+
+
+def _applies(org):
+    return [(b["appliedToId"], b["amount"]) for p, b, _ in org.posts if p.endswith("/actions/apply")]
 
 
 def test_settlement_steps_line_level_end_to_end(billable_account) -> None:
@@ -491,24 +607,26 @@ def test_settlement_steps_line_level_end_to_end(billable_account) -> None:
     m = steps.run_credit(ctx, _posted_manifest())
     m = steps.run_payment(ctx, m)
 
-    credit_path, credit_body = org.posts[0]
+    credit_path, credit_body, credit_retry = org.posts[0]
     assert credit_path.endswith("/invoices/3ttINV/actions/credit")
+    assert credit_retry is False
     assert credit_body["invoiceLines"] == [
         {"invoiceLineId": "5TV1", "amountToCredit": 20.0, "taxStrategy": "Ignore"},
     ]
+    assert all(retry is False for _, _, retry in org.posts), "settlement writes go out once"
     assert m.application_level == "line" and m.application_level_source == "config"
     assert m.credit_memo_ids == ["50g1"] and m.credit_application_ids == ["4sG1"]
     assert (m.credit_amount_requested, m.credit_amount_applied) == (20.0, 20.0)
     assert m.payment_ids == ["0aQ1"]
     assert org.payments[0]["Amount"] == 230.0 and org.payments[0]["CurrencyIsoCode"] == "USD"
-    applies = [b["appliedToId"] for p, b in org.posts if p.endswith("/actions/apply")]
-    assert applies == ["5TV1", "5TV2"]
+    assert _applies(org) == [("5TV1", 80.0), ("5TV2", 150.0)]
     assert (m.payment_amount, m.payment_apply_target, m.payment_amount_applied) == (230.0, 230.0, 230.0)
     assert m.payment_mode == "exact"
     assert m.payment_application_ids == ["1Al1", "1Al2"]
     assert m.invoice_balance == 0.0
     assert m.reached_stage == "payment_applied"
     assert m.settlement_baseline["balance"] == 250.0
+    assert m.settlement_baseline["decimal_places"] == 2
     assert m.settlement["credit"]["percent"] == 20.0
     assert m.settlement_warnings == []
 
@@ -517,9 +635,7 @@ def test_payment_header_level_applies_to_invoice(billable_account) -> None:
     org = SettleOrg("header")
     spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=100.0, lines=[1]))
     m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
-    applies = [b for p, b in org.posts if p.endswith("/actions/apply")]
-    assert [b["appliedToId"] for b in applies] == ["3ttINV"]
-    assert applies[0]["amount"] == 100.0
+    assert _applies(org) == [("3ttINV", 100.0)]
     assert m.payment_mode == "partial" and m.payment_amount_applied == 100.0
     assert m.invoice_balance == 150.0
     assert any("ignored at Header Level" in w for w in m.settlement_warnings)
@@ -565,6 +681,45 @@ def test_manifest_level_wins_on_resume(billable_account, monkeypatch) -> None:
     assert m.application_level == "header"
 
 
+def test_override_corrects_a_wrong_recorded_level(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(payment=PaymentSpec(amount=10.0))
+    m = steps.run_payment(
+        _settle_ctx(org, billable_account, spec, override="line"),
+        _posted_manifest(application_level="header", application_level_source="billing_settings"),
+    )
+    assert (m.application_level, m.application_level_source) == ("line", "override")
+    assert _applies(org) == [("5TV1", 10.0)]
+    assert any("overridden on resume: header -> line" in w for w in m.settlement_warnings)
+
+
+def test_level_mismatch_on_apply_is_explained(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = None
+    real = org._do_post
+
+    def refuse_apply(path, body):
+        if path.endswith("/actions/apply"):
+            raise SfApiError(
+                400,
+                '[{"errorCode":"INVALID_FIELD","message":"Specify an InvoiceLineId as the '
+                'appliedToId because the Credit Application Level is Invoice Line."}]',
+                "POST", path,
+            )
+        return real(path, body)
+
+    org._do_post = refuse_apply
+    spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=10.0))
+    with pytest.raises(LifecycleError) as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    text = str(info.value)
+    assert "application level is likely wrong" in text
+    assert "Processed and unapplied" in text and "--application-level" in text
+    assert "INVALID_FIELD: Specify an InvoiceLineId" in text
+
+
 def test_over_payment_leaves_balance_and_warns(billable_account) -> None:
     org = SettleOrg("line")
     spec = SettlementSpec(application_level="line", payment=PaymentSpec(percent=120.0))
@@ -574,31 +729,126 @@ def test_over_payment_leaves_balance_and_warns(billable_account) -> None:
     assert any("over-payment leaves 50.0 unapplied" in w for w in m.settlement_warnings)
 
 
+def test_applications_on_another_invoice_are_not_counted(billable_account) -> None:
+    """An over-payment's rest absorbed by a second invoice must not inflate this
+    scenario's applied amount or make a resume skip a needed apply."""
+    org = SettleOrg("line")
+    org.lines.append({"Id": "5TV9", "Name": "Other", "Type": "Charge", "ChargeAmount": 40.0,
+                      "TaxAmount": 0.0, "LineAmount": 40.0, "Balance": 0.0, "Product2": None,
+                      "InvoiceId": "3ttOTHER"})
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 290.0})
+    # The platform applied 40 of this payment to the other invoice at its post.
+    org.payment_apps.append({"Id": "1AlOTHER", "Amount": 40.0, "level": "line",
+                             "payment": "0aQ1", "invoice": "3ttOTHER"})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=290.0))
+    m = _posted_manifest(payment_ids=["0aQ1"], payment_amount=290.0,
+                         payment_apply_target=250.0, payment_mode="over",
+                         settlement_baseline={"balance": 250.0, "decimal_places": 2})
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), m)
+    assert _applies(org) == [("5TV1", 100.0), ("5TV2", 150.0)]
+    assert "1AlOTHER" not in m.payment_application_ids
+    assert m.payment_amount_applied == 250.0
+
+
 def test_baseline_records_platform_applications(billable_account) -> None:
     org = SettleOrg("line")
     org.lines[0]["Balance"] = 60.0
     org.invoice["NetPaymentsApplied"] = 40.0
-    org.payment_apps.append({"Id": "1AlAUTO", "Amount": 40.0, "level": "line"})
+    org.payment_apps.append({"Id": "1AlAUTO", "Amount": 40.0, "level": "line",
+                             "payment": "0aQOLD", "invoice": "3ttINV"})
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
     m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
     assert m.settlement_baseline["net_payments_applied"] == 40.0
     assert m.settlement_baseline["foreign_payment_application_ids"] == ["1AlAUTO"]
     assert m.payment_amount == 210.0  # the open balance after the platform's 40
+    assert "1AlAUTO" not in m.payment_application_ids
     assert any("applied by the platform at post" in w for w in m.settlement_warnings)
 
 
-def test_credit_retry_polls_instead_of_reposting(billable_account) -> None:
+def test_credit_waits_through_pending(billable_account) -> None:
     org = SettleOrg("line")
-    org.memos.append({"Id": "50gPRIOR", "Status": "Posted", "Balance": 0.0})
-    org.credit_apps.append({"Id": "4sGPRIOR", "Amount": 20.0, "level": "line"})
+    org.memo_statuses = ["Pending", "Pending", "Posted"]
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    m = steps.run_credit(
-        _settle_ctx(org, billable_account, spec),
-        _posted_manifest(credit_submitted=True, settlement_baseline={"balance": 250.0}),
-    )
-    assert org.posts == []
-    assert m.credit_memo_ids == ["50gPRIOR"]
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert m.credit_memo_ids == ["50g1"]
     assert m.credit_amount_applied == 20.0
+
+
+def test_accepted_credit_not_yet_visible_is_polled_not_reposted(billable_account) -> None:
+    org = SettleOrg("line")
+    org.memo_visible_after = 3
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    # The first attempt POSTed and recorded it, then failed before the memo
+    # showed up; the retry must poll, not POST again.
+    org._do_post("/services/data/v68.0/commerce/invoicing/invoices/3ttINV/actions/credit",
+                 lifecycle.build_credit_payload([("5TV1", 20.0)], "RUN", {"5TV1": "Ignore"}))
+    m = steps.run_credit(ctx, _posted_manifest(credit_submitted=True,
+                                               settlement_baseline={"balance": 250.0}))
+    assert org.posts == []
+    assert m.credit_memo_ids == ["50g1"]
+    assert len(org.memos) == 1
+
+
+def test_another_runs_memo_on_the_invoice_is_not_reused(billable_account) -> None:
+    org = SettleOrg("line")
+    org.memos.append({"Id": "50gOTHER", "ReferenceEntityId": "3ttINV",
+                      "Description": "OTHER-RUN credit", "Status": "Posted", "Balance": 0.0})
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert len([p for p in org.posts if p[0].endswith("/actions/credit")]) == 1
+    assert m.credit_memo_ids == ["50g2"]
+
+
+def test_another_runs_payment_on_the_account_is_not_reused(billable_account) -> None:
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQOTHER", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "OTHER-RUN-PAY", "Amount": 50.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=10.0))
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert m.payment_ids == ["0aQ2"]
+
+
+def test_credit_post_failure_that_committed_is_not_resent(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    exc = SfApiError(503, "unavailable", "POST", "/credit")
+    exc._commit_first = True
+    org.fail_next_post = exc
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert len(org.memos) == 1 and m.credit_memo_ids == ["50g1"]
+    assert m.credit_submitted is True
+
+
+def test_credit_post_failure_without_memo_raises_for_retry(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(503, "unavailable", "POST", "/credit")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(SfApiError):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.credit_submitted is False and org.memos == []
+
+
+def test_credit_refusal_becomes_lifecycle_error(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(
+        400,
+        '{"enhancedErrorType":"RecordError","message":"Couldn&#39;t create credit memo.",'
+        '"output":{"errors":[{"errorCode":"INVALID_API_INPUT","message":"To calculate tax, '
+        'the invoice line must have a tax line."}],"success":false}}',
+        "POST", "/credit",
+    )
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    with pytest.raises(LifecycleError, match="To calculate tax, the invoice line must have a tax line"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
 
 
 def test_payment_retry_applies_only_the_remainder(billable_account) -> None:
@@ -607,30 +857,27 @@ def test_payment_retry_applies_only_the_remainder(billable_account) -> None:
     org = SettleOrg("line")
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
     ctx = _settle_ctx(org, billable_account, spec)
-
-    # First attempt: the second apply call fails transiently.
+    real = org._do_post
     calls = {"n": 0}
-    real_post = org.post
 
-    def flaky_post(path, body):
+    def flaky(path, body):
         if path.endswith("/actions/apply"):
             calls["n"] += 1
             if calls["n"] == 2:
                 raise SfApiError(503, "unavailable", "POST", path)
-        return real_post(path, body)
+        return real(path, body)
 
-    org.post = flaky_post
+    org._do_post = flaky
     m = _posted_manifest()
     with pytest.raises(SfApiError):
         steps.run_payment(ctx, m)
     assert m.payment_ids == ["0aQ1"] and m.payment_apply_target == 250.0
 
-    # Retry: same payment, only the unapplied 150 goes out.
-    org.post = real_post
+    org._do_post = real
+    org.posts.clear()
     m = steps.run_payment(ctx, m)
     assert len(org.payments) == 1
-    applies = [b for p, b in org.posts if p.endswith("/actions/apply")]
-    assert [(b["appliedToId"], b["amount"]) for b in applies] == [("5TV1", 100.0), ("5TV2", 150.0)]
+    assert _applies(org) == [("5TV2", 150.0)]
     assert m.payment_amount_applied == 250.0 and m.invoice_balance == 0.0
 
 
@@ -653,6 +900,20 @@ def test_credit_is_capped_at_the_open_balance(billable_account) -> None:
     assert any("credit capped" in w for w in m.settlement_warnings)
 
 
+def test_zero_decimal_currency_rounds_to_whole_units(billable_account) -> None:
+    org = SettleOrg("line", places=0)
+    org.invoice["CurrencyIsoCode"] = "JPY"
+    org.lines[0].update(ChargeAmount=1001.0, LineAmount=1001.0, Balance=1001.0)
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(percent=15.0, lines=[0]),
+                          payment=PaymentSpec(percent=33.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    m = steps.run_payment(ctx, steps.run_credit(ctx, _posted_manifest()))
+    assert m.settlement_baseline["decimal_places"] == 0
+    assert org.posts[0][1]["invoiceLines"][0]["amountToCredit"] == 150.0  # 150.15 -> 150
+    assert m.payment_amount == 330.0  # 33% of (851 + 150) = 330.33 -> 330
+    assert org.payments[0]["CurrencyIsoCode"] == "JPY"
+
+
 @pytest.mark.parametrize("step", [steps.run_credit, steps.run_payment])
 def test_settlement_steps_noop_without_their_block(step, billable_account) -> None:
     org = SettleOrg("line")
@@ -668,6 +929,16 @@ def test_settlement_falls_back_to_the_manifest_on_resume(billable_account) -> No
         _settle_ctx(org, billable_account, None), _posted_manifest(settlement=spec.to_dict())
     )
     assert m.payment_amount == 25.0
+
+
+def test_credit_only_manifest_resumed_to_payment_pays_nothing(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(percent=10.0))
+    m = steps.run_payment(
+        _settle_ctx(org, billable_account, None),
+        _posted_manifest(settlement=json.loads(json.dumps(spec.to_dict()))),
+    )
+    assert org.payments == [] and m.reached_stage == "payment_applied"
 
 
 # -- manifest, report, cli --------------------------------------------------------
@@ -791,3 +1062,139 @@ def test_settlement_example_configs_parse(path) -> None:
     specs = load_scenarios(SimpleNamespace(config=str(root / path)))
     assert specs and all(s.target_stage == "payment_applied" for s in specs)
     assert all(s.settlement is not None and s.settlement.payment is not None for s in specs)
+
+
+@pytest.mark.parametrize("target", ["invoice_posted", "credit_applied", "payment_applied"])
+def test_taxable_ingestion_with_settlement_target_builds_tax_record(fake_client, target) -> None:
+    """Settlement targets ingest Posted, so a taxable line needs its
+    InvoiceLineTax record exactly as for invoice_posted."""
+    from datetime import date
+
+    from scripts.txn_data_harness.config import InvoiceLineSpec, ScenarioTaxDefaults
+    from scripts.txn_data_harness.handlers.invoice_ingestion import _resolve_invoice_line
+
+    line = _resolve_invoice_line(
+        fake_client,
+        InvoiceLineSpec(name="Taxed", quantity=1, unit_price=100.0, taxable=True),
+        line_index=0,
+        target_stage=target,
+        run_id="RUN",
+        tax_defaults=ScenarioTaxDefaults(rate=0.1, name="Sales Tax", code="TX"),
+        invoice_date=date(2026, 11, 25),
+    )
+    assert line.tax is not None
+    assert line.tax.amount == pytest.approx(10.0)
+
+
+def test_taxable_settlement_config_parses() -> None:
+    spec = _coerce_spec(
+        {
+            "kind": "invoice_ingestion",
+            "target_stage": "payment_applied",
+            "invoice_lines": [{"name": "L", "quantity": 1, "unit_price": 10, "taxable": True}],
+            "tax": {"rate": 0.1, "name": "Sales Tax", "code": "TX"},
+            "settlement": {"payment": "exact"},
+        },
+        "t",
+    )
+    assert spec.invoice_lines[0].taxable
+
+
+def test_settlement_concurrency_conflicts() -> None:
+    from scripts.txn_data_harness.generate import settlement_concurrency_conflicts
+
+    def r(acct, stage, count=1):
+        return SimpleNamespace(account=SimpleNamespace(id=acct, name=acct),
+                               spec=SimpleNamespace(count=count), effective_stage=stage)
+
+    assert settlement_concurrency_conflicts([r("A", "payment_applied", 1)]) == []
+    assert settlement_concurrency_conflicts([r("A", "payment_applied", 2)]) == ["A"]
+    # A sibling on the same account that only posts can still absorb the payment.
+    assert settlement_concurrency_conflicts(
+        [r("A", "credit_applied"), r("A", "invoice_posted"), r("B", "invoice_posted", 5)]
+    ) == ["A"]
+    assert settlement_concurrency_conflicts([r("A", "invoice_posted", 3)]) == []
+
+
+def test_currency_decimal_places_reads_once_and_defaults(fake_client) -> None:
+    fake_client.query_responses = [[{"DecimalPlaces": 0}]]
+    assert lifecycle.currency_decimal_places(fake_client, "JPY") == 0
+    assert lifecycle.currency_decimal_places(fake_client, "JPY") == 0
+    assert len(fake_client.queries) == 1
+    assert lifecycle.currency_decimal_places(fake_client, None) == 2
+    fake_client.query_responses = [[]]
+    assert lifecycle.currency_decimal_places(fake_client, "XXX") == 2
+
+
+def test_api_error_text_shapes() -> None:
+    assert lifecycle.api_error_text('[{"errorCode":"X","message":"m"}]') == "X: m"
+    body = ('{"message":"top","output":{"errors":[],"referenceLineErrorResults":'
+            '[{"errors":[{"errorCode":"E","message":"Couldn&#39;t credit"}]}]}}')
+    assert lifecycle.api_error_text(body) == "E: Couldn't credit"
+    assert lifecycle.api_error_text('{"message":"only top"}') == "only top"
+    assert lifecycle.api_error_text("not json") == "not json"
+
+
+def _step_cfg(tmp_path, body: str) -> str:
+    cfg = tmp_path / "step.yaml"
+    cfg.write_text(body)
+    return str(cfg)
+
+
+def test_cli_step_matches_the_manifests_kind_and_account(tmp_path) -> None:
+    from scripts.txn_data_harness.cli import _settlement_for_step
+
+    cfg = _step_cfg(tmp_path, (
+        "scenarios:\n"
+        "  - {kind: sales_txn_quote, account: Infinitech, target_stage: payment_applied,\n"
+        "     settlement: {payment: {amount: 10}}}\n"
+        "  - {kind: invoice_ingestion, account: Infinitech, target_stage: payment_applied,\n"
+        "     invoice_lines: [{name: L, unit_price: 5}],\n"
+        "     settlement: {payment: {amount: 20}}}\n"
+        "  - {kind: invoice_ingestion, account: Global Media, target_stage: payment_applied,\n"
+        "     invoice_lines: [{name: L, unit_price: 5}],\n"
+        "     settlement: {payment: {amount: 30}}}\n"
+    ))
+    args = SimpleNamespace(config=cfg, to_stage="payment_applied")
+    m = Manifest(run_id="X", kind="invoice_ingestion", account_name="Infinitech")
+    assert _settlement_for_step(args, m).payment.amount == 20.0
+    m = Manifest(run_id="X", kind="sales_txn_quote", account_name="Infinitech")
+    assert _settlement_for_step(args, m).payment.amount == 10.0
+
+
+def test_cli_step_refuses_an_ambiguous_config(tmp_path) -> None:
+    from scripts.txn_data_harness.cli import _settlement_for_step
+
+    cfg = _step_cfg(tmp_path, (
+        "defaults: {kind: sales_txn_quote, target_stage: payment_applied}\n"
+        "scenarios:\n"
+        "  - {settlement: {payment: {amount: 10}}}\n"
+        "  - {settlement: {payment: {amount: 20}}}\n"
+    ))
+    with pytest.raises(LifecycleError, match="2 different settlement blocks"):
+        _settlement_for_step(
+            SimpleNamespace(config=cfg, to_stage="payment_applied"),
+            Manifest(run_id="X", kind="sales_txn_quote", account_name="Infinitech"),
+        )
+
+
+def test_cli_step_surfaces_config_errors(tmp_path) -> None:
+    from scripts.txn_data_harness.cli import _settlement_for_step
+
+    cfg = _step_cfg(tmp_path, "scenarios:\n  - {target_stage: payment_applied}\n")
+    with pytest.raises(ConfigError, match="needs a 'settlement:' block"):
+        _settlement_for_step(
+            SimpleNamespace(config=cfg, to_stage="payment_applied"), Manifest(run_id="X")
+        )
+
+
+def test_cli_step_accepts_application_level_override() -> None:
+    from scripts.txn_data_harness.cli import parse_args
+
+    args = parse_args([
+        "step", "--org", "o", "--manifest", "m", "--to-stage", "payment_applied",
+        "--application-level", "line",
+    ])
+    assert args.application_level == "line"
+    args = parse_args(["step", "--org", "o", "--manifest", "m", "--to-stage", "payment_applied"])
+    assert args.application_level is None

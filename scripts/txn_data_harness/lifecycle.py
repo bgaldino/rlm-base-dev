@@ -1257,8 +1257,44 @@ def select_invoice_lines(lines: list[dict], selector: Optional[list[Any]]) -> li
     return [r for r in lines if r["Id"] in chosen]
 
 
-def _money(value: Any) -> float:
-    return round(float(value or 0.0), 2)
+def _money(value: Any, places: int = 2) -> float:
+    """Round to the currency's decimal places (2 unless told otherwise)."""
+    return round(float(value or 0.0), places)
+
+
+def _floor_amount(value: float, places: int = 2) -> float:
+    import math
+
+    factor = 10 ** places
+    return math.floor(round(value * factor, 6)) / factor
+
+
+_decimals_cache: dict[tuple[str, str], int] = {}
+
+
+def currency_decimal_places(client: SfRestClient, iso_code: Optional[str]) -> int:
+    """``CurrencyType.DecimalPlaces`` for ``iso_code`` (2 when unknown).
+
+    Settlement amounts computed by the harness (percent shares, per-line
+    caps) are rounded to this. Single-currency orgs have no ``CurrencyType``
+    rows the harness can rely on, so they fall back to 2.
+    """
+    if not iso_code:
+        return 2
+    key = (client.instance_url, iso_code)
+    if key in _decimals_cache:
+        return _decimals_cache[key]
+    places = 2
+    try:
+        rows = client.query(
+            f"SELECT DecimalPlaces FROM CurrencyType WHERE IsoCode = '{iso_code}' LIMIT 1"
+        )
+        if rows and rows[0].get("DecimalPlaces") is not None:
+            places = int(rows[0]["DecimalPlaces"])
+    except Exception as exc:  # noqa: BLE001 -- no CurrencyType access: keep 2
+        log.warning("CurrencyType read failed (%s); rounding to 2 places", exc)
+    _decimals_cache[key] = places
+    return places
 
 
 def line_tax_strategy(line: dict, strategy: str) -> str:
@@ -1275,13 +1311,7 @@ def line_tax_strategy(line: dict, strategy: str) -> str:
     return "Calculate" if float(line.get("TaxAmount") or 0.0) > 0 else "Ignore"
 
 
-def _floor_cents(value: float) -> float:
-    import math
-
-    return math.floor(round(value * 100, 6)) / 100.0
-
-
-def credit_capacity(line: dict, strategy: str = "auto") -> float:
+def credit_capacity(line: dict, strategy: str = "auto", places: int = 2) -> float:
     """Pre-tax amount creditable on a line without leaving an unapplied memo.
 
     ``amountToCredit`` is the pre-tax charge and may not exceed the line's
@@ -1290,7 +1320,8 @@ def credit_capacity(line: dict, strategy: str = "auto") -> float:
 
     * ``Ignore`` -- no tax added: up to the balance.
     * ``Calculate`` -- tax added in proportion: the balance's pre-tax share
-      (``Balance * ChargeAmount / LineAmount``), rounded down to the cent.
+      (``Balance * ChargeAmount / LineAmount``), rounded down to the
+      currency's smallest unit (``places``).
     * ``CopyFromInvoiceLine`` -- the line's whole ``TaxAmount`` is added: the
       balance less that tax.
 
@@ -1302,29 +1333,31 @@ def credit_capacity(line: dict, strategy: str = "auto") -> float:
     line_amount = _money(line.get("LineAmount")) or _money(charge + tax)
     effective = line_tax_strategy(line, strategy)
     if effective == "Calculate" and line_amount > 0:
-        cap = _floor_cents(balance * charge / line_amount)
+        cap = _floor_amount(balance * charge / line_amount, places)
     elif effective == "CopyFromInvoiceLine" and tax > 0:
-        cap = _money(balance - tax)
+        cap = _money(balance - tax, places)
     else:
         cap = balance
     return max(0.0, min(cap, charge)) if charge > 0 else max(0.0, cap)
 
 
-def allocate(amount: float, lines: list[dict], capacity) -> list[tuple[str, float]]:
+def allocate(
+    amount: float, lines: list[dict], capacity, places: int = 2
+) -> list[tuple[str, float]]:
     """Spread ``amount`` over ``lines`` in order, each up to ``capacity(line)``.
 
     Returns ``[(line_id, amount), ...]`` for the lines that receive something.
     The total is ``min(amount, sum of capacities)``.
     """
-    remaining = _money(amount)
+    remaining = _money(amount, places)
     out: list[tuple[str, float]] = []
     for line in lines:
         if remaining <= 0:
             break
-        take = min(remaining, capacity(line))
+        take = _money(min(remaining, capacity(line)), places)
         if take > 0:
-            out.append((line["Id"], _money(take)))
-            remaining = _money(remaining - take)
+            out.append((line["Id"], take))
+            remaining = _money(remaining - take, places)
     return out
 
 
@@ -1379,13 +1412,65 @@ def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Opti
     return rows[0] if rows else None
 
 
+def api_error_text(body: str) -> str:
+    """The human-readable messages in a Connect/REST error body.
+
+    Handles the list shape (``[{"errorCode", "message"}]``) and the billing
+    record-error shape (``{"message", "output": {"errors": [...],
+    "referenceLineErrorResults": [{"errors": [...]}]}}``). Falls back to the
+    raw body.
+    """
+    import html
+    import json as _json
+
+    try:
+        data = _json.loads(body)
+    except (TypeError, ValueError):
+        return body or ""
+    msgs: list[str] = []
+
+    def add(errors):
+        for e in errors or []:
+            if isinstance(e, dict) and e.get("message"):
+                code = e.get("errorCode")
+                msgs.append(f"{code}: {e['message']}" if code else e["message"])
+
+    if isinstance(data, list):
+        add(data)
+    elif isinstance(data, dict):
+        out = data.get("output") or {}
+        add(out.get("errors"))
+        for ref in out.get("referenceLineErrorResults") or []:
+            add(ref.get("errors"))
+        if not msgs and data.get("message"):
+            msgs.append(data["message"])
+    return html.unescape("; ".join(msgs)) if msgs else (body or "")
+
+
 def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
-    """POST the credit action. Async: success + requestIdentifier, empty statusURL."""
-    result = client.post(
-        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/"
-        f"{invoice_id}/actions/credit",
-        body,
-    )
+    """POST the credit action once. Async: success + requestIdentifier, empty statusURL.
+
+    Sent without transport retries: the action has no idempotency key, so a
+    5xx after the server committed would credit twice. A refusal (HTTP 400)
+    becomes a ``LifecycleError`` with the API's message; a 5xx or transport
+    failure propagates as ``SfApiError`` and the caller looks for the memo
+    before trying again.
+    """
+    from .auth import SfApiError
+
+    try:
+        result = client.post(
+            f"/services/data/v{client.api_version}/commerce/invoicing/invoices/"
+            f"{invoice_id}/actions/credit",
+            body,
+            retry=False,
+        )
+    except SfApiError as exc:
+        if 400 <= exc.status < 500:
+            raise LifecycleError(
+                "credit", f"credit refused: {api_error_text(exc.body)}", record_id=invoice_id
+            ) from exc
+        raise
     if not isinstance(result, dict) or not result.get("success"):
         errs = result.get("errors") if isinstance(result, dict) else result
         raise LifecycleError("credit", f"credit failed: {errs}", record_id=invoice_id)
@@ -1417,21 +1502,26 @@ def poll_credit_memo(
     )
 
 
-def read_credit_applications(client: SfRestClient, memo_ids: list[str]) -> dict:
-    """Applied rows for ``memo_ids`` at both levels.
+def read_credit_applications(
+    client: SfRestClient, memo_ids: list[str], invoice_id: str
+) -> dict:
+    """Applied rows for ``memo_ids`` on ``invoice_id``, at both levels.
 
     Returns ``{"line": [...], "header": [...]}`` of ``{"Id", "Amount"}`` rows.
+    Applications of the same memo to any other invoice are not counted.
     """
     if not memo_ids:
         return {LEVEL_LINE: [], LEVEL_HEADER: []}
     in_list = ", ".join(f"'{i}'" for i in memo_ids)
     line_rows = client.query(
         "SELECT Id, Amount, InvoiceLineId FROM CreditMemoLineInvoiceLine "
-        f"WHERE CreditMemoLine.CreditMemoId IN ({in_list}) AND Type = 'Applied'"
+        f"WHERE CreditMemoLine.CreditMemoId IN ({in_list}) "
+        f"AND InvoiceLine.InvoiceId = '{invoice_id}' AND Type = 'Applied'"
     )
     header_rows = client.query(
         "SELECT Id, Amount, InvoiceId FROM CreditMemoInvApplication "
-        f"WHERE CreditMemoId IN ({in_list}) AND Type = 'Applied'"
+        f"WHERE CreditMemoId IN ({in_list}) AND InvoiceId = '{invoice_id}' "
+        "AND Type = 'Applied'"
     )
     return {LEVEL_LINE: line_rows, LEVEL_HEADER: header_rows}
 
@@ -1467,7 +1557,12 @@ def find_payment(client: SfRestClient, account_id: str, run_id: str) -> Optional
 
 
 def create_payment(client: SfRestClient, body: dict) -> str:
-    result = client.post(_sobject_path(client, "Payment"), body)
+    """Create the Payment record once (no transport retry).
+
+    A 5xx after the insert committed would otherwise create a second payment;
+    the caller finds an earlier one by its ``GatewayRefNumber`` tag instead.
+    """
+    result = client.post(_sobject_path(client, "Payment"), body, retry=False)
     if not isinstance(result, dict) or not result.get("success") or not result.get("id"):
         raise LifecycleError("payment", f"payment create failed: {result}")
     log.info("payment %s created (%s)", result["id"], body.get("Amount"))
@@ -1494,29 +1589,65 @@ def build_payment_apply_payload(
 
 
 def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
-    """Apply a payment; synchronous. Returns the application record id."""
-    result = client.post(
-        f"/services/data/v{client.api_version}/commerce/billing/payments/"
-        f"{payment_id}/actions/apply",
-        body,
-    )
+    """Apply a payment once; synchronous. Returns the application record id.
+
+    No transport retry: a 5xx after the apply committed would apply twice.
+    The caller re-reads what is applied and applies only the remainder. A
+    refusal (HTTP 400) becomes a ``LifecycleError``; ``INVALID_FIELD`` (an
+    Invoice id at Line Level, or an InvoiceLine id at Header Level) is
+    reported as a likely wrong application level.
+    """
+    from .auth import SfApiError
+
+    try:
+        result = client.post(
+            f"/services/data/v{client.api_version}/commerce/billing/payments/"
+            f"{payment_id}/actions/apply",
+            body,
+            retry=False,
+        )
+    except SfApiError as exc:
+        if not 400 <= exc.status < 500:
+            raise
+        detail = api_error_text(exc.body)
+        if "INVALID_FIELD" in (exc.body or "") and "appliedToId" in (exc.body or ""):
+            raise LifecycleError(
+                "payment",
+                f"apply refused ({detail}). The recorded application level is "
+                "likely wrong for this org. Payment is Processed and unapplied, "
+                "and the account's next invoice posted through the post action "
+                "may absorb it. Resume with `cli step --to-stage payment_applied "
+                "--application-level line|header`.",
+                record_id=payment_id,
+            ) from exc
+        raise LifecycleError(
+            "payment", f"apply refused: {detail}", record_id=payment_id
+        ) from exc
     if not isinstance(result, dict) or not result.get("id"):
         raise LifecycleError("payment", f"apply returned no id: {result}", record_id=payment_id)
     return result["id"]
 
 
-def read_payment_applications(client: SfRestClient, payment_ids: list[str]) -> dict:
-    """Applied rows for ``payment_ids`` at both levels (see read_credit_applications)."""
+def read_payment_applications(
+    client: SfRestClient, payment_ids: list[str], invoice_id: str
+) -> dict:
+    """Applied rows for ``payment_ids`` on ``invoice_id``, at both levels.
+
+    An over-payment's rest can be applied to another invoice (the account's
+    next one posted); those rows are not this scenario's and are not counted.
+    """
     if not payment_ids:
         return {LEVEL_LINE: [], LEVEL_HEADER: []}
     in_list = ", ".join(f"'{i}'" for i in payment_ids)
     line_rows = client.query(
-        "SELECT Id, Amount, InvoiceLineId, InvoiceLine.InvoiceId FROM PaymentLineInvoiceLine "
-        f"WHERE PaymentId IN ({in_list}) AND Type = 'Applied'"
+        "SELECT Id, Amount, InvoiceLineId FROM PaymentLineInvoiceLine "
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceLine.InvoiceId = '{invoice_id}' "
+        "AND Type = 'Applied'"
     )
     header_rows = client.query(
         "SELECT Id, Amount, InvoiceId FROM PaymentLineInvoice "
-        f"WHERE PaymentId IN ({in_list}) AND Type = 'Applied'"
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceId = '{invoice_id}' "
+        "AND Type = 'Applied'"
     )
     return {LEVEL_LINE: line_rows, LEVEL_HEADER: header_rows}
 

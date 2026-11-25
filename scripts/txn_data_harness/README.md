@@ -278,8 +278,10 @@ count.
   `credit_applied` / `payment_applied` after the Posted invoice. The manifest
   records `application_level`, `credit_memo_ids`, `payment_ids`, the
   application record ids, the amounts applied and a `settlement_baseline` of
-  anything the platform applied at post. See `scenarios/README.md` →
-  *Settlement*.
+  anything the platform applied at post. Settlement batches with more than one
+  transaction on an account need `--concurrency 1` (`cli run` refuses
+  otherwise). `cli step --application-level line|header` corrects a wrongly
+  recorded level. See `scenarios/README.md` → *Settlement*.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write
   `TransactionJournal` rows after activation. `target_stage: usage_upload` stops
   after journals so you can run `cli rate --org <sf-alias>` once for the batch;

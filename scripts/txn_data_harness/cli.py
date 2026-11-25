@@ -282,6 +282,7 @@ def _build_step_context(
             invoice_lines=[],
             invoice_spec=None,
             settlement=settlement,
+            application_level_override=getattr(args, "application_level", None),
         )
 
     # Persisted selection wins; do not run unrelated default discovery first.
@@ -313,6 +314,7 @@ def _build_step_context(
         poll_timeout=args.poll_timeout,
         checkpoint=write_manifest,
         settlement=settlement,
+        application_level_override=getattr(args, "application_level", None),
     )
 
 
@@ -320,24 +322,41 @@ def _settlement_for_step(args: argparse.Namespace, manifest):
     """Settlement options for a ``cli step`` resume.
 
     The manifest's persisted ``settlement`` wins (the steps read it when the
-    context carries none); otherwise the first scenario of ``--config`` that
-    has a ``settlement:`` block. A settlement target with neither fails here,
-    before any org write.
+    context carries none; correct a wrongly recorded level with
+    ``--application-level``). Otherwise ``--config`` must hold exactly one
+    distinct ``settlement:`` block among the scenarios that match the
+    manifest (same ``kind``, and the manifest's account or no account pin).
+    A config error is reported as such. A settlement target with no options
+    fails here, before any org write.
     """
     if getattr(manifest, "settlement", None):
         return None
+    to_stage = getattr(args, "to_stage", None)
     if getattr(args, "config", None):
-        try:
-            for spec in load_scenarios(args):
-                if getattr(spec, "settlement", None) is not None:
-                    return spec.settlement
-        except ConfigError:
-            pass
-    if getattr(args, "to_stage", None) in STAGES_SETTLEMENT:
+        matches = []
+        for spec in load_scenarios(args):
+            settlement = getattr(spec, "settlement", None)
+            if settlement is None or spec.kind != manifest.kind:
+                continue
+            if spec.account and manifest.account_name and spec.account != manifest.account_name:
+                continue
+            if settlement not in matches:
+                matches.append(settlement)
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1 and to_stage in STAGES_SETTLEMENT:
+            raise LifecycleError(
+                "step",
+                f"--config has {len(matches)} different settlement blocks for kind "
+                f"'{manifest.kind}' / account '{manifest.account_name}'; pass a config "
+                "with one matching scenario",
+            )
+    if to_stage in STAGES_SETTLEMENT:
         raise LifecycleError(
             "step",
-            f"--to-stage {args.to_stage} needs settlement options: the manifest has "
-            "none, so pass --config with a scenario that has a 'settlement:' block",
+            f"--to-stage {to_stage} needs settlement options: the manifest has none and "
+            f"--config has no scenario of kind '{manifest.kind}' for account "
+            f"'{manifest.account_name}' with a 'settlement:' block",
         )
     return None
 
@@ -528,6 +547,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--manifest", required=True, help="Run id or manifest path.")
     step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
+    step.add_argument("--application-level", choices=["line", "header"],
+                      help="Settlement stages: replace the application level recorded "
+                           "on the manifest (to correct a wrong read).")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")

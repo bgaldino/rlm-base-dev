@@ -61,6 +61,9 @@ class StepContext:
     # Credit/payment options for credit_applied / payment_applied. ``None``
     # falls back to ``Manifest.settlement`` (a resumed run).
     settlement: Optional[SettlementSpec] = None
+    # ``cli step --application-level``: replaces the level recorded on the
+    # manifest (the way to correct a wrong read). ``None`` keeps it.
+    application_level_override: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -397,6 +400,14 @@ def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
 
 
 # -- settlement (credit_applied / payment_applied) ---------------------------
+#
+# Concurrency: posting an invoice through the post action applies the
+# account's open payment and credit balances to it (measured). A payment
+# sits Processed and unapplied between its create and apply calls, so a
+# sibling scenario posting an invoice for the same account in that gap would
+# absorb it. The runner therefore refuses --concurrency > 1 when a batch has a
+# settlement target on an account with more than one transaction
+# (generate.settlement_concurrency_conflicts).
 
 
 def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[SettlementSpec]:
@@ -416,7 +427,24 @@ def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[Settlemen
 def _ensure_application_level(
     ctx: StepContext, manifest: Manifest, spec: SettlementSpec
 ) -> str:
-    """Resolve the application level once and record it on the manifest."""
+    """Resolve the application level once and record it on the manifest.
+
+    Precedence: ``ctx.application_level_override`` (``cli step
+    --application-level``, the way to correct a wrongly recorded level) >
+    the level already on the manifest > a ``line``/``header`` pin in the
+    settlement block > the org's setting, read once.
+    """
+    override = ctx.application_level_override
+    if override:
+        if manifest.application_level and manifest.application_level != override:
+            _warn(
+                manifest,
+                f"application level overridden on resume: {manifest.application_level} "
+                f"-> {override}",
+            )
+        manifest.application_level = override
+        manifest.application_level_source = "override"
+        return override
     if manifest.application_level:
         return manifest.application_level
     if spec.application_level in (lifecycle.LEVEL_LINE, lifecycle.LEVEL_HEADER):
@@ -433,18 +461,22 @@ def _ensure_settlement_baseline(ctx: StepContext, manifest: Manifest) -> dict:
 
     Anything already applied here was applied by the platform -- an account's
     unapplied payment and credit balances settle a newly posted invoice when
-    Billing Settings turn that on. Recorded once; a resume keeps the first
-    snapshot.
+    Billing Settings turn that on. Also records the invoice currency and its
+    decimal places, which every computed amount is rounded to. Recorded once;
+    a resume keeps the first snapshot.
     """
     if manifest.settlement_baseline is not None:
         return manifest.settlement_baseline
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     apps = lifecycle.read_invoice_applications(ctx.client, manifest.invoice_id)
+    currency = header.get("CurrencyIsoCode")
     manifest.settlement_baseline = {
         "balance": lifecycle._money(header.get("Balance")),
         "total_amount_with_tax": lifecycle._money(header.get("TotalAmountWithTax")),
         "net_credits_applied": lifecycle._money(header.get("NetCreditsApplied")),
         "net_payments_applied": lifecycle._money(header.get("NetPaymentsApplied")),
+        "currency": currency,
+        "decimal_places": lifecycle.currency_decimal_places(ctx.client, currency),
         "foreign_payment_application_ids": [
             r["Id"] for r in apps["payment_line"] + apps["payment_header"]
         ],
@@ -463,6 +495,12 @@ def _ensure_settlement_baseline(ctx: StepContext, manifest: Manifest) -> dict:
         )
     _checkpoint(ctx, manifest)
     return manifest.settlement_baseline
+
+
+def _places(manifest: Manifest) -> int:
+    baseline = manifest.settlement_baseline or {}
+    places = baseline.get("decimal_places")
+    return 2 if places is None else int(places)
 
 
 def _warn(manifest: Manifest, message: str) -> None:
@@ -493,7 +531,8 @@ def _record_applications(
             f"{level} level: {[r['Id'] for r in apps[other]]}",
         )
     rows = apps.get(level, []) + apps.get(other, [])
-    return [r["Id"] for r in rows], lifecycle._money(sum(float(r.get("Amount") or 0) for r in rows))
+    total = sum(float(r.get("Amount") or 0) for r in rows)
+    return [r["Id"] for r in rows], lifecycle._money(total, _places(manifest))
 
 
 def _poll_applications(read, timeout: int) -> dict:
@@ -508,15 +547,34 @@ def _poll_applications(read, timeout: int) -> dict:
     return apps
 
 
+# How long a failed credit POST (5xx / transport) waits for the memo to show
+# up before treating the POST as not committed. The memo appeared Pending at
+# once in every live probe.
+_CREDIT_LOOKUP_WINDOW = 15
+
+
+def _find_memo_after_failed_post(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
+    deadline = time.monotonic() + min(_CREDIT_LOOKUP_WINDOW, ctx.poll_timeout)
+    while True:
+        memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
+        if memo is not None or time.monotonic() >= deadline:
+            return memo
+        time.sleep(lifecycle._POLL_INTERVAL)
+
+
 def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     """Credit the Posted invoice (``settlement.credit``) and read back the result.
 
     One credit memo per scenario via the credit action. The amount is spread
     over the chosen lines, each capped at its open balance, so the memo is
     fully applied (a memo with an unapplied balance would settle the account's
-    next posted invoice). Retry-safe: once the POST is accepted the manifest
-    says so and a retry polls for the memo by its description tag.
+    next posted invoice). Retry-safe: the POST is sent once; once accepted the
+    manifest says so and a retry polls for the memo by its description tag;
+    after a 5xx or transport failure the memo is looked for before the error
+    is raised, so a committed credit is never sent twice.
     """
+    from .auth import SfApiError
+
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.credit is None:
         manifest.reached_stage = "credit_applied"
@@ -525,6 +583,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         raise LifecycleError("credit", "invoice_id is required before credit")
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
+    places = _places(manifest)
 
     if not manifest.credit_memo_ids:
         memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
@@ -533,20 +592,21 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             chosen = _chosen_lines(ctx, manifest, spec.credit.lines)
 
             def capacity(line: dict) -> float:
-                return lifecycle.credit_capacity(line, strategy)
+                return lifecycle.credit_capacity(line, strategy, places)
 
-            open_amount = lifecycle._money(sum(capacity(r) for r in chosen))
-            requested = (
+            open_amount = lifecycle._money(sum(capacity(r) for r in chosen), places)
+            requested = lifecycle._money(
                 spec.credit.amount if spec.credit.amount is not None
-                else lifecycle._money(open_amount * spec.credit.percent / 100.0)
+                else open_amount * spec.credit.percent / 100.0,
+                places,
             )
             manifest.credit_amount_requested = requested
-            allocations = lifecycle.allocate(requested, chosen, capacity)
+            allocations = lifecycle.allocate(requested, chosen, capacity, places)
             if not allocations:
                 _warn(manifest, "credit skipped: the chosen lines have no open balance")
                 manifest.reached_stage = "credit_applied"
                 return manifest
-            total = lifecycle._money(sum(a for _, a in allocations))
+            total = lifecycle._money(sum(a for _, a in allocations), places)
             if total < requested:
                 _warn(
                     manifest,
@@ -558,7 +618,14 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 ctx.run_id,
                 {r["Id"]: lifecycle.line_tax_strategy(r, strategy) for r in chosen},
             )
-            lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
+            try:
+                lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
+            except SfApiError:
+                # Outcome unknown (5xx / transport): if the memo shows up the
+                # POST committed -- carry on with it; otherwise re-raise and let
+                # the retry send it again.
+                if _find_memo_after_failed_post(ctx, manifest) is None:
+                    raise
             manifest.credit_submitted = True
             _checkpoint(ctx, manifest)
         memo = lifecycle.poll_credit_memo(
@@ -568,21 +635,23 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         _checkpoint(ctx, manifest)
 
     apps = _poll_applications(
-        lambda: lifecycle.read_credit_applications(ctx.client, manifest.credit_memo_ids),
+        lambda: lifecycle.read_credit_applications(
+            ctx.client, manifest.credit_memo_ids, manifest.invoice_id
+        ),
         ctx.poll_timeout,
     )
     ids, applied = _record_applications(manifest, apps, level, "credit")
     manifest.credit_application_ids = ids
     manifest.credit_amount_applied = applied
     memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
-    if memo is not None and lifecycle._money(memo.get("Balance")) > 0:
+    if memo is not None and lifecycle._money(memo.get("Balance"), places) > 0:
         _warn(
             manifest,
-            f"credit memo {memo['Id']} keeps {lifecycle._money(memo.get('Balance'))} "
+            f"credit memo {memo['Id']} keeps {lifecycle._money(memo.get('Balance'), places)} "
             "unapplied; the platform may apply it to the account's next posted invoice",
         )
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-    manifest.invoice_balance = lifecycle._money(header.get("Balance"))
+    manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
     manifest.reached_stage = "credit_applied"
     return manifest
 
@@ -590,29 +659,33 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
 def _payment_open_amount(
     ctx: StepContext, manifest: Manifest, spec: SettlementSpec, level: str
 ) -> float:
+    places = _places(manifest)
     if level == lifecycle.LEVEL_HEADER:
         if spec.payment.lines is not None:
             _warn(manifest, "payment 'lines' ignored at Header Level (applied to the invoice)")
         header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-        return lifecycle._money(header.get("Balance"))
+        return lifecycle._money(header.get("Balance"), places)
     chosen = _chosen_lines(ctx, manifest, spec.payment.lines)
-    return lifecycle._money(sum(lifecycle._money(r.get("Balance")) for r in chosen))
+    return lifecycle._money(sum(float(r.get("Balance") or 0) for r in chosen), places)
 
 
-def plan_payment(spec_payment, open_amount: float) -> tuple[float, float, str]:
+def plan_payment(
+    spec_payment, open_amount: float, places: int = 2
+) -> tuple[float, float, str]:
     """Return ``(payment_amount, apply_target, mode)`` for an open balance.
 
     ``exact`` pays the open balance; ``amount`` pays that much; ``percent``
-    pays that share of the open balance. The apply target is capped at the
-    open balance; the mode says how the payment compares to it.
+    pays that share of the open balance. Amounts are rounded to the
+    currency's decimal places. The apply target is capped at the open
+    balance; the mode says how the payment compares to it.
     """
     if spec_payment.is_exact:
         amount = open_amount
     elif spec_payment.amount is not None:
-        amount = lifecycle._money(spec_payment.amount)
+        amount = lifecycle._money(spec_payment.amount, places)
     else:
-        amount = lifecycle._money(open_amount * spec_payment.percent / 100.0)
-    target = lifecycle._money(min(amount, open_amount))
+        amount = lifecycle._money(open_amount * spec_payment.percent / 100.0, places)
+    target = lifecycle._money(min(amount, open_amount), places)
     if amount == open_amount:
         mode = "exact"
     elif amount < open_amount:
@@ -630,9 +703,10 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     platform. At Line Level the amount is spread over the chosen lines (each
     up to its balance, one apply call per line); at Header Level it is applied
     to the invoice. Whatever the payment holds beyond the open balance
-    (``over``) stays unapplied on the payment. Retry-safe: the payment is found
-    by its GatewayRefNumber tag, and only the part not yet applied (read back
-    from the application records) is applied again.
+    (``over``) stays unapplied on the payment. Retry-safe: each write is sent
+    once; the payment is found by its GatewayRefNumber tag, and only the part
+    not yet applied to this invoice (read back from the application records)
+    is applied again.
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.payment is None:
@@ -642,6 +716,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         raise LifecycleError("payment", "invoice_id is required before payment")
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
+    places = _places(manifest)
 
     if manifest.payment_apply_target is None:
         open_amount = _payment_open_amount(ctx, manifest, spec, level)
@@ -649,7 +724,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             _warn(manifest, "payment skipped: no open balance on the chosen lines")
             manifest.reached_stage = "payment_applied"
             return manifest
-        amount, target, mode = plan_payment(spec.payment, open_amount)
+        amount, target, mode = plan_payment(spec.payment, open_amount, places)
         if amount <= 0:
             _warn(manifest, "payment skipped: the computed amount is zero")
             manifest.reached_stage = "payment_applied"
@@ -660,8 +735,8 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         if mode == "over":
             _warn(
                 manifest,
-                f"over-payment leaves {lifecycle._money(amount - target)} unapplied on "
-                "the payment; the platform may apply it to the account's next posted invoice",
+                f"over-payment leaves {lifecycle._money(amount - target, places)} unapplied "
+                "on the payment; the platform may apply it to the account's next posted invoice",
             )
         _checkpoint(ctx, manifest)
 
@@ -682,41 +757,37 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         _checkpoint(ctx, manifest)
     payment_id = manifest.payment_ids[0]
 
-    def _applied() -> float:
-        apps = lifecycle.read_payment_applications(ctx.client, manifest.payment_ids)
-        return lifecycle._money(
-            sum(float(r.get("Amount") or 0) for r in apps[lifecycle.LEVEL_LINE] + apps[lifecycle.LEVEL_HEADER])
+    def _read() -> dict:
+        return lifecycle.read_payment_applications(
+            ctx.client, manifest.payment_ids, manifest.invoice_id
         )
 
-    remaining = lifecycle._money(manifest.payment_apply_target - _applied())
+    def _total(apps: dict) -> float:
+        rows = apps[lifecycle.LEVEL_LINE] + apps[lifecycle.LEVEL_HEADER]
+        return lifecycle._money(sum(float(r.get("Amount") or 0) for r in rows), places)
+
+    remaining = lifecycle._money(manifest.payment_apply_target - _total(_read()), places)
     if remaining > 0:
         if level == lifecycle.LEVEL_LINE:
             chosen = _chosen_lines(ctx, manifest, spec.payment.lines)
             allocations = lifecycle.allocate(
-                remaining, chosen, lambda r: lifecycle._money(r.get("Balance"))
+                remaining, chosen, lambda r: lifecycle._money(r.get("Balance"), places), places
             )
-            for line_id, amt in allocations:
-                app_id = lifecycle.apply_payment(
-                    ctx.client,
-                    payment_id,
-                    lifecycle.build_payment_apply_payload(line_id, amt, ctx.run_id),
-                )
-                manifest.payment_application_ids.append(app_id)
-                _checkpoint(ctx, manifest)
+            targets = [(line_id, amt) for line_id, amt in allocations]
         else:
             header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-            amt = lifecycle._money(min(remaining, lifecycle._money(header.get("Balance"))))
-            if amt > 0:
-                app_id = lifecycle.apply_payment(
-                    ctx.client,
-                    payment_id,
-                    lifecycle.build_payment_apply_payload(manifest.invoice_id, amt, ctx.run_id),
-                )
-                manifest.payment_application_ids.append(app_id)
-                _checkpoint(ctx, manifest)
+            amt = lifecycle._money(min(remaining, float(header.get("Balance") or 0)), places)
+            targets = [(manifest.invoice_id, amt)] if amt > 0 else []
+        for applied_to, amt in targets:
+            app_id = lifecycle.apply_payment(
+                ctx.client,
+                payment_id,
+                lifecycle.build_payment_apply_payload(applied_to, amt, ctx.run_id),
+            )
+            manifest.payment_application_ids.append(app_id)
+            _checkpoint(ctx, manifest)
 
-    apps = lifecycle.read_payment_applications(ctx.client, manifest.payment_ids)
-    ids, applied = _record_applications(manifest, apps, level, "payment")
+    ids, applied = _record_applications(manifest, _read(), level, "payment")
     manifest.payment_application_ids = ids
     manifest.payment_amount_applied = applied
     if applied < manifest.payment_apply_target:
@@ -726,7 +797,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             "(the chosen lines had less open balance than planned)",
         )
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
-    manifest.invoice_balance = lifecycle._money(header.get("Balance"))
+    manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
     manifest.reached_stage = "payment_applied"
     return manifest
 

@@ -48,6 +48,7 @@ from ..discovery import (
 )
 from ..manifests import write_manifest
 from ..models import (
+    POSTED_STAGES,
     Manifest,
     ResolvedInvoiceIngestionSpec,
     ResolvedInvoiceLine,
@@ -125,7 +126,8 @@ def _resolve_invoice_line(
         else unit_price * quantity
     )
     tax_record: Optional[ResolvedInvoiceLineTax] = None
-    if spec.taxable and target_stage == "invoice_posted":
+    # Settlement targets ingest Posted too, so they need the tax record.
+    if spec.taxable and target_stage in POSTED_STAGES:
         tax_record = _resolve_invoice_line_tax(
             line=spec,
             line_index=line_index,

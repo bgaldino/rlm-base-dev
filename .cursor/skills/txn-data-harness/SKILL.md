@@ -80,7 +80,9 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     (264). Posting an invoice through the post action applied the account's open
     payment and credit balances to it, so the harness creates its payment
     after the post, records what was already applied in
-    `settlement_baseline`, and reads back what it applied. Contract:
+    `settlement_baseline`, and reads back what it applied to this invoice.
+    Settlement batches with more than one transaction on an account must run
+    `--concurrency 1` (`cli run` refuses otherwise). Contract:
     `scripts/txn_data_harness/docs/contracts-billing-settlement.md`; examples:
     `scenarios/*/17-settlement.yaml`.
 
@@ -274,8 +276,8 @@ billing-ready account for the target dataset.
 
 1. Start from `scenarios/invoice_ingestion/17-settlement.yaml` (or the
    `sales_txn_quote` one) and set `payment: {percent: 50}` / `{percent: 120}`.
-2. Run `cli plan`, then `cli run --concurrency 1` (an over-payment's rest can
-   be absorbed by a sibling scenario's invoice when posts run in parallel).
+2. Run `cli plan`, then `cli run --concurrency 1` (required: posting a
+   sibling's invoice could absorb a payment between its create and apply).
 3. Inspect the manifest's `settlement` block: `application_level`,
    `payment_mode`, `payment_amount_applied`, `invoice_balance`, warnings.
 4. Verify with SOQL: `Invoice.Balance`, `Payment.Balance`, and the
