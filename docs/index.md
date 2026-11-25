@@ -91,7 +91,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 | [Dynamic UX Assembly](features/dynamic-ux-assembly.md) | UX templates, feature patches, and metadata assembly |
 | [E2E Test Framework](features/e2e-test-framework.md) | End-to-end UI tests, shadow DOM handling, and debugging |
 | [Git Commit Stamping](features/git-commit-stamping.md) | Build provenance recorded in Salesforce orgs |
-| [Headless Configurator Context Plan](features/headless-configurator-context-plan.md) | Context-mapping setup plan and its recorded validation status |
+| [Headless Configurator Context Plan](features/headless-configurator-context-plan.md) | Historical design record (2026-03) for headless configurator context mapping; nothing in it ships here |
 
 ## Robot Framework
 
