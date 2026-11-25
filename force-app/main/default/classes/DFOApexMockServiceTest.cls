@@ -18,13 +18,14 @@ private class DFOApexMockServiceTest {
         industriesintegrationfwk.ApexProviderAttr toggle = attrs[1];
         Assert.areEqual('Simulate_Failure', toggle.getDeveloperName(), 'The second attribute is the failure toggle');
         Assert.areEqual('false', toggle.getDefaultValue(), 'The toggle defaults to false, so the step succeeds');
+        Assert.areEqual('String', toggle.getDataType(), 'The toggle is a String attribute, as in the provider definition metadata');
         Assert.isFalse(toggle.getIsRequired(), 'The toggle is optional');
     }
 
     @IsTest
     static void nullHttpProviderFailsBeforeAnyResponse() {
-        // A test can only show that the supplied provider is the one used: without it the send is
-        // dereferenced before any response is built.
+        // A test can only show that the supplied provider is the one used: without it the provider is
+        // dereferenced at the send, before any response is built.
         try {
             DFOApexMockService.executeCallout('guid-1', 'record-1', 'payload-1', new Map<String, Object>(), null);
             Assert.fail('Without an HTTP provider no response can be returned');

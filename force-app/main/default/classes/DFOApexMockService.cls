@@ -3,10 +3,15 @@
  * All Rights Reserved
  * Company Confidential
  */
-// Mock Apex provider for Dynamic Revenue Orchestrator callout steps (the mfg-dro fulfillment steps use it).
-// It posts to the BillingSystemNC mock endpoint's /delay/3 path only to add latency; the endpoint's reply
-// is not read. The step succeeds (response code 200) unless the provider attribute Simulate_Failure is
-// true, in which case it fails (response code 500), for example to show fallout handling in a demo.
+// Mock Apex provider for Dynamic Revenue Orchestrator callout steps (the mfg-dro fulfillment steps use it
+// through the DFOApexMockService provider definition). It posts to the BillingSystemNC mock endpoint's
+// /delay/3 path only to add latency; the endpoint's reply is not read, but a send that throws (endpoint
+// down, timeout) still fails the step. Otherwise the step succeeds (response code 200), unless the
+// provider attribute Simulate_Failure is true: then it fails (response code 500), for example to show
+// fallout handling in a demo. The attribute is set on the provider definition, so it applies to every
+// step that uses that provider, and a redeploy of post_quantumbit resets it to false. The
+// DROBillingService provider definition runs this class too but has no Simulate_Failure attribute, so
+// its steps always succeed.
 global with sharing class DFOApexMockService implements industriesintegrationfwk.ProcessIntegrationProviderAdvanced {
 
     // Named credential for the mock endpoint
@@ -59,14 +64,11 @@ global with sharing class DFOApexMockService implements industriesintegrationfwk
         return integrationCalloutResponse;
     }
 
-    // True only when Simulate_Failure is the Boolean true or the text "true" (any case, surrounding
-    // spaces ignored). Missing, blank or any other value means success.
+    // True only when Simulate_Failure reads "true" (any case, surrounding spaces ignored; a Boolean true
+    // reads the same). Missing, blank or any other value means success.
     @TestVisible
     private static Boolean simulateFailure(Map<String, Object> attributes) {
         Object value = attributes == null ? null : attributes.get(SIMULATE_FAILURE);
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        }
         return value != null && String.valueOf(value).trim().equalsIgnoreCase('true');
     }
 
