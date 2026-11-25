@@ -19,7 +19,8 @@ from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import ConfigError, load_scenarios, settlement_from_dict
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
-from .lifecycle import LifecycleError
+from .failure import classify_exception
+from .lifecycle import LifecycleError, SettlementError
 from .manifests import (
     MANIFEST_DIR,
     list_manifests,
@@ -216,11 +217,9 @@ def _cmd_step(args: argparse.Namespace) -> int:
     steps = handler.remaining_steps(
         manifest.reached_stage, target, args.with_opportunity
     )
-    # --config is reconciled (or refused) before anything else, so it is
-    # never ignored -- not even on a manifest that already reached the target.
+    # --config is checked before anything else, so it is never ignored -- not
+    # even on a manifest that already reached the target.
     settlement = _settlement_for_step(args, manifest, client)
-    if not steps and settlement is not None:
-        steps = _rerun_for_new_settlement(manifest, target, settlement)
     if not steps:
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
@@ -248,8 +247,14 @@ def _cmd_step(args: argparse.Namespace) -> int:
         manifest.error = (
             str(exc) if isinstance(exc, LifecycleError) else f"{type(exc).__name__}: {exc}"
         )
+        manifest.failure_class = classify_exception(exc)
         write_manifest(manifest)
         raise
+    # A successful resume clears the earlier failure (reports count any
+    # manifest with an error as failed).
+    manifest.error = None
+    manifest.failure_class = None
+    write_manifest(manifest)
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
 
@@ -282,30 +287,6 @@ def _resolve_step_account(client: SfRestClient, args: argparse.Namespace, manife
             "step requires --account when the manifest has no account_name"
         )
     return resolve_account(client, manifest.account_name)
-
-
-def _rerun_for_new_settlement(manifest, target: str, settlement) -> list[str]:
-    """Steps to run when ``--config`` changed the settlement of a manifest that
-    already reached ``target``.
-
-    The one change that can still take effect is a payment added to a
-    manifest that reached ``payment_applied`` without one (written before the
-    payment stage refused that): ``payment_applied`` runs again. Anything else
-    would change a stage that already ran, so it is refused.
-    """
-    if (
-        target == "payment_applied"
-        and manifest.reached_stage == "payment_applied"
-        and settlement.payment is not None
-        and not manifest.payment_ids
-        and manifest.payment_apply_target is None
-    ):
-        return ["payment_applied"]
-    raise LifecycleError(
-        "step",
-        f"--config changes the settlement of manifest {manifest.run_id}, which already "
-        f"reached {manifest.reached_stage}; nothing would run with it. Drop --config.",
-    )
 
 
 _UNSET = object()
@@ -388,34 +369,51 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
     """Settlement options for a ``cli step`` resume.
 
     Only a settlement target (``credit_applied`` / ``payment_applied``) reads
-    them; any other target never loads ``--config`` here. Without ``--config``
-    the manifest's persisted ``settlement`` is used (``None`` is returned and
-    the steps read it); a manifest with none fails here, before any org write.
-
-    With ``--config``, the config must hold exactly one distinct
-    ``settlement:`` block among the scenarios that match the manifest (same
-    ``kind``; the manifest's account by name, or -- after a rename -- by the
-    ``account_id`` the scenario's account name resolves to, or no pin). It is
-    never ignored: on a manifest with a block it is reconciled by
-    :func:`_reconcile_settlement`. A config error is reported as such.
+    them. The block is fixed once recorded on the manifest (the first
+    settlement step records it): the recorded block is used, and a
+    ``--config`` that differs from it is refused, naming the keys (changed
+    options = a new run). ``--config`` supplies the block only when the
+    manifest has none; it is evaluated against ``--to-stage``, not the file's
+    own ``target_stage``. A settlement target with no options at all fails
+    here, before any org write.
     """
     to_stage = getattr(args, "to_stage", None)
     if to_stage not in STAGES_SETTLEMENT:
         return None
-    persisted = settlement_from_dict(manifest.settlement) if manifest.settlement else None
-    if not getattr(args, "config", None):
-        if persisted is not None:
-            return None
-        raise LifecycleError(
+    config = getattr(args, "config", None)
+    if manifest.settlement is not None:
+        if config:
+            recorded = settlement_from_dict(manifest.settlement)
+            wanted = _config_settlement(args, manifest, client)
+            diffs = _settlement_diff(
+                recorded.to_dict() if recorded else {}, _trim(wanted, to_stage).to_dict()
+            )
+            if diffs:
+                raise SettlementError(
+                    "step",
+                    f"--config's settlement block differs from the one recorded on "
+                    f"manifest {manifest.run_id} in {', '.join(diffs)}. The recorded "
+                    "block is fixed: drop --config to resume with it, or start a new "
+                    "run for different options",
+                )
+        return None
+    if not config:
+        raise SettlementError(
             "step",
             f"--to-stage {to_stage} needs settlement options: the manifest has none; pass "
             f"--config with a scenario of kind '{manifest.kind}' for account "
             f"'{manifest.account_name}' with a 'settlement:' block",
         )
-    wanted = _config_settlement(args, manifest, client)
-    if persisted is None:
-        return wanted
-    return _reconcile_settlement(persisted, wanted, manifest, args)
+    return _config_settlement(args, manifest, client)
+
+
+def _trim(spec, to_stage: str):
+    """The parts of ``spec`` a run to ``to_stage`` records (see steps)."""
+    from .config import SettlementSpec
+
+    if to_stage == "credit_applied" and spec.payment is not None:
+        return SettlementSpec(spec.application_level, spec.credit, None)
+    return spec
 
 
 def _config_settlement(args: argparse.Namespace, manifest, client):
@@ -434,7 +432,7 @@ def _config_settlement(args: argparse.Namespace, manifest, client):
         return manifest.account_id in ids_by_name[name]
 
     matches = []
-    for spec in load_scenarios(args):
+    for spec in load_scenarios(args, settlement_stage=args.to_stage):
         settlement = getattr(spec, "settlement", None)
         if settlement is None or spec.kind != manifest.kind:
             continue
@@ -445,13 +443,13 @@ def _config_settlement(args: argparse.Namespace, manifest, client):
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
-        raise LifecycleError(
+        raise SettlementError(
             "step",
             f"--config has {len(matches)} different settlement blocks for kind "
             f"'{manifest.kind}' / account '{manifest.account_name}'; pass a config "
             "with one matching scenario",
         )
-    raise LifecycleError(
+    raise SettlementError(
         "step",
         f"--config has no scenario of kind '{manifest.kind}' for account "
         f"'{manifest.account_name}' ({manifest.account_id}) with a 'settlement:' block",
@@ -469,51 +467,6 @@ def _settlement_diff(a, b, prefix: str = "") -> list[str]:
         elif va != vb:
             keys.append(name)
     return keys
-
-
-def _reconcile_settlement(persisted, wanted, manifest, args):
-    """Reconcile ``--config``'s block with the manifest's.
-
-    Identical -> the manifest's is used. Two differences are allowed and
-    applied (the step records a warning): a ``payment`` sub-block the manifest
-    lacks, while no payment was planned or created; and, with
-    ``--resubmit-credit``, a different ``credit`` sub-block while no credit
-    memo is recorded (to correct options the API refused). Any other
-    difference is refused, naming the keys.
-    """
-    from .config import SettlementSpec
-
-    diffs = _settlement_diff(persisted.to_dict(), wanted.to_dict())
-    if not diffs:
-        return None
-    add_payment = (
-        persisted.payment is None
-        and wanted.payment is not None
-        and manifest.payment_apply_target is None
-        and not manifest.payment_ids
-    )
-    swap_credit = bool(getattr(args, "resubmit_credit", False)) and not manifest.credit_memo_ids
-    refused = [
-        k for k in diffs
-        if not ((k.split(".")[0] == "payment" and add_payment)
-                or (k.split(".")[0] == "credit" and swap_credit))
-    ]
-    if refused:
-        raise LifecycleError(
-            "step",
-            f"--config's settlement block differs from manifest {manifest.run_id}'s in "
-            f"{', '.join(refused)}. A resume may only add a missing 'payment' (before any "
-            "payment exists) or, with --resubmit-credit, replace 'credit' (before a memo "
-            "is recorded); drop --config to use the manifest's block",
-        )
-    merged = SettlementSpec(
-        application_level=persisted.application_level,
-        credit=wanted.credit if swap_credit else persisted.credit,
-        payment=wanted.payment if add_payment else persisted.payment,
-    )
-    print(f"Note: settlement {', '.join(sorted({k.split('.')[0] for k in diffs}))} "
-          "taken from --config", file=sys.stderr)
-    return merged
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
@@ -706,11 +659,10 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                       help="Settlement stages: replace the application level recorded "
                            "on the manifest (to correct a wrong read).")
     step.add_argument("--resubmit-credit", action="store_true",
-                      help="credit_applied: send the credit again as a new attempt when "
-                           "no memo this run tagged on the invoice is live (all in "
-                           "Error/Canceled/Voided, or none). A live memo is adopted "
-                           "instead. With --config, that config's 'credit' block "
-                           "replaces the manifest's.")
+                      help="credit_applied: send the recorded credit again as a new "
+                           "attempt when no memo this run tagged on the invoice is live "
+                           "(all in Error/Canceled/Voided, or none). A live memo is "
+                           "adopted instead. Options never change on a resume.")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")

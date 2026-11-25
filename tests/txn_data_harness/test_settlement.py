@@ -976,7 +976,7 @@ def test_credit_only_manifest_resumed_to_payment_is_refused(billable_account) ->
     spec = SettlementSpec(application_level="line", credit=CreditSpec(percent=10.0))
     m = _posted_manifest(settlement=json.loads(json.dumps(spec.to_dict())),
                          reached_stage="credit_applied")
-    with pytest.raises(LifecycleError, match="has no 'payment'"):
+    with pytest.raises(LifecycleError, match="recorded settlement block is fixed; start a new run"):
         steps.run_payment(_settle_ctx(org, billable_account, None), m)
     assert org.payments == [] and m.reached_stage == "credit_applied"
 
@@ -1083,7 +1083,7 @@ def test_ingestion_retries_transient_settlement_failure_after_post(
         "ingest_invoice", "promote_to_posted", "credit_applied",
         "credit_applied", "payment_applied",
     ]
-    assert m.settlement["credit"]["amount"] == 1.0
+    assert m.settlement is None  # the stubbed steps never started a settlement step
 
 
 @pytest.mark.parametrize(
@@ -1221,8 +1221,10 @@ def test_cli_step_refuses_an_ambiguous_config(tmp_path) -> None:
 def test_cli_step_surfaces_config_errors(tmp_path) -> None:
     from scripts.txn_data_harness.cli import _settlement_for_step
 
-    cfg = _step_cfg(tmp_path, "scenarios:\n  - {target_stage: payment_applied}\n")
-    with pytest.raises(ConfigError, match="needs a 'settlement:' block"):
+    cfg = _step_cfg(tmp_path, (
+        "scenarios:\n  - {target_stage: payment_applied, settlement: {payment: {amount: -1}}}\n"
+    ))
+    with pytest.raises(ConfigError, match="must be > 0"):
         _settlement_for_step(
             SimpleNamespace(config=cfg, to_stage="payment_applied"), Manifest(run_id="X")
         )
@@ -1668,7 +1670,7 @@ def test_resubmit_credit_keeps_a_live_memo(status, billable_account) -> None:
     assert m.credit_amount_applied == 20.0
 
 
-def test_refused_credit_names_the_config_correction(billable_account) -> None:
+def test_refused_credit_says_options_are_fixed(billable_account) -> None:
     from scripts.txn_data_harness.auth import SfApiError
 
     org = SettleOrg("line")
@@ -1676,12 +1678,13 @@ def test_refused_credit_names_the_config_correction(billable_account) -> None:
                                     "POST", "/credit")
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _posted_manifest()
-    with pytest.raises(LifecycleError, match="--resubmit-credit --config <file>"):
+    with pytest.raises(LifecycleError, match="fixed once recorded.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
-    assert m.credit_submitted is False
+    assert info.value.failure_class == "deterministic"
+    assert m.credit_submitted is False and m.credit_refused_attempts == [1]
 
 
-def test_resubmit_credit_with_config_replaces_the_persisted_block(tmp_path, billable_account) -> None:
+def test_recorded_block_is_fixed_even_with_resubmit(tmp_path, billable_account) -> None:
     from scripts.txn_data_harness.cli import _settlement_for_step, parse_args
 
     cfg = _step_cfg(tmp_path, (
@@ -1691,16 +1694,17 @@ def test_resubmit_credit_with_config_replaces_the_persisted_block(tmp_path, bill
         "     settlement: {application_level: line, credit: {amount: 7}}}\n"
     ))
     m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 999}})
-    plain = SimpleNamespace(config=cfg, to_stage="credit_applied", resubmit_credit=False)
-    with pytest.raises(LifecycleError, match=r"differs .* in credit\.amount"):
-        _settlement_for_step(plain, m)  # never ignored
-    flagged = SimpleNamespace(config=cfg, to_stage="credit_applied", resubmit_credit=True)
-    spec = _settlement_for_step(flagged, m)
-    assert spec.credit.amount == 7.0
+    for flag in (False, True):
+        args = SimpleNamespace(config=cfg, to_stage="credit_applied", resubmit_credit=flag)
+        with pytest.raises(LifecycleError, match=r"differs .* in credit\.amount.*new run"):
+            _settlement_for_step(args, m)
+    # The steps read only the recorded block, whatever the context carries.
     org = SettleOrg("line")
-    m = steps.run_credit(_settle_ctx(org, billable_account, spec), m)
-    assert m.settlement["credit"]["amount"] == 7.0
-    assert any("updated from --config" in w for w in m.settlement_warnings)
+    other = SettlementSpec(application_level="line", credit=CreditSpec(amount=7.0))
+    m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 30}})
+    m = steps.run_credit(_settle_ctx(org, billable_account, other), m)
+    assert org.posts[0][1]["invoiceLines"][0]["amountToCredit"] == 30.0
+    assert m.settlement["credit"]["amount"] == 30
     assert parse_args(["step", "--org", "o", "--manifest", "m", "--to-stage", "credit_applied",
                        "--resubmit-credit"]).resubmit_credit is True
 
@@ -1987,33 +1991,32 @@ def _cfg_block(tmp_path, block: str, stage: str = "credit_applied") -> str:
     ))
 
 
-def test_config_adds_a_missing_payment_before_any_payment(tmp_path, capsys) -> None:
+def test_config_never_adds_to_a_recorded_block(tmp_path) -> None:
     from scripts.txn_data_harness.cli import _settlement_for_step
 
     cfg = _cfg_block(tmp_path, "{application_level: line, credit: {amount: 5}, payment: exact}")
     args = SimpleNamespace(config=cfg, to_stage="payment_applied", resubmit_credit=False)
     m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 5}})
-    spec = _settlement_for_step(args, m)
-    assert spec.payment.is_exact and spec.credit.amount == 5.0
-    assert "payment taken from --config" in capsys.readouterr().err
-    m.payment_apply_target = 250.0
-    with pytest.raises(LifecycleError, match="differs .* in payment"):
+    with pytest.raises(LifecycleError, match="differs .* in payment.*new run"):
         _settlement_for_step(args, m)
+    # Run to credit_applied only: the payment part is not part of the comparison.
+    args.to_stage = "credit_applied"
+    assert _settlement_for_step(args, m) is None
 
 
 @pytest.mark.parametrize(
-    "block, keys",
+    "block, stage, keys",
     [
-        ("{application_level: header, credit: {amount: 5}}", "application_level"),
-        ("{application_level: line, credit: {amount: 6}}", "credit.amount"),
+        ("{application_level: header, credit: {amount: 5}}", "credit_applied", "application_level"),
+        ("{application_level: line, credit: {amount: 6}}", "credit_applied", "credit.amount"),
         ("{application_level: line, credit: {amount: 5, lines: [1]}, payment: {amount: 9}}",
-         "credit.lines"),
+         "payment_applied", "credit.lines, payment"),
     ],
 )
-def test_config_differences_are_refused_by_name(block, keys, tmp_path) -> None:
+def test_config_differences_are_refused_by_name(block, stage, keys, tmp_path) -> None:
     from scripts.txn_data_harness.cli import _settlement_for_step
 
-    args = SimpleNamespace(config=_cfg_block(tmp_path, block), to_stage="payment_applied",
+    args = SimpleNamespace(config=_cfg_block(tmp_path, block), to_stage=stage,
                            resubmit_credit=False)
     m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 5}})
     with pytest.raises(LifecycleError, match=re.escape(keys)):
@@ -2134,17 +2137,16 @@ def _patch_cmd_step(monkeypatch, manifest, billable_account):
     return cli_mod, ran
 
 
-def test_config_adds_a_payment_to_a_manifest_that_reached_payment_applied(
-    monkeypatch, tmp_path, billable_account
-) -> None:
-    """An old credit-only manifest that reached payment_applied with nothing
-    written gets its payment from --config: the stage runs again."""
+def test_terminal_manifest_never_reruns_a_stage(monkeypatch, tmp_path, billable_account) -> None:
+    """A manifest that reached its target runs nothing, and a --config that
+    differs from its block is refused rather than ignored."""
     m = _posted_manifest(account_id=billable_account.id, reached_stage="payment_applied",
                          settlement={"application_level": "line", "credit": {"amount": 5}})
     cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
     cfg = _cfg_block(tmp_path, "{application_level: line, credit: {amount: 5}, payment: exact}")
-    assert cli_mod._cmd_step(_step_args(config=cfg)) == 0
-    assert [s for s, _ in ran] == ["payment_applied"] and ran[0][1].payment.is_exact
+    with pytest.raises(LifecycleError, match="differs .* in payment"):
+        cli_mod._cmd_step(_step_args(config=cfg))
+    assert cli_mod._cmd_step(_step_args()) == 0 and ran == []
 
 
 def test_config_on_a_terminal_manifest_is_never_ignored(monkeypatch, tmp_path, billable_account) -> None:
@@ -2157,19 +2159,6 @@ def test_config_on_a_terminal_manifest_is_never_ignored(monkeypatch, tmp_path, b
         cli_mod._cmd_step(_step_args(config=differs))
     same = _cfg_block(tmp_path, "{application_level: line, payment: exact}", "payment_applied")
     assert cli_mod._cmd_step(_step_args(config=same)) == 0 and ran == []
-
-
-def test_rerun_refuses_a_change_to_a_stage_that_already_ran() -> None:
-    from scripts.txn_data_harness.cli import _rerun_for_new_settlement
-
-    m = _posted_manifest(reached_stage="payment_applied")
-    spec = SettlementSpec(credit=CreditSpec(amount=1.0))
-    with pytest.raises(LifecycleError, match="already reached payment_applied"):
-        _rerun_for_new_settlement(m, "payment_applied", spec)
-    m.reached_stage = "credit_applied"
-    with pytest.raises(LifecycleError, match="already reached credit_applied"):
-        _rerun_for_new_settlement(m, "credit_applied",
-                                  SettlementSpec(credit=CreditSpec(amount=1.0), payment=PaymentSpec()))
 
 
 def test_credit_baseline_is_taken_per_attempt(billable_account) -> None:
@@ -2342,3 +2331,142 @@ def test_org_default_currency_absent_on_a_multi_currency_org() -> None:
     assert lifecycle.single_currency_decimal_places(_FlakyClient(missing)) == (2, None)
     with pytest.raises(SfApiError):
         lifecycle.org_default_currency(_FlakyClient(SfApiError(503, "x", "GET", "/q")))
+
+
+# -- review round 5 (todo 275): the settlement block is fixed once recorded -------
+
+
+def test_block_is_recorded_when_the_first_settlement_step_starts(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=5.0),
+                          payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "credit_applied"
+    m = _posted_manifest()
+    assert m.settlement is None
+    m = steps.run_credit(ctx, m)
+    # The run stops at credit_applied: the payment part is never recorded.
+    assert m.settlement == {"application_level": "line",
+                            "credit": {"amount": 5.0, "percent": None, "lines": None,
+                                       "tax_strategy": "auto"}}
+
+
+def test_cli_step_evaluates_config_against_to_stage(tmp_path) -> None:
+    """A defaults.settlement shared by scenarios that stopped at invoice_posted
+    or credit_applied yields the full block for a step to payment_applied."""
+    from scripts.txn_data_harness.cli import _settlement_for_step
+
+    cfg = _step_cfg(tmp_path, (
+        "defaults:\n"
+        "  kind: invoice_ingestion\n"
+        "  settlement: {application_level: line, credit: {amount: 5}, payment: exact}\n"
+        "scenarios:\n"
+        "  - {account: Infinitech, target_stage: invoice_posted,\n"
+        "     invoice_lines: [{name: L, unit_price: 5}]}\n"
+    ))
+    m = Manifest(run_id="X", kind="invoice_ingestion", account_name="Infinitech")
+    spec = _settlement_for_step(SimpleNamespace(config=cfg, to_stage="payment_applied"), m)
+    assert spec.credit.amount == 5.0 and spec.payment.is_exact
+
+
+def test_settlement_errors_with_503_in_the_run_id_are_not_retried(billable_account) -> None:
+    from scripts.txn_data_harness.failure import classify_exception
+
+    org = SettleOrg("line")
+    run_id = "DEMO-20261125T150342Z-001"
+    org.memos.append({**_failed_memo("Error"), "Description": f"{run_id} credit"})
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.run_id = run_id
+    m = _submitted(run_id=run_id)
+    with pytest.raises(LifecycleError) as info:
+        steps.run_credit(ctx, m)
+    assert "503" in str(info.value)
+    assert classify_exception(info.value) == "deterministic"
+
+
+def test_every_settlement_raise_is_pinned_deterministic() -> None:
+    """Sweep: settlement code raises SettlementError, never a bare
+    LifecycleError (whose class the message text would decide)."""
+    import inspect
+
+    from scripts.txn_data_harness import cli
+
+    lsrc = inspect.getsource(lifecycle)
+    lsec = lsrc[lsrc.index("# Step 7 -- Settlement"):lsrc.index("# Step 6c -- Ingest invoice")]
+    ssrc = inspect.getsource(steps)
+    ssec = ssrc[ssrc.index("# -- settlement (credit_applied"):ssrc.index("STEP_REGISTRY: dict")]
+    csec = "".join(inspect.getsource(f) for f in (
+        cli._settlement_for_step, cli._config_settlement))
+    for name, sec in (("lifecycle", lsec), ("steps", ssec), ("cli", csec)):
+        assert "raise LifecycleError(" not in sec, name
+    assert lifecycle.SettlementError("x", "y").failure_class == "deterministic"
+
+
+def test_successful_step_clears_an_earlier_error(monkeypatch, billable_account) -> None:
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
+                         error="[credit] earlier failure", failure_class="deterministic",
+                         settlement={"application_level": "line", "payment": {"amount": "exact"}})
+    cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
+    assert cli_mod._cmd_step(_step_args()) == 0
+    assert [s for s, _ in ran] == ["payment_applied"]
+    assert m.error is None and m.failure_class is None
+
+
+def test_failed_step_records_its_failure_class(monkeypatch, billable_account) -> None:
+    from scripts.txn_data_harness import cli as cli_mod
+
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
+                         settlement={"application_level": "line", "payment": {"amount": "exact"}})
+    _patch_cmd_step(monkeypatch, m, billable_account)
+
+    def boom(step, ctx, mm):
+        raise lifecycle.SettlementError("payment", "refused at T150342Z")
+
+    monkeypatch.setattr(cli_mod, "execute_step", boom)
+    with pytest.raises(LifecycleError):
+        cli_mod._cmd_step(_step_args())
+    assert m.failure_class == "deterministic" and "refused" in m.error
+
+
+def test_resubmit_after_a_refusal_does_not_wait(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(400, '[{"errorCode":"INVALID_API_INPUT","message":"no"}]',
+                                    "POST", "/credit")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(LifecycleError, match="credit refused"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.resubmit_credit = True
+    ctx.poll_timeout = 30
+    before = org.memo_queries
+    m = steps.run_credit(ctx, m)
+    # One read of the run's memos, then the POST: no lookup wait.
+    assert org.memo_queries - before <= 4
+    assert m.credit_attempt == 2 and m.credit_refused_attempts == [1]
+    assert m.reached_stage == "credit_applied"
+
+
+@pytest.mark.parametrize("quantity", [".nan", ".inf", "[1, .nan]"])
+def test_usage_quantity_must_be_finite(quantity, tmp_path) -> None:
+    from scripts.txn_data_harness.config import load_scenarios
+
+    cfg = _step_cfg(tmp_path, (
+        "scenarios:\n  - target_stage: usage_upload\n    products:\n      - sku: QB-DB\n"
+        f"        usage: {{quantity: {quantity}, records_per_line: 1}}\n"
+    ))
+    with pytest.raises(ConfigError, match="usage.quantity must be a finite"):
+        load_scenarios(SimpleNamespace(config=cfg))
+
+
+@pytest.mark.parametrize("tax", [{"rate": float("nan")}, {"amount": float("inf")}])
+def test_tax_numbers_must_be_finite(tax) -> None:
+    with pytest.raises(ConfigError, match="must be a finite"):
+        _coerce_spec({
+            "kind": "invoice_ingestion", "target_stage": "invoice_posted", "account": "Infinitech",
+            "tax": {"name": "Sales Tax", "code": "TX", **tax},
+            "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10, "taxable": True}],
+        }, "t")

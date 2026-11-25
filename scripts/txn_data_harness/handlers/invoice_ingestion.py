@@ -504,11 +504,6 @@ class InvoiceIngestionHandler:
             kind=self.kind,
             account_id=resolved.account.id,
             account_name=resolved.account.name,
-            settlement=(
-                resolved.spec.settlement.to_dict()
-                if resolved.spec.settlement is not None
-                else None
-            ),
         )
         step_ctx = StepContext(
             client=client,

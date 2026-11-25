@@ -283,7 +283,9 @@ count.
   otherwise). `cli step --application-level line|header` corrects a wrongly
   recorded level; the credit POST goes out at most once per attempt, and
   `cli step --resubmit-credit` sends it again only when no memo of the run on
-  the invoice is live (a live one is adopted). Amounts round to the
+  the invoice is live (a live one is adopted). The settlement block is
+  fixed once a settlement step records it on the manifest; `cli step
+  --config` supplies it only to a manifest without one. Amounts round to the
   invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →
   *Settlement*.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write

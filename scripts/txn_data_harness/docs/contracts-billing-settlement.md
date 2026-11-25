@@ -257,9 +257,9 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   manifest written before this rule can show after a crash between an
   accepted POST and its checkpoint (the flag is now recorded before the
   POST). More than one live memo of the run fails: the invoice was credited
-  twice and is settled by hand. With `--config <file>`
-  the config's `credit` sub-block replaces the manifest's while no memo is
-  recorded (for options the API refused).
+  twice and is settled by hand. It re-sends the recorded credit: options
+  never change on a resume. Attempts the API refused (HTTP 4xx,
+  `credit_refused_attempts`) created nothing and are not waited for.
 - **Double-credit check.** Just before each attempt's POST the invoice's
   `NetCreditsApplied` is recorded in `credit_baselines[<attempt>]`. After the
   credit stage, `NetCreditsApplied` less the current attempt's baseline must
@@ -269,20 +269,20 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   applied between attempts falls before the later attempt's baseline and is
   not counted. Older manifests without `credit_baselines` compare against
   `settlement_baseline.net_credits_applied`.
-- **`--config` on a resume is never ignored**, even when the manifest
-  already reached the target (it is reconciled before that check).
-  Identical to the manifest's block: the manifest's is used. A `payment` sub-block the manifest lacks is
-  added while no payment was planned or created; with `--resubmit-credit` the
-  `credit` sub-block may be replaced (above). Any other difference is refused,
-  naming the keys. A config scenario pinning an account's new name matches the
-  manifest when that name resolves to the manifest's `account_id`. A change
-  that only a stage already run could use is refused; the one exception is a
-  payment added to an old manifest that reached `payment_applied` without
-  one, which runs `payment_applied` again.
+- **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
+  scenario pinning an account's new name matches the manifest when that name
+  resolves to the manifest's `account_id`. The check runs before the
+  "already reached" check, so a differing `--config` is never ignored; a
+  manifest that reached its target never reruns a stage.
+- **Settlement failures are never retried by the runner.** Every settlement
+  `LifecycleError` is a `SettlementError`, pinned `deterministic`: its text
+  holds run and record ids whose digits (`...T150342Z` holds "503") would
+  match the transient patterns. Read failures (`SfApiError` 5xx) stay
+  transient. A successful `cli step` clears `error` and `failure_class`.
 - **`payment_applied` never advances without a payment.** A config whose
   target is `payment_applied` needs `settlement.payment`, and the stage
-  refuses (not retried) a settlement block without one, naming the `cli step
-  --config` command that adds it.
+  refuses (not retried) a settlement block without one: with `cli step
+  --config` when the manifest has no block yet, else by starting a new run.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without

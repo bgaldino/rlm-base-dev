@@ -191,11 +191,6 @@ class SalesTransactionBaseHandler:
             account_name=resolved.account.name,
             start_date=start_date.isoformat() if start_date is not None else None,
             lines=[line.to_manifest_record() for line in lines],
-            settlement=(
-                resolved.spec.settlement.to_dict()
-                if getattr(resolved.spec, "settlement", None) is not None
-                else None
-            ),
         )
 
         step_ctx = StepContext(

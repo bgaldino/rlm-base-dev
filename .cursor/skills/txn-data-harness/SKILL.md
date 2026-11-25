@@ -89,7 +89,9 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     recorded first; a lost response fails, not retried); only `cli step
     --resubmit-credit` sends again, and only when no memo of the run is live.
     A `NetCreditsApplied` gain other than the run's memo fails the stage.
-    Contract:
+    The settlement block is fixed once a settlement step records it; `cli
+    step --config` supplies it only to a manifest without one and is refused
+    if it differs (new options = a new run). Contract:
     `scripts/txn_data_harness/docs/contracts-billing-settlement.md`; examples:
     `scenarios/*/17-settlement.yaml`.
 

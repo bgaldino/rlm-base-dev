@@ -23,9 +23,10 @@ from .term import EndDateOverride, Term
 # Settlement stages run after ``invoice_posted`` on every kind: a credit memo
 # applied to the posted invoice, then a payment applied to it. Credits come
 # first so an ``exact`` payment settles what is left after the credit. Both are
-# driven by the scenario's ``settlement:`` block; a stage with no block of its
-# own advances ``reached_stage`` without writing anything (like
-# ``usage_upload`` for a scenario with no usage lines). Live-verified contract:
+# driven by the scenario's ``settlement:`` block. ``credit_applied`` without a
+# ``credit`` part advances without writing anything (a payment-only scenario
+# passes through it); ``payment_applied`` refuses to advance without a
+# ``payment`` part. Live-verified contract:
 # ``docs/contracts-billing-settlement.md``.
 STAGES_SETTLEMENT = ["credit_applied", "payment_applied"]
 
@@ -181,8 +182,10 @@ class Manifest:
     failure_class: Optional[str] = None
 
     # -- settlement (credit_applied / payment_applied) -----------------------
-    # The scenario's ``settlement:`` block as a dict, persisted at run start so
-    # ``cli step`` can resume settlement without the config file.
+    # The scenario's ``settlement:`` block as a dict, recorded when the first
+    # settlement step starts (trimmed to the stages the run's target reaches)
+    # and fixed from then on: ``cli step`` resumes with it and refuses a
+    # ``--config`` that differs. ``None`` until a settlement step starts.
     settlement: Optional[dict] = None
     # "line" (Credit, Payment and Refund Application Level = Line Level) or
     # "header". Read once per org; a resume reuses the recorded value.
@@ -216,6 +219,9 @@ class Manifest:
     # compares against the current attempt's value, so a credit the platform
     # applied between attempts is not counted against this run.
     credit_baselines: dict = field(default_factory=dict)
+    # Credit attempts the API refused (HTTP 4xx): nothing was created, so
+    # --resubmit-credit does not wait for their memos.
+    credit_refused_attempts: list[int] = field(default_factory=list)
     credit_amount_requested: Optional[float] = None
     credit_amount_applied: Optional[float] = None
     # Payment ids created by payment_applied, and the application records

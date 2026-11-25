@@ -92,7 +92,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `start_date` | date / range / window | today | The quote line **StartDate** (the platform anchors the line's `EndDate` off this + the term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
 | `term` | int, or `{count, unit}` | PSM default → `{12, Months}` | Subscription cadence for **TermDefined** lines only. Drives `QuoteLineItem.SubscriptionTerm` / `SubscriptionTermUnit`; the platform derives `EndDate` from those + `StartDate`. A bare int (`term: 36`) overrides count only — unit follows the resolved PSM. A map (`{count: 3, unit: Annual}`) sets both; `unit` must match the resolved PSM's `PricingTermUnit`. Picklist: `Months`, `Quarterly`, `Semi-Annual`, `Annual`. Alias: `Years -> Annual`. Range 1–120. Rejected on `Evergreen` / `OneTime` products. Falls back through line → scenario → `ProductSellingModel.PricingTerm` → `(12, Months)`. May sit on the scenario (default for all lines) or on a `products[]` entry (per-line wins). |
 | `end_date` | ISO date, int (days), or `"<n><unit>"` | unset (platform derives) | **Optional** explicit `EndDate` override for **TermDefined** lines only. Requires an accompanying `term:` — a cadence is still needed for `SubscriptionTerm` / billing-schedule derivation. Forms: absolute (`"2027-01-14"` or a YAML date), bare int = days (`364`), suffixed offset (`"364d"`, `"12mo"`, `"3q"`, `"1y"`). Supported units: `d` (days), `mo` (calendar months, day-clamped), `q` (3 months), `y` (12 months). Bare `"m"` is **rejected** as ambiguous. Forward-only (zero/negative reject). Range 1d–20y. The override is resolved against the line's drawn `StartDate` at place time, so a scenario-level `end_date:` co-terms every line on the quote to the same calendar anchor. The platform honors the explicit date and prorates `PricingTermCount` against the actual span (~0.27% drift vs the derived 365/366-day default). |
-| `settlement` | mapping | none | **All kinds.** Credit and payment options for the `credit_applied` / `payment_applied` stages: `application_level` (`auto` \| `line` \| `header`), `credit: {amount \| percent, lines?, tax_strategy?}`, `payment: {amount: exact \| <n> \| percent: <n>, lines?}`. Required when `target_stage` is a settlement stage; an explicit block on an earlier stage is an error, one inherited from `defaults` is dropped. See [Settlement](#settlement). |
+| `settlement` | mapping | none | **All kinds.** Credit and payment options for the `credit_applied` / `payment_applied` stages: `application_level` (`auto` \| `line` \| `header`), `credit: {amount \| percent, lines?, tax_strategy?}`, `payment: {amount: exact \| <n> \| percent: <n>, lines?}`. Required when `target_stage` is a settlement stage (`payment_applied` needs `payment:`). A block set on a scenario with an earlier target is kept (and recorded on the manifest only when a settlement step starts); one inherited from `defaults` is dropped there. See [Settlement](#settlement). |
 | `selling_model` | string | unpinned | Exact `ProductSellingModel.Name`; applied after currency filtering. Set on the scenario or per `products[]` entry. Multiple PBEs remaining in the selected currency require a model pin; duplicate PBEs with the same currency/model remain an error. |
 | `currency` | three-letter ISO code | account currency | **Sales transaction kinds:** selects the PBE currency and transaction header currency. Set in `defaults`, on the scenario, or per `products[]` entry (entry wins). Codes are normalized to uppercase; an explicit `null` returns to the account default. Every product in a pool must resolve to the same currency. Missing currency/model combinations fail before writes. On single-currency orgs omit this pin; `CurrencyIsoCode` is absent. Invoice ingestion keeps its separate `invoice.currency` option. |
 
@@ -441,9 +441,9 @@ value (null) means no payment, like leaving the key out.
 - **Shared `defaults.settlement`:** a block inherited from `defaults` is
   dropped on scenarios that stop before `credit_applied`, and its `payment`
   part is dropped on scenarios that stop at `credit_applied`. A block set on
-  the scenario itself is kept whatever the target: parts past the target are
-  not reached yet and stay on the manifest for a later `cli step` (so
-  `--target-stage invoice_posted` on a settlement config is fine). Only a
+  the scenario itself is kept whatever the target (so `--target-stage
+  invoice_posted` on a settlement config is fine); the manifest records only
+  the parts the run reaches, when its first settlement step starts. Only a
   settlement target with nothing to do is an error: `credit_applied` without
   `credit:`, or `payment_applied` without `payment:` (for a credit only, stop
   at `credit_applied`). Amounts and percents must be finite numbers (`.nan`
@@ -486,18 +486,15 @@ value (null) means no payment, like leaving the key out.
   (`Invoice.BillingAccountId`, else the manifest's `account_id`). `cli step`
   looks the account up by the manifest's `account_id`; an `--account` that
   resolves to another Id is refused before anything is written.
-- **Resume:** `cli step --to-stage payment_applied` uses the manifest's
-  persisted `settlement`; a manifest from a run without one needs
-  `--config` with exactly one `settlement:` block among the scenarios of the
-  manifest's `kind` and account (a renamed account matches by Id).
-  `--config` is read only for a settlement target and is never ignored,
-  even on a manifest that already reached the target: on a manifest that has
-  a block it may add a missing `payment` (before any payment exists); any
-  other difference is refused, naming the keys.
-  `--application-level line|header` replaces a wrongly recorded
-  level (an apply refused with `INVALID_FIELD` on `appliedToId` says so).
-  The recipe "run to `invoice_posted`, then `cli step --to-stage
-  payment_applied`" works with or without `--config`.
+- **Resume:** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. The config must hold exactly one
+  `settlement:` block among the scenarios of the manifest's `kind` and
+  account (a renamed account matches by Id). A `--config` identical to the
+  recorded block is accepted, even on a manifest that already reached its
+  target (which runs nothing). `--application-level line|header` replaces a
+  wrongly recorded level (an apply refused with `INVALID_FIELD` on
+  `appliedToId` says so). The recipe is "run to `invoice_posted`, then `cli
+  step --to-stage payment_applied --config <file>`"; a run that stopped at
+  `credit_applied` recorded no payment and cannot be given one.
 - **The credit POST is sent at most once per attempt.** `credit_submitted`
   is recorded before the POST; a 5xx or lost response fails the stage (not
   retried) with the next command, and every later resume only polls for the
@@ -506,9 +503,9 @@ value (null) means no payment, like leaving the key out.
   appears, run `cli step --manifest <id> --to-stage payment_applied
   --resubmit-credit`. It checks the org first: a live memo of any attempt of
   this run is adopted and nothing is sent; only when none is live is the
-  credit sent as the next attempt (tagged `<run> credit 2`, …). Add `--config
-  <file>` to replace the `credit` sub-block (the way to correct options the
-  API refused).
+  recorded credit sent again as the next attempt (tagged `<run> credit 2`,
+  …). A refused credit (4xx) is not waited for. Options the API refused are
+  corrected in a new run.
 - **A second credit fails the stage.** After `credit_applied` the invoice's
   `NetCreditsApplied` gain since the current attempt's baseline (read just
   before its POST) must equal what this run's memo applied; otherwise the

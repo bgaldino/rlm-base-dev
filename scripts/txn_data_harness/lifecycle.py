@@ -73,6 +73,26 @@ class LifecycleError(RuntimeError):
         super().__init__(f"[{step}] {detail}" + (f" (id={record_id})" if record_id else ""))
 
 
+
+class SettlementError(LifecycleError):
+    """A credit/payment settlement failure: never retried automatically.
+
+    Classified ``deterministic`` (``failure_class``) whatever the message
+    says: settlement messages embed run ids and record ids whose digits
+    (``...T150342Z`` holds "503") would match the transient patterns in
+    ``failure.py``, and a settlement write must not be replayed by a scenario
+    retry. Resume with ``cli step``.
+    """
+
+    def __init__(
+        self,
+        step: str,
+        detail: str,
+        record_id: Optional[str] = None,
+        failure_class: Optional[str] = "deterministic",
+    ):
+        super().__init__(step, detail, record_id, failure_class)
+
 def _iso_today() -> str:
     return date.today().isoformat()
 
@@ -1176,7 +1196,7 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
             level = _level_from_invoice_evidence(client)
             source = "invoice_settlement_level"
         if level is None:
-            raise LifecycleError(
+            raise SettlementError(
                 "settlement",
                 "could not read the Credit, Payment and Refund Application Level "
                 "(BillingSettings unreadable and no invoice has a SettlementLevel "
@@ -1236,7 +1256,7 @@ def fetch_invoice_header(client: SfRestClient, invoice_id: str) -> dict:
             raise
         rows = client.query(f"SELECT {base} FROM Invoice WHERE Id = '{invoice_id}'")
     if not rows:
-        raise LifecycleError("settlement", "invoice not found", record_id=invoice_id)
+        raise SettlementError("settlement", "invoice not found", record_id=invoice_id)
     return rows[0]
 
 
@@ -1271,7 +1291,7 @@ def select_invoice_lines(lines: list[dict], selector: Optional[list[Any]]) -> li
     for entry in selector:
         if isinstance(entry, int):
             if entry >= len(lines):
-                raise LifecycleError(
+                raise SettlementError(
                     "settlement",
                     f"line index {entry} out of range (invoice has {len(lines)} "
                     f"charge line(s))",
@@ -1285,7 +1305,7 @@ def select_invoice_lines(lines: list[dict], selector: Optional[list[Any]]) -> li
                 or ((r.get("Product2") or {}).get("StockKeepingUnit") or "").lower() == needle
             ]
             if not ids:
-                raise LifecycleError(
+                raise SettlementError(
                     "settlement", f"no invoice line named or with SKU '{entry}'"
                 )
         chosen.extend(i for i in ids if i not in chosen)
@@ -1484,7 +1504,7 @@ def build_credit_payload(
     the top-level one (required) is the first line's.
     """
     if not allocations:
-        raise LifecycleError("credit", "nothing to credit (no open balance on the chosen lines)")
+        raise SettlementError("credit", "nothing to credit (no open balance on the chosen lines)")
     strategies = line_strategies or {}
     lines = [
         {
@@ -1587,7 +1607,7 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
         )
     except SfApiError as exc:
         if is_api_refusal(exc):
-            raise LifecycleError(
+            raise SettlementError(
                 "credit", f"credit refused: {api_error_text(exc.body)}", record_id=invoice_id
             ) from exc
         raise
@@ -1595,7 +1615,7 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
         # A 2xx is never a refusal: the action may have been accepted. The
         # caller keeps credit_submitted and looks for the memo by its tag.
         errs = result.get("errors") if isinstance(result, dict) else result
-        raise LifecycleError(
+        raise SettlementError(
             "credit", f"credit answered 2xx without success: {errs}", record_id=invoice_id
         )
     return result
@@ -1617,11 +1637,11 @@ def poll_credit_memo(
             if status in _CREDIT_MEMO_DONE:
                 return memo
             if status in _CREDIT_MEMO_FAIL:
-                raise LifecycleError(
+                raise SettlementError(
                     "credit", f"credit memo in {status}", record_id=memo["Id"]
                 )
         time.sleep(_POLL_INTERVAL)
-    raise LifecycleError(
+    raise SettlementError(
         "credit", f"credit memo not Posted within {timeout}s", record_id=invoice_id
     )
 
@@ -1693,7 +1713,7 @@ def create_payment(client: SfRestClient, body: dict) -> str:
     """
     result = client.post(_sobject_path(client, "Payment"), body, retry=False)
     if not isinstance(result, dict) or not result.get("success") or not result.get("id"):
-        raise LifecycleError("payment", f"payment create failed: {result}")
+        raise SettlementError("payment", f"payment create failed: {result}")
     log.info("payment %s created (%s)", result["id"], body.get("Amount"))
     return result["id"]
 
@@ -1746,7 +1766,7 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
             raise
         detail = api_error_text(exc.body)
         if "INVALID_FIELD" in (exc.body or "") and "appliedToId" in (exc.body or ""):
-            raise LifecycleError(
+            raise SettlementError(
                 "payment",
                 f"apply refused ({detail}). The recorded application level is "
                 "likely wrong for this org. Payment is Processed and unapplied, "
@@ -1755,11 +1775,11 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
                 "--application-level line|header`.",
                 record_id=payment_id,
             ) from exc
-        raise LifecycleError(
+        raise SettlementError(
             "payment", f"apply refused: {detail}", record_id=payment_id
         ) from exc
     if not isinstance(result, dict) or not result.get("id"):
-        raise LifecycleError("payment", f"apply returned no id: {result}", record_id=payment_id)
+        raise SettlementError("payment", f"apply returned no id: {result}", record_id=payment_id)
     return result["id"]
 
 

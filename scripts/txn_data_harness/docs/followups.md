@@ -352,6 +352,9 @@ Line Level is live-verified on 264; everything below is not.
   `--resubmit-credit` paths (memo in `Error`, no memo after the wait, a late
   memo adopted) and the `NetCreditsApplied` double-credit check are covered
   offline only; no credit memo has been seen failing on a live org.
+- `[gap]` **Changing settlement options means a new run.** The block is
+  fixed once recorded; a run that stopped at `credit_applied` cannot be given
+  a payment, and refused options cannot be corrected on the same invoice.
 - `[gap]` **Settlement cleanup.** No unapply, payment cancel or credit memo
   void was probed; settlement records are treated as leftovers like Posted
   invoices.

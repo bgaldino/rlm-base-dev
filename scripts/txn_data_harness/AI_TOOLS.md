@@ -331,8 +331,8 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   (what the platform applied at post), credit memo / payment ids, application
   record ids, amounts, `payment_mode` and the invoice balance after.
 - Continue a Posted manifest: `cli step --manifest <id> --to-stage
-  payment_applied` (add `--config` with a `settlement:` scenario when the
-  manifest has none).
+  payment_applied`, adding `--config` with a `settlement:` scenario when the
+  manifest has no block yet (a run that stopped at `invoice_posted`).
 - `--concurrency 1` is required when a settlement target shares its account
   with another transaction in the batch (`cli run` refuses otherwise; `cli
   plan` warns): posting an invoice applies the account's open payment balance.
@@ -343,13 +343,13 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   the stage (not retried) and a resume polls for the memo. If the memo failed
   (`Error` / `Canceled` / `Voided`) or never appears, resume with `cli step
   --manifest <id> --to-stage payment_applied --resubmit-credit`: it adopts any
-  live memo of the run and sends only when none is live (add `--config <file>`
-  to replace the `credit` sub-block). Never pass the flag unasked. A
+  live memo of the run and re-sends the recorded credit only when none is
+  live. Never pass the flag unasked. A
   `NetCreditsApplied` mismatch after the credit means a second credit: stop
   and report it.
-- `--config` on a resume is never ignored, even when the manifest already
-  reached the target: it may add a missing `payment`; any other difference
-  from the manifest's block is refused. `payment_applied` refuses a block
+- The settlement block is fixed once recorded (when the first settlement
+  step starts). A `--config` that differs from it is refused, naming the
+  keys: different options need a new run. `payment_applied` refuses a block
   without `payment` (stop at `credit_applied` for a credit only).
 - `cli step` uses the manifest's `account_id`; an `--account` that resolves to
   another account is refused. Amounts round to the invoice currency's

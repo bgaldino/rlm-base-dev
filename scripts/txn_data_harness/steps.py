@@ -17,7 +17,7 @@ from . import lifecycle
 from .auth import SfRestClient
 from .config import SettlementSpec, settlement_from_dict
 from .discovery import Account, OrgContext
-from .lifecycle import LifecycleError
+from .lifecycle import LifecycleError, SettlementError
 from .models import (
     POSTED_STAGES,
     STAGES_SETTLEMENT,
@@ -417,21 +417,25 @@ def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
 
 
 def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[SettlementSpec]:
-    """The scenario's settlement options: from the run, else the manifest.
+    """The settlement block: fixed once it is recorded on the manifest.
 
-    The run's spec wins; its dict form is persisted on the manifest so a
-    ``cli step`` resume finds the same options without the config file.
+    The first settlement step to start records the run's block
+    (``ctx.settlement``), trimmed to the parts the run's target reaches (no
+    ``payment`` when the target is ``credit_applied``), so the manifest never
+    holds options for a stage that is not run. From then on the recorded
+    block is used and ``ctx.settlement`` is not read; ``cli step`` refuses a
+    ``--config`` that differs from it (changed options = a new run).
     """
+    if manifest.settlement is not None:
+        return settlement_from_dict(manifest.settlement)
     spec = ctx.settlement
     if spec is None:
-        return settlement_from_dict(manifest.settlement) if manifest.settlement else None
-    if manifest.settlement is None:
-        manifest.settlement = spec.to_dict()
-    elif settlement_from_dict(manifest.settlement) != spec:
-        # Only ``cli step --config`` hands a resume a block that differs from
-        # the persisted one (see cli._settlement_for_step for what it allows).
-        _warn(manifest, "settlement options updated from --config on resume")
-        manifest.settlement = spec.to_dict()
+        return None
+    if ctx.target_stage == "credit_applied" and spec.payment is not None:
+        spec = SettlementSpec(
+            application_level=spec.application_level, credit=spec.credit, payment=None
+        )
+    manifest.settlement = spec.to_dict()
     return spec
 
 
@@ -450,14 +454,14 @@ def _settlement_account_id(ctx: StepContext, manifest: Manifest) -> str:
     invoice_acct = header.get("BillingAccountId")
     account_id = invoice_acct or manifest.account_id
     if not account_id:
-        raise LifecycleError(
+        raise SettlementError(
             "settlement",
             "cannot tell the invoice's account: no Invoice.BillingAccountId and no "
             "account_id on the manifest",
             record_id=manifest.invoice_id,
         )
     if invoice_acct and manifest.account_id and manifest.account_id != invoice_acct:
-        raise LifecycleError(
+        raise SettlementError(
             "settlement",
             f"the invoice belongs to account {invoice_acct} but the manifest records "
             f"account {manifest.account_id}; settle it in the org by hand",
@@ -465,7 +469,7 @@ def _settlement_account_id(ctx: StepContext, manifest: Manifest) -> str:
         )
     ctx_id = getattr(ctx.account, "id", None)
     if ctx_id and ctx_id != account_id:
-        raise LifecycleError(
+        raise SettlementError(
             "settlement",
             f"account '{getattr(ctx.account, 'name', ctx_id)}' resolves to {ctx_id}, but "
             f"the invoice and manifest belong to account {account_id}; resume without "
@@ -651,20 +655,20 @@ def _resubmit_credit(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
     the caller then sends. Returns the adopted memo, or ``None`` to send.
     """
     deadline = _lookup_deadline(ctx)
-    attempts = set(range(1, manifest.credit_attempt + 1))
+    # A refused attempt (HTTP 4xx) created nothing: no memo to wait for.
+    attempts = set(range(1, manifest.credit_attempt + 1)) - set(manifest.credit_refused_attempts)
     while True:
         memos = lifecycle.find_run_credit_memos(
             ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
         )
         live = [m for m in memos if m.get("Status") not in lifecycle._CREDIT_MEMO_FAIL]
         if len(live) > 1:
-            raise LifecycleError(
+            raise SettlementError(
                 "credit",
                 "--resubmit-credit: more than one live credit memo of this run on the "
                 f"invoice ({', '.join(m['Id'] + ' attempt ' + str(m['attempt']) for m in live)}); "
                 "the invoice was credited more than once. Settle it in the org by hand.",
                 record_id=manifest.invoice_id,
-                failure_class="deterministic",
             )
         if live:
             (memo,) = live
@@ -711,6 +715,8 @@ def _submit_credit_once(
     manifest.credit_baselines[str(manifest.credit_attempt)] = lifecycle._money(
         header.get("NetCreditsApplied"), _places(manifest)
     )
+    if manifest.credit_attempt in manifest.credit_refused_attempts:
+        manifest.credit_refused_attempts.remove(manifest.credit_attempt)
     manifest.credit_submitted = True
     _checkpoint(ctx, manifest)
     try:
@@ -721,23 +727,24 @@ def _submit_credit_once(
             failure, cause = exc.detail, exc
         else:
             manifest.credit_submitted = False
+            manifest.credit_refused_attempts.append(manifest.credit_attempt)
             _checkpoint(ctx, manifest)
-            raise LifecycleError(
+            raise SettlementError(
                 exc.step,
-                f"{exc.detail}. Fix the settlement block and resume with "
-                f"{_step_command(ctx, manifest, ' --resubmit-credit --config <file>')}",
+                f"{exc.detail}. Nothing was created. The settlement options are fixed "
+                "once recorded on the manifest: to change them, start a new run. "
+                f"{_step_command(ctx, manifest, '')} sends the same credit again.",
                 record_id=exc.record_id,
             ) from exc
     except SfApiError as exc:
         failure, cause = f"{type(exc).__name__}, HTTP {exc.status}", exc
     if _find_memo_after_failed_post(ctx, manifest) is not None:
         return
-    raise LifecycleError(
+    raise SettlementError(
         "credit",
         f"credit POST outcome unknown ({failure}) and no memo appeared yet; it is not "
         f"sent again by a retry. {_resubmit_hint(ctx, manifest)}",
         record_id=manifest.invoice_id,
-        failure_class="deterministic",
     ) from cause
 
 
@@ -757,7 +764,7 @@ def _check_no_other_credit(ctx: StepContext, manifest: Manifest, header: dict) -
     gained = lifecycle._money(float(header.get("NetCreditsApplied") or 0.0) - baseline, places)
     applied = lifecycle._money(manifest.credit_amount_applied or 0.0, places)
     if gained != applied:
-        raise LifecycleError(
+        raise SettlementError(
             "credit",
             f"invoice NetCreditsApplied rose by {gained} since the settlement baseline, "
             f"but this run's credit memo {manifest.credit_memo_ids} applied {applied}: "
@@ -789,7 +796,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         manifest.reached_stage = "credit_applied"
         return manifest
     if not manifest.invoice_id:
-        raise LifecycleError("credit", "invoice_id is required before credit")
+        raise SettlementError("credit", "invoice_id is required before credit")
     _settlement_account_id(ctx, manifest)
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
@@ -841,7 +848,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 attempt=manifest.credit_attempt,
             )
         except LifecycleError as exc:
-            raise LifecycleError(
+            raise SettlementError(
                 exc.step, f"{exc.detail}. {_resubmit_hint(ctx, manifest)}",
                 record_id=exc.record_id,
             ) from exc
@@ -927,18 +934,24 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.payment is None:
-        # Never advance to payment_applied without a payment: a manifest that
-        # reached it could no longer be given one.
-        raise LifecycleError(
+        # Never advance to payment_applied without a payment.
+        if manifest.settlement is None:
+            how = (
+                f"pass `cli step --manifest {manifest.run_id} --to-stage payment_applied "
+                "--config <file>` with a scenario of this kind and account whose "
+                "settlement block has 'payment'"
+            )
+        else:
+            how = (
+                "the manifest's recorded settlement block is fixed; start a new run "
+                "whose block has 'payment'"
+            )
+        raise SettlementError(
             "payment",
-            "the settlement block has no 'payment', so payment_applied would create "
-            f"nothing. Add one with `cli step --manifest {manifest.run_id} --to-stage "
-            "payment_applied --config <file>` (a scenario of this kind and account whose "
-            "settlement block adds 'payment'), or stop at credit_applied.",
-            failure_class="deterministic",
+            f"no settlement 'payment', so payment_applied would create nothing: {how}.",
         )
     if not manifest.invoice_id:
-        raise LifecycleError("payment", "invoice_id is required before payment")
+        raise SettlementError("payment", "invoice_id is required before payment")
     account_id = _settlement_account_id(ctx, manifest)
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)

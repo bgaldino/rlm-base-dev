@@ -605,11 +605,20 @@ def _resolve_settlement(
     part is dropped on a scenario that stops at ``credit_applied``, so one
     config can share settlement defaults across scenarios that stop at
     different stages. A block set on the scenario itself is kept whatever the
-    stage: a part the run does not reach yet is persisted on the manifest for
-    ``cli step --to-stage payment_applied``. Only real contradictions are
-    errors (see :func:`_check_settlement_stage`).
+    stage (the steps record only the parts the run's target reaches). Only
+    real contradictions are errors (see :func:`_check_settlement_stage`).
+
+    ``cli step`` evaluates the block against its ``--to-stage`` instead of the
+    file's own ``target_stage`` (``merged["_settlement_stage"]``, set by
+    :func:`load_scenarios`); a scenario without any block is then skipped
+    rather than refused.
     """
+    override = merged.get("_settlement_stage")
+    if override:
+        stage = override
     settlement = _coerce_settlement(merged.get("settlement"), where)
+    if override and settlement is None:
+        return None
     explicit = "settlement" in merged.get("_explicit_keys", set(merged))
     if not explicit:
         if stage not in _SETTLEMENT_STAGES:
@@ -1663,7 +1672,7 @@ def _coerce_spec(merged: dict[str, Any], where: str):
     return _KIND_COERCERS[kind](merged, kind, where)
 
 
-def load_scenarios(args: Any):
+def load_scenarios(args: Any, settlement_stage: Optional[str] = None):
     """Resolve the run into a list of un-resolved scenario specs.
 
     No ``--config`` -> one spec from CLI flags + built-ins. With ``--config``,
@@ -1675,8 +1684,13 @@ def load_scenarios(args: Any):
     (:class:`ScenarioSpec` for PST, :class:`InvoiceIngestionScenarioSpec` for
     invoice ingestion). The handler dispatcher reads ``spec.kind`` and routes
     to ``SCENARIO_HANDLERS[kind]``.
+
+    ``settlement_stage`` (``cli step --to-stage``) evaluates every scenario's
+    ``settlement:`` block against that stage rather than the file's own
+    ``target_stage``.
     """
     cli = _cli_overrides(args)
+    extra = {"_settlement_stage": settlement_stage} if settlement_stage else {}
     config_path = getattr(args, "config", None)
 
     if not config_path:
@@ -1685,7 +1699,7 @@ def load_scenarios(args: Any):
         # No config file: every non-builtin value came from a CLI flag, so the
         # CLI keys are the explicitly-set set (see ``_coerce_invoice_ingestion_spec``).
         merged["_explicit_keys"] = set(cli)
-        return [_coerce_spec(merged, "cli")]
+        return [_coerce_spec({**merged, **extra}, "cli")]
 
     data = _load_file(config_path)
     config_defaults = data.get("defaults") or {}
@@ -1705,7 +1719,7 @@ def load_scenarios(args: Any):
         )
         # No per-scenario block: the explicitly-set set is config defaults + CLI.
         base["_explicit_keys"] = set(config_defaults) | set(cli)
-        return [_coerce_spec(base, "defaults")]
+        return [_coerce_spec({**base, **extra}, "defaults")]
 
     if not isinstance(scenarios, list) or not scenarios:
         raise ConfigError("config 'scenarios' must be a non-empty list")
@@ -1728,5 +1742,5 @@ def load_scenarios(args: Any):
         # defaults (e.g. ``defaults: {term: 12}``) don't break a mixed config
         # that also contains an ``invoice_ingestion`` scenario.
         merged["_explicit_keys"] = set(raw) | set(cli)
-        specs.append(_coerce_spec(merged, f"scenarios[{i}]"))
+        specs.append(_coerce_spec({**merged, **extra}, f"scenarios[{i}]"))
     return specs
