@@ -108,9 +108,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 ## DO NOT
 
 - **DO NOT** write system-generated / read-only fields on the graph: on the line,
-  `RampIdentifier`, `SegmentIdentifier`, `EndQuantity`, `NetUnitPrice`,
-  `TotalPrice`; on the Quote, `GrandTotal`, `TotalPrice`, `CalculationStatus`,
-  `QuoteNumber`. They are computed — the call fails if you set them.
+  `EndQuantity`, `NetUnitPrice`, `TotalPrice`; on the Quote, `GrandTotal`,
+  `TotalPrice`, `CalculationStatus`, `QuoteNumber`. They are computed — the call
+  fails if you set them.
+- **DO NOT** set `RampIdentifier` or `SegmentIdentifier` on a line — the ramp
+  actions stamp them. Whether a caller write is refused is not measured (see
+  [field-legality.md](field-legality.md)).
 - **DO NOT** write `RampUpliftType` on `QuoteLineItem`/`OrderItem` via Place — it
   is engine-owned there (rejected as not-writeable even when FLS shows editable).
   Set it on the ramp **group** — the **top-level `RampScheduleGroup`** in
@@ -457,8 +460,8 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
   `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
-  Not sourced whether a failed status recovers on its own: the repo pollers stop and reprice
-  rather than keep polling `[inferred]`. `E2ECommon.robot` `Wait For Quote Calculation` reprices once
+  No source says whether a failed status clears on its own; the repo pollers don't wait for it.
+  `E2ECommon.robot` `Wait For Quote Calculation` reprices once
   (Place Sales Transaction, `pricingPref` Force) and fails the test if the second wait also fails.
   The large-deal reference, written for `Order.CalculationStatus` (Release 262), likewise allows a
   bounded reprice retry for `PstBaseStepFailed`, `ConfigurationFailed`, `GroupRampConfigurationFailed`,

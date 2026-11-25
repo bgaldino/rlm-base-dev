@@ -12,9 +12,10 @@ Snapshot — re-verify with a `describe` on the target org. Writeable = accepted
 | `Product2` | — | `CanRamp` (direct writes refused on one 264 org via REST, Bulk, Apex, CLI; gates the line-ramp path only) |
 
 `RampIdentifier` and `SegmentIdentifier` are read-only here because the ramp actions stamp them:
-`EditGroup` stamps `RampIdentifier` (SKILL.md call order, step 2), and every ramped line carries both
-after `groupRampAction` (SKILL.md validation checks). The 264 schema marks both createable/updateable.
-Whether the graph refuses a caller write to them is not measured; never set them `[inferred]`.
+`EditGroup` stamps `RampIdentifier` (SKILL.md Quick Rule 1 and build step 2), and every ramped line
+carries both after `groupRampAction` (SKILL.md validation checks). The 264 schema marks both
+createable/updateable on `QuoteLineItem`. Never set them.
+[Open: send a caller value for `RampIdentifier` on a Place and record whether it is refused or overwritten]
 
 `SegmentType` enum: `Yearly`, `Custom`, `FreeTrial`, `Prorated`.
 `QuoteLineGroup.Type` enum: `CPQQuoteGroup`, `RampScheduleGroup`, `AssetSwap`,
