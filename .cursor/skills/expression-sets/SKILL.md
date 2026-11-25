@@ -351,8 +351,9 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   differs from what it should be.
 - **A version with no Rank cannot be cycled.** The API refuses to activate a version
   without a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so
-  every mutator, toolkit and CCI, refuses to deactivate and reactivate an active
-  null-Rank version, before any write. Give it a Rank first.
+  every path that would activate a null-Rank version (mutators with activation on,
+  `--activate`, a whole-set delete's rollback; toolkit and CCI) refuses before any
+  write. Give it a Rank first, or run without activation.
 - **A whole-set import works in one shape only.** On a multi-version set both
   `import_expression_set` surfaces allow only a payload with exactly one version,
   the one the import targets, and no other version sharing its label; everything

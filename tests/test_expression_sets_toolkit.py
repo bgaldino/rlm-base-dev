@@ -2263,14 +2263,63 @@ def test_null_rank_guard():
     check("an active null-Rank version that would be reactivated is refused, naming the "
           "cause and the remedy",
           "Enter a valid rank" in msg and "Nothing was written" in msg
-          and "Rank=<n>" in msg and "9QMv" in msg, msg)
+          and "could not turn it back on" in msg and "Metadata API deploy" in msg
+          and "X_V1" in msg, msg)
+    draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
+    check("a null-Rank draft the run would activate is refused too",
+          "fail to activate it" in draft_msg, draft_msg)
     for label, esv, activate_after in (
             ("a numeric Rank", dict(null_active, Rank=1), True),
             ("a row read without Rank", {k: v for k, v in null_active.items() if k != "Rank"},
              True),
-            ("an inactive version", dict(null_active, IsActive=False), True),
+            ("a draft that stays a draft", dict(null_active, IsActive=False), False),
             ("no reactivation requested", null_active, False)):
         check(f"not refused: {label}", null_rank_reactivation_refusal(esv, activate_after) is None)
+
+    # activate_expression_set: --activate refused up front; --deactivate warns.
+    import scripts.expression_sets.activate_expression_set as act_mod
+
+    def run_activate(flag, esv):
+        t = _PlanTransport(plans={"1Cv1": True}, esv_active=bool(esv["IsActive"]))
+        logs = []
+        undo = _patch(act_mod, Transport=lambda **k: t, eprint=logs.append,
+                      resolve_expression_set_id=lambda *a, **k: "9QLx",
+                      resolve_definition_id=lambda *a, **k: "9QAx",
+                      resolve_version_by_es_id=lambda *a, **k: dict(esv))
+        try:
+            rc = act_mod.main(["--target-org", "x", "--expression-set", "X", flag,
+                               "--confirm"])
+        finally:
+            undo()
+        return rc, logs, t
+
+    rc, logs, t = run_activate("--activate", dict(null_active, IsActive=False))
+    check("activate --activate refuses a null-Rank version before any write",
+          rc == 1 and t.esv_active is False and any("Enter a valid rank" in m for m in logs)
+          and not any("--no-activate" in m for m in logs),
+          (rc, logs))
+    rc, logs, t = run_activate("--deactivate", null_active)
+    check("activate --deactivate on a null-Rank version warns that it is one-way",
+          rc == 0 and t.esv_active is False
+          and any("cannot be turned back on" in m for m in logs), (rc, logs))
+
+    # delete_expression_set (whole set): the rollback after a failed DELETE would
+    # reactivate, so an active null-Rank version is refused up front.
+    import scripts.expression_sets.delete_expression_set as del_mod
+    t = _PlanTransport(plans={"1Cv1": True})
+    logs = []
+    undo = _patch(del_mod, Transport=lambda **k: t, eprint=logs.append,
+                  resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  resolve_definition_id=lambda *a, **k: "9QAx",
+                  resolve_version_by_es_id=lambda *a, **k: dict(null_active))
+    try:
+        rc = del_mod.main(["--target-org", "x", "--expression-set", "X", "--confirm"])
+    finally:
+        undo()
+    check("delete refuses a whole set whose active version has no Rank, before any write",
+          rc == 1 and t.esv_active is True and t.plans == {"1Cv1": True}
+          and any("Delete refused" in m and "deactivate it first" in m for m in logs),
+          (rc, logs))
 
     t = _PlanTransport(plans={"1Cv1": True})
     calls = []

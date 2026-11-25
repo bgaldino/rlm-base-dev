@@ -82,6 +82,7 @@ from scripts.expression_sets._guards import (
     VERSION_FIELDS,
     executing_version,
     import_target_refusal,
+    null_rank_delete_refusal,
     null_rank_reactivation_refusal,
     rank_order_warning,
     target_version_warning,
@@ -2253,6 +2254,11 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         # state the user saw before the delete attempt.
         es_def_id = self._get_expression_set_definition_id(api_name)
         esv = self._resolve_version_by_es_id(es_id)
+        # A failed DELETE is rolled back by reactivating the version, which the API
+        # refuses for a version with no Rank: refuse before any write.
+        refusal = null_rank_delete_refusal(esv)
+        if refusal:
+            raise TaskOptionsError(refusal)
         esv_was_active = bool(esv.get("IsActive"))
         cascaded_ppvs: List[str] = []
         esv_deactivated_by_us = False

@@ -184,28 +184,64 @@ def target_version_warning(es_id: str, active: List[Dict[str, Any]],
     return None
 
 
-def null_rank_reactivation_refusal(esv: Dict[str, Any], activate_after: bool) -> Optional[str]:
-    """Why a deactivate → mutate → reactivate cycle must not start on ``esv``, or None.
+_NO_RANK_CAUSE = (
+    ": the platform refuses to activate a version through the API without a Rank "
+    "(\"Enter a valid rank to enable …\", measured on Release 264, 2026-11-25). "
+    "Nothing was written."
+)
+_NO_ACTIVATION = "run without activation (--no-activate / activate_after false)"
+
+
+def _rank_remedy(alternative: Optional[str]) -> str:
+    return (
+        " Give it a Rank first with a Metadata API deploy (an sObject update of "
+        "ExpressionSetVersion.Rank may also work; that is not measured on an active "
+        "version), choosing a Rank that keeps the intended version executing"
+        + (f"; or {alternative}." if alternative else ".")
+    )
+
+
+def null_rank_reactivation_refusal(
+    esv: Dict[str, Any], activate_after: bool, alternative: Optional[str] = _NO_ACTIVATION
+) -> Optional[str]:
+    """Why a run that would activate ``esv`` must not start, or None.
+
+    ``alternative`` is the other remedy offered besides giving the version a Rank
+    (None when the caller's only purpose is to activate).
 
     Activating a version through the API needs a Rank: the platform refused it on
-    264 with "Enter a valid rank to enable …" (measured 2026-11-25). A cycle on an
-    active version whose Rank is null (possible only after a Metadata API deploy)
-    would deactivate it and then fail to turn it back on, leaving the procedure off.
-    Refused before any write when the cycle would reactivate. A row read without a
-    ``Rank`` field is not judged.
+    264 with "Enter a valid rank to enable …" (measured 2026-11-25). A run that
+    would end by activating a version whose Rank is null (possible only after a
+    Metadata API deploy) fails at that point, after its change was written: an
+    active version is left off; an inactive one is changed but not activated.
+    Refused before any write whenever the run would activate (``activate_after``).
+    A row read without a ``Rank`` field is not judged.
     """
-    if not (activate_after and esv.get("IsActive") and "Rank" in esv
-            and esv.get("Rank") is None):
+    if not (activate_after and "Rank" in esv and esv.get("Rank") is None):
         return None
+    name = esv.get("ApiName") or esv.get("Id")
+    if esv.get("IsActive"):
+        what = (f"ExpressionSetVersion {name} is active with no Rank, so this run would "
+                "deactivate it and could not turn it back on")
+    else:
+        what = (f"ExpressionSetVersion {name} has no Rank, so this run would write its "
+                "change and then fail to activate it")
+    return what + _NO_RANK_CAUSE + _rank_remedy(alternative)
+
+
+def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
+    """Why a whole-set delete must not start on ``esv``, or None.
+
+    A failed DELETE is rolled back by reactivating the version it deactivated, which
+    the platform refuses without a Rank (see ``null_rank_reactivation_refusal``).
+    """
+    if not (esv.get("IsActive") and "Rank" in esv and esv.get("Rank") is None):
+        return None
+    name = esv.get("ApiName") or esv.get("Id")
     return (
-        f"ExpressionSetVersion {esv.get('ApiName') or esv.get('Id')} is active with no "
-        "Rank, and the platform refuses to activate a version through the API without "
-        "one (\"Enter a valid rank to enable …\", measured on Release 264, "
-        "2026-11-25), so this run would deactivate it and could not turn it back on. "
-        "Nothing was written. Give it a Rank first (sf data update record --sobject "
-        f"ExpressionSetVersion --record-id {esv.get('Id')} --values Rank=<n>, choosing "
-        "a Rank that keeps the intended version executing), or change it with a "
-        "Metadata API deploy."
+        f"Delete refused: ExpressionSetVersion {name} is active with no Rank, so if the "
+        "DELETE failed its rollback could not turn the version back on" + _NO_RANK_CAUSE
+        + _rank_remedy("deactivate it first and then delete the set")
     )
 
 

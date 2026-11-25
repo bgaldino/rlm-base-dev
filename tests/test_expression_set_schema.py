@@ -2240,6 +2240,48 @@ def test_null_rank_active_version_is_not_cycled():
           ok.states == {"PPV_A": True, "ESV": True} and ok.patch_calls != [])
 
 
+def test_delete_refuses_an_active_null_rank_version():
+    # Todo pack 172: a failed whole-set DELETE rolls back by reactivating the
+    # version, which the platform refuses without a Rank, so the task refuses an
+    # active null-Rank version before any write.
+    import logging
+
+    from tasks.rlm_expression_set_connect import TaskOptionsError
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_null_rank")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {"expression_set_api_name": "ESX", "confirm": True,
+                            "dry_run": False}
+            self.calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "ApiName": "ESX_V1", "IsActive": True, "Rank": None}
+
+        def __getattr__(self, name):
+            # Any other task method reached would be a write path.
+            if name.startswith("_"):
+                return lambda *a, **k: self.calls.append(name)
+            raise AttributeError(name)
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+        error = None
+    except TaskOptionsError as exc:
+        error = exc
+    check("CCI delete: an active null-Rank version is refused before any write",
+          error is not None and "Delete refused" in str(error)
+          and "Enter a valid rank" in str(error) and task.calls == [])
+
+
 def test_import_replace_refuses_a_version_rebind():
     # Todo pack 172: on a multi-version set the CCI task imports only a one-version
     # payload for the targeted version whose label no other version shares — the

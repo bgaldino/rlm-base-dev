@@ -245,10 +245,13 @@ v4, three active; v4 ran). Consequences:
   version and reads the result back.
 - **A version with no Rank cannot be cycled.** Activating a version through the API
   needs a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so a
-  deactivate → change → reactivate run on an active null-Rank version would leave it
-  off. Every mutator (`set_step_formula`, relabel and label restore, import, overlay;
-  toolkit and CCI) refuses that before any write and says to give the version a Rank
-  first.
+  run that would end by activating a null-Rank version fails after its change is
+  written: an active version would be left off, a draft changed but not activated.
+  Every path that would activate one refuses before any write and says to give the
+  version a Rank first: `set_step_formula`, relabel and label restore, import,
+  overlay, `activate_expression_set --activate`, and a whole-set delete (whose
+  rollback reactivates), toolkit and CCI. `--no-activate` runs are allowed;
+  `activate_expression_set --deactivate` warns that the step is one-way.
 
 `apply_expression_set_overlay` is not guarded by the importer rule, and it does send
 every version of the set: it PATCHes the whole definition it read with a GET. An
