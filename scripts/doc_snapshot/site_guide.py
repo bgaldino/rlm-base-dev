@@ -255,8 +255,8 @@ def _legacy_map(manifest) -> Dict[str, str]:
 # converter output puts real links there too, and a literal one is not a hazard.
 _LOCAL_LINK = re.compile(
     r'''(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?(\))''')
-# any other link form to a sibling .md (titles in a form the pattern above does not know)
-_LOOSE_LINK = re.compile(r"\]\(\s*(?:\./)?([^()\s#<>/]+?\.md)")
+# any other link form to a sibling .md (a title or angle-bracket target the pattern above does not know)
+_LOOSE_LINK = re.compile(r"\]\(\s*<?(?:\./)?([^()\s#<>/]+?\.md)")
 
 
 def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, str]]]:
@@ -267,7 +267,7 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
     would dangle. Each link whose target is missing (or listed for removal) but is a ``legacy_id_map`` id with an
     article on disk is rewritten to ``./<slug>.md`` (fragment kept). A missing target with no
     replacement is left as is and returned so the caller can report it. Returns the number of
-    links rewritten and the unresolved ``(file, target)`` pairs. Idempotent.
+    links rewritten and the unresolved ``(file, target)`` pairs, one per target per file. Idempotent.
     """
     articles = out / "articles"
     mapping = _legacy_map(manifest)
@@ -282,6 +282,7 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
         if rel in superseded or not f.is_file():
             continue  # absent, or about to be removed
         text = f.read_text(encoding="utf-8")
+        seen = set()  # each unresolved target is reported once per file
 
         def fix(m):
             nonlocal rewritten
@@ -294,11 +295,12 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
             if slug and (articles / f"{slug}.md").is_file():
                 rewritten += 1
                 return f"{m.group(1)}./{slug}.md{m.group(4) or ''}{m.group(5) or ''}{m.group(6)}"
-            unresolved.append((f"{old}.md", target))
+            if target not in seen:
+                seen.add(target)
+                unresolved.append((f"{old}.md", target))
             return m.group(0)
 
         new = _LOCAL_LINK.sub(fix, text)
-        seen = {t for g, t in unresolved if g == f"{old}.md"}
         for lm in _LOOSE_LINK.finditer(new):  # a link form the rewrite cannot handle: report it
             t = lm.group(1)
             if t not in seen and (not (articles / t).exists() or f"articles/{t}" in superseded):
