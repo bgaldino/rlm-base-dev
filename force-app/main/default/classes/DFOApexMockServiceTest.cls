@@ -51,12 +51,14 @@ private class DFOApexMockServiceTest {
 
     @IsTest
     static void buildResponse_failsWhenSimulateFailureIsTrue() {
-        industriesintegrationfwk.IntegrationCalloutResponse response = DFOApexMockService.buildResponse(
-            new Map<String, Object>{ 'Simulate_Failure' => 'true' });
+        for (Object value : new List<Object>{ 'true', ' TRUE ', true }) {
+            industriesintegrationfwk.IntegrationCalloutResponse response = DFOApexMockService.buildResponse(
+                new Map<String, Object>{ 'Simulate_Failure' => value });
 
-        Assert.isFalse(response.isSuccess(), 'The step fails when the toggle is on');
-        Assert.areEqual(500, response.getResponseCode(), 'Failure carries response code 500');
-        Assert.areEqual('Internal Error - 500.', response.getErrorMessage(), 'Failure carries the error message');
+            Assert.isFalse(response.isSuccess(), 'The step fails when the toggle is on: ' + value);
+            Assert.areEqual(500, response.getResponseCode(), 'Failure carries response code 500: ' + value);
+            Assert.areEqual('Internal Error - 500.', response.getErrorMessage(), 'Failure carries the error message: ' + value);
+        }
     }
 
     @IsTest
