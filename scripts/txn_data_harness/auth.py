@@ -54,14 +54,69 @@ class SfCliError(RuntimeError):
 
 
 class SfApiError(RuntimeError):
-    """A Salesforce REST call returned a non-2xx status after retries."""
+    """A Salesforce REST call returned a non-2xx status after retries.
 
-    def __init__(self, status: int, body: str, method: str, path: str):
+    ``body`` is kept raw for classification (status, ``errorCode``). It is
+    either a server response body, or -- with ``safe_text=True`` -- a message
+    the harness composed itself and already made safe (a transport failure,
+    a CLI error from ``_sf_error_text``). ``detail`` and ``str()`` render it
+    for people through :func:`render_error_body`, so a raw page never
+    reaches an error message or a log line.
+    """
+
+    def __init__(
+        self, status: int, body: str, method: str, path: str, *, safe_text: bool = False
+    ):
         self.status = status
         self.body = body
         self.method = method
         self.path = path
-        super().__init__(f"{method} {path} -> HTTP {status}: {body[:500]}")
+        self.safe_text = safe_text
+        super().__init__(f"{method} {path} -> HTTP {status}: {self.detail}")
+
+    @property
+    def detail(self) -> str:
+        return render_error_body(self.body, safe=self.safe_text)
+
+
+def render_error_body(body: Optional[str], *, safe: bool = False) -> str:
+    """An error body for people. The one rendering rule.
+
+    Text the harness composed itself (``safe``): shown as is. A JSON body:
+    its error codes and messages (the list shape ``[{"errorCode",
+    "message"}]`` and the billing record-error shape ``{"message", "output":
+    {"errors": [...], "referenceLineErrorResults": [{"errors": [...]}]}}``),
+    else the JSON itself, capped. Any other body (an HTML maintenance page,
+    a SOAP fault, proxy output): its length only, never shown.
+    """
+    import html
+
+    text = body or ""
+    if safe:
+        return text[:500]
+    try:
+        data = json.loads(text)
+    except (TypeError, ValueError):
+        return f"a non-JSON body ({len(text)} characters, not shown)"
+    msgs: list[str] = []
+
+    def add(errors):
+        for e in errors or []:
+            if isinstance(e, dict) and e.get("message"):
+                code = e.get("errorCode")
+                msgs.append(f"{code}: {e['message']}" if code else e["message"])
+
+    if isinstance(data, list):
+        add(data)
+    elif isinstance(data, dict):
+        out = data.get("output") or {}
+        if isinstance(out, dict):
+            add(out.get("errors"))
+            for ref in out.get("referenceLineErrorResults") or []:
+                add((ref or {}).get("errors"))
+        if not msgs and data.get("message"):
+            msgs.append(data["message"])
+    return html.unescape("; ".join(msgs)) if msgs else text[:500]
 
 
 def _run_sf(args: list[str]) -> dict:
@@ -362,7 +417,7 @@ class SfRestClient:
             if not (200 <= resp.status_code < 300):
                 raise SfApiError(resp.status_code, resp.text, method, path)
             return self._decode(resp.status_code, resp.text)
-        raise SfApiError(-1, f"exhausted retries: {last_exc}", method, path)
+        raise SfApiError(-1, f"exhausted retries: {last_exc}", method, path, safe_text=True)
 
     def _request_cli(self, method: str, path: str, body: Any) -> Any:
         """Fallback transport: ``sf api request rest`` makes the call for us.
@@ -397,7 +452,9 @@ class SfRestClient:
             if proc.returncode != 0:
                 # No HTTP status: the call never reached the API. Same rule as
                 # _run_sf -- never echo raw sf stdout.
-                raise SfApiError(proc.returncode, _sf_error_text(proc), method, path)
+                raise SfApiError(
+                    proc.returncode, _sf_error_text(proc), method, path, safe_text=True
+                )
             return self._decode(200, text)
         if not (200 <= status < 300):
             raise SfApiError(status, text, method, path)
@@ -460,7 +517,7 @@ class SfRestClient:
             except subprocess.TimeoutExpired as exc:
                 raise SfApiError(
                     -1, f"retrieve timed out after {_RETRIEVE_TIMEOUT_S}s", "retrieve",
-                    "Settings:Billing",
+                    "Settings:Billing", safe_text=True,
                 ) from exc
             if proc.returncode != 0:
                 # Refused for good (permission, auth, unknown alias): like a 4xx
@@ -472,6 +529,7 @@ class SfRestClient:
                     return None
                 raise SfApiError(
                     -1, _sf_error_text(proc)[:300], "retrieve", "Settings:Billing",
+                    safe_text=True,
                 )
             found = list(Path(tmp).rglob("Billing.settings"))
             return found[0].read_text(encoding="utf-8") if found else None

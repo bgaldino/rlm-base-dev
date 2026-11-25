@@ -716,7 +716,7 @@ def _client_error(what: str, exc, manifest: Manifest, detail: str):
         )
     return SettlementError(
         what,
-        f"{what} refused: {lifecycle.api_error_text(exc.body)}. Nothing was created. "
+        f"{what} refused: {exc.detail}. Nothing was created. "
         f"{detail}",
         record_id=manifest.invoice_id,
     )
@@ -1344,7 +1344,7 @@ def execute_step(name: str, ctx: StepContext, manifest: Manifest) -> Manifest:
         raise SettlementError(
             name,
             f"{exc.method} {exc.path} failed (HTTP {exc.status}): "
-            f"{lifecycle.api_error_text(exc.body)}",
+            f"{exc.detail}",
             record_id=manifest.invoice_id,
             failure_class=lifecycle.settlement_failure_class(exc),
         ) from exc

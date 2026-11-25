@@ -1716,40 +1716,11 @@ def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Opti
 
 
 def api_error_text(body: str) -> str:
-    """The human-readable messages in a Connect/REST error body.
+    """A server error body for people (``auth.render_error_body``): JSON
+    error codes and messages; any non-JSON body by its length only."""
+    from .auth import render_error_body
 
-    Handles the list shape (``[{"errorCode", "message"}]``) and the billing
-    record-error shape (``{"message", "output": {"errors": [...],
-    "referenceLineErrorResults": [{"errors": [...]}]}}``). Falls back to the
-    JSON body when it holds no message. A body that is not JSON (an HTML
-    maintenance page, a proxy error) is described by its length only, never
-    shown -- the rule :func:`describe_response` applies.
-    """
-    import html
-    import json as _json
-
-    try:
-        data = _json.loads(body)
-    except (TypeError, ValueError):
-        return f"a non-JSON body ({len(body or '')} characters, not shown)"
-    msgs: list[str] = []
-
-    def add(errors):
-        for e in errors or []:
-            if isinstance(e, dict) and e.get("message"):
-                code = e.get("errorCode")
-                msgs.append(f"{code}: {e['message']}" if code else e["message"])
-
-    if isinstance(data, list):
-        add(data)
-    elif isinstance(data, dict):
-        out = data.get("output") or {}
-        add(out.get("errors"))
-        for ref in out.get("referenceLineErrorResults") or []:
-            add(ref.get("errors"))
-        if not msgs and data.get("message"):
-            msgs.append(data["message"])
-    return html.unescape("; ".join(msgs)) if msgs else (body or "")
+    return render_error_body(body)
 
 
 def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
@@ -1955,7 +1926,7 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
     except SfApiError as exc:
         if not is_api_refusal(exc):
             raise
-        detail = api_error_text(exc.body)
+        detail = exc.detail
         if "INVALID_FIELD" in (exc.body or "") and "appliedToId" in (exc.body or ""):
             raise SettlementError(
                 "payment",

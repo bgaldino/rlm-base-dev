@@ -3837,3 +3837,91 @@ def test_line_level_over_payment_warning_names_the_invoice_cap(billable_account)
     m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
     assert any("over-payment leaves 40.0 unapplied on the payment (the open amount is the "
                "invoice Balance 200.0)" in w for w in m.settlement_warnings)
+
+
+# -- review round 24 (todo 275): one rendering rule for SfApiError ---------------
+
+
+_HTML_503 = "<html><head><title>Maintenance</title></head><body>SECRET-ISH page</body></html>"
+
+
+def test_soap_settings_503_page_never_reaches_the_manifest_or_log(billable_account, caplog) -> None:
+    import logging
+
+    from scripts.txn_data_harness import auth
+
+    org = SettleOrg("line")
+    session = SimpleNamespace(post=lambda *a, **kw: SimpleNamespace(status_code=503, text=_HTML_503))
+
+    def read_xml():
+        client = auth.SfRestClient(alias="a", access_token="T", instance_url="https://x.example")
+        client._local.session = session
+        return client.read_billing_settings_xml()
+
+    org.read_billing_settings_xml = read_xml
+    spec = SettlementSpec(payment=PaymentSpec(amount=10.0))  # level: auto
+    m = _posted_manifest()
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(lifecycle.SettlementError) as info:
+            steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec), m)
+    assert "SECRET" not in str(info.value) and "<html" not in str(info.value)
+    assert f"a non-JSON body ({len(_HTML_503)} characters, not shown)" in str(info.value)
+    assert "SECRET" not in caplog.text and "<html" not in caplog.text
+
+
+def test_step_boundary_renders_an_html_body_by_length(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    real = org.query
+
+    def query(soql):
+        if "FROM PaymentLineInvoiceLine" in soql:
+            raise SfApiError(503, _HTML_503, "GET", "/query")
+        return real(soql)
+
+    org.query = query
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(lifecycle.SettlementError) as info:
+        steps.execute_step("payment_applied", _settle_ctx(org, billable_account, spec),
+                           _posted_manifest())
+    assert "SECRET" not in str(info.value)
+    assert f"a non-JSON body ({len(_HTML_503)} characters, not shown)" in str(info.value)
+
+
+def test_safe_text_is_shown_as_is(monkeypatch) -> None:
+    """An expired login (cli, no status line) and exhausted retries carry
+    text the harness made safe: shown, so the operator knows what to do."""
+    import requests as _requests
+
+    from scripts.txn_data_harness import auth
+
+    cli = _client("cli")
+    monkeypatch.setattr(auth.subprocess, "run", lambda *a, **kw: SimpleNamespace(
+        returncode=1, stdout="", stderr="Error (NoAuthInfoFound): No authorization information "
+                                       "found for alias. Run sf org login web."))
+    with pytest.raises(auth.SfApiError) as info:
+        cli.get("/services/data/v68.0/limits")
+    assert "Run sf org login web" in str(info.value) and "not shown" not in str(info.value)
+
+    monkeypatch.setattr(auth.time, "sleep", lambda s: None)
+    req = _client("requests")
+
+    class _Session:
+        def request(self, method, url, data=None):
+            raise _requests.ConnectionError("Name or service not known")
+
+    req._local.session = _Session()
+    with pytest.raises(auth.SfApiError) as info:
+        req.get("/services/data/v68.0/limits")
+    assert "exhausted retries: Name or service not known" in str(info.value)
+
+
+def test_json_error_bodies_keep_codes_and_messages() -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    exc = SfApiError(400, '[{"errorCode":"INVALID_FIELD","message":"No such column"}]', "GET", "/q")
+    assert str(exc).endswith("HTTP 400: INVALID_FIELD: No such column")
+    assert exc.detail == "INVALID_FIELD: No such column"
+    raw = SfApiError(500, _HTML_503, "GET", "/q")
+    assert "SECRET" not in str(raw) and raw.body == _HTML_503  # kept for classification
