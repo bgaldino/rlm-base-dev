@@ -1174,7 +1174,7 @@ def ingest_invoice(
     # Dev guide gates we surface eagerly instead of letting the org reject:
     #   * Posted + taxable line MUST have InvoiceLineTax
     #   * Posted + non-taxable line MUST NOT have InvoiceLineTax
-    # (Both invariants quoted in connect_requests_graph_record_input.htm.md.)
+    # (Both invariants quoted in 262 connect_requests_graph_record_input.htm.md.)
     for i, ln in enumerate(lines):
         if status == "Posted" and ln.taxable and ln.tax is None:
             raise LifecycleError(

@@ -8,7 +8,7 @@ The parent skill covers file layout, wiring, deployment and the headless `config
 check. This file covers only the CML that sizes a bundle and how to test it.
 
 **Claim tags.** `[Dev guide: <article>]` is the 264 developer guide snapshot under
-`docs/salesforce/264/dev-guide/articles/`, cited by file name without `.htm.md`.
+`docs/salesforce/264/dev-guide/articles/`, cited by file name without `.md`.
 `[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
 cited the same way. `[Platform behaviour, traced]` is a rule read from the platform's own behaviour, not
 measured here; where it explains a measured row, both tags appear. `[Platform behaviour, traced in part]` is the same, but only the mechanism was read in source; its scope, path or consequence isn't established. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of

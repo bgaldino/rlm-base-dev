@@ -205,7 +205,7 @@ Qualification). For Constraint sets:
 - **export** — captures `contextDefinitions` but empty `steps[]`/`variables[]`
 - **import/apply_overlay** — NOT applicable (CML authoring uses Configurator UI + SFDMU data)
 
-See `docs/salesforce/264/dev-guide/` (cml_* articles) for CML authoring guidance.
+See `docs/salesforce/264/dev-guide/` (cml-* articles) for CML authoring guidance.
 
 ### <a name="multi-version-expression-sets"></a>Multi-version expression sets
 
