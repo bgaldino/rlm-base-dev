@@ -49,25 +49,28 @@ callout on its tenant-provisioning steps [inferred from its step definitions; no
 
 Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
 - The step is wired and runs at order activation for any order that contains `QB-API-MGMT`. It has no
-  `ExecuteOn` condition, and neither does the `QB-API-MGMT` to `QB-DRO-APIPLAT` decomposition rule.
+  condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to `QB-DRO-APIPLAT` decomposition rule.
   Orders with only `QB-API` or `QB-API-FLEX` never reach it.
-- It fails at once: the callout throws `CalloutException` (no `RLM` named credential), the class returns
-  `isSuccess=false` with code 503, and the step goes `FatallyFailed` with 0 retries. Nothing is retried.
-- The failed step stalls the plan. Receive Key and Provision Licensing/Features depend on it, and
-  Provision Licensing/Features gates Initiate Billing, Post Invoice and Receive Payment. All stay `Pending` and
+- It fails at once: the debug log shows the callout throwing `CalloutException` (no `RLM` named credential), and the
+  step goes `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
+  [inferred from the class]). The 0 retries follow from the missing decision tables below: the shipped Callout fallout
+  rules (3 retries and 1 retry, Immediate) were not applied, and their effect once the tables exist was not measured.
+- The failed step stalls the plan. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
+  Provision Licensing/Features gates Initiate Billing, which gates Post Invoice and Receive Payment (it also gates
+  Activate Tokens, which was not on these plans). All stay `Pending` and
   the plan stays `InProgress`, so billing is never initiated for such an order.
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
-  not the 503 text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
-  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`; both absent on that build). The 503 text was seen only in the
+  not the exception text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
+  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`; both absent on that build). The exception text was seen only in the
   debug log. Whether it surfaces once the tables exist was not measured.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
-  stay `Draft` on this build regardless of plan state, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
+  stayed `Draft` on the 2026-11-25 build regardless of plan state, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
   records rather than Flow Orchestration instances, and the orders it used contained only `QB-API`/`QB-API-FLEX`.
-  See the dro-plans skill, **Verify a DRO step on a fresh build**.
+  See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 
 What to do about the missing target (ship a credential and target, point the step at a mock, or remove or condition
-the step) is an open decision (todo pack 419, item 3).
+the step) is an open decision (todo 419, item 3).
 
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
@@ -105,7 +108,7 @@ Release 264 live verification confirmed decomposition and plan composition
 after these repairs, including the restored provisioning step and dependencies.
 End-to-end fulfillment remains unverified: the tenant-provisioning callout
 requires the `RLM` named credential, which this repo no longer ships (see above),
-so the step has no target; its measured end state is in the paragraph above. Manual steps also require operator completion.
+so the step has no target; its measured end state is in the measured list above. Manual steps also require operator completion.
 
 The build currently creates `RLM_SalesTransactionContext` but does not select it
 in DRO Context Definition Settings. Automating and verifying that assignment
