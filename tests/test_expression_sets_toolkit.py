@@ -1182,6 +1182,7 @@ def test_export_overlay_with_labels():
             exp_mod,
             resolve_expression_set_id=lambda *a, **k: "9QLx",
             resolve_definition_id_by_es_id=lambda *a, **k: "9QAx",
+            resolve_version_by_es_id=lambda *a, **k: {"ApiName": "TEST_Proc_V1"},
             fetch_definition=lambda *a, **k: defn,
             Transport=lambda **k: None,
             capture_labels=lambda *a, **k: dict(all_labels),
@@ -1198,6 +1199,53 @@ def test_export_overlay_with_labels():
               written.get("labels") == {"GetPrice": "Get Price"}, written.get("labels"))
         check("export --with-labels drops non-sliced steps' labels",
               "ApplyMarkup" not in written.get("labels", {}), written.get("labels"))
+
+
+def test_read_tools_default_to_the_executing_version():
+    """describe and export_overlay default to the executing version, not the GET's
+    first, which on a multi-version set can be a draft (todo pack 172)."""
+    print("test_read_tools_default_to_the_executing_version")
+    import io
+    from contextlib import redirect_stdout
+
+    import scripts.expression_sets.describe_expression_set as desc_mod
+    import scripts.expression_sets.export_expression_set_overlay as exp_mod
+
+    draft = deepcopy(_sample_definition()["versions"][0])
+    draft.update(apiName="TEST_Proc_V1", versionNumber=1, enabled=False,
+                 steps=[s for s in draft["steps"] if s["name"] != "GetPrice"])
+    running = deepcopy(_sample_definition()["versions"][0])
+    running.update(apiName="TEST_Proc_V2", versionNumber=2, enabled=True)
+    defn = dict(_sample_definition(), versions=[draft, running])  # GET order: draft first
+    common = dict(resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  fetch_definition=lambda *a, **k: deepcopy(defn),
+                  resolve_version_by_es_id=lambda *a, **k: {"ApiName": "TEST_Proc_V2"})
+
+    out = io.StringIO()
+    undo = _patch(desc_mod, **common)
+    try:
+        with redirect_stdout(out):
+            rc = desc_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                                "--json"])
+    finally:
+        undo()
+    described = json.loads(out.getvalue())
+    check("describe defaults to the executing version (GetPrice exists only there)",
+          rc == 0 and any(s.get("name") == "GetPrice"
+                          for s in described.get("steps", [])), described)
+
+    with tempfile.TemporaryDirectory() as td:
+        out_path = Path(td) / "ov.json"
+        undo = _patch(exp_mod, **common)
+        try:
+            rc = exp_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                               "--step", "GetPrice", "--out", str(out_path)])
+        finally:
+            undo()
+        check("export_overlay slices from the executing version, not the draft first",
+              rc == 0 and out_path.exists()
+              and any(s.get("name") == "GetPrice"
+                      for s in json.loads(out_path.read_text()).get("addSteps", [])), rc)
 
 
 # --------------------------------------------------------------------------- #
@@ -2737,6 +2785,7 @@ def main():
                test_label_preservation, test_failed_mutation_keeps_plans_online,
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
+               test_read_tools_default_to_the_executing_version,
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,

@@ -61,6 +61,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
+    resolve_version_by_es_id,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
     ToolingError,
@@ -202,7 +203,8 @@ def main(argv=None) -> int:
     ident.add_argument("--developer-name", help="ExpressionSetDefinition DeveloperName.")
     ident.add_argument("--expression-set-id", help="Runtime ExpressionSet Id (prefix 9QL).")
     parser.add_argument("--version", dest="version_api_name",
-                        help="Version apiName to describe (default: first).")
+                        help="Version apiName to describe (default: the executing "
+                             "version).")
     parser.add_argument("--params", action="store_true",
                         help="Show each step's parameters and filter criteria.")
     parser.add_argument("--labels", action="store_true",
@@ -222,7 +224,13 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
-        version = _pick_version(definition, args.version_api_name)
+        # Default to the version that executes, not the GET's first (which can be a
+        # draft on a multi-version set).
+        version_api_name = args.version_api_name or resolve_version_by_es_id(
+            es_id, target_org=args.target_org, api_version=args.api_version,
+            logger=eprint,
+        ).get("ApiName")
+        version = _pick_version(definition, version_api_name)
     except (ExpressionSetClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1

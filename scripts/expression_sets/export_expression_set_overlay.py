@@ -58,6 +58,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_definition_id_by_es_id,
     resolve_expression_set_id,
+    resolve_version_by_es_id,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
 from scripts.expression_sets._tooling import capture_labels  # noqa: E402
@@ -157,7 +158,7 @@ def main(argv=None) -> int:
     parser.add_argument("--after", help="Place the first sliced step after this step "
                                         "(placement.afterStep) in the target.")
     parser.add_argument("--version", dest="version_api_name",
-                        help="Source version apiName (default: first).")
+                        help="Source version apiName (default: the executing version).")
     parser.add_argument("--no-variables", action="store_true",
                         help="Do NOT emit version-scoped deps into addVariables.")
     parser.add_argument("--with-labels", action="store_true",
@@ -182,24 +183,28 @@ def main(argv=None) -> int:
                 target_org=args.target_org, api_version=args.api_version,
             )
         definition = fetch_definition(es_id, args.target_org, args.api_version)
+        # Default to the version that executes, not the GET's first (which can be a
+        # draft on a multi-version set).
+        source_version = args.version_api_name or resolve_version_by_es_id(
+            es_id, target_org=args.target_org, api_version=args.api_version,
+            logger=eprint,
+        ).get("ApiName")
         overlay = build_overlay(
             definition, args.steps,
-            version_api_name=args.version_api_name,
+            version_api_name=source_version,
             after=args.after,
             include_variables=not args.no_variables,
         )
         if args.with_labels:
             # Labels live only in the Tooling Metadata (Connect can't serialize
-            # them). Resolve the version (explicit or the first) and capture its
+            # them). Use the source version (explicit or the executing one) and capture its
             # readable labels via the STABLE ExpressionSetDefinitionId (9QA) +
             # versionNumber — the ESDV DeveloperName is rewritten by a Connect PATCH,
             # so an ApiName lookup can miss a Connect-mutated set. Then keep only the
             # sliced steps' labels.
             versions = definition.get("versions") or []
             version = next(
-                (v for v in versions if v.get("apiName") == args.version_api_name),
-                versions[0] if versions else {},
-            ) if args.version_api_name else (versions[0] if versions else {})
+                (v for v in versions if v.get("apiName") == source_version), {})
             version_api_name = version.get("apiName")
             version_number = version.get("versionNumber")
             transport = Transport(
