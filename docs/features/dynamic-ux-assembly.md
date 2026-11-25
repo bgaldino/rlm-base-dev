@@ -251,8 +251,9 @@ The TSO template already carries its overrides.
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
 - At step 30, `_assemble_profiles` reads the **base template** (full layout assignments +
-  app visibility) from `templates/profiles/base/` and applies feature patches. `RLM Sales Representative` is assembled only when `personas=true`
-(`_flags.PERSONAS_PROFILES`); the other two base profiles always are.
+  app visibility) from `templates/profiles/base/` and applies feature patches.
+  `RLM Sales Representative` is assembled only when `personas=true`
+  (`_flags.PERSONAS_PROFILES`); the other two base profiles always are.
 
 | Patch file | Activates when | Effect |
 |---|---|---|
@@ -475,7 +476,7 @@ In summary it excludes:
 - `force-app/main/default/flexipages` and `force-app/main/default/layouts`
 - the object-meta bindings for Asset, Contract, Quote, Order, OrderItem, QuoteLineItem and
   FulfillmentOrderLineItem, and the Asset, Contract and Quote compact layouts and the
-  Product2 list views, all now under `templates/objects/base/` (the Account, Contact,
+  Asset and Product2 list views, all now under `templates/objects/base/` (the Account, Contact,
   Contract and Order list views there are not `.forceignore` entries)
 
 Separately, `.forceignore` also lists the two `EmailTemplatePage` approval flexipages in

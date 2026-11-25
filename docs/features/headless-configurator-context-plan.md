@@ -5,9 +5,9 @@
 > task in `cumulusci.yml`, no `scripts/apex/setupConfiguratorContext.apex`, no `rlm-webapp/`
 > directory and no `rlmApi.js` or `ProductConfiguratorModal.jsx`. The earlier "Path 1
 > implemented" status referred to the portal web app on the `feat/rlm-portal` branch, which is
-> not part of this repository [inferred: the branch is not in this clone]. Path 2 was never
+> not part of this repository [inferred: no `feat/rlm-portal` ref exists in this clone]. Path 2 was never
 > built; its SObject name was never confirmed.
-> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (neither is in this repository; the branch's location is [inferred])
+> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (`rlm-webapp/` is not in this repository; the `feat/rlm-portal` branch is not in this clone and its location is unknown)
 > **Last updated:** 2026-03-21; status note 2026-11-26
 
 > **Read this before using the rest.** The 264 developer guide snapshot
@@ -18,8 +18,8 @@
 > `contextMappingId`; `set-instance` requires `contextMappingId` and a `transaction` string.
 > The 404 root-cause explanation below (no product-level mapping association) is
 > **[inferred]**, never confirmed in a live org. A second candidate, also **[inferred]**: the
-> original call went to `/configurator/load`, which is not a documented path, and a wrong
-> path alone could return the same 404. The product-level association object in Path 2 is
+> original request path is not recorded. If the modal really called `/configurator/load`,
+> which is not a documented path, a wrong path alone could return the same 404. The product-level association object in Path 2 is
 > unverified. To run these APIs today, see the `rlm-business-apis` and
 > `context-service` skills.
 
@@ -33,7 +33,7 @@ The `ProductConfiguratorModal` calls `headlessConfigLoad(quoteId)` → `POST /co
 404 The requested resource does not exist
 ```
 
-The suspected root cause [inferred] is that `headlessConfigLoad` performs an **automatic context mapping lookup** — it queries the product on the QuoteLineItem to find its associated Configurator Context Mapping, and that if no such association exists the endpoint has nothing to load and returns 404 [inferred, as above].
+The suspected root cause [inferred]: `headlessConfigLoad` performs an **automatic context mapping lookup**, querying the product on the QuoteLineItem to find its associated Configurator Context Mapping; with no association it has nothing to load and returns 404.
 
 This document describes:
 1. What a Configurator Context Mapping is and how it works
@@ -48,7 +48,7 @@ The headless configurator has two initialisation endpoints:
 
 | Endpoint | How it finds the context | When it works |
 |---|---|---|
-| `POST /connect/cpq/configurator/actions/load-instance` | [inferred] Auto-discovers from the product on the QuoteLineItem → looks up that product's linked ContextMapping record. The 264 snapshot documents only an optional `contextMappingId` and a required `transactionId` | [inferred] Only works if the product has a ContextMapping association set up in the org; not confirmed |
+| `POST /connect/cpq/configurator/actions/load-instance` | The 264 snapshot documents a required `transactionId` and an optional `contextMappingId` (plus `configuratorOptions` and `qualificationContext`), and says nothing about discovering the mapping from the product. [inferred] Without `contextMappingId` the platform may look up a product-level mapping | [inferred] Without `contextMappingId`, may need a product-level ContextMapping association; if `contextMappingId` is passed, no product association should be needed (not verified live). That would make a simpler Path 1: `load-instance` with `contextMappingId` plus the same `transactionId` |
 | `POST /connect/cpq/configurator/actions/set-instance` | Caller provides `contextMappingId` + a `transaction` JSON seed | [inferred] Works whenever a ContextMapping ID is known, regardless of product setup; not verified live |
 
 Both return `{ success: bool, contextId: string }` and the rest of the session lifecycle (Get, AddNodes, UpdateNodes, Save) is identical.

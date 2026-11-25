@@ -1758,7 +1758,7 @@
 
 ### `deploy_post_billing_ui`
 
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 17 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set (field access, read on the objects the Billing UI controllers query, Apex class access, RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset attribute query). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: the rlm* LWC components for the billing console (billing schedule group, invoice, collections, dispute and payments views), their Apex controllers and tests, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 3 quick actions (Account.RLM_Create_Billing_Schedule_Group, Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set (field access, read on the objects the Billing UI controllers query, Apex class access, RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset attribute query). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1770,7 +1770,7 @@
 
 ### `deploy_post_collections`
 
-**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
+**Description:** Deploy Collections metadata from unpackaged/post_collections (classes, decisionMatrixDefinition, flows, omniUiCard, permissionsets, queues, quickActions, standardValueSets, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -3276,7 +3276,7 @@
 
 ### `deploy_post_approvals`
 
-**Description:** Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS, PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data, and RLM_AA_Reset_Quote_Status, which resets the quote status on recall or cancel), Apex class, and permission set. EmailTemplatePage FlexiPages (including RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be deployed via Metadata API (platform restriction); Lightning Email Templates are created separately by create_approval_email_templates.
+**Description:** Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS, PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data, and RLM_AA_Reset_Quote_Status, which resets the quote status on recall or cancel), Apex class, and permission set. The two EmailTemplatePage FlexiPages (RLM_Quote_Discount_Approval_Template, RLM_Quote_Payment_Terms_Approval_Template) are excluded via .forceignore — EmailTemplatePage type cannot be deployed via Metadata API (platform restriction); Lightning Email Templates are created separately by create_approval_email_templates.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
