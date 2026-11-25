@@ -529,6 +529,12 @@ def resolve_non_taxable_tax_treatment(client: SfRestClient) -> Optional[str]:
     return treatment_id
 
 
+def account_ids_named(client: SfRestClient, name: str) -> list[str]:
+    """Ids of every Account named ``name`` (names are not unique)."""
+    rows = client.query(f"SELECT Id FROM Account WHERE Name = '{_sql_escape(name)}'")
+    return [r["Id"] for r in rows]
+
+
 def resolve_account(
     client: SfRestClient, name: str, *, account_id: Optional[str] = None
 ) -> Account:

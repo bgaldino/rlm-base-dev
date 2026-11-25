@@ -138,6 +138,18 @@ def resolve_auth(alias: str) -> tuple[str, str]:
     return access_token, instance_url.rstrip("/")
 
 
+# Metadata SOAP readMetadata for BillingSettings (no REST equivalent).
+_BILLING_SETTINGS_SOAP = (
+    '<?xml version="1.0" encoding="utf-8"?>'
+    '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+    'xmlns:met="http://soap.sforce.com/2006/04/metadata">'
+    "<soapenv:Header><met:SessionHeader><met:sessionId>{session}</met:sessionId>"
+    "</met:SessionHeader></soapenv:Header><soapenv:Body><met:readMetadata>"
+    "<met:type>BillingSettings</met:type><met:fullNames>Billing</met:fullNames>"
+    "</met:readMetadata></soapenv:Body></soapenv:Envelope>"
+)
+
+
 _CLI_STATUS_LINE = re.compile(r"^HTTP/\S+\s+(\d{3})\b")
 _CLI_HEADER_LINE = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+:")
 
@@ -349,6 +361,47 @@ class SfRestClient:
         if not (200 <= status < 300):
             raise SfApiError(status, text, method, path)
         return self._decode(status, text)
+
+    # ----- metadata read (BillingSettings) -----------------------------------
+    def read_billing_settings_xml(self) -> Optional[str]:
+        """The org's ``BillingSettings`` XML, or ``None`` when unreadable.
+
+        There is no REST read for it. ``requests``: Metadata SOAP
+        ``readMetadata`` through this thread's session (the SOAP API takes the
+        session only inside the envelope, not as a bearer header -- measured
+        2026-11-25: ``INVALID_SESSION_ID``). ``cli``: ``sf project retrieve
+        start --metadata Settings:Billing`` into a temporary directory, so our
+        process never handles a token (works outside an sfdx project).
+        """
+        if self.transport == "cli":
+            return self._read_billing_settings_cli()
+        resp = self._session.post(
+            f"{self.instance_url}/services/Soap/m/{self.api_version}",
+            data=_BILLING_SETTINGS_SOAP.format(session=self.access_token).encode("utf-8"),
+            headers={"Content-Type": "text/xml; charset=UTF-8", "SOAPAction": '""'},
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            log.warning("BillingSettings read returned HTTP %s", resp.status_code)
+            return None
+        return resp.text
+
+    def _read_billing_settings_cli(self) -> Optional[str]:
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                ["sf", "project", "retrieve", "start", "--metadata", "Settings:Billing",
+                 "--target-metadata-dir", tmp, "--unzip", "--target-org", self.alias,
+                 "--json"],
+                capture_output=True, text=True,
+            )
+            if proc.returncode != 0:
+                log.warning("BillingSettings retrieve failed: %s",
+                            (proc.stderr or proc.stdout).strip()[:300])
+                return None
+            found = list(Path(tmp).rglob("Billing.settings"))
+            return found[0].read_text(encoding="utf-8") if found else None
 
     # ----- helpers -----------------------------------------------------------
     @staticmethod

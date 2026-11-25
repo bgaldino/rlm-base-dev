@@ -51,12 +51,25 @@ class AssetPollResult(NamedTuple):
 
 
 class LifecycleError(RuntimeError):
-    """A lifecycle step failed in a way the run should surface, not swallow."""
+    """A lifecycle step failed in a way the run should surface, not swallow.
 
-    def __init__(self, step: str, detail: str, record_id: Optional[str] = None):
+    ``failure_class`` pins the retry classification (see
+    ``failure.classify_exception``) when the message text must not decide it:
+    ``"deterministic"`` for a failure a scenario retry must never replay, such
+    as a credit POST whose outcome is unknown.
+    """
+
+    def __init__(
+        self,
+        step: str,
+        detail: str,
+        record_id: Optional[str] = None,
+        failure_class: Optional[str] = None,
+    ):
         self.step = step
         self.detail = detail
         self.record_id = record_id
+        self.failure_class = failure_class
         super().__init__(f"[{step}] {detail}" + (f" (id={record_id})" if record_id else ""))
 
 
@@ -1083,16 +1096,6 @@ _CREDIT_MEMO_DONE = {"Posted"}
 _level_cache: dict[str, tuple[str, str]] = {}
 _level_lock = threading.Lock()
 
-_BILLING_SETTINGS_SOAP = (
-    '<?xml version="1.0" encoding="utf-8"?>'
-    '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
-    'xmlns:met="http://soap.sforce.com/2006/04/metadata">'
-    "<soapenv:Header><met:SessionHeader><met:sessionId>{session}</met:sessionId>"
-    "</met:SessionHeader></soapenv:Header><soapenv:Body><met:readMetadata>"
-    "<met:type>BillingSettings</met:type><met:fullNames>Billing</met:fullNames>"
-    "</met:readMetadata></soapenv:Body></soapenv:Envelope>"
-)
-
 
 def parse_billing_settings_level(xml_text: str) -> Optional[str]:
     """Map a ``readMetadata`` BillingSettings response to ``line``/``header``.
@@ -1116,21 +1119,17 @@ def parse_billing_settings_level(xml_text: str) -> Optional[str]:
 
 
 def _read_billing_settings_level(client: SfRestClient) -> Optional[str]:
-    """Read BillingSettings through the Metadata SOAP API (no REST equivalent)."""
-    import requests
+    """Read BillingSettings through the client's own transport.
 
-    resp = requests.post(
-        f"{client.instance_url}/services/Soap/m/{client.api_version}",
-        data=_BILLING_SETTINGS_SOAP.format(session=client.access_token).encode("utf-8"),
-        headers={"Content-Type": "text/xml; charset=UTF-8", "SOAPAction": '""'},
-        timeout=60,
-    )
-    if resp.status_code != 200:
-        log.warning(
-            "BillingSettings read returned HTTP %s; falling back", resp.status_code
-        )
+    ``SfRestClient.read_billing_settings_xml`` uses the Metadata SOAP API on the
+    ``requests`` transport and ``sf project retrieve start`` on the ``cli``
+    transport, so nothing from our process carries a token there.
+    """
+    xml_text = client.read_billing_settings_xml()
+    if xml_text is None:
+        log.warning("BillingSettings could not be read; falling back")
         return None
-    return parse_billing_settings_level(resp.text)
+    return parse_billing_settings_level(xml_text)
 
 
 def _level_from_invoice_evidence(client: SfRestClient) -> Optional[str]:
@@ -1204,13 +1203,14 @@ def is_api_refusal(exc: BaseException) -> bool:
 def is_missing_column(exc: BaseException, name: str) -> bool:
     """True when ``exc`` is SOQL's ``INVALID_FIELD`` for column ``name``.
 
-    Classified by the error code and the column in the body, not the status,
-    so it reads the same on both transports.
+    Classified by the error code and the ``No such column '<name>'`` text, not
+    the status, so it reads the same on both transports. The message echoes the
+    whole SOQL, so the bare column name is in it whichever column is missing.
     """
     from .auth import SfApiError
 
     body = exc.body if isinstance(exc, SfApiError) else ""
-    return "INVALID_FIELD" in (body or "") and name in (body or "")
+    return "INVALID_FIELD" in (body or "") and f"No such column '{name}'" in (body or "")
 
 
 def fetch_invoice_header(client: SfRestClient, invoice_id: str) -> dict:
@@ -1462,6 +1462,23 @@ def find_credit_memo(
         f"AND Description = '{credit_tag(run_id, attempt)}' ORDER BY CreatedDate DESC LIMIT 1"
     )
     return rows[0] if rows else None
+
+
+def find_run_credit_memos(
+    client: SfRestClient, invoice_id: str, run_id: str, attempts: int
+) -> list[dict]:
+    """Every memo on ``invoice_id`` tagged by this run, attempts 1..``attempts``.
+
+    Newest first; each row carries ``attempt`` (parsed from its Description).
+    """
+    tags = {credit_tag(run_id, n): n for n in range(1, max(1, attempts) + 1)}
+    in_list = ", ".join(f"'{t}'" for t in tags)
+    rows = client.query(
+        "SELECT Id, Status, Balance, Description FROM CreditMemo "
+        f"WHERE ReferenceEntityId = '{invoice_id}' AND Description IN ({in_list}) "
+        "ORDER BY CreatedDate DESC"
+    )
+    return [{**r, "attempt": tags.get(r.get("Description"), 0)} for r in rows]
 
 
 def api_error_text(body: str) -> str:

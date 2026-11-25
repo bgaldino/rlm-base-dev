@@ -348,9 +348,10 @@ Line Level is live-verified on 264; everything below is not.
   - `[probe]` Ingest a JPY invoice and settle it with percent credit and
     payment; confirm the credit and apply actions accept whole-yen amounts and
     the memo carries no fractional tax under `Calculate`.
-- `[verify]` **`--resubmit-credit` live.** The flag's paths (memo in
-  `Error`, no memo after the wait) are covered offline only; no credit memo
-  has been seen failing on a live org.
+- `[verify]` **Credit recovery live.** The unknown-outcome failure, the
+  `--resubmit-credit` paths (memo in `Error`, no memo after the wait, a late
+  memo adopted) and the `NetCreditsApplied` double-credit check are covered
+  offline only; no credit memo has been seen failing on a live org.
 - `[gap]` **Settlement cleanup.** No unapply, payment cancel or credit memo
   void was probed; settlement records are treated as leftovers like Posted
   invoices.

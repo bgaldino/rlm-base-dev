@@ -484,20 +484,27 @@ value (null) means no payment, like leaving the key out.
 - **Resume:** `cli step --to-stage payment_applied` uses the manifest's
   persisted `settlement`; a manifest from a run without one needs
   `--config` with exactly one `settlement:` block among the scenarios of the
-  manifest's `kind` and account. `--config` is read only for a settlement
-  target. `--application-level line|header` replaces a wrongly recorded
+  manifest's `kind` and account (a renamed account matches by Id).
+  `--config` is read only for a settlement target and is never ignored: on a
+  manifest that has a block it may add a missing `payment` (before any
+  payment exists); any other difference is refused, naming the keys.
+  `--application-level line|header` replaces a wrongly recorded
   level (an apply refused with `INVALID_FIELD` on `appliedToId` says so).
   The recipe "run to `invoice_posted`, then `cli step --to-stage
   payment_applied`" works with or without `--config`.
-- **A credit that failed after it was submitted** (memo in `Error`,
-  `Canceled` or `Voided`, or no memo at all) is never sent again on its own;
-  every resume stops with the same error, which names the next step. After
-  checking the invoice's credit memos in the org, run `cli step --manifest
-  <id> --to-stage payment_applied --resubmit-credit`: the failed attempt is
-  recorded as a warning and the credit is sent as the next attempt (its memo
-  is tagged `<run> credit 2`, …). A memo that is Pending or Posted is kept.
-  Add `--config <file>` to replace the manifest's `settlement:` block (the way
-  to correct options the API refused).
+- **The credit POST is sent at most once per attempt.** `credit_submitted`
+  is recorded before the POST; a 5xx or lost response fails the stage (not
+  retried) with the next command, and every later resume only polls for the
+  memo by tag. If the memo is in `Error`, `Canceled` or `Voided`, or never
+  appears, run `cli step --manifest <id> --to-stage payment_applied
+  --resubmit-credit`. It checks the org first: a live memo of any attempt of
+  this run is adopted and nothing is sent; only when none is live is the
+  credit sent as the next attempt (tagged `<run> credit 2`, …). Add `--config
+  <file>` to replace the `credit` sub-block (the way to correct options the
+  API refused).
+- **A second credit fails the stage.** After `credit_applied` the invoice's
+  `NetCreditsApplied` gain since the baseline must equal what this run's memo
+  applied; otherwise the stage fails and names both amounts.
 
 ## What makes an account / product a valid target
 

@@ -201,13 +201,13 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
 
 ## Writes, retries and errors
 
-- The credit POST, the Payment insert and each apply are sent **once**
-  (`SfRestClient.post(..., retry=False)`): none has an idempotency key, so a
-  transport-level retry after a 5xx the server had committed would credit,
-  pay or apply twice. Recovery is by read-back instead: after a failed credit
-  POST the memo is looked for (by description tag) for up to 15 s before the
-  error is raised; the payment is found by its `GatewayRefNumber` tag; a retry
-  applies only what is not yet applied to this invoice.
+- The credit POST, the Payment insert and each apply are sent **once** per
+  call (`SfRestClient.post(..., retry=False)`; `sf api request rest` does not
+  retry POST either): none has an idempotency key, so a transport-level retry
+  after a 5xx the server had committed would credit, pay or apply twice.
+  Recovery is by read-back: the payment is found by its `GatewayRefNumber`
+  tag, and a retry applies only what is not yet applied to this invoice. The
+  credit follows the stricter rule below.
 - A 4xx from the credit action or the apply becomes a `LifecycleError` with the
   API's own messages. An apply `INVALID_FIELD` on `appliedToId` is reported as a
   likely wrong application level: the payment is then Processed and unapplied
@@ -216,10 +216,17 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   replaces the recorded level and applies it.
 - The 4xx / 5xx split holds on both transports. `--transport cli` runs
   `sf api request rest --include`, whose output starts with the HTTP status
-  line and headers (no blank line before the body; measured with sf 2.159 on
-  200, 400 and 404), so `SfApiError.status` is the HTTP status there too. A
-  CLI failure that never reached the API (no status line) keeps the CLI exit
-  code and counts as an unknown outcome, like a 5xx.
+  line and headers, then the body with no blank line in between (measured
+  with sf 2.159 on 200, 400 and 404); an empty body (204) prints as one blank
+  line. `SfApiError.status` is the HTTP status there too. A CLI failure that
+  never reached the API (no status line) keeps the CLI exit code and counts
+  as an unknown outcome, like a 5xx.
+- BillingSettings (the application level) is read through the client's
+  transport: Metadata SOAP `readMetadata` on `requests` (SOAP takes the
+  session only inside the envelope; a bearer header is refused with
+  `INVALID_SESSION_ID`, measured), and `sf project retrieve start --metadata
+  Settings:Billing` on `cli`, so nothing from our process carries a token
+  there.
 - `cli step` writes `error` on the manifest for any failure (`SfApiError` and
   transport errors as well as `LifecycleError`) before it exits.
 - **The account.** The memo and the payment belong to the invoice's account:
@@ -228,20 +235,42 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `account_id`; an `--account` resolving to another Id, or a manifest whose
   `account_id` differs from the invoice's, is refused before any write, so a
   resume can never find-or-create a second payment under another account.
-- **A submitted credit is never sent again on its own.** Once the POST was
-  accepted (`credit_submitted`), a memo in `Error`, `Canceled` or `Voided`, or
-  none showing up, fails every resume with the same error, which names the
-  next step. After checking the org, `cli step --manifest <id> --to-stage
-  payment_applied --resubmit-credit` records the failed attempt as a warning,
-  increments `credit_attempt` and sends the credit again with its own tag
-  (`<run> credit 2`, …), so the failed memo is never read as the new one; a
-  Pending or Posted memo is kept. With `--config <file>` the config's
-  `settlement:` block replaces the manifest's (for options the API refused).
-  If an attempt's memo shows up late after a resubmission, both credits stand:
-  check the org first.
+- **One credit POST per attempt, never re-sent automatically.** The harness
+  records `credit_submitted` (checkpointed) **before** the credit POST. From
+  then on neither a scenario retry nor a `cli step` resume POSTs again: they
+  poll for the memo by its tag (`<run> credit`, `<run> credit N` for later
+  attempts). Only a confirmed refusal (4xx: nothing was created) clears it.
+  After a 5xx or transport failure the step waits up to 15 s for the memo (a
+  convenience, not a safety measure); if none shows up it fails with an error
+  pinned non-retryable that names the next command. A late memo is picked up
+  by the next resume.
+- **`--resubmit-credit` decides from the org.** `cli step --manifest <id>
+  --to-stage payment_applied --resubmit-credit` reads every memo this run
+  tagged on the invoice (all attempts so far). Any memo not in `Error`,
+  `Canceled` or `Voided` -- including a late memo of an earlier attempt -- is
+  adopted and nothing is sent. While an attempt has no memo yet it keeps
+  reading for up to 15 s. Only when no memo is live does it record the failed
+  attempt as a warning, increment `credit_attempt` and send the credit with
+  the next tag. It works whether or not `credit_submitted` was recorded (a
+  crash between an accepted POST and its checkpoint). With `--config <file>`
+  the config's `credit` sub-block replaces the manifest's while no memo is
+  recorded (for options the API refused).
+- **Double-credit check.** After the credit stage, the invoice's
+  `NetCreditsApplied` less `settlement_baseline.net_credits_applied` must
+  equal what this run's memo applied; any difference (a second memo of this
+  run that committed late, or another process's credit) fails the stage
+  rather than warning.
+- **`--config` on a resume is never ignored.** Identical to the manifest's
+  block: the manifest's is used. A `payment` sub-block the manifest lacks is
+  added while no payment was planned or created; with `--resubmit-credit` the
+  `credit` sub-block may be replaced (above). Any other difference is refused,
+  naming the keys. A config scenario pinning an account's new name matches the
+  manifest when that name resolves to the manifest's `account_id`.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
-  except the two answers that mean "not there": SOQL `INVALID_FIELD` on
-  `CurrencyIsoCode` (single-currency org, read again without it) and
+  except the two answers that mean "not there": SOQL `INVALID_FIELD` with
+  `No such column 'CurrencyIsoCode'` (single-currency org, read again without
+  it; the message echoes the whole SOQL, so the column name alone proves
+  nothing) and
   `INVALID_TYPE` on `CurrencyType` (2 places, not cached). A transient error is
   never recorded as "no currency" or cached as 2 places.
 

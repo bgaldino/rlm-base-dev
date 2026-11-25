@@ -84,9 +84,12 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     Settlement batches with more than one transaction on an account must run
     `--concurrency 1` (`cli run` refuses otherwise). Amounts round to the
     invoice currency's decimal places; the credit and payment use the
-    invoice's account (`cli step` refuses an `--account` with another Id). A
-    submitted credit whose memo failed is sent again only by `cli step
-    --resubmit-credit`, after checking the org. Contract:
+    invoice's account (`cli step` refuses an `--account` with another Id). The
+    credit POST goes out at most once per attempt (`credit_submitted` is
+    recorded first; a lost response fails, not retried); only `cli step
+    --resubmit-credit` sends again, and only when no memo of the run is live.
+    A `NetCreditsApplied` gain other than the run's memo fails the stage.
+    Contract:
     `scripts/txn_data_harness/docs/contracts-billing-settlement.md`; examples:
     `scenarios/*/17-settlement.yaml`.
 

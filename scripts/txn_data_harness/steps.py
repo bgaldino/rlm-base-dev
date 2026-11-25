@@ -428,9 +428,9 @@ def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[Settlemen
     if manifest.settlement is None:
         manifest.settlement = spec.to_dict()
     elif settlement_from_dict(manifest.settlement) != spec:
-        # Only ``cli step --resubmit-credit --config`` hands a resume a block
-        # that differs from the persisted one.
-        _warn(manifest, "settlement options replaced from --config on resume")
+        # Only ``cli step --config`` hands a resume a block that differs from
+        # the persisted one (see cli._settlement_for_step for what it allows).
+        _warn(manifest, "settlement options updated from --config on resume")
         manifest.settlement = spec.to_dict()
     return spec
 
@@ -440,10 +440,11 @@ def _settlement_account_id(ctx: StepContext, manifest: Manifest) -> str:
 
     ``Invoice.BillingAccountId`` (an Account id) is the account whose balance
     the credit and payment settle; ``manifest.account_id`` stands in when the
-    invoice does not say. A ``cli step`` resume resolves its account by name,
-    so a context account with another Id (a renamed or duplicate-named
-    account, or a wrong ``--account``) is refused before anything is written:
-    a payment found or created under it would be a second payment.
+    invoice does not say. ``cli step`` resolves its account by the manifest's
+    ``account_id`` (by name only for an old manifest without one) and refuses
+    an ``--account`` with another Id; this check repeats that against the
+    invoice for every caller, before anything is written: a payment found or
+    created under another account would be a second payment.
     """
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     invoice_acct = header.get("BillingAccountId")
@@ -599,14 +600,20 @@ def _poll_applications(read, timeout: int) -> dict:
     return apps
 
 
-# How long a failed credit POST (5xx / transport) waits for the memo to show
-# up before treating the POST as not committed. The memo appeared Pending at
-# once in every live probe.
+# How long the credit step waits for a memo after a credit POST whose outcome
+# is unknown (5xx / transport), and how long --resubmit-credit waits for a memo
+# of an attempt that has none yet. A convenience only: safety comes from
+# credit_submitted, which is set before the POST and never cleared without an
+# explicit --resubmit-credit (or a confirmed 4xx refusal).
 _CREDIT_LOOKUP_WINDOW = 15
 
 
+def _lookup_deadline(ctx: StepContext) -> float:
+    return time.monotonic() + min(_CREDIT_LOOKUP_WINDOW, ctx.poll_timeout)
+
+
 def _find_memo_after_failed_post(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
-    deadline = time.monotonic() + min(_CREDIT_LOOKUP_WINDOW, ctx.poll_timeout)
+    deadline = _lookup_deadline(ctx)
     while True:
         memo = lifecycle.find_credit_memo(
             ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
@@ -616,41 +623,125 @@ def _find_memo_after_failed_post(ctx: StepContext, manifest: Manifest) -> Option
         time.sleep(lifecycle._POLL_INTERVAL)
 
 
-def _resubmit_hint(ctx: StepContext, manifest: Manifest) -> str:
+def _step_command(ctx: StepContext, manifest: Manifest, extra: str) -> str:
     stage = ctx.target_stage if ctx.target_stage in STAGES_SETTLEMENT else "credit_applied"
+    return f"`cli step --manifest {manifest.run_id} --to-stage {stage}{extra}`"
+
+
+def _resubmit_hint(ctx: StepContext, manifest: Manifest) -> str:
     return (
-        "Nothing sends a submitted credit again on its own. Check the invoice's credit "
-        f"memos in the org (Description '{lifecycle.credit_tag(ctx.run_id, manifest.credit_attempt)}'); "
-        f"to send it again, run `cli step --manifest {manifest.run_id} --to-stage {stage} "
-        "--resubmit-credit` (add `--config <file>` to replace the manifest's settlement "
-        "block)."
+        "A submitted credit is never sent again on its own. Rerun "
+        f"{_step_command(ctx, manifest, '')} to keep waiting for its memo "
+        f"(Description '{lifecycle.credit_tag(ctx.run_id, manifest.credit_attempt)}'); "
+        "if it is in Error, Canceled or Voided, or never appears, run "
+        f"{_step_command(ctx, manifest, ' --resubmit-credit')} (it sends the credit "
+        "again only when no memo of this run on the invoice is live)."
     )
 
 
-def _resubmit_credit_if_failed(
-    ctx: StepContext, manifest: Manifest, memo: Optional[dict]
-) -> Optional[dict]:
-    """``--resubmit-credit``: move to the next attempt when this one failed.
+def _resubmit_credit(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
+    """``--resubmit-credit``: decide from the org, not from the manifest.
 
-    Failed means the attempt's memo is Error, Canceled or Voided, or no memo
-    shows up within the lookup wait. A memo in any other state is kept (it is
-    polled as usual). Returns the memo to carry on with, ``None`` after a reset.
+    Reads every memo this run tagged on the invoice (``<run> credit``,
+    ``<run> credit N`` for each attempt so far). Any memo not in Error,
+    Canceled or Voided -- including a late memo of an earlier attempt -- is
+    adopted and nothing is sent. While some attempt has no memo yet, the read
+    is repeated for the lookup window. Only when none is live does the
+    manifest move to the next attempt (``credit_submitted`` cleared), which
+    the caller then sends. Returns the adopted memo, or ``None`` to send.
     """
-    if memo is None:
-        memo = _find_memo_after_failed_post(ctx, manifest)
-    status = None if memo is None else memo.get("Status")
-    if memo is not None and status not in lifecycle._CREDIT_MEMO_FAIL:
-        return memo
-    what = "no credit memo" if memo is None else f"credit memo {memo['Id']} in {status}"
+    deadline = _lookup_deadline(ctx)
+    attempts = set(range(1, manifest.credit_attempt + 1))
+    while True:
+        memos = lifecycle.find_run_credit_memos(
+            ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
+        )
+        live = [m for m in memos if m.get("Status") not in lifecycle._CREDIT_MEMO_FAIL]
+        if live:
+            memo = live[0]
+            _warn(
+                manifest,
+                f"--resubmit-credit: credit memo {memo['Id']} ({memo.get('Status')}) of "
+                f"attempt {memo['attempt']} is live; carried on with it, nothing resent",
+            )
+            manifest.credit_attempt = memo["attempt"] or manifest.credit_attempt
+            manifest.credit_submitted = True
+            _checkpoint(ctx, manifest)
+            return memo
+        if attempts <= {m["attempt"] for m in memos} or time.monotonic() >= deadline:
+            break
+        time.sleep(lifecycle._POLL_INTERVAL)
+    failed = ", ".join(f"{m['Id']} ({m.get('Status')})" for m in memos) or "no memo"
     _warn(
         manifest,
-        f"credit attempt {manifest.credit_attempt} left {what}; sent again as attempt "
-        f"{manifest.credit_attempt + 1} (--resubmit-credit)",
+        f"--resubmit-credit: attempts 1-{manifest.credit_attempt} left {failed}; "
+        f"sent again as attempt {manifest.credit_attempt + 1}",
     )
     manifest.credit_submitted = False
     manifest.credit_attempt += 1
     _checkpoint(ctx, manifest)
     return None
+
+
+def _submit_credit_once(
+    ctx: StepContext, manifest: Manifest, body: dict
+) -> None:
+    """Send the credit POST at most once per attempt.
+
+    ``credit_submitted`` is recorded (checkpointed) before the POST, so a crash
+    or an unknown outcome leaves a manifest that polls by tag instead of
+    POSTing again. Only a confirmed refusal (4xx: nothing was created) clears
+    it. A 5xx or transport failure waits briefly for the memo; if none shows
+    up the step fails with a non-retryable error naming the next command.
+    """
+    from .auth import SfApiError
+
+    manifest.credit_submitted = True
+    _checkpoint(ctx, manifest)
+    try:
+        lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
+    except LifecycleError as exc:
+        manifest.credit_submitted = False
+        _checkpoint(ctx, manifest)
+        raise LifecycleError(
+            exc.step,
+            f"{exc.detail}. Fix the settlement block and resume with "
+            f"{_step_command(ctx, manifest, ' --resubmit-credit --config <file>')}",
+            record_id=exc.record_id,
+        ) from exc
+    except SfApiError as exc:
+        if _find_memo_after_failed_post(ctx, manifest) is not None:
+            return
+        raise LifecycleError(
+            "credit",
+            f"credit POST outcome unknown ({type(exc).__name__}, HTTP {exc.status}) and no "
+            f"memo appeared yet; it is not sent again by a retry. {_resubmit_hint(ctx, manifest)}",
+            record_id=manifest.invoice_id,
+            failure_class="deterministic",
+        ) from exc
+
+
+def _check_no_other_credit(ctx: StepContext, manifest: Manifest, header: dict) -> None:
+    """Fail when the invoice gained credits this run's memo does not explain.
+
+    ``NetCreditsApplied`` less the baseline must equal what this run's memo
+    applied; a difference is a second credit (a duplicate memo of this run,
+    or another process's) applied to the invoice.
+    """
+    places = _places(manifest)
+    baseline = (manifest.settlement_baseline or {}).get("net_credits_applied") or 0.0
+    gained = lifecycle._money(float(header.get("NetCreditsApplied") or 0.0) - baseline, places)
+    applied = lifecycle._money(manifest.credit_amount_applied or 0.0, places)
+    if gained != applied:
+        raise LifecycleError(
+            "credit",
+            f"invoice NetCreditsApplied rose by {gained} since the settlement baseline, "
+            f"but this run's credit memo {manifest.credit_memo_ids} applied {applied}: "
+            "another credit was applied to the invoice (possibly a second memo from this "
+            "run). Check the invoice's credit memos in the org before going on.",
+            record_id=manifest.invoice_id,
+            failure_class="deterministic",
+        )
 
 
 def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
@@ -659,13 +750,16 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     One credit memo per scenario via the credit action. The amount is spread
     over the chosen lines, each capped at its open balance, so the memo is
     fully applied (a memo with an unapplied balance would settle the account's
-    next posted invoice). Retry-safe: the POST is sent once; once accepted the
-    manifest says so and a retry polls for the memo by its description tag;
-    after a 5xx or transport failure the memo is looked for before the error
-    is raised, so a committed credit is never sent twice.
-    """
-    from .auth import SfApiError
+    next posted invoice).
 
+    What is guaranteed: the harness sends the credit POST at most once per
+    attempt. ``credit_submitted`` is checkpointed before the POST; after that
+    neither a scenario retry nor a ``cli step`` resume POSTs again -- they
+    poll for the memo by its tag. Only an explicit ``--resubmit-credit`` starts
+    a new attempt, and only when no memo this run tagged on the invoice is
+    live. A late memo of an abandoned attempt is not prevented; it is caught
+    by the ``NetCreditsApplied`` check, which fails the stage.
+    """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.credit is None:
         manifest.reached_stage = "credit_applied"
@@ -678,11 +772,12 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     places = _places(manifest)
 
     if not manifest.credit_memo_ids:
-        memo = lifecycle.find_credit_memo(
-            ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
-        )
-        if manifest.credit_submitted and ctx.resubmit_credit:
-            memo = _resubmit_credit_if_failed(ctx, manifest, memo)
+        if ctx.resubmit_credit:
+            memo = _resubmit_credit(ctx, manifest)
+        else:
+            memo = lifecycle.find_credit_memo(
+                ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
+            )
         if memo is None and not manifest.credit_submitted:
             strategy = spec.credit.tax_strategy
             chosen = _chosen_lines(ctx, manifest, spec.credit.lines)
@@ -715,27 +810,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 {r["Id"]: lifecycle.line_tax_strategy(r, strategy) for r in chosen},
                 attempt=manifest.credit_attempt,
             )
-            try:
-                lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
-            except LifecycleError as exc:
-                # Refused (4xx): nothing was created. A resume sends the same
-                # options again, so say how to change them.
-                raise LifecycleError(
-                    exc.step,
-                    f"{exc.detail}. Fix the settlement block and resume with `cli step "
-                    f"--manifest {manifest.run_id} --to-stage "
-                    f"{ctx.target_stage if ctx.target_stage in STAGES_SETTLEMENT else 'credit_applied'} "
-                    "--resubmit-credit --config <file>`",
-                    record_id=exc.record_id,
-                ) from exc
-            except SfApiError:
-                # Outcome unknown (5xx / transport): if the memo shows up the
-                # POST committed -- carry on with it; otherwise re-raise and let
-                # the retry send it again.
-                if _find_memo_after_failed_post(ctx, manifest) is None:
-                    raise
-            manifest.credit_submitted = True
-            _checkpoint(ctx, manifest)
+            _submit_credit_once(ctx, manifest, body)
         try:
             memo = lifecycle.poll_credit_memo(
                 ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout,
@@ -769,6 +844,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         )
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
+    _check_no_other_credit(ctx, manifest, header)
     manifest.reached_stage = "credit_applied"
     return manifest
 

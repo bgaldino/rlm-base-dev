@@ -281,8 +281,9 @@ count.
   anything the platform applied at post. Settlement batches with more than one
   transaction on an account need `--concurrency 1` (`cli run` refuses
   otherwise). `cli step --application-level line|header` corrects a wrongly
-  recorded level; `cli step --resubmit-credit` sends again a credit whose
-  memo failed or never appeared (after checking the org). Amounts round to the
+  recorded level; the credit POST goes out at most once per attempt, and
+  `cli step --resubmit-credit` sends it again only when no memo of the run on
+  the invoice is live (a live one is adopted). Amounts round to the
   invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →
   *Settlement*.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write
@@ -302,11 +303,14 @@ count.
   bounded retry/backoff. Sessions aren't thread-safe, so each worker gets its own
   (thread-local); all workers share the read-only token + instance URL.
 - **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest
-  --include`, so our process never sees a token. The status line it prints
-  gives the real HTTP status, so a 4xx refusal and a 5xx are told apart as on
-  `requests` (no transport retries on `cli`). Maximally stable if the CLI ever
-  stops surfacing tokens, at the cost of a process spawn per call.
-  JWT/connected-app auth is outside the current command surface.
+  --include`, so our process sends no token (BillingSettings is read with `sf
+  project retrieve start`). The status line it prints gives the real HTTP
+  status, so a 4xx refusal and a 5xx are told apart as on `requests`. Retries
+  are the CLI's own (its HTTP library's defaults: GET/PUT/DELETE/HEAD retried
+  up to twice on 5xx/429/network errors; POST and PATCH never), not the
+  harness's backoff. Maximally stable if the CLI ever stops surfacing tokens,
+  at the cost of a process spawn per call. JWT/connected-app auth is outside
+  the current command surface.
 
 ## Manifests & cleanup
 

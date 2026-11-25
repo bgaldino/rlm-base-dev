@@ -339,11 +339,16 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
 - A wrong recorded application level (apply refused with `INVALID_FIELD` on
   `appliedToId`): resume with `cli step ... --to-stage payment_applied
   --application-level line|header`.
-- A credit that failed after it was submitted (memo `Error` / `Canceled` /
-  `Voided`, or no memo) is never sent again on its own. Check the invoice's
-  memos in the org, then resume with `cli step --manifest <id> --to-stage
-  payment_applied --resubmit-credit` (add `--config <file>` to replace the
-  manifest's `settlement:` block). Never pass the flag unasked.
+- The credit POST goes out at most once per attempt; a lost response fails
+  the stage (not retried) and a resume polls for the memo. If the memo failed
+  (`Error` / `Canceled` / `Voided`) or never appears, resume with `cli step
+  --manifest <id> --to-stage payment_applied --resubmit-credit`: it adopts any
+  live memo of the run and sends only when none is live (add `--config <file>`
+  to replace the `credit` sub-block). Never pass the flag unasked. A
+  `NetCreditsApplied` mismatch after the credit means a second credit: stop
+  and report it.
+- `--config` on a resume is never ignored: it may add a missing `payment`;
+  any other difference from the manifest's block is refused.
 - `cli step` uses the manifest's `account_id`; an `--account` that resolves to
   another account is refused. Amounts round to the invoice currency's
   decimal places (KWD = 3, JPY = 0).
