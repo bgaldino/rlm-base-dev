@@ -335,7 +335,7 @@ plans:
 ```json
 { "contexts": [
   { "developerName": "RLM_SalesTransactionContext",
-    "planFile": "contexts/ramp_mode.json" } ] }
+    "planFile": "contexts/constraint_engine_node_status.json" } ] }
 ```
 
 Each plan file (`contexts/<plan>.json`) is either **additive against an existing

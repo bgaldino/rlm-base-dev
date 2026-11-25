@@ -32,7 +32,7 @@ to the request. Read the corresponding Help article before changing a setting.
 Settings checklist (copy, mark each on, off or n/a for the target):
 
 - [ ] Dynamic Revenue Orchestrator on [Help: ind.dro_turn_on_dynamic_revenue_orchestrator]
-- [ ] Fulfillment user set; holds Assetize Order and Submit Transaction User or DRO Admin User [Help: ind.dro_add_a_fulfillment_user]
+- [ ] Fulfillment user set; holds DRO Admin User or Submit Transactions and Fulfillment User, plus Assetize Order when assetization is automatic (the submitting user needs it too) [Help: ind.dro_add_a_fulfillment_user]
 - [ ] In-Flight Amendments, only if amend or cancel of active plans is in scope [Help: ind.dro_enable_in_flight_amendments]
 - [ ] Future-Dated Steps, only if a step has an execution schedule [Help: ind.dro_turn_on_future_dated_steps]
 - [ ] Fallout and SLA features, only if fallout, retries or jeopardy are in scope [Help: ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements].

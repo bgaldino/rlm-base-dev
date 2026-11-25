@@ -131,7 +131,7 @@ billing, DRO — hydrate their own contexts as part of their own flows. Nothing 
 the org build calls these scripts, and they are **not** wired into any CCI flow.
 They carry **pilot caveats** the design-time `apply/delete/mutate_context.py` do
 not: on a GA org `query`/`persist` need `ContextServicePilot`, and Apex
-`Context.IndustriesContext` is the GA runtime path (see **Start here** below).
+`Context.IndustriesContext` is the GA runtime path (see **Start here** above).
 
 ## The runtime lifecycle
 

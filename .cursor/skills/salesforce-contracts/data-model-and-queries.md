@@ -132,7 +132,7 @@ sf data query --target-org <sf_alias> --query \
 sf data query --target-org <sf_alias> --query \
   "SELECT Id, MasterLabel, DeveloperName, IsDefault, SubTypes FROM ContractType LIMIT 50"
 sf data query --target-org <sf_alias> --query \
-  "SELECT Id, ContractType.Name, ConfigType, ConfigValue, UsageType FROM ContractTypeConfig LIMIT 200"
+  "SELECT Id, ContractType.DeveloperName, ConfigType, ConfigValue, UsageType FROM ContractTypeConfig LIMIT 200"
 
 # Shipped state-model seed records and their transitions
 sf data query --target-org <sf_alias> --query \

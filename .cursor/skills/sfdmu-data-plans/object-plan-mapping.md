@@ -73,24 +73,24 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | PaymentTerm | `Name` | Upsert | 1 | |
 | PaymentTermItem | `PaymentTerm.Name;Type` | Upsert | 1 | |
 | BillingPolicy | `Name` | Upsert | 1 | |
-| BillingTreatment | `Name` | Upsert | 1 | 9 treatments: US/CA/EU/UK × Advance/Arrears + Milestone |
-| BillingTreatmentItem | `Name;BillingTreatment.Name` | Upsert | 1 | One item per treatment |
+| BillingTreatment | `Name` | Upsert | 1 | 15 treatments: 7 regions (US, CA, EU, UK, AU, CH, JP) × Advance/Arrears + Milestone |
+| BillingTreatmentItem | `Name;BillingTreatment.Name` | Upsert | 1 | 18 items |
 | Product2 | `StockKeepingUnit` | Update | 1 | Sets BillingPolicyId |
 | GeneralLedgerAccount | `Name` | Upsert | 1 | |
 | GeneralLedgerAcctAsgntRule | `Name` | Upsert | 1 | |
 | PaymentRetryRuleSet | `Name` | Upsert | 1 | |
 | PaymentRetryRule | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | Upsert | 1 | |
-| SequencePolicy | `Name` | Upsert | 1 | 8 policies (US/CA/EU/UK × Invoice/CreditMemo) |
-| SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name` | Upsert | 1 | FilterValue stores LegalEntity name; resolved to ID by resolveSeqPolicyConditionRefs.apex |
 | BillingTreatmentItem | — | Update | 2 | Activate |
 | BillingTreatment | — | Update | 3 | Activate |
 | BillingPolicy | — | Update | 3 | Set DefaultBillingTreatmentId |
+
+`SequencePolicy` and `SeqPolicySelectionCondition` are not SFDMU objects: `create_sequence_policies` creates them through the Connect API from `SequencePolicies.json` (14 policies, 7 regions × Invoice/CreditMemo), because standard DML cannot create them.
 
 ## qb-tax (2 passes)
 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
-| LegalEntity | `Name` | Upsert | 1 | Authoritative source (4 entities: US, Canada, EU, UK) |
+| LegalEntity | `Name` | Upsert | 1 | Authoritative source (7 entities) |
 | TaxEngineProvider | `DeveloperName` | Upsert | 1 | |
 | TaxEngine | `TaxEngineName` | Upsert | 1 | |
 | TaxTreatment | `Name` | Upsert | 1 | |
