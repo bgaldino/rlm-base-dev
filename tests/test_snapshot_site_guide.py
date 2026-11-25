@@ -587,7 +587,8 @@ def main():
         out = {k: (G + "connect-resources-get-catalogs.html" if k.endswith("odd_old_name.htm") else v)
                for k, v in redir.items()}
         check("a redirect that lands outside the section counts as uncovered",
-              raises(OptionsError, snap(tmp, **dict(sect, redirects=out), accept_uncovered=["gone.htm", "rlm_get_started.htm"]).run))
+              raises(OptionsError, snap(tmp, **dict(sect, redirects=out), accept_uncovered=["gone.htm", "rlm_get_started.htm"]).run)
+              and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
         lg = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm", "typo.htm"], **sect)
         lg.run()
         ms = load(tmp)
