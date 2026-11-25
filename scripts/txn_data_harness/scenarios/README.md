@@ -458,7 +458,9 @@ value (null) means no payment, like leaving the key out.
   setting once, in the payment stage; the manifest records it. Header Level is **not live-verified**.
 - **Amounts** are computed against the open balance when the stage runs.
   `percent` on a credit is a share of the creditable pre-tax amount of the
-  chosen lines; on a payment, of their open balance. A credit is capped per
+  chosen lines, taken after the invoice-`Balance` cap below (a warning says
+  when the cap reduced that base); on a payment, of their open balance,
+  capped at the invoice's `Balance` at Line Level as at Header Level. A credit is capped per
   line so the memo (tax included) fits the line's balance, and in total so
   the memo (tax included) fits the invoice's `Balance` (the budget's pre-tax
   share per line); a larger request is capped with a warning naming the

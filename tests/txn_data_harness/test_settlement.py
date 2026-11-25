@@ -3706,3 +3706,90 @@ def test_invoice_budget_counts_each_lines_tax(billable_account) -> None:
                      for (lid, a), ln in zip(allocs, lines))
     assert memo_total <= 200.0
     assert lifecycle.credit_with_tax(lines[0], 136.36, "Calculate", 2) == 150.0
+
+
+# -- review round 22 (todo 275) -------------------------------------------------
+
+
+@pytest.mark.parametrize("payment, amount, target, applied", [
+    (PaymentSpec(), 200.0, 200.0, 200.0),                  # exact: the invoice's 200
+    (PaymentSpec(amount=180.0), 180.0, 180.0, 180.0),      # partial
+    (PaymentSpec(percent=120.0), 240.0, 200.0, 200.0),     # over: 120% of 200
+])
+def test_line_level_payment_capped_at_the_invoice_balance(
+    payment, amount, target, applied, billable_account
+) -> None:
+    """Lines owe 250, the invoice 200: plan and applies stop at 200."""
+    org = SettleOrg("line")
+    org.invoice_balance_override = 200.0
+    spec = SettlementSpec(application_level="line", payment=payment)
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert (m.payment_amount, m.payment_apply_target, m.payment_amount_applied) == (
+        amount, target, applied)
+    assert sum(a for _, a in _applies(org)) == applied
+
+
+def test_requests_transport_sends_once_on_a_connection_error(monkeypatch) -> None:
+    """_request_requests itself, retry=False: one session.request, then
+    SfApiError(-1), for a ConnectionError as for a 503."""
+    import requests as _requests
+
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    monkeypatch.setattr(auth.time, "sleep", lambda s: None)
+    client = _client("requests")
+    calls = []
+
+    class _Session:
+        def request(self, method, url, data=None):
+            calls.append(url)
+            raise _requests.ConnectionError("reset")
+
+    client._local.session = _Session()
+    for write in (lambda: lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []}),
+                  lambda: lifecycle.create_payment(client, {"Amount": 1}),
+                  lambda: lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "5TV1"})):
+        calls.clear()
+        with pytest.raises(SfApiError) as info:
+            write()
+        assert len(calls) == 1 and info.value.status == -1
+
+
+def test_invoice_balance_too_small_for_any_credit_is_refused(billable_account) -> None:
+    org = SettleOrg("line")
+    org.lines[0].update(ChargeAmount=200.0, TaxAmount=20.0, LineAmount=220.0, Balance=220.0)
+    org.invoice_balance_override = 15.0
+    spec = SettlementSpec(application_level="line",
+                          credit=CreditSpec(amount=10.0, lines=[0],
+                                            tax_strategy="CopyFromInvoiceLine"))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"invoice Balance 15.0 is too small .* would be 20.01 with tax "
+                             r"\(CopyFromInvoiceLine\)") as info:
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert info.value.failure_class == "deterministic"
+    assert org.posts == [] and m.reached_stage == "invoice_posted"
+
+
+def test_percent_credit_base_capped_at_the_invoice_warns(billable_account) -> None:
+    org = SettleOrg("line")
+    org.invoice_balance_override = 200.0
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(percent=10.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert m.credit_amount_requested == 20.0  # 10% of 200, not of the lines' 250
+    assert any("10% taken of 200.0, not of the lines' 250.0" in w for w in m.settlement_warnings)
+
+
+def test_line_level_apply_capped_at_the_invoice_balance_on_resume(billable_account) -> None:
+    """A plan (250) made before the invoice's balance fell to 200: the apply
+    stops at the invoice's 200 even though the lines still show 250."""
+    org = SettleOrg("line")
+    org.invoice_balance_override = 200.0
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _payment_planned_manifest(payment_ids=["0aQ1"], application_level="line"))
+    assert sum(a for _, a in _applies(org)) == 200.0
+    assert any("payment applied 200.0 of the 250.0 planned" in w for w in m.settlement_warnings)

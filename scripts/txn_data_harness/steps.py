@@ -948,6 +948,20 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 a for _, a in lifecycle.allocate_credit(
                     float("inf"), chosen, strategy, places, invoice_open)
             ), places)
+            if open_amount <= 0 and lines_open > 0:
+                # The invoice owes something, but less than the smallest
+                # credit (tax included) on the first chosen line: refuse,
+                # like a sub-unit amount, rather than skip with nothing done.
+                first = chosen[0]
+                smallest = lifecycle.credit_with_tax(first, 10 ** -places, strategy, places)
+                raise SettlementError(
+                    "credit",
+                    f"the invoice Balance {invoice_open} is too small to credit anything: "
+                    f"the smallest credit on line {first['Id']} would be {smallest} with tax "
+                    f"({lifecycle.line_tax_strategy(first, strategy)}). Nothing was sent; "
+                    "start a new run with a different tax_strategy or lines.",
+                    record_id=manifest.invoice_id,
+                )
             requested = lifecycle._money(
                 spec.credit.amount if spec.credit.amount is not None
                 else open_amount * spec.credit.percent / 100.0,
@@ -956,6 +970,13 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             manifest.credit_amount_requested = requested
             if open_amount > 0 and requested <= 0:
                 raise _below_minor_unit("credit", manifest, places)
+            if spec.credit.percent is not None and open_amount < lines_open:
+                _warn(
+                    manifest,
+                    f"credit capped at the invoice Balance {invoice_open} (tax included): "
+                    f"{spec.credit.percent:g}% taken of {open_amount}, not of the lines' "
+                    f"{lines_open}",
+                )
             allocations = lifecycle.allocate_credit(
                 requested, chosen, strategy, places, invoice_open
             )
@@ -1045,7 +1066,13 @@ def _payment_open_amount(
         header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
         return lifecycle._money(header.get("Balance"), places)
     chosen = _chosen_lines(ctx, manifest, spec.payment.lines)
-    return lifecycle._money(sum(float(r.get("Balance") or 0) for r in chosen), places)
+    # The lines' balances can add up to more than the invoice owes: cap at
+    # the invoice's Balance, as the Header path does (no tax split here).
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    return lifecycle._money(min(
+        sum(float(r.get("Balance") or 0) for r in chosen),
+        float(header.get("Balance") or 0),
+    ), places)
 
 
 def plan_payment(
@@ -1153,8 +1180,12 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     if remaining > 0:
         if level == lifecycle.LEVEL_LINE:
             chosen = _chosen_lines(ctx, manifest, spec.payment.lines)
+            invoice_open = float(
+                lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id).get("Balance") or 0
+            )
             allocations = lifecycle.allocate(
-                remaining, chosen, lambda r: lifecycle._money(r.get("Balance"), places), places
+                min(remaining, invoice_open), chosen,
+                lambda r: lifecycle._money(r.get("Balance"), places), places,
             )
             targets = [(line_id, amt) for line_id, amt in allocations]
         else:

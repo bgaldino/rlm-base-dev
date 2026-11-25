@@ -341,9 +341,14 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
   currency and its decimal places; fixed amounts are checked before the
   first write of the run (so a sub-unit payment refuses before the credit
-  is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes. Only lines with no
-  open balance, or an invoice whose `Balance` is 0, skip the stage with a
-  warning (naming which).
+  is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
+  A credit `percent` is taken of that capped amount (a warning says when the
+  cap reduced its base). An invoice that owes something, but less than the
+  smallest credit with tax on the first chosen line, is refused (nothing is
+  sent). Only lines with no open balance, or an invoice whose `Balance` is 0,
+  skip the stage with a warning (naming which). The payment's open amount is
+  capped at the invoice's `Balance` at Line Level too (no tax split), at
+  planning and at every apply.
 - **The memo must apply its whole total to this invoice.** Every memo the
   harness creates is for this one invoice, so the amount applied to it
   (application rows filtered by this invoice) must equal the memo's
