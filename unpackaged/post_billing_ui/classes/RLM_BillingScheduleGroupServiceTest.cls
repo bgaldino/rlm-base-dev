@@ -1357,7 +1357,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
         User u = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>{ 'Account' },
+            new List<String>(),
             new List<String>{ 'BillingAccount', 'Account' },
             new List<String>{ 'Account.BillingAddress' });
         CreateArgs args = new CreateArgs(ba.Id);
@@ -1392,7 +1392,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
         User u = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>{ 'Account' },
+            new List<String>(),
             new List<String>{ 'BillingAccount', 'Account' },
             new List<String>{ 'Account.BillingAddress' });
         CreateArgs args = new CreateArgs(ba.Id);
