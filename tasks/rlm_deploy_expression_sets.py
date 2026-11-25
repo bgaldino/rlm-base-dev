@@ -144,13 +144,14 @@ def deployed_versions(package_zip_b64: Optional[str]) -> List[Dict]:
 
 
 def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
-                     now=None) -> List[str]:
+                     now=None, target_org: Optional[str] = None) -> List[str]:
     """Compare what the deploy sent with the org's ExpressionSetVersion rows.
 
     ``org_versions`` maps a definition DeveloperName to its rows (the
     ``_guards.VERSION_FIELDS``). Returns one message per problem; an empty list means
     every deployed version exists under its VersionNumber and every version the
-    deploy activated is the executing one. Pure.
+    deploy activated is the executing one. ``target_org`` (the org's username) lets a
+    finding print a complete read-only inspect command. Pure.
     """
     findings: List[str] = []
     for version in expected:
@@ -188,11 +189,20 @@ def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
                     "executing version (highest Rank among active versions in their "
                     "date window; earliest created among null Ranks)" if running else
                     f"{api_name}'s date window does not cover now, so it is not running")
+            # A complete read-only command only when every value is known; the step
+            # a formula edit needs is not, so set_step_formula.py is named in words.
+            inspect = (
+                f" Inspect it with python scripts/expression_sets/describe_expression_set.py "
+                f"--target-org {target_org} --developer-name {definition} --version "
+                f"{running['ApiName']} --labels"
+                if running and running.get("ApiName") and target_org else ""
+            )
             findings.append(
                 f"{definition}: the deployed {api_name} is active but does not execute; "
                 f"{runs}, so pricing runs it and the repo change has no effect. "
                 f"Versions in the org: {table}. Edit or re-rank the executing version "
-                "(scripts/expression_sets/set_step_formula.py for formulas)."
+                "(scripts/expression_sets/set_step_formula.py for formulas, naming the "
+                f"step).{inspect}{'.' if inspect else ''}"
             )
     return findings
 
@@ -244,7 +254,9 @@ class DeployExpressionSets(Deploy):
         definitions = sorted({v["definition"] for v in expected})
         try:
             org_versions = self._org_versions(definitions)
-            findings = version_findings(expected, org_versions)
+            findings = version_findings(
+                expected, org_versions,
+                target_org=getattr(getattr(self, "org_config", None), "username", None))
             notes = {d: rank_order_warning(org_versions.get(d) or []) for d in definitions}
         except Exception as exc:  # noqa: BLE001 — a query or an unreadable version date
             # The read-back could not run: same fail/warn decision as a finding, so
@@ -274,20 +286,20 @@ class DeployExpressionSets(Deploy):
         for finding in findings:
             log(finding)
         if self.version_check == "fail":
-            # The CCI org this task ran against, so the printed commands run as is.
-            org = getattr(getattr(self, "org_config", None), "name", None) or "<org>"
+            # No run command is printed: re-running this step on this org is refused,
+            # and the warn option belongs to a new build, not this one.
             raise CumulusCIFailure(
                 message + " The deploy has already been applied, and re-running this "
                 "step on a built org is refused by the platform, so do not re-run it "
                 "(a build-harness resume restarts at the failed step, so it would re-run "
-                "it too): run the prepare_rlm_org steps after this one, in order (cci "
-                "flow info prepare_rlm_org lists them), and if the wrong "
+                "it too): for this org, run the prepare_rlm_org steps after this one, in "
+                "order (cci flow info prepare_rlm_org lists them), and if the wrong "
                 "version executes, edit or re-rank the executing version "
-                "(scripts/expression_sets/set_step_formula.py for formulas). "
-                "version_check warn is for future builds on an org whose version chain "
-                f"is known (cci task run activate_and_deploy_expression_sets --org {org} "
-                f"-o version_check warn, or cci flow run prepare_rlm_org --org {org} -o "
-                "activate_and_deploy_expression_sets__version_check warn).\n"
+                "(scripts/expression_sets/set_step_formula.py for formulas). On a new "
+                "build of an org whose version chain is known and accepted, set "
+                "version_check to warn: the task option -o version_check warn, or the "
+                "flow option -o activate_and_deploy_expression_sets__version_check "
+                "warn.\n"
                 + READBACK_FAILURE_SIGNATURE
             )
         self.logger.warning(message + " Continuing (version_check: warn).")

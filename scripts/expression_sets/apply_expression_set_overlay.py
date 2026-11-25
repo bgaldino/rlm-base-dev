@@ -59,7 +59,6 @@ from scripts.expression_sets._guards import (  # noqa: E402
     NO_ACTIVATION_CLI,
     null_rank_reactivation_refusal,
     other_active_versions_refusal,
-    relabel_command,
     version_name_collision_refusal,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
@@ -238,10 +237,9 @@ def main(argv=None) -> int:
                    f"version. --no-preserve-labels to skip.")
         elif not preserve_labels:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
-                   "will NOT be restored. To set best-effort labels derived from the "
-                   "step names afterwards, run (per version): "
-                   + relabel_command(target_org=args.target_org, es_api_name=es_api_name,
-                                     version_api_name=version_api_name))
+                   "will NOT be restored. Set them afterwards per version with "
+                   "relabel_expression_set.py (--auto derives best-effort labels from "
+                   "the step names; add --no-activate for an inactive version).")
 
         # Before any write: a null-Rank active version could not be reactivated, the
         # PATCH must not rewrite another active version, and the versions it sends

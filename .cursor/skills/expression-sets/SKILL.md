@@ -363,8 +363,10 @@ edit, list the versions:
   toolkit and CCI) refuses before any write. Give it a Rank first, or run without
   activation. An sObject update of `Rank` works on an inactive version; an active one
   refuses every update ("An enabled Expression Set Version cannot be
-  updated/deleted."), so deactivate it, set the Rank and activate it again [Measured:
-  2026-11-25, 264, QB scratch build, disposable sets].
+  updated/deleted."), so deactivate it without cascading, set a numeric Rank (higher
+  than every other active version's if it should execute; equal Ranks are refused)
+  and activate it again without cascading [Measured: 2026-11-25, 264, QB scratch
+  build, disposable sets].
 - **An overlay sends every version.** `apply_expression_set_overlay` PATCHes the
   whole GET, which succeeded when the versions carried their own labels and was
   rejected on a version-name collision when the GET returned one name for both; an

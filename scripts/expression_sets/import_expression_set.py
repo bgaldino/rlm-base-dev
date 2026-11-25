@@ -76,7 +76,6 @@ from scripts.expression_sets._guards import (  # noqa: E402
     NO_ACTIVATION_CLI,
     import_target_refusal,
     null_rank_reactivation_refusal,
-    relabel_command,
 )
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
@@ -232,10 +231,9 @@ def main(argv=None) -> int:
                        f"--no-preserve-labels to skip.")
             elif not preserve_labels:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
-                       "restored. To set best-effort labels derived from the step "
-                       "names afterwards, run: "
-                       + relabel_command(target_org=args.target_org, es_api_name=api_name,
-                                         version_api_name=esv.get("ApiName")))
+                       "restored. Set them afterwards with relabel_expression_set.py "
+                       "(--auto derives best-effort labels from the step names; add "
+                       "--no-activate for an inactive version).")
             # Before any write: a null-Rank active version could not be reactivated.
             refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
                                                      target_org=args.target_org,

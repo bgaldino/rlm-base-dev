@@ -2425,8 +2425,8 @@ def test_delete_refuses_an_active_null_rank_version():
           and "Enter a valid rank" in str(error) and task.calls == [])
     check("CCI delete: the remedy commands name the org's username, never the token",
           error is not None and "--target-org user@org.test --expression-set ESX "
-          "--version ESX_V1 --deactivate --confirm" in str(error)
-          and "NOT-THIS" not in str(error) and "<alias>" not in str(error))
+          "--version ESX_V1 --deactivate --no-cascade --confirm" in str(error)
+          and "NOT-THIS" not in str(error) and "<" not in str(error))
 
     # The lifecycle's own check (a caller that skipped its pre-check) fills them too,
     # reading the set's DeveloperName from the definition.
@@ -2445,8 +2445,9 @@ def test_delete_refuses_an_active_null_rank_version():
     except TaskOptionsError as exc:
         backstop = str(exc)
     check("CCI lifecycle refusal: commands carry the org's username and the set's name",
-          "--target-org user@org.test --expression-set ESX_Set --version ESX_V1" in backstop
-          and "sf data update record --target-org user@org.test " in backstop)
+          "--target-org user@org.test --expression-set ESX_Set --version ESX_V1 "
+          "--deactivate --no-cascade --confirm" in backstop
+          and "sf data update" not in backstop)
 
 
 def test_import_replace_refuses_a_version_rebind():

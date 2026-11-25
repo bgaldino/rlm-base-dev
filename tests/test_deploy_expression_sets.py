@@ -134,6 +134,15 @@ check("ramp264 chain (no Rank read): _V1 is active but v40 executes → finding"
       and "Partner_Price_and_Ramp_v40 (v4)" in chain[0], chain)
 check("the chain finding points at editing or re-ranking the executing version",
       chain and "set_step_formula.py" in chain[0] and "re-rank" in chain[0], chain)
+check("without an org, the finding prints no command",
+      chain and "describe_expression_set.py" not in chain[0], chain)
+with_org = mod.version_findings([expected()], {PRICING: RAMP264}, NOW, target_org="u@x.test")
+check("with the org's username, the finding prints a complete read-only inspect command "
+      "for the executing version",
+      with_org and "python scripts/expression_sets/describe_expression_set.py "
+      f"--target-org u@x.test --developer-name {PRICING} --version "
+      f"{PRICING}_RLM_Rev_Mgmt_Def_Partner_Price_and_Ramp_v40 --labels" in with_org[0],
+      with_org)
 
 ranked = [dict(r, Rank=r["VersionNumber"]) for r in RAMP264]
 ranked[0]["Rank"] = 10
@@ -245,13 +254,13 @@ check("the failure names the remedies: run the steps after this one (a harness r
       and "resume restarts at the failed step" in str(raised)
       and "re-rank the executing version" in str(raised)
       and "set_step_formula.py" in str(raised)
-      and "activate_and_deploy_expression_sets__version_check warn" in str(raised)
-      and "cci task run activate_and_deploy_expression_sets --org tk-org -o "
-      "version_check warn" in str(raised)
-      and "cci flow run prepare_rlm_org --org tk-org -o "
-      "activate_and_deploy_expression_sets__version_check warn" in str(raised)
-      and "<org>" not in str(raised)
-      and "future builds" in str(raised), raised)
+      and "the task option -o version_check warn" in str(raised)
+      and "the flow option -o activate_and_deploy_expression_sets__version_check warn"
+      in str(raised)
+      and "On a new build" in str(raised), raised)
+check("the failure prints no command that would re-run the step on this org",
+      raised is not None and "cci task run" not in str(raised)
+      and "cci flow run" not in str(raised) and "--org" not in str(raised), raised)
 
 
 class _BrokenSf(_FakeSf):

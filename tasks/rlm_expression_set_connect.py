@@ -1077,10 +1077,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 path = fh.name
         except OSError as exc:
             return f"could not save the labels to a file ({exc})."
-        return "run " + relabel_command(path, target_org=self._org_username(),
-                                        es_api_name=self._definition_name(es_def_id),
-                                        version_api_name=esv.get("ApiName"),
-                                        no_activate=not final_active)
+        command = relabel_command(path, target_org=self._org_username(),
+                                  es_api_name=self._definition_name(es_def_id),
+                                  version_api_name=esv.get("ApiName"),
+                                  no_activate=not final_active)
+        if command is None:  # the org or the set name is unknown: describe it
+            return (f"run relabel_expression_set.py on {esv.get('ApiName')} with "
+                    f"--labels-file {path} (the labels saved)"
+                    + (", adding --no-activate." if not final_active else "."))
+        return "run " + command
 
     def _restore_step_labels(
         self,

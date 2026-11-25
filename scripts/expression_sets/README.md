@@ -267,12 +267,15 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   whole-set delete (whose rollback reactivates), toolkit and CCI. Runs without
   activation (`--no-activate`; CCI `activate_after_apply` / `activate_after_import`
   false) are allowed; `activate_expression_set --deactivate` warns that the step is
-  one-way. To give a version a Rank: an sObject update (`sf data update record
-  --target-org <alias> --sobject ExpressionSetVersion --record-id <Id> --values
-  "Rank=<n>"`) works on an inactive version; on an active one it is refused ("An
-  enabled Expression Set Version cannot be updated/deleted."), as is a redeploy, so
-  deactivate it, set the Rank and activate it again (it does not run while off)
-  [Measured: 2026-11-25, 264, QB scratch build, disposable sets].
+  one-way. To give a version a Rank: an sObject update of `ExpressionSetVersion.Rank`
+  works on an inactive version; on an active one it is refused ("An enabled
+  Expression Set Version cannot be updated/deleted."), as is a redeploy, so
+  deactivate it without cascading (`activate_expression_set.py --deactivate
+  --no-cascade`; it does not run while off), set a numeric Rank, higher than every
+  other active version's if it should execute (equal Ranks are refused), and
+  activate it again (`--activate --no-cascade`) [Measured: 2026-11-25, 264, QB
+  scratch build, disposable sets]. The refusals print the activate commands filled
+  with the run's org and set, and describe the Rank step.
 - **An overlay sends every version.** `apply_expression_set_overlay` (toolkit and
   CCI) PATCHes the whole definition its GET returned. On two-version sets, active
   and draft, it succeeded when the versions were deployed with their own labels, and

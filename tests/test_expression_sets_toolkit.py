@@ -632,6 +632,8 @@ class _StatefulTransport:
             return [row]
         if "FROM ExpressionSet " in query:
             return [{"Id": "9QLx", "ResourceInitializationType": "Off"}]
+        if "FROM ExpressionSetDefinition" in query:
+            return [{"DeveloperName": "TEST"}]
         return []
 
 
@@ -2412,14 +2414,20 @@ def test_null_rank_guard():
           "Enter a valid rank" in msg and "Nothing was written" in msg
           and "could not turn it back on" in msg and "cannot be updated/deleted" in msg
           and "X_V1" in msg, msg)
-    # The printed commands run as printed (placeholders aside).
+    # A command is printed only when every value is known and it is safe: the Rank
+    # is a choice, so it is described; deactivate/activate carry --no-cascade.
+    check("without the org and set, the Rank remedy is described, with no command",
+          "python " not in msg and "sf data update" not in msg and "<" not in msg
+          and "deactivate X_V1 with activate_expression_set.py --deactivate --no-cascade"
+          in msg and "set a numeric Rank" in msg and "refuses equal Ranks" in msg, msg)
+    filled = null_rank_reactivation_refusal(null_active, True, target_org="o",
+                                            es_api_name="X") or ""
     activate = ("python scripts/expression_sets/activate_expression_set.py --target-org "
-                "<alias> --expression-set <name> --version X_V1 {} --confirm")
-    update = ("sf data update record --target-org <alias> --sobject ExpressionSetVersion "
-              "--record-id 9QMv --values \"Rank=<n>\"")
-    check("the Rank remedy prints complete deactivate, update and activate commands",
-          activate.format("--deactivate") in msg and update in msg
-          and activate.format("--activate") in msg, msg)
+                "o --expression-set X --version X_V1 {} --no-cascade --confirm")
+    check("with the org and set, deactivate and activate are complete --no-cascade "
+          "commands, and the Rank is described, not printed",
+          activate.format("--deactivate") in filled and activate.format("--activate")
+          in filled and "sf data update" not in filled and "Rank=" not in filled, filled)
     check("with no alternative given, no run-without-activation option is named",
           "--no-activate" not in msg and "activate_after" not in msg, msg)
     from scripts.expression_sets._guards import (
@@ -2431,13 +2439,15 @@ def test_null_rank_guard():
         text = null_rank_reactivation_refusal(null_active, True, alternative) or ""
         check(f"the alternative names the caller's real option ({option})",
               option in text, text)
-    delete_msg = null_rank_delete_refusal(null_active) or ""
-    check("the delete refusal's alternative is a complete deactivate command",
+    delete_msg = null_rank_delete_refusal(null_active, target_org="o",
+                                          es_api_name="X") or ""
+    check("the delete refusal's alternative is a complete --no-cascade deactivate command",
           "deactivate it first (" + activate.format("--deactivate") + ")" in delete_msg,
           delete_msg)
     draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
-    check("a null-Rank draft the run would activate is refused too, with the update command",
-          "fail to activate it" in draft_msg and update in draft_msg, draft_msg)
+    check("a null-Rank draft the run would activate is refused too, the Rank described",
+          "fail to activate it" in draft_msg and "set a numeric Rank" in draft_msg
+          and "python " not in draft_msg, draft_msg)
 
     # relabel_expression_set: refused before any write, naming its own --no-activate.
     import scripts.expression_sets.relabel_expression_set as relabel_mod
@@ -2492,8 +2502,7 @@ def test_null_rank_guard():
     check("activate --activate refuses a null-Rank version before any write",
           rc == 1 and t.esv_active is False and any("Enter a valid rank" in m for m in logs)
           and not any("--no-activate" in m for m in logs)
-          and any("sf data update record --target-org x " in m and "<alias>" not in m
-                  for m in logs),
+          and any("set a numeric Rank" in m and "<" not in m for m in logs),
           (rc, logs))
     rc, logs, t = run_activate("--deactivate", null_active)
     check("activate --deactivate on a null-Rank version warns that it is one-way",
@@ -2566,8 +2575,8 @@ def test_null_rank_guard():
         backstop = str(exc)
     check("the lifecycle refusal's commands carry the run's org and the set's name",
           "activate_expression_set.py --target-org org-alias --expression-set X_Set "
-          "--version X_V1 --deactivate --confirm" in backstop
-          and "sf data update record --target-org org-alias " in backstop, backstop)
+          "--version X_V1 --deactivate --no-cascade --confirm" in backstop
+          and "sf data update" not in backstop, backstop)
 
     # set_step_formula: the executing (default) target has a null Rank.
     versions = [dict(v) for v in RAMP264_VERSIONS]
@@ -2584,9 +2593,8 @@ def test_null_rank_guard():
           and any("Enter a valid rank" in m for m in logs), (rc, t.events, logs))
     check("set_step_formula's refusal prints commands filled with its org and set",
           any("activate_expression_set.py --target-org x --expression-set "
-              "RLM_DefaultPricingProcedure --version" in m
-              and "sf data update record --target-org x " in m and "<alias>" not in m
-              and "<name>" not in m for m in logs), logs)
+              "RLM_DefaultPricingProcedure --version" in m and "--no-cascade" in m
+              and "<" not in m for m in logs), logs)
     rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--show",
                                     "--version-api-name", versions[3]["ApiName"]])
     check("--show still reads a null-Rank version", rc == 0, logs)
@@ -2717,12 +2725,17 @@ def test_overlay_multi_version():
           other_active_versions_refusal("C", two[1:], two[1]) is None)
     three = two + [{"Id": "9QM3", "ApiName": "C_V3", "Name": "C V3", "VersionNumber": 3,
                     "IsActive": True, "Rank": 3}]
-    msg = other_active_versions_refusal("C", three, three[2]) or ""
+    msg = other_active_versions_refusal("C", three, three[2], target_org="o") or ""
     check("other-active guard: names each other active version with a deactivate "
           "command that leaves the procedure plans on, and only those",
-          "rewrite C_V2 while active" in msg and "--expression-set C --version C_V2 "
-          "--deactivate --no-cascade --confirm" in msg and "--version C_V1" not in msg
-          and "Nothing was written" in msg, msg)
+          "rewrite C_V2 while active" in msg and "--target-org o --expression-set C "
+          "--version C_V2 --deactivate --no-cascade --confirm" in msg
+          and "--version C_V1" not in msg and "Nothing was written" in msg
+          and "backdated or future-dated" in msg, msg)
+    words = other_active_versions_refusal("C", three, three[2]) or ""
+    check("other-active guard: without the org, the step is described, no command",
+          "deactivate C_V2 with activate_expression_set.py --deactivate --no-cascade"
+          in words and "python " not in words, words)
 
 
 def test_client_auth_hint():

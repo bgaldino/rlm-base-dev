@@ -567,9 +567,12 @@ def relabel_hint(engine, *, es_id: str, es_def_id: str, version_api_name: str,
     command = relabel_command(path, target_org=getattr(engine.t, "target_org", None),
                               es_api_name=set_name, version_api_name=version_api_name,
                               no_activate=no_activate)
-    if active is None and not no_activate:
-        return (f"run {command} (the version's state could not be read: add "
-                "--no-activate before --confirm if it is inactive).")
+    if command is None or (active is None and not no_activate):
+        # A value is unknown (the org, the set, or whether the version is active,
+        # which decides --no-activate): describe the step instead.
+        return (f"run relabel_expression_set.py on {version_api_name} with "
+                f"--labels-file {path} (the labels saved), adding --no-activate if "
+                "the version is inactive.")
     return f"run {command}"
 
 

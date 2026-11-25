@@ -205,28 +205,42 @@ NO_ACTIVATION_CCI_IMPORT = ("run with -o activate_after_import false, which leav
                             "version inactive")
 
 
+# Printed remedies follow one rule: a command is printed only when every value in it
+# is known, valid for the org it names, and safe to run; otherwise the step is
+# described in words.
+
+
 def _activate_cmd(esv: Dict[str, Any], flag: str, target_org: Optional[str] = None,
                   es_api_name: Optional[str] = None) -> str:
-    """An activate_expression_set.py command for ``esv``. Callers pass the org the
-    run used (the toolkit's --target-org; the CCI task's org username) and the set's
-    name so the command runs as printed; a placeholder stands in only when unknown."""
+    """An activate_expression_set.py step for ``esv`` that leaves procedure plans
+    alone (``--no-cascade``; the cascade would also switch the plans other versions
+    serve). A command when the org the run used and the set are known (the
+    toolkit's --target-org; the CCI task's org username); words otherwise."""
+    action = "deactivate" if "--deactivate" in flag else "activate"
+    version = esv.get("ApiName") or esv.get("Id")
+    if not (target_org and es_api_name and esv.get("ApiName")):
+        return (f"{action} {version} with activate_expression_set.py --{action} "
+                "--no-cascade")
     return ("python scripts/expression_sets/activate_expression_set.py --target-org "
-            f"{target_org or '<alias>'} --expression-set {es_api_name or '<name>'} "
-            f"--version {esv.get('ApiName') or '<ApiName>'} {flag} --confirm")
+            f"{target_org} --expression-set {es_api_name} --version {esv['ApiName']} "
+            f"{flag} --confirm")
 
 
 def relabel_command(labels_path: Optional[str] = None, *,
                     target_org: Optional[str] = None,
                     es_api_name: Optional[str] = None,
                     version_api_name: Optional[str] = None,
-                    no_activate: bool = False) -> str:
+                    no_activate: bool = False) -> Optional[str]:
     """A relabel_expression_set.py command for one version, filled with the run's
-    org and set so it runs as printed. It restores ``labels_path`` (a JSON
-    ``{step name: label}`` file), or with none derives labels from the step names
-    (``--auto``, best-effort). ``no_activate`` keeps an inactive version inactive."""
+    org and set so it runs as printed, or None when either is unknown (the caller
+    then describes the step). It restores ``labels_path`` (a JSON ``{step name:
+    label}`` file), or with none derives labels from the step names (``--auto``,
+    best-effort). ``no_activate`` keeps an inactive version inactive."""
+    if not (target_org and es_api_name):
+        return None
     source = f"--labels-file {labels_path}" if labels_path else "--auto"
     return ("python scripts/expression_sets/relabel_expression_set.py --target-org "
-            f"{target_org or '<alias>'} --expression-set {es_api_name or '<name>'} "
+            f"{target_org} --expression-set {es_api_name} "
             + (f"--version {version_api_name} " if version_api_name else "")
             + f"{source} " + ("--no-activate " if no_activate else "") + "--confirm")
 
@@ -237,21 +251,23 @@ def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str],
     # Measured on Release 264 (2026-11-25): an sObject update of Rank works on an
     # inactive version; on an active one it is refused ("An enabled Expression Set
     # Version cannot be updated/deleted."), as is a Metadata API redeploy, so an
-    # active version is deactivated, ranked and activated again.
-    update = (f"sf data update record --target-org {target_org or '<alias>'} --sobject "
-              f"ExpressionSetVersion --record-id {esv.get('Id')} --values \"Rank=<n>\"")
+    # active version is deactivated, ranked and activated again. The Rank is a
+    # choice, so it is described, not printed as a command.
+    rank = ("set a numeric Rank on it, higher than every other active version's if it "
+            "should execute (the platform refuses equal Ranks)")
     if esv.get("IsActive"):
         how = (" Give it a Rank first. No update of an active version is accepted "
                "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
-               "measured), so: deactivate it ("
-               + _activate_cmd(esv, "--deactivate", target_org, es_api_name)
-               + "; it does not run while off), set a Rank <n> that keeps the intended "
-               f"version executing ({update}), and activate it again ("
-               + _activate_cmd(esv, "--activate", target_org, es_api_name)
-               + "); each step was measured")
+               "measured), so: deactivate it without cascading ("
+               + _activate_cmd(esv, "--deactivate --no-cascade", target_org, es_api_name)
+               + "; it does not run while off), " + rank + " (an sObject update of "
+               "ExpressionSetVersion.Rank works on an inactive version, measured), and "
+               "activate it again without cascading ("
+               + _activate_cmd(esv, "--activate --no-cascade", target_org, es_api_name)
+               + ")")
     else:
-        how = (" Give it a Rank <n> first, one that keeps the intended version "
-               f"executing ({update}; measured on an inactive version)")
+        how = (" Give it a Rank first: " + rank + " (an sObject update of "
+               "ExpressionSetVersion.Rank works on an inactive version, measured)")
     return how + (f"; or {alternative}." if alternative else ".")
 
 
@@ -301,7 +317,8 @@ def null_rank_delete_refusal(esv: Dict[str, Any], *, target_org: Optional[str] =
         f"Delete refused: ExpressionSetVersion {name} is active with no Rank, so if the "
         "DELETE failed its rollback could not turn the version back on" + _NO_RANK_CAUSE
         + _rank_remedy(esv, "deactivate it first ("
-                       + _activate_cmd(esv, "--deactivate", target_org, es_api_name)
+                       + _activate_cmd(esv, "--deactivate --no-cascade", target_org,
+                                       es_api_name)
                        + ") and then delete the set", target_org, es_api_name)
     )
 
@@ -437,8 +454,10 @@ def other_active_versions_refusal(
         f"{', '.join(v.get('ApiName') for v in others)} while active (not measured; a "
         f"PATCH that failed part way would leave {target.get('ApiName')} and its "
         "procedure plans off). Nothing was written. Deactivate the other active "
-        f"version(s) first ({deactivate}; a version that does not run changes no "
-        "price), or change one step formula with "
+        f"version(s) first ({deactivate}). The platform picks the version by each "
+        "call's effective date, so a version that does not execute today can still "
+        "price backdated or future-dated calls; check its date window before turning "
+        "it off. Or change one step formula with "
         "scripts/expression_sets/set_step_formula.py, which edits only that version."
     )
 
