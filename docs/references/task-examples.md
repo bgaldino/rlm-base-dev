@@ -28,7 +28,8 @@ cci task run manage_flows --org <org> -o operation list
 cci task run manage_flows --org <org> -o operation list -o limit 10
 
 # Same query without the table: the rows are not printed, only a count is logged. The task
-# returns them in return_values["flows"] (a flow step reads them as ^^<step>.flows;
+# returns them in return_values["flows"] (a flow step reads them as ^^manage_flows.flows, keyed by the
+# task name; if the task runs twice in a flow it resolves to the earliest matching step;
 # a Python caller reads task.return_values). `list` returns nothing.
 cci task run manage_flows --org <org> -o operation query -o limit 5
 ```

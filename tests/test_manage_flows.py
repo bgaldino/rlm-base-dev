@@ -52,6 +52,12 @@ class FakeTooling(types.ModuleType):
     """Answers queries from `rows`, honouring a Status = 'X' WHERE clause; records queries and PATCHes.
     `fail_patch_for` ids get a 400. A nextRecordsUrl call (params None) returns the `pages` tail."""
 
+    ORDER_KEYS = {
+        "Definition.DeveloperName": lambda r: r["Definition"]["DeveloperName"],
+        "MasterLabel": lambda r: r["MasterLabel"], "Status": lambda r: r["Status"],
+        "ProcessType": lambda r: r["ProcessType"], "VersionNumber": lambda r: r["VersionNumber"],
+    }
+
     def __init__(self, rows, fail_patch_for=(), pages=None):
         super().__init__("requests")
         self.rows = rows
@@ -82,6 +88,13 @@ class FakeTooling(types.ModuleType):
         m = re.search(r"Status = '([^']*)'", where)
         if m:
             rows = [r for r in rows if r["Status"] == m.group(1)]
+        m = re.search(r"ProcessType = '([^']*)'", where)
+        if m:
+            rows = [r for r in rows if r["ProcessType"] == m.group(1)]
+        m = re.search(r" ORDER BY ([\w.]+) (Asc|Desc)", q)
+        if m and m.group(1) in self.ORDER_KEYS:  # CreatedDate is not modelled: the rows keep their given order
+            key = self.ORDER_KEYS[m.group(1)]
+            rows = sorted(rows, key=lambda r: key(r), reverse=m.group(2) == "Desc")
         m = re.search(r" LIMIT (\d+)$", q)
         if m:
             rows = rows[: int(m.group(1))]
@@ -122,7 +135,8 @@ def run(rows, options, fail_patch_for=(), pages=None):
         return fake, exc
 
 
-A, B = "300000000000AAA", "300000000000BBB"
+# The Tooling API returns 18-character Ids; a 15-character prefix is also accepted as a name.
+A, B = "300000000000AAAQA2", "300000000000BBBQA2"
 TWO = [row(A, "Flow_A", 1, "Active"), row(B, "Flow_B", 1, "Active")]
 JOINED = "\n".join
 
@@ -167,8 +181,11 @@ check("no PATCH was sent", not fake.patches, repr(fake.patches))
 
 print("a FlowDefinition Id is accepted too (15 or 18 characters)")
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": A[:15]})
-check("queried by DefinitionId", f"DefinitionId IN ('{A[:15]}')" in fake.queries[0], fake.queries[0])
+check("queried by DefinitionId (15 characters)", f"DefinitionId IN ('{A[:15]}')" in fake.queries[0], fake.queries[0])
 check("no error, one PATCH", err is None and len(fake.patches) == 1, repr((err, fake.patches)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": A})
+check("queried by DefinitionId (18 characters)", f"DefinitionId IN ('{A}')" in fake.queries[0], fake.queries[0])
+check("no error, one PATCH (18)", err is None and len(fake.patches) == 1, repr((err, fake.patches)))
 
 print("activate and deactivate require developer_names and reject the list-only filters")
 _, err = run(TWO, {"operation": "activate"})
@@ -243,16 +260,24 @@ fake, err = run([row(A, "Flow_A", 1, "Active"), row(B, "Flow_B", 1, "Active")],
 check("a limit does not make an existing name missing",
       err is None and len(fake.queries) == 2 and fake.queries[0].endswith("LIMIT 1") and "LIMIT" not in fake.queries[1],
       repr((err, fake.queries)))
-_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "300000000000aaa"})
-check("a FlowDefinition Id of the wrong case is a missing name (Ids are case-sensitive)",
-      err is not None and "300000000000aaa" in str(err), repr(err))
-_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,300000000000aaa"})
-check("a wrong-case Id is not satisfied by another name's row", err is not None and "300000000000aaa" in str(err), repr(err))
+# A wrong-case Id is refused (raises, changes nothing), so it fails safe. How the org treats 18-character
+# Id case in a SOQL IN is unverified. This is the guard for the Id branch of _raise_on_missing: the wrong-case
+# Id matches nothing in SOQL, so only another name's row could (wrongly) satisfy it.
+_, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A,300000000000aaaqa2"})
+check("a wrong-case Id is not satisfied by another name's row", err is not None and "300000000000aaaqa2" in str(err), repr(err))
 fake, err = run([row(A, "Flow_A", 1, "Active"), row(A, "Flow_A", 2, "Draft")], {"operation": "query", "developer_names": "FLOW_A"})
 check("query returns the rows in return_values['flows'] (case-insensitive DeveloperName)",
       err is None and [f["VersionNumber"] for f in fake.task.return_values.get("flows", [])] == [1, 2]
       and all("attributes" not in f for f in fake.task.return_values["flows"]),
       repr((err, fake.task.return_values)))
+fake, err = run([row(A, "Flow_A", 1, "Active", "AutoLaunchedFlow"), row(B, "Flow_B", 1, "Active", "Flow")],
+                {"operation": "query", "process_type": "Flow"})
+check("process_type filters the rows", err is None and [f["ProcessType"] for f in fake.task.return_values["flows"]] == ["Flow"],
+      repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 3, "Active"), row(A, "Flow_A", 1, "Draft"), row(A, "Flow_A", 2, "Obsolete")],
+                {"operation": "query", "sort_by": "VersionNumber", "sort_order": "asc", "limit": "2"})
+check("sort_by and sort_order order the rows before LIMIT",
+      err is None and [f["VersionNumber"] for f in fake.task.return_values["flows"]] == [1, 2], repr((err, fake.queries)))
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list"})
 check("list returns no values", err is None and fake.task.return_values == {}, repr(fake.task.return_values))
 fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"},
