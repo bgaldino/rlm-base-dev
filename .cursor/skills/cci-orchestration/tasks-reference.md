@@ -2385,7 +2385,7 @@
 
 ### `insert_clm_data_prod`
 
-**Description:** Insert CLM Data to Production
+**Description:** Insert CLM Data to Production. Does not load the DocumentClauseSet rows: a prod load also needs insert_clm_clause_sets run separately.
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 

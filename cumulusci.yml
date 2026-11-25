@@ -2231,7 +2231,9 @@ tasks:
 
   insert_clm_data_prod:
     group: Revenue Lifecycle Management
-    description: Insert CLM Data to Production
+    description: >
+      Insert CLM Data to Production. Does not load the DocumentClauseSet rows: a prod load also needs
+      insert_clm_clause_sets run separately.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_clm_dataset

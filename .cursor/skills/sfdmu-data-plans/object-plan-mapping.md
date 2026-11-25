@@ -175,12 +175,13 @@ Nothing in qb-rating is deleted or activated by SFDMU; `activateRatingRecords.ap
 | SObject | externalId | Operation |
 |---------|-----------|-----------|
 | ClauseCatgConfiguration | `DeveloperName` | Upsert |
-| DocumentClauseSet | `Name;CategoryReference.DeveloperName` | Upsert |
 | ObjectStateDefinition | `Name` | Upsert |
 | ObjectStateActionDefinition | `Name` | Upsert |
-| ObjectStateValue | `Name` | Upsert |
-| ObjectStateTransition | `Name` | Upsert |
-| ObjectStateTransitionAction | `Name` | Upsert |
+| ObjectStateValue | `Name;ObjectStateDefinition.Name` | Upsert (`skipExistingRecords`) |
+| ObjectStateTransition | `Name;ObjectStateDefinition.Name` | Upsert (`skipExistingRecords`) |
+| ObjectStateTransitionAction | `Name;ObjectStateDefinition.Name` | Upsert (`skipExistingRecords`) |
+
+`DocumentClauseSet` is not in the plan: its `Category` is a picklist of the org's `ClauseCatgConfiguration` Ids, so the `insert_clm_clause_sets` task loads `DocumentClauseSet.csv` (README).
 
 ## qb-guidedselling-products
 

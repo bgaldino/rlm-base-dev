@@ -380,10 +380,8 @@ Source: `datasets/sfdmu/qb/en-US/qb-approvals/`
 
 When `clm=true` and `clm_data=true`, `qb-clm` provisions:
 - `ClauseCatgConfiguration`
-- `CustomPermission`
-- `DocumentClauseSet`
 - `ObjectStateActionDefinition`, `ObjectStateDefinition`, `ObjectStateTransition`, `ObjectStateTransitionAction`, `ObjectStateValue`
-- `OmniProcess`
+- `DocumentClauseSet` (loaded as Draft by the `insert_clm_clause_sets` step)
 
 Source: `datasets/sfdmu/qb/en-US/qb-clm/`
 

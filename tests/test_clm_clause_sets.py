@@ -53,6 +53,56 @@ with tempfile.TemporaryDirectory() as d:
     except Exception:
         pass
 
+check("18 character Category values count as existing",
+      mod.missing_rows(rows, cats, {("A", "0zMWt0000001L5dMAE"), ("B", "0zMWt0000001L5eMAE")}), [])
+check("rows with a Status other than Draft are counted",
+      mod.ignored_status_count([("a", "c", "en_US", "Active"), ("b", "c", "en_US", "Draft"),
+                                ("c", "c", "en_US", "")]), 1)
+check("the plan CSV has 16 Active rows the platform ignores",
+      mod.ignored_status_count(mod.plan_rows_with_status(str(REPO / mod.DEFAULT_CSV))), 16)
+
+
+class FakeSf:
+    """An org whose Category comes back as 18 characters, as an Id field would."""
+
+    def __init__(self):
+        self.sets = []
+        self.DocumentClauseSet = self
+
+    def query_all(self, soql):
+        if "FROM ClauseCatgConfiguration" in soql:
+            return {"records": [{"Id": "0zMWt0000001L5dMAE", "DeveloperName": "Contract"},
+                                {"Id": "0zMWt0000001L5eMAE", "DeveloperName": "Retail"}]}
+        return {"records": [{"Name": s["Name"], "Category": s["Category"] + "MAE"} for s in self.sets]}
+
+    def create(self, fields):
+        self.sets.append(dict(fields))
+
+
+class FakeLog:
+    def __init__(self):
+        self.warnings = []
+
+    def info(self, *_):
+        pass
+
+    def warning(self, message):
+        self.warnings.append(message)
+
+
+class FakeProject:
+    repo_root = str(REPO)
+
+
+task = mod.LoadClmClauseSets.__new__(mod.LoadClmClauseSets)
+task.sf, task.logger, task.options, task.project_config = FakeSf(), FakeLog(), {}, FakeProject()
+task._run_task()
+check("first run inserts every row", len(task.sf.sets), 20)
+check("first run warns about the ignored Status", len(task.logger.warnings), 1)
+check("the warning names the count", "16 of 20" in task.logger.warnings[0], True)
+task._run_task()
+check("second run inserts nothing", len(task.sf.sets), 20)
+
 if failures:
     print("\n".join(failures))
     sys.exit(1)
