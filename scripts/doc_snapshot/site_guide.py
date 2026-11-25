@@ -250,7 +250,9 @@ def _legacy_map(manifest) -> Dict[str, str]:
     return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)} if isinstance(raw, dict) else {}
 
 
-_LOCAL_LINK = re.compile(r"(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\))")
+# group 4: optional #fragment; group 5: optional link title and the closing paren. Fenced code is
+# not skipped: converter output puts real links there too, and a literal one is not a hazard.
+_LOCAL_LINK = re.compile(r'(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\s+"[^"]*")?(\))')
 
 
 def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, str]]]:
@@ -280,14 +282,14 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
         def fix(m):
             nonlocal rewritten
             target = m.group(3)
-            if "/" in target or "://" in target:
+            if "/" in target:  # a path or URL, not a sibling article
                 return m.group(0)
             if (articles / target).exists() and f"articles/{target}" not in superseded:
                 return m.group(0)  # present and staying
             slug = mapping.get(target[:-3])
             if slug and (articles / f"{slug}.md").is_file():
                 rewritten += 1
-                return f"{m.group(1)}./{slug}.md{m.group(4) or ''}{m.group(5)}"
+                return f"{m.group(1)}./{slug}.md{m.group(4) or ''}{m.group(5) or ''}{m.group(6)}"
             unresolved.append((f"{old}.md", target))
             return m.group(0)
 
