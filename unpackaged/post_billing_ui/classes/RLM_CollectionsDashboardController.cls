@@ -59,7 +59,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 Integer cnt = countByStatus.get(status) != null ? countByStatus.get(status) : 0;
                 buckets.add(new PaymentPromiseBucket(status, amt, cnt));
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getPaymentPromiseSummary', e); }
         return buckets;
     }
 
@@ -84,7 +84,7 @@ public with sharing class RLM_CollectionsDashboardController {
                     options.add(new Map<String, String>{ 'value' => ct.IsoCode, 'label' => ct.IsoCode });
                 }
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { probeSkipped('getCurrencyOptions', e); }
         if (options.size() == 1) {
             String defaultCode = getOrgDefaultCurrency();
             options.add(new Map<String, String>{ 'value' => defaultCode, 'label' => defaultCode });
@@ -112,6 +112,8 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
         } catch (Exception e) {
+            // Section isolation: a refused or failed Invoice read leaves the cards empty (logged), not an exception.
+            sectionSkipped('getDashboardCards', e);
             return data;
         }
 
@@ -207,12 +209,12 @@ public with sharing class RLM_CollectionsDashboardController {
         Date today = Date.today();
         Date thirtyDaysAgo = today.addDays(-30);
 
-        try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
-        try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { }
-        try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { }
-        try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { }
+        try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         if (wl.highValueDelinquents.isEmpty()) {
-            try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { }
+            try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         }
         addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
@@ -225,7 +227,7 @@ public with sharing class RLM_CollectionsDashboardController {
             accts = filterAccountId != null
                 ? [SELECT Id, Name FROM Account WHERE Id = :filterAccountId WITH USER_MODE LIMIT 1]
                 : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 1];
-        } catch (Exception e) { return; }
+        } catch (Exception e) { sectionSkipped('addPlaceholderRowsIfEmpty', e); return; }
         if (accts.isEmpty()) return;
         Id placeholderId = accts[0].Id;
         String placeholderName = accts[0].Name;
@@ -254,7 +256,7 @@ public with sharing class RLM_CollectionsDashboardController {
             for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
                 results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getCollectionPlanTasks', e); }
         return results;
     }
 
@@ -277,7 +279,7 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0 LIMIT 500';
             addLastResortDelinquents(wl, Database.query(soql, AccessLevel.USER_MODE), invAccountField, today);
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('buildWorklistLastResort', e); }
     }
 
     // Rolls the queried invoices up by account and, when the list is still empty, adds the five
@@ -343,19 +345,19 @@ public with sharing class RLM_CollectionsDashboardController {
             if (wl.highValueDelinquents.isEmpty()) {
                 for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('buildWorklistUnifiedFallback', e); }
     }
 
     private static Boolean invoiceHasBillToContactId() {
         try {
             return Schema.SObjectType.Invoice.fields.getMap().containsKey('BillToContactId');
-        } catch (Exception e) { return false; }
+        } catch (Exception e) { probeSkipped('invoiceHasBillToContactId', e); return false; }
     }
 
     private static Boolean invoiceHasDaysInvoiceOverdue() {
         try {
             return Schema.SObjectType.Invoice.fields.getMap().containsKey('DaysInvoiceOverdue');
-        } catch (Exception e) { return false; }
+        } catch (Exception e) { probeSkipped('invoiceHasDaysInvoiceOverdue', e); return false; }
     }
 
     private static void buildCriticalFollowUpInvoices(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
@@ -383,7 +385,7 @@ public with sharing class RLM_CollectionsDashboardController {
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
             addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('buildCriticalFollowUpInvoices', e); }
     }
 
     // One row per queried invoice, with its account name and collection plan. Takes rows so a
@@ -410,7 +412,7 @@ public with sharing class RLM_CollectionsDashboardController {
                         invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
                     }
                 }
-            } catch (Exception ex) { }
+            } catch (Exception ex) { probeSkipped('addCriticalFollowUps', ex); }
         }
 
         for (Invoice inv : invs) {
@@ -462,7 +464,7 @@ public with sharing class RLM_CollectionsDashboardController {
         List<Invoice> invs = new List<Invoice>();
         try {
             invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
-        } catch (Exception e) { return; }
+        } catch (Exception e) { sectionSkipped('buildHighValueDelinquents', e); return; }
         addHighValueDelinquents(wl, invs, invAccountField, Date.today());
     }
 
@@ -502,7 +504,7 @@ public with sharing class RLM_CollectionsDashboardController {
                         accountToCollectionPlan.put(cp.AccountId, cp.Id);
                     }
                 }
-            } catch (Exception ex) { }
+            } catch (Exception ex) { probeSkipped('addHighValueDelinquents', ex); }
         }
         for (Id accId : qualifiedAccounts) {
             WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
@@ -517,7 +519,7 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             if (!Schema.SObjectType.Invoice.fields.getMap().containsKey('Status')) return '';
             return ' AND (Status = null OR Status NOT IN (\'Paid\', \'Closed\', \'Canceled\')) ';
-        } catch (Exception e) { return ''; }
+        } catch (Exception e) { probeSkipped('getInvoiceNotFullySettledStatusFilter', e); return ''; }
     }
 
     private static void buildDisputedFromCases(WorklistData wl, String invAccountField, Boolean filterAccount, Id accountId) {
@@ -542,7 +544,7 @@ public with sharing class RLM_CollectionsDashboardController {
                     String reason = '';
                     if (String.isNotBlank(c.Subject)) reason = c.Subject;
                     if (String.isNotBlank(c.Description)) reason += (String.isNotBlank(reason) ? ' – ' : '') + (c.Description.length() > 200 ? c.Description.substring(0, 200) + '...' : c.Description);
-                    try { if (c.get('Reason') != null) reason += (String.isNotBlank(reason) ? ' [' : '') + String.valueOf(c.get('Reason')) + (String.isNotBlank(reason) ? ']' : ''); } catch (Exception e) { }
+                    try { if (c.get('Reason') != null) reason += (String.isNotBlank(reason) ? ' [' : '') + String.valueOf(c.get('Reason')) + (String.isNotBlank(reason) ? ']' : ''); } catch (Exception e) { probeSkipped('buildDisputedFromCases', e); }
                     accountDisputeReason.put(c.AccountId, String.isNotBlank(reason) ? reason : 'Open case');
                 }
             }
@@ -550,6 +552,10 @@ public with sharing class RLM_CollectionsDashboardController {
             Map<Id, String> accountNames = getAccountNames(disputedAccountIds);
             Date today = Date.today();
 
+            // Accepted gap (pack 445): when the Invoice read is refused the whole disputed section is
+            // dropped by the caller's isolation catch. A row without its invoice rollup would carry a
+            // zero balance and no days overdue, which reads as a real "nothing owed", and a user who
+            // cannot read Invoice has no balances to work from in any other worklist section either.
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
@@ -590,7 +596,7 @@ public with sharing class RLM_CollectionsDashboardController {
                             if (existing == null || (d != null && d > existing)) accountPtpDate.put(accId, d);
                         }
                     }
-                } catch (Exception e) { }
+                } catch (Exception e) { probeSkipped('buildDisputedFromCases', e); }
             }
 
             for (Id accId : disputedAccountIds) {
@@ -602,20 +608,28 @@ public with sharing class RLM_CollectionsDashboardController {
                 item.caseNumber = accountCaseNumber.get(accId);
                 wl.disputedInvoices.add(item);
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); }
     }
 
+    // Every catch (Exception) in this class is one of two kinds, named by the helper it calls:
+    //  - probeSkipped: guards an optional-schema probe (an object or field that exists only in some
+    //    orgs or editions, such as CollectionPlan, PaymentSchedule, CurrencyType or Case.Reason). The
+    //    feature being absent is the normal case, so the section simply has less to show.
+    //  - sectionSkipped: isolates one dashboard section so the others still load; a refused or failed
+    //    read leaves that section empty. The detail goes to the debug log, never to the user.
+    // Neither throws and neither puts platform exception text in a response.
+    private static void probeSkipped(String context, Exception e) {
+        System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (optional schema absent): ' + e.getMessage());
+    }
+
+    private static void sectionSkipped(String context, Exception e) {
+        System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.' + context + ' skipped: ' + e.getTypeName() + ': ' + e.getMessage());
+    }
+
+    // A refused Account read leaves the rows listed without a name (see RLM_AccountNames), not
+    // dropped by the caller's catch.
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
-        Map<Id, String> m = new Map<Id, String>();
-        if (accountIds == null || accountIds.isEmpty()) return m;
-        // A refused Account read (no object access) must not abort the caller: the rows are still
-        // listed, just without a name, instead of the whole section being dropped by the caller's catch.
-        try {
-            for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
-        } catch (QueryException e) {
-            System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.getAccountNames: ' + e.getMessage());
-        }
-        return m;
+        return RLM_AccountNames.forIds(accountIds);
     }
 
     public class WorklistItem implements Comparable {
@@ -631,13 +645,13 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id caseId { get; set; }
         @AuraEnabled public String caseNumber { get; set; }
         public WorklistItem(Id accId, String name, Decimal bal, Integer days, String seg) {
-            accountId = accId; accountName = name; balance = bal; daysOverdue = days; segment = seg; healthScore = 'amber'; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
+            accountId = accId; accountName = name != null ? name : '—'; balance = bal; daysOverdue = days; segment = seg; healthScore = 'amber'; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
         }
         public WorklistItem(Id accId, String name, Decimal bal, Integer days, String seg, String health) {
-            accountId = accId; accountName = name; balance = bal; daysOverdue = days; segment = seg; healthScore = health; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
+            accountId = accId; accountName = name != null ? name : '—'; balance = bal; daysOverdue = days; segment = seg; healthScore = health; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
         }
         public WorklistItem(Id accId, String name, Decimal bal, Integer days, String seg, String health, Date ptp, String disputeReasonStr) {
-            accountId = accId; accountName = name; balance = bal; daysOverdue = days; segment = seg; healthScore = health; ptpDate = ptp; disputeReason = disputeReasonStr; collectionPlanId = null; caseId = null; caseNumber = null;
+            accountId = accId; accountName = name != null ? name : '—'; balance = bal; daysOverdue = days; segment = seg; healthScore = health; ptpDate = ptp; disputeReason = disputeReasonStr; collectionPlanId = null; caseId = null; caseNumber = null;
         }
         public Integer compareTo(Object o) {
             WorklistItem other = (WorklistItem) o;
@@ -680,21 +694,21 @@ public with sharing class RLM_CollectionsDashboardController {
     private static Boolean invoiceHasCurrencyField() {
         try {
             return Schema.SObjectType.Invoice.fields.getMap().containsKey('CurrencyIsoCode');
-        } catch (Exception e) { return false; }
+        } catch (Exception e) { probeSkipped('invoiceHasCurrencyField', e); return false; }
     }
 
     private static Boolean paymentScheduleItemHasCurrencyField() {
         try {
             if (!Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) return false;
             return Schema.getGlobalDescribe().get('PaymentScheduleItem').getDescribe().fields.getMap().containsKey('CurrencyIsoCode');
-        } catch (Exception e) { return false; }
+        } catch (Exception e) { probeSkipped('paymentScheduleItemHasCurrencyField', e); return false; }
     }
 
     private static String getPaymentAccountFieldName() {
         try {
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('PaymentAccountId')) return 'PaymentAccountId';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('AccountId')) return 'AccountId';
-        } catch (Exception e) { }
+        } catch (Exception e) { probeSkipped('getPaymentAccountFieldName', e); }
         return null;
     }
 
@@ -712,7 +726,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); }
         return sum;
     }
 
@@ -732,7 +746,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumAmt') != null) sum = (Decimal) ar[0].get('sumAmt');
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); }
         return sum;
     }
 
@@ -750,7 +764,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); }
         return sum;
     }
 
@@ -766,7 +780,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('cnt') != null) cnt = (Integer) ar[0].get('cnt');
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); }
         return cnt;
     }
 
@@ -839,7 +853,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 String accountName = accountId != null ? planAccountNames.get(accountId) : null;
                 items.add(new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal));
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getMyCollectionPlans', e); }
         return items;
     }
 
@@ -887,7 +901,7 @@ public with sharing class RLM_CollectionsDashboardController {
             result.notRecoveredPercent = totalCount > 0 ? (Decimal) (totalCount - recoveredCount) * 100 / totalCount : 0;
             result.avgDaysToClose = closedWithDatesCount > 0 ? (totalDaysToClose / closedWithDatesCount).setScale(1) : 0;
             result.avgDaysPastDue = daysPastDueCount > 0 ? (totalDaysPastDue / daysPastDueCount).setScale(1) : 0;
-        } catch (Exception e) { }
+        } catch (Exception e) { sectionSkipped('getCollectionsProgress', e); }
         return result;
     }
 

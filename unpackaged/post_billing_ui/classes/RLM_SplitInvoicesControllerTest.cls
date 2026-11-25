@@ -130,6 +130,36 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual('3', row.billingArrangementVerNumber, 'The version number is shown as text.');
     }
 
+    // The account name is filled in from a separate read: present for a user who can read Account,
+    // blank (rows kept) for one who cannot.
+    @isTest
+    static void applyAccountNames_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = new Account(Name = 'RLM Split Named');
+        insert acc;
+        List<RLM_SplitInvoicesController.InvoiceRow> forAdmin = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+                'Id' => fakeId('Invoice', 3), 'BillingAccountId' => acc.Id })) };
+        List<RLM_SplitInvoicesController.InvoiceRow> forNoAccess = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+                'Id' => fakeId('Invoice', 4), 'BillingAccountId' => acc.Id })) };
+
+        Test.startTest();
+        RLM_SplitInvoicesController.applyAccountNames(forAdmin);
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            RLM_SplitInvoicesController.applyAccountNames(forNoAccess);
+        }
+        Test.stopTest();
+
+        Assert.areEqual('RLM Split Named', forAdmin[0].billingAccountName, 'A reader gets the name.');
+        Assert.areEqual(1, forNoAccess.size(), 'The row is kept.');
+        Assert.areEqual(String.valueOf(acc.Id), forNoAccess[0].billingAccountId, 'The row still carries its account id.');
+        Assert.isNull(forNoAccess[0].billingAccountName, 'The name is blank, not a raw exception.');
+    }
+
     // An invoice with no lookups set leaves every id and name null rather than failing.
     @isTest
     static void invoiceRow_withoutLookups_leavesIdsAndNamesNull() {

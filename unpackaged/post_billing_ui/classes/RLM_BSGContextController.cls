@@ -599,14 +599,21 @@ public with sharing class RLM_BSGContextController {
         ad.status = ba.Status;
 
         ad.lines = new List<ArrangementLineData>();
-        addArrangementLines(ad.lines, [
-            SELECT Id, BillingArrangementLineName, Account.Name,
+        // Account names are read apart from the lines: an Account.Name relationship in this query
+        // would fail it, and drop every line, for a user who cannot read Account.
+        List<BillingArrangementLine> arrangementLines = [
+            SELECT Id, BillingArrangementLineName, AccountId,
                    BillingAccountId, BillingPercentage, ShouldBillRemainder
             FROM BillingArrangementLine
             WHERE BillingArrangementId = :arrangementId
             WITH USER_MODE
             ORDER BY BillingPercentage DESC
-        ]);
+        ];
+        Set<Id> accountIds = new Set<Id>();
+        for (BillingArrangementLine bal : arrangementLines) {
+            if (bal.AccountId != null) accountIds.add(bal.AccountId);
+        }
+        addArrangementLines(ad.lines, arrangementLines, RLM_AccountNames.forIds(accountIds));
 
         return ad;
     }
@@ -614,12 +621,12 @@ public with sharing class RLM_BSGContextController {
     // One row per queried arrangement line, in query order. Takes rows so a test can pass lines,
     // which need a fully set-up billing account to insert.
     @TestVisible
-    private static void addArrangementLines(List<ArrangementLineData> target, List<BillingArrangementLine> lines) {
+    private static void addArrangementLines(List<ArrangementLineData> target, List<BillingArrangementLine> lines, Map<Id, String> accountNames) {
         for (BillingArrangementLine bal : lines) {
             ArrangementLineData ald = new ArrangementLineData();
             ald.lineId = bal.Id;
             ald.lineName = bal.BillingArrangementLineName;
-            ald.accountName = bal.Account.Name;
+            ald.accountName = bal.AccountId != null ? accountNames.get(bal.AccountId) : null;
             ald.billingPercentage = bal.BillingPercentage;
             ald.shouldBillRemainder = bal.ShouldBillRemainder;
             target.add(ald);

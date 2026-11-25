@@ -828,7 +828,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
         Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
-        Assert.isNull(wl.highValueDelinquents[0].accountName, 'The name is blank, not a raw exception.');
+        Assert.areEqual(NO_VALUE, wl.highValueDelinquents[0].accountName, 'The name shows a dash, not a raw exception.');
     }
 
     @isTest
@@ -852,7 +852,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, lastResort.highValueDelinquents.size(), 'The last-resort row is kept.');
-        Assert.isNull(lastResort.highValueDelinquents[0].accountName, 'Its name is blank.');
+        Assert.areEqual(NO_VALUE, lastResort.highValueDelinquents[0].accountName, 'Its name shows a dash.');
         Assert.areEqual(1, critical.criticalFollowUpInvoices.size(), 'The critical follow-up row is kept.');
         Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'Its name shows a dash.');
     }

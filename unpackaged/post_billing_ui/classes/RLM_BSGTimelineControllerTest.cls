@@ -179,9 +179,11 @@ private class RLM_BSGTimelineControllerTest {
     static void dataFor_mapsTheGroupsFields() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         Date start = Date.newInstance(2026, 1, 1);
+        Account acc = new Account(Name = 'Acme Billing');
+        insert acc;
         BillingScheduleGroup bsg = (BillingScheduleGroup) row('BillingScheduleGroup', new Map<String, Object>{
             'Id' => groupId, 'BillingScheduleGroupNumber' => 'BSG-0001', 'ProductName' => 'Data Plan',
-            'BillingAccount' => new Map<String, Object>{ 'Name' => 'Acme Billing' },
+            'BillingAccountId' => acc.Id,
             'TotalBilledAmount' => 100, 'TotalPendingAmount' => 50, 'BillingTerm' => 3,
             'BillingTermUnit' => 'Month', 'BillDayOfMonth' => 15, 'StartDate' => start,
             'EndDate' => start.addYears(1), 'CancellationDate' => start.addMonths(6) });
@@ -203,6 +205,25 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(start.addYears(1), data.endDate, 'The end date is shown');
         Assert.areEqual(start.addMonths(6), data.cancellationDate, 'The cancellation date is shown');
         Assert.isTrue(data.billingSchedules.isEmpty(), 'No schedules were found');
+    }
+
+    // A user who cannot read Account gets a blank name, not an exception, so the group still shows.
+    @isTest
+    static void accountNameOf_forAUserWhoCannotReadAccounts_isBlank() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = new Account(Name = 'Acme Hidden');
+        insert acc;
+        String name = 'unset';
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            name = RLM_BSGTimelineController.accountNameOf(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isNull(name, 'The name is blank, not a raw exception.');
+        Assert.areEqual('Acme Hidden', RLM_BSGTimelineController.accountNameOf(acc.Id), 'An admin still gets the name.');
     }
 
     // Suspension and resumption dates are taken when set and left blank otherwise.
