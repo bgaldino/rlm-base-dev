@@ -630,7 +630,41 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
         System.assertEquals(false, out.isSuccess, 'should fail');
-        System.assert(out.errorMessage.contains('Invalid'), 'error: ' + out.errorMessage);
+        // The JSON parser's own text (character and position) stays in the debug log.
+        System.assertEquals('Invalid field updates JSON. Send a list of '
+            + '{"fieldApiName": "...", "value": "..."} entries.', out.errorMessage);
+    }
+
+    private static List<Database.Error> saveErrors(String json) {
+        return (List<Database.Error>) System.JSON.deserialize(json, List<Database.Error>.class);
+    }
+
+    // A validation rule's message (or a trigger's addError text; the platform gives both this
+    // status) is shown as written.
+    @isTest
+    static void summarizeErrorsShowsAValidationMessage() {
+        System.assertEquals('End date must follow the start date.',
+            RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
+                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION",'
+                + '"message":"End date must follow the start date.","fields":[]}]')));
+    }
+
+    // Any other save error carries platform detail (here a record id), so it becomes the fixed
+    // sentence; a validation message next to it is still shown. An empty list gets the sentence.
+    @isTest
+    static void summarizeErrorsHidesSaveErrorsThatAreNotValidationMessages() {
+        String fixed = RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE;
+        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
+            '[{"statusCode":"DUPLICATE_VALUE",'
+            + '"message":"duplicate value found: Code__c duplicates value on record with id: 0QLxx0000000001",'
+            + '"fields":["Code__c"]}]')));
+        System.assertEquals('Too many units. ' + fixed,
+            RLM_AI_UpdateRecordFieldsService.summarizeErrors(saveErrors(
+                '[{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION","message":"Too many units.","fields":[]},'
+                + '{"statusCode":"CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY",'
+                + '"message":"MyTrigger: execution of AfterUpdate caused by: line 12","fields":[]}]')));
+        System.assertEquals(fixed,
+            RLM_AI_UpdateRecordFieldsService.summarizeErrors(new List<Database.Error>()));
     }
 
     // ---- Bulk applyToAll across many lines (no per-request cap) ----
