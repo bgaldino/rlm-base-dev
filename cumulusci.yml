@@ -1650,7 +1650,7 @@ tasks:
       (field access, read on the objects the Billing UI controllers query, Apex class access,
       RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
       attribute query). Flexipages and the Billing Console app for billing_ui are not in
-      this bundle; assemble_and_deploy_ux deploys them from templates/ (billing_ui feature flag).
+      this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_billing_ui
@@ -1803,10 +1803,10 @@ tasks:
     description: >
       Deploy Collections metadata from unpackaged/post_collections (classes,
       decisionMatrixDefinition, flows, omniUiCard, permissionsets, queues,
-      quickActions, standardValueSets, timelineObjectDefinitions). Flexipages and
-      applications for collections are not in this bundle; the prepare_ux flow's
-      assemble_and_deploy_ux deploys them from templates/flexipages/standalone/collections and
-      templates/applications/conditional/collections. The RLM_Create_Case_for_Collection flow is NOT here —
+      quickActions, standardValueSets, timelineObjectDefinitions). Flexipages,
+      applications and list views for collections are not in this bundle;
+      assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (collections
+      feature flag). The RLM_Create_Case_for_Collection flow is NOT here —
       it lives in unpackaged/post_collections_case_flow and is deployed by
       deploy_collections_case_flow AFTER seed_collections_case_matrix activates the
       decision matrix it invokes.
