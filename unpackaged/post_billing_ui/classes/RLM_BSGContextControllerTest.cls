@@ -530,7 +530,7 @@ private class RLM_BSGContextControllerTest {
         Assert.isFalse(target[1].shouldBillRemainder, 'Each line keeps its own flag');
     }
 
-    // A user who cannot read Account gets no names back; the lines are still listed, without one.
+    // A user who cannot read Account gets no names back; the lines are still listed, with a dash.
     @isTest
     static void addArrangementLines_forAUserWhoCannotReadAccounts_keepsLinesWithoutNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());

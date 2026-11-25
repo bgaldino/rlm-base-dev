@@ -85,8 +85,8 @@ public with sharing class RLM_SplitInvoicesController {
         }
         Map<Id, String> names = RLM_AccountNames.forIds(accountIds);
         for (InvoiceRow row : rows) {
-            if (String.isBlank(row.billingAccountId)) continue;
-            row.billingAccountName = names.containsKey((Id) row.billingAccountId) ? names.get((Id) row.billingAccountId) : '—';
+            row.billingAccountName = String.isNotBlank(row.billingAccountId) && names.containsKey((Id) row.billingAccountId)
+                ? names.get((Id) row.billingAccountId) : '—';
         }
     }
 
@@ -121,7 +121,7 @@ public with sharing class RLM_SplitInvoicesController {
             }
         } catch (Exception e) {
             // A refused or failed read for one object type (including Account) returns what was
-            // resolved so far, so the other types still fill in; the caller shows blanks.
+            // resolved so far, so the other types still fill in; the caller shows dashes.
             return idToName;
         }
         return idToName;

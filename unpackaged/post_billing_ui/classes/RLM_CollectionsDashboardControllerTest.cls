@@ -14,7 +14,7 @@
  * worklist builders keep their rows without account names. The specialist
  * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
  * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
- * list cannot show a refusal. getMyCollectionPlans keeping plans without names when Account is
+ * list cannot show a refusal. getMyCollectionPlans keeping plans with a dash for the name when Account is
  * refused needs a user who owns a plan but cannot read Account, so it is verified live only.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
@@ -805,7 +805,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
-    // A user who cannot read Account still gets the rows (without a name) rather than the caller's
+    // A user who cannot read Account still gets the rows (with a dash for the name) rather than the caller's
     // catch dropping the whole section; the last-resort and critical follow-up builders share the
     // lookup.
     @isTest

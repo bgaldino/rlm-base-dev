@@ -628,7 +628,7 @@ public with sharing class RLM_CollectionsDashboardController {
         System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.' + context + ' skipped: ' + e.getTypeName() + ': ' + e.getMessage());
     }
 
-    // A refused Account read leaves the rows listed without a name (see RLM_AccountNames), not
+    // A refused Account read leaves the rows listed with a dash for the name (see RLM_AccountNames), not
     // dropped by the caller's catch.
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
         return RLM_AccountNames.forIds(accountIds);
@@ -840,7 +840,7 @@ public with sharing class RLM_CollectionsDashboardController {
             String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC LIMIT 50';
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
             // Names come from getAccountNames, not an Account.Name relationship in the plan query: a
-            // refused Account read then leaves the plans listed without a name instead of dropping them.
+            // refused Account read then leaves the plans listed with a dash for the name instead of dropping them.
             Set<Id> planAccountIds = new Set<Id>();
             for (SObject cp : plans) {
                 if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));

@@ -130,7 +130,7 @@ private class RLM_SplitInvoicesControllerTest {
     }
 
     // The account name is filled in from a separate read: present for a user who can read Account,
-    // blank (rows kept) for one who cannot.
+    // a dash (rows kept) for one who cannot, and for a row with no account.
     @isTest
     static void applyAccountNames_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -155,6 +155,11 @@ private class RLM_SplitInvoicesControllerTest {
 
         Assert.areEqual('RLM Split Named', forAdmin[0].billingAccountName, 'A reader gets the name.');
         Assert.areEqual(1, forNoAccess.size(), 'The row is kept.');
+        List<RLM_SplitInvoicesController.InvoiceRow> noAccountRows = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' }, 'Id' => fakeId('Invoice', 5) })) };
+        RLM_SplitInvoicesController.applyAccountNames(noAccountRows);
+        Assert.areEqual('—', noAccountRows[0].billingAccountName, 'A row with no account also shows a dash.');
         Assert.areEqual(String.valueOf(acc.Id), forNoAccess[0].billingAccountId, 'The row still carries its account id.');
         Assert.areEqual('—', forNoAccess[0].billingAccountName, 'The name shows a dash, not a raw exception.');
     }

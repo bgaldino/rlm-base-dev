@@ -143,7 +143,7 @@ public with sharing class RLM_BSGTimelineController {
         data.groupNumber = bsg.BillingScheduleGroupNumber;
         data.productName = bsg.ProductName;
         // Read apart from the group: a BillingAccount.Name relationship in the group query would fail it,
-        // and show no group at all, for a user who cannot read Account. A refused read leaves it blank.
+        // and show no group at all, for a user who cannot read Account. A refused read leaves a dash.
         data.accountName = accountNameOf(bsg.BillingAccountId);
         data.currencyCode = bsg.CurrencyIsoCode;
         data.totalBilledAmount = bsg.TotalBilledAmount;
