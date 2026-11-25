@@ -113,7 +113,7 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   Defined or an Evergreen child was accepted once each product had the selling model option. A
   row with both models blank was also accepted. Being accepted on insert does not show that a
   mismatched pair is valid.
-- **A mismatched pair priced, and a `configure` call returned success with no message.** A separate active static
+- **A static bundle with two mismatched pairs priced, and a `configure` call returned success with no message.** A separate active static
   bundle (Evergreen Monthly), built for this check rather than reused from the insert tests,
   with two rows, Evergreen parent with a One Time child and Evergreen parent
   with a Term Annual child (each child's only option), was placed on a test quote with only the
