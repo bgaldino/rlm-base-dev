@@ -23,6 +23,11 @@ import re
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from scripts.doc_snapshot._core import attribution_state  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_GLOB = "docs/salesforce/{release}/help/articles/*.md"
 
@@ -79,8 +84,38 @@ def find_artifacts(paths):
     return findings
 
 
+def find_missing_footers(paths):
+    """``(path, source_url)`` of each article with frontmatter and a source_url but no
+    attribution footer; the same test as the backfill (``_core.attribution_state``)."""
+    out = []
+    for path in paths:
+        try:
+            state, url = attribution_state(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError):
+            continue
+        if state == "missing":
+            out.append((path, url))
+    return out
+
+
 def scan(release=None):
-    """Scan one release's Help corpus (or every release's); returns 0."""
+    """Scan one release's Help corpus (or every release's); returns 1 when an article of the
+    named release lacks the attribution footer, else 0."""
+    # Only for a named release: frozen snapshots (e.g. 262) predate the footer and are left as-is.
+    missing = (find_missing_footers(sorted(REPO_ROOT.glob(ALL_CORPORA_GLOB.format(release=release))))
+               if release else [])
+    if not release:
+        print("Footer check skipped: pass --release R (frozen older snapshots predate the footer).\n")
+    if missing:
+        print(f"{len(missing)} article(s) without the source-attribution footer:")
+        for path, _ in missing:
+            print(f"  {path.relative_to(REPO_ROOT)}")
+        print("  Run `python -m scripts.doc_snapshot backfill-attribution --release R`.\n")
+    rc = _scan_help(release)
+    return 1 if missing else rc
+
+
+def _scan_help(release):
     corpus_glob = CORPUS_GLOB.format(release=release or "*")
     paths = sorted(REPO_ROOT.glob(corpus_glob))
 

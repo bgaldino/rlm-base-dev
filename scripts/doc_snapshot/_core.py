@@ -363,41 +363,73 @@ def attribution_note(source_url: str, content: str) -> str:
 _SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
 
 
-def backfill_attribution(articles: Path) -> List[str]:
+def attribution_state(text: str) -> Tuple[str, str]:
+    """Classify a captured article's footer: ``(state, source_url)``.
+
+    ``state`` is "ok" (footer present), "missing" (frontmatter with a source_url, no
+    footer), "no-frontmatter" or "no-source_url" (nothing to build a footer from).
+    The one definition the backfill and ``check`` share.
+    """
+    if not text.startswith("---\n"):
+        return "no-frontmatter", ""
+    if "> **Source attribution" in text:
+        return "ok", ""
+    end = text.find("\n---\n", 4)
+    m = _SOURCE_URL_LINE.search(text[:end]) if end > 0 else None
+    if not m:
+        return "no-source_url", ""
+    return "missing", m.group(1).strip("'\"")
+
+
+def scan_attribution(articles: Path) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    """``(missing, skipped)`` for ``articles/*.md``: ``(file name, source_url)`` of every
+    article lacking the footer, and ``(file name, reason)`` of every file that cannot be
+    judged (unreadable, no frontmatter, no source_url). A missing directory is empty."""
+    missing: List[Tuple[str, str]] = []
+    skipped: List[Tuple[str, str]] = []
+    if not articles.is_dir():
+        return missing, skipped
+    for f in sorted(articles.glob("*.md")):
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            skipped.append((f.name, f"unreadable: {exc.__class__.__name__}"))
+            continue
+        state, url = attribution_state(text)
+        if state == "missing":
+            missing.append((f.name, url))
+        elif state != "ok":
+            skipped.append((f.name, state))
+    return missing, skipped
+
+
+def backfill_attribution(articles: Path) -> Tuple[List[str], List[Tuple[str, str]]]:
     """Append the attribution footer to captured articles that lack it.
 
     Retained atlas articles (a page the site move did not replace) were captured
     before the footer existed, and a refresh never rewrites them. Every ``*.md``
-    in ``articles`` whose frontmatter has a ``source_url`` and whose text has no
-    footer gets ``attribution_note`` appended, labelled by the source host
-    ("Salesforce Help content" for help.salesforce.com, else "Salesforce developer
-    documentation"). Idempotent; ``index.md`` lives outside ``articles`` and is
-    never touched. Returns the names of the files changed. An unreadable or
-    unwritable file is skipped.
+    in ``articles`` that ``scan_attribution`` reports missing gets ``attribution_note``
+    appended, labelled by the source host ("Salesforce Help content" for
+    help.salesforce.com, else "Salesforce developer documentation"). Idempotent;
+    ``index.md`` lives outside ``articles`` and is never touched.
+
+    Returns ``(changed, skipped)``: the names changed, and ``(name, reason)`` for each
+    file left alone (no frontmatter or source_url, unreadable, or "not writable: ...").
     """
+    missing, skipped = scan_attribution(articles)
     changed: List[str] = []
-    if not articles.is_dir():
-        return changed
-    for f in sorted(articles.glob("*.md")):
-        try:
-            text = f.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            continue
-        if not text.startswith("---\n") or "> **Source attribution" in text:
-            continue
-        end = text.find("\n---\n", 4)
-        m = _SOURCE_URL_LINE.search(text[:end]) if end > 0 else None
-        if not m:
-            continue
-        url = m.group(1).strip("'\"")
+    for name, url in missing:
         label = ("Salesforce Help content" if "help.salesforce.com" in url
                  else "Salesforce developer documentation")
+        f = articles / name
         try:
+            text = f.read_text(encoding="utf-8")
             f.write_text(text.rstrip() + "\n\n" + attribution_note(url, label) + "\n", encoding="utf-8")
-        except OSError:
+        except (OSError, UnicodeDecodeError) as exc:
+            skipped.append((name, f"not writable: {exc.__class__.__name__}"))
             continue
-        changed.append(f.name)
-    return changed
+        changed.append(name)
+    return changed, skipped
 
 
 def log_done(logger, stats: Dict[str, Any], manifest_path: Path) -> None:

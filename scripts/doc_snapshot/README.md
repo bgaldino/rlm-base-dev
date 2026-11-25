@@ -74,8 +74,8 @@ flags.
 | `help --release R --area A` | Snapshot one or more Help areas. |
 | `dev-guide --release R --guide G` | Snapshot one or more developer guides. |
 | `run --release R [--only k1,k2]` | Snapshot every preset of a release, Help and dev guide alike. |
-| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus, and for `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). |
-| `backfill-attribution --release R` | Offline, no network: append the source-attribution footer to every captured article under `docs/salesforce/R/*/articles` that lacks it (retained atlas articles predate it). Idempotent; `index.md` is untouched. A site-guide run also does this for its own retained articles. |
+| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus, and for `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). With `--release R` it also lists every article lacking the source-attribution footer and exits 1 (fix with `backfill-attribution`). |
+| `backfill-attribution --release R` | Offline, no network: append the source-attribution footer to every captured article under `docs/salesforce/R/*/articles` that lacks it (retained atlas articles predate it). Idempotent; `index.md` is untouched. Files it cannot judge are printed as skipped; an unreadable or unwritable one makes it exit 1. A site-guide run also does this for its own retained articles. |
 | `bootstrap --from R --to NEW --release-name N` | Add a release to `presets.yaml` by copying an existing one. |
 
 `--area` and `--guide` take a preset key, a comma-separated list of keys, or

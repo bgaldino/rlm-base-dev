@@ -10,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from scripts.doc_snapshot import guard  # noqa: E402
+from scripts.doc_snapshot import check as check_mod, cli, guard  # noqa: E402
 from scripts.doc_snapshot._core import attribution_note, backfill_attribution  # noqa: E402
 
 _passed = _total = 0
@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (out / "index.md").write_text("# Index\n", encoding="utf-8")
 
     before = (arts / "a.htm.md").read_text(encoding="utf-8")
-    changed = backfill_attribution(arts)
+    changed, skipped = backfill_attribution(arts)
     got = (arts / "a.htm.md").read_text(encoding="utf-8")
     check("footer appended to a retained article", sorted(changed) == ["a.htm.md", "h.md"])
     check("footer is exactly attribution_note, last, after the body",
@@ -56,9 +56,66 @@ with tempfile.TemporaryDirectory() as tmp:
           (arts / "nofm.md").read_text(encoding="utf-8") == "# no frontmatter\n")
     check("index.md is untouched", (out / "index.md").read_text(encoding="utf-8") == "# Index\n")
     check("rerun adds nothing and never duplicates",
-          backfill_attribution(arts) == []
+          backfill_attribution(arts)[0] == []
           and (arts / "a.htm.md").read_text(encoding="utf-8").count("Source attribution") == 1)
-    check("a missing directory is a no-op", backfill_attribution(out / "nope") == [])
+    check("a missing directory is a no-op", backfill_attribution(out / "nope") == ([], []))
+
+    check("a file without frontmatter is reported skipped, with a reason",
+          skipped == [("nofm.md", "no-frontmatter")])
+
+# check: flags a missing footer, passes a footer, ignores index.md (scan runs against a fake repo root)
+import contextlib, io  # noqa: E402
+
+
+def run_scan(root, fn):
+    old = check_mod.REPO_ROOT
+    check_mod.REPO_ROOT = root
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            rc = fn()
+    finally:
+        check_mod.REPO_ROOT = old
+    return rc, buf.getvalue()
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+    arts.mkdir(parents=True)
+    (arts / "good.md").write_text(FM + BODY + "\n" + attribution_note(URL, "x") + "\n", encoding="utf-8")
+    (arts.parent / "index.md").write_text(FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("check passes (0) when every article has a footer and index.md has none", rc == 0 and "index.md" not in out)
+    (arts / "bad.md").write_text(FM + BODY, encoding="utf-8")
+    rc, out = run_scan(root, lambda: check_mod.scan("999"))
+    check("check flags an article with no footer and returns non-zero",
+          rc == 1 and "bad.md" in out and "good.md" not in out and "index.md" not in out)
+    changed, _ = backfill_attribution(arts)
+    rc, _ = run_scan(root, lambda: check_mod.scan("999"))
+    check("check agrees with the backfill: clean after it", changed == ["bad.md"] and rc == 0)
+
+# skips are recorded; unwritable is a failure, no source_url is not
+with tempfile.TemporaryDirectory() as tmp:
+    arts = Path(tmp) / "articles"
+    arts.mkdir()
+    (arts / "nosrc.md").write_text("---\ntitle: T\n---\n\nbody\n", encoding="utf-8")
+    (arts / "bin.md").write_bytes(b"\xff\xfe\x00bad")
+    ch, sk = backfill_attribution(arts)
+    check("no source_url and unreadable files are listed as skipped, not changed",
+          ch == [] and dict(sk) == {"nosrc.md": "no-source_url", "bin.md": "unreadable: UnicodeDecodeError"})
+
+# backfill-attribution exit code: unreadable fails, no source_url does not
+for bad_name, content, want in (("nosrc.md", "---\ntitle: T\n---\n\nbody\n", 0), ("bin.md", b"\xff\xfe\x00bad", 1)):
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        arts = root / "docs" / "salesforce" / "999" / "g" / "articles"
+        arts.mkdir(parents=True)
+        f = arts / bad_name
+        f.write_bytes(content if isinstance(content, bytes) else content.encode())
+        ns = type("A", (), {"release": "999"})()
+        rc, out = run_scan(root, lambda: cli.cmd_backfill_attribution(ns, {}, None))
+        check(f"backfill-attribution exit {want} and prints the skipped {bad_name}", rc == want and bad_name in out)
 
 print(f"\n{_passed}/{_total} passed")
 sys.exit(0 if _passed == _total else 1)
