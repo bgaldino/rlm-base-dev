@@ -1364,7 +1364,7 @@ def fetch_invoice_lines_for_settlement(
 
 
 def order_invoice_lines(lines: list[dict], preferred_ids: list[str]) -> list[dict]:
-    """Order lines by ``preferred_ids`` (the ingest order), the rest by Id."""
+    """Order lines by ``preferred_ids`` (record-Id order from the ingest), the rest by Id."""
     pos = {lid: i for i, lid in enumerate(preferred_ids)}
     return sorted(lines, key=lambda r: (pos.get(r["Id"], len(pos)), r["Id"]))
 

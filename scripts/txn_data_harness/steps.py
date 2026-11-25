@@ -919,7 +919,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             # Submitted earlier, outcome unknown, and still no memo: there is
             # nothing to poll for Posted; say so instead of waiting on it.
             raise _unknown_outcome(
-                "credit", "an earlier POST", ctx, manifest, lifecycle.credit_tag(ctx.run_id)
+                "credit", "it was sent earlier", ctx, manifest, lifecycle.credit_tag(ctx.run_id)
             )
         if memo is None:
             strategy = spec.credit.tax_strategy
