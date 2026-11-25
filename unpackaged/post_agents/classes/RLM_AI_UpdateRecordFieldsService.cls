@@ -872,8 +872,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
     // FIELD_CUSTOM_VALIDATION_EXCEPTION is the status the platform gives both a validation rule's
     // message and a trigger's addError text, which is written to be read by the person saving the
-    // record, so it is shown as written (the same status rule as RLM_UsageUploaderController; a
-    // DmlException gives each failed row one error here, and a row that repeats keeps its first).
+    // record, so it is shown as written (the same status rule as RLM_UsageUploaderController).
+    // The caller reports a row with several errors once, with its first.
     // Every other save error becomes ROW_SAVE_FAILED_MESSAGE, with the detail in the debug log.
     @TestVisible
     private static String saveErrorText(StatusCode status, String message) {
