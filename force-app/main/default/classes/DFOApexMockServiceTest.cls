@@ -17,7 +17,7 @@ private class DFOApexMockServiceTest {
         Assert.isTrue(cred.getIsRequired(), 'The named credential is required');
         industriesintegrationfwk.ApexProviderAttr toggle = attrs[1];
         Assert.areEqual('Simulate_Failure', toggle.getDeveloperName(), 'The second attribute is the failure toggle');
-        Assert.areEqual('false', toggle.getDefaultValue(), 'The toggle defaults to false, so the step succeeds');
+        Assert.areEqual('false', toggle.getDefaultValue(), 'The toggle\'s declared default is false');
         Assert.areEqual('String', toggle.getDataType(), 'The toggle is a String attribute');
         Assert.isFalse(toggle.getIsRequired(), 'The toggle is optional');
     }
@@ -65,7 +65,7 @@ private class DFOApexMockServiceTest {
             Assert.isTrue(DFOApexMockService.simulateFailure(new Map<String, Object>{ 'Simulate_Failure' => value }),
                 'Read as on: ' + value);
         }
-        for (Object value : new List<Object>{ 'false', 'yes', '1', '', null, false, 1 }) {
+        for (Object value : new List<Object>{ 'false', 'untrue', 't', 'yes', '1', '', null, false, 1 }) {
             Assert.isFalse(DFOApexMockService.simulateFailure(new Map<String, Object>{ 'Simulate_Failure' => value }),
                 'Read as off: ' + value);
         }
