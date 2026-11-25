@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**276 tasks** across **9 groups**.
+**269 tasks** across **9 groups**.
 
 ---
 
@@ -873,7 +873,7 @@
 
 ## Revenue Lifecycle Management
 
-*180 task(s)*
+*176 task(s)*
 
 ### `activate_agents`
 
@@ -1706,18 +1706,6 @@
 
 ---
 
-### `deploy_decision_tables`
-
-**Description:** Deploy Decision Tables
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `force-app/main/default/decisionTables`
-
----
-
 ### `deploy_expression_sets`
 
 **Description:** Deploy Expression Sets
@@ -1753,18 +1741,6 @@
 **Options:**
 
 - `path`: `force-app/main/default/settings`
-
----
-
-### `deploy_permissions`
-
-**Description:** Deploy Permission Set Groups
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `force-app/main/default/permissionsetgroups`
 
 ---
 
@@ -2540,30 +2516,6 @@
 
 ---
 
-### `insert_qb_constraints_component_data`
-
-**Description:** Insert QuantumBit Constraints Product Related Component Data
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-constraints-component`
-
----
-
-### `insert_qb_constraints_product_data`
-
-**Description:** Insert QuantumBit Constraints Product Data
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-constraints-product`
-
----
-
 ### `insert_qb_dro_data`
 
 **Description:** Insert QuantumBit DRO Data (scratch and prod; AssignedTo resolved from target org)
@@ -3252,7 +3204,7 @@
 
 ## Uncategorized
 
-*26 task(s)*
+*23 task(s)*
 
 ### `create_partner_central`
 
@@ -3442,42 +3394,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_procedureplans`
-
----
-
-### `deploy_post_procedureplans_classes`
-
-**Description:** Deploy Procedure Plans Classes
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_procedureplans/classes`
-
----
-
-### `deploy_post_procedureplans_objects`
-
-**Description:** Deploy Procedure Plans Objects
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_procedureplans/objects`
-
----
-
-### `deploy_post_procedureplans_permissionsets`
-
-**Description:** Deploy Procedure Plans Permissionsets
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_procedureplans/permissionsets`
 
 ---
 
