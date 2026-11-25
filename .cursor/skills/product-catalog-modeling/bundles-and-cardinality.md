@@ -44,7 +44,7 @@ subscription that must renew or bill on its own model) is not settled by the rul
   No snapshot article says which selling model a static kit's Term Defined or Evergreen
   child is quoted on. Under an Evergreen root, Place quoted a Term Defined (Term Annual) child
   on the child selling model its component row set, which was the child's only option
-  ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
   Evergreen child, a row with no model or a child with several options, and whether the child
   then renews and bills on that model: **Open — needs live verification.**
 

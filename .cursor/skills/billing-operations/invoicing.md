@@ -149,7 +149,7 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   `ind.billing_invoices_email_prerequisites`].
 - Template authoring: `document-generation`.
 - **Fetching an invoice PDF through the API.** [Measured: 2026-10-15, 264, harness build, API 68.0;
-  repeated 2026-11-24, 264, fresh build]
+  repeated 2026-11-24, 264, fresh ent-sb0 scratch org]
   Re-measure on the release patch in hand; the endpoint and field names are those of that
   build.
   - Posting an invoice attached no PDF, even with invoice PDF generation enabled; generate it.
