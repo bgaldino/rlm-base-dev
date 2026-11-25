@@ -4,10 +4,10 @@
 > repository. Checked 2026-11-26 against `main`: there is no `setup_configurator_context`
 > task in `cumulusci.yml`, no `scripts/apex/setupConfiguratorContext.apex`, no `rlm-webapp/`
 > directory and no `rlmApi.js` or `ProductConfiguratorModal.jsx`. The earlier "Path 1
-> implemented" status referred to the portal web app on the `feat/rlm-portal` branch, which is
-> not part of this repository [inferred]. No `feat/rlm-portal` ref exists in this clone. Path 2 was never
-> built; its SObject name was never confirmed.
-> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (`rlm-webapp/` is not in this repository; no `feat/rlm-portal` ref exists in this clone, and the branch's location is unknown)
+> implemented" status referred, [inferred], to the portal web app on the `feat/rlm-portal`
+> branch. That branch is not in this repository: origin had no `feat/rlm-portal` ref on
+> 2026-11-26. Path 2 was never built; its SObject name was never confirmed.
+> **Relates to:** `feat/rlm-portal` branch, `rlm-webapp/` configurator modal (not in this repository; branch location unknown)
 > **Last updated:** 2026-03-21; status note 2026-11-26
 
 > **Read this before using the rest.** The 264 developer guide snapshot
