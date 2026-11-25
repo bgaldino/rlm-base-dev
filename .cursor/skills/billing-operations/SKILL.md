@@ -88,13 +88,15 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   `REQUIRED_FIELD_MISSING: shippingAddress` [Measured: 2026-11-26, 264, scratch]. The
   Billing UI's Create Billing Schedule Group modal sends the legal entity, the treatment
   (the legal entity's treatment in the charge currency for the chosen timing; one-time: see
-  `billing-setup`) and the shipping city, but no billing term (it has no input for one). Account sent: the account page the modal opened on when it
-  is the billing account's own or is linked to it through `AccountBillingAccount`; a page
-  account that is not found, unreadable, not linked (link deleted) or whose link read is
-  refused refuses create; with no page account, the billing account's own account, else its
-  oldest link (create refuses when it has neither). Shipping city: that account's shipping
-  city, else the billing city the caller submitted, which the modal reads from that same
-  account [Repo: `unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`].
+  [`billing-setup`](../billing-setup/SKILL.md#billing-policies-and-treatments)) and the
+  shipping city, but no billing term (it has no input for one). Account sent: the account
+  page the modal opened on when it is the billing account's own or is linked to it through
+  `AccountBillingAccount`; a page account that is not found, unreadable, not linked (link
+  deleted) or whose link read is refused refuses create; with no page account, the billing
+  account's own account, else its oldest link (create refuses when it has neither).
+  Shipping city: that account's shipping city, else the billing city the caller submitted,
+  which the modal reads from that same account [Repo:
+  `unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`].
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
   is designed for simple calculations and may not suit tax compliance needs; it calculates,
   and might round, at line level [Help: `ind.billing_standard_tax_rate`].

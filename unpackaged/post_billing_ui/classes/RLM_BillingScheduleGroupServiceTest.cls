@@ -1538,11 +1538,25 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
     }
 
-    // The legal entity read runs as the user. With no LegalEntity read it is refused and named; with
-    // read but no sharing on an entity the admin owns, it is refused as not visible where legal
-    // entities are private, and passes where sharing lets the user see it (both are real outcomes).
+    // Legal entities are private by default (measured on a 264 org). The hidden case of the legal
+    // entity read test relies on it: on another org-wide default that case is not checked, so this test
+    // fails there instead of letting that gap pass silently.
     @isTest
-    static void createViaAPI_legalEntityReadRefusedOrHidden_isRefused() {
+    static void legalEntitiesArePrivateByDefault() {
+        String sharingModel = [
+            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'LegalEntity'
+        ].InternalSharingModel;
+        Assert.areEqual('Private', sharingModel,
+            'The org-wide default for legal entities is ' + sharingModel + ', not Private: the legal '
+            + 'entity read test relies on it and does not check the hidden case here.');
+    }
+
+    // The legal entity read runs as the user, on an entity the admin owns. With no LegalEntity read it
+    // is refused and named. With read but no sharing it is refused as not visible where legal entities
+    // are private (else it passes; see legalEntitiesArePrivateByDefault). With view-all it passes and
+    // the call reaches the action.
+    @isTest
+    static void createViaAPI_legalEntityRead_refusedHiddenOrVisible() {
         Account a = new Account(Name = 'BSG LE Read Acct');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG LE Read BA', AccountId = a.Id);
@@ -1551,18 +1565,25 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>(),
             new List<String>{ 'BillingAccount', 'Account' },
-            new List<String>{ 'Account.BillingAddress' });
+            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress' });
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>{ 'LegalEntity' },
             new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status' });
+        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status' });
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
 
         AuraHandledException refused;
         AuraHandledException hidden;
-        Boolean visible;
+        Boolean visibleWithoutSharing;
+        String detailsWithoutSharing;
+        AuraHandledException viewAllError;
         Test.startTest();
         System.runAs(noRead) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM LegalEntity LIMIT 1'),
@@ -1574,11 +1595,20 @@ private class RLM_BillingScheduleGroupServiceTest {
             }
         }
         System.runAs(readNoSharing) {
-            visible = ![SELECT Id FROM LegalEntity WHERE Id = :args.legalEntityId WITH USER_MODE].isEmpty();
+            visibleWithoutSharing =
+                ![SELECT Id FROM LegalEntity WHERE Id = :args.legalEntityId WITH USER_MODE].isEmpty();
             try {
                 args.call();
             } catch (AuraHandledException e) {
                 hidden = e;
+            }
+            detailsWithoutSharing = RLM_BillingScheduleGroupService.lastTransactionDetails;
+        }
+        System.runAs(viewAll) {
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                viewAllError = e;
             }
         }
         Test.stopTest();
@@ -1586,16 +1616,21 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNotNull(refused, 'No LegalEntity read refuses create.');
         Assert.isTrue(refused.getMessage().contains('read the legal entity this screen needs'),
             'It names the legal entity read: ' + refused.getMessage());
-        if (visible) {
-            Assert.isNull(hidden, 'A legal entity the user can see passes the read: ' + hidden);
-            Assert.isNotNull(RLM_BillingScheduleGroupService.lastTransactionDetails,
-                'The visible-entity call reached the action.');
+        if (visibleWithoutSharing) {
+            Assert.isNull(hidden, 'A legal entity the user can see passes the read: '
+                + (hidden == null ? null : hidden.getMessage()));
+            Assert.isNotNull(detailsWithoutSharing, 'The visible-entity call reached the action.');
         } else {
             Assert.isNotNull(hidden, 'A legal entity hidden by sharing refuses create.');
             Assert.isTrue(hidden.getMessage().contains('not visible to you'),
                 'It says the legal entity is not visible: ' + hidden.getMessage());
-            Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+            Assert.isNull(detailsWithoutSharing, 'Nothing reached the action.');
         }
+        Assert.isNull(viewAllError, 'With view-all the legal entity read passes: '
+            + (viewAllError == null ? null : viewAllError.getMessage()));
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Assert.areEqual(String.valueOf(args.legalEntityId), txn.get('LegalEntityId__std'),
+            'The view-all call reached the action with the legal entity.');
     }
 
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only
