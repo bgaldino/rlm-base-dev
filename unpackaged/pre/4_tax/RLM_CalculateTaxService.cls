@@ -80,7 +80,8 @@ global class RLM_CalculateTaxService {
     // caller, and the tax engine interaction log stores it. So every error return logs its detail here
     // for the administrator instead: what went wrong and, for an engine error, the engine's error codes.
     // The engine's transaction status of a success body is logged only when it is not mapped, and only if
-    // it has the shape of a code (Saved, Posted); anything else is logged as not a code. No response body is logged: a success body echoes the transaction back, customer address
+    // it has the shape of a code (Saved, Posted); otherwise the log says it was missing, too long or
+    // not a code. No response body is logged: a success body echoes the transaction back, customer address
     // included, and an error body's message text can quote the request's values. The codes (the
     // error's code and each detail's code and refersTo) name the kind of error and the request field it
     // concerns, not a value. An unreadable body is logged only as unreadable.

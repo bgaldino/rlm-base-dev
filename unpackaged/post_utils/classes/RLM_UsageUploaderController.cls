@@ -589,7 +589,9 @@ public with sharing class RLM_UsageUploaderController {
 
     // Owner decision (todo 433, 2026-11-25): row errors already follow the user-facing standard below, with
     // one deliberate pass-through: a validation rule's or trigger addError's own text is shown as written.
-    // The uploader is admin-only by design; if its grant widens, review whether that pass-through is still wanted.
+    // The sales representative persona holds the uploader, so this reaches end users on purpose: that text was
+    // written by the org's own administrators or developers for the person saving the record. Nothing else
+    // reaches them raw.
     //
     // The text for a usage record that failed to save. bulkUploadUsage returns it in
     // BulkUploadResult.errors and uploadUsage throws it to the caller. For a bulk upload the shipped
