@@ -386,7 +386,7 @@ Salesforce documents the requirement:
 
 Rules can target quote groups, ramp groups and ramp segments through the
 `SalesTransactionItemGroup` context tag. Use the 264 dev guide for syntax:
-[Define Constraints for Quote Groups, Ramps, and Ramp Segments](../../../docs/salesforce/264/dev-guide/articles/cml_quote_group_ramp_segment_constraints.htm.md).
+[Define Constraints for Quote Groups, Ramps, and Ramp Segments](../../../docs/salesforce/264/dev-guide/articles/cml-quote-group-ramp-segment-constraints.md).
 Three attributes do the work:
 
 - `SalesTransactionItemGroup` on a `groupBy` container (`@(virtual = true, groupBy = SalesTransactionItemGroup)`)

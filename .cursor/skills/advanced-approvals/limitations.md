@@ -190,7 +190,7 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be
   updated [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and
   marks `ApprovalChainName` and the Smart Approval fields updatable
-  [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. A user or Apex update of
+  [Dev guide: `adv-approvals-capture-fields-on-approvalworkitem`]. A user or Apex update of
   the standard fields (status, assignee, reviewer, comments, chain name, Smart Approval fields
   and the rest) is refused with an insufficient-access or read-only error; custom fields you
   add to the object can be updated. Approve, reject and reassign through the approval actions

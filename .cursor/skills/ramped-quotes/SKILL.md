@@ -360,7 +360,7 @@ each cloning the most recent ramped group:
 ```
 
 Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
-(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`);
+(`docs/salesforce/264/dev-guide/articles/connect-responses-clone-sales-transaction-output.md`);
 measured clones also returned a `trackerId` key, null in group clones (ramp runs) and in whole-quote clones, and a
 `trackerUrl` key, null in whole-quote clones (see
 [quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
@@ -421,7 +421,7 @@ verify the compounding numerically.
 > **Apex-invocable variant.** Some connectors expose clone as a CLASSIC Apex
 > invocable whose args are wrapped in an `inputs` array. `lineScope` lives inside the
 > Apex-defined **`options`** input (with optional `recordTypeId`), not at the top level
-> (`actions_obj_deep_clone_sales_transaction.htm.md`):
+> (`actions-obj-deep-clone-sales-transaction.md`):
 > `{ "inputs": [ { "salesTransactionId": "...", "recordIds": ["..."], "options": { "lineScope": "AllLines" } } ] }`.
 > Same semantics; use whichever the transport exposes.
 
@@ -444,7 +444,7 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
     runs, so `CompletedWithPricing` is **terminal**. Live 264.7, 2026-10-14: quotes
     stopped there with no `taxPref`.
   - **Estimated tax on and `taxPref` omitted:** `taxPref` defaults to running tax
-    (`connect_requests_place_sales_transaction_input.htm.md`), so `CompletedWithPricing`
+    (`connect-requests-place-sales-transaction-input.md`), so `CompletedWithPricing`
     is **still in flight**; wait for `CompletedWithTax`.
   - **`taxPref: "Skip"`:** terminal on any org.
   - The platform also skips tax when any line has a **negative quantity**, so a

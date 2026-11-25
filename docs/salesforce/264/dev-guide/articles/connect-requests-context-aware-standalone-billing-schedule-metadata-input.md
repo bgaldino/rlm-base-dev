@@ -1,0 +1,57 @@
+---
+page_id: connect-requests-context-aware-standalone-billing-schedule-metadata-input
+title: Standalone Billing Schedule Metadata Input
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-context-aware-standalone-billing-schedule-metadata-input.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Billing
+parent_page: billing-business-apis-requests
+legacy_page_id: connect_requests_context_aware_standalone_billing_schedule_metadata_input.htm
+fetched_at: 2026-11-25
+---
+
+# Standalone Billing Schedule Metadata Input
+
+Input representation of the metadata details to create a billing schedule. This representation includes the name of the context definition and context mapping along with the mapping details of the transaction, billing schedule, and billing schedule group.
+
+## JSON Example
+
+```
+{
+  "transactionDetails": "{\"nodeName\": [{\"id\":\"001SG000004FvlGYAS\", \"businessSobjectType\": \"Account\", \"Quantity\":\"4\" , \"Name\": \"TestAccount\"}]}",
+  "transactionContextDetails": {
+    "contextDefinitionName": "StandaloneBillingContext",
+    "intraContextCustomMappingName": "CustomContextMapping",
+    "readContextMappingName": "OrderTransactionMapping",
+    "saveContextMappingName": "BSGEntitiesMapping"
+  }
+}
+```
+
+This example shows a sample request to generate billing schedules from order items by specifying the BillingContext standard context definition as the context definition name.
+
+```
+{
+  "transactionDetails": "{\"nodeName\": [{\"id\":\"001SG000004FvlGYAS\", \"businessSobjectType\": \"Account\", \"Quantity\":\"4\" , \"Name\": \"TestAccount\"}]}",
+  "transactionContextDetails": {
+    "contextDefinitionName": "BillingContext__stdctx",
+    "readContextMappingName": "OrderEntitiesMapping",
+    "saveContextMappingName": "BSGEntitiesMapping"
+  }
+}
+```
+
+## Properties
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `context​Definition​Name` | String | Name of the context definition that’s used to hydrate the context to generate the billing schedule. To generate billing schedules from order items, specify the BillingContext standard context definition as the context definition name. Applicable from API version 66.0 and later. | Required | 64.0 |
+| `intraContext​CustomMapping​Name` | String | Name of the cross-context custom mapping that’s used to map Billing fields to Transaction fields. Use this mapping to populate the Billing fields with the values stored in custom transaction fields. | Optional | 65.0 |
+| `readContext​Mapping​Name` | String | Name of the context mapping with the mapping for the transaction. | Required | 64.0 |
+| `saveContext​Mapping​Name` | String | Name of the context mapping with the mapping for the billing schedule and billing schedule group. | Required | 64.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-context-aware-standalone-billing-schedule-metadata-input.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

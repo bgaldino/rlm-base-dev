@@ -24,30 +24,30 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 
 1. **Create and remove components with cardinality: `relation[Type] == <expression>`.**
    A cardinality constraint makes the engine add or remove instances to satisfy it
-   `[Dev guide: cml_best_practice_access_quantity]`.
+   `[Dev guide: cml-best-practice-access-quantity]`.
 2. **Treat `lineItemQuantity`, `ItemEndQuantity` and `this.quantity` as read-only.** Use
    them only in calculation or evaluation rules, never to create components
-   `[Dev guide: cml_best_practice_access_quantity]`
-   `[Dev guide: cml_using_proxy_variables_constraints]`.
+   `[Dev guide: cml-best-practice-access-quantity]`
+   `[Dev guide: cml-using-proxy-variables-constraints]`.
 3. **Stage every derived number in an `int` variable with an explicit, small domain,** set
    by a `constraint(...)`, then drive the cardinality from that variable. Derived values
    without explicit domains can fail to initialize
-   `[Dev guide: cml_core_concept_examples]`
-   `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`.
+   `[Dev guide: cml-core-concept-examples]`
+   `[Dev guide: cml-business-centric-cml-guidelines-quantity-and-aggregation-fun]`.
    Round up with the integer bracket in [Rounding up](#rounding-up), never with `ceil()`
    inside a constraint (see [DO NOT](#do-not)).
 4. **Use `int`, not `decimal`, for anything that becomes a line quantity.** `decimal` isn't
-   supported for the quote line quantity field `[Dev guide: cml_variable_data_types]`. A
+   supported for the quote line quantity field `[Dev guide: cml-variable-data-types]`. A
    `decimal(2)` product of 1.50 × 2 did set a cardinality of 3; a fractional result wasn't
    tested `[Measured: M15]`.
 5. **Keep data flowing one way:** answers → derived variables → cardinalities. A loop
    through `total()` back into the same relation leaves the aggregate unbound if the loop
    isn't broken
-   `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`. The
+   `[Dev guide: cml-business-centric-cml-guidelines-quantity-and-aggregation-fun]`. The
    dev guide breaks such a loop with `@(sequence = n)` (see
    [Chained derivations](#chained-derivations)); this file avoids the loop instead.
 6. **Give every constraint that sizes or derives a quantity its own message,** so a test
-   can tell which rule rejected a configuration `[Dev guide: cml_logical_constraints]`.
+   can tell which rule rejected a configuration `[Dev guide: cml-logical-constraints]`.
    Rules that a choice switches on and off share their relation's message; see
    [Zero for a component a choice excludes](#zero-for-a-component-a-choice-excludes).
 7. **Test with configuration rules on,** and assert each expected rejection by its own
@@ -57,7 +57,7 @@ Where the dev guide and the org disagree, this file follows the org and says so.
    instead of being rejected `[Measured: M22]`. See [One line per component](#one-line-per-component-split--false).
 9. **Set `property maxRelationSize` when any relation can exceed 9,999.** That is the
    default cap on every relation, whatever its declared bounds `[Measured: M25]`
-   `[Dev guide: cml_relationships]`.
+   `[Dev guide: cml-relationships]`.
 10. **Leave `IsQuantityEditable` on, and `QuantityScaleMethod` blank, on the
     `ProductRelatedComponent` of every component a rule sizes.** With the flag off, no quote
     that sized the component could be ordered; a `Proportional` scale method refused
@@ -67,20 +67,20 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 ## DO NOT
 
 - **DO NOT** write `constraint(x[X].lineItemQuantity == 3)` to create or size components.
-  Write `constraint(x[X] == 3)` `[Dev guide: cml_best_practice_access_quantity]`.
+  Write `constraint(x[X] == 3)` `[Dev guide: cml-best-practice-access-quantity]`.
 - **DO NOT** read `lineItemQuantity` or `ItemEndQuantity` at a parent or aggregate scope
   when the product can have several instances. Read it per instance; at an aggregate scope
-  it can be unbound or ambiguous `[Dev guide: cml_best_practice_access_quantity]`.
+  it can be unbound or ambiguous `[Dev guide: cml-best-practice-access-quantity]`.
 - **DO NOT** write several `setdefault` rules that target the same `relation[Type]`. Only
   the last one evaluates reliably. Combine the conditions into one derived variable and
-  one `setdefault` `[Dev guide: cml_best_practice_consolidate_defaults]` (*Consolidate Multiple Default
+  one `setdefault` `[Dev guide: cml-best-practice-consolidate-defaults]` (*Consolidate Multiple Default
   Configurations*).
 - **DO NOT** use `Warning` severity for a note that must not hold the rep up. `Warning`
   blocks the next step until the rep acts; `Info` doesn't
-  `[Dev guide: cml_message_rule]`.
+  `[Dev guide: cml-message-rule]`.
 - **DO NOT** leave relation cardinality open (`relation x : X;`). Without bounds the
-  engine tries quantities up to 9,999 `[Dev guide: cml_best_practice_cardinality]`
-  `[Dev guide: cml_relationships]`.
+  engine tries quantities up to 9,999 `[Dev guide: cml-best-practice-cardinality]`
+  `[Dev guide: cml-relationships]`.
 - **DO NOT** declare a bound above 9,999 and expect it to hold. 9,999 is the default
   `maxRelationSize`, and it caps a bounded relation too: a cardinality constraint asking
   for more failed with the sizing rule's message, which reads like a rule rejection, not
@@ -91,10 +91,10 @@ Where the dev guide and the org disagree, this file follows the org and says so.
   fail to activate `[Measured: M4, M7]`. Round up with the bracket in
   [Rounding up](#rounding-up). The dev guide's own `ceil()` example,
   `constraint calculateCeil(requiredCrates == ceil(totalItems / itemsPerCrate));` with
-  `int` operands, is written this way `[Dev guide: cml_core_concept_examples]`.
+  `int` operands, is written this way `[Dev guide: cml-core-concept-examples]`.
 - **DO NOT** use `^` for powers inside a constraint. The math-functions page lists `^` as
   power and the Constraints page lists it as XOR
-  `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_constraints]`.
+  `[Dev guide: cml-mathematical-functions-numerical-derivation]` `[Dev guide: cml-constraints]`.
   Used as a power inside a constraint, `p == 2 ^ 3` compiled to a false constraint and the
   model failed to activate `[Measured: M12]`. Multiply instead.
 
@@ -104,14 +104,14 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 
 | You want to… | Write | Engine behaviour |
 |---|---|---|
-| Add or remove instances so the quantity matches | `relation[Type] == n` | Configures: adds or removes instances `[Dev guide: cml_best_practice_access_quantity]` |
-| Read a line's quantity in a calculation | `int q = this.quantity;` in that type | Read-only, calculation rules only `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Validate a quantity already on the line | `lineItemQuantity` / `ItemEndQuantity`, per instance | Validates, doesn't configure `[Dev guide: cml_best_practice_access_quantity]` |
-| Count the instances in a relation | `cardinality()` or `count(<condition>)` | `cardinality()` includes the quantity of every instance of that type `[Dev guide: cml_using_proxy_variables_constraints]` |
+| Add or remove instances so the quantity matches | `relation[Type] == n` | Configures: adds or removes instances `[Dev guide: cml-best-practice-access-quantity]` |
+| Read a line's quantity in a calculation | `int q = this.quantity;` in that type | Read-only, calculation rules only `[Dev guide: cml-using-proxy-variables-constraints]` |
+| Validate a quantity already on the line | `lineItemQuantity` / `ItemEndQuantity`, per instance | Validates, doesn't configure `[Dev guide: cml-best-practice-access-quantity]` |
+| Count the instances in a relation | `cardinality()` or `count(<condition>)` | `cardinality()` includes the quantity of every instance of that type `[Dev guide: cml-using-proxy-variables-constraints]` |
 
 `relation[Type] == n` sets a **quantity**. The dev guide's `count()` example satisfies
 `warranties[Warranty] == 2` by adding one warranty product with quantity 2, not two
-products `[Dev guide: cml_relationship_variable_functions]`. The org did the same `[Measured: M14]`.
+products `[Dev guide: cml-relationship-variable-functions]`. The org did the same `[Measured: M14]`.
 A line already on the quote can change that; see
 [One line per component](#one-line-per-component-split--false).
 
@@ -144,7 +144,7 @@ Read both fields back on the org before the first sale.
 ### `sum()` and `total()` aren't the same
 
 `sum(attr)` multiplies each instance's value by its line quantity; `total(attr)` doesn't
-`[Dev guide: cml_relationship_variable_functions]`. When you derive one quantity from
+`[Dev guide: cml-relationship-variable-functions]`. When you derive one quantity from
 another component's per-unit attribute (hours per kiosk, say), choose deliberately.
 Using `sum()` on an attribute that is already a line total multiplies it by the quantity a
 second time.
@@ -156,7 +156,7 @@ second time.
 The `split` type annotation decides how the engine reaches a relation's quantity. Unset,
 a relation can hold several instances of the type with different quantities; `false`
 keeps one instance and adds quantity to it; `true` makes every instance quantity 1
-`[Dev guide: cml_annotation_example_split]` `[Dev guide: cml_type_annotations]`.
+`[Dev guide: cml-annotation-example-split]` `[Dev guide: cml-type-annotations]`.
 
 | Case | Unset (default) | `@(split = false)` |
 |---|---|---|
@@ -186,7 +186,7 @@ line `[Platform behaviour, traced]`.
 Put the annotation on each leaf type that is a sized component (in the worked example,
 every type but the abstract `Finish`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
-`[Dev guide: cml_annotation_example_split]`. Each root
+`[Dev guide: cml-annotation-example-split]`. Each root
 solves separately `[Platform behaviour, traced in part]`; in a group ramp a single-line type got one line per
 component in each segment `[Measured: M43]`. The types a virtual `Quote` container holds are a different
 case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container).
@@ -196,8 +196,8 @@ case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtu
 ## Raising the 9,999 cap: `maxRelationSize`
 
 `maxRelationSize` is the largest cardinality of any single relation in the model. Its
-default is 9,999 and its maximum 1,073,741,823 (the dev guide says 1073741824) `[Platform behaviour, traced]` `[Dev guide: cml_relationships]`. It is a clamp on every relation's upper bound, and on the quantity of a line in a single-line type. It is a model-level `property`, written
-before the types `[Dev guide: cml_relationships]` (*Set Maximum Relationship Size*):
+default is 9,999 and its maximum 1,073,741,823 (the dev guide says 1073741824) `[Platform behaviour, traced]` `[Dev guide: cml-relationships]`. It is a clamp on every relation's upper bound, and on the quantity of a line in a single-line type. It is a model-level `property`, written
+before the types `[Dev guide: cml-relationships]` (*Set Maximum Relationship Size*):
 
 ```
 property maxRelationSize = 20000;
@@ -214,7 +214,7 @@ type ServiceHours : LineItem;
 
 Set it to the largest upper bound you declare, not higher. The dev guide warns that an
 overly high limit lets the engine backtrack through the whole range on a conflict
-`[Dev guide: cml_relationships]`. The cap applies to relations only: a CML-only `int` of
+`[Dev guide: cml-relationships]`. The cap applies to relations only: a CML-only `int` of
 more than 9,999 solved without it `[Measured: M25]`. Test the answer that produces the
 largest quantity; nothing below the cap shows the problem.
 
@@ -224,21 +224,21 @@ largest quantity; nothing below the cap shows the problem.
 
 The answers (seats, areas) are attributes on the bundle's root product. A
 PCM attribute imported into CML takes the attribute's developer name as its variable name
-`[Dev guide: cml_best_practice_attribute_name]`.
+`[Dev guide: cml-best-practice-attribute-name]`.
 
 | Pattern | CML | Source |
 |---|---|---|
-| One per answer unit | `constraint(badges[Badge] == seats, "One badge per seat: expected {}.", seats);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
+| One per answer unit | `constraint(badges[Badge] == seats, "One badge per seat: expected {}.", seats);` | `[Dev guide: cml-logical-constraints]` (message with `{}` arguments) |
 | Per N, rounded up | `constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats, "<message>");` | See [Rounding up](#rounding-up) |
-| Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
-| One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, derive both from one variable instead of equating component quantities, as the worked example does (`standQty` from `kioskQty`; see [Chained derivations](#chained-derivations)) |
-| A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
+| Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml-logical-constraints]` |
+| One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml-annotation-example-sequence]` (Examples 4 and 5). See the note below the table |
+| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml-best-practice-access-quantity]`. When both follow one answer, derive both from one variable instead of equating component quantities, as the worked example does (`standQty` from `kioskQty`; see [Chained derivations](#chained-derivations)) |
+| A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml-setdefault-rule]` `[Dev guide: cml-cml-best-practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
 `constraint(alternators[Alternator] > 0 -> alternators[Alternator] == alternatorsQty, ...)`
-`[Dev guide: cml_annotation_example_sequence]`; the `mouse` example has the same form
-`[Dev guide: cml_best_practice_sequence_configurable]`. Those relations have a lower bound
+`[Dev guide: cml-annotation-example-sequence]`; the `mouse` example has the same form
+`[Dev guide: cml-best-practice-sequence-configurable]`. Those relations have a lower bound
 of 1; the row's bound of 0 lets the add-on be absent. The implication holds at 0 and at
 `seats`, so the rule alone doesn't require the add-on. What happens when a rep adds it
 depends on `split`; see [One line per component](#one-line-per-component-split--false).
@@ -246,16 +246,16 @@ depends on `split`; see [One line per component](#one-line-per-component-split--
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
 Constraints page says the engine never overrides a value the user selected, except through
 `exclude`, so a user value that breaks a `constraint` produces an error, not a correction
-`[Dev guide: cml_logical_constraints]`. On the org, that depends on `split`; see
+`[Dev guide: cml-logical-constraints]`. On the org, that depends on `split`; see
 [One line per component](#one-line-per-component-split--false). Two other pages qualify that: the solver doesn't
-override user input "unless no other solution exists" `[Dev guide: cml_cml_best_practices]`
+override user input "unless no other solution exists" `[Dev guide: cml-cml-best-practices]`
 (*Sequence and Configurable*), and the engine changes a variable annotated `Peelable` true,
 when that finds a valid configuration, rather than reporting an error; the default is
-false `[Dev guide: cml_variable_annotations]`.
+false `[Dev guide: cml-variable-annotations]`.
 
 `setdefault` tries to satisfy its expression only when part of its condition changes or
-the parent is new; otherwise it only evaluates `[Dev guide: cml_setdefault_rule]`. The
-dev guide calls such defaults "dynamic, overridable" `[Dev guide: cml_cml_best_practices]`.
+the parent is new; otherwise it only evaluates `[Dev guide: cml-setdefault-rule]`. The
+dev guide calls such defaults "dynamic, overridable" `[Dev guide: cml-cml-best-practices]`.
 
 ---
 
@@ -271,9 +271,9 @@ Use an integer bracket inside a constraint. It pins the one integer `q` with
 
 Give `q` an explicit domain and drive the cardinality from it (Quick Rule 3). The bracket
 keeps the calculation inside a constraint, as the dev guide asks
-`[Dev guide: cml_best_practice_calculations]`. An inline `int q = ceil(x / N);` also
+`[Dev guide: cml-best-practice-calculations]`. An inline `int q = ceil(x / N);` also
 rounded up `[Measured: M5]`, but its variable can't have an explicit domain, which the dev
-guide warns against `[Dev guide: cml_core_concept_examples]` (*Key Considerations for
+guide warns against `[Dev guide: cml-core-concept-examples]` (*Key Considerations for
 Calculations and Aggregations*). For `ceil()` inside a constraint, see [DO NOT](#do-not).
 
 ---
@@ -284,29 +284,29 @@ When one quantity depends on others (training hours as a share of setup
 hours), compute in stages:
 
 1. Each base quantity in its own `int` variable with an explicit domain, set by its own
-   `constraint` `[Dev guide: cml_core_concept_examples]` (*Key Considerations for
+   `constraint` `[Dev guide: cml-core-concept-examples]` (*Key Considerations for
    Calculations and Aggregations*).
 2. The dependent quantity from those **variables**, not from the relations' cardinalities
    or aggregates. When preferences act on the same relation, staging its aggregates in
    local variables reduces solver oscillation
-   `[Dev guide: cml_best_practice_relation_aggregates]`. This file applies the same staging
+   `[Dev guide: cml-best-practice-relation-aggregates]`. This file applies the same staging
    to constraint chains.
 3. Every cardinality from its variable, last.
 
 Where a quantity must depend on an aggregate of its own relation, the dev guide breaks the
 loop with a read-calculate-write chain ordered by `@(sequence = n)` on constraints, lower
-first `[Dev guide: cml_business_centric_cml_examples]` (*Resolving Circular
+first `[Dev guide: cml-business-centric-cml-examples]` (*Resolving Circular
 Dependencies*). This file avoids such loops instead (Validation check 4).
 
 Size domains from the answer domains. With `areas = [0..10]` and `kioskQty = [1..16]`, `2 * kioskQty + areas + 6`
 runs from 8 to 48, so `[8..48]` is the domain, not `[0..99999]`. A smaller domain gives the
-engine fewer values to test `[Dev guide: cml_cml_best_practices]` (*Variable Domains*).
+engine fewer values to test `[Dev guide: cml-cml-best-practices]` (*Variable Domains*).
 
 The dev guide says to calculate inside constraints, not with inline expressions, for
-performance `[Dev guide: cml_best_practice_calculations]` and so that derived domains
-initialize `[Dev guide: cml_core_concept_examples]` (*Key Considerations for Calculations
+performance `[Dev guide: cml-best-practice-calculations]` and so that derived domains
+initialize `[Dev guide: cml-core-concept-examples]` (*Key Considerations for Calculations
 and Aggregations*), though some of its own examples are inline
-`[Dev guide: cml_cml_best_practices]` (*Dependent Logic*). Inline and in-constraint
+`[Dev guide: cml-cml-best-practices]` (*Dependent Logic*). Inline and in-constraint
 arithmetic don't evaluate the same way; compare the inline and in-constraint rows of
 [Measured on 264](#measured-on-264).
 
@@ -315,17 +315,17 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 ## Scope: read quantity per instance
 
 - `this.quantity` is the quantity of the instance it appears in. Use it only in a
-  calculation rule `[Dev guide: cml_using_proxy_variables_constraints]`.
+  calculation rule `[Dev guide: cml-using-proxy-variables-constraints]`.
 - `cardinality()` is the size of the relation, across instances
-  `[Dev guide: cml_using_proxy_variables_constraints]`.
+  `[Dev guide: cml-using-proxy-variables-constraints]`.
 - Size the bundle from the **answers** on the root, not from quantities read back off
   child lines. Reading `lineItemQuantity` at the bundle scope when a child has several
-  instances can be unbound or ambiguous `[Dev guide: cml_best_practice_access_quantity]`.
+  instances can be unbound or ambiguous `[Dev guide: cml-best-practice-access-quantity]`.
 - A component inside a product component group (Group Type) is reached through the group
-  variable, `group.relation[Type]` `[Dev guide: cml_group_type]`. The dev guide disagrees
+  variable, `group.relation[Type]` `[Dev guide: cml-group-type]`. The dev guide disagrees
   about `parent()` there: the Group Type page reaches the root with `parent(attribute, 1)`
-  `[Dev guide: cml_group_type]`; the best-practices page says `parent` isn't supported with
-  Group Type `[Dev guide: cml_cml_best_practices]`. Sizing from the root through the group
+  `[Dev guide: cml-group-type]`; the best-practices page says `parent` isn't supported with
+  Group Type `[Dev guide: cml-cml-best-practices]`. Sizing from the root through the group
   variable doesn't need `parent()`.
 - `parent(<attr>)` with no level looks at the owners of the component's parent ports and
   takes the first that has the attribute; otherwise it walks up the ancestors and takes the
@@ -374,14 +374,14 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 
 | Tool | Behaviour | Source |
 |---|---|---|
-| Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
-| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (the dev guide's example adds two cardinalities) |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
+| Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml-relationships]` (*skipTypeGeneration* example) |
+| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml-core-concept-examples]` (the dev guide's example adds two cardinalities) |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml-group-type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
 warranty example, each with its own message (here with this file's finish example):
 `constraint(finish != "Gloss" -> finishes[GlossFinish] == 0, "<message>");`
-`[Dev guide: cml_logical_constraints]`.
+`[Dev guide: cml-logical-constraints]`.
 
 This picks one option for the whole bundle. It can't express a mixed split, with some seats
 on one option and the rest on another. The dev guide has no such example; one route was run
@@ -434,15 +434,15 @@ With the split answer equal to `seats`, the quote held no line for the first opt
 
 The first two rows of the choice-group table above count quantity, not distinct
 components. `rel[Type]` and `cardinality()` include the quantity of every instance
-`[Dev guide: cml_using_proxy_variables_constraints]`, and a relation's bounds are a
-quantity range `[Dev guide: cml_relationships]`. M14 set a cardinality of 3 as one line of
+`[Dev guide: cml-using-proxy-variables-constraints]`, and a relation's bounds are a
+quantity range `[Dev guide: cml-relationships]`. M14 set a cardinality of 3 as one line of
 quantity 3 `[Measured: M14]`. So with each option at `seats`, the sum `== 1` and a `[1..1]`
 bound can't hold once `seats` is above 1; that failure itself wasn't run.
 
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
-| `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation is a separate check that also counts lines and reports a group minimum it can't meet ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
+| `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml-relationship-variable-functions]` `[Dev guide: cml-using-proxy-variables-constraints]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation is a separate check that also counts lines and reports a group minimum it can't meet ([open item 14](#open-items)) | `[Dev guide: cml-group-type]` `[Dev guide: cml-type-annotations]` `[Platform behaviour, traced]` |
 
 **When an answer picks the option,** nothing needs counting. Size the chosen option from the
 answer, zero the other, and drop the sum:
@@ -457,7 +457,7 @@ constraint(mounting != "Counter" -> mounts[CounterMount] == 0, "<message>");
 
 `mounting` holds one value, so one mount type carries `seats` and the other 0. The dev guide
 sets a subtype's cardinality behind an implication
-(`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml_relationships]`;
+(`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml-relationships]`;
 here the right side is `seats`, as in the "One per answer unit" row of
 [Deriving quantities](#deriving-quantities-from-attribute-values). The sketch itself was not run. Implications
 of a related kind were (an answer picks one of two options): a line of the option the answer didn't pick was
@@ -467,15 +467,15 @@ rejected with the rule's message, found in the configurator error log while a la
 **When the rep picks the option by adding it,** with no answer behind it, neither row of the
 table settles it: `count()`'s unit is unclear, and Group Type needs the options in a product
 component group, while the Relationships page says not to include product component groups
-when importing product relationships from PCM `[Dev guide: cml_relationships]`. This case
+when importing product relationships from PCM `[Dev guide: cml-relationships]`. This case
 is [open item 14](#open-items).
 
 ### Zero for a component a choice excludes
 
 | Rule | When to use it | Source |
 |---|---|---|
-| `constraint(choice != "X" -> rel[Type] == 0, "<message>");` | The quantity is already rule-owned. A conflicting user value raises the message | `[Dev guide: cml_logical_constraints]` |
-| `exclude(<condition>, rel[Type], "<message>");` | A rep may add the item by hand and you want it removed. `exclude` overrides user input; the type must be a leaf | `[Dev guide: cml_exclude_rule]` |
+| `constraint(choice != "X" -> rel[Type] == 0, "<message>");` | The quantity is already rule-owned. A conflicting user value raises the message | `[Dev guide: cml-logical-constraints]` |
+| `exclude(<condition>, rel[Type], "<message>");` | A rep may add the item by hand and you want it removed. `exclude` overrides user input; the type must be a leaf | `[Dev guide: cml-exclude-rule]` |
 
 Pick one per relation; using both is an [open item](#open-items).
 
@@ -565,7 +565,7 @@ message, which states the quantity mode A would set, not 0 `[Measured: M40]`. Me
 
 A rule that spans lines with no parent in common (an extension kit sold as its own line beside the
 bundle, say) goes on a virtual container that holds each of them as a relation
-`[Dev guide: cml_best_practice_virtual_quote_root]`. The shipped QuantumBit bundle model has
+`[Dev guide: cml-best-practice-virtual-quote-root]`. The shipped QuantumBit bundle model has
 one `[Repo: datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob]`.
 Container relations have no `ProductRelatedComponent`, so no `Port` association
 ([SKILL.md → Ports are per bundle relation](SKILL.md#ports-are-per-bundle-relation-not-per-type)).
@@ -591,7 +591,7 @@ type Quote {
 - **Give every container relation
   `@(sourceContextNode = "SalesTransaction.SalesTransactionItem")`.** The annotation names
   the context path of a virtual container's instances
-  `[Dev guide: cml_relationship_annotations]`; the dev guide's virtual-root example omits
+  `[Dev guide: cml-relationship-annotations]`; the dev guide's virtual-root example omits
   it. Without it no line attached to the container: Place and `configure` succeeded, the
   container's own rules ran, and every rule on the line types silently stopped
   `[Measured: M34]`. A container relation accepts only a line whose source matches its
@@ -726,9 +726,9 @@ inferred and still open (see asset-lifecycle-changes Quick Rule 2).
 
 | Severity | Runtime behaviour | Source |
 |---|---|---|
-| `Info` (the default) | Gray banner; no action needed to continue | `[Dev guide: cml_message_rule]` |
-| `Warning` | Yellow banner; the rep can continue the current task but is blocked from the next step until they act | `[Dev guide: cml_message_rule]` |
-| `Error` | Red banner; blocks the task, **except** in the Transaction Line Editor, where the rep can still save | `[Dev guide: cml_message_rule]` |
+| `Info` (the default) | Gray banner; no action needed to continue | `[Dev guide: cml-message-rule]` |
+| `Warning` | Yellow banner; the rep can continue the current task but is blocked from the next step until they act | `[Dev guide: cml-message-rule]` |
+| `Error` | Red banner; blocks the task, **except** in the Transaction Line Editor, where the rep can still save | `[Dev guide: cml-message-rule]` |
 
 A review note for a combination that is allowed but unusual is an `Info` message:
 
@@ -739,8 +739,8 @@ message(kioskQty > 12,
 ```
 
 Syntax: `message(condition, string, arg, …, severity)`
-`[Dev guide: cml_message_rule]`. A `preference(...)` that can't be met also reports at
-`Info` severity `[Dev guide: cml_preference_rule]`, but a preference also moves the
+`[Dev guide: cml-message-rule]`. A `preference(...)` that can't be met also reports at
+`Info` severity `[Dev guide: cml-preference-rule]`, but a preference also moves the
 solver; a `message` only reports.
 
 `"warning"` and `"Warning"` both came back as `warning`, and a headless `configure`
@@ -756,7 +756,7 @@ in front of it (step 1 below).
 
 1. **Place with configuration rules on:** `configurationMethod: Force` with
    `configurationOptions.executeConfigurationRules: true` (both in `configurationPref`). `configurationMethod` defaults to `Skip`
-   `[Dev guide: connect_requests_configurator_preference_input]`, and
+   `[Dev guide: connect-requests-configurator-preference-input]`, and
    `executeConfigurationRules: true` alone runs nothing at Place
    `[Repo: .cursor/skills/constraint-models/SKILL.md]`. With rules off, `configure`
    returned `success` for an invalid combination `[Measured: M21]`. `Force` and `System`
@@ -773,7 +773,7 @@ in front of it (step 1 below).
    (`"12.0"`) still bound to an `int` `[Measured: M30]`. Product Configurator API requests are different:
    there, an attribute created or updated without `AttributeName` isn't matched to its CML
    variable and the engine applies the CML default
-   `[Dev guide: cml_best_practice_attribute_name]`. Either way, use answers that differ
+   `[Dev guide: cml-best-practice-attribute-name]`. Either way, use answers that differ
    from the CML defaults: an answer that didn't bind sizes the bundle from the default,
    which can still pass a weak assertion.
 3. **Send a `BillingFrequency` on every Term-defined and Evergreen line in the Place
@@ -958,9 +958,9 @@ Notes on the model:
   [Cardinality vs reading quantity](#cardinality-vs-reading-quantity).
 - The derived `int` variables could carry `@(configurable = false)`. The dev guide
   disagrees with itself about what that does. The annotation reference says the engine
-  can't set the variable `[Dev guide: cml_variable_annotations]`
-  `[Dev guide: cml_annotation_example_configurable]`. *Sequence and Configurable* and
-  *Dependent Logic* say the solver sets it `[Dev guide: cml_cml_best_practices]`. The org
+  can't set the variable `[Dev guide: cml-variable-annotations]`
+  `[Dev guide: cml-annotation-example-configurable]`. *Sequence and Configurable* and
+  *Dependent Logic* say the solver sets it `[Dev guide: cml-cml-best-practices]`. The org
   sides with the second `[Measured: M17]`.
 
 Expected quantities (hand-computed from the rules above; the whole model has not been run):
@@ -1105,7 +1105,7 @@ Each needs a live 264 org:
     areas).
 11. Whether a literal `%` in a message string is passed through or read as a Java format
     specifier. The dev guide documents Java format for these strings
-    `[Dev guide: cml_logical_constraints]`; the worked example avoids `%`.
+    `[Dev guide: cml-logical-constraints]`; the worked example avoids `%`.
 12. Whether an amendment that changes only a line quantity re-derives the quantities that
     depend on it (an answer change does, M38; see
     [Answers on an amendment](#answers-on-an-amendment)), and which rules run on an
@@ -1113,7 +1113,7 @@ Each needs a live 264 org:
     "doesn't conform to all the rules"
     `[Help: ind.qocal_future_dated_order_amendments_important_considerations]`.
     Configurator requests take a `validateAmendRenewCancel` option that runs amend, renew
-    and cancel validations `[Dev guide: connect_requests_configuration_options_input]`.
+    and cancel validations `[Dev guide: connect-requests-configuration-options-input]`.
     Order-type amendments, renewals and cancellations weren't run for node status.
 13. How to model a mixed per-seat mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.

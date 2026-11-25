@@ -217,7 +217,7 @@ group's max (above), and in a group ramp the later segments kept the split. A no
 component gave one line. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
 Fix it in the model: `@(split = false)` on the component's CML type keeps one instance
-[Dev guide: `cml_annotation_example_split.htm`], so the default line takes the rule's
+[Dev guide: `cml-annotation-example-split.md`], so the default line takes the rule's
 quantity and a hand edit to another quantity is rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 Dropping `IsDefaultComponent` also avoids the split, but loses the pre-selection, and a
 required child must stay a default. [Help: `ind.product_catalog_local_cardinality.htm`]

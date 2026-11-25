@@ -1,0 +1,605 @@
+---
+page_id: connect-requests-invoice-input-for-ingestion
+title: Invoice Input for Ingestion
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-invoice-input-for-ingestion.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Billing
+parent_page: billing-business-apis-requests
+legacy_page_id: connect_requests_invoice_input_for_ingestion.htm
+fetched_at: 2026-11-25
+---
+
+# Invoice Input for Ingestion
+
+Input representation of the details of the invoice that must be generated for or ingested into Billing.
+
+## JSON Example to Ingest a Draft Invoice With a Tax Callout
+
+```
+{
+  "invoices": [
+    {
+      "shouldCalculateTax": true,
+      "taxCalculationStatus": "Estimated",
+      "graph": {
+        "graphId": "CreateInvoice",
+        "records": [
+          {
+            "referenceId": "refAccount",
+            "record": {
+              "attributes": {
+                "type": "Account",
+                "method": "GET",
+                "id": "ExternalId__c/123"
+              }
+            }
+          },
+          {
+            "referenceId": "refContact",
+            "record": {
+              "attributes": {
+                "type": "Contact",
+                "method": "GET",
+                "id": "ExternalId__c/123"
+              }
+            }
+          },
+          {
+            "referenceId": "refInvoice",
+            "record": {
+              "attributes": {
+                "type": "Invoice",
+                "method": "POST"
+              },
+              "billingAccountId": "@{refAccount.Id}",
+              "billToContactId": "@{refContact.Id}",
+              "paymentTermId": "2OXxx0000004CFUGA2",
+              "referenceEntityId": "801xx000003GeQQAA0",
+              "status": "Draft",
+              "invoiceDate": "2024-12-19",
+              "currencyIsoCode": "USD",
+              "dueDate": "2024-12-19",
+              "invoiceNumber": "DOC-10",
+              "description": "Sample Invoice",
+              "uniqueIdentifier": "5873af8f-f007-4aa0-9e3d-53a08c3f59de"
+            }
+          },
+          {
+            "referenceId": "refBillingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShippingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShipFromAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "1 Market Street",
+              "city": "San Francisco",
+              "postalCode": "94105",
+              "state": "CA",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName1",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-13",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx0000000BOTAA2",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine2",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName2",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-15",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx00000001DpAAI",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLineTax",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLineTax",
+                "method": "POST"
+              },
+              "taxAmount": 7.25,
+              "taxCode": "CA-94121",
+              "taxName": "CALIFORNIA",
+              "taxRate": 0.25,
+              "taxEffectiveDate": "2024-11-10",
+              "taxDocumentNumber": "123",
+              "taxExemptAmount": 0,
+              "taxTransactionNumber": "kl",
+              "description": "Associated tax line.",
+              "invoiceLineId": "@{refInvoiceLine1.id}"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLineTax1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLineTax",
+                "method": "POST"
+              },
+              "taxAmount": "10",
+              "taxCode": "CA-94121",
+              "taxName": "CALIFORNIA",
+              "taxRate": 0.25,
+              "taxEffectiveDate": "2024-11-10",
+              "taxDocumentNumber": "123",
+              "taxExemptAmount": 0,
+              "taxTransactionNumber": "125",
+              "invoiceLineId": "@{refInvoiceLine2.id}",
+              "description": "Associated tax line."
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## JSON Example to Ingest a Draft Invoice Without a Tax Callout
+
+```
+{
+  "invoices": [
+    {
+      "taxCalculationStatus": "Estimated",
+      "graph": {
+        "graphId": "123",
+        "records": [
+          {
+            "referenceId": "refAccount",
+            "record": {
+              "attributes": {
+                "type": "Account",
+                "method": "GET",
+                "id": "TestExternalId__c/123"
+              }
+            }
+          },
+          {
+            "referenceId": "refInvoice",
+            "record": {
+              "attributes": {
+                "type": "Invoice",
+                "method": "POST"
+              },
+              "billingAccountId": "@{refAccount.Id}",
+              "billToContactId": "003xx000004Wk8qAAC",
+              "paymentTermId": "2OXxx0000004CFUGA2",
+              "referenceEntityId": "801xx000003GeQQAA0",
+              "status": "Draft",
+              "invoiceDate": "2024-12-19",
+              "currencyIsoCode": "USD",
+              "dueDate": "2024-12-19",
+              "invoiceNumber": "DOC-10",
+              "description": "testInvoice",
+              "uniqueIdentifier": "c76011a1-e113-49d9-9c54-3b5c68950ada"
+            }
+          },
+          {
+            "referenceId": "refBillingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShippingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShipFromAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "1 Market Street",
+              "city": "San Francisco",
+              "postalCode": "94105",
+              "state": "CA",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName1",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-13",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx0000000BOTAA2",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine2",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName2",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-15",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx00000001DpAAI",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLineTax",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLineTax",
+                "method": "POST"
+              },
+              "taxAmount": 7.25,
+              "taxCode": "CA-94121",
+              "taxName": "CALIFORNIA",
+              "taxRate": 0.25,
+              "taxEffectiveDate": "2024-11-10",
+              "taxDocumentNumber": "123",
+              "taxExemptAmount": 0,
+              "taxTransactionNumber": "kl",
+              "description": "description for tax Line",
+              "invoiceLineId": "@{refInvoiceLine1.id}"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLineTax1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLineTax",
+                "method": "POST"
+              },
+              "taxAmount": "10",
+              "taxCode": "CA-94121",
+              "taxName": "CALIFORNIA",
+              "taxRate": 0.25,
+              "taxEffectiveDate": "2024-11-10",
+              "taxDocumentNumber": "123",
+              "taxExemptAmount": 0,
+              "taxTransactionNumber": "125",
+              "invoiceLineId": "@{refInvoiceLine2.id}",
+              "description": "description for tax Line"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## JSON Example to Ingest Posted Invoices
+
+```
+{
+  "invoices": [
+    {
+      "taxCalculationStatus": "Posted",
+      "graph": {
+        "graphId": "123",
+        "records": [
+          {
+            "referenceId": "refAccount",
+            "record": {
+              "attributes": {
+                "type": "Account",
+                "method": "GET",
+                "id": "ExternalId__c/123"
+              }
+            }
+          },
+          {
+            "referenceId": "refInvoice",
+            "record": {
+              "attributes": {
+                "type": "Invoice",
+                "method": "POST"
+              },
+              "billingAccountId": "001SG00000njpF3YAI",
+              "billToContactId": "003xx000004Wk8qAAC",
+              "paymentTermId": "2OXxx0000004CFUGA2",
+              "referenceEntityId": "801xx000003GeQQAA0",
+              "status": "Posted",
+              "invoiceDate": "2024-12-19",
+              "currencyIsoCode": "USD",
+              "dueDate": "2024-12-19",
+              "invoiceNumber": "DOC-10",
+              "description": "Sample Invoice",
+              "uniqueIdentifier": "9994b2c4-c0c3-47c3-806f-ae6e1f16bac3"
+            }
+          },
+          {
+            "referenceId": "refBillingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShippingAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "123 Main St",
+              "city": "NewYork",
+              "postalCode": "10001",
+              "state": "New York",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refShipFromAddress",
+            "record": {
+              "attributes": {
+                "type": "InvoiceAddressGroup",
+                "method": "POST"
+              },
+              "street": "1 Market Street",
+              "city": "San Francisco",
+              "postalCode": "94105",
+              "state": "CA",
+              "country": "US",
+              "longitude": "123.456",
+              "latitude": "78.910",
+              "invoiceId": "@{refInvoice.id}"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName1",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-13",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx0000000BOTAA2",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLine2",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLine",
+                "method": "POST"
+              },
+              "name": "productName2",
+              "product2Id": "01txx0000006ic4AAA",
+              "invoiceLineStartDate": "2024-11-10",
+              "invoiceLineEndDate": "2024-11-15",
+              "quantity": "10",
+              "unitPrice": "10",
+              "chargeAmount": "100",
+              "invoiceId": "@{refInvoice.id}",
+              "referenceEntityItemId": "802xx000001neB9AAI",
+              "billingAddressId": "@{refBillingAddress.id}",
+              "shippingAddressId": "@{refShippingAddress.id}",
+              "shipFromAddressId": "@{refShipFromAddress.id}",
+              "taxTreatmentId": "1ttxx00000001DpAAI",
+              "legalEntityId": "0fwxx0000000001AAA",
+              "legalEntityAccountingPeriodId": "1HLxx0000004C92GAE"
+            }
+          },
+          {
+            "referenceId": "refInvoiceLineTax1",
+            "record": {
+              "attributes": {
+                "type": "InvoiceLineTax",
+                "method": "POST"
+              },
+              "taxAmount": "10",
+              "taxCode": "CA-94121",
+              "taxName": "CALIFORNIA",
+              "taxRate": 0.25,
+              "taxEffectiveDate": "2024-11-10",
+              "taxDocumentNumber": "123",
+              "taxExemptAmount": 0,
+              "taxTransactionNumber": "125",
+              "invoiceLineId": "@{refInvoiceLine1.id}",
+              "description": "Associated tax line."
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## JSON Example to Generate Invoices From Debit Memos
+
+```
+{
+  "invoices": [
+    {
+      "shouldCalculateTax": true,
+      "taxCalculationStatus": "Estimated",
+      "graph": {
+        "graphId": "CreateInvoice",
+        "records": [
+          {
+            "referenceId": "refInvoice",
+            "record": {
+              "attributes": {
+                "type": "Invoice",
+                "method": "POST"
+              },
+              "accountId": "001SB00001V3RxNYAV",
+              "billToContactId": "003xx000004WhUQAA0",
+              "referenceEntityId": "4DmAAC000008UP70BM",
+              "status": "Draft",
+              "invoiceDate": "2024-12-19",
+              "dueDate": "2024-12-19",
+              "description": "Sample Invoice"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## Properties
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `invoices` | [Invoice Ingestion Input](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-invoice-ingestion-input.html)[] | List of invoices to be generated or ingested, enabling the submission and processing of multiple invoices in a single request. This API supports one invoice per request. To send 25 requests at a time, see the [Composite Batch request](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/requests_composite_batch.htm). | Required | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-requests-invoice-input-for-ingestion.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

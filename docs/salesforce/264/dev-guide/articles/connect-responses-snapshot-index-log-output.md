@@ -1,0 +1,79 @@
+---
+page_id: connect-responses-snapshot-index-log-output
+title: Snapshot Index Log
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-responses-snapshot-index-log-output.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Product Catalog Management
+parent_page: product-catalog-management-api-responses
+legacy_page_id: connect_responses_snapshot_index_log_output.htm
+fetched_at: 2026-11-25
+---
+
+# Snapshot Index Log
+
+Output representation of a snapshot index log.
+
+## JSON Example
+
+```
+          "indexLogs": [
+            {
+              "catalogSnapshotTime": "2024-11-06T16:14:30.000Z",
+              "completionTime": "2024-11-06T16:16:02.000Z",
+              "createdById": "005xx000001X7x7AAC",
+              "indexBuildStatus": "COMPLETED",
+              "indexBuildType": "FULL",
+              "indexId": "0axxx00000000T3AAI",
+              "numberOfChanges": 7
+            },
+            {
+              "catalogSnapshotTime": "2024-11-06T15:03:32.000Z",
+              "completionTime": "2024-11-06T15:05:02.000Z",
+              "createdById": "005xx000001X7x7AAC",
+              "indexBuildStatus": "COMPLETED_WITH_ERRORS",
+              "indexBuildType": "INCREMENTAL",
+              "indexId": "0axxx00000000RRAAY",
+              "message": "Warning: Product errors found.",
+              "numberOfChanges": 3
+            },
+            {
+              "catalogSnapshotTime": "2024-11-06T12:35:34.000Z",
+              "completionTime": "2024-11-06T12:35:34.000Z",
+              "createdById": "005xx000001X7x7AAC",
+              "indexBuildStatus": "COMPLETED",
+              "indexBuildType": "INCREMENTAL",
+              "indexId": "0axxx00000000RRAAY",
+              "message": "There are no changes for the partial update.",
+              "numberOfChanges": 0
+            },
+            {
+              "catalogSnapshotTime": "2024-11-06T12:07:32.000Z",
+              "completionTime": "2024-11-06T12:09:02.000Z",
+              "createdById": "005xx000001X7x7AAC",
+              "indexBuildStatus": "COMPLETED_WITH_ERRORS",
+              "indexBuildType": "FULL",
+              "message": "Warning: Product errors found.",
+              "numberOfChanges": 1
+            }
+          ]
+```
+
+## Properties
+
+| Property Name | Type | Description | Filter Group and Version | Available Version |
+| --- | --- | --- | --- | --- |
+| `catalog​SnapshotTime` | String | Catalog snapshot time of the index. | Small, 63.0 | 63.0 |
+| `completion​Time` | String | Completion time of the index. | Small, 63.0 | 63.0 |
+| `createdBy​Id` | String | ID of the user that initiated the index build. | Small, 63.0 | 63.0 |
+| `indexBuild​Status` | String | Status of the index build. | Small, 63.0 | 63.0 |
+| `indexBuild​Type` | String | Type of the index build. Valid values are `FULL`—Specifies a full index build or `INCREMENTAL`—Specifies an incremental index build. Available in API version 63.0 and later. | Small, 63.0 | 63.0 |
+| `index​Id` | String | ID of the index. | Small, 63.0 | 63.0 |
+| `message` | String | Message for the index status. | Small, 63.0 | 63.0 |
+| `numberOf​Changes` | Integer | Number of new or changed products included in the index. | Small, 63.0 | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/connect-responses-snapshot-index-log-output.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

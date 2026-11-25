@@ -1,0 +1,48 @@
+---
+page_id: apex-enum-revsalestrxn-grouprampactionenum
+title: GroupRampActionEnum Enum
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/apex-enum-revsalestrxn-grouprampactionenum.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Transaction Management
+parent_page: apex-namespace-revsalestrxn
+legacy_page_id: apex_enum_RevSalesTrxn_GroupRampActionEnum.htm
+fetched_at: 2026-11-25
+---
+
+# GroupRampActionEnum Enum
+
+Specifies the action ‌that you want to perform on group ramp segments. Additionally, you can also convert a non-ramped group into a ramped group.
+
+## Enum Values
+
+The `RevSalesTrxn.GroupRampActionEnum` enum includes these values.
+
+| Value | Description |
+| --- | --- |
+| `AddProducts` | Specifies to add rampable products to group ramp segments. |
+| `DeleteProducts` | Specifies to delete ramped products. |
+| `EditGroup` | Specifies to convert a non-ramped group into a group ramp segment, or edit group ramp segment attributes such as name and description, except the start and end dates. |
+| `EditRampSchedule` | Specifies to edit details of the group ramp segments, including start and end dates. |
+| `DeleteSegment` | Specifies to delete the first or last segment in a group ramp schedule. |
+| `ConvertToNonRampedGroup` | Specifies to convert the first or last group ramp segment into a non-ramped group. |
+
+Example `AddProducts`:
+
+Example `DeleteProducts`:
+
+Example `EditGroup`:
+
+Example `EditRampSchedule`:
+
+Example `DeleteSegment`:
+
+Example `ConvertToNonRampedGroup`:
+
+To add or delete ramped line items from multiple group ramp segments, pass all the applicable values in the `graph` request. To refer to Connect API examples that specify actions to create ramp deals for groups, see [Group Ramp Action Input](./connect-requests-group-ramp-action-input.md).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/apex-enum-revsalestrxn-grouprampactionenum.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

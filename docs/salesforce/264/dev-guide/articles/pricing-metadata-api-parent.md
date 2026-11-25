@@ -1,0 +1,55 @@
+---
+page_id: pricing-metadata-api-parent
+title: Salesforce Pricing Metadata API Types
+source_url: https://developer.salesforce.com/docs/revenue/revenue-management/guide/pricing-metadata-api-parent.html
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+api_version: 68.0
+section: Salesforce Pricing
+parent_page: pricing-overview
+legacy_page_id: pricing_metadata_api_parent.htm
+fetched_at: 2026-11-25
+---
+
+# Salesforce Pricing Metadata API Types
+
+Metadata API enables you to access some types and feature settings that you can customize in the user interface.
+
+- 
+
+**[Flow for Salesforce Pricing](./pricing-flow-metadata-api.md)**
+
+Represents the metadata associated with a flow. With Flow, you can create an application that navigates users through a series of screens to query and update records in the database. You can also execute logic and provide branching capability based on user input to build dynamic applications.
+
+- 
+
+**[IndustriesPricingSettings](./meta-industriespricingsettings.md)**
+
+Represents the settings for Salesforce Pricing.
+
+- 
+
+**[PricingActionParameters](./meta-pricingactionparameters.md)**
+
+Represents the pricing action that’s associated with a context definition and pricing procedure.
+
+- 
+
+**[PricingRecipe](./meta-pricingrecipe.md)**
+
+Represents the data models or sets of objects of a particular cloud that the pricing data store consumes during design time and run time.
+
+- 
+
+**[ProcedureOutputResolution](./meta-procedureoutputresolution.md)**
+
+Represents the pricing resolution for a pricing element determined by using strategy name and formula.
+
+**See Also**
+
+- [*Metadata API Developer Guide*: Understanding Metadata API](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/revenue/revenue-management/guide/pricing-metadata-api-parent.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -5,7 +5,7 @@
 > `ind.pricing_standard_pricing_actions.htm`, `ind.pricing_configure_pricing_action_parameters_for_standards_objects.htm`,
 > `ind.pricing_configure_pricing_action_button_using_LWC.htm`, `ind.pricing_add_calculate_price_button.htm`,
 > `ind.pricing_calculate_price_of_object.htm`, `ind.pricing_create_constant_resource.htm`; dev guide
-> `meta_pricingactionparameters.htm`, `sforce_api_objects_pricingactionparameters.htm`;
+> `meta-pricingactionparameters.md`, `sforce-api-objects-pricingactionparameters.md`;
 > `unpackaged/post_quantumbit/pricingActionParameters/`. Mostly not live-verified.
 
 A pricing action is a Calculate Price button on a record page. Each action binds an object to a
@@ -54,7 +54,7 @@ Order parameter created through the API works]
 ## Fields and rules
 
 Object `PricingActionParameters` (metadata type and setup entity, API 60.0+) [Dev guide:
-`meta_pricingactionparameters.htm`, `sforce_api_objects_pricingactionparameters.htm`]. Core exposes
+`meta-pricingactionparameters.md`, `sforce-api-objects-pricingactionparameters.md`]. Core exposes
 it in the Tooling family, so query it with the Tooling API. Create, edit and delete need Pricing
 Design Time User, Pricing Manager or Pricing Admin. [Core]
 

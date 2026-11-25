@@ -426,7 +426,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "manifest.json").write_text(json.dumps(
             {"doc_version": "262.0", "pages": [{"page_id": "a", "status": "captured"}]}))
-        dg_opts = presets.resolve(releases, "264", "dev_guide", "rlm",
+        dg_opts = presets.resolve(releases, "264", "dev_guide", "industries",
                                   {"output_dir": tmp, "mode": "all"})
         check("preflight rejects a pinned doc_version over a captured manifest",
               raises(OptionsError, DevGuideSnapshot(dg_opts).preflight))
@@ -444,14 +444,14 @@ def main():
         try:
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
-                rc = cli.main(["run", "--release", "264", "--only", "pcm,rlm"])
+                rc = cli.main(["run", "--release", "264", "--only", "pcm,industries"])
         finally:
             cli._snapshot_class = real
         check("run: a later dev guide's version conflict exits 2 before Help runs",
               rc == cli.EXIT_USAGE and ran == [])
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "manifest.json").write_text("[]")
-        dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",
+        dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "industries",
                                               {"output_dir": tmp}))
         fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages")
         check("a non-object manifest passes preflight and is replaced by defaults",
@@ -513,30 +513,30 @@ def main():
 
     # Site-source dev-guide presets (pack 437).
     from scripts.doc_snapshot.site_guide import SiteGuideSnapshot
-    for key, sections in (("rlm_site", False), ("industries_site", True)):
+    for key, sections, tail in (("rlm", False, "264/dev-guide"), ("industries_site", True, "dev-guide-industries-site")):
         opts = presets.resolve(releases, "264", "dev_guide", key)
-        check(f"{key} is a site preset on API 68.0 with its own output dir",
+        check(f"{key} is a site preset on API 68.0 (rlm: the corpus switched in place)",
               presets.dev_guide_source(opts) == "site" and opts["api_version"] == "68.0"
-              and opts["output_dir"].endswith(("dev-guide-site", "dev-guide-industries-site")))
+              and opts.get("output_dir", "docs/salesforce/264/dev-guide").endswith(tail))
         check(f"{key} resolves to the site snapshotter and normalises",
               cli._class_for("dev_guide", opts) is SiteGuideSnapshot
               and SiteGuideSnapshot(opts).options["mode"] == "all")
         check(f"{key} section filter is {'set' if sections else 'whole guide'}",
               bool(opts.get("sections")) == sections)
-    check("atlas presets keep the atlas snapshotter",
-          cli._class_for("dev_guide", presets.resolve(releases, "264", "dev_guide", "rlm"))
-          is DevGuideSnapshot)
+    check("the industries and contracts presets stay on the atlas snapshotter",
+          all(cli._class_for("dev_guide", presets.resolve(releases, "264", "dev_guide", k)) is DevGuideSnapshot
+              for k in ("industries", "contracts")))
     check("an unknown source is a usage error",
           raises(OptionsError, presets.dev_guide_source, {"source": "pdf"}))
     check("ad hoc site run needs only --site-url",
           presets.overrides_complete("dev_guide", {"site_url": "https://x"}))
     check("a site preset without api_version fails at run time, not at load",
           raises(OptionsError, SiteGuideSnapshot, {
-              k: v for k, v in presets.resolve(releases, "264", "dev_guide", "rlm_site").items()
+              k: v for k, v in presets.resolve(releases, "264", "dev_guide", "rlm").items()
               if k != "api_version"}))
     boot = presets.bootstrap_block(releases, "264", "999", "Test")
     check("bootstrap drops api_version from a site preset (a fact about the release)",
-          "rlm_site" in boot and "api_version" not in boot and "site_url" in boot)
+          "rlm" in boot and "api_version" not in boot and "site_url" in boot)
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

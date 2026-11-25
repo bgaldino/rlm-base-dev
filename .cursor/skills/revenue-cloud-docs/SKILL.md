@@ -78,13 +78,13 @@ fetched_at: "2026-05-11"
 ---
 ```
 
-## Developer Guide snapshot (atlas)
+## Developer Guide snapshot (site)
 
-The **Revenue Management Developer Guide** lives in a different documentation system from Help: the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. The snapshot tool's `dev-guide` subcommand captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
+The **Revenue Management Developer Guide** lives in a different documentation system from Help. It moved from the "atlas" viewer to a server-rendered site, `developer.salesforce.com/docs/revenue/revenue-management/guide/`. The snapshot tool's `dev-guide` subcommand (preset `rlm`, `source: site`) captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
 
 | Path | Purpose |
 |---|---|
-| `docs/salesforce/{release}/dev-guide/articles/{page_id}.md` | One captured guide page, markdown body + YAML frontmatter |
+| `docs/salesforce/{release}/dev-guide/articles/{page_id}.md` | One captured guide page, markdown body + YAML frontmatter. `page_id` is the site slug (`rlm-get-started`); a 262 or older corpus still uses atlas ids (`rlm_get_started.htm`) |
 | `docs/salesforce/{release}/dev-guide/manifest.json` | Machine index: page status, section, parent, doc_version, file path |
 | `docs/salesforce/{release}/dev-guide/index.md` | Human index: stats + pages grouped by TOC section |
 Cross-references between pages are rewritten to point at sibling `./<page_id>.md` files, so you can follow links inside the corpus. **Frontmatter** carries `page_id`, `title`, `source_url`, `release`, `release_name`, `deliverable`, `section` (the top-level TOC section), `parent_page`, and `fetched_at`.
@@ -111,7 +111,7 @@ vs admin does **not** work here — check what each source actually gives you:
 
 | Claim type | Where it lives | Example |
 |-----------|----------------|---------|
-| Object/field shape, picklist values | Dev guide (reference only) | `sforce_api_objects_usagecommitmentpolicy.htm.md` names `CommitmentRate` and its two values |
+| Object/field shape, picklist values | Dev guide (reference only) | `sforce-api-objects-usagecommitmentpolicy.md` names `CommitmentRate` and its two values |
 | What a configuration value *means* | Help (one-line definitions) | `ind.um_create_usage_commitment_policy.htm.md` defines `Bounded Object Rate` / `Lowest Commitment Rate` |
 | **Runtime behaviour** — drawdown order, what each bucket decrements by, why a rated summary is empty | **Neither.** Establish by live verification. | commitment drains before grant; commitment by *discounted* qty, grant by *raw* |
 
@@ -183,7 +183,7 @@ When Salesforce publishes a new release (for example 266), the snapshot tool's R
 4. Run `check --release <new>` and resolve any hits (see Known limitations). Resolve every page the run listed as refused (not-found: the id moved, so find its new id by title; stub: confirm at the live source, then `--accept-shrinkage <id>` or keep the prior capture) and every errored page reported as no longer in the TOC (retire it or mark it moved).
 5. Commit the corpus and the `presets.yaml` change together. `.gitattributes` marks the corpus trees `linguist-generated`, so GitHub collapses them in PR diffs.
 
-6. **Developer guides on the new sites.** The revenue and industries guides moved off atlas to server-rendered sites (`source: site` presets `rlm_site`, `industries_site`; README **Site guides**). The site serves only the current release and has no version selector, so a capture refuses when its `/services/data/vNN.0` evidence differs from the preset's `api_version`. Capture a release's guides **before** the next GA moves the site; after it, older text exists only as PDFs on the guide's `*-pdf-archive.html` page. Set `api_version` on the new release's site presets (bootstrap drops it), read the manifest's `unmapped_legacy_ids` (old atlas ids with no new slug, never guessed) and `legacy_id_map` (old id to slug) when re-pointing citations, and delete the replaced atlas articles in the same change.
+6. **Developer guides on the new sites.** The revenue and industries guides moved off atlas to server-rendered sites (`source: site`; README **Site guides**). The 264 revenue corpus (`rlm`, `docs/salesforce/264/dev-guide/`) was switched in place on 2026-11-25: 1,408 pages captured under their site slugs, with `legacy_id_map` (old atlas id to slug) and `unmapped_legacy_ids` in its manifest and the 1,407 replaced atlas files removed. The industries corpus is still atlas (`industries`), with a site preset `industries_site` waiting for its own switch. The site serves only the current release and has no version selector, so a capture refuses when its `/services/data/vNN.0` evidence differs from the preset's `api_version`. Capture a release's guides **before** the next GA moves the site; after it, older text exists only as PDFs on the guide's `*-pdf-archive.html` page. Set `api_version` on the new release's site presets (bootstrap drops it), read the manifest's `unmapped_legacy_ids` (old atlas ids with no new slug, never guessed) and `legacy_id_map` when re-pointing citations, and delete the replaced atlas articles in the same change. **Held atlas pages (264 revenue guide, checked 2026-11-25):** two pages stayed on their atlas capture because the live site dropped content the atlas text has, and the shrinkage guard refused the replacement: `billing_apex_interface_TaxEngineAdapter_Example.htm` (the site omits the `StandardTaxAdapter` code listing) and `connect_requests_invoice_ingestion_input.htm` (the site omits the JSON examples). Their atlas files are the only copy, are not in `superseded_files`, and stay until the site restores the content (then rerun with `--mode refresh`). The 56 `unmapped_legacy_ids` (Apex class/enum and `sforce_api_objects_*` reference pages) are retired or moved on the site (their redirect targets return 404); their atlas files also stay, as the only copy.
 
 To compare releases once both are captured, run `diff -u` on the same article ID in each (see **Cross-release diff** above).
 
