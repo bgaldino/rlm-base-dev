@@ -174,6 +174,7 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     const args = createBillingScheduleGroupAndScheduleViaAPI.mock.calls[0][0];
     expect(args.totalPrice).toBe(10);
     expect(args.endDate).toBeNull();
+    expect(args.pageAccountId).toBe("001000000000001AAA");
   });
 
   it("allows a termed charge with an end date and a total price", async () => {

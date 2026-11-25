@@ -558,7 +558,10 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
                 billingDayOfMonth: this.billingDayOfMonth,
                 billingStartMonth: this.billingStartMonth,
                 termSetting: this.termSetting,
-                endDate: this.endDate
+                endDate: this.endDate,
+                // The account page this modal opened on: the service sends it as the account when it is
+                // linked to the billing account, instead of the billing account's oldest link.
+                pageAccountId: this.recordId
             });
 
             const reference = result && result.requestId ? ` (request ${result.requestId})` : '';

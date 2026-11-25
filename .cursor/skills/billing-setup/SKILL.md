@@ -214,13 +214,15 @@ The Billing UI's Create Billing Schedule Group modal picks its treatment from th
 active, non-milestone, billable treatments of the chosen legal entity in the charge's currency,
 oldest first, counting only their active items typed Advance or Arrears (a None-type item is
 ignored; several items of one timing are fine). A recurring charge takes the first treatment whose
-items all bill in the chosen timing; one with items in both timings is ambiguous and skipped. A
-one-time charge offers no timing, so ambiguity does not apply: it takes the first treatment with
+items all bill in the chosen timing; one with items in both timings is ambiguous and skipped (when it is the only match, the refusal says it has
+items in both timings and must be split). A one-time charge offers no timing (one sent is ignored), so
+ambiguity does not apply: it takes the first treatment with
 an Advance item, else the first with an Arrears item [Measured, 264: with no treatment sent the
 platform picked a treatment of the legal entity whatever the currency, a JPY one for a EUR charge,
-so the modal sends one]. A legal entity with no such treatment, including one whose treatments are
+so the service sends one]. A legal entity with no such treatment, including one whose treatments are
 all in another currency, is refused before the action with a message naming the currency and
-entity (and the timing, for a recurring charge).
+entity (and the timing, for a recurring charge). Sharing cannot hide a treatment (public
+organization-wide default on 264), so "none" means none exists.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give
