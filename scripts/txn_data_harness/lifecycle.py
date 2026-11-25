@@ -1934,9 +1934,7 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
             ) from exc
         raise SettlementError(
             "payment",
-            f"apply refused: {detail}. Payment {payment_id} is Processed and unapplied: "
-            "apply or cancel it in the org before posting more invoices on this account "
-            "(the next posted invoice may absorb it).",
+            f"apply refused: {detail}.",
             record_id=payment_id,
         ) from exc
     if not isinstance(result, dict) or not result.get("id"):

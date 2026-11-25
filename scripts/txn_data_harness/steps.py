@@ -610,11 +610,17 @@ def _record_applications(
     return [r["Id"] for r in rows], lifecycle._money(total, _places(manifest))
 
 
-def _poll_applications(read, timeout: int) -> dict:
-    """Read application rows until some exist or ``timeout`` passes."""
+def _apps_total(apps: dict) -> float:
+    rows = apps.get(lifecycle.LEVEL_LINE, []) + apps.get(lifecycle.LEVEL_HEADER, [])
+    return sum(float(r.get("Amount") or 0) for r in rows)
+
+
+def _poll_applications(read, timeout: int, total: float, places: int) -> dict:
+    """Read application rows until they add up to ``total`` (or more), or
+    ``timeout`` passes. A multi-line memo's rows can arrive one by one."""
     deadline = time.monotonic() + timeout
     apps = read()
-    while not (apps[lifecycle.LEVEL_LINE] or apps[lifecycle.LEVEL_HEADER]):
+    while lifecycle._money(_apps_total(apps), places) < total:
         if time.monotonic() >= deadline:
             break
         time.sleep(lifecycle._POLL_INTERVAL)
@@ -658,26 +664,43 @@ def _check_fixed_amounts(spec: SettlementSpec, manifest: Manifest, places: int) 
             raise _below_minor_unit(what, manifest, places)
 
 
-def _check_memo_applied(memo: dict, applied: float, places: int) -> None:
+def _check_memo_applied(
+    ctx: StepContext, manifest: Manifest, memo: dict, applied: float, places: int
+) -> None:
     """Fail unless this run's memo is applied in full to this invoice.
 
     Every memo the harness creates is for this one invoice, so what was
     applied to it (rows filtered by this invoice) must equal the memo's
     ``TotalAmountWithTax`` exactly (both rounded to the currency's decimal
-    places), whatever its ``Balance``: any shortfall, even one minor unit,
-    either stays on the memo (it would settle the account's next posted
-    invoice) or was already absorbed by another invoice. Measured: every live
-    memo applied exactly its total to its own invoice.
+    places), whatever its ``Balance``. Measured: every live memo applied
+    exactly its total to its own invoice. More than the total fails for
+    good. Less -- no rows or some rows after the poll -- may be rows still
+    landing: the error names the ``cli step`` rerun (nothing is sent again);
+    a shortfall a rerun still sees means the rest stayed on the memo (it
+    would settle the account's next posted invoice) or went to another
+    invoice: start a new run.
     """
     from decimal import Decimal
 
     total = lifecycle._money(memo.get("TotalAmountWithTax"), places)
-    if Decimal(str(lifecycle._money(applied, places))) != Decimal(str(total)):
+    got = Decimal(str(lifecycle._money(applied, places)))
+    if got > Decimal(str(total)):
         raise SettlementError(
             "credit",
-            f"credit memo {memo['Id']} applied {applied} to this invoice but its total "
-            f"is {total}; the rest is unapplied or went to another invoice. "
-            f"{lifecycle.CANNOT_SETTLE}",
+            f"credit memo {memo['Id']} applied {applied} to this invoice, more than its "
+            f"total {total}. {lifecycle.CANNOT_SETTLE}",
+            record_id=memo["Id"],
+        )
+    if got < Decimal(str(total)):
+        seen = "has no application rows on this invoice yet" if applied <= 0 else (
+            f"applied {applied} to this invoice so far but its total is {total}"
+        )
+        raise SettlementError(
+            "credit",
+            f"credit memo {memo['Id']} {seen} (applied {applied} of {total}). Rerun "
+            f"{_step_command(ctx, manifest)} to look again (nothing is sent again); if a "
+            "rerun still finds it short, the rest stayed on the memo or went to another "
+            f"invoice: {lifecycle.CANNOT_SETTLE[0].lower()}{lifecycle.CANNOT_SETTLE[1:]}",
             record_id=memo["Id"],
         )
 
@@ -1020,15 +1043,6 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         manifest.credit_memo_ids = [memo["Id"]]
         _checkpoint(ctx, manifest)
 
-    apps = _poll_applications(
-        lambda: lifecycle.read_credit_applications(
-            ctx.client, manifest.credit_memo_ids, manifest.invoice_id
-        ),
-        ctx.poll_timeout,
-    )
-    ids, applied = _record_applications(manifest, apps, None, "credit")
-    manifest.credit_application_ids = ids
-    manifest.credit_amount_applied = applied
     # By the recorded Id, not the tag: an edited Description must not skip
     # the check.
     memo_id = manifest.credit_memo_ids[0]
@@ -1040,18 +1054,18 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
             f"no access), so its application cannot be checked. {lifecycle.CANNOT_SETTLE}",
             record_id=memo_id,
         )
-    if not ids:
-        # Rows can lag the memo's Posted status: the memo is recorded, so a
-        # rerun looks again rather than sending anything.
-        raise SettlementError(
-            "credit",
-            f"credit memo {manifest.credit_memo_ids[0]} has no application rows on this "
-            f"invoice yet. Rerun {_step_command(ctx, manifest)} to look again (nothing is "
-            "sent again); if a rerun still finds none, this run cannot settle: start a "
-            "new run.",
-            record_id=manifest.credit_memo_ids[0],
-        )
-    _check_memo_applied(memo, applied, places)
+    apps = _poll_applications(
+        lambda: lifecycle.read_credit_applications(
+            ctx.client, manifest.credit_memo_ids, manifest.invoice_id
+        ),
+        ctx.poll_timeout,
+        lifecycle._money(memo.get("TotalAmountWithTax"), places),
+        places,
+    )
+    ids, applied = _record_applications(manifest, apps, None, "credit")
+    manifest.credit_application_ids = ids
+    manifest.credit_amount_applied = applied
+    _check_memo_applied(ctx, manifest, memo, applied, places)
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
     _check_no_other_credit(manifest, header)
@@ -1200,13 +1214,27 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             amt = lifecycle._money(min(remaining, float(header.get("Balance") or 0)), places)
             targets = [(manifest.invoice_id, amt)] if amt > 0 else []
         for applied_to, amt in targets:
-            app_id = lifecycle.apply_payment(
-                ctx.client,
-                payment_id,
-                lifecycle.build_payment_apply_payload(
-                    applied_to, amt, ctx.run_id, places=places
-                ),
-            )
+            try:
+                app_id = lifecycle.apply_payment(
+                    ctx.client,
+                    payment_id,
+                    lifecycle.build_payment_apply_payload(
+                        applied_to, amt, ctx.run_id, places=places
+                    ),
+                )
+            except SettlementError as exc:
+                # An earlier line may already have applied: say what is on
+                # the payment now, read back.
+                done = lifecycle._money(_total(_read()), places)
+                rest = lifecycle._money((manifest.payment_amount or 0) - done, places)
+                raise SettlementError(
+                    "payment",
+                    f"{exc.detail} Payment {payment_id} is not fully applied: {done} of "
+                    f"{manifest.payment_amount} applied, {rest} left on it. Apply the rest, "
+                    "or unapply and then cancel the payment, in the org before posting "
+                    "more invoices on this account (the next posted invoice may absorb it).",
+                    record_id=payment_id,
+                ) from exc
             manifest.payment_application_ids.append(app_id)
             _checkpoint(ctx, manifest)
 

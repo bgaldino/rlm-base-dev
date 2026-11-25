@@ -497,6 +497,7 @@ class SettleOrg:
         self.memo_visible_after = 0
         self.memo_queries = 0
         self.payment_queries = 0
+        self.credit_app_queries = 0
         self.invoice_balance_override: Optional[float] = None
         self.fail_next_post: Optional[Exception] = None
         self._pending_credit: list[tuple[str, float]] = []
@@ -583,10 +584,12 @@ class SettleOrg:
                     and (tag is None or p.get("GatewayRefNumber") == tag)
                     and self.payment_queries > p.get("_visible_after", 0)]
         if "FROM CreditMemoLineInvoiceLine" in soql or "FROM CreditMemoInvApplication" in soql:
+            self.credit_app_queries += 1
             level = "line" if "CreditMemoLineInvoiceLine" in soql else "header"
             memos = _ids_in(soql, "CreditMemoId")
             inv = _eq(soql, "InvoiceLine.InvoiceId") or _eq(soql, "InvoiceId")
             return [self._app_row(a) for a in self.credit_apps if a["level"] == level
+                    and self.credit_app_queries > a.get("_visible_after", 0)
                     and (memos is None or a["memo"] in memos)
                     and (inv is None or a["invoice"] == inv)
                     and self._type_ok(soql, a)]
@@ -3357,8 +3360,8 @@ def test_memo_tax_shortfall_fails(billable_account) -> None:
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _posted_manifest()
     with pytest.raises(lifecycle.SettlementError,
-                       match=r"credit memo 50g1 applied 20.0 to this invoice but its total is "
-                             r"20.5.*start a new run") as info:
+                       match=r"credit memo 50g1 applied 20.0 to this invoice so far but its total "
+                             r"is 20.5 .*Rerun .*still finds it short.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic" and m.reached_stage == "invoice_posted"
 
@@ -3368,7 +3371,7 @@ def test_memo_leftover_absorbed_by_another_invoice_fails(billable_account) -> No
     org = SettleOrg("line")
     _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=30.0, Balance=0.0))
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    with pytest.raises(lifecycle.SettlementError, match="applied 20.0 to this invoice but its total is 30.0"):
+    with pytest.raises(lifecycle.SettlementError, match="applied 20.0 of 30.0\\). Rerun"):
         steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
 
 
@@ -3382,8 +3385,9 @@ def test_posted_memo_with_no_rows_yet_names_the_rerun(billable_account) -> None:
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _submitted()
     with pytest.raises(lifecycle.SettlementError,
-                       match="50gONLY has no application rows on this invoice yet. Rerun "
-                             "`cli step --manifest RUN --to-stage credit_applied` to look again"):
+                       match=r"50gONLY has no application rows on this invoice yet \(applied "
+                             r"0.0 of 20.0\). Rerun `cli step --manifest RUN --to-stage "
+                             r"credit_applied` to look again"):
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert m.credit_memo_ids == ["50gONLY"]
     # The rerun finds the rows that have landed since, and passes.
@@ -3978,7 +3982,82 @@ def test_general_apply_refusal_says_the_payment_is_unapplied(billable_account) -
 
     client.post = post
     with pytest.raises(lifecycle.SettlementError,
-                       match="apply refused: FIELD_INTEGRITY_EXCEPTION: too much. Payment 0aQ1 is "
-                             "Processed and unapplied: apply or cancel it in the org before "
-                             "posting more invoices"):
+                       match="apply refused: FIELD_INTEGRITY_EXCEPTION: too much"):
         lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "5TV1", "amount": 1})
+
+
+# -- review round 26 (todo 275) -------------------------------------------------
+
+
+def _two_line_credit_org():
+    org = SettleOrg("line")
+    real = org._post_memo
+
+    def post_staggered(memo):
+        had = bool(memo.get("_allocs"))
+        real(memo)
+        if had and len(org.credit_apps) >= 2:
+            # The second row lands a few reads later.
+            org.credit_apps[-1]["_visible_after"] = org.credit_app_queries + 4
+    org._post_memo = post_staggered
+    return org
+
+
+def test_memo_rows_arriving_one_per_poll_pass(billable_account) -> None:
+    org = _two_line_credit_org()
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=120.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.poll_timeout = 30
+    m = steps.run_credit(ctx, _posted_manifest())
+    assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 120.0
+    assert len(m.credit_application_ids) == 2
+
+
+def test_memo_rows_short_at_timeout_name_the_rerun(billable_account) -> None:
+    org = _two_line_credit_org()
+    real = org._post_memo
+
+    def never_second(memo):
+        real(memo)
+        if len(org.credit_apps) >= 2:
+            org.credit_apps[-1]["_visible_after"] = 10 ** 9
+
+    org._post_memo = never_second
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=120.0))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"applied 100.0 of 120.0\). Rerun `cli step --manifest RUN "
+                             r"--to-stage credit_applied` to look again"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+
+
+def test_memo_rows_above_the_total_fail_for_good(billable_account) -> None:
+    org = SettleOrg("line")
+    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=15.0))
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    with pytest.raises(lifecycle.SettlementError,
+                       match="applied 20.0 to this invoice, more than its total 15.0. This run "
+                             "cannot settle"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+
+
+def test_partial_line_apply_refusal_states_what_is_on_the_payment(billable_account) -> None:
+    """Line 1 applied, line 2 refused: the error says how much is applied and
+    what is left on the payment."""
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    real = org._do_post
+
+    def refuse_second_apply(path, body):
+        if path.endswith("/actions/apply") and body["appliedToId"] == "5TV2":
+            raise SfApiError(400, '[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"no"}]',
+                             "POST", path)
+        return real(path, body)
+
+    org._do_post = refuse_second_apply
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"Payment 0aQ1 is not fully applied: 100.0 of 250.0 applied, 150.0 "
+                             r"left on it. Apply the rest, or unapply and then cancel"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())

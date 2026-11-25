@@ -357,15 +357,19 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   even one minor unit short fails), whatever its `Balance`. Measured: all 7
   harness memos on the verification org applied exactly their total to their
   own invoice.
-  Otherwise the stage fails, naming the memo, the applied amount and the
-  total (start a new run): a shortfall -- e.g. the platform's tax on a
-  `Calculate` credit above what was applied -- either stays on the memo and
-  would settle the account's next posted invoice, or was already absorbed by
-  another invoice (measured: memo `50gWt000001BElRIAW` has a second row on
-  another invoice). A Posted memo with no application rows on this invoice
-  yet is different: rows can lag, so the stage fails naming the `cli step`
-  rerun to look again (nothing is sent again); only if a rerun still finds
-  none, start a new run.
+  The rows are polled until they add up to that total (a multi-line memo's
+  rows can arrive one by one) or `poll_timeout` passes. More than the total
+  fails for good. Less -- no rows or some rows -- fails naming the applied
+  amount, the total and the `cli step` rerun to look again (nothing is sent
+  again); only if a rerun still finds it short, start a new run: the rest
+  then stayed on the memo (e.g. the platform's tax on a `Calculate` credit
+  above what was applied; it would settle the account's next posted
+  invoice) or was absorbed by another invoice (measured: memo
+  `50gWt000001BElRIAW` has a second row on another invoice).
+- A refused payment apply says what is on the payment, read back: how much
+  is applied (an earlier line may have applied at Line Level) and what is
+  left; apply the rest, or unapply and then cancel the payment, in the org
+  before posting more invoices on the account.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without
