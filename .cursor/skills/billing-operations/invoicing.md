@@ -1,7 +1,7 @@
 # Billing Operations — Schedules and Invoicing
 
 Read this when choosing how invoices are produced or setting a run's dates. Parent:
-[SKILL.md](SKILL.md). A read of Help, except the dated live observation under *Invoice
+[SKILL.md](SKILL.md). A read of Help, except dated live observations under *Invoice
 documents and delivery*.
 
 ## Where billing schedules come from
@@ -149,8 +149,8 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   `ind.billing_invoices_email_prerequisites`].
 - Template authoring: `document-generation`.
 - **Fetching an invoice PDF through the API.** [Measured: 2026-10-15, 264, harness build, API 68.0]
-  Re-measure on the release patch in hand; the endpoint and field names are those of that
-  build.
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
+  Re-measure on the release patch in hand; the endpoint and field names are those of the builds named.
   - Posting an invoice attached no PDF, even with invoice PDF generation enabled; generate it.
   - Generate: `POST /services/data/v68.0/revenue/billing/document/actions/generate` with
     `recordId` (the invoice) and `shouldForceRegenerate`. The template resolved on its own. The

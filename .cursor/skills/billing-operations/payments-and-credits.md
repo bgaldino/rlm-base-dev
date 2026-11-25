@@ -2,7 +2,8 @@
 
 Read this when configuring payment collection, application rules, refunds, credit or debit
 memos, write-offs or collections. Parent: [SKILL.md](SKILL.md). A read of Help, except
-the section *Measured: Line Level application*, which records dated live observations.
+the section *Measured: Line Level application* and the automatic payment schedule note under
+*Billing Settings that change behavior*, which record dated live observations.
 
 Licensing: Salesforce Payments (native or bring-your-own gateways) is part of the Revenue
 Cloud Billing license with a cost-per-transaction model, and orgs licensed on or before
@@ -17,6 +18,31 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
+  Of the six `Billing.settings-meta.xml` files, only two set
+  `enablePaymentSchedulesAndItemsCreation`: `unpackaged/pre/2_settings`
+  sets it false and `unpackaged/post_billing/settings` sets
+  it true. No repo file creates a payment schedule treatment or sets its Grouping Source
+  [Repo: `unpackaged/pre/2_settings/Billing.settings-meta.xml`;
+  `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
+
+  Help says: the first time the setting is turned on it creates four default records, Default
+  Payment Schedule Policy, Default Payment Schedule Treatment, Default Payment Schedule
+  Treatment Detail and Default Payment Schedule Distribution Method
+  [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]; each posted
+  invoice then gets a single payment schedule for its whole balance
+  [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]; Grouping
+  Source defaults to Invoice, and one account's invoices are grouped into one schedule under
+  Grouping Source Account when their due dates fall within the Due Date Window and their
+  currency and payment method match [Help: `ind.billing_payments_consolidate_invoices`].
+
+  Measured on 2026-11-24: the Default Payment Schedule Treatment read Grouping Source
+  **Account** and a blank Due Date Window. Two invoices posted for one account with the same due
+  date (currency and payment method not recorded) produced one Draft payment schedule, which
+  both invoices point to through `PaymentScheduleId`. A second payment schedule with
+  `ReferenceEntityId` set to one of those invoices was refused (error
+  `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
+  is associated with another Payment Schedule that's in Draft or Open status.").
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] [Open: turn the setting on in a fresh 264 ent-sb0 org with no post_billing deploy and read the Default Payment Schedule Treatment's Grouping Source] [Open: post two invoices for one account with the same due date under Grouping Source Invoice and count the schedules] [Open: under Grouping Source Account, post two invoices whose due dates are N days apart, once under a Due Date Window ≥ N and once under one < N, and count the schedules] [Open: under Grouping Source Account, post two invoices with the same due date and different currencies, then two with different payment methods, and count the schedules] [Open: cancel the automatic Draft schedule, then create one referencing an invoice]
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
@@ -77,14 +103,16 @@ otherwise. Ask what the customer's finance team expects for unreferenced cash
 
 ## Measured: Line Level application
 
-What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each is
-one observation, so re-measure on the release patch in hand before relying on it; error text
+What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each was
+observed on the build(s) its tags name, so re-measure on the release patch in hand before relying on it; error text
 and object names may change between patches. Header Level was not measured.
 [Measured: 2026-10-15, 264, harness build, API 68.0, Line Level]
+[Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0, Line Level] Details first recorded on 2026-11-24 carry their own tag.
 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
-  as `appliedToId` failed ("Specify an InvoiceLineId as the appliedToId because the Credit
-  Application Level is Invoice Line"). With an invoice line id it created a
+  as `appliedToId` failed (error `INVALID_FIELD`, "Specify an InvoiceLineId as the appliedToId
+  because the Credit Application Level is Invoice Line."; the error code was first recorded
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]). With an invoice line id the call created a
   `PaymentLineInvoiceLine` (Type Applied) and no `PaymentLineInvoice`.
 - **Credit an invoice.** `POST /services/data/v68.0/commerce/invoicing/invoices/{id}/actions/credit` on a posted
   invoice, copying from the invoice lines, created a `CreditMemoLineInvoiceLine` and no
@@ -93,15 +121,28 @@ and object names may change between patches. Header Level was not measured.
   credits minus applied payments (250 less a 50 credit and a 100 payment left 100). A payment
   could be created directly as a record (`Amount`, `Status` Processed, `Type` Sale,
   `ProcessingMode` External, `AccountId`) with no gateway.
-- **Payment Schedule Item.** One could not request more than its payment's balance ("The
-  payment balance can't be less than requested amount").
+- **Payment Schedule Item.** One, on a Payment Schedule with no reference entity, could not
+  request more than its payment's balance (error `INVALID_OPERATION`, "The payment balance
+  can't be less than requested amount on the Payment Schedule Item. Provide a payment with
+  sufficient balance."). A request equal to the balance was accepted. The schedule without a
+  reference entity, the error code, the text after "requested amount" and the equal request
+  were first recorded
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0].
 - **The shipped Apply Payment flow.** The Apply Payment quick action launches the flow
   `RLM_Apply_Payments_on_Invoice`, which calls the subflow `RLM_Apply_Payment_To_Invoice_Lines`.
   The subflow spreads a payment over the invoice's open lines in record Id order, capped at the
   smaller of the payment's balance and the invoice's balance. Copies ship in the
   billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
-  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On a fresh build it spread a
-  payment over a three-line invoice with no header-level rows.
+  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On the 2026-10-15 harness build the subflow spread a
+  payment over a three-line invoice with no header-level rows. [Measured: 2026-10-15, 264,
+  harness build, API 68.0, Line Level] Called directly
+  (`/services/data/v68.0/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs
+  `paymentId`, `invoiceId`), the subflow applied a 1,000 payment to lines of 250, 250 and 1,200 as 250,
+  250 and 500. A second 1,000 payment on the remaining 700 applied 700 and reported
+  `unappliedAmount` 0, while the payment kept a balance of 300.
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] That output is what was left
+  of the capped amount when the lines ran out of balance, not the payment's remaining balance
+  [Repo: `unpackaged/post_billing/flows/RLM_Apply_Payment_To_Invoice_Lines.flow-meta.xml`].
 
 Read-back after any of these: query the line-level junction (`PaymentLineInvoiceLine`,
 `CreditMemoLineInvoiceLine`) and confirm the header-level one (`PaymentLineInvoice`,

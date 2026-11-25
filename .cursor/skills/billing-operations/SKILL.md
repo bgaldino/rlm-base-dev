@@ -19,9 +19,9 @@ you must decide, run or check what happens next: schedules, invoices, tax, cash,
 the ledger. Every product claim comes from the 264 Help snapshot or the dev guide and is
 tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
 `[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
-live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application in
-[payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe in
-[invoicing.md](invoicing.md)). A measured fact is one observation on one build: re-measure it on
+live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application and
+automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe in
+[invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
 the release patch in hand before relying on it or repeating it. Where billing-setup holds a
 measurement, link it instead of restating it.
 Object and field names are in `revenue-cloud-data-model` → `domains/billing.md`.
@@ -117,8 +117,8 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
-  memos, writing off, or running collections, or applying a payment or credit through the
-  API at Line Level.
+  memos, writing off, or running collections, applying a payment or credit through the
+  API at Line Level, or checking the automatic payment schedule after posting.
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 
@@ -140,7 +140,8 @@ A snapshot; the files are the source [Repo]:
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
-Line Level application and the invoice PDF fetch (*Measured: Line Level application* in
+Line Level application, the automatic payment schedule on posting and the invoice PDF fetch
+(*Measured: Line Level application* and *Billing Settings that change behavior* in
 [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* in
 [invoicing.md](invoicing.md)).
 

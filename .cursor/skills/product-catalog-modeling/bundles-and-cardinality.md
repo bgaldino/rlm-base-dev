@@ -39,13 +39,17 @@ subscription that must renew or bill on its own model) is not settled by the rul
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
 - **For a bundle's children, the run-time selling model choice Help documents is in the
   configurator.** Product Discovery's buying options offer one for the item being added;
-  the configurator's Product Header offers one for each product or option; and a static
-  bundle cannot be configured at run time. [Help: `ind.qocal_discover_and_configure_products.htm`; `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
+  the configurator's Product Header offers one for each product or option; and Help says "For static products, you can’t add or remove child products, alter product quantities, or configure product attributes at run time" [Help: `ind.qocal_discover_and_configure_products.htm`; `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`].
   No snapshot article says which selling model a static kit's Term Defined or Evergreen
-  child is quoted on, or whether it then renews and bills on it: **Open — needs live
-  verification.**
+  child is quoted on. In the 2026-11-24 static test bundle (Evergreen Monthly root), Place quoted a Term Defined
+  (Term Annual) child
+  on the child selling model its component row set, which was the child's only option
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
+  Evergreen child, a root other than Evergreen, a row with no model or a child with several
+  options, and whether the child
+  then renews and bills on that model: **Open — needs live verification.**
 
-Until that is measured, the shape to test against a static kit is a **locked configurable
+Until the open cases above are measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
 *Require this component* and *Include component by default* on and *Allow quantity changes*
 (`IsQuantityEditable`) off, and group limits that pass
