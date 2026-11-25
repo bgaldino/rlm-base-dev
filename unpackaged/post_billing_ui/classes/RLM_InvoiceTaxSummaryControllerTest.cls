@@ -63,16 +63,17 @@ private class RLM_InvoiceTaxSummaryControllerTest {
     }
 
     // Industry stands in for the currency column, so two groups share a name: toRows keeps every
-    // group as its own row and never merges rows by name.
+    // group as its own row and never merges rows by name. AVG stands in for SUM so a group of
+    // whole-number amounts (A: 1 and 2) has a fractional total, and a toRows that rounds fails.
     @isTest
     static void toRows_buildsOneRowPerGroupInTheGivenOrder() {
         insertAccounts();
         List<RLM_InvoiceTaxSummaryController.TaxSummaryRow> rows = RLM_InvoiceTaxSummaryController.toRows([
-            SELECT Name taxName, Industry currencyIsoCode, SUM(AnnualRevenue) totalTaxAmount
+            SELECT Name taxName, Industry currencyIsoCode, AVG(AnnualRevenue) totalTaxAmount
             FROM Account
             WHERE Name LIKE 'RLM Tax Summary %'
             GROUP BY Name, Industry
-            ORDER BY Name DESC, SUM(AnnualRevenue)
+            ORDER BY Name DESC, AVG(AnnualRevenue)
         ]);
         Assert.areEqual(3, rows.size(), 'One row per group, including two groups with the same name.');
         Assert.areEqual('RLM Tax Summary B', rows[0].taxName, 'Rows keep the given order, not re-sorted.');
@@ -83,7 +84,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         Assert.areEqual(2, rows[1].totalTaxAmount, 'The second group\'s total.');
         Assert.areEqual('RLM Tax Summary A', rows[2].taxName, 'The third group\'s name.');
         Assert.areEqual('Banking', rows[2].currencyIsoCode, 'The third group\'s second key.');
-        Assert.areEqual(1.25, rows[2].totalTaxAmount, 'The third group\'s total, fraction kept.');
+        Assert.areEqual(1.5, rows[2].totalTaxAmount, 'The third group\'s total, fraction kept.');
     }
 
     // With the real CurrencyIsoCode column (the query's GROUP BY puts both B accounts in one group),
@@ -124,7 +125,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         ]);
         Assert.areEqual(1, rows.size(), 'No account has an AccountNumber: one group.');
         Assert.isNull(rows[0].taxName, 'A null group name stays null.');
-        Assert.areEqual(1.25, rows[0].totalTaxAmount, 'The group\'s total.');
+        Assert.areEqual(3, rows[0].totalTaxAmount, 'The group\'s total.');
     }
 
     // A group whose amounts are all null has a null SUM: the row keeps the null total.
@@ -165,15 +166,14 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         Assert.isTrue(error.containsIgnoreCase('taxName'), 'The error names the missing alias: ' + error);
     }
 
-    // Three accounts in the corporate currency, so SUM(AnnualRevenue) needs no conversion:
-    // "RLM Tax Summary A" 1.25 (Banking), "RLM Tax Summary B" 2 (Banking) and -2 (Energy).
-    // AnnualRevenue is Currency(18, 0), but an Apex insert keeps the fraction (measured on a 264
-    // build); the 1.25 is there so a toRows that rounds the total fails.
-    // Returns the corporate currency code.
+    // Four accounts in the corporate currency, so aggregates need no conversion:
+    // "RLM Tax Summary A" 1 and 2 (Banking), "RLM Tax Summary B" 2 (Banking) and -2 (Energy).
+    // Amounts are whole numbers: AnnualRevenue has scale 0. Returns the corporate currency code.
     private static String insertAccounts() {
         String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
         List<Account> accounts = new List<Account>{
-            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1.25, Industry = 'Banking'),
+            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1, Industry = 'Banking'),
+            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 2, Industry = 'Banking'),
             new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 2, Industry = 'Banking'),
             new Account(Name = 'RLM Tax Summary B', AnnualRevenue = -2, Industry = 'Energy')
         };
