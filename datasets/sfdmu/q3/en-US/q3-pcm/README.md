@@ -107,9 +107,12 @@ ProductCategoryProduct.csv               # 72 records
   resource first
   (`sf project deploy start --metadata StaticResource:RLM_product_placeholder --target-org <sf_alias>`;
   do not rerun `deploy_full` on a built org, since it redeploys force-app's expression set
-  definitions and the platform refuses an update to an active version), then reload this plan (`cci task run insert_q3_pcm_data --org <cci_alias>`). An org
-  loaded before todo 325 should be rebuilt rather than reloaded (see the note at the top of this
-  README). Until the resource is in the org, the 78 rows point at an image that does not resolve.
+  definitions and the platform refuses an update to an active version), then reload this plan
+  (`cci task run insert_q3_pcm_data --org <cci_alias>`), then rebuild the search index
+  (`cci task run rebuild_search_index --org <cci_alias>`), which
+  `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md` step 6 requires after a
+  catalog load. An org loaded before todo 325 should be rebuilt rather than reloaded (see the
+  note at the top of this README). Until the resource is in the org, the 78 rows point at an image that does not resolve.
 - **The trusted sites added for the hotlinked images are gone from the repo.**
   `unpackaged/post_quantumbit` used to deploy 16 CSP trusted sites (`img-src` only) that were
   added for those images; nothing else in the repo used them, so they were removed. They
