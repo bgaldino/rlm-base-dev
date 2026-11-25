@@ -717,8 +717,9 @@ class SiteGuideSnapshot:
             if old_files:
                 fresh["superseded_files"] = old_files
                 self.logger.warning(
-                    f"  {len(old_files)} atlas article file(s) are superseded and stay on disk "
-                    "(listed under superseded_files in the manifest); remove them with the re-capture commit"
+                    f"  {len(old_files)} atlas article file(s) are candidates for removal and stay on disk; "
+                    "only those whose site page was captured end up under superseded_files in the "
+                    "saved manifest. Remove just those with the re-capture commit"
                 )
             return fresh
         changes = self._identity_changes(manifest)
@@ -972,8 +973,8 @@ class SiteGuideSnapshot:
         unused = sorted(accepted - set(uncovered))
         if unused:
             self.logger.warning(
-                f"  --accept-uncovered named {', '.join(unused)}, which the switch does cover or "
-                "which has no atlas article (check the id)")
+                f"  --accept-uncovered named {', '.join(unused)}, not uncovered in this switch (covered, "
+                "no atlas article, or an id meant for another target)")
 
     def _map_legacy(self, manifest, legacy_ids: List[str], slugs: set) -> None:
         """Fill ``legacy_id_map``/``unmapped_legacy_ids`` for atlas ids ``legacy_ids``."""

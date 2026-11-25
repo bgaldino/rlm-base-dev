@@ -584,6 +584,10 @@ def main():
         check("accepting only some of the uncovered pages still refuses",
               raises(OptionsError, snap(tmp, accept_uncovered=["gone.htm"], **sect).run)
               and (Path(tmp) / "manifest.json").read_text(encoding="utf-8") == before)
+        out = {k: (G + "connect-resources-get-catalogs.html" if k.endswith("odd_old_name.htm") else v)
+               for k, v in redir.items()}
+        check("a redirect that lands outside the section counts as uncovered",
+              raises(OptionsError, snap(tmp, **dict(sect, redirects=out), accept_uncovered=["gone.htm", "rlm_get_started.htm"]).run))
         lg = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm", "typo.htm"], **sect)
         lg.run()
         ms = load(tmp)

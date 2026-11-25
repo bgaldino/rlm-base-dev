@@ -448,6 +448,8 @@ class DevGuideSnapshot:
         validate_options(
             self.options, "release_version", "release_name", list_options=("sections", "accept_shrinkage", "accept_uncovered")
         )
+        if self.options.get("accept_uncovered"):
+            self.logger.warning("--accept-uncovered has no effect on an atlas guide (it guards a site switch)")
         # YAML reads `output_dir: 266` or `doc_version: 264.0` as a number.
         for name in ("release_version", "release_name", "deliverable", "output_dir",
                      "doc_version"):
