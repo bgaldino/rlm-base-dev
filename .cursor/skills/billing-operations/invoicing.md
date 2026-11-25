@@ -233,7 +233,7 @@ Read back with one `sf data query --target-org <sf-alias> -q "<SOQL>"` call per 
 (an empty result from the first query means no forecast run has happened yet; the POST
 above creates the data). The first query lists every Forecast run, newest last. A
 Completed non-recalculate run with 0 lines found nothing `PendingForecast` to forecast
-[inferred from one measured run]; check Status before reading 0 lines as success.
+[inferred]; check Status before reading 0 lines as success.
 
 ```sql
 SELECT Id, Status, JobType, CreatedDate, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId FROM InvoiceBatchRun WHERE JobType = 'Forecast' ORDER BY CreatedDate
