@@ -51,10 +51,18 @@ standard `createBillingSchedulesFromTrxn` action. The payload carries the chosen
 (`LegalEntityId__std`), the billing treatment of that entity for the chosen Advance or Arrears
 timing (`BillingTreatmentId__std`; the timing tags themselves are rejected by the action), a
 billing term when a caller gives one (`BillingTerm__std`; the modal has no input for it) and a
-shipping city (`ShippingCity__std`: the account's, else its billing city). It reads
-`BillingTreatment`, `BillingTreatmentItem` and `Account.ShippingCity` in USER_MODE, which
-`RLM_BillingUI` grants. The service refuses, with a message, a timing the legal entity has no
-active treatment for and an account with no shipping or billing city.
+shipping city (`ShippingCity__std`: the account's `ShippingCity`, else the `billingCity` the
+caller submitted, which create requires). The treatment is the oldest active, non-milestone,
+billable one of the legal entity whose item bills in that timing and whose currency is the
+charge's; a treatment with both an Advance and an Arrears item is skipped as ambiguous. It reads
+`BillingTreatment`, `BillingTreatmentItem`, `LegalEntity` and `Account.ShippingCity` in USER_MODE.
+`RLM_BillingUI` grants object read on them; the treatment and item fields it reads (`Status`,
+`LegalEntityId`, `IsMilestoneBilling`, `ExcludeFromBilling`, `CurrencyIsoCode`, `CreatedDate`,
+`BillingType`, `BillingTreatmentId`) are not permissionable (measured on a 264 scratch org,
+2026-11-26), so no `fieldPermissions` rows exist or are possible. The service refuses, with a
+message naming timing, currency and legal entity, a charge with no such treatment (including one
+whose only treatments are in another currency); it never pairs a charge with a treatment of
+another currency.
 
 ## Do not
 

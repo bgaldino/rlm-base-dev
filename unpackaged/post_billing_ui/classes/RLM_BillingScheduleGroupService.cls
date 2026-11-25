@@ -18,7 +18,12 @@
  * group's billing type (Advance or Arrears) through the treatment's item, which is the only way
  * to carry timing because BillingType__std and BillingTypePicklistTiming__std are rejected
  * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term is given. A shipping
- * address tag is required: ShippingCity__std (account shipping city, else the billing city).
+ * address tag is required: ShippingCity__std (the account's ShippingCity, else the billingCity the
+ * caller submitted, which create requires). The treatment is the oldest active, non-milestone,
+ * billable one of the legal entity whose only active item bills in the chosen timing, in the
+ * charge's currency; a treatment with both an Advance and an Arrears item is ambiguous and
+ * skipped. When none fits, create refuses with a message instead of pairing the charge with a
+ * treatment of another currency.
  *
  * The standard context definition (StandaloneBillingContext__stdctx) and its
  * read/save context mappings (TransactionMapping / BSGEntitiesMapping) are
@@ -39,19 +44,21 @@ public with sharing class RLM_BillingScheduleGroupService {
     @TestVisible
     private static Map<String, Object> mockActionOutputs = null;
 
-    public static final String TIMING_ADVANCE = 'Advance';
-    public static final String TIMING_ARREARS = 'Arrears';
+    private static final String TIMING_ADVANCE = 'Advance';
+    private static final String TIMING_ARREARS = 'Arrears';
 
-    // A billing treatment that can carry a timing for a legal entity, as read from its items.
-    public class TreatmentCandidate {
+    // One active item of a billable treatment of the legal entity: the treatment, the timing the
+    // item bills in and the treatment's currency. A treatment with several items has several rows.
+    @TestVisible
+    private class TreatmentCandidate {
         public Id treatmentId;
+        public String billingType;
         public String currencyIsoCode;
-        public Datetime createdDate;
 
-        public TreatmentCandidate(Id treatmentId, String currencyIsoCode, Datetime createdDate) {
+        public TreatmentCandidate(Id treatmentId, String billingType, String currencyIsoCode) {
             this.treatmentId = treatmentId;
+            this.billingType = billingType;
             this.currencyIsoCode = currencyIsoCode;
-            this.createdDate = createdDate;
         }
     }
 
@@ -611,8 +618,8 @@ public with sharing class RLM_BillingScheduleGroupService {
         return JSON.serialize(transactionWrapper);
     }
 
-    // The shipping city for the action: the account's, else the billing city already required of
-    // the caller. Throws when neither exists rather than sending a made-up value.
+    // The shipping city for the action: the account's, else the billing city the caller submitted
+    // (create already requires it to be non-blank).
     @TestVisible
     private static String readShippingCity(Id accountId, String billingCity) {
         String city;
@@ -629,15 +636,12 @@ public with sharing class RLM_BillingScheduleGroupService {
         if (String.isNotBlank(accountShippingCity)) {
             return accountShippingCity;
         }
-        if (String.isNotBlank(billingCity)) {
-            return billingCity;
-        }
-        throw RLM_AuraErrors.handled(
-            'The account has no Shipping City or Billing City. Add one to the Account before creating a billing schedule group.');
+        return billingCity;
     }
 
-    // The active, non-milestone billing treatment of the legal entity whose active item bills in the
-    // chosen timing (a treatment item's BillingType is where Advance or Arrears lives).
+    // The active, non-milestone, billable billing treatment of the legal entity that bills in the
+    // chosen timing and the charge's currency (a treatment item's BillingType is where Advance or
+    // Arrears lives). Both timings are read so a treatment carrying both can be skipped as ambiguous.
     @TestVisible
     private static Id findBillingTreatmentId(Id legalEntityId, String timing, String currencyIsoCode) {
         List<TreatmentCandidate> candidates = new List<TreatmentCandidate>();
@@ -646,55 +650,75 @@ public with sharing class RLM_BillingScheduleGroupService {
         } else {
             try {
                 for (BillingTreatmentItem item : [
-                    SELECT BillingTreatmentId, BillingTreatment.CurrencyIsoCode, BillingTreatment.CreatedDate
+                    SELECT BillingTreatmentId, BillingType, BillingTreatment.CurrencyIsoCode
                     FROM BillingTreatmentItem
-                    WHERE BillingType = :timing
+                    WHERE BillingType IN (:TIMING_ADVANCE, :TIMING_ARREARS)
                     AND Status = 'Active'
                     AND BillingTreatment.Status = 'Active'
                     AND BillingTreatment.LegalEntityId = :legalEntityId
                     AND BillingTreatment.IsMilestoneBilling = false
                     AND BillingTreatment.ExcludeFromBilling = 'No'
                     WITH USER_MODE
+                    ORDER BY BillingTreatment.CreatedDate, BillingTreatmentId
                 ]) {
                     candidates.add(new TreatmentCandidate(
-                        item.BillingTreatmentId, item.BillingTreatment.CurrencyIsoCode, item.BillingTreatment.CreatedDate));
+                        item.BillingTreatmentId, item.BillingType, item.BillingTreatment.CurrencyIsoCode));
                 }
             } catch (QueryException qe) {
                 throw readRefused('the billing treatments', qe);
             }
         }
-        Id chosen = chooseTreatment(candidates, currencyIsoCode);
+        Id chosen = chooseTreatment(candidates, timing, currencyIsoCode);
         if (chosen == null) {
             throw RLM_AuraErrors.handled(
-                'No active billing treatment bills in ' + timing + ' for the selected legal entity. '
-                + 'Choose another legal entity or timing, or ask your administrator to set one up.');
+                'No active billing treatment bills in ' + timing + ' in ' + currencyIsoCode
+                + ' for legal entity ' + legalEntityName(legalEntityId) + '. '
+                + 'Choose another legal entity, timing or currency, or ask your administrator to set one up.');
         }
         return chosen;
     }
 
-    // Among the treatments that fit, one in the charge's currency wins, then the oldest, so the same
-    // inputs always pick the same treatment. Null when there are none.
+    // The first candidate, in the order given (the query's: oldest treatment first), whose items all
+    // bill in the timing and whose currency is the charge's; null when none. A treatment with items in
+    // both timings is skipped, since either timing would match it.
     @TestVisible
-    private static Id chooseTreatment(List<TreatmentCandidate> candidates, String currencyIsoCode) {
-        TreatmentCandidate best;
+    private static Id chooseTreatment(List<TreatmentCandidate> candidates, String timing, String currencyIsoCode) {
+        Map<Id, String> firstType = new Map<Id, String>();
+        Set<Id> bothTimings = new Set<Id>();
+        List<Id> inTiming = new List<Id>();
         for (TreatmentCandidate c : candidates) {
-            if (best == null || isBetter(c, best, currencyIsoCode)) {
-                best = c;
+            if (c.currencyIsoCode != currencyIsoCode) {
+                continue;
+            }
+            String seen = firstType.get(c.treatmentId);
+            if (seen == null) {
+                firstType.put(c.treatmentId, c.billingType);
+                if (c.billingType == timing) {
+                    inTiming.add(c.treatmentId);
+                }
+            } else if (seen != c.billingType) {
+                bothTimings.add(c.treatmentId);
             }
         }
-        return best == null ? null : best.treatmentId;
+        for (Id treatmentId : inTiming) {
+            if (!bothTimings.contains(treatmentId)) {
+                return treatmentId;
+            }
+        }
+        return null;
     }
 
-    private static Boolean isBetter(TreatmentCandidate c, TreatmentCandidate best, String currencyIsoCode) {
-        Boolean cMatches = c.currencyIsoCode == currencyIsoCode;
-        Boolean bestMatches = best.currencyIsoCode == currencyIsoCode;
-        if (cMatches != bestMatches) {
-            return cMatches;
+    // For the refusal message only; falls back to a generic phrase when the name cannot be read.
+    private static String legalEntityName(Id legalEntityId) {
+        try {
+            List<LegalEntity> les = [SELECT Name FROM LegalEntity WHERE Id = :legalEntityId WITH USER_MODE LIMIT 1];
+            if (!les.isEmpty()) {
+                return les[0].Name;
+            }
+        } catch (QueryException qe) {
+            System.debug(LoggingLevel.WARN, 'RLM_BillingScheduleGroupService legal entity name not readable: ' + qe.getMessage());
         }
-        if (c.createdDate != best.createdDate) {
-            return c.createdDate != null && (best.createdDate == null || c.createdDate < best.createdDate);
-        }
-        return String.valueOf(c.treatmentId) < String.valueOf(best.treatmentId);
+        return 'the selected legal entity';
     }
 
     @TestVisible

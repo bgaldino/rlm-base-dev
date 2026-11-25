@@ -212,8 +212,10 @@ with `skipExistingRecords`, then activate only records not yet Active; `qb-billi
 
 The Billing UI's Create Billing Schedule Group modal picks its treatment from this model: the
 active, non-milestone, billable treatment of the chosen legal entity whose active item has the
-chosen Billing Type (a currency match first, then the oldest). A legal entity with no such
-treatment is refused with a message; a one-time charge sends none and takes the org default.
+chosen Billing Type, in the charge's currency (the oldest such treatment; one with both an Advance
+and an Arrears item is skipped as ambiguous). A legal entity with no such treatment, including
+one whose treatments are all in another currency, is refused with a message naming the timing,
+currency and entity; a one-time charge sends none and takes the org default.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give

@@ -270,7 +270,7 @@ private class RLM_BillingUIAccessTest {
             }
             List<String> fields = new List<String>{ 'Id' };
             for (String f : manifest.get(obj)) {
-                if (f != 'CurrencyIsoCode' || multiCurrency) {
+                if (!f.endsWith('CurrencyIsoCode') || multiCurrency) {
                     fields.add(f);
                 }
             }
