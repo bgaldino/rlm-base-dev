@@ -506,7 +506,7 @@ these conditions; rerun the amendment and cancel checks there.
 (`RLM_DFOTenantProvisioningCallout`, posting to `callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`).
 This repo ships neither the `RLM` named credential nor the REST resource. On a fresh 264 `dro` build
 [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and runs at order activation for any order containing `QB-API-MGMT`
+- The step is wired and ran at order activation on new-sale orders containing `QB-API-MGMT`
   (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group `Platform`). Neither the
   rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders do not reach it.
 - It fails at once. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
@@ -520,8 +520,9 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
 - `ExecutionMessage` showed `Fallout Rule is misconfigured: Specify valid name for Data set Link`, not the exception text,
   because that build had no fallout or jeopardy decision tables (see **Fallout and jeopardy rules** above). The exception
   text was visible only in the debug log. Whether it surfaces with the tables present was not measured.
-- This confirms that a failed provider ends the step `FatallyFailed`, which the non-2xx handling of todo 381 relies on.
-  The measured failure is the `CalloutException` path; the non-2xx branch itself was not reached.
+- On a build without the fallout tables the step ended `FatallyFailed`. Whether a returned `isSuccess=false` (the
+  non-2xx handling of todo 381) does so once the tables exist was not measured; the measured failure is the
+  `CalloutException` path and the non-2xx branch was not reached.
 - Fulfillment orders stayed `Draft` for every order on that build, including an order whose plan had no failed step, so a
   Draft fulfillment order is not evidence about a step. Why they never leave Draft was not measured.
 - An earlier check concluded the step was "not wired" from Draft fulfillment orders and zero `FlowOrchestrationInstance`
@@ -537,15 +538,15 @@ remove or condition the step. This section records behaviour, not a fix.
    (`FulfillmentStepDefnGroupId`, `ProductId`, `ProductClassificationId`), then the step definitions in that
    group (`FulfillmentStepDefinition.StepDefinitionGroupId`, and `ExecuteOnConditionData`/`ExecuteOnRuleId` for a condition).
    Choose an order whose product decomposes to a product with a scenario in the step's group.
-2. Activate the order. For QB, `scripts/build_quote_to_asset.py --org <alias> --accounts "<one account>" --sku <SKU> --start <today> --skip-usage-verify`
+2. Activate the order. For QB, `scripts/build_quote_to_asset.py --org <sf_alias> --accounts "<one account>" --sku <SKU> --start <today> --skip-usage-verify`
    builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start). A direct
    `OrderItem` create could not set `ProductSellingModelId` [Measured: 2026-11-25, 264, scratch, one org].
 3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` there; a plan
-   sourced from order items would carry an OrderItem id instead, so add `SourceType` to the query and match those ids too):
+   sourced from order items would carry an OrderItem id, so then use `SourceIdentifier IN ('<orderId>', <orderItemIds>)`):
 
    ```bash
-   sf data query --target-org "$SF_ORG" --query "SELECT Id, Name, State, SourceType FROM FulfillmentPlan WHERE SourceIdentifier = '<orderId>'"
-   sf data query --target-org "$SF_ORG" --query "SELECT Name, State, StepType, ExecutionMessage, RetryAttempts, NextEarliestRunTime FROM FulfillmentStep WHERE FulfillmentPlan.SourceIdentifier = '<orderId>'"
+   sf data query --target-org "<sf_alias>" --query "SELECT Id, Name, State, SourceType FROM FulfillmentPlan WHERE SourceIdentifier = '<orderId>'"
+   sf data query --target-org "<sf_alias>" --query "SELECT Name, State, StepType, ExecutionMessage, RetryAttempts, NextEarliestRunTime FROM FulfillmentStep WHERE FulfillmentPlan.SourceIdentifier = '<orderId>'"
    ```
 
 4. Do not use fulfillment-order `Status` (it stayed `Draft` regardless of plan state) or
@@ -554,8 +555,8 @@ remove or condition the step. This section records behaviour, not a fix.
 5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error is
    not in the record. Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
    log (trace flag on the activating user). In the measured run the step's `ActualStartDate` equalled the plan's
-   `CreatedDate` and no non-test `AsyncApexJob` existed, so it ran at activation rather than from a queued job
-   [Measured: 2026-11-25, 264, scratch, one org].
+   `CreatedDate` and no non-test `AsyncApexJob` existed, [Measured: 2026-11-25, 264, scratch, one org]. That it ran at
+   activation rather than from a queued job is [inferred]; DRO's own async work need not appear as an `AsyncApexJob`.
 
 ## Update Acceptance Scenarios
 

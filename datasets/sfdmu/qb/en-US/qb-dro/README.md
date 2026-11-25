@@ -44,24 +44,25 @@ longer ships either end: the in-org `@RestResource` (`RLM_TenantProvisioningAPI`
 tenant-environment object and flows) was removed in 2025-01 and the `RLM` named credential,
 which pointed at a single, hard-coded org, in 2026-03 (git history). On a fresh build the step therefore has no
 target. The step is reached by products decomposed to
-`QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
+`QB-DRO-APIPLAT` (`QB-API-MGMT` via the `API Platform to Provisioning` scenario, step group `Platform`); `mfg-dro` carries the same
 callout on its tenant-provisioning steps [inferred from its step definitions; not run].
 
 Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
-- The step is wired and runs at order activation for any order that contains `QB-API-MGMT`. It has no
-  condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to `QB-DRO-APIPLAT` decomposition rule.
-  Orders with only `QB-API` or `QB-API-FLEX` never reach it.
+- The step is wired and ran at order activation on new-sale orders that contain `QB-API-MGMT`. It has no
+  condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to
+  `QB-DRO-APIPLAT` decomposition rule. Orders with only `QB-API` or `QB-API-FLEX` did not reach it. Amend, renew and
+  cancel orders (the scenario lists them) were not run.
 - It fails at once: the debug log shows the callout throwing `CalloutException` (no `RLM` named credential), and the
   step goes `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
   [inferred from the class]). The 0 retries follow from the missing decision tables below: the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied, and their effect once the tables exist was not measured.
 - The failed step stalls the plan. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
-  Provision Licensing/Features gates Initiate Billing, which gates Post Invoice and Receive Payment (it also gates
-  Activate Tokens, which was not on these plans). All stay `Pending` and
-  the plan stays `InProgress`, so billing is never initiated for such an order.
+  Provision Licensing/Features gates Initiate Billing, which gates Post Invoice, which gates Receive Payment (it also
+  gates Activate Tokens, which was not on these plans). All stayed `Pending` and the plan stayed `InProgress`, so
+  billing was not initiated while the step stays failed.
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
   not the exception text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
-  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`; both absent on that build). The exception text was seen only in the
+  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`). The exception text was seen only in the
   debug log. Whether it surfaces once the tables exist was not measured.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
