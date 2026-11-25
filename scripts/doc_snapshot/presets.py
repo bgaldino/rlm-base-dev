@@ -33,12 +33,14 @@ PRESET_OPTIONS = {
     "dev_guide": SHARED_OPTIONS | frozenset((
         "deliverable", "doc_version", "sections", "batch_delay_ms",
         "follow_links", "max_pages",
+        # Site guides (source: site); see site_guide.py.
+        "source", "site_url", "api_version", "probe_page",
     )),
 }
 
 # Dropped when bootstrapping a new release: facts about a captured corpus (a
 # verified count floor, a pinned atlas version), not about the root.
-_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version")
+_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version", "api_version")
 
 
 def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
@@ -84,6 +86,13 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
                         f"{', '.join(unknown)} (valid: "
                         f"{', '.join(sorted(PRESET_OPTIONS[kind]))})"
                     )
+                # api_version is deliberately not checked here: bootstrap drops it
+                # (a fact about the release), and the run itself requires it.
+                if kind == "dev_guide" and dev_guide_source(preset) == "site" \
+                        and not preset.get("site_url"):
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} has source: site and needs site_url"
+                    )
                 # A null would silently read as "use the default"; blank values
                 # are rejected by the snapshotters too, but say so at load time.
                 empty = sorted(
@@ -108,6 +117,17 @@ def iter_presets(
         for kind in KINDS:
             for key, preset in (block.get(kind) or {}).items():
                 yield rel, kind, str(key), preset
+
+
+SOURCES = ("atlas", "site")
+
+
+def dev_guide_source(options: Dict[str, Any]) -> str:
+    """``atlas`` (default) or ``site``: which fetcher a dev-guide preset uses."""
+    source = str(options.get("source") or "atlas").strip().lower()
+    if source not in SOURCES:
+        raise OptionsError(f"source must be one of {SOURCES}, got {options.get('source')!r}")
+    return source
 
 
 def preset_keys(releases: Dict[str, Any], release: str, kind: str) -> List[str]:
@@ -140,7 +160,7 @@ def resolve(
         options.update(presets[key])
     elif not overrides_complete(kind, overrides):
         known = ", ".join(presets) or "none"
-        needed = ("--root-article-id and --prefix" if kind == "help" else "--deliverable")
+        needed = ("--root-article-id and --prefix" if kind == "help" else "--deliverable (or --site-url)")
         raise OptionsError(
             f"no {kind} preset {key!r} for release {release} (known: {known}). "
             f"Pass {needed} for an ad hoc run."
@@ -161,7 +181,7 @@ def overrides_complete(kind: str, overrides: Optional[Dict[str, Any]]) -> bool:
         return bool(overrides.get("root_article_id") and overrides.get("article_id_prefix"))
     # The deliverable has a default, but an unknown key must not fall back to it:
     # a mistyped `--guide` would otherwise snapshot (or refresh) the Revenue Management Developer Guide.
-    return bool(overrides.get("deliverable"))
+    return bool(overrides.get("deliverable") or overrides.get("site_url"))
 
 
 # ---------------------------------------------------------------------------

@@ -183,6 +183,8 @@ When Salesforce publishes a new release (for example 266), the snapshot tool's R
 4. Run `check --release <new>` and resolve any hits (see Known limitations). Resolve every page the run listed as refused (not-found: the id moved, so find its new id by title; stub: confirm at the live source, then `--accept-shrinkage <id>` or keep the prior capture) and every errored page reported as no longer in the TOC (retire it or mark it moved).
 5. Commit the corpus and the `presets.yaml` change together. `.gitattributes` marks the corpus trees `linguist-generated`, so GitHub collapses them in PR diffs.
 
+6. **Developer guides on the new sites.** The revenue and industries guides moved off atlas to server-rendered sites (`source: site` presets `rlm_site`, `industries_site`; README **Site guides**). The site serves only the current release and has no version selector, so a capture refuses when its `/services/data/vNN.0` evidence differs from the preset's `api_version`. Capture a release's guides **before** the next GA moves the site; after it, older text exists only as PDFs on the guide's `*-pdf-archive.html` page. Set `api_version` on the new release's site presets (bootstrap drops it), read the manifest's `unmapped_legacy_ids` (old atlas ids with no new slug, never guessed) and `legacy_id_map` (old id to slug) when re-pointing citations, and delete the replaced atlas articles in the same change.
+
 To compare releases once both are captured, run `diff -u` on the same article ID in each (see **Cross-release diff** above).
 
 ## Per-area snapshots
