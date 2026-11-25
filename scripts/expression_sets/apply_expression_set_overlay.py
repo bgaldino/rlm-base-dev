@@ -242,8 +242,11 @@ def main(argv=None) -> int:
         # Before any write: a null-Rank active version could not be reactivated, the
         # PATCH must not rewrite another active version, and the versions it sends
         # need unique names.
-        refusal = (null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
-                   or other_active_versions_refusal(es_api_name, versions, esv)
+        refusal = (null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
+                                                  target_org=args.target_org,
+                                                  es_api_name=es_api_name)
+                   or other_active_versions_refusal(es_api_name, versions, esv,
+                                                    target_org=args.target_org)
                    or version_name_collision_refusal(es_api_name, versions, simulated))
         if refusal:
             raise LifecycleError(refusal)

@@ -2155,6 +2155,8 @@ def test_overlay_multi_version_target_and_name_guard():
         task = object.__new__(ApplyExpressionSetOverlay)
         task.logger = logging.getLogger("test_overlay_multi_version")
         task.logger.warning = lambda msg, *args: seen["warnings"].append(msg % args)
+        task.org_config = type("Org", (), {"username": "user@org.test",
+                                           "access_token": "NOT-THIS"})()
         task.options = {"overlay_file": "unused", **(options or {})}
         task._load_overlay = lambda: {"expressionSetApiName": "C",
                                       "updateSteps": [{"name": "S", "description": "new"}]}
@@ -2212,6 +2214,10 @@ def test_overlay_multi_version_target_and_name_guard():
     check("CCI overlay refuses before any write while another version is active",
           both["error"] is not None and "rewrite C_V1 while active" in both["error"]
           and both["writes"] == [])
+    check("CCI overlay: the deactivate command names the org's username, never the token",
+          both["error"] is not None and "activate_expression_set.py --target-org "
+          "user@org.test --expression-set C --version C_V1 --deactivate --no-cascade "
+          "--confirm" in both["error"] and "NOT-THIS" not in both["error"])
 
 
 def test_import_replace_restores_every_version():
@@ -2335,6 +2341,8 @@ def test_delete_refuses_an_active_null_rank_version():
             self.logger.addHandler(logging.NullHandler())
             self.options = {"expression_set_api_name": "ESX", "confirm": True,
                             "dry_run": False}
+            self.org_config = type("Org", (), {"username": "user@org.test",
+                                               "access_token": "NOT-THIS"})()
             self.calls = []
 
         def _get_expression_set_id(self, api_name):
@@ -2361,6 +2369,30 @@ def test_delete_refuses_an_active_null_rank_version():
     check("CCI delete: an active null-Rank version is refused before any write",
           error is not None and "Delete refused" in str(error)
           and "Enter a valid rank" in str(error) and task.calls == [])
+    check("CCI delete: the remedy commands name the org's username, never the token",
+          error is not None and "--target-org user@org.test --expression-set ESX "
+          "--version ESX_V1 --deactivate --confirm" in str(error)
+          and "NOT-THIS" not in str(error) and "<alias>" not in str(error))
+
+    # The lifecycle's own check (a caller that skipped its pre-check) fills them too,
+    # reading the set's DeveloperName from the definition.
+    cycle = _MutationTask({"PPV_A": True})
+    cycle.org_config = type("Org", (), {"username": "user@org.test"})()
+    plain_query = cycle._soql_query
+    cycle._soql_query = lambda q: ([{"DeveloperName": "ESX_Set"}]
+                                   if "FROM ExpressionSetDefinition" in q else plain_query(q))
+    try:
+        cycle._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "ApiName": "ESX_V1", "IsActive": True,
+                                  "Rank": None},
+            mutate=lambda: None, dry_run=False, activate_after=True, cascade=True,
+            verb="Import")
+        backstop = ""
+    except TaskOptionsError as exc:
+        backstop = str(exc)
+    check("CCI lifecycle refusal: commands carry the org's username and the set's name",
+          "--target-org user@org.test --expression-set ESX_Set --version ESX_V1" in backstop
+          and "sf data update record --target-org user@org.test " in backstop)
 
 
 def test_import_replace_refuses_a_version_rebind():
@@ -2381,6 +2413,8 @@ def test_import_replace_refuses_a_version_rebind():
         writes = []
         task = object.__new__(ImportExpressionSet)
         task.logger = logging.getLogger("test_import_refusal")
+        task.org_config = type("Org", (), {"username": "user@org.test",
+                                           "access_token": "NOT-THIS"})()
         task._preflight_validate_definition = lambda payload: None
         task._soql_query = lambda q: [{"Id": "9QAx"}]
         task._get_expression_set_id = lambda name: "9QLx"
@@ -2409,6 +2443,17 @@ def test_import_replace_refuses_a_version_rebind():
     check("ramp264: the refusal points to set_step_formula.py",
           "set_step_formula.py" in str(error))
     check("ramp264: nothing is written before the refusal", writes == [])
+
+    single = [{"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1", "Name": "P",
+               "IsActive": True, "VersionNumber": 1, "Rank": None}]
+    error, writes = run(single, "RLM_DefaultPricingProcedure_V1")
+    check("CCI import: a null-Rank refusal names the org's username, the set and "
+          "activate_after_import, before any write",
+          error is not None and writes == []
+          and "--target-org user@org.test --expression-set RLM_DefaultPricingProcedure "
+          "--version RLM_DefaultPricingProcedure_V1" in str(error)
+          and "activate_after_import false" in str(error)
+          and "NOT-THIS" not in str(error))
 
     draft = [{"Id": "9QMa", "ApiName": "X_V1", "Name": "X", "IsActive": True,
               "VersionNumber": 1},

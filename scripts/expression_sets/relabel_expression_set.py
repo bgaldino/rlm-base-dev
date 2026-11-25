@@ -302,7 +302,9 @@ def main(argv=None) -> int:
 
         # Before any write, with this CLI's own run-without-activation option (the
         # lifecycle's own check would refuse too, without naming it).
-        refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
+        refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
+                                                 target_org=args.target_org,
+                                                 es_api_name=args.es_api_name)
         if refusal:
             raise LifecycleError(refusal)
         # The deactivate → Tooling PATCH → reactivate lifecycle lives in the shared

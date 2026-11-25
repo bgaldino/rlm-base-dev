@@ -205,40 +205,51 @@ NO_ACTIVATION_CCI_IMPORT = ("run with -o activate_after_import false, which leav
                             "version inactive")
 
 
-def _activate_cmd(esv: Dict[str, Any], flag: str) -> str:
+def _activate_cmd(esv: Dict[str, Any], flag: str, target_org: Optional[str] = None,
+                  es_api_name: Optional[str] = None) -> str:
+    """An activate_expression_set.py command for ``esv``. Callers pass the org the
+    run used (the toolkit's --target-org; the CCI task's org username) and the set's
+    name so the command runs as printed; a placeholder stands in only when unknown."""
     return ("python scripts/expression_sets/activate_expression_set.py --target-org "
-            "<alias> --expression-set <name> --version "
-            f"{esv.get('ApiName') or '<ApiName>'} {flag} --confirm")
+            f"{target_org or '<alias>'} --expression-set {es_api_name or '<name>'} "
+            f"--version {esv.get('ApiName') or '<ApiName>'} {flag} --confirm")
 
 
-def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
+def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str],
+                 target_org: Optional[str] = None,
+                 es_api_name: Optional[str] = None) -> str:
     # Measured on Release 264 (2026-11-25): an sObject update of Rank works on an
     # inactive version; on an active one it is refused ("An enabled Expression Set
     # Version cannot be updated/deleted."), as is a Metadata API redeploy, so an
     # active version is deactivated, ranked and activated again.
-    update = ("sf data update record --target-org <alias> --sobject ExpressionSetVersion "
-              f"--record-id {esv.get('Id')} --values \"Rank=<n>\"")
+    update = (f"sf data update record --target-org {target_org or '<alias>'} --sobject "
+              f"ExpressionSetVersion --record-id {esv.get('Id')} --values \"Rank=<n>\"")
     if esv.get("IsActive"):
         how = (" Give it a Rank first. No update of an active version is accepted "
                "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
-               "measured), so: deactivate it (" + _activate_cmd(esv, "--deactivate")
-               + "; it does not run while off), set a Rank that keeps the intended "
+               "measured), so: deactivate it ("
+               + _activate_cmd(esv, "--deactivate", target_org, es_api_name)
+               + "; it does not run while off), set a Rank <n> that keeps the intended "
                f"version executing ({update}), and activate it again ("
-               + _activate_cmd(esv, "--activate") + "); each step was measured")
+               + _activate_cmd(esv, "--activate", target_org, es_api_name)
+               + "); each step was measured")
     else:
-        how = (" Give it a Rank first, one that keeps the intended version executing "
-               f"({update}; measured on an inactive version)")
+        how = (" Give it a Rank <n> first, one that keeps the intended version "
+               f"executing ({update}; measured on an inactive version)")
     return how + (f"; or {alternative}." if alternative else ".")
 
 
 def null_rank_reactivation_refusal(
-    esv: Dict[str, Any], activate_after: bool, alternative: Optional[str] = None
+    esv: Dict[str, Any], activate_after: bool, alternative: Optional[str] = None,
+    *, target_org: Optional[str] = None, es_api_name: Optional[str] = None,
 ) -> Optional[str]:
     """Why a run that would activate ``esv`` must not start, or None.
 
     ``alternative`` is the other remedy offered besides giving the version a Rank,
     in the caller's own option name (``NO_ACTIVATION_*``); None when the caller has
     no way to run without activation or its only purpose is to activate.
+    ``target_org`` (the org the run used) and ``es_api_name`` fill the printed
+    commands so they run as printed.
 
     Activating a version through the API needs a Rank: the platform refused it on
     264 with "Enter a valid rank to enable …" (measured 2026-11-25). A run that
@@ -257,10 +268,11 @@ def null_rank_reactivation_refusal(
     else:
         what = (f"ExpressionSetVersion {name} has no Rank, so this run would write its "
                 "change and then fail to activate it")
-    return what + _NO_RANK_CAUSE + _rank_remedy(esv, alternative)
+    return what + _NO_RANK_CAUSE + _rank_remedy(esv, alternative, target_org, es_api_name)
 
 
-def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
+def null_rank_delete_refusal(esv: Dict[str, Any], *, target_org: Optional[str] = None,
+                             es_api_name: Optional[str] = None) -> Optional[str]:
     """Why a whole-set delete must not start on ``esv``, or None.
 
     A failed DELETE is rolled back by reactivating the version it deactivated, which
@@ -272,8 +284,9 @@ def null_rank_delete_refusal(esv: Dict[str, Any]) -> Optional[str]:
     return (
         f"Delete refused: ExpressionSetVersion {name} is active with no Rank, so if the "
         "DELETE failed its rollback could not turn the version back on" + _NO_RANK_CAUSE
-        + _rank_remedy(esv, "deactivate it first (" + _activate_cmd(esv, "--deactivate")
-                       + ") and then delete the set")
+        + _rank_remedy(esv, "deactivate it first ("
+                       + _activate_cmd(esv, "--deactivate", target_org, es_api_name)
+                       + ") and then delete the set", target_org, es_api_name)
     )
 
 
@@ -379,6 +392,8 @@ def other_active_versions_refusal(
     api_name: str,
     versions: List[Dict[str, Any]],
     target: Dict[str, Any],
+    *,
+    target_org: Optional[str] = None,
 ) -> Optional[str]:
     """Why an overlay PATCH, which sends every version, must not run, or ``None``.
 
@@ -397,7 +412,7 @@ def other_active_versions_refusal(
     # references the set, and the executing version stays active, so its plans
     # must stay on.
     deactivate = "; ".join(
-        _activate_cmd(v, "--deactivate --no-cascade").replace("<name>", api_name)
+        _activate_cmd(v, "--deactivate --no-cascade", target_org, api_name)
         for v in others)
     return (
         f"Expression set '{api_name}' has {len(versions)} versions: "

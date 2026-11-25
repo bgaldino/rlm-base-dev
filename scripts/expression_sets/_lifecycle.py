@@ -344,6 +344,15 @@ class LifecycleEngine:
 
     # -- The deactivate → mutate → reactivate sequencer ----------------
 
+    def _definition_name(self, es_def_id: str) -> Optional[str]:
+        """The set's DeveloperName, for a printed command; None when unreadable."""
+        try:
+            rows = self.t.soql("SELECT DeveloperName FROM ExpressionSetDefinition "
+                               f"WHERE Id = '{soql_literal(es_def_id)}'")
+        except Exception:  # noqa: BLE001 -- only fills a message
+            return None
+        return (rows[0].get("DeveloperName") if rows else None) or None
+
     def run_mutation(
         self,
         *,
@@ -372,9 +381,11 @@ class LifecycleEngine:
         failure never knocks a live procedure offline. The failure is still raised.
         Default False preserves the strict Connect-PATCH safety.
         """
-        refusal = null_rank_reactivation_refusal(esv, activate_after)
-        if refusal:
-            raise LifecycleError(refusal)
+        if null_rank_reactivation_refusal(esv, activate_after):
+            # Fill the remedy commands with this run's org and the set's name.
+            raise LifecycleError(null_rank_reactivation_refusal(
+                esv, activate_after, target_org=getattr(self.t, "target_org", None),
+                es_api_name=self._definition_name(es_def_id)))
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False
@@ -631,8 +642,10 @@ class LifecycleEngine:
                     )
                     continue
                 lines.append(
-                    f"  {record}: sf data update record --target-org <org> "
-                    f"--sobject {sobject} --record-id {record_id} --values \"IsActive=true\""
+                    "  {}: sf data update record --target-org {} --sobject {} "
+                    "--record-id {} --values \"IsActive=true\"".format(
+                        record, getattr(self.t, "target_org", None) or "<org>",
+                        sobject, record_id)
                 )
             if (f"ExpressionSetVersion {esv_id}" in left_off
                     and not version_may_be_half_written):

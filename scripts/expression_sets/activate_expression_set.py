@@ -129,7 +129,9 @@ def main(argv=None) -> int:
         if current == desired_active:
             eprint(f"Version already IsActive={desired_active}; nothing to do.")
         elif desired_active and no_rank:
-            raise LifecycleError(null_rank_reactivation_refusal(esv, True, alternative=None))
+            raise LifecycleError(null_rank_reactivation_refusal(
+                esv, True, alternative=None, target_org=args.target_org,
+                es_api_name=args.es_api_name))
         elif desired_active:
             # Activate ES version first, then reactivate referencing plans.
             engine.set_version_active(esv["Id"], True)

@@ -112,7 +112,8 @@ def main(argv=None) -> int:
                    f"{'PREVIEW' if preview else 'CONFIRM'}")
             # A failed DELETE is rolled back by reactivating the version, which the
             # API refuses for a version with no Rank: refuse before any write.
-            refusal = null_rank_delete_refusal(esv)
+            refusal = null_rank_delete_refusal(esv, target_org=args.target_org,
+                                               es_api_name=args.es_api_name)
             if refusal:
                 raise LifecycleError(refusal)
             result = engine.delete_expression_set(

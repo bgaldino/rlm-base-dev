@@ -272,6 +272,21 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 self.logger.warning(note)
         return chosen
 
+    def _org_username(self) -> Optional[str]:
+        """The org's username, the ``--target-org`` a printed toolkit or ``sf``
+        command needs (never the access token); None when there is no org."""
+        return getattr(getattr(self, "org_config", None), "username", None)
+
+    def _definition_name(self, es_def_id: str) -> Optional[str]:
+        """The set's DeveloperName, for a printed command; None when unreadable."""
+        try:
+            rows = self._soql_query(
+                "SELECT DeveloperName FROM ExpressionSetDefinition "
+                f"WHERE Id = '{self._soql_escape(es_def_id)}'")
+        except Exception:  # noqa: BLE001 -- only fills a message
+            return None
+        return (rows[0].get("DeveloperName") if rows else None) or None
+
     def _list_versions(self, es_id: str) -> List[dict]:
         """Every ExpressionSetVersion of an ExpressionSet, lowest number first, with
         the fields the shared executing-version resolver reads (Rank, date window)."""
@@ -765,9 +780,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
         """
-        refusal = null_rank_reactivation_refusal(esv, activate_after)
-        if refusal:
-            raise TaskOptionsError(refusal)
+        if null_rank_reactivation_refusal(esv, activate_after):
+            # Fill the remedy commands with this run's org and the set's name.
+            raise TaskOptionsError(null_rank_reactivation_refusal(
+                esv, activate_after, target_org=self._org_username(),
+                es_api_name=self._definition_name(es_def_id)))
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False
@@ -1597,8 +1614,11 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         # the PATCH must not rewrite another active version, and a PATCH whose
         # versions' names are not unique is rejected.
         refusal = (null_rank_reactivation_refusal(esv, activate_after,
-                                                  NO_ACTIVATION_CCI_APPLY)
-                   or other_active_versions_refusal(es_api_name, all_versions, esv)
+                                                  NO_ACTIVATION_CCI_APPLY,
+                                                  target_org=self._org_username(),
+                                                  es_api_name=es_api_name)
+                   or other_active_versions_refusal(es_api_name, all_versions, esv,
+                                                    target_org=self._org_username())
                    or version_name_collision_refusal(es_api_name, all_versions, simulated))
         if refusal:
             raise TaskOptionsError(refusal)
@@ -2121,7 +2141,9 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             # ResourceInitializationType alignment below is a write too).
             refusal = (import_target_refusal(api_name, versions, esv, payload)
                        or null_rank_reactivation_refusal(esv, activate_after,
-                                                         NO_ACTIVATION_CCI_IMPORT))
+                                                         NO_ACTIVATION_CCI_IMPORT,
+                                                         target_org=self._org_username(),
+                                                         es_api_name=api_name))
             if refusal:
                 raise TaskOptionsError(refusal)
 
@@ -2281,7 +2303,8 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         esv = self._resolve_version_by_es_id(es_id)
         # A failed DELETE is rolled back by reactivating the version, which the API
         # refuses for a version with no Rank: refuse before any write.
-        refusal = null_rank_delete_refusal(esv)
+        refusal = null_rank_delete_refusal(esv, target_org=self._org_username(),
+                                           es_api_name=api_name)
         if refusal:
             raise TaskOptionsError(refusal)
         esv_was_active = bool(esv.get("IsActive"))

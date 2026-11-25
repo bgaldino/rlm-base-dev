@@ -78,6 +78,7 @@ from scripts.expression_sets._client import (  # noqa: E402
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._guards import (  # noqa: E402
     executing_version,
+    null_rank_reactivation_refusal,
     rank_order_warning,
 )
 from scripts.expression_sets._resolve import (  # noqa: E402
@@ -388,6 +389,14 @@ def main(argv=None) -> int:
                    f"unreadable before this run: {', '.join(inactive_before)}. An inactive "
                    "plan is skipped at pricing time; this run leaves them as found.")
         was_active = bool(esv.get("IsActive"))
+        # Before any write, with the remedy commands filled for this org and set
+        # (the lifecycle's own check would refuse too). No run-without-activation
+        # option here: an active target is always reactivated.
+        refusal = null_rank_reactivation_refusal(esv, was_active,
+                                                 target_org=args.target_org,
+                                                 es_api_name=args.es_api_name)
+        if refusal:
+            raise LifecycleError(refusal)
 
         def mutate():
             # Re-read inside the inactive window, so the PATCH carries the

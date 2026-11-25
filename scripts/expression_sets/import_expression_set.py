@@ -233,7 +233,9 @@ def main(argv=None) -> int:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
                        "restored (run relabel_expression_set.py to fix).")
             # Before any write: a null-Rank active version could not be reactivated.
-            refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
+            refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI,
+                                                     target_org=args.target_org,
+                                                     es_api_name=api_name)
             if refusal:
                 eprint(f"\nREFUSED: {refusal}")
                 return 1

@@ -1567,6 +1567,7 @@ def test_failed_mutation_keeps_plans_online():
     logs16 = []
     t16 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
     t16.fail_plan_deactivate_ids = {"1Cv2"}
+    t16.target_org = "org-alias"  # the --target-org the run used
     engine16 = LifecycleEngine(t16, logger=logs16.append, poll_interval_seconds=1)
     raised16 = None
     try:
@@ -1575,9 +1576,9 @@ def test_failed_mutation_keeps_plans_online():
     except Exception as exc:
         raised16 = exc
     check("a failed cascade rollback still raises", raised16 is not None, raised16)
-    check("a plan the failed cascade left off gets a restore command",
+    check("a plan the failed cascade left off gets a restore command, on the run's org",
           any("ProcedurePlanDefinitionVersion 1Cv1" in m and "IsActive=true" in m
-              for m in logs16), logs16)
+              and "--target-org org-alias " in m for m in logs16), logs16)
     check("nothing was written, so the report doesn't warn of a half-written version",
           any("Restore the plan before reading" in m for m in logs16)
           and not any("NOT confirmed inactive" in m for m in logs16), logs16)
@@ -2335,7 +2336,9 @@ def test_null_rank_guard():
     check("relabel refuses a null-Rank active version before any write, offering "
           "--no-activate",
           rc == 1 and relabels == []
-          and any("Enter a valid rank" in m and "--no-activate" in m for m in rlogs),
+          and any("Enter a valid rank" in m and "--no-activate" in m
+                  and "--target-org x --expression-set X --version X_V1" in m
+                  and "<alias>" not in m for m in rlogs),
           (rc, rlogs))
     for label, esv, activate_after in (
             ("a numeric Rank", dict(null_active, Rank=1), True),
@@ -2365,7 +2368,9 @@ def test_null_rank_guard():
     rc, logs, t = run_activate("--activate", dict(null_active, IsActive=False))
     check("activate --activate refuses a null-Rank version before any write",
           rc == 1 and t.esv_active is False and any("Enter a valid rank" in m for m in logs)
-          and not any("--no-activate" in m for m in logs),
+          and not any("--no-activate" in m for m in logs)
+          and any("sf data update record --target-org x " in m and "<alias>" not in m
+                  for m in logs),
           (rc, logs))
     rc, logs, t = run_activate("--deactivate", null_active)
     check("activate --deactivate on a null-Rank version warns that it is one-way",
@@ -2387,7 +2392,9 @@ def test_null_rank_guard():
         undo()
     check("delete refuses a whole set whose active version has no Rank, before any write",
           rc == 1 and t.esv_active is True and t.plans == {"1Cv1": True}
-          and any("Delete refused" in m and "deactivate it first" in m for m in logs),
+          and any("Delete refused" in m and "deactivate it first" in m
+                  and "--target-org x --expression-set X --version X_V1 --deactivate" in m
+                  and "<alias>" not in m and "<name>" not in m for m in logs),
           (rc, logs))
 
     t = _PlanTransport(plans={"1Cv1": True})
@@ -2417,6 +2424,28 @@ def test_null_rank_guard():
           raised is not None and not any(e[0] == "tooling-patch" for e in t.events)
           and t.plans == {"1Cv1": True} and t.esv_active is True, (raised, t.events))
 
+    # The lifecycle's own check fills the commands with the transport's org and the
+    # set's DeveloperName, read from the definition.
+    class _NamedTransport:
+        target_org = "org-alias"
+        dry_run = False
+
+        def soql(self, query):
+            return ([{"DeveloperName": "X_Set"}]
+                    if "FROM ExpressionSetDefinition" in query else [])
+
+    try:
+        LifecycleEngine(_NamedTransport(), logger=lambda *a: None).run_mutation(
+            es_def_id="9QAx", esv=null_active, mutate=lambda: None, activate_after=True,
+            cascade=True)
+        backstop = ""
+    except LifecycleError as exc:
+        backstop = str(exc)
+    check("the lifecycle refusal's commands carry the run's org and the set's name",
+          "activate_expression_set.py --target-org org-alias --expression-set X_Set "
+          "--version X_V1 --deactivate --confirm" in backstop
+          and "sf data update record --target-org org-alias " in backstop, backstop)
+
     # set_step_formula: the executing (default) target has a null Rank.
     versions = [dict(v) for v in RAMP264_VERSIONS]
     for v in versions:
@@ -2430,6 +2459,11 @@ def test_null_rank_guard():
           rc == 1 and not any(e[0] == "tooling-patch" for e in t.events)
           and t.plans == {"1Cv1": True} and t.esv_active is True
           and any("Enter a valid rank" in m for m in logs), (rc, t.events, logs))
+    check("set_step_formula's refusal prints commands filled with its org and set",
+          any("activate_expression_set.py --target-org x --expression-set "
+              "RLM_DefaultPricingProcedure --version" in m
+              and "sf data update record --target-org x " in m and "<alias>" not in m
+              and "<name>" not in m for m in logs), logs)
     rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--show",
                                     "--version-api-name", versions[3]["ApiName"]])
     check("--show still reads a null-Rank version", rc == 0, logs)
@@ -2533,12 +2567,23 @@ def test_overlay_multi_version():
         check("overlay refuses colliding version names before any write",
               rc == 1 and writes == [] and any("both carry the name" in m for m in logs),
               (rc, writes, logs))
+        unranked = org("C V1", "C V2")
+        unranked[1]["Rank"] = None
+        rc, logs = run(unranked, sent("C V1", "C V2"))
+        check("overlay: a null-Rank refusal names the run's org, the set and "
+              "--no-activate, before any write",
+              rc == 1 and writes == []
+              and any("--target-org x --expression-set C --version C_V2" in m
+                      and "--no-activate" in m and "<alias>" not in m for m in logs),
+              (rc, writes, logs))
         both_active = [dict(r, IsActive=True) for r in org("C V1", "C V2")]
         rc, logs = run(both_active, sent("C V1", "C V2"))
         check("overlay refuses before any write while another version is active",
               rc == 1 and writes == []
-              and any("rewrite C_V1 while active" in m and "--version C_V1 --deactivate"
-                      in m and "set_step_formula.py" in m for m in logs),
+              and any("rewrite C_V1 while active" in m and "set_step_formula.py" in m
+                      and "activate_expression_set.py --target-org x --expression-set C "
+                      "--version C_V1 --deactivate --no-cascade --confirm" in m
+                      for m in logs),
               (rc, writes, logs))
 
     from scripts.expression_sets._guards import other_active_versions_refusal
