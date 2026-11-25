@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional
 # primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
 import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+import sfdmu_conditional_steps  # noqa: E402
 import sfdmu_id_lookups  # noqa: E402
 
 # ANSI escape code pattern for stripping color codes from subprocess output.
@@ -180,6 +181,9 @@ def copy_plan_control_files(plan_dir: str, dest_dir: str) -> None:
     lookups_src = os.path.join(plan_dir, sfdmu_id_lookups.LOOKUPS_FILENAME)
     if os.path.isfile(lookups_src):
         shutil.copy2(lookups_src, os.path.join(dest_dir, sfdmu_id_lookups.LOOKUPS_FILENAME))
+    conditions_src = os.path.join(plan_dir, sfdmu_conditional_steps.CONDITIONS_FILENAME)
+    if os.path.isfile(conditions_src):
+        shutil.copy2(conditions_src, os.path.join(dest_dir, sfdmu_conditional_steps.CONDITIONS_FILENAME))
 
 
 def redact_secret(text: str, *secrets: Optional[str]) -> str:
@@ -476,6 +480,18 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.pathtoexportjson, lambda soql: sf_query_records(org, soql), self.logger.info)
         self.logger.info(f"Resolved parent Ids for {filled} row(s) ({sfdmu_id_lookups.LOOKUPS_FILENAME}).")
 
+    def _apply_conditional_steps(self) -> None:
+        """Drop the plan's conditional DRO steps whose requirement the target org lacks, in a temp copy."""
+        if not sfdmu_conditional_steps.load_conditions(self.pathtoexportjson):
+            return
+        self._ensure_temp_plan_copy("sfdmu_cond_")
+        org = sfdmu_cli_org(self.org_config, self.options.get("targetusername"))
+        try:
+            sfdmu_conditional_steps.apply_conditions(
+                self.pathtoexportjson, lambda soql: sf_query_records(org, soql), self.logger.info)
+        except sfdmu_conditional_steps.ConditionalStepError as exc:
+            raise CommandException(str(exc))
+
     def _apply_dynamic_assigned_to_user(self) -> None:
         """Copy plan to a temp dir and replace DRO assigned-to placeholder with target org user Name."""
         placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
@@ -548,6 +564,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         if _as_bool(self.options.get("dynamic_assigned_to_user")):
             self._apply_dynamic_assigned_to_user()
         self._apply_parent_id_lookups()
+        self._apply_conditional_steps()
         if self.options.get("sync_objectset_source_to_source"):
             self._sync_objectset_source_to_source()
         self._prepare_export_json_file()
@@ -1092,8 +1109,9 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
     def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
         lookups = sfdmu_id_lookups.load_lookups(plan_dir)
+        conditions = sfdmu_conditional_steps.load_conditions(plan_dir)
         user_name = self._assigned_to_user_name()
-        if not lookups and not user_name:
+        if not lookups and not user_name and not conditions:
             self._run_load_in(plan_dir, strict)
             return
         # Same per-org steps as LoadSFDMUData, in a temp copy, never the plan.
@@ -1109,6 +1127,13 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 filled = sfdmu_id_lookups.apply_lookups(
                     work, lambda soql: sf_query_records(org, soql), self.logger.info)
                 self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
+            if conditions:
+                org = self._get_org_for_cli()
+                try:
+                    sfdmu_conditional_steps.apply_conditions(
+                        work, lambda soql: sf_query_records(org, soql), self.logger.info)
+                except sfdmu_conditional_steps.ConditionalStepError as exc:
+                    raise CommandException(str(exc))
             self._run_load_in(work, strict)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)

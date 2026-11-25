@@ -472,10 +472,17 @@ seen, user_queries = [], []
 
 
 def dro_run(cmd, *_a, **_k):
-    if isinstance(cmd, list):  # the User Name query
-        user_queries.append(cmd)
+    if isinstance(cmd, list):  # an `sf data query`: the conditional-step probe or the User Name
+        soql = cmd[cmd.index("-q") + 1]
+        if "FROM NamedCredential" in soql:  # the RLM credential exists: the plan keeps its step
+            records = [{"DeveloperName": "RLM"}]
+        elif "FROM User" in soql:
+            user_queries.append(cmd)
+            records = [{"Name": "Admin User"}]
+        else:
+            raise AssertionError(soql)
         return type("R", (), {"returncode": 0, "stderr": "",
-                              "stdout": json.dumps({"result": {"records": [{"Name": "Admin User"}]}})})()
+                              "stdout": json.dumps({"status": 0, "result": {"records": records}})})()
     plan = pathlib.Path(cmd.split(" -p ", 1)[1].split(" ", 1)[0])
     seen.append((plan, (plan / "FulfillmentStepDefinition.csv").read_text(encoding="utf-8")))
     return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
@@ -504,8 +511,10 @@ for option, want_name in ((True, True), ("false", False)):
         check(f"{tag}: the user Name is queried once, by username",
               [c[c.index("-o") + 1] for c in user_queries], ["scratch@example.com"])
     else:
-        check(f"{tag}: the plan loads in place, placeholder unchanged",
-              [(plan == DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
+        # qb-dro carries conditional_steps.json, so even without the user Name each load runs from a
+        # temp copy (the step is probed there); the placeholder is still sent raw.
+        check(f"{tag}: the placeholder is unchanged (a temp copy, for the conditional step)",
+              [(plan != DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
         check(f"{tag}: no user query", user_queries, [])
     shutil.rmtree(DRO / "target", ignore_errors=True)  # the in-place run's (empty) output
 dro_after = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
@@ -570,6 +579,50 @@ for label, option in (("a Readonly type (Product2) is refused, never deleted org
     except TaskOptionsError:
         got = "TaskOptionsError"
     check(f"named: {label}", got, "TaskOptionsError")
+
+print("LoadSFDMUData: conditional DRO steps are dropped in a temp copy (todo 419)")
+src_plan = REPO / "datasets/sfdmu/qb/en-US/qb-dro"
+tracked = {p.relative_to(src_plan): p.read_bytes() for p in src_plan.rglob("*")
+           if p.is_file() and not set(p.relative_to(src_plan).parts) & set(rs.SFDMU_RUNTIME_DIRS)}
+cond_queries = []
+
+
+def no_credential(org, soql):
+    cond_queries.append((org, soql))
+    return []
+
+
+cond = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+cond.org_config = scratch
+cond.options = {}
+cond.logger = type("L", (), {"info": lambda *_a, **_k: None})()
+cond.pathtoexportjson = str(src_plan)
+cond._temp_plan_dir = None
+saved_query = rs.sf_query_records
+rs.sf_query_records = no_credential
+try:
+    cond._apply_conditional_steps()
+finally:
+    rs.sf_query_records = saved_query
+cond_temp = pathlib.Path(cond.pathtoexportjson)
+check("the run points at a temp copy", cond_temp != src_plan and cond_temp == pathlib.Path(cond._temp_plan_dir), True)
+check("the CLI query used the scratch username, never the token",
+      {org for org, _ in cond_queries}, {"scratch@example.com"})
+check("the step is gone from the temp definitions",
+      "Stage New Tenant" in (cond_temp / "FulfillmentStepDefinition.csv").read_text(), False)
+check("the tracked plan is byte-for-byte unchanged",
+      {p.relative_to(src_plan): p.read_bytes() for p in src_plan.rglob("*")
+       if p.is_file() and not set(p.relative_to(src_plan).parts) & set(rs.SFDMU_RUNTIME_DIRS)}, tracked)
+shutil.rmtree(cond_temp, ignore_errors=True)
+plain = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+plain.org_config = scratch
+plain.options = {}
+plain.logger = cond.logger
+plain.pathtoexportjson = str(REPO / "datasets/sfdmu/qb/en-US/qb-pricing")
+plain._temp_plan_dir = None
+plain._apply_conditional_steps()
+check("a plan without conditional_steps.json is left alone",
+      plain.pathtoexportjson, str(REPO / "datasets/sfdmu/qb/en-US/qb-pricing"))
 
 print("=" * 60)
 if _failures:
