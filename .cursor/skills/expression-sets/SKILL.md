@@ -130,7 +130,7 @@ Release 262 dev-guide/Help snapshots (not re-checked against 264):
 >    plain `ExpressionSetVersion.IsActive` update never does. `prepare_constraints` deactivates
 >    only AFTER importing. See the constraint-models skill.
 >
-> Source material: `docs/salesforce/264/dev-guide/` (`cml_*` articles) and the
+> Source material: `docs/salesforce/264/dev-guide/` (`cml-*` articles) and the
 > Configurator Help suite.
 
 ### <a name="the-full-enum"></a>The full enum vs. Revenue Cloud

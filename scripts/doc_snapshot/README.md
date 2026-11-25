@@ -290,7 +290,7 @@ the Industries switch was sectioned, so it passed the coverage guard with
 `--accept-uncovered` for the 19 Metadata API, Connect and Tooling pages the site does not
 serve), and in the Industries corpus five pages the site serves only as stubs stayed on their atlas text (the rlm corpus holds two the same way; the shrinkage
 guard refused them; their `legacy_id_map` slugs have no file, so cite the atlas `.htm` id).
-The 262 `industries` preset and `contracts` stay atlas. A sample run:
+The 262 `industries` preset and both `contracts` presets stay atlas. A sample run:
 
 ```bash
 python -m scripts.doc_snapshot dev-guide --release 264 --guide industries \

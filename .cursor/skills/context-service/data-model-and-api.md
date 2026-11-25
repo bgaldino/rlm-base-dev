@@ -267,7 +267,7 @@ requires the **fully versioned path** (a bare `connect/...` 404s with
 
 > **Source.** Verbs/resources above are from the public **Context Service API
 > REST Reference** (`developer.salesforce.com` → industries_reference →
-> context_service_apis) cross-checked against the `ContextDefinition` MDAPI type
+> context-service-apis) cross-checked against the `ContextDefinition` MDAPI type
 > and live-org behavior. Two notes for this repo: there is **no "save as new
 > version" verb** — the only version-crossing operation is Upgrade/Sync (see
 > *Versioning* in `authoring-and-lifecycle.md`); and the **granular delete-by-id**

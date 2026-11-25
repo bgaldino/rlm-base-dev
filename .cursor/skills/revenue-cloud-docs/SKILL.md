@@ -102,7 +102,7 @@ Revenue Cloud builds on shared **Industries platform services** that its own dev
 
 Most of that guide covers other Industries clouds, so the preset captures only the sections listed in its `sections` key in `presets.yaml`. Edit that list to widen or narrow coverage. Ground OmniStudio, BRE, Context Service, Discovery Framework, and Timeline claims here.
 
-**When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml_*.htm.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
+**When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml-*.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
 
 ### ⚠ Where neither snapshot is authoritative: usage/consumption runtime semantics
 

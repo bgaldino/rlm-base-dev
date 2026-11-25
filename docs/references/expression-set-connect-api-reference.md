@@ -234,7 +234,7 @@ Revenue Cloud.
 is authored in Constraint Modeling Language via the
 Configurator Constraint Builder / CML editor — the `steps[]`/`parentStep` model
 and Connect-overlay tooling documented here **do not apply** to it. See the
-`cml_*` dev-guide articles and the Configurator Help suite. Deep CML coverage is
+`cml-*` dev-guide articles and the Configurator Help suite. Deep CML coverage is
 out of scope for this reference.
 
 **Not Revenue Cloud** (engine-supported, other clouds/verticals):
