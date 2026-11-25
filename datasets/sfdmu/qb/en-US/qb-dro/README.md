@@ -59,8 +59,8 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   rules (3 retries and 1 retry, Immediate) were not applied [inferred]; their effect once the tables exist was not
   measured.
 - The failed step stalls the plan [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
-  Provision Licensing/Features gates Initiate Billing, which gates Post Invoice, which gates Receive Payment (it also
-  gates Activate Tokens, which was not on these plans). Initiate Billing also depends on Start Project; whether that step
+  Provision Licensing/Features gates Initiate Billing (and Activate Tokens, which was not on these plans), which gates
+  Post Invoice, which gates Receive Payment. Initiate Billing also depends on Start Project; whether that step
   was on these plans was not checked, so Initiate Billing staying `Pending` does not by itself show the callout is the blocker. All stayed `Pending` and the plan stayed `InProgress` (observed), so billing was
   not initiated in the measured run.
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,

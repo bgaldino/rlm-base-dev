@@ -526,7 +526,7 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
   likely cause [inferred]. The exception text was visible only in the debug log. Whether it surfaces with the tables
   present was not measured. The measured failure is the `CalloutException` path; whether the non-2xx branch of the class
   (todo 381) also ends the step `FatallyFailed` once the tables exist was not measured.
-- Fulfillment orders stayed `Draft` for every order on that build, including an order whose plan had no failed step, so a
+- Fulfillment orders stayed `Draft` for every order measured, including an order whose plan had no failed step, so a
   Draft fulfillment order is not evidence about a step. Why they did not leave Draft was not measured.
 - An earlier check concluded the step was "not wired" from Draft fulfillment orders and zero `FlowOrchestrationInstance`
   records. Both signals are uninformative here (see **Verify a DRO Step on a Fresh Build**, below).
@@ -556,7 +556,7 @@ remove or condition the step. This section records behaviour, not a fix.
    ```
 
 4. Do not use fulfillment-order `Status` (it stayed `Draft` on every order measured, including one whose plan had no failed step) or
-   `FlowOrchestrationInstance` (its count stayed 0 for plans that ran; the plans are `FulfillmentPlan`/`FulfillmentStep` records [inferred])
+   `FlowOrchestrationInstance` (its count stayed 0 for plans that ran; the plans are `FulfillmentPlan`/`FulfillmentStep` records [inferred from the zero count])
    as the signal [Measured: 2026-11-25, 264, scratch, one org].
    In the measured run the step's `ActualStartDate` equalled the plan's `CreatedDate` and no non-test `AsyncApexJob`
    existed [Measured: 2026-11-25, 264, scratch, one org]; that it ran at activation rather than from a queued job is
