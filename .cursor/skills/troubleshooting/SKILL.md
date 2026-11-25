@@ -452,8 +452,10 @@ cci task run manage_decision_tables -o operation deactivate -o developer_names "
 
 **Cause:** Concurrent access to expression set version records.
 
-**Fix:** Automatic — the task retries 3 times with linear backoff (2s, 4s,
-6s). If it still fails, wait and retry manually.
+**Fix:** Automatic — both the CCI tasks and the `scripts/expression_sets/` toolkit
+retry their field-set PATCHes (`IsActive`, `ResourceInitializationType`) up to 4
+attempts, waiting 2, 4 and 6 seconds, whenever the error mentions
+`UNABLE_TO_LOCK_ROW`. If it still fails, wait and retry manually.
 
 ### Expression set activated without Rank
 
