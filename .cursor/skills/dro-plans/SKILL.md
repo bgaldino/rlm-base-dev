@@ -100,7 +100,7 @@ Read supporting files when their task applies:
 | [objects-and-relationships.md](objects-and-relationships.md) | Selecting objects, lookup fields, natural keys, or runtime evidence |
 | [authoring-and-deployment.md](authoring-and-deployment.md) | Designing a new configuration or verifying target prerequisites |
 | [csv-and-sfdmu.md](csv-and-sfdmu.md) | Creating/exporting datasets, loading, simulation, or repeat-load checks |
-| [updates-and-runtime.md](updates-and-runtime.md) | Updating used configuration, clearing/removing fields, or handling in-flight work |
+| [updates-and-runtime.md](updates-and-runtime.md) | Updating used configuration, clearing/removing fields, handling in-flight work, or verifying a DRO step on a fresh build (incl. the tenant callout step) |
 | [examples-and-grounding.md](examples-and-grounding.md) | Following the repository example, checking documentation, or recording evidence |
 
 Produce a concrete change description: target identity/release, configuration
