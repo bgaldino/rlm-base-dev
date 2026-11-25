@@ -512,6 +512,8 @@ class SiteGuideSnapshot:
         probe_page       slug of a page that shows /services/data/vNN.0, fetched only when
                          the captured pages show no version (e.g. a metadata-only section)
         accept_shrinkage page ids whose capture may shrink past the guard's stub threshold
+        accept_uncovered atlas page ids (with .htm) a sectioned atlas-to-site switch may leave
+                         on atlas because the section's site pages do not replace them
     """
 
     def __init__(self, options: Dict[str, Any], logger=None, fetcher: Optional[Fetcher] = None,
@@ -538,7 +540,7 @@ class SiteGuideSnapshot:
         o = self.options
         validate_options(
             o, "release_version", "release_name", "site_url", "api_version",
-            list_options=("sections", "accept_shrinkage"),
+            list_options=("sections", "accept_shrinkage", "accept_uncovered"),
         )
         for name in ("release_version", "release_name", "deliverable", "output_dir",
                      "site_url", "api_version", "probe_page"):
@@ -575,6 +577,7 @@ class SiteGuideSnapshot:
             sections = [sections]
         o["section_filters"] = [str(s).strip() for s in sections] if sections else None
         o["accept_shrinkage"] = as_id_set(o.get("accept_shrinkage"))
+        o["accept_uncovered"] = as_id_set(o.get("accept_uncovered"))
 
     def preflight(self) -> None:
         """Raise offline-detectable conflicts before any target of a batch runs."""
@@ -612,11 +615,8 @@ class SiteGuideSnapshot:
         if self._file_is_site(path):
             return
         if mode == "refresh":
-            if self.options.get("section_filters"):
-                raise OptionsError(
-                    "switching an atlas corpus to the site replaces its page records, so it needs the "
-                    "whole guide: run --mode refresh without --section."
-                )
+            # A sectioned switch is allowed; _check_covered refuses it once the site's pages are
+            # known, unless they cover every atlas article already captured.
             return
         manifest = read_manifest(path, {"pages": []}, "pages")
         if any(self._has_article(path, p) for p in manifest.get("pages", [])):
@@ -932,8 +932,44 @@ class SiteGuideSnapshot:
             legacy_ids = sorted(manifest.get("unmapped_legacy_ids") or {})
         if legacy_ids:
             self._map_legacy(manifest, legacy_ids, all_slugs)
+            if self._switching and o["section_filters"]:
+                self._check_covered(manifest_path, manifest, legacy_ids)
         if save:  # with a capture to follow, the one save comes after the version check
             self._save_manifest(manifest_path, manifest)
+
+    def _check_covered(self, path: Path, manifest, legacy_ids: List[str]) -> None:
+        """Refuse a sectioned atlas-to-site switch that would silently drop captured pages.
+
+        The site pages of the selected sections must replace every atlas article on disk:
+        each such id has to map (by rename or redirect) to a slug inside the sections. An id
+        that does not stays on atlas only if the operator names it in ``accept_uncovered``.
+        Raised before anything is saved, so the atlas manifest is left intact.
+        """
+        mapping = _legacy_map(manifest)
+        section = self._section_ids or set()
+        articles = path.parent / "articles"
+        uncovered = sorted(
+            old for old in legacy_ids
+            if (articles / f"{old}.md").is_file() and mapping.get(old) not in section)
+        accepted = self.options["accept_uncovered"]
+        refused = [old for old in uncovered if old not in accepted]
+        if refused:
+            shown = ", ".join(refused[:20]) + (f", ... ({len(refused) - 20} more)" if len(refused) > 20 else "")
+            raise OptionsError(
+                f"switching to the site would leave {len(refused)} captured atlas page(s) with no "
+                f"replacement in the selected section(s): {shown}. Their articles would be the only "
+                "copy. Name them with --accept-uncovered ID[,ID...] to keep them on atlas, or widen "
+                "the sections."
+            )
+        if uncovered:
+            self.logger.warning(
+                f"  {len(uncovered)} captured atlas page(s) have no site replacement in the selected "
+                "section(s) and stay on atlas (--accept-uncovered)")
+        unused = sorted(accepted - set(uncovered))
+        if unused:
+            self.logger.warning(
+                f"  --accept-uncovered named {', '.join(unused)}, which the switch does cover or "
+                "which has no atlas article (check the id)")
 
     def _map_legacy(self, manifest, legacy_ids: List[str], slugs: set) -> None:
         """Fill ``legacy_id_map``/``unmapped_legacy_ids`` for atlas ids ``legacy_ids``."""

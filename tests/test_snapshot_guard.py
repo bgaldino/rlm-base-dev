@@ -433,6 +433,13 @@ def main():
           and p.parse_args(["dev-guide", "--release", "264", "--guide", "x",
                             "--accept-shrinkage", "a"]).accept_shrinkage == ["a"]
           and p.parse_args(["run", "--release", "264", "--accept-shrinkage", "a"]).accept_shrinkage == ["a"])
+    check("--accept-uncovered is a dev-guide and run flag only, off unless given",
+          p.parse_args(["dev-guide", "--release", "264", "--guide", "x"]).accept_uncovered is None
+          and p.parse_args(["dev-guide", "--release", "264", "--guide", "x",
+                            "--accept-uncovered", "a.htm,b.htm"]).accept_uncovered == ["a.htm", "b.htm"]
+          and p.parse_args(["run", "--release", "264", "--accept-uncovered", "a.htm"]).accept_uncovered == ["a.htm"]
+          and "accept_uncovered" in cli.DEV_GUIDE_FLAGS and "accept_uncovered" in cli.RUN_FLAGS
+          and "accept_uncovered" not in cli.HELP_FLAGS)
     try:
         with contextlib.redirect_stderr(io.StringIO()):
             p.parse_args(["run", "--release", "264", "--accept-shrinkage"])

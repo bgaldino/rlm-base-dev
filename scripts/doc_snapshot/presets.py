@@ -25,6 +25,8 @@ SHARED_OPTIONS = frozenset(("output_dir", "mode", "headless", "concurrency", "wa
 # Run-time override, never a preset value: a preset that always accepted
 # shrinkage would switch the capture guard off for every refresh.
 CLI_ONLY_OPTIONS = frozenset(("accept_shrinkage",))
+# CLI-only like the above, but only for dev guides (site switch guard): never a preset value.
+DEV_GUIDE_CLI_ONLY = frozenset(("accept_uncovered",))
 PRESET_OPTIONS = {
     "help": SHARED_OPTIONS | frozenset((
         "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",
