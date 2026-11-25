@@ -572,11 +572,10 @@ assigned to them.
   scratch, one org].
 - The grant cannot live in the base `RLM_QuantumBit` under `force-app`: that deploys before `deploy_quantumbit`
   creates the credential, and builds without quantumbit never have it [Repo: `cumulusci.yml` step order].
-- `SalesforceContractsExtCredentials` (an `AwsSv4` credential for service `texttract`, Help's spelling)
-  matches Help's Contracts AI extraction credential [Help:
-  `ind.sf_contracts_create_an_external_credential_and_named_credential`; inferred from its shape]; no named
-  credential, Apex, flow or DRO step in the repo calls through it [Repo: `force-app/`, `unpackaged/`, `datasets/`; only
-  its own metadata and the tso `RLM_QuantumBit` name it].
+- `SalesforceContractsExtCredentials` (an `AwsSv4` credential for service `texttract`, Help's spelling) matches Help's
+  Contracts AI extraction credential [Help: `ind.sf_contracts_create_an_external_credential_and_named_credential`;
+  inferred from its shape]; no named credential, Apex, flow or DRO step in the repo calls through it [Repo:
+  `force-app/`, `unpackaged/`, `datasets/`; only its own metadata and the tso `RLM_QuantumBit` name it].
   `DRO_Integrations` does not grant its principal.
 - Of the shipped plans only `mfg-dro` (not wired into the build) has callout steps through these credentials (eight
   `DFOApexMockService` steps) [Repo: `datasets/sfdmu/mfg/en-US/mfg-dro/FulfillmentStepDefinition.csv`;
