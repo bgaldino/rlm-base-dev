@@ -494,9 +494,13 @@ value (null) means no payment, like leaving the key out.
   `settlement:` block among the scenarios of the manifest's `kind` and
   account (a renamed account matches by Id). A `--config` identical to the
   recorded block is accepted, even on a manifest that already reached its
-  target (which runs nothing, and clears an earlier error).
-  `--application-level line|header` sets the level when it could not be read
-  or was read wrong, until the payment is planned; after that it is refused
+  target (which runs nothing and changes nothing: an earlier error stays;
+  only a step that runs and succeeds clears it). A recorded block without
+  `payment` refuses `--to-stage payment_applied` before any step runs.
+  `--application-level line|header` (settlement targets only, not on a
+  manifest that already reached the target; a value equal to the recorded
+  level is ignored) sets the level when it could not be read or was read
+  wrong, until the payment is planned; after that it is refused
   (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new run
   with `settlement.application_level` pinned). The recipe is "run to `invoice_posted`, then `cli
   step --to-stage payment_applied --config <file>`"; a run that stopped at

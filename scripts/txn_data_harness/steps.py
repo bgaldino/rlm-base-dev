@@ -486,6 +486,8 @@ def _ensure_application_level(
     settlement block > the org's setting, read once.
     """
     override = ctx.application_level_override
+    if override and override == manifest.application_level:
+        return override  # equal to the recorded level: accepted and ignored
     if override:
         if (
             manifest.payment_apply_target is not None

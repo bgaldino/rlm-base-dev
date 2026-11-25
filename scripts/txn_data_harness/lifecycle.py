@@ -1224,7 +1224,10 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
                 "(BillingSettings unreadable and no invoice has a SettlementLevel "
                 f"yet). {remedy}",
             )
-        _level_cache[key] = (level, source)
+        # A fallback reached because the settings read failed transiently is
+        # used for this call only: the next call reads the settings again.
+        if not transient:
+            _level_cache[key] = (level, source)
         log.info("application level: %s (from %s)", level, source)
         return level, source
 

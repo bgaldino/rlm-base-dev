@@ -247,9 +247,15 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   mismatch fails deterministically with nothing inserted (`--application-level`
   while the payment is not yet planned, else a new run). No evidence: the
   insert proceeds as before.
-- **`cli step` to a reached stage** clears an earlier `error` unless a write's
-  outcome is unknown (`credit_submitted` / `payment_submitted` with no id
-  recorded): a memo or a Processed payment may exist, so the error stays.
+- **Errors are cleared only by a step that runs and succeeds.** A `cli step`
+  to a stage the manifest already reached runs nothing and changes nothing:
+  an earlier `error` / `failure_class` stays (a payment may exist that was
+  never fully applied, or a write's outcome may be unknown).
+- **Refused before any step runs:** `--to-stage payment_applied` on a
+  manifest whose recorded block has no `payment` (the credit stage would
+  otherwise write first); `--application-level` with a non-settlement
+  `--to-stage` or on a manifest that already reached it. A value equal to the
+  recorded level is ignored (the recorded source is kept).
 - **The write rule (credit and payment).** At most one credit memo and one
   payment are created per run. The memo is tagged `<run> credit` (its
   `Description`), the payment `<run>-PAY` (`GatewayRefNumber`). Just before
@@ -306,9 +312,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   A refused read is deterministic: a 4xx, or a SOAP fault whose
   `faultcode` is `INVALID_SESSION_ID`, `INSUFFICIENT_ACCESS`, `INVALID_TYPE`
   (and similar) -- Metadata SOAP faults arrive as HTTP 500, measured. Both level
-  errors name `cli step --application-level line|header`. A successful `cli
-  step` clears `error` and `failure_class`, as does a `cli step` to a stage
-  the manifest already reached.
+  errors name `cli step --application-level line|header`. A level reached
+  through the invoice-evidence fallback after a transient settings read is
+  not cached: the next stage reads the settings again. A `cli step` that runs
+  and succeeds clears `error` and `failure_class`; nothing else does.
 - **`payment_applied` never advances without a payment.** A config whose
   target is `payment_applied` needs `settlement.payment`, and the stage
   refuses (not retried) a settlement block without one: with `cli step
@@ -382,7 +389,8 @@ are from SOQL on the invoice, payment and credit memo by manifest id.
 
 Every application row landed in `CreditMemoLineInvoiceLine` /
 `PaymentLineInvoiceLine`; `PaymentLineInvoice` and `CreditMemoInvApplication`
-were empty for all six invoices. The `cli step` resume without `--config` (no
+were empty for all eight invoices (re-checked by SOQL on 2026-11-26:
+0 `PaymentLineInvoice` and 0 `CreditMemoInvApplication` rows on them). The `cli step` resume without `--config` (no
 settlement on the manifest) failed before any write, as designed.
 
 Probe records left on the org (not from a harness run): invoice

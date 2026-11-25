@@ -225,18 +225,20 @@ def _cmd_step(args: argparse.Namespace) -> int:
     # --config is checked before anything else, so it is never ignored -- not
     # even on a manifest that already reached the target.
     settlement = _settlement_for_step(args, manifest, client)
+    if getattr(args, "application_level", None):
+        if args.to_stage not in STAGES_SETTLEMENT:
+            raise LifecycleError(
+                "step", "--application-level applies only to --to-stage credit_applied "
+                "or payment_applied",
+            )
+        if not steps:
+            raise LifecycleError(
+                "step", f"--application-level: manifest {manifest.run_id} already reached "
+                f"{manifest.reached_stage}; nothing would run with it",
+            )
     if not steps:
-        # Already at the target: an error left by a later stage (run to a
-        # further target, then stepped back) no longer blocks this one --
-        # unless a write's outcome is unknown (submitted, no id recorded): a
-        # credit memo or Processed payment may exist, so the error stays.
-        pending = (manifest.credit_submitted and not manifest.credit_memo_ids) or (
-            manifest.payment_submitted and not manifest.payment_ids
-        )
-        if (manifest.error or manifest.failure_class) and not pending:
-            manifest.error = None
-            manifest.failure_class = None
-            write_manifest(manifest)
+        # Nothing runs, so nothing changes: an earlier error stays. Only a
+        # step that runs and succeeds clears error / failure_class.
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
 
@@ -400,8 +402,8 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
         return None
     config = getattr(args, "config", None)
     if manifest.settlement is not None:
+        recorded = settlement_from_dict(manifest.settlement)
         if config:
-            recorded = settlement_from_dict(manifest.settlement)
             wanted = _config_settlement(args, manifest, client)
             diffs = _settlement_diff(
                 _trim(recorded, to_stage).to_dict() if recorded else {},
@@ -415,6 +417,19 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
                     "block is fixed: drop --config to resume with it, or start a new "
                     "run for different options",
                 )
+        if (
+            to_stage == "payment_applied"
+            and (recorded is None or recorded.payment is None)
+            and manifest.reached_stage != "payment_applied"
+        ):
+            # Refuse before any step runs: the credit stage would otherwise
+            # write first and the payment stage refuse only afterwards.
+            raise SettlementError(
+                "step",
+                f"--to-stage payment_applied: manifest {manifest.run_id}'s recorded "
+                "settlement block has no 'payment' and is fixed; stop at "
+                "credit_applied, or start a new run whose block has 'payment'",
+            )
         return None
     if not config:
         raise SettlementError(
@@ -677,9 +692,12 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
     step.add_argument("--application-level", choices=["line", "header"],
-                      help="Settlement stages: set the application level when it could "
-                           "not be read or was read wrong (refused once the payment is "
-                           "planned).")
+                      help="--to-stage credit_applied/payment_applied only: set the "
+                           "application level when it could not be read or was read "
+                           "wrong. A value equal to the recorded level is ignored; a "
+                           "different one is refused once the payment is planned, and "
+                           "the flag is refused when the manifest already reached "
+                           "--to-stage.")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")

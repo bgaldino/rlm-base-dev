@@ -181,6 +181,7 @@ def test_config_ingestion_accepts_settlement() -> None:
         ("payment_applied", {"credit": {"amount": -5}}, "> 0"),
         ("payment_applied", {"credit": {"amount": 5, "tax_strategy": "ManualOverride"}}, "not supported"),
         ("payment_applied", {"payment": {"amount": 5, "percent": 5}}, "not both"),
+        ("payment_applied", {"payment": {"amount": 0}}, "> 0"),
         ("payment_applied", {"payment": {"percent": 5000}}, "<= 1000"),
         ("payment_applied", {"payment": {"lines": []}}, "lines must be"),
         ("payment_applied", {"payment": {"lines": [-1]}}, ">= 0"),
@@ -1068,7 +1069,12 @@ def test_cli_step_needs_settlement_for_settlement_targets() -> None:
     with pytest.raises(LifecycleError, match="needs settlement options"):
         _settlement_for_step(args, Manifest(run_id="X"))
     # The manifest's own block is used by the steps; nothing to load.
-    assert _settlement_for_step(args, Manifest(run_id="X", settlement={"payment": None})) is None
+    assert _settlement_for_step(
+        args, Manifest(run_id="X", settlement={"payment": {"amount": "exact"}})) is None
+    # A recorded block without a payment cannot reach payment_applied: refused
+    # before any step runs.
+    with pytest.raises(LifecycleError, match="has no 'payment' and is fixed"):
+        _settlement_for_step(args, Manifest(run_id="X", settlement={"credit": {"amount": 1}}))
     assert _settlement_for_step(SimpleNamespace(config=None, to_stage="invoice_posted"), Manifest(run_id="X")) is None
 
 
@@ -2509,15 +2515,15 @@ def test_same_config_accepted_for_an_earlier_target(tmp_path) -> None:
     assert _settlement_for_step(args, m) is None
 
 
-def test_step_to_a_reached_target_clears_the_error(monkeypatch, billable_account) -> None:
-    """A credit-only run whose later step failed: rerunning to its own target
-    (credit_applied) runs nothing and clears the error."""
+def test_step_to_a_reached_target_keeps_the_error(monkeypatch, billable_account) -> None:
+    """Nothing runs, so nothing changes: only a step that runs and succeeds
+    clears error / failure_class."""
     m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
                          error="[payment] no settlement 'payment'", failure_class="deterministic",
                          settlement={"application_level": "line", "credit": {"amount": 5}})
     cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
     assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
-    assert ran == [] and m.error is None and m.failure_class is None
+    assert ran == [] and m.error and m.failure_class == "deterministic"
 
 
 @pytest.mark.parametrize("status, body, expected", [
@@ -2889,22 +2895,16 @@ def test_reversal_flag_is_read_from_each_objects_own_field(obj, level, flag, bil
 # -- review round 9 (todo 275) --------------------------------------------------
 
 
-def test_step_to_a_reached_target_keeps_the_error_while_a_write_is_pending(
-    monkeypatch, billable_account
-) -> None:
+def test_step_to_a_reached_target_keeps_an_apply_error(monkeypatch, billable_account) -> None:
+    """A payment that exists (id recorded) but was not fully applied: its
+    error stays on a step to an already-reached stage."""
     m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
-                         error="[payment] payment outcome unknown", failure_class="deterministic",
-                         payment_submitted=True,
+                         error="[payment] apply refused", failure_class="deterministic",
+                         payment_submitted=True, payment_ids=["0aQ1"],
                          settlement={"application_level": "line", "credit": {"amount": 5}})
     cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
     assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
-    assert ran == [] and m.error and m.failure_class == "deterministic"
-    m.payment_submitted, m.credit_submitted = False, True  # credit pending instead
-    assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
-    assert m.error
-    m.credit_memo_ids = ["50g1"]  # recorded: nothing pending
-    assert cli_mod._cmd_step(_step_args(to_stage="credit_applied")) == 0
-    assert m.error is None
+    assert ran == [] and m.error == "[payment] apply refused"
 
 
 @pytest.mark.parametrize("evidence", ["settlement_level", "application_row"])
@@ -3030,3 +3030,134 @@ def test_payment_refusal_clears_submitted_on_disk(tmp_path, billable_account) ->
     with pytest.raises(lifecycle.SettlementError, match="payment refused"):
         steps.run_payment(ctx, _posted_manifest())
     assert load_manifest(str(tmp_path / "RUN.json")).payment_submitted is False
+
+
+# -- review round 10 (todo 275) -------------------------------------------------
+
+
+def test_payment_target_without_a_recorded_payment_is_refused_before_any_step(
+    monkeypatch, billable_account
+) -> None:
+    """A credit-only recorded block at invoice_posted: stepping to
+    payment_applied would write the credit first, so it is refused up front."""
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="invoice_posted",
+                         settlement={"application_level": "line", "credit": {"amount": 5}})
+    cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
+    with pytest.raises(lifecycle.SettlementError, match="has no 'payment' and is fixed"):
+        cli_mod._cmd_step(_step_args(to_stage="payment_applied"))
+    assert ran == []
+
+
+def test_fallback_level_after_a_transient_read_is_not_cached(fake_client, monkeypatch) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    reads = []
+
+    def flaky(c):
+        reads.append(1)
+        if len(reads) == 1:
+            raise SfApiError(503, "unavailable", "POST", "/services/Soap/m")
+        return "header"
+
+    monkeypatch.setattr(lifecycle, "_read_billing_settings_level", flaky)
+    fake_client.query_responses = [[{"SettlementLevel": "InvoiceLine"}]]
+    assert lifecycle.read_application_level(fake_client) == ("line", "invoice_settlement_level")
+    assert lifecycle.read_application_level(fake_client) == ("header", "billing_settings")
+    assert lifecycle.read_application_level(fake_client) == ("header", "billing_settings")
+    assert len(reads) == 2  # the settings read is cached once it succeeds
+
+
+def test_application_level_flag_is_refused_where_it_cannot_apply(monkeypatch, billable_account) -> None:
+    m = _posted_manifest(account_id=billable_account.id, reached_stage="credit_applied",
+                         settlement={"application_level": "line", "credit": {"amount": 5}})
+    cli_mod, ran = _patch_cmd_step(monkeypatch, m, billable_account)
+    with pytest.raises(LifecycleError, match="applies only to --to-stage"):
+        cli_mod._cmd_step(_step_args(to_stage="invoice_posted", application_level="line"))
+    with pytest.raises(LifecycleError, match="already reached credit_applied"):
+        cli_mod._cmd_step(_step_args(to_stage="credit_applied", application_level="line"))
+    assert ran == []
+
+
+def test_equal_application_level_override_is_ignored(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=10.0))
+    m = _posted_manifest(application_level="line", application_level_source="billing_settings")
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec, override="line"), m)
+    assert m.application_level_source == "billing_settings"
+    assert not any("overridden" in w for w in m.settlement_warnings)
+
+
+def test_header_application_row_is_level_evidence(billable_account) -> None:
+    org = SettleOrg("line")
+    org.credit_apps.append({"Id": "4sGH", "Amount": 5.0, "level": "header", "memo": "50gX",
+                            "invoice": "3ttINV"})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=10.0))
+    with pytest.raises(lifecycle.SettlementError, match="level is line but .* says header"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert org.payments == []
+
+
+def test_payment_line_row_is_level_evidence(billable_account) -> None:
+    org = SettleOrg("header")
+    org.payment_apps.append({"Id": "1AlL", "Amount": 5.0, "level": "line", "payment": "0aQX",
+                             "invoice": "3ttINV"})
+    spec = SettlementSpec(application_level="header", payment=PaymentSpec(amount=10.0))
+    with pytest.raises(lifecycle.SettlementError, match="level is header but .* says line"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert org.payments == []
+
+
+def test_no_level_check_once_the_insert_was_submitted(billable_account) -> None:
+    """After an insert whose outcome was unknown the payment may exist: the
+    resume looks it up instead of running the pre-insert check."""
+    org = SettleOrg("line")
+    org.invoice["SettlementLevel"] = "Invoice"  # would contradict "line"
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _payment_planned_manifest(payment_submitted=True))
+    assert m.payment_ids == ["0aQ1"] and m.reached_stage == "payment_applied"
+
+
+@pytest.mark.parametrize("level", ["header", "line"])
+def test_apply_is_capped_at_the_current_balance_and_warns(level, billable_account) -> None:
+    """The plan (250) outlived the balance (now 100): the apply takes what is
+    open, and the shortfall is a warning."""
+    org = SettleOrg(level)
+    org.lines[0]["Balance"] = 0.0
+    org.lines[1]["Balance"] = 100.0
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level=level, payment=PaymentSpec())
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _payment_planned_manifest(payment_ids=["0aQ1"]))
+    target = "3ttINV" if level == "header" else "5TV2"
+    assert _applies(org) == [(target, 100.0)]
+    assert any("payment applied 100.0 of the 250.0 planned" in w for w in m.settlement_warnings)
+
+
+def test_memo_left_with_a_balance_warns(billable_account) -> None:
+    org = SettleOrg("line")
+    real = org._post_memo
+
+    def post_with_rest(memo):
+        real(memo)
+        memo["Balance"] = 5.0
+
+    org._post_memo = post_with_rest
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert any("keeps 5.0 unapplied" in w for w in m.settlement_warnings)
+
+
+def test_memo_not_posted_in_time_names_the_resume(billable_account) -> None:
+    org = SettleOrg("line")
+    org.memo_statuses = ["Pending"]
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"not Posted within 1s. Rerun `cli step --manifest RUN --to-stage "
+                             r"credit_applied` to keep waiting"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.credit_submitted is True
