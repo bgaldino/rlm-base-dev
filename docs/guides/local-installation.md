@@ -522,7 +522,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    Build-harness runs started from a direnv-loaded shell or `./tui-cci` pick them up; a bare `python scripts/build_harness/harness.py run` inherits only what the shell exports, so export them first. `validate_setup` shows `(from CHROME_BINARY)` when the pin is active. Open question: whether a chromedriver matching the exact 158 browser build, or a newer build, fixes it (untested).
 
-   Both variables are unset by default, and nothing changes when they are unset. On machines that need them, put them in `.env.local` at the repo root as `KEY="value"` lines (on other platforms use the paths `npx` prints) without `export` (`$HOME` expands; quote the value, since the Chrome path has spaces and one unparsable line stops the file from loading). It's gitignored. The tracked `.envrc` loads it as dotenv, and `./tui-cci` loads the same file for any variable the shell has not already set. Don't add them to `.envrc` itself: it's tracked, so git overwrites local edits to it.
+   Both variables are unset by default, and nothing changes when they are unset. On machines that need them, put them in `.env.local` at the repo root as `KEY="value"` lines without `export` (`$HOME` expands; quote the value, since the Chrome path has spaces and one unparsable line stops the file from loading). On other platforms use the paths `npx` prints. It's gitignored. The tracked `.envrc` loads it as dotenv, and `./tui-cci` loads the same file for any variable the shell has not already set. Don't add them to `.envrc` itself: it's tracked, so git overwrites local edits to it.
 
 3. **Install SFDMU (v5.6.4+):**
    ```bash
