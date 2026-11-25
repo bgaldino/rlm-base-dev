@@ -1,0 +1,60 @@
+---
+page_id: discovery-framework
+title: Discovery Framework
+source_url: https://developer.salesforce.com/docs/industries/industries-common-dev/guide/discovery-framework.html
+release: 264
+release_name: Winter '27
+deliverable: industries_reference
+api_version: 68.0
+section: Discovery Framework
+legacy_page_id: discovery_framework.htm
+fetched_at: 2026-11-25
+---
+
+# Discovery Framework
+
+The Discovery Framework data model helps manage every aspect of questionnaire-driven information collection use cases. By using this data model, your users can collect and validate their customers’ information in a compliant manner. For example, financial needs analysis, digital onboarding, and more.
+
+| Required Editions |
+| --- |
+| Available in: Discovery Framework is available in Lightning Experience and included in Financial Services Cloud, Health Cloud, Public Sector Solutions, and Consumer Goods Cloud. |
+
+- 
+
+**[Discovery Framework Standard Objects](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/discovery-framework-standard-objects.html)**
+
+This section lists the standard objects associated with Discovery Framework with their standard fields. Use the standard objects to create assessment questions and forms.
+
+- 
+
+**[Discovery Framework Metadata API Types](./discovery-framework-metadata-api-parent.md)**
+
+Metadata API enables you to access some types and feature settings that you can customize in the user interface.
+
+- 
+
+**[Discovery Framework Invocable Actions](./discovery-framework-actions.md)**
+
+Use actions to invoke Discovery Framework actions in a flow.
+
+- 
+
+**[Discovery Framework Tooling API Objects](./discovery-framework-tooling-api-objects.md)**
+
+Tooling API exposes metadata used in developer tooling that you can access through REST or SOAP. Tooling API’s SOQL capabilities for many metadata types allow you to retrieve smaller pieces of metadata. For more information about Tooling API objects and to find a complete reference of all the supported objects, see **[Introducing Tooling API](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/intro_api_tooling.htm)**.
+
+- 
+
+**[Discovery Framework Connect APIs](./dfdt-connect-apis.md)**
+
+Use the Discovery Framework Document Decision Connect APIs to invoke a Decision Table, accept key-value pairs that match the Decision Table keys, and return either Document Types or Document Categories.
+
+- 
+
+**[DiscoveryFramework_Prefill Integration Procedure](./discoveryframework-prefill-integration-procedure.md)**
+
+The DiscoveryFramework_Prefill Integration Procedure calls a Omnistudio Data Mapper and an Apex class. To customize the prefill flow, edit the steps of the DiscoveryFramework_Prefill Integration Procedure. Open the OmniStudio app, go to the Integration Procedures page, expand the DiscoveryFramework/Prefill Integration Procedure, and open the highest version.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/industries/industries-common-dev/guide/discovery-framework.html)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
