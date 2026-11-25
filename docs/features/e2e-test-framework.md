@@ -65,6 +65,8 @@ robot/rlm-base/
     ChromeOptionsHelper.py    # Headless Chrome options
     ChromeDebugHelper.py      # Headed Chrome with CDP (port 9222)
     WebDriverManager.py       # ChromeDriver path resolution
+    AnalyticsSetupHelper.py   # CRM Analytics enablement keyword library (Getting Started page)
+    SetupToggles.robot        # Keywords for Setup page toggles (e.g. Revenue Settings)
     SessionUrlGuard.py        # Authenticated navigation that keeps the session URL out of Robot logs
   variables/
     E2EVariables.robot        # Test data, timeouts, feature flags

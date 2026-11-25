@@ -251,7 +251,7 @@ Compose, uncomment the `../:/work` line in [`compose.yaml`](compose.yaml).
 
 | File | Role |
 |---|---|
-| [`Dockerfile`](Dockerfile) | Builds the image: Python 3.13 + CumulusCI (pipx), Node LTS + `sf` CLI + SFDMU, Robot deps + Chromium, Claude Code, a non-root `rlm` user, and a baked repo at `/opt/rlm-base-dev`. |
+| [`Dockerfile`](Dockerfile) | Builds the image: Python 3.13 + CumulusCI (pipx), Node 24 + `sf` CLI + SFDMU, Robot deps + Chromium, Claude Code, a non-root `rlm` user, and a baked repo at `/opt/rlm-base-dev`. |
 | [`entrypoint.sh`](entrypoint.sh) | Per-run setup: sources `setup-state.sh`, then dispatches to `rlm` or a shell. |
 | [`setup-state.sh`](setup-state.sh) | The state wiring (auth symlinks, `CUMULUSCI_KEY`, repo selection, `~/.rlm-env`). Sourced by the entrypoint AND run as the devcontainer `postStartCommand` (which bypasses the ENTRYPOINT). |
 | [`rlm-cli`](rlm-cli) | The in-container `rlm` command (installed to `/usr/local/bin/rlm`). |

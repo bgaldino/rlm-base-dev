@@ -90,7 +90,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
-| LegalEntity | `Name` | Upsert | 1 | Authoritative source (4 entities: US, Canada, EU, UK) |
+| LegalEntity | `Name` | Upsert | 1 | Authoritative source (7 entities: US, Canada, EU, UK, Australia, Switzerland, Japan) |
 | TaxEngineProvider | `DeveloperName` | Upsert | 1 | |
 | TaxEngine | `TaxEngineName` | Upsert | 1 | |
 | TaxTreatment | `Name` | Upsert | 1 | |

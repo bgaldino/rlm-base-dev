@@ -69,7 +69,7 @@ cci task run manage_flows --operation query --status Active --process_type Scree
 
 ### Activate/Deactivate Operations
 
-`developer_names` is matched against the flow `DefinitionId` (see Notes), not the flow's API name, so the examples below take FlowDefinition Ids. With no filters, `activate` and `deactivate` act on every flow the query returns, so always pass `--developer_names` or `--status`/`--process_type`. As written in `tasks/rlm_manage_flows.py`, the success and failure log lines for both operations reference a variable that is never defined, so activation or deactivation may abort with a `NameError` [inferred from reading the code; not run in an org].
+`developer_names` is matched against the flow `DefinitionId` (see Notes), not the flow's API name, so the examples below take FlowDefinition Ids. With no filters, `activate` and `deactivate` act on every flow the query returns, so always pass `--developer_names` or `--status`/`--process_type`. As written in `tasks/rlm_manage_flows.py`, the task aborts on the first flow it changes: the update succeeds, then the success log line references a variable (`definition_id`) that is never assigned and raises `NameError`, and the failure handler's log line raises it again. A `developer_names` string is also not split on commas, so a comma-separated value (examples 13 and 15) becomes one `DefinitionId` that matches no flow; only a single Id works from the CLI. A code fix is tracked separately.
 
 #### 12. Activate a Specific Flow
 ```bash
@@ -128,7 +128,7 @@ cci task run manage_expression_sets --operation query --limit 5
 
 ### Filtering
 
-`--interface_source_type`, `--process_type` and `--status` do not filter `list` or `query`: those fields live on `ExpressionSetDefinitionVersion`, so the task logs a warning and returns every expression set. Use `list_versions` to see each version's status, then narrow by `--developer_names`.
+`--interface_source_type`, `--process_type` and `--status` do not filter `list` or `query`: those fields live on `ExpressionSetDefinitionVersion`, so the task returns every expression set. `--interface_source_type` and `--process_type` log a warning; `--status` is ignored silently. Use `list_versions` to see each version's status, then narrow by `--developer_names`.
 
 ### Version Management
 
@@ -252,7 +252,7 @@ cci task run manage_expression_sets --operation list_versions --developer_names 
 - **Interface Source Types & Process Types**: 
   - These fields exist on `ExpressionSetDefinitionVersion`, not `ExpressionSetDefinition`
   - Use `list_versions` operation to see version status for expression sets
-  - Filtering by these fields (or by `--status`) at the definition level is not supported; the task ignores them with a warning
+  - Filtering by these fields (or by `--status`) at the definition level is not supported; the task ignores them (`--interface_source_type` and `--process_type` log a warning, `--status` does not)
 - **Status Values**: `Active`, `Inactive`, `Draft` filter flows (`--status`). For expression sets, status is a per-version value shown by `list_versions`.
 - **Field Names**:
   - Flows use: `DefinitionId`, `MasterLabel`, `VersionNumber`, `CreatedDate`
