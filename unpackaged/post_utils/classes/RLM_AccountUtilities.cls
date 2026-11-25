@@ -64,19 +64,36 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
     private static final Integer TEARDOWN_BATCH = 2000;
 
-    // The queries one teardown round issues, and what is kept back for phase 2: its
-    // fixed queries (PHASE_TWO_TAIL, 29 measured with every option on) plus room for
-    // the usage retries. A round starts only while both are left; otherwise a large
-    // usage graph would spend phase 2's queries and end in a LimitException.
+    // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
+    // fixed queries total at most 42 (counted from the code, with every option on and
+    // data in every branch: order data 10, collections 5, schedule groups 1, billing 8,
+    // fulfillment 2, contracts 2, journal 1, the asset step's other lookups 8, quotes and
+    // opportunities 5); 29 is what an account with no such data measures. QUERY_RESERVE
+    // covers the 42 and the usage retries. A round starts only while both are left;
+    // otherwise a large usage graph would spend phase 2's queries and end in a
+    // LimitException. A test holds the measured 29 and the reserve against the 42.
     private static final Integer QUERIES_PER_ROUND = 9;
-    private static final Integer QUERY_RESERVE = 50;
-    // The queries phase 2 spends outside the usage retries and the asset step's bucket
-    // walks, with every option on: 29 measured live (264), which does not grow with the
-    // data (the lookups are fixed-count). Each retry or walk query first requires this
-    // many more (requireWalkQueries), so a deep bucket tree ends the run with a
-    // reported reason, never a LimitException. A test holds the 29 against this value.
     @TestVisible
-    private static final Integer PHASE_TWO_TAIL = 35;
+    private static final Integer QUERY_RESERVE = 50;
+    @TestVisible
+    private static final Integer PHASE_TWO_FIXED_MAX = 42;
+    // The bucket walks (usage retries, the asset step's usage block) issue a number of
+    // queries that grows with the tree. Each walk query first requires the queries that
+    // can follow it before the next guard or the end of phase 2, counted from the code:
+    //  - RETRY_TAIL, for the usage retries: at most 27 follow the journal guard (journal 1,
+    //    collections 5, schedule groups 1, billing 8, fulfillment 2, contracts 2, the asset
+    //    step with no assets 3, quotes and opportunities 5). 30 keeps three spare.
+    //  - ASSET_TAIL, for the asset step: at most 13 follow its last guard (other asset
+    //    references 2, resource policies 3, rate card entries 1, assets 2, quotes and
+    //    opportunities 5). 16 keeps three spare.
+    // No walk can end in a LimitException. Sizing the guards by position stops a run with a
+    // "run again" reason a little less often than one flat figure would; either way a stopped
+    // run converges, because phase 1's progress persists. These figures must grow with any
+    // query added after a guard; the tests cannot catch growth in the data-dependent branches.
+    @TestVisible
+    private static final Integer RETRY_TAIL = 30;
+    @TestVisible
+    private static final Integer ASSET_TAIL = 16;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -84,6 +101,8 @@ public without sharing class RLM_AccountUtilities {
     // more than the synchronous 100 queries (asynchronous gets 200). Tests lower the cap
     // through maxTeardownRoundsForTest.
     private static final String USAGE_TOO_LARGE = 'The account has more usage records than one run can remove.';
+    private static final String ROLLED_BACK_FOREIGN_BUCKET =
+        'not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement';
     private static final String FOREIGN_BUCKET = 'kept: holds, or is above, another account\'s entitlement';
     private static final String INCOMPLETE_BUCKETS = 'Usage Entitlement Buckets: the list of buckets the rollback restored may be '
         + 'incomplete, because the query limit was reached while listing them';
@@ -173,8 +192,8 @@ public without sharing class RLM_AccountUtilities {
             c.removed = removed.clone();
             c.kept = kept.clone();
             c.refused = refused.clone();
-        c.foreignBuckets = foreignBuckets.clone();
-        c.incompleteBuckets = incompleteBuckets;
+            c.foreignBuckets = foreignBuckets.clone();
+            c.incompleteBuckets = incompleteBuckets;
             return c;
         }
     }
@@ -217,12 +236,13 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Integer maxTeardownRoundsForTest;
 
-    // Lets a test make the rollback's bucket listing find too few queries left, which a
-    // real run reaches only after phase 2 has spent nearly all of them.
+    // Lets a test cap the queries the rollback's bucket listing may spend (the two
+    // lookups included), which a real run reaches only after phase 2 has spent nearly
+    // all of them: under 4 stops it up front, 3 stops it part way down a deep tree.
     @TestVisible
     private static Integer unseenQueriesForTest;
 
-    // Queries phase 2 spent in the last run, for a test to hold against PHASE_TWO_TAIL.
+    // Queries phase 2 spent in the last run, for a test to hold against PHASE_TWO_FIXED_MAX.
     @TestVisible
     private static Integer phaseTwoQueriesForTest;
     private static Integer phaseTwoQueriesAtStart;
@@ -637,6 +657,7 @@ public without sharing class RLM_AccountUtilities {
             }
             gone.add(rowId);
             report.refused.remove(rowId);
+            report.foreignBuckets.remove(rowId);
         }
         recordRemoved(records[0].getSObjectType(), removed);
         if (trimmed) {
@@ -695,20 +716,33 @@ public without sharing class RLM_AccountUtilities {
 
     /**
      * The usage retries and the asset step's usage block issue a number of queries
-     * that grows with the bucket tree. Each one first requires the queries the REST of
-     * phase 2 needs (PHASE_TWO_TAIL), so a deep tree ends the run with a reported
-     * reason instead of starving the later steps into an uncatchable LimitException.
+     * that grows with the bucket tree. Each one first requires the queries that can
+     * follow it (`tail`: RETRY_TAIL or ASSET_TAIL), so a deep tree ends the run with a
+     * reported reason instead of starving the later steps into an uncatchable
+     * LimitException.
      */
-    private static void requireWalkQueries() {
-        requireQueries(1 + PHASE_TWO_TAIL);
+    private static void requireWalkQueries(Integer tail) {
+        requireQueries(1 + tail);
     }
 
     /**
      * Removes from `buckets` every bucket that holds an entitlement outside
      * `ownTueIds`, and every ancestor of one, and records them as kept: a reset never
      * touches another account's data, and a bucket cannot go while a child remains.
+     * One exception, made by the asset step and not here: another account's entitlement
+     * bound to one of this account's assets is deleted with the asset, and so is its bucket.
+     * A bucket kept here and then deleted that way leaves the foreign set (deleteRows).
+     * The ids come out of `report.refused` too, so a bucket is reported once.
      */
     private static void keepForeignBuckets(Map<Id, UsageEntitlementBucket> buckets, Set<Id> ownTueIds) {
+        Set<Id> keep = foreignBucketIds(buckets, ownTueIds);
+        buckets.keySet().removeAll(keep);
+        report.foreignBuckets.addAll(keep);
+        report.refused.keySet().removeAll(keep);
+    }
+
+    /** The buckets that hold an entitlement outside `ownTueIds`, and every ancestor of one. */
+    private static Set<Id> foreignBucketIds(Map<Id, UsageEntitlementBucket> buckets, Set<Id> ownTueIds) {
         Set<Id> keep = new Set<Id>();
         for (UsageEntitlementBucket bucket : buckets.values()) {
             if (bucket.TransactionUsageEntitlementId == null
@@ -720,8 +754,7 @@ public without sharing class RLM_AccountUtilities {
                 up = buckets.get(up.ParentId);
             }
         }
-        buckets.keySet().removeAll(keep);
-        report.foreignBuckets.addAll(keep);
+        return keep;
     }
 
     /**
@@ -1110,22 +1143,35 @@ public without sharing class RLM_AccountUtilities {
             return;
         }
         Integer unseen = 0;
+        Integer foreign = 0;
         try {
-            if (Limits.getLimitQueries() - Limits.getQueries() < (unseenQueriesForTest != null ? unseenQueriesForTest : UNSEEN_QUERIES)) {
+            Integer left = Limits.getLimitQueries() - Limits.getQueries();
+            Integer allowance = unseenQueriesForTest != null ? unseenQueriesForTest : left;
+            if (allowance < UNSEEN_QUERIES) {
                 throw new ResetStoppedException(QUERY_LIMIT);
             }
             Set<Id> ueaIds = new Map<Id, UsageEntitlementAccount>(
                 [SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :accountId]).keySet();
             Set<Id> tueIds = new Map<Id, TransactionUsageEntitlement>(
                 [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId]).keySet();
-            for (Id bucketId : loadBucketTree(ueaIds, tueIds, 0).keySet()) {
-                if (!report.refused.containsKey(bucketId)) {
+            // The walk may spend `allowance` queries in all (the two lookups above count).
+            Map<Id, UsageEntitlementBucket> tree = loadBucketTree(ueaIds, tueIds, left - allowance);
+            // A completed run would keep these too, so they are not "rolled back" rows.
+            Set<Id> foreignIds = foreignBucketIds(tree, tueIds);
+            for (Id bucketId : tree.keySet()) {
+                if (report.refused.containsKey(bucketId)) {
+                    continue;
+                }
+                if (foreignIds.contains(bucketId)) {
+                    foreign++;
+                } else {
                     unseen++;
                 }
             }
         } catch (ResetStoppedException e) {
             report.incompleteBuckets = true;
         }
+        recordRetained(UsageEntitlementBucket.SObjectType, foreign, ROLLED_BACK_FOREIGN_BUCKET);
         recordRetained(UsageEntitlementBucket.SObjectType, unseen,
             'not deleted: the run was rolled back');
     }
@@ -1141,7 +1187,7 @@ public without sharing class RLM_AccountUtilities {
      */
     private static void deleteUsageEntitlementBucketsBottomUp(Set<Id> entitlementIds, Boolean forTues, Set<Id> ownTueIds) {
         Map<Id, UsageEntitlementBucket> buckets = loadBucketTree(
-            entitlementIds, forTues ? entitlementIds : new Set<Id>(), PHASE_TWO_TAIL);
+            entitlementIds, forTues ? entitlementIds : new Set<Id>(), RETRY_TAIL);
         // A bucket holding another account's entitlement, and the buckets above it, stay.
         keepForeignBuckets(buckets, ownTueIds);
         if (buckets.isEmpty()) {
@@ -1170,7 +1216,7 @@ public without sharing class RLM_AccountUtilities {
                 break;
             }
             if (!heldTues.isEmpty()) {
-                requireWalkQueries();
+                requireWalkQueries(RETRY_TAIL);
                 deleteQuietly([SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :heldTues]);
             }
             Set<Id> gone = deleteRows(leaves, false);
@@ -1188,7 +1234,7 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose TUEs should be deleted
      */
     private static void deleteTransactionUsageEntitlement(Id accountId) {
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         Set<Id> tueIds = new Map<Id, TransactionUsageEntitlement>(
             [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId]).keySet();
         if (tueIds.isEmpty()) {
@@ -1196,7 +1242,7 @@ public without sharing class RLM_AccountUtilities {
         }
         // Buckets first, bottom-up; that also deletes the TUEs the buckets hold.
         deleteUsageEntitlementBucketsBottomUp(tueIds, true, tueIds);
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         deleteQuietly([SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :tueIds]);
     }
 
@@ -1207,17 +1253,17 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose UEAs should be deleted
      */
     private static void deleteUsageEntitlementAccount(Id accountId) {
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         Set<Id> ueaIds = new Map<Id, UsageEntitlementAccount>(
             [SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :accountId]).keySet();
         if (ueaIds.isEmpty()) {
             return;
         }
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         Set<Id> ownTueIds = new Map<Id, TransactionUsageEntitlement>(
             [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId]).keySet();
         deleteUsageEntitlementBucketsBottomUp(ueaIds, false, ownTueIds);
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         deleteQuietly([SELECT Id FROM UsageEntitlementAccount WHERE Id IN :ueaIds]);
     }
 
@@ -1231,7 +1277,7 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose records should be deleted
      */
     private static void deleteTransactionJournal(Id accountId) {
-        requireWalkQueries();
+        requireWalkQueries(RETRY_TAIL);
         deleteQuietly([SELECT Id FROM TransactionJournal WHERE AccountId = :accountId]);
     }
 
@@ -1436,21 +1482,21 @@ public without sharing class RLM_AccountUtilities {
         Set<Id> allUeaIds = new Set<Id>();
         if (!usageDrained) {
             // --- 1-3. Summaries the teardown loop could not delete; they block buckets ---
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             deleteQuietly([SELECT Id FROM UsageSummary WHERE AccountId = :accountId OR AssetId IN :assetIds]);
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             deleteQuietly([SELECT Id FROM UsageRatableSummary WHERE AssetId IN :assetIds]);
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             deleteQuietly([SELECT Id FROM UsageBillingPeriodItem WHERE AccountId = :accountId OR AssetId IN :assetIds]);
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             allTueIds.addAll(new Map<Id, TransactionUsageEntitlement>(
                 [SELECT Id FROM TransactionUsageEntitlement WHERE AccountId = :accountId]).keySet());
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             allUeaIds.addAll(new Map<Id, UsageEntitlementAccount>(
                 [SELECT Id FROM UsageEntitlementAccount WHERE AccountId = :accountId]).keySet());
         }
         // TUEs bound to the assets themselves; the teardown loop only follows the account.
-        requireWalkQueries();
+        requireWalkQueries(ASSET_TAIL);
         allTueIds.addAll(new Map<Id, TransactionUsageEntitlement>([
             SELECT Id FROM TransactionUsageEntitlement
             WHERE AssetId IN :assetIds OR GrantBindingTargetId IN :assetIds
@@ -1464,7 +1510,7 @@ public without sharing class RLM_AccountUtilities {
             // The tree under those entitlements, level by level. A bucket holding an
             // entitlement outside allTueIds (another account's), and the buckets above
             // it, stay.
-            Map<Id, UsageEntitlementBucket> tree = loadBucketTree(bucketSearchIds, allTueIds, PHASE_TWO_TAIL);
+            Map<Id, UsageEntitlementBucket> tree = loadBucketTree(bucketSearchIds, allTueIds, ASSET_TAIL);
             keepForeignBuckets(tree, allTueIds);
             allBucketIds.addAll(tree.keySet());
         }
@@ -1472,7 +1518,7 @@ public without sharing class RLM_AccountUtilities {
         // Multi-pass bucket deletion (handles nested parent-child hierarchy)
         Integer before = allBucketIds.size();
         while (!allBucketIds.isEmpty()) {
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             List<UsageEntitlementBucket> toDelete = [SELECT Id FROM UsageEntitlementBucket WHERE Id IN :allBucketIds];
             if (toDelete.isEmpty()) {
                 break;
@@ -1487,13 +1533,13 @@ public without sharing class RLM_AccountUtilities {
 
         // --- 5. Delete TUEs ---
         if (!allTueIds.isEmpty()) {
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             deleteQuietly([SELECT Id FROM TransactionUsageEntitlement WHERE Id IN :allTueIds]);
         }
 
         // --- 6. Delete UEAs ---
         if (!allUeaIds.isEmpty()) {
-            requireWalkQueries();
+            requireWalkQueries(ASSET_TAIL);
             deleteQuietly([SELECT Id FROM UsageEntitlementAccount WHERE Id IN :allUeaIds]);
         }
 
