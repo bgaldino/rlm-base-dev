@@ -262,9 +262,10 @@ python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
 
 Two independent surfaces cover Expression Set CRUD — the **CCI tasks** (build
 work) and the standalone **`scripts/expression_sets/` toolkit** (inspection +
-one-off lifecycle, `sf`-CLI transport, no access token). They share only the pure
-version guards in `scripts/expression_sets/_guards.py`; the toolkit mirrors the
-tasks' live-verified rules. Full toolkit detail:
+one-off lifecycle, `sf`-CLI transport, no access token). They share the
+deactivate → mutate → recover engine (`scripts/expression_sets/_engine.py`) and the
+version guards (`_guards.py`), both stdlib-only; everything else is separate.
+Full toolkit detail:
 `scripts/expression_sets/README.md`.
 
 | I need to… | Use |

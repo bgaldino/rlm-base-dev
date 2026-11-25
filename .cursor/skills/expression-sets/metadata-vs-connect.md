@@ -53,8 +53,16 @@ exist) **before** any deactivation, so a typo'd target fails while the version
 is still active.
 
 Both the CCI task (`tasks/rlm_expression_set_connect.py`) and the standalone
-toolkit's `_lifecycle.py` (`LifecycleEngine`) enforce this identically — they are
-independent implementations of the same live-verified rules. A version left
+toolkit's `_lifecycle.py` (`LifecycleEngine`) enforce this with one engine:
+`scripts/expression_sets/_engine.py` (`LifecycleCore`, stdlib-only) owns the state
+machine, and each side is a thin adapter for its transport, logging, error class
+and dry-run style. A fix to the lifecycle lands once. Two differences are known
+and deliberate: the toolkit's Tooling `Metadata` mutations (relabel,
+`set_step_formula.py`) reactivate the version and plans when they fail, while every
+CCI mutation is a Connect PATCH that leaves the version off and fails loudly; and
+the CCI task restores labels in the same inactive window (a failure is logged),
+while the toolkit uses a second cycle (a failure exits 1). Detail:
+`scripts/expression_sets/README.md` → *Independent of CumulusCI*. A version left
 DEACTIVATED by a failed apply is re-enabled with
 `activate_expression_set.py --activate` once inspected/restored.
 

@@ -7,13 +7,13 @@ create/replace/overlay/activate/delete mutators — on the ``sf`` CLI transport,
 so **no access token is ever handled or passed** (``--target-org`` is the *SF
 CLI* alias, e.g. ``rlm-base__beta``, never the CCI alias).
 
-INDEPENDENT of the CCI tasks. This package imports **nothing** from ``tasks/``.
-The CCI task ``tasks/rlm_expression_set_connect.py`` (and
-``tasks/expression_set_schema.py``) is **reference-only**: this toolkit mirrors its
-live-verified Connect/lifecycle rules but runs as its own program. The validator is
-therefore *vendored* here as ``_schema.py`` rather than imported. The one module the
-CCI task imports from here is ``_guards`` (stdlib-only pure functions, no
-CumulusCI), so both importers apply one multi-version rule.
+Runs without CumulusCI. This package imports **nothing** from ``tasks/``; the
+toolkit is its own program over the ``sf`` CLI. The deactivate → mutate → recover
+state machine (``_engine``) and the version guards (``_guards``) are shared: the CCI
+task ``tasks/rlm_expression_set_connect.py`` imports both (they are stdlib-only),
+so the two surfaces run the same lifecycle code. Everything else is separate; the
+validator is *vendored* here as ``_schema.py`` (a mirror of
+``tasks/expression_set_schema.py``) rather than imported.
 
 Shared internals live at the package root as ``_*`` modules:
 
@@ -24,7 +24,8 @@ Shared internals live at the package root as ``_*`` modules:
 - ``_payload``   — verb-specific field rules + HTML-entity normalization (pure)
 - ``_overlay``   — declarative step/variable merge (pure)
 - ``_graph``     — producer/consumer dependency graph + 3-scope classifier (pure)
-- ``_lifecycle`` — the deactivate → mutate → reactivate engine + procedure-plan cascade
+- ``_engine``    — the shared deactivate → mutate → recover state machine (``LifecycleCore``)
+- ``_lifecycle`` — the toolkit's adapter over it (``LifecycleEngine``, ``Transport`` seam)
 
 Entry scripts import them as ``from scripts.expression_sets._x import ...`` after
 adding the repo root to ``sys.path`` (so a direct ``python scripts/...`` run
