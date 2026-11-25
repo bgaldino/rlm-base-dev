@@ -118,7 +118,7 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
   memos, writing off, or running collections, applying a payment or credit through the
-  API at Line Level, or scripting payment schedules after posting.
+  API at Line Level, or checking the automatic payment schedule after posting.
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 

@@ -18,31 +18,29 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-  Turning it on (`enablePaymentSchedulesAndItemsCreation`, which the repo sets true) for the
-  first time creates four default records: Default Payment Schedule Policy, Default Payment
-  Schedule Treatment, Default Payment Schedule Treatment Detail and Default Payment Schedule
-  Distribution Method
-  [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`]
-  [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]
-  [Dev guide: `meta_billingsettings`, which names the policy and treatment]. Help says each
-  posted invoice then gets a single payment schedule for its whole balance, and Invoice is the default Grouping Source; one account's
-  invoices are grouped into one only with Grouping Source Account, the same currency and payment
-  method, and due dates within the Due Date Window
-  [Help: `ind.billing_payments_consolidate_invoices`]. Help's listed field values for the
-  default treatment do not include Grouping Source. On a fresh ent-sb0 build that treatment,
-  Default Payment Schedule Treatment, had Grouping Source **Account** and a blank Due Date
-  Window; its policy, Default Payment Schedule Policy, had `IsOrgDefault` true. Two invoices
-  posted for one account with the same due date produced one Draft payment schedule, which both
-  invoices point to through `PaymentScheduleId`. The grouping followed Help's Account rule; what
-  differs from Help is the treatment the setting created, Grouping Source Account where Help
-  states the default is Invoice. So the enable article's single payment schedule for each posted
-  invoice, which describes the Invoice default, did not hold on this build.
-  A second payment schedule with `ReferenceEntityId` set to one of them was refused (error
-  `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
-  is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
-  [Open: Grouping Source Invoice; invoices with different due dates; canceling or reusing the
-  automatic schedule]
+  Help says: the first time the setting is turned on it creates four default records, Default
+  Payment Schedule Policy, Default Payment Schedule Treatment, Default Payment Schedule
+  Treatment Detail and Default Payment Schedule Distribution Method
+  [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]; each posted
+  invoice then gets a single payment schedule for its whole balance
+  [Help: `ind.billing_setup_payment_schedules_and_payment_schedule_items_enable`]; Grouping
+  Source defaults to Invoice, and one account's invoices are grouped into one schedule under
+  Grouping Source Account when their due dates fall within the Due Date Window and their
+  currency and payment method match [Help: `ind.billing_payments_consolidate_invoices`]. The
+  repo turns the setting on (`enablePaymentSchedulesAndItemsCreation` true)
+  [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
+
+  Measured on 2026-11-24: the Default Payment Schedule Treatment read Grouping Source
+  **Account** and a blank Due Date Window (read that day; its value at creation was not
+  observed). Two invoices posted for one account with the same due date (currency and payment
+  method not recorded) produced one Draft payment schedule, which both invoices point to through
+  `PaymentScheduleId`. A second payment schedule with `ReferenceEntityId` set to one of them was
+  refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule
+  because its invoice is associated with another Payment Schedule that's in Draft or Open
+  status."). [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
+  [Open: Grouping Source Invoice; a non-blank Due Date Window; invoices with different due
+  dates; invoices with different currency or payment method; canceling or reusing the automatic
+  schedule]
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
@@ -112,7 +110,7 @@ fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
   as `appliedToId` failed (error `INVALID_FIELD`, "Specify an InvoiceLineId as the appliedToId
   because the Credit Application Level is Invoice Line."; the error code was first recorded
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org]). With an invoice line id it created a
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]). With an invoice line id it created a
   `PaymentLineInvoiceLine` (Type Applied) and no `PaymentLineInvoice`.
 - **Credit an invoice.** `POST /services/data/v68.0/commerce/invoicing/invoices/{id}/actions/credit` on a posted
   invoice, copying from the invoice lines, created a `CreditMemoLineInvoiceLine` and no
@@ -127,13 +125,13 @@ fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry 
   sufficient balance."). A request equal to the balance was accepted. The schedule without a
   reference entity, the error code, the text after "requested amount" and the equal request
   were first recorded
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org].
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0].
 - **The shipped Apply Payment flow.** The Apply Payment quick action launches the flow
   `RLM_Apply_Payments_on_Invoice`, which calls the subflow `RLM_Apply_Payment_To_Invoice_Lines`.
   The subflow spreads a payment over the invoice's open lines in record Id order, capped at the
   smaller of the payment's balance and the invoice's balance. Copies ship in the
   billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
-  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On a fresh build it spread a
+  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On the 2026-10-15 harness build it spread a
   payment over a three-line invoice with no header-level rows. [Measured: 2026-10-15, 264,
   harness build, API 68.0, Line Level] Called directly
   (`/services/data/v68.0/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs
