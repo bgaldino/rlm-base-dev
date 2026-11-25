@@ -63,17 +63,18 @@ private class RLM_InvoiceTaxSummaryControllerTest {
     }
 
     // Industry stands in for the currency column, so two groups share a name: toRows keeps every
-    // group as its own row and never merges rows by name. AVG stands in for SUM so a group of
-    // whole-number amounts (A: 1 and 2) has a fractional total, and a toRows that rounds fails.
+    // group as its own row and never merges rows by name. AVG(NumberOfEmployees) stands in for
+    // the total: A's 1 and 2 average 1.5, so a toRows that rounds fails, and a number field (not
+    // a currency) is never rounded to the corporate currency's decimal places (0 for JPY).
     @isTest
     static void toRows_buildsOneRowPerGroupInTheGivenOrder() {
         insertAccounts();
         List<RLM_InvoiceTaxSummaryController.TaxSummaryRow> rows = RLM_InvoiceTaxSummaryController.toRows([
-            SELECT Name taxName, Industry currencyIsoCode, AVG(AnnualRevenue) totalTaxAmount
+            SELECT Name taxName, Industry currencyIsoCode, AVG(NumberOfEmployees) totalTaxAmount
             FROM Account
             WHERE Name LIKE 'RLM Tax Summary %'
             GROUP BY Name, Industry
-            ORDER BY Name DESC, AVG(AnnualRevenue)
+            ORDER BY Name DESC, AVG(NumberOfEmployees)
         ]);
         Assert.areEqual(3, rows.size(), 'One row per group, including two groups with the same name.');
         Assert.areEqual('RLM Tax Summary B', rows[0].taxName, 'Rows keep the given order, not re-sorted.');
@@ -166,21 +167,26 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         Assert.isTrue(error.containsIgnoreCase('taxName'), 'The error names the missing alias: ' + error);
     }
 
-    // Four accounts in the corporate currency, so aggregates need no conversion:
-    // "RLM Tax Summary A" 1 and 2 (Banking), "RLM Tax Summary B" 2 (Banking) and -2 (Energy).
-    // Amounts are whole numbers: AnnualRevenue has scale 0. Returns the corporate currency code.
+    // Four accounts in the corporate currency, so currency aggregates need no conversion:
+    // "RLM Tax Summary A" 1 and 2 (Banking), "RLM Tax Summary B" 2 (Banking) and -2 (Energy),
+    // the same value in AnnualRevenue and NumberOfEmployees. Whole numbers: AnnualRevenue has
+    // scale 0. Returns the corporate currency code.
     private static String insertAccounts() {
         String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
         List<Account> accounts = new List<Account>{
-            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1, Industry = 'Banking'),
-            new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 2, Industry = 'Banking'),
-            new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 2, Industry = 'Banking'),
-            new Account(Name = 'RLM Tax Summary B', AnnualRevenue = -2, Industry = 'Energy')
+            account('RLM Tax Summary A', 1, 'Banking'),
+            account('RLM Tax Summary A', 2, 'Banking'),
+            account('RLM Tax Summary B', 2, 'Banking'),
+            account('RLM Tax Summary B', -2, 'Energy')
         };
         for (Account a : accounts) {
             a.CurrencyIsoCode = corporate;
         }
         insert accounts;
         return corporate;
+    }
+
+    private static Account account(String name, Integer amount, String industry) {
+        return new Account(Name = name, AnnualRevenue = amount, NumberOfEmployees = amount, Industry = industry);
     }
 }
