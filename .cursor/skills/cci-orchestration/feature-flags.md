@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
+**45 feature flags**, **85 configuration values**, **44 YAML anchors** under `project.custom`.
 
 ---
 
@@ -29,7 +29,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `constraints` | `True` | 4 flow step(s) |
 | `constraints_data` | `True` | 6 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
-| `dro` | `True` | 7 flow step(s) |
+| `dro` | `True` | 8 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 5 flow step(s) |
 | `inapp` | `False` | 3 flow step(s) |
@@ -48,7 +48,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 14 flow step(s) |
 | `qb` | `True` | 39 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 28 flow step(s) |
+| `quantumbit` | `True` | 29 flow step(s) |
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 4 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
@@ -209,6 +209,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_core` step 15 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
+- `prepare_quantumbit` step 15 → `assign_permission_sets`
 - `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
@@ -426,6 +427,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 12 → `assign_permission_sets`
 - `prepare_quantumbit` step 13 → `deploy_post_setup_guide`
 - `prepare_quantumbit` step 14 → `assign_permission_sets`
+- `prepare_quantumbit` step 15 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -774,6 +776,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_DocGen`
+
+### `ps_dro_integrations`
+
+*1 items:*
+
+- `DRO_Integrations`
 
 ### `ps_expression_set_manager`
 

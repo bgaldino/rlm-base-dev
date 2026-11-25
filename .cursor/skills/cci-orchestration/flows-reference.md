@@ -633,6 +633,8 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 13. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
 14. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RenewalQuotes']`
+15. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__dro`
+   - `api_names`: `['DRO_Integrations']`
 
 ---
 
