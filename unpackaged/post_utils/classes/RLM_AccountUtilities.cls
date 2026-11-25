@@ -73,8 +73,7 @@ public without sharing class RLM_AccountUtilities {
     // opportunities 5 = 42 on the drained path, plus the journal query, which only the
     // undrained path runs = 43. 29 is what an account with no such data measures.
     // QUERY_RESERVE covers the 43 and the usage retries. A round starts only while both
-    // are left;
-    // otherwise a large usage graph would spend phase 2's queries and end in a
+    // are left; otherwise a large usage graph would spend phase 2's queries and end in a
     // LimitException. A test holds the measured 29 and the reserve against the 43.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
@@ -526,6 +525,7 @@ public without sharing class RLM_AccountUtilities {
         accountAssetIds = new Set<Id>();
         accountContractIds = new Set<Id>();
         usageDrained = false;
+        unseenListQueriesSpentForTest = null;
     }
 
     /** The Id when `value` is an Account Id, else null. */

@@ -1449,6 +1449,49 @@ private without sharing class RLM_AccountUtilitiesTest {
             'Both buckets get the same reason. Got: ' + result.retainedSummary);
     }
 
+    // The completed-run path: the retries mark `held` and `child` foreign (against the
+    // account's own TUEs), then the asset step sees both as the account's (the TUE is
+    // bound to its asset) and deletes `child`. A previous owner's usage summary holds
+    // `held`, so that delete is refused; the entitlement under `child` is gone, so the
+    // asset can go and the run completes. `held` must be reported once, as refused.
+    @IsTest
+    static void aBucketTheAssetStepIsRefusedIsReportedOnceAsRefusedNotAlsoAsForeign() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438c');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Moved Asset 438c', AccountId = a.Id);
+        insert asset;
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        TransactionUsageEntitlement movedTue = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        UsageEntitlementBucket child = newBucket(held.Id, movedTue.Id, f);
+        insert new UsageSummary(
+            UsageEntitlementBucketId = held.Id, AccountId = previousOwner.Id, UomId = f.uomId,
+            StartDateTime = Datetime.now().addDays(-5), EndDateTime = Datetime.now().addDays(-1),
+            DebitedUnits = 0, ConsumptionUnits = 0, OverageUnits = 0, Status = 'New'
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :child.Id],
+            'PRECONDITION: the asset step deleted the child bucket');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'PRECONDITION: the summary refused the delete of the bucket above it');
+        Assert.isNotNull(result.retainedSummary, 'The kept bucket must be reported');
+        Assert.isFalse(result.retainedSummary.contains('kept: holds, or is above'),
+            'A refused bucket is not also reported as foreign. Got: ' + result.retainedSummary);
+        Assert.areEqual(1, result.retainedSummary.split(
+            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': ').size() - 1,
+            'The bucket must be one row. Got: ' + result.retainedSummary);
+        Assert.isTrue(result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 1) + ' (could not be deleted: '),
+            'The bucket must be reported as refused. Got: ' + result.retainedSummary);
+    }
+
     @IsTest
     static void rollbackGivesOneReasonToARefusedBucketAboveAForeignChild() {
         Account a = newAccount();
