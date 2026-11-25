@@ -66,10 +66,10 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** set a component selling model on a configurable bundle's components, or,
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
-  An insert was rejected for the configurable case and accepted for static test bundles
+  An insert was rejected for the configurable case [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] and accepted for static test bundles
   (inactive [Measured: 2026-11-10, 264, existing org]; inactive and active [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]), so
-  Help's static rule looks like guidance, not a guard [inferred]. A mismatched pair priced, and
-  a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
+  Help's static rule looks like guidance, not a guard [inferred]. A mismatched pair priced (each child at 0 inside the bundle price; not compared with a
+  matched-model bundle; order, billing and renewal not tried), and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; a static bundle cannot be
   configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's
   selling-model check may skip static bundles [inferred]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
@@ -340,7 +340,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Recurring children in a fixed kit.** Which selling model a static kit's child is quoted
   on when it is Evergreen, sits under a root other than Evergreen, has no model on its
   component row, or has several options (a Term Annual child under an Evergreen root was quoted
-  on the model its row set [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which
+  on the model its row set, which was its only option [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which
   model each child renews and bills on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
@@ -353,7 +353,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
   were accepted on test bundles (not `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], and a
-  mismatched pair priced, and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
+  a mismatched pair priced (each child at 0 inside the bundle price; not compared with a matched-model bundle; order, billing and renewal not tried), and a `configure` call returned no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org];
   a static bundle cannot be configured at run time [Help: `ind.product_catalog_create_bundled_products.htm`], so
   the configurator's selling-model check may skip static bundles [inferred]; whether `CERT007`'s matched pairs
   price, order and renew correctly is still open. See
