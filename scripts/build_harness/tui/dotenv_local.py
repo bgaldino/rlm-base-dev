@@ -134,11 +134,13 @@ def apply_to_environ(path: Path, environ: MutableMapping[str, str] = os.environ)
     line rejects the whole file (reported, nothing exported), and a variable
     already in ``environ`` keeps its value.
     """
-    if not path.is_file():
-        return []
-    data = path.read_text(encoding="utf-8", errors="surrogateescape")
     try:
+        if not path.is_file():
+            return []
+        data = path.read_text(encoding="utf-8", errors="surrogateescape")
         exports, warnings = load(data, environ)
+    except OSError as exc:
+        return [f"not loading {path.name}: {exc.strerror or exc}"]
     except DotenvError as exc:
         return [f"not loading {path.name}: {exc}"]
     environ.update(exports)

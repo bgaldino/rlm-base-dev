@@ -108,3 +108,18 @@ def test_apply_to_environ_invalid_line_rejects_whole_file(tmp_path) -> None:
     environ: dict[str, str] = {}
     warnings = apply_to_environ(env_file, environ)
     assert environ == {} and len(warnings) == 1 and "not valid dotenv" in warnings[0]
+
+
+def test_apply_to_environ_unreadable_file_warns_instead_of_raising(tmp_path) -> None:
+    from scripts.build_harness.tui.dotenv_local import apply_to_environ
+
+    env_dir = tmp_path / ".env.local"
+    env_dir.write_text("A=1\n")
+    env_dir.chmod(0)
+    try:
+        environ: dict[str, str] = {}
+        warnings = apply_to_environ(env_dir, environ)
+    finally:
+        env_dir.chmod(0o600)
+    if warnings:  # root can still read a mode-0 file; then there is nothing to assert
+        assert environ == {} and "not loading .env.local" in warnings[0]

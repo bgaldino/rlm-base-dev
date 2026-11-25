@@ -40,18 +40,18 @@ _SHADOW_WALK_JS = """
     }
 """
 
-# Reports what the Getting Started page currently shows: "enable" (the Enable CRM Analytics
-# button is there), "launch" (CRM Analytics is on, so the page offers Launch CRM Analytics),
-# or "none" (not rendered yet).
+# Reports what the Getting Started page currently shows: "launch" (CRM Analytics is on, so
+# the page offers Launch CRM Analytics; wins even if a stale Enable button is still in the
+# DOM), "enable" (only the Enable CRM Analytics button is there), or "none" (not rendered).
 _PAGE_STATE_JS = "return (function() {" + _SHADOW_WALK_JS + """
     var els = collect(document, []);
-    var launch = false;
+    var enable = false;
     for (var i = 0; i < els.length; i++) {
         var text = label(els[i]);
-        if (text === 'Enable CRM Analytics') return 'enable';
-        if (text.indexOf('Launch CRM Analytics') === 0) launch = true;
+        if (text.indexOf('Launch CRM Analytics') === 0) return 'launch';
+        if (text === 'Enable CRM Analytics') enable = true;
     }
-    return launch ? 'launch' : 'none';
+    return enable ? 'enable' : 'none';
 })();
 """
 
@@ -77,7 +77,9 @@ class AnalyticsSetupHelper:
     POLL_S = 1
     # An org with CRM Analytics already on renders the Enable button for ~0.5-1 s while
     # the page loads, then replaces it with Launch CRM Analytics (measured 2026-11-24 on
-    # 264, every load, Chrome 157 and 158). Enable counts only once it has held this long.
+    # 264, every load, Chrome 157 and 158). Enable counts only once it has held this long. A longer
+    # loading state on a slow pod would click Enable on an enabled org (its effect there is
+    # unmeasured), so raise this if that is ever seen.
     ENABLE_SETTLE_S = 3
 
     @property
