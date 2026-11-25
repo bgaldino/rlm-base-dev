@@ -88,7 +88,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   `REQUIRED_FIELD_MISSING: shippingAddress` [Measured: 2026-11-26, 264, scratch]. The
   Billing UI's Create Billing Schedule Group modal sends the legal entity, the treatment
   (the legal entity's treatment in the charge currency for the chosen timing; one-time: see
-  [`billing-setup`](../billing-setup/SKILL.md#billing-policies-and-treatments)) and the
+  [billing-setup](../billing-setup/SKILL.md#billing-policies-and-treatments)) and the
   shipping city, but no billing term (it has no input for one). Account sent: the account
   page the modal opened on when it is the billing account's own or is linked to it through
   `AccountBillingAccount`; a page account that is not found, unreadable, not linked (link

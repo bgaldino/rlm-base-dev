@@ -1540,7 +1540,8 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // Legal entities are private by default (measured on a 264 org). The hidden case of the legal
     // entity read test relies on it: on another org-wide default that case is not checked, so this test
-    // fails there instead of letting that gap pass silently.
+    // fails there instead of letting that gap pass silently. It does not catch a sharing rule that lets
+    // the test user read the legal entity on a Private org.
     @isTest
     static void legalEntitiesArePrivateByDefault() {
         String sharingModel = [
@@ -1584,6 +1585,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Boolean visibleWithoutSharing;
         String detailsWithoutSharing;
         AuraHandledException viewAllError;
+        String detailsViewAll;
         Test.startTest();
         System.runAs(noRead) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM LegalEntity LIMIT 1'),
@@ -1604,12 +1606,14 @@ private class RLM_BillingScheduleGroupServiceTest {
             }
             detailsWithoutSharing = RLM_BillingScheduleGroupService.lastTransactionDetails;
         }
+        RLM_BillingScheduleGroupService.lastTransactionDetails = null;
         System.runAs(viewAll) {
             try {
                 args.call();
             } catch (AuraHandledException e) {
                 viewAllError = e;
             }
+            detailsViewAll = RLM_BillingScheduleGroupService.lastTransactionDetails;
         }
         Test.stopTest();
 
@@ -1622,13 +1626,14 @@ private class RLM_BillingScheduleGroupServiceTest {
             Assert.isNotNull(detailsWithoutSharing, 'The visible-entity call reached the action.');
         } else {
             Assert.isNotNull(hidden, 'A legal entity hidden by sharing refuses create.');
-            Assert.isTrue(hidden.getMessage().contains('not visible to you'),
-                'It says the legal entity is not visible: ' + hidden.getMessage());
+            Assert.areEqual(
+                'The legal entity was not found, is not active, or is not visible to you. Choose another legal entity.',
+                hidden.getMessage(), 'It says the legal entity is not visible.');
             Assert.isNull(detailsWithoutSharing, 'Nothing reached the action.');
         }
         Assert.isNull(viewAllError, 'With view-all the legal entity read passes: '
             + (viewAllError == null ? null : viewAllError.getMessage()));
-        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.lastTransactionDetails);
+        Map<String, Object> txn = onlyTransaction(detailsViewAll);
         Assert.areEqual(String.valueOf(args.legalEntityId), txn.get('LegalEntityId__std'),
             'The view-all call reached the action with the legal entity.');
     }
