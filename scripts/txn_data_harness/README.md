@@ -281,7 +281,10 @@ count.
   anything the platform applied at post. Settlement batches with more than one
   transaction on an account need `--concurrency 1` (`cli run` refuses
   otherwise). `cli step --application-level line|header` corrects a wrongly
-  recorded level. See `scenarios/README.md` → *Settlement*.
+  recorded level; `cli step --resubmit-credit` sends again a credit whose
+  memo failed or never appeared (after checking the org). Amounts round to the
+  invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →
+  *Settlement*.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write
   `TransactionJournal` rows after activation. `target_stage: usage_upload` stops
   after journals so you can run `cli rate --org <sf-alias>` once for the batch;
@@ -298,10 +301,12 @@ count.
 - **`requests` (default)** — native `requests.Session` with connection pooling and
   bounded retry/backoff. Sessions aren't thread-safe, so each worker gets its own
   (thread-local); all workers share the read-only token + instance URL.
-- **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest`, so
-  our process never sees a token. Maximally stable if the CLI ever stops surfacing
-  tokens, at the cost of a process spawn per call. JWT/connected-app auth is
-  outside the current command surface.
+- **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest
+  --include`, so our process never sees a token. The status line it prints
+  gives the real HTTP status, so a 4xx refusal and a 5xx are told apart as on
+  `requests` (no transport retries on `cli`). Maximally stable if the CLI ever
+  stops surfacing tokens, at the cost of a process spawn per call.
+  JWT/connected-app auth is outside the current command surface.
 
 ## Manifests & cleanup
 

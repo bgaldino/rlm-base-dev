@@ -82,7 +82,11 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     after the post, records what was already applied in
     `settlement_baseline`, and reads back what it applied to this invoice.
     Settlement batches with more than one transaction on an account must run
-    `--concurrency 1` (`cli run` refuses otherwise). Contract:
+    `--concurrency 1` (`cli run` refuses otherwise). Amounts round to the
+    invoice currency's decimal places; the credit and payment use the
+    invoice's account (`cli step` refuses an `--account` with another Id). A
+    submitted credit whose memo failed is sent again only by `cli step
+    --resubmit-credit`, after checking the org. Contract:
     `scripts/txn_data_harness/docs/contracts-billing-settlement.md`; examples:
     `scenarios/*/17-settlement.yaml`.
 

@@ -145,7 +145,7 @@ memo `50gWt000001BElRIAW` posted at 70, applied 60, and kept `Balance` 10. That
 10 was later applied by the platform to the next invoice posted through the post
 action (above). The harness caps each line's credit so the memo, tax included,
 fits the line's open balance: `Ignore` → balance; `Calculate` → balance ×
-charge / line amount, rounded down to the cent; `CopyFromInvoiceLine` → balance
+charge / line amount, rounded down to the currency's smallest unit; `CopyFromInvoiceLine` → balance
 less the line's tax; every case also capped at the charge amount.
 
 ## Payment — create, then `POST /commerce/billing/payments/{paymentId}/actions/apply`
@@ -214,14 +214,48 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (and may be absorbed by the account's next posted invoice), and
   `cli step --to-stage payment_applied --application-level line|header`
   replaces the recorded level and applies it.
+- The 4xx / 5xx split holds on both transports. `--transport cli` runs
+  `sf api request rest --include`, whose output starts with the HTTP status
+  line and headers (no blank line before the body; measured with sf 2.159 on
+  200, 400 and 404), so `SfApiError.status` is the HTTP status there too. A
+  CLI failure that never reached the API (no status line) keeps the CLI exit
+  code and counts as an unknown outcome, like a 5xx.
+- `cli step` writes `error` on the manifest for any failure (`SfApiError` and
+  transport errors as well as `LifecycleError`) before it exits.
+- **The account.** The memo and the payment belong to the invoice's account:
+  `Invoice.BillingAccountId` (an Account id), else the manifest's
+  `account_id`. `cli step` resolves the account by the manifest's
+  `account_id`; an `--account` resolving to another Id, or a manifest whose
+  `account_id` differs from the invoice's, is refused before any write, so a
+  resume can never find-or-create a second payment under another account.
+- **A submitted credit is never sent again on its own.** Once the POST was
+  accepted (`credit_submitted`), a memo in `Error`, `Canceled` or `Voided`, or
+  none showing up, fails every resume with the same error, which names the
+  next step. After checking the org, `cli step --manifest <id> --to-stage
+  payment_applied --resubmit-credit` records the failed attempt as a warning,
+  increments `credit_attempt` and sends the credit again with its own tag
+  (`<run> credit 2`, …), so the failed memo is never read as the new one; a
+  Pending or Posted memo is kept. With `--config <file>` the config's
+  `settlement:` block replaces the manifest's (for options the API refused).
+  If an attempt's memo shows up late after a resubmission, both credits stand:
+  check the org first.
+- A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
+  except the two answers that mean "not there": SOQL `INVALID_FIELD` on
+  `CurrencyIsoCode` (single-currency org, read again without it) and
+  `INVALID_TYPE` on `CurrencyType` (2 places, not cached). A transient error is
+  never recorded as "no currency" or cached as 2 places.
 
 ## Currency precision
 
-Amounts the harness computes (percent shares, per-line caps) are rounded to
-`CurrencyType.DecimalPlaces` of the invoice currency, recorded in
-`settlement_baseline.decimal_places` (2 when the org has no `CurrencyType`).
-Read on the verification org: USD, EUR, GBP, CAD, AUD, CHF = 2, **JPY = 0**.
-Only USD invoices were settled live; a JPY run is an open item.
+Every amount the harness computes or sends is rounded to
+`CurrencyType.DecimalPlaces` of the invoice currency: percent shares, per-line
+credit caps and allocations, `Payment.Amount`, each apply `amount`, and the
+balances they are compared with. The places are recorded in
+`settlement_baseline.decimal_places` (2 on a single-currency org, whose
+invoices have no `CurrencyIsoCode`). Config `amount:` values are not
+pre-rounded, so a 3-place currency keeps `10.005`. Read on the verification
+org: USD, EUR, GBP, CAD, AUD, CHF = 2, **JPY = 0**. Only USD invoices were
+settled live; JPY and 3-place currencies (KWD) are covered offline only.
 
 ## Read-back queries the harness uses
 

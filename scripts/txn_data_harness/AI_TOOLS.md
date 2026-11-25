@@ -339,6 +339,14 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
 - A wrong recorded application level (apply refused with `INVALID_FIELD` on
   `appliedToId`): resume with `cli step ... --to-stage payment_applied
   --application-level line|header`.
+- A credit that failed after it was submitted (memo `Error` / `Canceled` /
+  `Voided`, or no memo) is never sent again on its own. Check the invoice's
+  memos in the org, then resume with `cli step --manifest <id> --to-stage
+  payment_applied --resubmit-credit` (add `--config <file>` to replace the
+  manifest's `settlement:` block). Never pass the flag unasked.
+- `cli step` uses the manifest's `account_id`; an `--account` that resolves to
+  another account is refused. Amounts round to the invoice currency's
+  decimal places (KWD = 3, JPY = 0).
 - Line Level is live-verified on 264; Header Level is not. Contract:
   `docs/contracts-billing-settlement.md`.
 

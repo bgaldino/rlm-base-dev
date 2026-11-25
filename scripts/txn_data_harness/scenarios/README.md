@@ -439,8 +439,11 @@ value (null) means no payment, like leaving the key out.
 - **Shared `defaults.settlement`:** a block inherited from `defaults` is
   dropped on scenarios that stop before `credit_applied`, and its `payment`
   part is dropped on scenarios that stop at `credit_applied`. A block set on
-  the scenario itself is checked strictly (a part that would never run is an
-  error).
+  the scenario itself is kept whatever the target: parts past the target are
+  not reached yet and stay on the manifest for a later `cli step` (so
+  `--target-stage invoice_posted` on a settlement config is fine). Only a
+  settlement target with nothing to do is an error: `credit_applied` without
+  `credit:`, or `payment_applied` with neither `credit:` nor `payment:`.
 
 - **Order:** credit first, then payment, so `amount: exact` pays what is left
   after the credit.
@@ -464,18 +467,37 @@ value (null) means no payment, like leaving the key out.
   invoice — possibly another scenario's in the same batch — may absorb it.
 - **Manifest fields:** `settlement`, `application_level`,
   `application_level_source`, `settlement_baseline`, `credit_memo_ids`,
-  `credit_application_ids`, `credit_amount_requested`, `credit_amount_applied`,
+  `credit_application_ids`, `credit_submitted`, `credit_attempt`,
+  `credit_amount_requested`, `credit_amount_applied`,
   `payment_ids`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
   (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`.
-- **Amounts** the harness computes are rounded to the invoice currency's
-  `CurrencyType.DecimalPlaces` (JPY = 0); only USD was settled live.
+- **Amounts** are rounded to the invoice currency's
+  `CurrencyType.DecimalPlaces` everywhere they are computed or sent: credit
+  caps and allocations, `Payment.Amount`, each apply amount, and the balances
+  they are compared with (JPY = 0, KWD = 3). Config `amount:` values are not
+  pre-rounded; a single-currency org uses 2. Only USD was settled live.
+- **Account:** the credit and the payment belong to the invoice's account
+  (`Invoice.BillingAccountId`, else the manifest's `account_id`). `cli step`
+  looks the account up by the manifest's `account_id`; an `--account` that
+  resolves to another Id is refused before anything is written.
 - **Resume:** `cli step --to-stage payment_applied` uses the manifest's
   persisted `settlement`; a manifest from a run without one needs
   `--config` with exactly one `settlement:` block among the scenarios of the
-  manifest's `kind` and account. `--application-level line|header` replaces
-  a wrongly recorded level (an apply refused with `INVALID_FIELD` on
-  `appliedToId` says so).
+  manifest's `kind` and account. `--config` is read only for a settlement
+  target. `--application-level line|header` replaces a wrongly recorded
+  level (an apply refused with `INVALID_FIELD` on `appliedToId` says so).
+  The recipe "run to `invoice_posted`, then `cli step --to-stage
+  payment_applied`" works with or without `--config`.
+- **A credit that failed after it was submitted** (memo in `Error`,
+  `Canceled` or `Voided`, or no memo at all) is never sent again on its own;
+  every resume stops with the same error, which names the next step. After
+  checking the invoice's credit memos in the org, run `cli step --manifest
+  <id> --to-stage payment_applied --resubmit-credit`: the failed attempt is
+  recorded as a warning and the credit is sent as the next attempt (its memo
+  is tagged `<run> credit 2`, …). A memo that is Pending or Posted is kept.
+  Add `--config <file>` to replace the manifest's `settlement:` block (the way
+  to correct options the API refused).
 
 ## What makes an account / product a valid target
 
