@@ -77,6 +77,14 @@ from scripts.expression_sets._guards import (  # noqa: E402
     version_rows,
 )
 
+# The last line of every read-back failure. The build harness classifies a failed
+# step by one line of its output (scripts/build_harness/harness/failure.py: the
+# last line with an error keyword) and retries "transient" and "unknown" ones,
+# which here would re-run a deploy the platform refuses on a built org. This line
+# has a deterministic token ("validation error") and no transient one, and is short
+# enough not to wrap, so the step is never retried whatever the message above it
+# says (a read-back error can quote "timed out" or "503").
+READBACK_FAILURE_SIGNATURE = "Expression set read-back failed: validation error."
 MDAPI_SUFFIX = ".expressionSetDefinition"
 _MD_NS = "{http://soap.sforce.com/2006/04/metadata}"
 VERSION_CHECK_MODES = ("fail", "warn")
@@ -276,7 +284,8 @@ class DeployExpressionSets(Deploy):
                 "(scripts/expression_sets/set_step_formula.py for formulas). "
                 "version_check warn is for future builds on an org whose version chain "
                 "is known (cci flow run prepare_rlm_org -o "
-                "activate_and_deploy_expression_sets__version_check warn)."
+                "activate_and_deploy_expression_sets__version_check warn).\n"
+                + READBACK_FAILURE_SIGNATURE
             )
         self.logger.warning(message + " Continuing (version_check: warn).")
 

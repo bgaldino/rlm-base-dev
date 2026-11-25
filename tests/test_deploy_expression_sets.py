@@ -272,6 +272,52 @@ for mode in ("warn", "fail"):
               and any("INVALID_SESSION_ID" in m for _, m in broken.logs),
               (broken_raised, broken.logs))
 
+# The build harness must never retry this step: a retry re-runs a deploy the
+# platform refuses on a built org. It classifies a failed step by one line of its
+# output (the last with an error keyword; "transient" and "unknown" are retried),
+# so render each failure the way `cci` prints a task failure ("Error: <message>",
+# wrapped, then its help line) and classify it as the harness does.
+from scripts.build_harness.harness.failure import (  # noqa: E402
+    classify_signature,
+    infer_failure_signature,
+)
+
+
+def cci_output(message, width):
+    import textwrap
+    lines = ["[11/25/26 07:53:52] Beginning task: DeployExpressionSets"]
+    for i, paragraph in enumerate(str(message).split("\n")):
+        lines.extend(textwrap.wrap(("Error: " if i == 0 else "") + paragraph, width) or [""])
+    lines.append("Run this command for more information about debugging errors: cci error --help")
+    return lines
+
+
+class _TransientSf(_FakeSf):
+    def query_all(self, soql):
+        raise RuntimeError("HTTPSConnectionPool: Read timed out. (read timeout=30); "
+                           "503 Service Unavailable; connection reset")
+
+
+read_failures = [("a finding", raised)]
+for sf_class in (_BrokenSf, _TransientSf):
+    task_ = make_task("fail", deployed_rows(), package)
+    task_._sf_client = sf_class([], [])
+    try:
+        task_._check_versions()
+    except mod.CumulusCIFailure as exc:
+        read_failures.append((sf_class.__name__, exc))
+check("every read-back failure ends with the fixed signature line",
+      len(read_failures) == 3
+      and all(str(e).splitlines()[-1] == mod.READBACK_FAILURE_SIGNATURE
+              for _, e in read_failures), read_failures)
+for name, exc in read_failures:
+    for width in (60, 80, 120, 1000):
+        signature = infer_failure_signature(cci_output(exc, width))
+        check(f"harness classifies the read-back failure ({name}, width {width}) as "
+              "deterministic, so it is not retried",
+              signature == mod.READBACK_FAILURE_SIGNATURE
+              and classify_signature(signature) == "deterministic", signature)
+
 empty = make_task("fail", {}, None)
 empty._check_versions()
 check("nothing deployed → nothing to read back, no query",
