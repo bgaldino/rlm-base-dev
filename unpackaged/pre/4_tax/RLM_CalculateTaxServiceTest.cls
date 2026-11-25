@@ -596,6 +596,16 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The engine status is logged, not mapped.');
     }
 
+    // A mapped engine status is not logged: only an unmapped one writes the log line.
+    @IsTest
+    static void getTax_mappedEngineStatus_isNotLogged() {
+        String tail = ',"totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}';
+        for (String status : new List<String>{ 'Temporary', 'Committed' }) {
+            getTaxAnswering(200, '{"code":"X","status":"' + status + '"' + tail);
+            Assert.isNull(RLM_CalculateTaxService.lastDebugDetail, status + ' is mapped, so nothing is logged.');
+        }
+    }
+
     // An unmapped engine status is logged only if it has the shape of a code; a missing one logs (none).
     @IsTest
     static void getTax_unmappedEngineStatus_logIsShapeCheckedAndNullSafe() {
