@@ -508,11 +508,11 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
 [Measured: 2026-11-25, 264, scratch, one org]:
 - The step is wired and ran at order activation on new-sale orders containing `QB-API-MGMT`
   (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group `Platform`). Neither the
-  rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders do not reach it.
+  rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders did not reach it.
 - It fails at once. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
   `System.CalloutException: ... the named credential "RLM" might not exist`. The step is `FatallyFailed` with
   `RetryAttempts` 0. The class returns `isSuccess=false` (code 503) on that path [inferred from the class]; the log does
-  not show the returned value. The 0 retries follow from the missing decision tables below: the shipped Callout fallout
+  not show the returned value. The 0 retries are attributed to the missing decision tables below [inferred]: the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied, and their effect once the tables exist was not measured.
 - It stalls the billing chain. Receive Key + Assign to Asset and Provision Licensing/Features depend on it;
   Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), then Post Invoice, then
@@ -524,7 +524,7 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
   non-2xx handling of todo 381) does so once the tables exist was not measured; the measured failure is the
   `CalloutException` path and the non-2xx branch was not reached.
 - Fulfillment orders stayed `Draft` for every order on that build, including an order whose plan had no failed step, so a
-  Draft fulfillment order is not evidence about a step. Why they never leave Draft was not measured.
+  Draft fulfillment order is not evidence about a step. Why they did not leave Draft was not measured.
 - An earlier check concluded the step was "not wired" from Draft fulfillment orders and zero `FlowOrchestrationInstance`
   records. Both signals are uninformative here (see **Verify a DRO Step on a Fresh Build**, below).
 
@@ -550,12 +550,12 @@ remove or condition the step. This section records behaviour, not a fix.
    ```
 
 4. Do not use fulfillment-order `Status` (it stayed `Draft` regardless of plan state) or
-   `FlowOrchestrationInstance` (plans are `FulfillmentPlan`/`FulfillmentStep`, so its count stayed 0 for plans that ran)
+   `FlowOrchestrationInstance` (its count stayed 0 for plans that ran; the plans are `FulfillmentPlan`/`FulfillmentStep` records [inferred])
    as the signal [Measured: 2026-11-25, 264, scratch, one org].
 5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error is
    not in the record. Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
    log (trace flag on the activating user). In the measured run the step's `ActualStartDate` equalled the plan's
-   `CreatedDate` and no non-test `AsyncApexJob` existed, [Measured: 2026-11-25, 264, scratch, one org]. That it ran at
+   `CreatedDate` and no non-test `AsyncApexJob` existed [Measured: 2026-11-25, 264, scratch, one org]. That it ran at
    activation rather than from a queued job is [inferred]; DRO's own async work need not appear as an `AsyncApexJob`.
 
 ## Update Acceptance Scenarios
