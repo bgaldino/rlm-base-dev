@@ -319,6 +319,13 @@ project:
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
 
+    ps_dro_integrations: &ps_dro_integrations
+      # Principal access to the BillingSystemExtCredentials external credential,
+      # which BillingSystemNC, LogisticsSystemNC and OrderFulfillmentSystemNC share.
+      # The set lives in post_quantumbit beside the credential (it cannot deploy
+      # before it), and grants nothing else. Todo 453.
+      - DRO_Integrations
+
     ps_expression_set_manager: &ps_expression_set_manager
       # Expression Set Manager component (post_utils, deployed via
       # deploy_post_utils in the quantumbit and tso flows). Deliberately NOT
@@ -4001,6 +4008,17 @@ flows:
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_renewal_quotes
+      15:
+        # DRO callout steps send through named credentials that share the
+        # BillingSystemExtCredentials external credential (deployed by
+        # deploy_quantumbit, step 3). Without principal access the send fails
+        # with SF_DRO_STEP_API_00124. The step runs as the user who activates
+        # the order, so this reaches the RUNNING user only. The tso build's
+        # RLM_QuantumBit copy (post_tso) carries the same grant for its personas.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit and project_config.project__custom__dro
+        options:
+          api_names: *ps_dro_integrations
 
   prepare_tso:
     group: Revenue Lifecycle Management
