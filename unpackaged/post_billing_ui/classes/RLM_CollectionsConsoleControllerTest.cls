@@ -58,7 +58,7 @@ private class RLM_CollectionsConsoleControllerTest {
         System.assertEquals(null, w2.ptpDate, 'No PTP -> null.');
     }
 
-    // An invoice without a billing account shows a blank account, and no related records
+    // An invoice without a billing account shows a dash for the account, and no related records
     // leave the defaults: a dash for the dispute, a blank plan, no promise to pay.
     @isTest
     static void buildDelinquents_invoiceWithoutBillingAccount_usesDefaults() {
@@ -78,7 +78,7 @@ private class RLM_CollectionsConsoleControllerTest {
 
         Assert.areEqual(1, rows.size(), 'One row per invoice.');
         Assert.areEqual(invId, rows[0].Id, 'The row is the invoice.');
-        Assert.areEqual('', rows[0].businessAccount, 'No billing account, blank name.');
+        Assert.areEqual('—', rows[0].businessAccount, 'No billing account, a dash.');
         Assert.isNull(rows[0].accountId, 'No billing account id.');
         Assert.areEqual('-', rows[0].disputeReason, 'No dispute, a dash.');
         Assert.areEqual('', rows[0].collectionPlanId, 'No plan, blank.');
@@ -91,9 +91,9 @@ private class RLM_CollectionsConsoleControllerTest {
     }
 
     // A user who cannot read Account gets no names back, and the rows are still built, with a
-    // blank account rather than an exception or a dropped row.
+    // dash for the account rather than an exception or a dropped row.
     @isTest
-    static void buildDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithBlankNames() {
+    static void buildDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Id acctId = mintId(Account.SObjectType);
         Invoice i1 = synthInvoice(mintId(Invoice.SObjectType), acctId, 'Acme Corp', 5000, 45, 'INV-001');
@@ -110,7 +110,7 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, rows.size(), 'The row is kept.');
-        Assert.areEqual('', rows[0].businessAccount, 'The name is blank.');
+        Assert.areEqual('—', rows[0].businessAccount, 'The name shows a dash.');
         Assert.areEqual(acctId, rows[0].accountId, 'The row still names its account by id.');
     }
 

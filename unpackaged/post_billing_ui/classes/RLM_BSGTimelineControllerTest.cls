@@ -174,7 +174,7 @@ private class RLM_BSGTimelineControllerTest {
     }
 
     // A group with no schedules, suspension or milestones: its own fields are mapped, the account
-    // name comes through the relationship, and the schedule list is empty.
+    // name is read apart from the group, and the schedule list is empty.
     @isTest
     static void dataFor_mapsTheGroupsFields() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
@@ -195,7 +195,7 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(String.valueOf(groupId), data.id, 'The group id is shown');
         Assert.areEqual('BSG-0001', data.groupNumber, 'The group number is shown');
         Assert.areEqual('Data Plan', data.productName, 'The product is shown');
-        Assert.areEqual('Acme Billing', data.accountName, 'The billing account name comes through the relationship');
+        Assert.areEqual('Acme Billing', data.accountName, 'The billing account name is read by account id');
         Assert.areEqual(100, data.totalBilledAmount, 'Billed is shown');
         Assert.areEqual(50, data.totalPendingAmount, 'Pending is shown');
         Assert.areEqual('3', data.billingTerm, 'The term is shown as text');
@@ -207,9 +207,9 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isTrue(data.billingSchedules.isEmpty(), 'No schedules were found');
     }
 
-    // A user who cannot read Account gets a blank name, not an exception, so the group still shows.
+    // A user who cannot read Account gets a dash, not an exception, so the group still shows.
     @isTest
-    static void accountNameOf_forAUserWhoCannotReadAccounts_isBlank() {
+    static void accountNameOf_forAUserWhoCannotReadAccounts_isADash() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account acc = new Account(Name = 'Acme Hidden');
         insert acc;
@@ -222,7 +222,7 @@ private class RLM_BSGTimelineControllerTest {
         }
         Test.stopTest();
 
-        Assert.isNull(name, 'The name is blank, not a raw exception.');
+        Assert.areEqual('—', name, 'The name shows a dash, not a raw exception.');
         Assert.areEqual('Acme Hidden', RLM_BSGTimelineController.accountNameOf(acc.Id), 'An admin still gets the name.');
     }
 

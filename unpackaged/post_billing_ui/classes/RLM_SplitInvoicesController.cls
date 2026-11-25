@@ -76,7 +76,7 @@ public with sharing class RLM_SplitInvoicesController {
 
     // Account names are read apart from the invoices: a BillingAccount.Name relationship in the
     // invoice query would fail it, and list no split invoices, for a user who cannot read Account.
-    // A refused read leaves the rows without a name.
+    // A refused read leaves the rows with a dash.
     @TestVisible
     private static void applyAccountNames(List<InvoiceRow> rows) {
         Set<Id> accountIds = new Set<Id>();
@@ -85,9 +85,8 @@ public with sharing class RLM_SplitInvoicesController {
         }
         Map<Id, String> names = RLM_AccountNames.forIds(accountIds);
         for (InvoiceRow row : rows) {
-            if (String.isNotBlank(row.billingAccountId) && names.containsKey((Id) row.billingAccountId)) {
-                row.billingAccountName = names.get((Id) row.billingAccountId);
-            }
+            if (String.isBlank(row.billingAccountId)) continue;
+            row.billingAccountName = names.containsKey((Id) row.billingAccountId) ? names.get((Id) row.billingAccountId) : '—';
         }
     }
 
@@ -157,8 +156,6 @@ public with sharing class RLM_SplitInvoicesController {
             this.Status = (String) inv.get('Status');
             Object baId = inv.get('BillingAccountId');
             this.billingAccountId = baId != null ? String.valueOf(baId) : null;
-            SObject ba = inv.getSObject('BillingAccount');
-            this.billingAccountName = ba != null ? (String) ba.get('Name') : null;
             Object arrId = inv.get(BILLING_ARRANGEMENT_LOOKUP);
             this.billingArrangementId = arrId != null ? String.valueOf(arrId) : null;
             SObject arr = inv.getSObject(BILLING_ARRANGEMENT_REL);

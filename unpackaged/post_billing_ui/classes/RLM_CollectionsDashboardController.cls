@@ -84,7 +84,7 @@ public with sharing class RLM_CollectionsDashboardController {
                     options.add(new Map<String, String>{ 'value' => ct.IsoCode, 'label' => ct.IsoCode });
                 }
             }
-        } catch (Exception e) { probeSkipped('getCurrencyOptions', e); }
+        } catch (Exception e) { sectionSkipped('getCurrencyOptions', e); }
         if (options.size() == 1) {
             String defaultCode = getOrgDefaultCurrency();
             options.add(new Map<String, String>{ 'value' => defaultCode, 'label' => defaultCode });
@@ -412,7 +412,7 @@ public with sharing class RLM_CollectionsDashboardController {
                         invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
                     }
                 }
-            } catch (Exception ex) { probeSkipped('addCriticalFollowUps', ex); }
+            } catch (Exception ex) { sectionSkipped('addCriticalFollowUps', ex); }
         }
 
         for (Invoice inv : invs) {
@@ -504,7 +504,7 @@ public with sharing class RLM_CollectionsDashboardController {
                         accountToCollectionPlan.put(cp.AccountId, cp.Id);
                     }
                 }
-            } catch (Exception ex) { probeSkipped('addHighValueDelinquents', ex); }
+            } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); }
         }
         for (Id accId : qualifiedAccounts) {
             WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
@@ -596,7 +596,7 @@ public with sharing class RLM_CollectionsDashboardController {
                             if (existing == null || (d != null && d > existing)) accountPtpDate.put(accId, d);
                         }
                     }
-                } catch (Exception e) { probeSkipped('buildDisputedFromCases', e); }
+                } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); }
             }
 
             for (Id accId : disputedAccountIds) {
@@ -612,14 +612,16 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     // Every catch (Exception) in this class is one of two kinds, named by the helper it calls:
-    //  - probeSkipped: guards an optional-schema probe (an object or field that exists only in some
-    //    orgs or editions, such as CollectionPlan, PaymentSchedule, CurrencyType or Case.Reason). The
-    //    feature being absent is the normal case, so the section simply has less to show.
-    //  - sectionSkipped: isolates one dashboard section so the others still load; a refused or failed
-    //    read leaves that section empty. The detail goes to the debug log, never to the user.
+    //  - probeSkipped: guards a describe or field-presence probe (does Invoice have this field, is
+    //    Case.Reason in the query). The field being absent is the normal case in some orgs; nothing
+    //    is read from the database, so a permission refusal cannot land here.
+    //  - sectionSkipped: everything that reads records, including the reads of objects whose
+    //    existence was checked first (CollectionPlan, CollectionPlanItem, PaymentSchedule,
+    //    CurrencyType). A refused or failed read leaves that section empty while the others still
+    //    load, and is logged at WARN; it is a permission or data problem, not an absent schema.
     // Neither throws and neither puts platform exception text in a response.
     private static void probeSkipped(String context, Exception e) {
-        System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (optional schema absent): ' + e.getMessage());
+        System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (field or object not present): ' + e.getMessage());
     }
 
     private static void sectionSkipped(String context, Exception e) {

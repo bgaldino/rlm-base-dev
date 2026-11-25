@@ -550,7 +550,7 @@ private class RLM_BSGContextControllerTest {
 
         Assert.areEqual(1, target.size(), 'The line is kept.');
         Assert.areEqual('Line A', target[0].lineName, 'The line is the arrangement\'s.');
-        Assert.isNull(target[0].accountName, 'The name is blank, not a raw exception.');
+        Assert.areEqual('—', target[0].accountName, 'The name shows a dash, not a raw exception.');
     }
 
     // Smoke test: for a plan id that matches no plan, the plan lookup returns an empty plan and

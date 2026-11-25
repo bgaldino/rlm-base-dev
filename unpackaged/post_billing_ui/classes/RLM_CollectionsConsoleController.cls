@@ -57,7 +57,7 @@ public with sharing class RLM_CollectionsConsoleController {
         for (Invoice inv : invoices) {
             DelinquentWrapper w = new DelinquentWrapper();
             w.Id = inv.Id;
-            w.businessAccount = inv.BillingAccountId != null && accountNames.containsKey(inv.BillingAccountId) ? accountNames.get(inv.BillingAccountId) : '';
+            w.businessAccount = inv.BillingAccountId != null && accountNames.containsKey(inv.BillingAccountId) ? accountNames.get(inv.BillingAccountId) : '—';
             w.accountId = inv.BillingAccountId;
             w.balance = inv.Balance;
             w.overdueDays = inv.DaysInvoiceOverdue;

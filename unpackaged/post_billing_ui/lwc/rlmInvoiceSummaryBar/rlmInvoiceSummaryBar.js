@@ -10,6 +10,7 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     billing;
     isLoading = true;
     error;
+    billingFailed = false;
     _invoiceReady = false;
     _billingReady = false;
 
@@ -25,6 +26,12 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     wiredBilling(result) {
         this._billingReady = true;
         if (result.data) { this.billing = result.data; }
+        else if (result.error) {
+            // No balances without the billing summary (e.g. its currency read was refused): show the
+            // fixed message and hide the figures rather than a $0.00 that reads as a real balance.
+            this.billingFailed = true;
+            this.error = result.error.body?.message || 'Error loading billing data';
+        }
         this._checkReady();
     }
 
@@ -32,7 +39,7 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         if (this._invoiceReady && this._billingReady) this.isLoading = false;
     }
 
-    get hasData() { return !this.isLoading && this.data != null; }
+    get hasData() { return !this.isLoading && this.data != null && !this.billingFailed; }
 
     get formattedTotalDue() { return this._fmtFull(this.data?.totalDue || 0); }
     get totalInvoiceLabel() {

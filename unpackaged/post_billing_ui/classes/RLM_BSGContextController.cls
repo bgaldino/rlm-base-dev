@@ -626,7 +626,7 @@ public with sharing class RLM_BSGContextController {
             ArrangementLineData ald = new ArrangementLineData();
             ald.lineId = bal.Id;
             ald.lineName = bal.BillingArrangementLineName;
-            ald.accountName = bal.AccountId != null ? accountNames.get(bal.AccountId) : null;
+            ald.accountName = bal.AccountId != null && accountNames.containsKey(bal.AccountId) ? accountNames.get(bal.AccountId) : '—';
             ald.billingPercentage = bal.BillingPercentage;
             ald.shouldBillRemainder = bal.ShouldBillRemainder;
             target.add(ald);

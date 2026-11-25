@@ -115,7 +115,8 @@ public with sharing class RLM_BSGTimelineController {
 
     @TestVisible
     private static String accountNameOf(Id accountId) {
-        return accountId != null ? RLM_AccountNames.forIds(new Set<Id>{ accountId }).get(accountId) : null;
+        String name = accountId != null ? RLM_AccountNames.forIds(new Set<Id>{ accountId }).get(accountId) : null;
+        return name != null ? name : '—';
     }
 
     // The group's data, its schedules, its suspension dates and its milestones, for a queried
