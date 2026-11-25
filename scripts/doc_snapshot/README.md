@@ -297,7 +297,7 @@ the Industries switch was sectioned, so it passed the coverage guard with
 serve), and in the Industries corpus five pages the site serves only as stubs stayed on their atlas text (the rlm corpus holds two the same way; the shrinkage
 guard refused them; their `legacy_id_map` slugs have no file, so cite the atlas `.htm` id).
 Local links inside the retained atlas articles were rewritten to the site slug files, so
-they stay navigable offline (a switch does not do this itself; sweep for broken relative links after one).
+they stay navigable offline (every run keeps doing this; a link it cannot map is named in a warning).
 The 262 `industries` preset and both `contracts` presets stay atlas. A sample run:
 
 ```bash

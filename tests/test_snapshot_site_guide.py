@@ -667,6 +667,27 @@ def main():
         check("an unreadable retained article is reported, not fatal",
               any(f == "bad.htm.md" and "unreadable" in tg for f, tg in un3))
         del man2["unmapped_legacy_ids"]["bad.htm"]
+        (u2 / "articles" / "keep2.htm.md").write_text("[3](./ghost.htm.md)\n", encoding="utf-8")
+        man2["unmapped_legacy_ids"]["keep2.htm"] = ""
+        _, un4 = sg.rewrite_retained_links(u2, man2)
+        check("an unresolved target is reported once per file, in every file",
+              ("keep.htm.md", "ghost.htm.md") in un4 and ("keep2.htm.md", "ghost.htm.md") in un4)
+        del man2["unmapped_legacy_ids"]["keep2.htm"]
+        (u2 / "articles" / "w.htm.md").write_text("[1](./a.htm.md)\n", encoding="utf-8")
+        man2["unmapped_legacy_ids"]["w.htm"] = ""
+        _orig_wt = Path.write_text
+        def _boom(self, *a_, **k_):
+            if self.name == "w.htm.md":
+                raise OSError("ro")
+            return _orig_wt(self, *a_, **k_)
+        Path.write_text = _boom
+        try:
+            n5, un5 = sg.rewrite_retained_links(u2, man2)
+        finally:
+            Path.write_text = _orig_wt
+        check("a file that cannot be written is reported and its links are not counted",
+              ("w.htm.md", "(not writable: OSError)") in un5 and n5 == 0)
+        del man2["unmapped_legacy_ids"]["w.htm"]
         check("a superseded article and the site slug files are not rewritten",
               (u2 / "articles" / "sup.htm.md").read_text(encoding="utf-8") == "[z](./a.htm.md)\n"
               and (u2 / "articles" / "a.md").read_text(encoding="utf-8") == "[y](./a.htm.md)\n")
