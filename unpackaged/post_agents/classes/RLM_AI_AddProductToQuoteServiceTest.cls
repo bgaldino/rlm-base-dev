@@ -611,7 +611,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
 
     // A product Id that finds no product, with no product name, gets a fixed sentence and nothing is
     // added: a value that is not an Id, a value that parses as an Id of no known object, another
-    // record's Id, and a deleted product's Id.
+    // record's Id, a deleted product's Id and an inactive product's Id.
     @isTest
     static void aProductIdThatFindsNoProductWithoutANameGetsAFixedSentence() {
         Fixture f = buildFixture('Quinn Bad Id Product', true, false);
@@ -643,7 +643,7 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     }
 
     // The planner can leave a name, a value that parses as an Id of no known object, another
-    // record's Id or a deleted product's Id in the Id slot; a product name given with it still
+    // record's Id, a deleted or an inactive product's Id in the Id slot; a product name given with it still
     // identifies the product.
     @isTest
     static void aProductIdThatFindsNoProductFallsBackToTheGivenName() {

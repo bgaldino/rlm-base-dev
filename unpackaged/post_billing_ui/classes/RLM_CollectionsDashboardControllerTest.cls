@@ -8,7 +8,7 @@
  * worklist fallback and the disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
- * Records are created in admin context. Four tests then run as other users: a collections
+ * Records are created in admin context. Five tests then run as other users: a collections
  * specialist, who reads their own plan; a user with no access, who gets empty sections; and the
  * same kind of no-access user, for whom getAccountOptions returns only the sentinel and the
  * worklist builders keep their rows without account names. The specialist

@@ -551,13 +551,7 @@ public with sharing class RLM_CollectionsDashboardController {
             Date today = Date.today();
 
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
-            // A refused Invoice read leaves the cases listed with a zero balance instead of dropping the section.
-            List<Invoice> disputedInvs = new List<Invoice>();
-            try {
-                disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
-            } catch (QueryException qe) {
-                System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.buildDisputedFromCases: ' + qe.getMessage());
-            }
+            List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -819,30 +813,30 @@ public with sharing class RLM_CollectionsDashboardController {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return items;
             Id currentUserId = UserInfo.getUserId();
             String acctField = 'AccountId';
-            String acctNameExpr = 'Account.Name';
             Map<String, Schema.SObjectField> cpFields = Schema.SObjectType.CollectionPlan.fields.getMap();
             if (cpFields.containsKey('BillingAccountId')) {
                 acctField = 'BillingAccountId';
-                acctNameExpr = 'BillingAccount.Name';
             }
             if (cpFields.containsKey('AccountId')) {
                 acctField = 'AccountId';
-                acctNameExpr = 'Account.Name';
             }
-            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField + ', ' + acctNameExpr;
+            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField;
             String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC LIMIT 50';
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
+            // Names come from getAccountNames, not an Account.Name relationship in the plan query: a
+            // refused Account read then leaves the plans listed without a name instead of dropping them.
+            Set<Id> planAccountIds = new Set<Id>();
+            for (SObject cp : plans) {
+                if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));
+            }
+            Map<Id, String> planAccountNames = getAccountNames(planAccountIds);
             for (SObject cp : plans) {
                 Id cpId = (Id) cp.get('Id');
                 String cpName = (String) cp.get('Name');
                 Date dueDate = (Date) cp.get('Duedate');
                 Decimal totalInvBal = cp.get('TotalInvoiceBalance') != null ? (Decimal) cp.get('TotalInvoiceBalance') : 0;
                 Id accountId = (Id) cp.get(acctField);
-                String accountName = null;
-                try {
-                    SObject rel = cp.getSObject(acctField.replace('Id', ''));
-                    if (rel != null) accountName = (String) rel.get('Name');
-                } catch (Exception ex) { }
+                String accountName = accountId != null ? planAccountNames.get(accountId) : null;
                 items.add(new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal));
             }
         } catch (Exception e) { }
