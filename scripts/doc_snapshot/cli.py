@@ -8,6 +8,8 @@ Subcommands:
     dev-guide   snapshot developer.salesforce.com atlas developer guides
     run         snapshot every preset of a release
     check       lint the captured Help corpus for glued-link artifacts
+    backfill-attribution
+                offline: add the source-attribution footer to captured articles lacking it
     bootstrap   add a release to presets.yaml by copying another one
 
 Examples:
@@ -204,6 +206,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check", help="lint the Help corpus for glued-link artifacts")
     p.add_argument("--release", help="only this release's corpus")
 
+    p = sub.add_parser("backfill-attribution",
+                       help="offline: add the attribution footer to captured articles lacking it")
+    p.add_argument("--release", required=True, help="release version, e.g. 264")
+
     p = sub.add_parser("bootstrap", help="add a release to presets.yaml")
     p.add_argument("--from", dest="source", required=True, help="release to copy")
     p.add_argument("--to", dest="target", required=True, help="new release version")
@@ -388,6 +394,20 @@ def cmd_check(args, releases, logger) -> int:
     return check.scan(args.release)
 
 
+def cmd_backfill_attribution(args, releases, logger) -> int:
+    from scripts.doc_snapshot._core import backfill_attribution
+    from scripts.doc_snapshot.check import REPO_ROOT
+    base = REPO_ROOT / "docs" / "salesforce" / args.release
+    total = 0
+    for articles in sorted(base.glob("*/articles")):
+        changed = backfill_attribution(articles)
+        total += len(changed)
+        if changed:
+            print(f"{articles.relative_to(REPO_ROOT)}: added the footer to {len(changed)} file(s)")
+    print(f"Release {args.release}: {total} article(s) updated.")
+    return 0
+
+
 def cmd_bootstrap(args, releases, logger) -> int:
     path = args.presets or presets_mod.PRESETS_PATH
     block = presets_mod.bootstrap_block(
@@ -412,6 +432,7 @@ COMMANDS = {
     "dev-guide": cmd_dev_guide,
     "run": cmd_run,
     "check": cmd_check,
+    "backfill-attribution": cmd_backfill_attribution,
     "bootstrap": cmd_bootstrap,
 }
 
@@ -422,7 +443,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger = get_logger()
     try:
         # `check` reads the corpus, not the presets, so it needs no PyYAML.
-        releases = {} if args.command == "check" else presets_mod.load_presets(args.presets)
+        releases = {} if args.command in ("check", "backfill-attribution") else presets_mod.load_presets(args.presets)
         return COMMANDS[args.command](args, releases, logger)
     except OptionsError as exc:
         print(f"error: {exc}", file=sys.stderr)

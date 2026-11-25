@@ -410,3 +410,7 @@ Customer Asset Lifecycle Management APIs require
 | StartDate | **Type** dateTime **Properties** Createable, Filter, Sort, Updateable **Description** The start date and time of an asset state period. |
 | UnitPrice | **Type** currency **Properties** Createable, Filter, Nillable, Sort, Updateable **Description** The price per unit for the line item. Available in API version 65.0 and later. Revenue Management won't populate this field in API version 66.0 and later. |
 | UnitPriceUplift | **Type** percent **Properties** Createable, Filter, Nillable, Sort, Updateable **Description** Indicates the percentage increase of a line item's unit price. Available in API version 65.0 and later. |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_assetstateperiod.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

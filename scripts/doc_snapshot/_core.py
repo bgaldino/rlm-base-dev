@@ -360,6 +360,46 @@ def attribution_note(source_url: str, content: str) -> str:
     )
 
 
+_SOURCE_URL_LINE = re.compile(r"^source_url:[ \t]*(\S+)[ \t]*$", re.M)
+
+
+def backfill_attribution(articles: Path) -> List[str]:
+    """Append the attribution footer to captured articles that lack it.
+
+    Retained atlas articles (a page the site move did not replace) were captured
+    before the footer existed, and a refresh never rewrites them. Every ``*.md``
+    in ``articles`` whose frontmatter has a ``source_url`` and whose text has no
+    footer gets ``attribution_note`` appended, labelled by the source host
+    ("Salesforce Help content" for help.salesforce.com, else "Salesforce developer
+    documentation"). Idempotent; ``index.md`` lives outside ``articles`` and is
+    never touched. Returns the names of the files changed. An unreadable or
+    unwritable file is skipped.
+    """
+    changed: List[str] = []
+    if not articles.is_dir():
+        return changed
+    for f in sorted(articles.glob("*.md")):
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not text.startswith("---\n") or "> **Source attribution" in text:
+            continue
+        end = text.find("\n---\n", 4)
+        m = _SOURCE_URL_LINE.search(text[:end]) if end > 0 else None
+        if not m:
+            continue
+        url = m.group(1).strip("'\"")
+        label = ("Salesforce Help content" if "help.salesforce.com" in url
+                 else "Salesforce developer documentation")
+        try:
+            f.write_text(text.rstrip() + "\n\n" + attribution_note(url, label) + "\n", encoding="utf-8")
+        except OSError:
+            continue
+        changed.append(f.name)
+    return changed
+
+
 def log_done(logger, stats: Dict[str, Any], manifest_path: Path) -> None:
     logger.info(
         f"Done. discovered={stats.get('discovered', 0)} "

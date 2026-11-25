@@ -350,3 +350,7 @@ A user runs a `createOrUpdateAssetFromOrder` request on an order with two order 
 **[CreateAssetOrderDtlEvent](./sforce_api_objects_createassetorderdtlevent.htm.md)**  
 
 Contains information about an attempt to create or update an asset as a 			result of `/actions/standard/createOrUpdateAssetFromOrder`. If the request was 			successful, the event shows information about the asset. If the request failed, the 			event shows error information. This object is included in an `CreateAssetOrderEvent` message. You can't subscribe to 			`CreateAssetOrderDtlEvent` directly. This object is 		available in API version 55.0 and later.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_createassetorderevent.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

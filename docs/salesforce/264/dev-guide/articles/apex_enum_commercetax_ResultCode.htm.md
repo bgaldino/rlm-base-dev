@@ -75,3 +75,7 @@ The `commercetax.ResultCode` enum includes these
 | --- | --- |
 | `TaxEngineError` | Represents an error that occurred during the tax request process. |
 | `ReferenceDocumentCodeMissing` | Specifies if the document mentioned as a `referenceDocumentCode` value isn't available in the tax engine. |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_enum_commercetax_ResultCode.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
