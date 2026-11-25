@@ -841,7 +841,7 @@ def test_label_preservation():
     hint = next((m for m in logs6 if "relabel_expression_set.py" in m), "")
     found = _re.search(r"relabel_expression_set\.py --target-org org-alias "
                        r"--expression-set TEST --version TEST_V1 --labels-file (\S+) "
-                       r"--confirm", hint)
+                       r"--no-cascade --confirm", hint)
     saved = json.loads(Path(found.group(1)).read_text()) if found else None
     check("the fix hint is a complete relabel command on the run's org and set (no "
           "--no-activate for an active version), its file holding only steps the "
@@ -862,7 +862,8 @@ def test_label_preservation():
         name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
         logger=logs8.append)
     hint8 = next((m for m in logs8 if "relabel_expression_set.py" in m), "")
-    found8 = _re.search(r"--version TEST_V1 --labels-file (\S+) --no-activate --confirm",
+    found8 = _re.search(r"--version TEST_V1 --labels-file (\S+) --no-activate "
+                        r"--no-cascade --confirm",
                         hint8)
     check("a failed restore on an inactive version prints --no-activate",
           found8 is not None and t8.is_active is False, hint8)
@@ -882,7 +883,8 @@ def test_label_preservation():
         es_id="9QLx", es_def_id="9QAx", skip_version_id="9QMv")
     skip_hint = next((m for m in logs7 if "relabel_expression_set.py" in m), "")
     found7 = _re.search(r"--target-org org-alias --expression-set \S+ --version TEST_V1 "
-                        r"--labels-file (\S+) --no-activate --confirm", skip_hint)
+                        r"--labels-file (\S+) --no-activate --no-cascade --confirm",
+                        skip_hint)
     check("a version skipped under --no-activate gets a runnable relabel command that "
           "keeps it inactive, with only its surviving steps",
           r7["skipped"] is True and found7 is not None
@@ -1236,6 +1238,35 @@ def test_read_tools_default_to_the_executing_version():
           rc == 0 and any(s.get("name") == "GetPrice"
                           for s in described.get("steps", [])), described)
 
+    # describe --labels: the relabel hint keeps an inactive version inactive, and is
+    # described in words when the version's state is unknown.
+    def describe_labels(version_name, state):
+        target = deepcopy(defn)
+        for v in target["versions"]:
+            v.pop("enabled", None)
+            if v["apiName"] == version_name and state is not None:
+                v["enabled"] = state
+        out = io.StringIO()
+        undo = _patch(desc_mod, **dict(
+            common, fetch_definition=lambda *a, **k: deepcopy(target),
+            _fetch_labels=lambda *a, **k: {}))  # every step drifts
+        try:
+            with redirect_stdout(out):
+                desc_mod.main(["--target-org", "x", "--developer-name", "TEST_Proc",
+                               "--version", version_name, "--labels"])
+        finally:
+            undo()
+        return out.getvalue()
+
+    inactive = describe_labels("TEST_Proc_V1", False)
+    check("describe --labels on an inactive version prints --no-activate --no-cascade",
+          "relabel_expression_set.py --target-org x --expression-set TEST_Proc --version "
+          "TEST_Proc_V1 --auto --no-activate --no-cascade --confirm" in inactive, inactive)
+    unknown = describe_labels("TEST_Proc_V1", None)
+    check("describe --labels with the version's state unknown prints no command",
+          "relabel_expression_set.py --target-org" not in unknown
+          and "Set readable labels with relabel_expression_set.py." in unknown, unknown)
+
     with tempfile.TemporaryDirectory() as td:
         out_path = Path(td) / "ov.json"
         undo = _patch(exp_mod, **common)
@@ -1405,6 +1436,8 @@ class _PlanTransport:
     Enough to drive run_mutation's cascade and failure paths offline. ``plans``
     maps ProcedurePlanDefinitionVersion Id -> IsActive.
     """
+
+    target_org = "org-alias"  # the --target-org a real Transport carries
 
     def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
                  esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False,
@@ -1707,6 +1740,21 @@ def test_failed_mutation_keeps_plans_online():
     check("nothing was written, so the report doesn't warn of a half-written version",
           any("Restore the plan before reading" in m for m in logs16)
           and not any("NOT confirmed inactive" in m for m in logs16), logs16)
+    # Without a known org the restore step is described, not printed.
+    logs16b = []
+    t16b = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    t16b.fail_plan_deactivate_ids = {"1Cv2"}
+    t16b.target_org = None
+    try:
+        LifecycleEngine(t16b, logger=logs16b.append, poll_interval_seconds=1).run_mutation(
+            es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True}, mutate=boom,
+            activate_after=True, cascade=True)
+    except Exception:  # noqa: BLE001 -- the report is what is checked
+        pass
+    check("with no org known, the restore step is described in words, no command",
+          any("ProcedurePlanDefinitionVersion 1Cv1: set IsActive true" in m
+              for m in logs16b)
+          and not any("sf data update" in m for m in logs16b), logs16b)
     # A transient rollback failure is retried by recovery, so the plan comes back.
     t17 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
     t17.fail_plan_deactivate_ids = {"1Cv2"}
@@ -2790,7 +2838,10 @@ def test_client_auth_hint():
     check("relabel_command with no labels file is a complete --auto command",
           relabel_command(target_org="o", es_api_name="S", version_api_name="S_V1")
           == "python scripts/expression_sets/relabel_expression_set.py --target-org o "
-             "--expression-set S --version S_V1 --auto --confirm")
+             "--expression-set S --version S_V1 --auto --no-cascade --confirm")
+    check("relabel_command prints nothing when the org or set is unknown",
+          relabel_command(es_api_name="S") is None
+          and relabel_command(target_org="o") is None)
 
 
 def main():

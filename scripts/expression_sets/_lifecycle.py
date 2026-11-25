@@ -641,11 +641,13 @@ class LifecycleEngine:
                         "reactivating it."
                     )
                     continue
+                org = getattr(self.t, "target_org", None)
                 lines.append(
                     "  {}: sf data update record --target-org {} --sobject {} "
                     "--record-id {} --values \"IsActive=true\"".format(
-                        record, getattr(self.t, "target_org", None) or "<org>",
-                        sobject, record_id)
+                        record, org, sobject, record_id)
+                    if org else
+                    f"  {record}: set IsActive true on it in the org this run used"
                 )
             if (f"ExpressionSetVersion {esv_id}" in left_off
                     and not version_may_be_half_written):

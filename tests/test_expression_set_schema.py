@@ -2254,7 +2254,7 @@ def test_label_restore_failure_prints_a_runnable_relabel_command():
     hint = warnings[0] if warnings else ""
     found = _re.search(r"relabel_expression_set\.py --target-org user@org\.test "
                        r"--expression-set ESX --version ESX_V1 --labels-file (\S+) "
-                       r"--confirm", hint)
+                       r"--no-cascade --confirm", hint)
     saved = _json.loads(Path(found.group(1)).read_text()) if found else None
     check("CCI label-restore failure prints a complete relabel command with the "
           "surviving labels, and never the token",
@@ -2267,7 +2267,7 @@ def test_label_restore_failure_prints_a_runnable_relabel_command():
         labels={"A": "A Label"})
     draft_hint = warnings[1] if len(warnings) > 1 else ""
     found_draft = _re.search(r"--version ESX_V2 --labels-file (\S+) --no-activate "
-                             r"--confirm", draft_hint)
+                             r"--no-cascade --confirm", draft_hint)
     check("CCI: a failed restore on a version that ends inactive adds --no-activate",
           found_draft is not None)
     if found_draft:

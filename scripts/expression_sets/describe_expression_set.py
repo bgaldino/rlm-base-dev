@@ -303,12 +303,14 @@ def main(argv=None) -> int:
         if drifted:
             print(f"\n  ⚠ {len(drifted)} step(s) have no readable label "
                   f"(label missing or == name): {', '.join(drifted)}")
+            # Relabelling cycles the version; keep an inactive one inactive. When its
+            # state is unknown the step is described rather than printed.
+            enabled = version.get("enabled", version.get("isActive"))
             command = relabel_command(
                 target_org=args.target_org,
                 es_api_name=args.developer_name or definition.get("apiName"),
                 version_api_name=version.get("apiName"),
-                # Relabelling cycles the version; keep an inactive one inactive.
-                no_activate=not version.get("enabled"))
+                no_activate=enabled is False) if isinstance(enabled, bool) else None
             print("    Set readable labels with relabel_expression_set.py"
                   + (", for example best-effort labels derived from the step names: "
                      + command if command else "."))

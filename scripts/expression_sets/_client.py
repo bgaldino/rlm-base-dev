@@ -82,12 +82,15 @@ def _run_sf(
             timeout=timeout,
         )
     except FileNotFoundError as exc:
-        # Name the org this call targeted, so the login command runs as printed.
+        # Name the org this call targeted, so the login command runs as printed;
+        # without one, describe the step.
         org = (args[args.index("--target-org") + 1]
-               if "--target-org" in args[:-1] else "<alias>")
+               if "--target-org" in args[:-1] else None)
+        login = (f"`sf org login web --alias {org}`" if org
+                 else "`sf org login web` with the alias you pass as --target-org")
         raise ExpressionSetClientError(
             "The 'sf' CLI was not found on PATH. Install the Salesforce CLI and "
-            f"authenticate to your org (`sf org login web --alias {org}`)."
+            f"authenticate to your org ({login})."
         ) from exc
     except subprocess.TimeoutExpired as exc:
         raise ExpressionSetClientError(

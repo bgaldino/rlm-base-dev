@@ -235,14 +235,17 @@ def relabel_command(labels_path: Optional[str] = None, *,
     org and set so it runs as printed, or None when either is unknown (the caller
     then describes the step). It restores ``labels_path`` (a JSON ``{step name:
     label}`` file), or with none derives labels from the step names (``--auto``,
-    best-effort). ``no_activate`` keeps an inactive version inactive."""
+    best-effort). ``no_activate`` keeps an inactive version inactive; ``--no-cascade``
+    leaves procedure plans alone (the cascade would switch off every plan that
+    references the set, including those other versions serve)."""
     if not (target_org and es_api_name):
         return None
     source = f"--labels-file {labels_path}" if labels_path else "--auto"
     return ("python scripts/expression_sets/relabel_expression_set.py --target-org "
             f"{target_org} --expression-set {es_api_name} "
             + (f"--version {version_api_name} " if version_api_name else "")
-            + f"{source} " + ("--no-activate " if no_activate else "") + "--confirm")
+            + f"{source} " + ("--no-activate " if no_activate else "")
+            + "--no-cascade --confirm")
 
 
 def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str],

@@ -202,7 +202,7 @@ def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
                 f"{runs}, so pricing runs it and the repo change has no effect. "
                 f"Versions in the org: {table}. Edit or re-rank the executing version "
                 "(scripts/expression_sets/set_step_formula.py for formulas, naming the "
-                f"step).{inspect}{'.' if inspect else ''}"
+                f"step).{inspect}"
             )
     return findings
 
