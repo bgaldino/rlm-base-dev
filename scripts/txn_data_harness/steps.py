@@ -20,6 +20,7 @@ from .discovery import Account, OrgContext
 from .lifecycle import LifecycleError
 from .models import (
     POSTED_STAGES,
+    STAGES_SETTLEMENT,
     LineItem,
     Manifest,
     ResolvedInvoiceLine,
@@ -64,6 +65,11 @@ class StepContext:
     # ``cli step --application-level``: replaces the level recorded on the
     # manifest (the way to correct a wrong read). ``None`` keeps it.
     application_level_override: Optional[str] = None
+    # ``cli step --resubmit-credit``: once a credit was submitted nothing sends
+    # it again on its own. With this set, a credit whose memo is in Error,
+    # Canceled or Voided, or that left no memo after the lookup wait, is sent
+    # again as the next attempt (its own description tag). Never set by a run.
+    resubmit_credit: bool = False
 
 
 @dataclass(frozen=True)
@@ -417,11 +423,56 @@ def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[Settlemen
     ``cli step`` resume finds the same options without the config file.
     """
     spec = ctx.settlement
-    if spec is None and manifest.settlement:
-        spec = settlement_from_dict(manifest.settlement)
-    if spec is not None and manifest.settlement is None:
+    if spec is None:
+        return settlement_from_dict(manifest.settlement) if manifest.settlement else None
+    if manifest.settlement is None:
+        manifest.settlement = spec.to_dict()
+    elif settlement_from_dict(manifest.settlement) != spec:
+        # Only ``cli step --resubmit-credit --config`` hands a resume a block
+        # that differs from the persisted one.
+        _warn(manifest, "settlement options replaced from --config on resume")
         manifest.settlement = spec.to_dict()
     return spec
+
+
+def _settlement_account_id(ctx: StepContext, manifest: Manifest) -> str:
+    """The account the settlement records belong to: the invoice's.
+
+    ``Invoice.BillingAccountId`` (an Account id) is the account whose balance
+    the credit and payment settle; ``manifest.account_id`` stands in when the
+    invoice does not say. A ``cli step`` resume resolves its account by name,
+    so a context account with another Id (a renamed or duplicate-named
+    account, or a wrong ``--account``) is refused before anything is written:
+    a payment found or created under it would be a second payment.
+    """
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    invoice_acct = header.get("BillingAccountId")
+    account_id = invoice_acct or manifest.account_id
+    if not account_id:
+        raise LifecycleError(
+            "settlement",
+            "cannot tell the invoice's account: no Invoice.BillingAccountId and no "
+            "account_id on the manifest",
+            record_id=manifest.invoice_id,
+        )
+    if invoice_acct and manifest.account_id and manifest.account_id != invoice_acct:
+        raise LifecycleError(
+            "settlement",
+            f"the invoice belongs to account {invoice_acct} but the manifest records "
+            f"account {manifest.account_id}; settle it in the org by hand",
+            record_id=manifest.invoice_id,
+        )
+    ctx_id = getattr(ctx.account, "id", None)
+    if ctx_id and ctx_id != account_id:
+        raise LifecycleError(
+            "settlement",
+            f"account '{getattr(ctx.account, 'name', ctx_id)}' resolves to {ctx_id}, but "
+            f"the invoice and manifest belong to account {account_id}; resume without "
+            "--account (the manifest's account_id is used)",
+            record_id=manifest.invoice_id,
+        )
+    manifest.account_id = account_id
+    return account_id
 
 
 def _ensure_application_level(
@@ -470,13 +521,14 @@ def _ensure_settlement_baseline(ctx: StepContext, manifest: Manifest) -> dict:
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     apps = lifecycle.read_invoice_applications(ctx.client, manifest.invoice_id)
     currency = header.get("CurrencyIsoCode")
+    places = lifecycle.currency_decimal_places(ctx.client, currency)
     manifest.settlement_baseline = {
-        "balance": lifecycle._money(header.get("Balance")),
-        "total_amount_with_tax": lifecycle._money(header.get("TotalAmountWithTax")),
-        "net_credits_applied": lifecycle._money(header.get("NetCreditsApplied")),
-        "net_payments_applied": lifecycle._money(header.get("NetPaymentsApplied")),
+        "balance": lifecycle._money(header.get("Balance"), places),
+        "total_amount_with_tax": lifecycle._money(header.get("TotalAmountWithTax"), places),
+        "net_credits_applied": lifecycle._money(header.get("NetCreditsApplied"), places),
+        "net_payments_applied": lifecycle._money(header.get("NetPaymentsApplied"), places),
         "currency": currency,
-        "decimal_places": lifecycle.currency_decimal_places(ctx.client, currency),
+        "decimal_places": places,
         "foreign_payment_application_ids": [
             r["Id"] for r in apps["payment_line"] + apps["payment_header"]
         ],
@@ -556,10 +608,49 @@ _CREDIT_LOOKUP_WINDOW = 15
 def _find_memo_after_failed_post(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
     deadline = time.monotonic() + min(_CREDIT_LOOKUP_WINDOW, ctx.poll_timeout)
     while True:
-        memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
+        memo = lifecycle.find_credit_memo(
+            ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
+        )
         if memo is not None or time.monotonic() >= deadline:
             return memo
         time.sleep(lifecycle._POLL_INTERVAL)
+
+
+def _resubmit_hint(ctx: StepContext, manifest: Manifest) -> str:
+    stage = ctx.target_stage if ctx.target_stage in STAGES_SETTLEMENT else "credit_applied"
+    return (
+        "Nothing sends a submitted credit again on its own. Check the invoice's credit "
+        f"memos in the org (Description '{lifecycle.credit_tag(ctx.run_id, manifest.credit_attempt)}'); "
+        f"to send it again, run `cli step --manifest {manifest.run_id} --to-stage {stage} "
+        "--resubmit-credit` (add `--config <file>` to replace the manifest's settlement "
+        "block)."
+    )
+
+
+def _resubmit_credit_if_failed(
+    ctx: StepContext, manifest: Manifest, memo: Optional[dict]
+) -> Optional[dict]:
+    """``--resubmit-credit``: move to the next attempt when this one failed.
+
+    Failed means the attempt's memo is Error, Canceled or Voided, or no memo
+    shows up within the lookup wait. A memo in any other state is kept (it is
+    polled as usual). Returns the memo to carry on with, ``None`` after a reset.
+    """
+    if memo is None:
+        memo = _find_memo_after_failed_post(ctx, manifest)
+    status = None if memo is None else memo.get("Status")
+    if memo is not None and status not in lifecycle._CREDIT_MEMO_FAIL:
+        return memo
+    what = "no credit memo" if memo is None else f"credit memo {memo['Id']} in {status}"
+    _warn(
+        manifest,
+        f"credit attempt {manifest.credit_attempt} left {what}; sent again as attempt "
+        f"{manifest.credit_attempt + 1} (--resubmit-credit)",
+    )
+    manifest.credit_submitted = False
+    manifest.credit_attempt += 1
+    _checkpoint(ctx, manifest)
+    return None
 
 
 def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
@@ -581,12 +672,17 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
         return manifest
     if not manifest.invoice_id:
         raise LifecycleError("credit", "invoice_id is required before credit")
+    _settlement_account_id(ctx, manifest)
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
     places = _places(manifest)
 
     if not manifest.credit_memo_ids:
-        memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
+        memo = lifecycle.find_credit_memo(
+            ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
+        )
+        if manifest.credit_submitted and ctx.resubmit_credit:
+            memo = _resubmit_credit_if_failed(ctx, manifest, memo)
         if memo is None and not manifest.credit_submitted:
             strategy = spec.credit.tax_strategy
             chosen = _chosen_lines(ctx, manifest, spec.credit.lines)
@@ -617,9 +713,21 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 allocations,
                 ctx.run_id,
                 {r["Id"]: lifecycle.line_tax_strategy(r, strategy) for r in chosen},
+                attempt=manifest.credit_attempt,
             )
             try:
                 lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
+            except LifecycleError as exc:
+                # Refused (4xx): nothing was created. A resume sends the same
+                # options again, so say how to change them.
+                raise LifecycleError(
+                    exc.step,
+                    f"{exc.detail}. Fix the settlement block and resume with `cli step "
+                    f"--manifest {manifest.run_id} --to-stage "
+                    f"{ctx.target_stage if ctx.target_stage in STAGES_SETTLEMENT else 'credit_applied'} "
+                    "--resubmit-credit --config <file>`",
+                    record_id=exc.record_id,
+                ) from exc
             except SfApiError:
                 # Outcome unknown (5xx / transport): if the memo shows up the
                 # POST committed -- carry on with it; otherwise re-raise and let
@@ -628,9 +736,16 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                     raise
             manifest.credit_submitted = True
             _checkpoint(ctx, manifest)
-        memo = lifecycle.poll_credit_memo(
-            ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout
-        )
+        try:
+            memo = lifecycle.poll_credit_memo(
+                ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout,
+                attempt=manifest.credit_attempt,
+            )
+        except LifecycleError as exc:
+            raise LifecycleError(
+                exc.step, f"{exc.detail}. {_resubmit_hint(ctx, manifest)}",
+                record_id=exc.record_id,
+            ) from exc
         manifest.credit_memo_ids = [memo["Id"]]
         _checkpoint(ctx, manifest)
 
@@ -643,7 +758,9 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     ids, applied = _record_applications(manifest, apps, level, "credit")
     manifest.credit_application_ids = ids
     manifest.credit_amount_applied = applied
-    memo = lifecycle.find_credit_memo(ctx.client, manifest.invoice_id, ctx.run_id)
+    memo = lifecycle.find_credit_memo(
+        ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
+    )
     if memo is not None and lifecycle._money(memo.get("Balance"), places) > 0:
         _warn(
             manifest,
@@ -670,7 +787,7 @@ def _payment_open_amount(
 
 
 def plan_payment(
-    spec_payment, open_amount: float, places: int = 2
+    spec_payment, open_amount: float, places: int
 ) -> tuple[float, float, str]:
     """Return ``(payment_amount, apply_target, mode)`` for an open balance.
 
@@ -714,6 +831,7 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         return manifest
     if not manifest.invoice_id:
         raise LifecycleError("payment", "invoice_id is required before payment")
+    account_id = _settlement_account_id(ctx, manifest)
     level = _ensure_application_level(ctx, manifest, spec)
     _ensure_settlement_baseline(ctx, manifest)
     places = _places(manifest)
@@ -741,16 +859,17 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
         _checkpoint(ctx, manifest)
 
     if not manifest.payment_ids:
-        payment_id = lifecycle.find_payment(ctx.client, ctx.account.id, ctx.run_id)
+        payment_id = lifecycle.find_payment(ctx.client, account_id, ctx.run_id)
         if payment_id is None:
             header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
             payment_id = lifecycle.create_payment(
                 ctx.client,
                 lifecycle.build_payment_record(
-                    ctx.account.id,
+                    account_id,
                     manifest.payment_amount,
                     ctx.run_id,
                     currency=header.get("CurrencyIsoCode"),
+                    places=places,
                 ),
             )
         manifest.payment_ids = [payment_id]
@@ -782,7 +901,9 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
             app_id = lifecycle.apply_payment(
                 ctx.client,
                 payment_id,
-                lifecycle.build_payment_apply_payload(applied_to, amt, ctx.run_id),
+                lifecycle.build_payment_apply_payload(
+                    applied_to, amt, ctx.run_id, places=places
+                ),
             )
             manifest.payment_application_ids.append(app_id)
             _checkpoint(ctx, manifest)

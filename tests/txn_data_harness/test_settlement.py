@@ -170,8 +170,6 @@ def test_config_ingestion_accepts_settlement() -> None:
     [
         ("payment_applied", None, "needs a 'settlement:' block"),
         ("credit_applied", {"payment": {"amount": 1}}, "needs 'settlement.credit'"),
-        ("credit_applied", {"credit": {"amount": 1}, "payment": {"amount": 1}}, "never runs"),
-        ("invoice_posted", {"payment": {"amount": 1}}, "only runs at target_stage"),
         ("payment_applied", {"credit": {"amount": 1, "percent": 5}}, "exactly one"),
         ("payment_applied", {"credit": {}}, "exactly one"),
         ("payment_applied", {"credit": {"percent": 120}}, "<= 100"),
@@ -278,22 +276,26 @@ def test_build_credit_payload_refuses_empty() -> None:
 
 
 def test_build_payment_record_is_external_processed_sale() -> None:
-    body = lifecycle.build_payment_record("001A", 100.456, "RUN", currency="USD")
+    body = lifecycle.build_payment_record("001A", 100.456, "RUN", currency="USD", places=2)
     assert body["AccountId"] == "001A"
     assert body["Amount"] == 100.46
     assert (body["Status"], body["Type"], body["ProcessingMode"]) == ("Processed", "Sale", "External")
     assert body["GatewayRefNumber"] == "RUN-PAY"
     assert body["CurrencyIsoCode"] == "USD"
-    assert "CurrencyIsoCode" not in lifecycle.build_payment_record("001A", 1, "RUN")
+    assert "CurrencyIsoCode" not in lifecycle.build_payment_record("001A", 1, "RUN", places=2)
+    assert lifecycle.build_payment_record("001A", 10.0049, "RUN", places=3)["Amount"] == 10.005
 
 
 def test_build_payment_apply_payload() -> None:
-    body = lifecycle.build_payment_apply_payload("5TV1", 60, "RUN")
+    body = lifecycle.build_payment_apply_payload("5TV1", 60, "RUN", places=2)
     assert body["appliedToId"] == "5TV1"
     assert body["amount"] == 60.0
     assert body["comments"] == "Transaction Data Harness (RUN)"
     assert "associatedAccountId" not in body
-    assert lifecycle.build_payment_apply_payload("3tt", 1, "RUN", "001A")["associatedAccountId"] == "001A"
+    assert lifecycle.build_payment_apply_payload(
+        "3tt", 1, "RUN", "001A", places=2
+    )["associatedAccountId"] == "001A"
+    assert lifecycle.build_payment_apply_payload("5TV1", 1.0051, "RUN", places=3)["amount"] == 1.005
 
 
 _TAXED = {"Id": "5TVT", "ChargeAmount": 450.0, "TaxAmount": 45.0, "LineAmount": 495.0, "Balance": 255.0}
@@ -320,15 +322,15 @@ def test_line_tax_strategy_auto() -> None:
     ],
 )
 def test_credit_capacity(line, strategy, expected) -> None:
-    assert lifecycle.credit_capacity(line, strategy) == expected
+    assert lifecycle.credit_capacity(line, strategy, 2) == expected
 
 
 def test_allocate_spreads_in_order_and_caps() -> None:
     lines = [{"Id": "a", "Balance": 30}, {"Id": "b", "Balance": 0}, {"Id": "c", "Balance": 50}]
     cap = lambda r: float(r["Balance"])  # noqa: E731
-    assert lifecycle.allocate(60, lines, cap) == [("a", 30.0), ("c", 30.0)]
-    assert lifecycle.allocate(500, lines, cap) == [("a", 30.0), ("c", 50.0)]
-    assert lifecycle.allocate(0, lines, cap) == []
+    assert lifecycle.allocate(60, lines, cap, 2) == [("a", 30.0), ("c", 30.0)]
+    assert lifecycle.allocate(500, lines, cap, 2) == [("a", 30.0), ("c", 50.0)]
+    assert lifecycle.allocate(0, lines, cap, 2) == []
 
 
 _LINES = [
@@ -365,7 +367,7 @@ def test_select_invoice_lines() -> None:
     ],
 )
 def test_plan_payment_modes(payment, open_amount, expected) -> None:
-    assert steps.plan_payment(payment, open_amount) == expected
+    assert steps.plan_payment(payment, open_amount, 2) == expected
 
 
 # -- application level ------------------------------------------------------------
@@ -442,6 +444,7 @@ class SettleOrg:
         self.level = level
         self.places = places
         self.invoice = {"Id": "3ttINV", "Status": "Posted", "CurrencyIsoCode": "USD",
+                        "BillingAccountId": "001BILLABLE",
                         "TotalAmountWithTax": 250.0, "NetCreditsApplied": 0.0,
                         "NetPaymentsApplied": 0.0, "SettlementLevel": None}
         self.lines = [
@@ -466,13 +469,17 @@ class SettleOrg:
     def _line(self, lid):
         return next(r for r in self.lines if r["Id"] == lid)
 
+    def _r(self, value: float) -> float:
+        return round(value, self.places)
+
     def _balance(self) -> float:
-        return round(sum(r["Balance"] for r in self.lines if r["InvoiceId"] == "3ttINV"), 2)
+        return self._r(sum(r["Balance"] for r in self.lines
+                           if r["InvoiceId"] == "3ttINV" and r["Type"] == "Charge"))
 
     def _post_memo(self, memo: dict) -> None:
         for line_id, amt in memo.pop("_allocs", []):
             line = self._line(line_id)
-            line["Balance"] = round(line["Balance"] - amt, 2)
+            line["Balance"] = self._r(line["Balance"] - amt)
             self.credit_apps.append({"Id": f"4sG{len(self.credit_apps) + 1}", "Amount": amt,
                                      "level": self.level, "memo": memo["Id"],
                                      "invoice": line["InvoiceId"]})
@@ -484,8 +491,9 @@ class SettleOrg:
             assert _eq(soql, "Id") == self.invoice["Id"]
             return [{**self.invoice, "Balance": self._balance()}]
         if "FROM InvoiceLine " in soql:
-            inv = _eq(soql, "InvoiceId")
-            return [dict(r) for r in self.lines if r["InvoiceId"] == inv]
+            inv, typ = _eq(soql, "InvoiceId"), _eq(soql, "Type")
+            return [dict(r) for r in self.lines
+                    if r["InvoiceId"] == inv and (typ is None or r["Type"] == typ)]
         if "FROM CreditMemo " in soql:
             self.memo_queries += 1
             ref, desc = _eq(soql, "ReferenceEntityId"), _eq(soql, "Description")
@@ -553,7 +561,7 @@ class SettleOrg:
             if self.level == "line":
                 assert target.startswith("5TV"), "line level applies to invoice lines"
                 line = self._line(target)
-                line["Balance"] = round(line["Balance"] - body["amount"], 2)
+                line["Balance"] = self._r(line["Balance"] - body["amount"])
                 inv = line["InvoiceId"]
             else:
                 assert target.startswith("3tt"), "header level applies to the invoice"
@@ -562,7 +570,7 @@ class SettleOrg:
                     if line["InvoiceId"] != target:
                         continue
                     take = min(remaining, line["Balance"])
-                    line["Balance"] = round(line["Balance"] - take, 2)
+                    line["Balance"] = self._r(line["Balance"] - take)
                     remaining -= take
             app_id = f"1Al{len(self.payment_apps) + 1}"
             self.payment_apps.append({"Id": app_id, "Amount": body["amount"],
@@ -587,9 +595,10 @@ def _settle_ctx(org, account, settlement, override=None):
 
 
 def _posted_manifest(**kw):
-    return Manifest(run_id="RUN", kind="invoice_ingestion", invoice_id="3ttINV",
-                    invoice_line_ids=["5TV1", "5TV2"], reached_stage="invoice_posted",
-                    account_name="Infinitech", **kw)
+    fields = dict(run_id="RUN", kind="invoice_ingestion", invoice_id="3ttINV",
+                  invoice_line_ids=["5TV1", "5TV2"], reached_stage="invoice_posted",
+                  account_name="Infinitech")
+    return Manifest(**{**fields, **kw})
 
 
 def _applies(org):
@@ -1198,3 +1207,580 @@ def test_cli_step_accepts_application_level_override() -> None:
     assert args.application_level == "line"
     args = parse_args(["step", "--org", "o", "--manifest", "m", "--to-stage", "payment_applied"])
     assert args.application_level is None
+
+
+# -- review round 2 (todo 275) ---------------------------------------------------
+
+
+def _other_account():
+    from scripts.txn_data_harness.discovery import Account
+
+    return Account(id="001OTHER", name="Infinitech", billing_account_id="BA-2")
+
+
+def _payment_planned_manifest(**kw):
+    """A manifest whose payment was planned and created, but whose checkpoint
+    after the create never landed (the Payment exists in the org only)."""
+    return _posted_manifest(
+        payment_amount=250.0, payment_apply_target=250.0, payment_mode="exact",
+        settlement_baseline={"balance": 250.0, "decimal_places": 2}, **kw,
+    )
+
+
+def test_payment_resume_under_another_account_is_refused(billable_account) -> None:
+    """A resume whose account name resolves to another Id must not find-or-create
+    a payment under that account (a second payment for the invoice)."""
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(LifecycleError, match="resolves to 001OTHER.*belong to account 001BILLABLE"):
+        steps.run_payment(_settle_ctx(org, _other_account(), spec),
+                          _payment_planned_manifest(account_id=billable_account.id))
+    assert len(org.payments) == 1 and org.posts == []
+    with pytest.raises(LifecycleError, match="resolves to 001OTHER"):
+        steps.run_credit(
+            _settle_ctx(org, _other_account(),
+                        SettlementSpec(application_level="line", credit=CreditSpec(amount=5.0))),
+            _posted_manifest(),
+        )
+    assert org.posts == []
+
+
+def test_payment_uses_the_invoice_account_and_finds_a_committed_payment(billable_account) -> None:
+    """Kills: dropping find_payment (a committed-but-unrecorded Payment is
+    created again)."""
+    org = SettleOrg("line")
+    org.payments.append({"Id": "0aQ1", "AccountId": billable_account.id,
+                         "GatewayRefNumber": "RUN-PAY", "Amount": 250.0})
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    m = steps.run_payment(_settle_ctx(org, billable_account, spec), _payment_planned_manifest())
+    assert len(org.payments) == 1 and m.payment_ids == ["0aQ1"]
+    assert m.account_id == billable_account.id
+    assert m.payment_amount_applied == 250.0
+
+
+def test_manifest_account_disagreeing_with_the_invoice_is_refused(billable_account) -> None:
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    with pytest.raises(LifecycleError, match="invoice belongs to account 001BILLABLE"):
+        steps.run_payment(_settle_ctx(org, billable_account, spec),
+                          _posted_manifest(account_id="001ELSE"))
+    assert org.posts == []
+
+
+def test_cli_step_resolves_the_manifests_account_by_id(monkeypatch) -> None:
+    from scripts.txn_data_harness import cli as cli_mod
+
+    seen = []
+
+    def fake_resolve(client, name, *, account_id=None):
+        seen.append((name, account_id))
+        return SimpleNamespace(id=account_id or "001BYNAME", name=name)
+
+    monkeypatch.setattr(cli_mod, "resolve_account", fake_resolve)
+    m = Manifest(run_id="R", account_id="001REC", account_name="Infinitech")
+    acct = cli_mod._resolve_step_account(None, SimpleNamespace(account=None), m)
+    assert acct.id == "001REC" and seen[-1] == ("Infinitech", "001REC")
+    with pytest.raises(LifecycleError, match="--account 'Infinitech' resolves to 001BYNAME"):
+        cli_mod._resolve_step_account(None, SimpleNamespace(account="Infinitech"), m)
+    # Old manifests without an account_id still resolve by name.
+    acct = cli_mod._resolve_step_account(
+        None, SimpleNamespace(account=None), Manifest(run_id="R", account_name="Infinitech")
+    )
+    assert acct.id == "001BYNAME"
+
+
+def test_three_decimal_currency_rounds_every_amount_to_three_places(billable_account) -> None:
+    """KWD has 3 decimal places: config amounts, caps, Payment.Amount and apply
+    amounts keep the third place (10.005 rounds to 10.0 at 2 places)."""
+    org = SettleOrg("line", places=3)
+    org.invoice["CurrencyIsoCode"] = "KWD"
+    spec = _pst(target_stage="payment_applied", settlement={
+        "application_level": "line", "credit": {"amount": 10.005, "lines": [0]}, "payment": "exact",
+    }).settlement
+    assert spec.credit.amount == 10.005
+    ctx = _settle_ctx(org, billable_account, spec)
+    m = steps.run_payment(ctx, steps.run_credit(ctx, _posted_manifest()))
+    assert m.settlement_baseline["decimal_places"] == 3
+    assert org.posts[0][1]["invoiceLines"][0]["amountToCredit"] == 10.005
+    assert m.credit_amount_applied == 10.005
+    assert org.payments[0]["Amount"] == 239.995
+    assert org.payments[0]["CurrencyIsoCode"] == "KWD"
+    assert _applies(org) == [("5TV1", 89.995), ("5TV2", 150.0)]
+    assert m.payment_amount_applied == 239.995 and m.invoice_balance == 0.0
+    line = {"Balance": 10.0051, "ChargeAmount": 20.0, "TaxAmount": 0.0, "LineAmount": 20.0}
+    assert lifecycle.credit_capacity(line, "Ignore", 3) == 10.005
+
+
+# transport: a refusal is a 4xx on both transports
+
+
+def _cli_proc(stdout: str, rc: int):
+    return SimpleNamespace(returncode=rc, stdout=stdout, stderr="")
+
+
+_CLI_400 = (
+    "HTTP/1.1 400\ndate: Wed, 25 Nov 2026 15:11:18 GMT\n"
+    "content-type: application/json;charset=UTF-8\nx-request-id: abc\n"
+    '[{"errorCode":"INVALID_FIELD","message":"Specify an InvoiceLineId as the appliedToId."}]\n'
+)
+_CLI_503 = "HTTP/1.1 503\ncontent-type: application/json\n[{\"errorCode\":\"SERVER_UNAVAILABLE\",\"message\":\"down\"}]\n"
+
+
+def test_parse_cli_response() -> None:
+    from scripts.txn_data_harness.auth import parse_cli_response
+
+    status, body = parse_cli_response(_CLI_400)
+    assert status == 400 and json.loads(body)[0]["errorCode"] == "INVALID_FIELD"
+    assert parse_cli_response('HTTP/1.1 200\nvary: x\n{\n  "id": "1"\n}\n') == (200, '{\n  "id": "1"\n}')
+    assert parse_cli_response("HTTP/1.1 204\nvary: x\n") == (204, "")
+    assert parse_cli_response('{"id": "1"}') == (None, '{"id": "1"}')
+
+
+def _client(transport: str):
+    from scripts.txn_data_harness.auth import SfRestClient
+
+    return SfRestClient(alias="a", access_token="t", instance_url="https://x.example",
+                        transport=transport)
+
+
+def _fake_requests(client, status: int, text: str):
+    calls = []
+
+    class _Session:
+        def request(self, method, url, data=None):
+            calls.append(url)
+            return SimpleNamespace(status_code=status, text=text)
+
+    client._local.session = _Session()
+    return calls
+
+
+@pytest.mark.parametrize("transport", ["cli", "requests"])
+def test_refusals_are_told_from_server_errors_on_both_transports(transport, monkeypatch) -> None:
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    client = _client(transport)
+
+    def respond(status: int, cli_out: str, body: str):
+        if transport == "cli":
+            monkeypatch.setattr(auth.subprocess, "run",
+                                lambda *a, **kw: _cli_proc(cli_out, 1))
+        else:
+            _fake_requests(client, status, body)
+
+    body_400 = _CLI_400.split("\n", 4)[-1].strip()
+    respond(400, _CLI_400, body_400)
+    with pytest.raises(LifecycleError, match="credit refused: INVALID_FIELD"):
+        lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []})
+    with pytest.raises(LifecycleError, match="application level is likely wrong"):
+        lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "3ttINV", "amount": 1})
+
+    respond(503, _CLI_503, '[{"errorCode":"SERVER_UNAVAILABLE","message":"down"}]')
+    with pytest.raises(SfApiError) as info:
+        lifecycle.submit_credit(client, "3ttINV", {"invoiceLines": []})
+    assert info.value.status == 503 and not lifecycle.is_api_refusal(info.value)
+    with pytest.raises(SfApiError):
+        lifecycle.apply_payment(client, "0aQ1", {"appliedToId": "5TV1", "amount": 1})
+
+
+def test_cli_transport_success_and_non_api_failure(monkeypatch) -> None:
+    from scripts.txn_data_harness import auth
+    from scripts.txn_data_harness.auth import SfApiError
+
+    client = _client("cli")
+    seen = []
+
+    def run(args, **kw):
+        seen.append(args)
+        return _cli_proc('HTTP/1.1 201\ncontent-type: application/json\n{"id":"0aQ1","success":true}\n', 0)
+
+    monkeypatch.setattr(auth.subprocess, "run", run)
+    assert client.post("/services/data/v68.0/sobjects/Payment", {"a": 1}) == {"id": "0aQ1", "success": True}
+    assert "--include" in seen[0]
+    monkeypatch.setattr(auth.subprocess, "run",
+                        lambda *a, **kw: SimpleNamespace(returncode=1, stdout="", stderr="No authorization"))
+    with pytest.raises(SfApiError) as info:
+        client.get("/services/data/v68.0/limits")
+    assert info.value.status == 1 and not lifecycle.is_api_refusal(info.value)
+
+
+def test_cli_step_records_api_errors_on_the_manifest(monkeypatch, billable_account) -> None:
+    from argparse import Namespace
+
+    from scripts.txn_data_harness import cli as cli_mod
+    from scripts.txn_data_harness.auth import SfApiError
+    from scripts.txn_data_harness.discovery import OrgContext
+
+    m = _posted_manifest(account_id=billable_account.id,
+                         settlement={"application_level": "line", "credit": {"amount": 5}})
+    written = []
+    monkeypatch.setattr(cli_mod, "load_manifest", lambda ref: m)
+    monkeypatch.setattr(cli_mod, "write_manifest", lambda mm: written.append(mm.error))
+    monkeypatch.setattr(cli_mod.SfRestClient, "from_alias", lambda *a, **kw: object())
+    monkeypatch.setattr(cli_mod, "resolve_account", lambda *a, **kw: billable_account)
+    monkeypatch.setattr(cli_mod, "discover", lambda *a, **kw: OrgContext(
+        pricebook_id=None, pricebook_name=None, legal_entity_id=None, legal_entity_name=None,
+        opportunity_stage=None, billing_ready_accounts=[], products=[]))
+
+    def boom(step, ctx, manifest):
+        raise SfApiError(503, "unavailable", "POST", "/x")
+
+    monkeypatch.setattr(cli_mod, "execute_step", boom)
+    args = Namespace(org="o", api_version="68.0", transport="cli", manifest="RUN", account=None,
+                     product=None, opportunity_stage=None, with_opportunity=False,
+                     to_stage="credit_applied", poll_timeout=1, config=None,
+                     application_level=None, resubmit_credit=False)
+    with pytest.raises(SfApiError):
+        cli_mod._cmd_step(args)
+    assert m.error and "SfApiError" in m.error and "503" in m.error
+    assert written[-1] == m.error
+
+
+# invoice header / currency reads
+
+
+class _FlakyClient:
+    instance_url = "https://flaky.example"
+    api_version = "68.0"
+
+    def __init__(self, *responses):
+        self.responses = list(responses)
+        self.queries = []
+
+    def query(self, soql):
+        self.queries.append(soql)
+        r = self.responses.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+
+def test_invoice_header_retries_without_currency_only_when_the_column_is_missing() -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    missing = SfApiError(400, '[{"errorCode":"INVALID_FIELD","message":"No such column '
+                         "'CurrencyIsoCode' on entity 'Invoice'\"}]", "GET", "/q")
+    c = _FlakyClient(missing, [{"Id": "3tt", "Balance": 5}])
+    assert lifecycle.fetch_invoice_header(c, "3tt")["Id"] == "3tt"
+    assert "CurrencyIsoCode" not in c.queries[1]
+    c = _FlakyClient(SfApiError(503, "unavailable", "GET", "/q"), [{"Id": "3tt"}])
+    with pytest.raises(SfApiError):
+        lifecycle.fetch_invoice_header(c, "3tt")
+    assert len(c.queries) == 1
+
+
+def test_transient_currency_errors_raise_and_are_not_cached() -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    c = _FlakyClient(SfApiError(503, "unavailable", "GET", "/q"), [{"DecimalPlaces": 3}])
+    with pytest.raises(SfApiError):
+        lifecycle.currency_decimal_places(c, "KWD")
+    assert lifecycle.currency_decimal_places(c, "KWD") == 3
+    c = _FlakyClient(SfApiError(400, '[{"errorCode":"INVALID_TYPE","message":"x"}]', "GET", "/q"),
+                     [{"DecimalPlaces": 0}])
+    assert lifecycle.currency_decimal_places(c, "JPY") == 2  # fallback, not cached
+    assert lifecycle.currency_decimal_places(c, "JPY") == 0
+
+
+def test_transient_header_error_does_not_record_a_baseline(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    real = org.query
+
+    def flaky(soql):
+        if soql.startswith("SELECT Id, Status, BillingAccountId") and "CurrencyIsoCode" in soql:
+            raise SfApiError(503, "unavailable", "GET", "/q")
+        return real(soql)
+
+    org.query = flaky
+    m = _posted_manifest()
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=5.0))
+    with pytest.raises(SfApiError):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.settlement_baseline is None and org.posts == []
+
+
+# config: a target before the settlement block's stages
+
+
+def test_config_keeps_a_settlement_block_not_reached_yet() -> None:
+    both = {"credit": {"amount": 1}, "payment": {"amount": 1}}
+    for stage in ("invoice_draft", "invoice_posted", "credit_applied"):
+        spec = _pst(target_stage=stage, settlement=both)
+        assert spec.settlement.credit.amount == 1.0 and spec.settlement.payment.amount == 1.0
+
+
+def test_recipe_run_to_invoice_posted_then_step_to_payment(billable_account) -> None:
+    """The documented recipe: `cli run --target-stage invoice_posted` on a
+    settlement config, then `cli step --to-stage payment_applied`."""
+    from pathlib import Path
+
+    from scripts.txn_data_harness.cli import _settlement_for_step
+    from scripts.txn_data_harness.config import load_scenarios
+
+    root = Path(__file__).resolve().parents[2]
+    cfg = str(root / "scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml")
+    specs = load_scenarios(SimpleNamespace(config=cfg, target_stage="invoice_posted"))
+    assert all(s.target_stage == "invoice_posted" and s.settlement is not None for s in specs)
+    # The run persists the block; the step resumes from it without --config.
+    persisted = json.loads(json.dumps(specs[0].settlement.to_dict()))
+    m = _posted_manifest(kind="sales_txn_quote", settlement=persisted, application_level="line")
+    assert _settlement_for_step(SimpleNamespace(config=None, to_stage="payment_applied"), m) is None
+    assert SCENARIO_HANDLERS["sales_txn_quote"].remaining_steps(
+        "invoice_posted", "payment_applied", False) == ["credit_applied", "payment_applied"]
+    org = SettleOrg("line")
+    ctx = _settle_ctx(org, billable_account, None)
+    m = steps.run_payment(ctx, steps.run_credit(ctx, m))
+    assert m.reached_stage == "payment_applied" and m.invoice_balance == 0.0
+    assert m.credit_amount_applied == 25.0  # 10% of 250
+
+
+def test_cli_step_reads_no_config_for_non_settlement_targets(monkeypatch, tmp_path) -> None:
+    from scripts.txn_data_harness import cli as cli_mod
+
+    monkeypatch.setattr(cli_mod, "load_scenarios",
+                        lambda args: pytest.fail("--config must not be read for this target"))
+    for stage in ("invoice_draft", "invoice_posted", "order_activated"):
+        args = SimpleNamespace(config=str(tmp_path / "old.yaml"), to_stage=stage)
+        assert cli_mod._settlement_for_step(args, Manifest(run_id="OLD")) is None
+
+
+def test_cli_step_to_invoice_posted_tolerates_a_config_without_settlement(
+    monkeypatch, tmp_path, billable_account
+) -> None:
+    """An old ingestion manifest resumed to invoice_posted with a config whose
+    scenario has no usable settlement block builds its context."""
+    from scripts.txn_data_harness import cli as cli_mod
+
+    cfg = _step_cfg(tmp_path, "scenarios:\n  - {target_stage: payment_applied}\n")
+    args = SimpleNamespace(config=cfg, to_stage="invoice_posted", poll_timeout=1,
+                           application_level=None, resubmit_credit=False)
+    ctx = cli_mod._build_step_context(
+        args, SCENARIO_HANDLERS["invoice_ingestion"], None, None, billable_account,
+        Manifest(run_id="OLD", kind="invoice_ingestion"),
+    )
+    assert ctx.settlement is None
+
+
+# --resubmit-credit
+
+
+def _failed_memo(status: str) -> dict:
+    return {"Id": "50gBAD", "ReferenceEntityId": "3ttINV", "Description": "RUN credit",
+            "Status": status, "Balance": 0.0, "_statuses": [status]}
+
+
+def _submitted(**kw):
+    return _posted_manifest(credit_submitted=True, application_level="line",
+                            settlement_baseline={"balance": 250.0, "decimal_places": 2}, **kw)
+
+
+def test_failed_memo_without_the_flag_names_the_next_step(billable_account) -> None:
+    org = SettleOrg("line")
+    org.memos.append(_failed_memo("Error"))
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "payment_applied"
+    with pytest.raises(LifecycleError) as info:
+        steps.run_credit(ctx, _submitted())
+    text = str(info.value)
+    assert "credit memo in Error" in text
+    assert "cli step --manifest RUN --to-stage payment_applied --resubmit-credit" in text
+    assert org.posts == []
+
+
+@pytest.mark.parametrize("status", ["Error", "Canceled", "Voided", None])
+def test_resubmit_credit_sends_a_new_attempt(status, billable_account) -> None:
+    org = SettleOrg("line")
+    if status:
+        org.memos.append(_failed_memo(status))
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.resubmit_credit = True
+    m = steps.run_credit(ctx, _submitted())
+    credit_posts = [b for p, b, _ in org.posts if p.endswith("/actions/credit")]
+    assert len(credit_posts) == 1 and credit_posts[0]["description"] == "RUN credit 2"
+    assert m.credit_attempt == 2 and m.credit_submitted is True
+    assert m.credit_memo_ids == [org.memos[-1]["Id"]] and m.credit_memo_ids != ["50gBAD"]
+    assert m.credit_amount_applied == 20.0
+    assert any("credit attempt 1 left" in w for w in m.settlement_warnings)
+
+
+@pytest.mark.parametrize("status", ["Pending", "Posted"])
+def test_resubmit_credit_keeps_a_live_memo(status, billable_account) -> None:
+    org = SettleOrg("line")
+    org.memos.append({**_failed_memo(status), "Id": "50gOK", "_allocs": [("5TV1", 20.0)],
+                      "_statuses": [status, "Posted"] if status == "Pending" else ["Posted"]})
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.resubmit_credit = True
+    m = steps.run_credit(ctx, _submitted())
+    assert org.posts == [] and m.credit_attempt == 1 and m.credit_memo_ids == ["50gOK"]
+    assert m.credit_amount_applied == 20.0
+
+
+def test_refused_credit_names_the_config_correction(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.fail_next_post = SfApiError(400, '[{"errorCode":"INVALID_API_INPUT","message":"bad"}]',
+                                    "POST", "/credit")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = _posted_manifest()
+    with pytest.raises(LifecycleError, match="--resubmit-credit --config <file>"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.credit_submitted is False
+
+
+def test_resubmit_credit_with_config_replaces_the_persisted_block(tmp_path, billable_account) -> None:
+    from scripts.txn_data_harness.cli import _settlement_for_step, parse_args
+
+    cfg = _step_cfg(tmp_path, (
+        "scenarios:\n"
+        "  - {kind: invoice_ingestion, account: Infinitech, target_stage: payment_applied,\n"
+        "     invoice_lines: [{name: L, unit_price: 5}],\n"
+        "     settlement: {application_level: line, credit: {amount: 7}}}\n"
+    ))
+    m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 999}})
+    plain = SimpleNamespace(config=cfg, to_stage="credit_applied", resubmit_credit=False)
+    assert _settlement_for_step(plain, m) is None  # the manifest's block wins
+    flagged = SimpleNamespace(config=cfg, to_stage="credit_applied", resubmit_credit=True)
+    spec = _settlement_for_step(flagged, m)
+    assert spec.credit.amount == 7.0
+    org = SettleOrg("line")
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    assert m.settlement["credit"]["amount"] == 7.0
+    assert any("replaced from --config" in w for w in m.settlement_warnings)
+    assert parse_args(["step", "--org", "o", "--manifest", "m", "--to-stage", "credit_applied",
+                       "--resubmit-credit"]).resubmit_credit is True
+
+
+# mutation guards
+
+
+def test_generate_refuses_a_parallel_settlement_batch_on_one_account(monkeypatch, capsys) -> None:
+    from scripts.txn_data_harness import generate
+
+    resolved = [SimpleNamespace(account=SimpleNamespace(id="001A", name="Infinitech"),
+                                spec=SimpleNamespace(count=2, kind="sales_txn_quote",
+                                                     target_stage="payment_applied"),
+                                effective_stage="payment_applied")]
+    handler = SimpleNamespace(resolve=lambda client, ctx, s: resolved[0])
+    monkeypatch.setattr(generate.SfRestClient, "from_alias", lambda *a, **kw: object())
+    monkeypatch.setattr(generate, "discover", lambda *a, **kw: object())
+    monkeypatch.setattr(generate, "load_scenarios", lambda args: [resolved[0].spec])
+    monkeypatch.setattr(generate, "SCENARIO_HANDLERS", {"sales_txn_quote": handler})
+    monkeypatch.setattr(generate, "run_batch",
+                        lambda *a, **kw: pytest.fail("a conflicting batch must not run"))
+    assert generate.main(["--org", "o", "--concurrency", "2"]) == 4
+    assert "needs --concurrency 1" in capsys.readouterr().err
+
+
+def test_credit_post_failure_waits_for_a_late_memo(billable_account) -> None:
+    """Kills: dropping the lookup wait after a failed credit POST (a memo that
+    shows up a few reads later would be POSTed again on retry)."""
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    org.memo_visible_after = 3
+    exc = SfApiError(503, "unavailable", "POST", "/credit")
+    exc._commit_first = True
+    org.fail_next_post = exc
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.poll_timeout = 30
+    m = steps.run_credit(ctx, _posted_manifest())
+    assert len(org.memos) == 1 and m.credit_memo_ids == ["50g1"] and m.credit_submitted
+
+
+def test_only_charge_lines_are_credited_or_paid(billable_account) -> None:
+    """Kills: dropping `AND Type = 'Charge'` (a tax line would take part of
+    the credit and the payment)."""
+    org = SettleOrg("line")
+    org.lines.insert(0, {"Id": "5TV0", "Name": "Tax", "Type": "Tax", "ChargeAmount": 25.0,
+                         "TaxAmount": 0.0, "LineAmount": 25.0, "Balance": 25.0,
+                         "Product2": None, "InvoiceId": "3ttINV"})
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=30.0),
+                          payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    m = steps.run_payment(ctx, steps.run_credit(ctx, _posted_manifest(invoice_line_ids=[])))
+    assert org.posts[0][1]["invoiceLines"] == [
+        {"invoiceLineId": "5TV1", "amountToCredit": 30.0, "taxStrategy": "Ignore"}]
+    assert _applies(org) == [("5TV1", 70.0), ("5TV2", 150.0)]
+    assert m.payment_amount == 220.0
+
+
+def test_payment_plan_is_checkpointed_before_the_payment_insert(billable_account) -> None:
+    """Kills: dropping the checkpoint after planning. A crash after the insert
+    must leave the plan on disk, or a resume replans against the balance the
+    payment already changed."""
+    org = SettleOrg("line")
+    saved: list[dict] = []
+    real = org._do_post
+
+    def check(path, body):
+        if path.endswith("/sobjects/Payment"):
+            assert saved, "nothing checkpointed before the Payment insert"
+            assert saved[-1]["payment_apply_target"] == 250.0
+            assert saved[-1]["payment_amount"] == body["Amount"]
+        return real(path, body)
+
+    org._do_post = check
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.checkpoint = lambda mm: saved.append(json.loads(json.dumps(mm.to_dict())))
+    steps.run_payment(ctx, _posted_manifest())
+    assert org.payments
+
+
+def test_payment_create_that_committed_then_failed_is_not_created_twice(billable_account) -> None:
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    exc = SfApiError(500, "internal", "POST", "/sobjects/Payment")
+    exc._commit_first = True
+    org.fail_next_post = exc
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    m = _posted_manifest()
+    with pytest.raises(SfApiError):
+        steps.run_payment(ctx, m)
+    assert m.payment_ids == [] and len(org.payments) == 1
+    m = steps.run_payment(ctx, m)
+    assert len(org.payments) == 1 and m.payment_ids == ["0aQ1"]
+    assert m.payment_amount_applied == 250.0
+
+
+def test_apply_that_committed_then_failed_is_not_applied_twice(billable_account) -> None:
+    """Kills: ignoring what is already applied when computing the remainder.
+    A partial payment, so the line balances alone do not cap the re-apply."""
+    from scripts.txn_data_harness.auth import SfApiError
+
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=120.0))
+    ctx = _settle_ctx(org, billable_account, spec)
+    real = org._do_post
+    calls = {"n": 0}
+
+    def commit_then_fail(path, body):
+        result = real(path, body)
+        if path.endswith("/actions/apply"):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise SfApiError(500, "internal", "POST", path)
+        return result
+
+    org._do_post = commit_then_fail
+    m = _posted_manifest()
+    with pytest.raises(SfApiError):
+        steps.run_payment(ctx, m)
+    org.posts.clear()
+    m = steps.run_payment(ctx, m)
+    assert _applies(org) == [("5TV2", 20.0)]
+    assert m.payment_amount_applied == 120.0 and m.invoice_balance == 130.0
+    assert sum(a["Amount"] for a in org.payment_apps) == 120.0
+    assert len(org.payments) == 1

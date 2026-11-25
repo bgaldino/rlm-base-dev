@@ -206,6 +206,11 @@ class Manifest:
     # Set once the credit POST is accepted: the action has no idempotency key,
     # so a retry polls for the memo instead of POSTing again.
     credit_submitted: bool = False
+    # Which credit attempt the manifest is on. 1 = the first; ``cli step
+    # --resubmit-credit`` moves to the next after a failed memo (Error,
+    # Canceled, Voided) or none at all, and the new memo gets its own
+    # description tag (lifecycle.credit_tag).
+    credit_attempt: int = 1
     credit_amount_requested: Optional[float] = None
     credit_amount_applied: Optional[float] = None
     # Payment ids created by payment_applied, and the application records

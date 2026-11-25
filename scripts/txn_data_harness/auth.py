@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -135,6 +136,31 @@ def resolve_auth(alias: str) -> tuple[str, str]:
             f"Check `sf org display --target-org {alias} --json`."
         )
     return access_token, instance_url.rstrip("/")
+
+
+_CLI_STATUS_LINE = re.compile(r"^HTTP/\S+\s+(\d{3})\b")
+_CLI_HEADER_LINE = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+:")
+
+
+def parse_cli_response(stdout: str) -> tuple[Optional[int], str]:
+    """Split ``sf api request rest --include`` output into ``(status, body)``.
+
+    The CLI prints ``HTTP/1.1 <status>``, the response headers one per line,
+    then the body, with no blank line in between (sf 2.159, measured
+    2026-11-25 on 200, 400 and 404). Returns ``(None, stdout)`` when there is
+    no status line (the request never reached the API).
+    """
+    text = (stdout or "").lstrip("\r\n")
+    lines = text.split("\n")
+    m = _CLI_STATUS_LINE.match(lines[0]) if lines else None
+    if not m:
+        return None, (stdout or "").strip()
+    i = 1
+    while i < len(lines) and _CLI_HEADER_LINE.match(lines[i].rstrip("\r")):
+        i += 1
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    return int(m.group(1)), "\n".join(lines[i:]).strip()
 
 
 @dataclass
@@ -288,10 +314,17 @@ class SfRestClient:
     def _request_cli(self, method: str, path: str, body: Any) -> Any:
         """Fallback transport: ``sf api request rest`` makes the call for us.
 
-        Our process never handles a token here. Non-2xx is reported by the CLI
-        on stderr / non-zero exit; we surface it as SfApiError.
+        Our process never handles a token here. ``--include`` makes the CLI
+        print the HTTP status line and headers ahead of the body, so a
+        non-2xx surfaces as ``SfApiError`` with the real HTTP status (a 400
+        refusal and a 503 are told apart exactly as on the ``requests``
+        transport) and the bare response body. A failure that never reached
+        the API (no status line: auth, CLI error) keeps the CLI exit code as
+        ``status``, which is outside every HTTP range.
         """
-        args = ["sf", "api", "request", "rest", path, "--target-org", self.alias]
+        args = [
+            "sf", "api", "request", "rest", path, "--target-org", self.alias, "--include",
+        ]
         tmp = None
         if method != "GET":
             args += ["--method", method]
@@ -306,12 +339,16 @@ class SfRestClient:
         finally:
             if tmp is not None:
                 os.unlink(tmp.name)
-        out = proc.stdout.strip()
-        if proc.returncode != 0:
-            raise SfApiError(
-                proc.returncode, proc.stderr.strip() or out, method, path
-            )
-        return self._decode(200, out)
+        status, text = parse_cli_response(proc.stdout)
+        if status is None:
+            if proc.returncode != 0:
+                raise SfApiError(
+                    proc.returncode, proc.stderr.strip() or text, method, path
+                )
+            return self._decode(200, text)
+        if not (200 <= status < 300):
+            raise SfApiError(status, text, method, path)
+        return self._decode(status, text)
 
     # ----- helpers -----------------------------------------------------------
     @staticmethod

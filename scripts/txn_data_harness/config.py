@@ -492,7 +492,9 @@ def _coerce_positive(value: Any, where: str, field: str) -> float:
         raise ConfigError(f"{where}: {field} must be a number") from exc
     if f <= 0:
         raise ConfigError(f"{where}: {field} must be > 0 (got {f:g})")
-    return round(f, 2) if field == "amount" else f
+    # Not rounded here: the stage rounds to the invoice currency's decimal
+    # places (CurrencyType.DecimalPlaces), which only the org knows.
+    return f
 
 
 def _coerce_credit(raw: Any, where: str) -> CreditSpec:
@@ -592,9 +594,10 @@ def _resolve_settlement(
     scenario that stops before the settlement stages, and its ``payment``
     part is dropped on a scenario that stops at ``credit_applied``, so one
     config can share settlement defaults across scenarios that stop at
-    different stages. A block set on the scenario itself (or a settlement
-    target with no block) is checked strictly: a part that would never run is
-    an error.
+    different stages. A block set on the scenario itself is kept whatever the
+    stage: a part the run does not reach yet is persisted on the manifest for
+    ``cli step --to-stage payment_applied``. Only real contradictions are
+    errors (see :func:`_check_settlement_stage`).
     """
     settlement = _coerce_settlement(merged.get("settlement"), where)
     explicit = "settlement" in merged.get("_explicit_keys", set(merged))
@@ -614,33 +617,26 @@ def _resolve_settlement(
 def _check_settlement_stage(
     settlement: Optional[SettlementSpec], stage: str, where: str
 ) -> None:
-    """Reject a settlement block that cannot run, or a settlement stage with
-    nothing to do.
+    """Reject a settlement stage with nothing to do.
 
     ``credit_applied`` needs a ``credit`` block or nothing would be created;
-    ``payment_applied`` needs at least a credit or payment block. A ``payment``
-    block on a scenario that stops at ``credit_applied`` (or any block on one
-    that stops before them) would silently never run.
+    ``payment_applied`` needs at least a credit or payment block. A block whose
+    stages lie past the target (a ``payment`` part with target
+    ``credit_applied``, or any block with an earlier target such as
+    ``--target-stage invoice_posted``) is not a contradiction: those parts
+    are simply not reached yet, and ``cli step`` runs them later from the
+    manifest.
     """
-    if stage in _SETTLEMENT_STAGES:
-        if settlement is None or (settlement.credit is None and settlement.payment is None):
-            raise ConfigError(
-                f"{where}: target_stage '{stage}' needs a 'settlement:' block "
-                f"with 'credit:' and/or 'payment:'"
-            )
-        if stage == "credit_applied" and settlement.credit is None:
-            raise ConfigError(
-                f"{where}: target_stage 'credit_applied' needs 'settlement.credit'"
-            )
-        if stage == "credit_applied" and settlement.payment is not None:
-            raise ConfigError(
-                f"{where}: 'settlement.payment' never runs when target_stage is "
-                f"'credit_applied' (set target_stage: payment_applied)"
-            )
-    elif settlement is not None and (settlement.credit or settlement.payment):
+    if stage not in _SETTLEMENT_STAGES:
+        return
+    if settlement is None or (settlement.credit is None and settlement.payment is None):
         raise ConfigError(
-            f"{where}: 'settlement:' only runs at target_stage credit_applied or "
-            f"payment_applied (got '{stage}')"
+            f"{where}: target_stage '{stage}' needs a 'settlement:' block "
+            f"with 'credit:' and/or 'payment:'"
+        )
+    if stage == "credit_applied" and settlement.credit is None:
+        raise ConfigError(
+            f"{where}: target_stage 'credit_applied' needs 'settlement.credit'"
         )
 
 

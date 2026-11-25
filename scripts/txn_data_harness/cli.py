@@ -185,12 +185,7 @@ def _cmd_step(args: argparse.Namespace) -> int:
         args.org, api_version=args.api_version, transport=args.transport
     )
     manifest = load_manifest(args.manifest)
-    account_name = args.account or manifest.account_name
-    if not account_name:
-        raise DiscoveryError(
-            "step requires --account when the manifest has no account_name"
-        )
-    account = resolve_account(client, account_name)
+    account = _resolve_step_account(client, args, manifest)
     ctx = discover(
         client,
         account_name=account.name,
@@ -242,12 +237,46 @@ def _cmd_step(args: argparse.Namespace) -> int:
             )
             manifest = execute_step(internal_step, step_ctx, manifest)
             write_manifest(manifest)
-    except LifecycleError as exc:
-        manifest.error = str(exc)
+    except Exception as exc:  # noqa: BLE001 -- record any failure, then re-raise
+        # SfApiError (a 5xx, or a refusal outside a settlement call) and
+        # transport errors land here as well as LifecycleError.
+        manifest.error = (
+            str(exc) if isinstance(exc, LifecycleError) else f"{type(exc).__name__}: {exc}"
+        )
         write_manifest(manifest)
         raise
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
+
+
+def _resolve_step_account(client: SfRestClient, args: argparse.Namespace, manifest):
+    """The account a ``cli step`` resume runs against.
+
+    The manifest's ``account_id`` is used when it has one (looked up by Id, so
+    a rename or a duplicate name cannot redirect a resume). ``--account``
+    must then resolve to that same Id; a different account is refused before
+    anything is written.
+    """
+    if args.account:
+        account = resolve_account(client, args.account)
+        if manifest.account_id and account.id != manifest.account_id:
+            raise LifecycleError(
+                "step",
+                f"--account '{args.account}' resolves to {account.id}, but manifest "
+                f"{manifest.run_id} belongs to account {manifest.account_id} "
+                f"('{manifest.account_name}'); omit --account to use the manifest's",
+            )
+        return account
+    if manifest.account_id:
+        return resolve_account(
+            client, manifest.account_name or manifest.account_id,
+            account_id=manifest.account_id,
+        )
+    if not manifest.account_name:
+        raise DiscoveryError(
+            "step requires --account when the manifest has no account_name"
+        )
+    return resolve_account(client, manifest.account_name)
 
 
 def _build_step_context(
@@ -283,6 +312,7 @@ def _build_step_context(
             invoice_spec=None,
             settlement=settlement,
             application_level_override=getattr(args, "application_level", None),
+            resubmit_credit=bool(getattr(args, "resubmit_credit", False)),
         )
 
     # Persisted selection wins; do not run unrelated default discovery first.
@@ -313,25 +343,33 @@ def _build_step_context(
         with_opportunity=args.with_opportunity,
         poll_timeout=args.poll_timeout,
         checkpoint=write_manifest,
+        target_stage=args.to_stage,
         settlement=settlement,
         application_level_override=getattr(args, "application_level", None),
+        resubmit_credit=bool(getattr(args, "resubmit_credit", False)),
     )
 
 
 def _settlement_for_step(args: argparse.Namespace, manifest):
     """Settlement options for a ``cli step`` resume.
 
-    The manifest's persisted ``settlement`` wins (the steps read it when the
-    context carries none; correct a wrongly recorded level with
-    ``--application-level``). Otherwise ``--config`` must hold exactly one
+    Only a settlement target (``credit_applied`` / ``payment_applied``) reads
+    them; any other target never loads ``--config`` here. The manifest's
+    persisted ``settlement`` wins (the steps read it when the context carries
+    none; correct a wrongly recorded level with ``--application-level``),
+    unless ``--resubmit-credit`` is passed with ``--config``: the config's
+    block then replaces it. Otherwise ``--config`` must hold exactly one
     distinct ``settlement:`` block among the scenarios that match the
     manifest (same ``kind``, and the manifest's account or no account pin).
     A config error is reported as such. A settlement target with no options
     fails here, before any org write.
     """
-    if getattr(manifest, "settlement", None):
-        return None
     to_stage = getattr(args, "to_stage", None)
+    if to_stage not in STAGES_SETTLEMENT:
+        return None
+    replace = bool(getattr(args, "resubmit_credit", False) and getattr(args, "config", None))
+    if getattr(manifest, "settlement", None) and not replace:
+        return None
     if getattr(args, "config", None):
         matches = []
         for spec in load_scenarios(args):
@@ -344,21 +382,20 @@ def _settlement_for_step(args: argparse.Namespace, manifest):
                 matches.append(settlement)
         if len(matches) == 1:
             return matches[0]
-        if len(matches) > 1 and to_stage in STAGES_SETTLEMENT:
+        if len(matches) > 1:
             raise LifecycleError(
                 "step",
                 f"--config has {len(matches)} different settlement blocks for kind "
                 f"'{manifest.kind}' / account '{manifest.account_name}'; pass a config "
                 "with one matching scenario",
             )
-    if to_stage in STAGES_SETTLEMENT:
-        raise LifecycleError(
-            "step",
-            f"--to-stage {to_stage} needs settlement options: the manifest has none and "
-            f"--config has no scenario of kind '{manifest.kind}' for account "
-            f"'{manifest.account_name}' with a 'settlement:' block",
-        )
-    return None
+    raise LifecycleError(
+        "step",
+        f"--to-stage {to_stage} needs settlement options: "
+        + ("--resubmit-credit --config" if replace else "the manifest has none and --config")
+        + f" has no scenario of kind '{manifest.kind}' for account "
+        f"'{manifest.account_name}' with a 'settlement:' block",
+    )
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
@@ -550,6 +587,11 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--application-level", choices=["line", "header"],
                       help="Settlement stages: replace the application level recorded "
                            "on the manifest (to correct a wrong read).")
+    step.add_argument("--resubmit-credit", action="store_true",
+                      help="credit_applied: send the credit again when the submitted "
+                           "one left a memo in Error/Canceled/Voided or no memo at all "
+                           "(check the org first). With --config, that config's "
+                           "settlement block replaces the manifest's.")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")

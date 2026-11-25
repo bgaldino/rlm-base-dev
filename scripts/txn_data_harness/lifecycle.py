@@ -1188,8 +1188,41 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
         return level, source
 
 
+def is_api_refusal(exc: BaseException) -> bool:
+    """True when ``exc`` is the API refusing the request (HTTP 4xx).
+
+    Both transports carry the HTTP status on ``SfApiError.status`` (the cli
+    transport reads it from ``sf api request rest --include``). A 5xx, a
+    transport failure, or a CLI failure that never reached the API is not a
+    refusal: the outcome of a write is then unknown.
+    """
+    from .auth import SfApiError
+
+    return isinstance(exc, SfApiError) and 400 <= exc.status < 500
+
+
+def is_missing_column(exc: BaseException, name: str) -> bool:
+    """True when ``exc`` is SOQL's ``INVALID_FIELD`` for column ``name``.
+
+    Classified by the error code and the column in the body, not the status,
+    so it reads the same on both transports.
+    """
+    from .auth import SfApiError
+
+    body = exc.body if isinstance(exc, SfApiError) else ""
+    return "INVALID_FIELD" in (body or "") and name in (body or "")
+
+
 def fetch_invoice_header(client: SfRestClient, invoice_id: str) -> dict:
-    """Read the invoice fields settlement needs (currency when multi-currency)."""
+    """Read the invoice fields settlement needs (currency when multi-currency).
+
+    ``CurrencyIsoCode`` exists only on multi-currency orgs: the query is
+    retried without it only when the org says the column does not exist
+    (``INVALID_FIELD``). Any other failure raises -- a transient error must
+    not be recorded as "no currency".
+    """
+    from .auth import SfApiError
+
     base = (
         "Id, Status, BillingAccountId, Balance, TotalAmountWithTax, "
         "NetCreditsApplied, NetPaymentsApplied, SettlementLevel"
@@ -1198,7 +1231,9 @@ def fetch_invoice_header(client: SfRestClient, invoice_id: str) -> dict:
         rows = client.query(
             f"SELECT {base}, CurrencyIsoCode FROM Invoice WHERE Id = '{invoice_id}'"
         )
-    except Exception:  # noqa: BLE001 -- single-currency orgs have no CurrencyIsoCode
+    except SfApiError as exc:
+        if not is_missing_column(exc, "CurrencyIsoCode"):
+            raise
         rows = client.query(f"SELECT {base} FROM Invoice WHERE Id = '{invoice_id}'")
     if not rows:
         raise LifecycleError("settlement", "invoice not found", record_id=invoice_id)
@@ -1257,12 +1292,12 @@ def select_invoice_lines(lines: list[dict], selector: Optional[list[Any]]) -> li
     return [r for r in lines if r["Id"] in chosen]
 
 
-def _money(value: Any, places: int = 2) -> float:
-    """Round to the currency's decimal places (2 unless told otherwise)."""
+def _money(value: Any, places: int) -> float:
+    """Round to the currency's decimal places (``CurrencyType.DecimalPlaces``)."""
     return round(float(value or 0.0), places)
 
 
-def _floor_amount(value: float, places: int = 2) -> float:
+def _floor_amount(value: float, places: int) -> float:
     import math
 
     factor = 10 ** places
@@ -1273,26 +1308,35 @@ _decimals_cache: dict[tuple[str, str], int] = {}
 
 
 def currency_decimal_places(client: SfRestClient, iso_code: Optional[str]) -> int:
-    """``CurrencyType.DecimalPlaces`` for ``iso_code`` (2 when unknown).
+    """``CurrencyType.DecimalPlaces`` for ``iso_code``.
 
-    Settlement amounts computed by the harness (percent shares, per-line
-    caps) are rounded to this. Single-currency orgs have no ``CurrencyType``
-    rows the harness can rely on, so they fall back to 2.
+    Every settlement amount the harness computes or sends (percent shares,
+    per-line caps, Payment.Amount, apply amounts) is rounded to this. A
+    single-currency org (no invoice currency) uses 2. A successful read is
+    cached per org and code; a failed read is never cached. Only an org that
+    says ``CurrencyType`` is not there for this user (``INVALID_TYPE``) falls
+    back to 2 with a warning; any other failure raises, so a transient error
+    cannot fix the rounding of a whole run.
     """
+    from .auth import SfApiError
+
     if not iso_code:
         return 2
     key = (client.instance_url, iso_code)
     if key in _decimals_cache:
         return _decimals_cache[key]
-    places = 2
     try:
         rows = client.query(
             f"SELECT DecimalPlaces FROM CurrencyType WHERE IsoCode = '{iso_code}' LIMIT 1"
         )
-        if rows and rows[0].get("DecimalPlaces") is not None:
-            places = int(rows[0]["DecimalPlaces"])
-    except Exception as exc:  # noqa: BLE001 -- no CurrencyType access: keep 2
-        log.warning("CurrencyType read failed (%s); rounding to 2 places", exc)
+    except SfApiError as exc:
+        if "INVALID_TYPE" not in (exc.body or ""):
+            raise
+        log.warning("CurrencyType is not readable (%s); rounding to 2 places", exc)
+        return 2
+    places = 2
+    if rows and rows[0].get("DecimalPlaces") is not None:
+        places = int(rows[0]["DecimalPlaces"])
     _decimals_cache[key] = places
     return places
 
@@ -1311,7 +1355,7 @@ def line_tax_strategy(line: dict, strategy: str) -> str:
     return "Calculate" if float(line.get("TaxAmount") or 0.0) > 0 else "Ignore"
 
 
-def credit_capacity(line: dict, strategy: str = "auto", places: int = 2) -> float:
+def credit_capacity(line: dict, strategy: str, places: int) -> float:
     """Pre-tax amount creditable on a line without leaving an unapplied memo.
 
     ``amountToCredit`` is the pre-tax charge and may not exceed the line's
@@ -1327,10 +1371,10 @@ def credit_capacity(line: dict, strategy: str = "auto", places: int = 2) -> floa
 
     Every case is also capped at ``ChargeAmount``.
     """
-    balance = _money(line.get("Balance"))
-    charge = _money(line.get("ChargeAmount"))
-    tax = _money(line.get("TaxAmount"))
-    line_amount = _money(line.get("LineAmount")) or _money(charge + tax)
+    balance = _money(line.get("Balance"), places)
+    charge = _money(line.get("ChargeAmount"), places)
+    tax = _money(line.get("TaxAmount"), places)
+    line_amount = _money(line.get("LineAmount"), places) or _money(charge + tax, places)
     effective = line_tax_strategy(line, strategy)
     if effective == "Calculate" and line_amount > 0:
         cap = _floor_amount(balance * charge / line_amount, places)
@@ -1342,7 +1386,7 @@ def credit_capacity(line: dict, strategy: str = "auto", places: int = 2) -> floa
 
 
 def allocate(
-    amount: float, lines: list[dict], capacity, places: int = 2
+    amount: float, lines: list[dict], capacity, places: int
 ) -> list[tuple[str, float]]:
     """Spread ``amount`` over ``lines`` in order, each up to ``capacity(line)``.
 
@@ -1361,9 +1405,14 @@ def allocate(
     return out
 
 
-def credit_tag(run_id: str) -> str:
-    """Description stamped on the harness's credit memo (retry correlation)."""
-    return f"{run_id} credit"
+def credit_tag(run_id: str, attempt: int = 1) -> str:
+    """Description stamped on the harness's credit memo (retry correlation).
+
+    ``attempt`` > 1 is a credit sent again with ``cli step --resubmit-credit``
+    after the first one failed: its memo carries its own tag so the failed
+    memo is never read as the new one.
+    """
+    return f"{run_id} credit" if attempt <= 1 else f"{run_id} credit {attempt}"
 
 
 def payment_tag(run_id: str) -> str:
@@ -1376,6 +1425,7 @@ def build_credit_payload(
     run_id: str,
     line_strategies: Optional[dict[str, str]] = None,
     effective_date: Optional[str] = None,
+    attempt: int = 1,
 ) -> dict:
     """Body for ``POST .../invoices/{id}/actions/credit`` (live-verified shape).
 
@@ -1398,16 +1448,18 @@ def build_credit_payload(
         "type": "POSTED",
         "taxStrategy": lines[0]["taxStrategy"],
         "effectiveDate": effective_date or _iso_today(),
-        "description": credit_tag(run_id),
+        "description": credit_tag(run_id, attempt),
         "invoiceLines": lines,
     }
 
 
-def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Optional[dict]:
+def find_credit_memo(
+    client: SfRestClient, invoice_id: str, run_id: str, attempt: int = 1
+) -> Optional[dict]:
     rows = client.query(
         "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
         f"WHERE ReferenceEntityId = '{invoice_id}' "
-        f"AND Description = '{credit_tag(run_id)}' ORDER BY CreatedDate DESC LIMIT 1"
+        f"AND Description = '{credit_tag(run_id, attempt)}' ORDER BY CreatedDate DESC LIMIT 1"
     )
     return rows[0] if rows else None
 
@@ -1451,10 +1503,11 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
     """POST the credit action once. Async: success + requestIdentifier, empty statusURL.
 
     Sent without transport retries: the action has no idempotency key, so a
-    5xx after the server committed would credit twice. A refusal (HTTP 400)
-    becomes a ``LifecycleError`` with the API's message; a 5xx or transport
-    failure propagates as ``SfApiError`` and the caller looks for the memo
-    before trying again.
+    5xx after the server committed would credit twice. A refusal (HTTP 4xx,
+    on either transport -- see :func:`is_api_refusal`) becomes a
+    ``LifecycleError`` with the API's message; a 5xx or transport failure
+    propagates as ``SfApiError`` and the caller looks for the memo before
+    trying again.
     """
     from .auth import SfApiError
 
@@ -1466,7 +1519,7 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
             retry=False,
         )
     except SfApiError as exc:
-        if 400 <= exc.status < 500:
+        if is_api_refusal(exc):
             raise LifecycleError(
                 "credit", f"credit refused: {api_error_text(exc.body)}", record_id=invoice_id
             ) from exc
@@ -1478,7 +1531,7 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
 
 
 def poll_credit_memo(
-    client: SfRestClient, invoice_id: str, run_id: str, timeout: int = 180
+    client: SfRestClient, invoice_id: str, run_id: str, timeout: int = 180, attempt: int = 1
 ) -> dict:
     """Wait for the credit memo to reach Posted; return its row.
 
@@ -1487,7 +1540,7 @@ def poll_credit_memo(
     """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        memo = find_credit_memo(client, invoice_id, run_id)
+        memo = find_credit_memo(client, invoice_id, run_id, attempt)
         if memo is not None:
             status = memo.get("Status")
             if status in _CREDIT_MEMO_DONE:
@@ -1531,11 +1584,16 @@ def build_payment_record(
     amount: float,
     run_id: str,
     currency: Optional[str] = None,
+    *,
+    places: int,
 ) -> dict:
-    """Payment sObject body: an External, Processed Sale (no gateway needed)."""
+    """Payment sObject body: an External, Processed Sale (no gateway needed).
+
+    ``Amount`` is rounded to the currency's decimal places (``places``).
+    """
     body = {
         "AccountId": account_id,
-        "Amount": _money(amount),
+        "Amount": _money(amount, places),
         "Status": "Processed",
         "Type": "Sale",
         "ProcessingMode": "External",
@@ -1570,16 +1628,22 @@ def create_payment(client: SfRestClient, body: dict) -> str:
 
 
 def build_payment_apply_payload(
-    applied_to_id: str, amount: float, run_id: str, account_id: Optional[str] = None
+    applied_to_id: str,
+    amount: float,
+    run_id: str,
+    account_id: Optional[str] = None,
+    *,
+    places: int,
 ) -> dict:
     """Body for ``POST .../payments/{id}/actions/apply`` (live-verified shape).
 
     ``appliedToId`` is an InvoiceLine id at Line Level and the Invoice id at
-    Header Level; the action refuses the wrong one.
+    Header Level; the action refuses the wrong one. ``amount`` is rounded to
+    the currency's decimal places (``places``).
     """
     body = {
         "appliedToId": applied_to_id,
-        "amount": _money(amount),
+        "amount": _money(amount, places),
         "effectiveDate": f"{_iso_today()}T00:00:00.000Z",
         "comments": f"Transaction Data Harness ({run_id})",
     }
@@ -1593,7 +1657,7 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
 
     No transport retry: a 5xx after the apply committed would apply twice.
     The caller re-reads what is applied and applies only the remainder. A
-    refusal (HTTP 400) becomes a ``LifecycleError``; ``INVALID_FIELD`` (an
+    refusal (HTTP 4xx, either transport) becomes a ``LifecycleError``; ``INVALID_FIELD`` (an
     Invoice id at Line Level, or an InvoiceLine id at Header Level) is
     reported as a likely wrong application level.
     """
@@ -1607,7 +1671,7 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
             retry=False,
         )
     except SfApiError as exc:
-        if not 400 <= exc.status < 500:
+        if not is_api_refusal(exc):
             raise
         detail = api_error_text(exc.body)
         if "INVALID_FIELD" in (exc.body or "") and "appliedToId" in (exc.body or ""):

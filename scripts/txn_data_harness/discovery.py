@@ -529,8 +529,14 @@ def resolve_non_taxable_tax_treatment(client: SfRestClient) -> Optional[str]:
     return treatment_id
 
 
-def resolve_account(client: SfRestClient, name: str) -> Account:
-    """Resolve any account by Name, billing-ready or not.
+def resolve_account(
+    client: SfRestClient, name: str, *, account_id: Optional[str] = None
+) -> Account:
+    """Resolve any account by Name (or by ``account_id``), billing-ready or not.
+
+    ``account_id`` looks the account up by Id instead -- ``cli step`` resumes
+    with the account the manifest recorded, which a rename or a duplicate
+    name cannot redirect.
 
     Unlike :func:`discover_accounts` (which lists only accounts that *have* a
     BillingAccount), this resolves an account the user pinned in config even
@@ -540,11 +546,14 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
     correctly caps the stage downstream. The default ``bill_to_contact_id`` is
     populated for downstream ingestion calls.
     """
-    rows = client.query(
-        f"SELECT Id, Name FROM Account WHERE Name = '{_sql_escape(name)}' LIMIT 1"
+    where = (
+        f"Id = '{_sql_escape(account_id)}'" if account_id
+        else f"Name = '{_sql_escape(name)}'"
     )
+    rows = client.query(f"SELECT Id, Name FROM Account WHERE {where} LIMIT 1")
     if not rows:
-        raise DiscoveryError(f"account '{name}' not found in the org")
+        what = f"id {account_id}" if account_id else f"'{name}'"
+        raise DiscoveryError(f"account {what} not found in the org")
     acct_id = rows[0]["Id"]
     ba = client.query(
         f"SELECT Id FROM BillingAccount WHERE AccountId = '{acct_id}' LIMIT 1"
