@@ -58,7 +58,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   [Measured: 2026-11-10, 264, existing org]
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
-  were not the ones inserted. A static bundle with two mismatched pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: price the same children on a matched-model static bundle and compare the result] (see
+  were not the ones inserted. A static bundle with two mismatched pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry] (see
   [Measured component rules](#measured-component-selling-model-rules)).
   [Open: order, invoice and renew a static bundle with a mismatched pair]
   [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
@@ -106,8 +106,8 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
 
 - **No type-compatibility check on insert.** An Evergreen parent with a One Time, a Term Defined or
   an Evergreen child was accepted once each product had the selling model option [Measured: 2026-11-10, 264, existing org]; on
-  2026-11-24 the parent was Evergreen Monthly and the children One-Time, Term Annual and
-  Evergreen Monthly [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A
+  2026-11-24 the parent was Evergreen Monthly, with child selling models One-Time, Term Annual and Evergreen
+  Monthly on one child product per parent [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A
   row with both models blank was also accepted. Being accepted on insert does not show that a
   mismatched pair is valid.
 - **A static bundle with two mismatched pairs priced, and a `configure` call returned success with no message.** A separate active static
@@ -125,7 +125,7 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   `IsQuantityEditable` as false). A configurator `configure` call on the root line, with `validateProductCatalog`,
   `executeConfigurationRules` and `executePricing` true, returned `success: true`, `solverStatus: "success"`, no messages
   and a null `ValidationResult` on every line; no `RevenueTransactionErrorLog` row was written.
-  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: price the same children on a matched-model static bundle and compare the result]
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry]
   [Open: order, invoice and renew a static bundle with a mismatched pair] [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
 - **Duplicates are allowed.** Four rows for one parent and child pair coexisted [Measured: 2026-11-10, 264, existing org]; on
   2026-11-24, four rows for one child under each static parent, each with a different model

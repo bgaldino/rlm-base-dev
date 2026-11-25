@@ -70,7 +70,7 @@ drop the `.md` suffix of the snapshot file name.
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] and, under static test bundles, accepted when both models were set and both products had the
   selling model option (inactive on 2026-11-10; inactive and active on 2026-11-24)
   [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
-  pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: price the same children on a matched-model static bundle and compare the result]
+  pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry]
   [Open: order, invoice and renew a static bundle with a mismatched pair]
   [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
@@ -356,7 +356,7 @@ Every item marked **Open — needs live verification** or `[Open: …]` in this 
   were accepted on new test bundles when both products had the selling model option (not
   `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org]
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
-  pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: price the same children on a matched-model static bundle and compare the result].
+  pairs priced (each child at 0 inside the bundle price) and a `configure` call returned success with no message (Place and the `configure` call both sent with `validateProductCatalog: true`) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Open: place the same mismatched pairs with `DoesBundlePriceIncludeChild` false and compare each child's price with its price book entry].
   [Open: order, invoice and renew a static bundle with a mismatched pair]
   [Open: repeat Place with `validateProductCatalog: true` on a configurable bundle with an Evergreen root whose children's only options are One Time and Term Annual]
   Whether `CERT007`'s matched pairs price, order and renew correctly is still open. See
