@@ -200,7 +200,7 @@ is out of scope here [Help: `ind.billing_forecast_console`].
   `BillingBatchScheduler` itself has no `create()`
   [Dev guide: `sforce_api_objects_billingbatchscheduler`].
 - **Read back.** `BillingForecast` rows (one per schedule and billing period
-  [inferred]; one period per schedule was measured),
+  [inferred]; see the measured block below),
   `InvoiceBatchRun` (JobType Forecast, `TotalForecastLines`, `TotalForecastedAmount`) and
   `BillingSchedule.ForecastStatus` (`PendingForecast`, `Processing`, `Forecasted`, `Error`)
   [Dev guide: `sforce_api_objects_billingforecast`, `sforce_api_objects_invoicebatchrun`,
@@ -210,9 +210,9 @@ is out of scope here [Help: `ind.billing_forecast_console`].
   [Dev guide: `sforce_api_objects_billingforecast`].
 - **Do not overlap** a forecast run with an invoice run, another forecast run or a catch-up
   run: overlapping runs can give inaccurate forecast data. Generating invoices while a
-  forecast run is in progress is allowed [Help: `ind.billing_forecast_schedule`; the same
+  forecast run is in progress is allowed [Help: `ind.billing_forecast_schedule`]. The same
   paragraph also says not to run an invoice batch run meanwhile, so read "generate" as
-  on-demand generation, [inferred]].
+  on-demand generation [inferred].
 
 ```bash
 # shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
@@ -259,7 +259,7 @@ created after the run show `PendingForecast` until the next run picks them up.
   (annual term, one period). All three schedules became `Forecasted` with
   `LastForecastRunTargetDate` 2027-12-31.
 - A second run with `shouldRecalculateAllForecastLn` false completed with 0 lines and
-  0 amount, and no rows were added: it skipped schedules already `Forecasted`, consistent with Help's
+  0 amount, and no rows were added: it skipped schedules already `Forecasted` [inferred], consistent with Help's
   incremental behaviour [Help: `ind.billing_forecast_schedule`]. Not measured: a
   non-recalculate run over `PendingForecast` schedules, and a recalculate run over
   schedules already `Forecasted` (the first run used recalculate, over `PendingForecast`).
