@@ -50,11 +50,11 @@ callout on its tenant-provisioning steps [inferred from its step definitions; no
 Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org]:
 - The step is wired and started at plan creation (its start time equalled the plan's `CreatedDate`) on new-sale orders that contain `QB-API-MGMT`. It has no
   condition (`ExecuteOnConditionData` and `ExecuteOnRuleId` empty), and neither does the `QB-API-MGMT` to
-  `QB-DRO-APIPLAT` decomposition rule. Orders with only `QB-API` or `QB-API-FLEX` did not reach it. Amend, renew and
+  `QB-DRO-APIPLAT` decomposition rule. Orders with only `QB-API` or `QB-API-FLEX` did not reach it. Amend, renew, no-change and
   cancel orders (the scenario lists them) were not run. That the step ran in the activation transaction is
   [inferred].
 - It failed on its first attempt, straight away: the debug log shows the callout throwing `CalloutException` (the named credential "RLM" might not exist), and the
-  step goes `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
+  step went `FatallyFailed` with 0 retries (`isSuccess=false` with code 503 is what the class returns on that path
   [inferred from the class]). The 0 retries are attributed to the missing decision tables below [inferred], meaning the shipped Callout fallout
   rules (3 retries and 1 retry, Immediate) were not applied [inferred]; their effect once the tables exist was not
   measured.
@@ -65,7 +65,8 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
   not the exception text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
   `Fulfillment_Step_Jeopardy_Rule_Decision_Table`). The exception text was seen only in the
-  debug log. Whether it surfaces once the tables exist was not measured.
+  debug log. Whether it surfaces once the tables exist was not measured, and neither was whether the class's non-2xx branch
+  (todo 381) also ends the step `FatallyFailed` once they exist.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
   stayed `Draft` on every order measured on the 2026-11-25 build, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`

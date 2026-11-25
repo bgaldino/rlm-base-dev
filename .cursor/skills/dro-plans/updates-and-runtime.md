@@ -509,7 +509,7 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
 - The step is wired and started at plan creation (its start time equalled the plan's `CreatedDate`) on new-sale orders
   containing `QB-API-MGMT` (decomposition rule to `QB-DRO-APIPLAT`, scenario `API Platform to Provisioning`, step group
   `Platform`). Neither the rule nor the step has a condition. `QB-API` and `QB-API-FLEX` orders did not reach it. Amend,
-  renew and cancel orders (the scenario lists them) were not run. That the step ran in the activation transaction is [inferred].
+  renew, no-change and cancel orders (the scenario lists them) were not run. That the step ran in the activation transaction is [inferred].
 - It failed on its first attempt, straight away. The debug log shows `CALLOUT_REQUEST` to the `callout:RLM/...` endpoint, then
   `System.CalloutException: ... the named credential "RLM" might not exist`. The step is `FatallyFailed` with
   `RetryAttempts` 0. The class returns `isSuccess=false` (code 503) on that path [inferred from the class]; the log does
@@ -543,8 +543,8 @@ remove or condition the step. This section records behaviour, not a fix.
    builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start; add `--allow-existing-asset` on a rerun). Activation is the part
    that matters for this check; the script's later wait for a new `Asset` can fail if assetizing waits on the stalled
    step [inferred], which does not mean the DRO check failed. A direct
-   `OrderItem` create could not set `ProductSellingModelId` [Measured: 2026-11-25, 264, scratch, one org].
-3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` there; a plan
+   `OrderItem` create was rejected because `ProductSellingModelId` was not writable [Measured: 2026-11-25, 264, scratch, one org].
+3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` in the measured run; a plan
    sourced from order items would carry an OrderItem id [inferred from `RLM_AccountUtilities`, which queries both
    source types], so then use `SourceIdentifier IN ('<orderId>', <orderItemIds>)`):
 
