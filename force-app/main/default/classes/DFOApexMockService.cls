@@ -3,15 +3,13 @@
  * All Rights Reserved
  * Company Confidential
  */
-// Mock Apex provider for Dynamic Revenue Orchestrator callout steps (the mfg-dro fulfillment steps use it
-// through the DFOApexMockService provider definition). It posts to the BillingSystemNC mock endpoint's
-// /delay/3 path only to add latency; the endpoint's reply is not read, but a send that throws (endpoint
-// down, timeout) still fails the step. Otherwise the step succeeds (response code 200), unless the
-// provider attribute Simulate_Failure is true: then it fails (response code 500), for example to show
-// fallout handling in a demo. The attribute is set on the provider definition, so it applies to every
-// step that uses that provider, and a redeploy of post_quantumbit resets it to false. The
-// DROBillingService provider definition runs this class too but has no Simulate_Failure attribute, so
-// its steps always succeed.
+// Mock Apex provider for Dynamic Revenue Orchestrator callout steps. It posts to the BillingSystemNC mock
+// endpoint's /delay/3 path only to add latency and does not read the reply. It returns success (response
+// code 200) unless the provider attribute Simulate_Failure is true, when it returns failure (response code
+// 500). A send that throws (for example, the user cannot access the named credential's external
+// credential) fails the step before any result is returned. Simulate_Failure is set on the provider
+// definition (shipped as false in post_quantumbit; a redeploy resets it), so it applies to every step that
+// uses that definition. The DROBillingService definition runs this class without the attribute.
 global with sharing class DFOApexMockService implements industriesintegrationfwk.ProcessIntegrationProviderAdvanced {
 
     // Named credential for the mock endpoint
