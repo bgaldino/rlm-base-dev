@@ -1925,23 +1925,36 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
             raise SettlementError(
                 "payment",
                 f"apply refused ({detail}). The recorded application level is "
-                "likely wrong for this org. Payment is Processed and unapplied, "
-                "and the account's next invoice posted through the post action "
-                "may absorb it; apply it in the org, or leave it. The level cannot "
-                "change once the payment is planned: start a new run with "
-                "settlement.application_level pinned to the other level.",
+                "likely wrong for this org; it cannot change once the payment is "
+                "planned: start a new run with settlement.application_level pinned "
+                f"to the other level. {_partly_applied(payment_id)}",
                 record_id=payment_id,
             ) from exc
         raise SettlementError(
             "payment",
-            f"apply refused: {detail}.",
+            f"apply refused: {detail}. {_partly_applied(payment_id)}",
             record_id=payment_id,
         ) from exc
     if not isinstance(result, dict) or not result.get("id"):
-        raise SettlementError(
+        # A 2xx that may have committed: not a refusal. The caller turns it
+        # into the rerun message (a rerun re-reads what was applied).
+        raise UnknownApplyOutcome(
             "payment", f"apply returned no id: {describe_response(result)}", record_id=payment_id
         )
     return result["id"]
+
+
+def _partly_applied(payment_id: str) -> str:
+    return (
+        f"Payment {payment_id} may be partly applied (earlier lines may have applied): "
+        "check its applications in the org, then apply the rest, or unapply them and "
+        "cancel the payment, before posting more invoices on this account (the next "
+        "posted invoice may absorb it)."
+    )
+
+
+class UnknownApplyOutcome(SettlementError):
+    """An apply answered 2xx without an id: it may have committed."""
 
 
 def read_payment_applications(

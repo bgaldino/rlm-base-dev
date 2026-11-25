@@ -1222,17 +1222,14 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
                         applied_to, amt, ctx.run_id, places=places
                     ),
                 )
-            except SettlementError as exc:
-                # An earlier line may already have applied: say what is on
-                # the payment now, read back.
-                done = lifecycle._money(_total(_read()), places)
-                rest = lifecycle._money((manifest.payment_amount or 0) - done, places)
+            except lifecycle.UnknownApplyOutcome as exc:
+                # A refusal surfaces as raised (no read here); only a 2xx
+                # without an id, which may have committed, becomes the rerun.
                 raise SettlementError(
                     "payment",
-                    f"{exc.detail} Payment {payment_id} is not fully applied: {done} of "
-                    f"{manifest.payment_amount} applied, {rest} left on it. Apply the rest, "
-                    "or unapply and then cancel the payment, in the org before posting "
-                    "more invoices on this account (the next posted invoice may absorb it).",
+                    f"{exc.detail}; it may have committed. Rerun "
+                    f"{_step_command(ctx, manifest)}: it re-reads what was applied and "
+                    "applies only the rest.",
                     record_id=payment_id,
                 ) from exc
             manifest.payment_application_ids.append(app_id)

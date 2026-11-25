@@ -821,7 +821,8 @@ def test_level_mismatch_on_apply_is_explained(billable_account) -> None:
         steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
     text = str(info.value)
     assert "application level is likely wrong" in text
-    assert "Processed and unapplied" in text and "start a new run" in text
+    assert "may be partly applied" in text and "start a new run" in text
+    assert "unapply them and cancel the payment" in text and "or leave it" not in text
     assert "INVALID_FIELD: Specify an InvoiceLineId" in text
 
 
@@ -4041,23 +4042,51 @@ def test_memo_rows_above_the_total_fail_for_good(billable_account) -> None:
         steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
 
 
-def test_partial_line_apply_refusal_states_what_is_on_the_payment(billable_account) -> None:
-    """Line 1 applied, line 2 refused: the error says how much is applied and
-    what is left on the payment."""
+def test_partial_line_apply_refusal_reports_the_refusal_without_a_read(billable_account) -> None:
+    """Line 1 applied, line 2 refused: the refusal itself is reported (the
+    payment may be partly applied); nothing is read after it -- a read that
+    would fail does not replace the refusal."""
     from scripts.txn_data_harness.auth import SfApiError
 
     org = SettleOrg("line")
-    real = org._do_post
+    real_post, real_query = org._do_post, org.query
+    refused = {"done": False}
 
     def refuse_second_apply(path, body):
         if path.endswith("/actions/apply") and body["appliedToId"] == "5TV2":
+            refused["done"] = True
             raise SfApiError(400, '[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"no"}]',
                              "POST", path)
-        return real(path, body)
+        return real_post(path, body)
 
-    org._do_post = refuse_second_apply
+    def query(soql):
+        if refused["done"]:
+            raise AssertionError(f"no read after the refusal: {soql}")
+        return real_query(soql)
+
+    org._do_post, org.query = refuse_second_apply, query
     spec = SettlementSpec(application_level="line", payment=PaymentSpec())
     with pytest.raises(lifecycle.SettlementError,
-                       match=r"Payment 0aQ1 is not fully applied: 100.0 of 250.0 applied, 150.0 "
-                             r"left on it. Apply the rest, or unapply and then cancel"):
+                       match=r"apply refused: FIELD_INTEGRITY_EXCEPTION: no. Payment 0aQ1 may be "
+                             r"partly applied .*check its applications in the org") as info:
         steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert info.value.failure_class == "deterministic"
+    assert "may have committed" not in str(info.value)  # a refusal, not an unknown outcome
+
+
+def test_apply_2xx_without_id_gives_the_rerun_message(billable_account) -> None:
+    org = SettleOrg("line")
+    real = org._do_post
+
+    def no_id(path, body):
+        if path.endswith("/actions/apply"):
+            return {"success": True}
+        return real(path, body)
+
+    org._do_post = no_id
+    spec = SettlementSpec(application_level="line", payment=PaymentSpec(amount=10.0))
+    with pytest.raises(lifecycle.SettlementError,
+                       match=r"apply returned no id: .*it may have committed. Rerun `cli step "
+                             r"--manifest RUN --to-stage credit_applied`: it re-reads") as info:
+        steps.run_payment(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert "partly applied" not in str(info.value)

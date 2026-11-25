@@ -366,10 +366,13 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   above what was applied; it would settle the account's next posted
   invoice) or was absorbed by another invoice (measured: memo
   `50gWt000001BElRIAW` has a second row on another invoice).
-- A refused payment apply says what is on the payment, read back: how much
-  is applied (an earlier line may have applied at Line Level) and what is
-  left; apply the rest, or unapply and then cancel the payment, in the org
-  before posting more invoices on the account.
+- A refused payment apply reports the refusal itself (nothing is read after
+  it) and says the payment may be partly applied (an earlier line may have
+  applied at Line Level): check its applications in the org, then apply the
+  rest, or unapply them and cancel the payment, before posting more invoices
+  on the account. An apply that answers 2xx without an id may have
+  committed: the error names the `cli step` rerun, which re-reads what was
+  applied and applies only the rest.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without
