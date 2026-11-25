@@ -11,9 +11,10 @@
 // Activation order (7 steps):
 //   1. UnitOfMeasureClass > Active  (qb-rating loads it as Draft and never sends Status again)
 //   2. UsageResource > Active       (same)
-//   2.5. Remove duplicate PURs that overlap another Draft or Active PUR by effective period (safety net: the
-//        rating plans no longer create duplicates, since qb/q3 rating and rating-entitlements match
-//        existing rows and delete nothing (todos 298, 319); kept for hand-made copies):
+//   2.5. Remove duplicate PURs that overlap another Draft or Active PUR by effective period
+//        (safety net: the rating plans no longer create duplicates, since qb/q3 rating and
+//        rating-entitlements match existing rows and delete nothing (todos 298, 319); kept for
+//        hand-made copies):
 //        2.5a. Delete the Draft PUGs and all PURPs of the duplicate Draft PURs (they block PUR deletion).
 //        2.5b. Delete the now-childless duplicate Draft PURs (survivor: Active > has-children > lower Id).
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
@@ -230,7 +231,7 @@ if (candidatePairKeys.isEmpty()) {
     }
     if (!duplicatePurIds.isEmpty()) {
         // Sub-step 2.5a: Delete the Draft PUGs and all PURPs of the duplicate Draft PURs so the
-        // loop below (which skips PURs with children) can delete them.
+        // loop below (which skips PURs with children) can delete those PURs.
         // A load that re-inserts instead of matching (an older plan revision, or Insert+deleteOldData,
         // which can't delete Active records) leaves fresh Draft children on the duplicate Draft
         // PURs, blocking deletion. We delete those Draft children first, then re-query to refresh
