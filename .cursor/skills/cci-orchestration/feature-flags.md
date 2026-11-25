@@ -22,8 +22,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `billing_ui` | `True` | 4 flow step(s) |
 | `breconfig` | `False` | 2 flow step(s) |
 | `calmdelete` | `True` | 1 flow step(s) |
-| `clm` | `True` | 4 flow step(s) |
-| `clm_data` | `False` | 1 flow step(s) |
+| `clm` | `True` | 5 flow step(s) |
+| `clm_data` | `False` | 2 flow step(s) |
 | `collections` | `True` | 5 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 4 flow step(s) |
@@ -156,10 +156,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `extend_context_definitions` step 7 → `extend_context_contracts`
 - `extend_context_definitions` step 8 → `extend_context_contracts_extraction`
 - `prepare_clm` step 1 → `insert_clm_data`
+- `prepare_clm` step 2 → `insert_clm_clause_sets`
 
 ### `clm_data` (default: `False`)
 
 - `prepare_clm` step 1 → `insert_clm_data`
+- `prepare_clm` step 2 → `insert_clm_clause_sets`
 
 ### `collections` (default: `True`)
 

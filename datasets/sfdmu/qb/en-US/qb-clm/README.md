@@ -11,22 +11,33 @@
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
 | 1 | ClauseCatgConfiguration | 1 | Upsert | DeveloperName | 2 |
-| 2 | DocumentClauseSet | 1 | Upsert | Name;CategoryReference.DeveloperName | 20 |
-| 3 | ObjectStateDefinition | 1 | Upsert | Name | 2 |
-| 4 | ObjectStateActionDefinition | 1 | Upsert | Name | 11 |
-| 5 | ObjectStateValue | 1 | Upsert | Name;ObjectStateDefinition.Name | 24 |
-| 6 | ObjectStateTransition | 1 | Upsert | Name;ObjectStateDefinition.Name | 47 |
-| 7 | ObjectStateTransitionAction | 1 | Upsert | Name;ObjectStateDefinition.Name | 41 |
+| 2 | ObjectStateDefinition | 1 | Upsert | Name | 2 |
+| 3 | ObjectStateActionDefinition | 1 | Upsert | Name | 10 |
+| 4 | ObjectStateValue | 1 | Upsert | Name;ObjectStateDefinition.Name | 24 |
+| 5 | ObjectStateTransition | 1 | Upsert | Name;ObjectStateDefinition.Name | 47 |
+| 6 | ObjectStateTransitionAction | 1 | Upsert | Name;ObjectStateDefinition.Name | 40 |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 ClauseCatgConfiguration.csv              # 2 records
-DocumentClauseSet.csv                    # 20 records
 ObjectStateDefinition.csv                # 2 records
-ObjectStateActionDefinition.csv          # 11 records
+ObjectStateActionDefinition.csv          # 10 records
 ObjectStateValue.csv                     # 24 records
 ObjectStateTransition.csv                # 47 records
-ObjectStateTransitionAction.csv          # 41 records
+ObjectStateTransitionAction.csv          # 40 records
 ```
 <!-- generate_plan_readme:end -->
+
+## Notes (todo 346)
+
+- **`DocumentClauseSet` is not in `export.json`.** `Category` is a required, restricted picklist whose values are the org's 15-character `ClauseCatgConfiguration` Ids, which no CSV can carry portably. `DocumentClauseSet.csv` stays the data source; the `insert_clm_clause_sets` task (`tasks/rlm_clm_clause_sets.py`, step 2 of `prepare_clm`) resolves each row's category by `DeveloperName` and inserts the rows that are missing. `Status` is not writable, so clause sets load as Draft.
+- **Existing rows are skipped** (`skipExistingRecords`) for `ObjectStateValue`, `ObjectStateTransition` and `ObjectStateTransitionAction`: an edit under an active Object State Definition is rejected. The Legal definition is created inactive; the next `ObjectStateDefinition` upsert activates it.
+- **State lookups** use the parent's full key (`FromState.$$Name$ObjectStateDefinition.Name`, value `Draft;Legal`). A bare state name made SFDMU invent placeholder parents, which loaded as blank rejected rows.
+- **`ReferenceRecordAccessType`** takes the picklist values `Read Only`, `DML`, `Modify Only` (the CSV had `ReadOnly` and a literal `null`).
+- **`legalS2` is not loaded.** A `ReferenceObject` action needs an OmniScript named `SalesforceContractsCustomAction`, which no qb build ships. Its `Negotiating_To_CustomLegalS2` transition action is omitted with it; the transition itself loads.

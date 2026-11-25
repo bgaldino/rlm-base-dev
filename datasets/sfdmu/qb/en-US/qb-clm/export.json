@@ -11,19 +11,13 @@
           "excluded": false
         },
         {
-          "query": "SELECT CategoryReferenceId, DefaultLanguage, Name, Status, CategoryReference.DeveloperName FROM DocumentClauseSet",
-          "operation": "Upsert",
-          "externalId": "Name;CategoryReference.DeveloperName",
-          "excluded": false
-        },
-        {
           "query": "SELECT IsActive, AdditionalField, AdditionalFieldValue, AppUsageType, ReferenceObject, Name, ReferenceField, VersionNumber FROM ObjectStateDefinition",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT Name, ActionType, InvocableClassName, InvocableMethodName, DisplayLabel, ReferenceObjectId FROM ObjectStateActionDefinition",
+          "query": "SELECT Name, ActionType, InvocableClassName, InvocableMethodName, DisplayLabel FROM ObjectStateActionDefinition",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
@@ -32,19 +26,25 @@
           "query": "SELECT Name, ReferenceRecordAccessType, RefRecordLayoutFieldValue, Description, ObjectStateDefinitionId, ObjectStateDefinition.Name FROM ObjectStateValue",
           "operation": "Upsert",
           "externalId": "Name;ObjectStateDefinition.Name",
-          "excluded": false
+          "excluded": false,
+          "skipExistingRecords": true,
+          "$comment": "Skips existing rows: an edit under an active Object State Definition is rejected (the Legal definition is activated by the rerun's ObjectStateDefinition upsert)."
         },
         {
-          "query": "SELECT CustomPermissionId, Description, Name, ObjectStateDefinitionId, ObjectStateDefinition.Name, FromStateId, ToStateId FROM ObjectStateTransition",
+          "query": "SELECT Description, Name, ObjectStateDefinitionId, ObjectStateDefinition.Name, FromStateId, ToStateId FROM ObjectStateTransition",
           "operation": "Upsert",
           "externalId": "Name;ObjectStateDefinition.Name",
-          "excluded": false
+          "excluded": false,
+          "$comment": "Skips existing rows: an edit under an active Object State Definition is rejected, and the CSV never changes an existing row's lookups.",
+          "skipExistingRecords": true
         },
         {
           "query": "SELECT IsActive, DisplaySequence, Name, ObjectStateActionDefinitionId, ObjectStateDefinitionId, ObjectStateDefinition.Name, ObjectStateTransitionId FROM ObjectStateTransitionAction",
           "operation": "Upsert",
           "externalId": "Name;ObjectStateDefinition.Name",
-          "excluded": false
+          "excluded": false,
+          "$comment": "Skips existing rows: an edit under an active Object State Definition is rejected, and the CSV never changes an existing row's lookups.",
+          "skipExistingRecords": true
         }
       ]
     }
