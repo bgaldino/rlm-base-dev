@@ -81,7 +81,11 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
     soql_literal,
 )
-from scripts.expression_sets._guards import VERSION_FIELDS  # noqa: E402
+from scripts.expression_sets._guards import (  # noqa: E402
+    NO_ACTIVATION_CLI,
+    VERSION_FIELDS,
+    null_rank_reactivation_refusal,
+)
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
@@ -296,6 +300,11 @@ def main(argv=None) -> int:
         eprint("Reminder: run this LAST — a later Connect import/overlay clobbers "
                "these labels back to the step names.")
 
+        # Before any write, with this CLI's own run-without-activation option (the
+        # lifecycle's own check would refuse too, without naming it).
+        refusal = null_rank_reactivation_refusal(esv, activate_after, NO_ACTIVATION_CLI)
+        if refusal:
+            raise LifecycleError(refusal)
         # The deactivate → Tooling PATCH → reactivate lifecycle lives in the shared
         # relabel core (also the engine behind the Connect mutators' auto-restore),
         # so the CLI and the auto-restore path apply labels identically.

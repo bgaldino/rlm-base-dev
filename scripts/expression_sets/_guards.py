@@ -393,8 +393,12 @@ def other_active_versions_refusal(
               if v.get("IsActive") and v.get("ApiName") != target.get("ApiName")]
     if not others:
         return None
-    deactivate = "; ".join(_activate_cmd(v, "--deactivate").replace("<name>", api_name)
-                           for v in others)
+    # --no-cascade: a deactivation cascade turns off every procedure plan that
+    # references the set, and the executing version stays active, so its plans
+    # must stay on.
+    deactivate = "; ".join(
+        _activate_cmd(v, "--deactivate --no-cascade").replace("<name>", api_name)
+        for v in others)
     return (
         f"Expression set '{api_name}' has {len(versions)} versions: "
         f"{version_rows(versions)}. The overlay PATCH sends every version, but the "

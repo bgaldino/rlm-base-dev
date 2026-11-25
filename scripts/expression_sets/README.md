@@ -232,7 +232,7 @@ The rules were measured by invoking the sets directly (Connect `POST
 connect/business-rules/expressionSet/{name}`, 3 of 3 calls each). The tools note
 when the version that runs is not the highest-numbered one. An upgraded org can
 carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 ran
-[Measured: 2026-11-24, 264, upgraded org]. Consequences:
+[Measured: 2026-09-03, 264, upgraded org (ramp264)]. Consequences:
 
 - **A whole-set import works on a multi-version set in one shape only.**
   `import_expression_set` (toolkit and CCI) rewrites the payload's first version id
@@ -254,7 +254,8 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   an overlay sends each under its own id. Platform version chains share one label,
   so expect a refusal there.
 - **Edit the version that executes.** A change to any other version changes no
-  price. Use `set_step_formula.py` for formula edits; it defaults to the executing
+  price: a constant written into `_V1` changed no price, written into the executing
+  v40 it changed every price [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Use `set_step_formula.py` for formula edits; it defaults to the executing
   version and reads the result back.
 - **A version with no Rank cannot be cycled.** Activating a version through the API
   needs a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
@@ -287,7 +288,9 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   executing version, so the PATCH would rewrite an active one. [Open: whether a
   PATCH that rewrites an active version is accepted; settle it with an overlay on a
   disposable set with two active versions, each with its own label, with the guard
-  bypassed.] Deactivate the other active versions first, or use
+  bypassed.] Deactivate the other active versions first with
+  `activate_expression_set.py --deactivate --no-cascade` (a cascade would also turn
+  off the procedure plans the executing version serves), or use
   `set_step_formula.py`. Platform version chains share one label and keep several
   versions active, so expect a refusal there.
 

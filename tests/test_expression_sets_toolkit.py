@@ -2314,6 +2314,29 @@ def test_null_rank_guard():
     draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
     check("a null-Rank draft the run would activate is refused too, with the update command",
           "fail to activate it" in draft_msg and update in draft_msg, draft_msg)
+
+    # relabel_expression_set: refused before any write, naming its own --no-activate.
+    import scripts.expression_sets.relabel_expression_set as relabel_mod
+    relabels, rlogs = [], []
+    undo = _patch(relabel_mod, Transport=lambda **k: None,
+                  LifecycleEngine=lambda *a, **k: None, eprint=rlogs.append,
+                  resolve_expression_set_id=lambda *a, **k: "9QLx",
+                  resolve_definition_id=lambda *a, **k: "9QAx",
+                  _resolve_target_version=lambda *a, **k: dict(null_active, VersionNumber=1),
+                  resolve_esdv=lambda *a, **k: {"Id": "9QBx"},
+                  fetch_metadata=lambda *a, **k: {},
+                  step_labels=lambda md: {"S": "S"},
+                  relabel_version=lambda *a, **k: relabels.append(k))
+    try:
+        rc = relabel_mod.main(["--target-org", "x", "--expression-set", "X",
+                               "--set", "S=New S", "--confirm"])
+    finally:
+        undo()
+    check("relabel refuses a null-Rank active version before any write, offering "
+          "--no-activate",
+          rc == 1 and relabels == []
+          and any("Enter a valid rank" in m and "--no-activate" in m for m in rlogs),
+          (rc, rlogs))
     for label, esv, activate_after in (
             ("a numeric Rank", dict(null_active, Rank=1), True),
             ("a row read without Rank", {k: v for k, v in null_active.items() if k != "Rank"},
@@ -2527,10 +2550,10 @@ def test_overlay_multi_version():
     three = two + [{"Id": "9QM3", "ApiName": "C_V3", "Name": "C V3", "VersionNumber": 3,
                     "IsActive": True, "Rank": 3}]
     msg = other_active_versions_refusal("C", three, three[2]) or ""
-    check("other-active guard: names each other active version with its deactivate "
-          "command, and only those",
+    check("other-active guard: names each other active version with a deactivate "
+          "command that leaves the procedure plans on, and only those",
           "rewrite C_V2 while active" in msg and "--expression-set C --version C_V2 "
-          "--deactivate --confirm" in msg and "--version C_V1" not in msg
+          "--deactivate --no-cascade --confirm" in msg and "--version C_V1" not in msg
           and "Nothing was written" in msg, msg)
 
 
