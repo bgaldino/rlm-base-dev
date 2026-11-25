@@ -250,6 +250,53 @@ def _legacy_map(manifest) -> Dict[str, str]:
     return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str)} if isinstance(raw, dict) else {}
 
 
+_LOCAL_LINK = re.compile(r"(\]\()(\./)?([^()\s#]+?\.md)(#[^)\s]*)?(\))")
+
+
+def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, str]]]:
+    """Point local links inside retained atlas articles at the site slug files.
+
+    A switch removes the atlas files it replaces, so a link such as ``./a_b.htm.md`` in an
+    atlas article that stays behind (an atlas-only page, or one held by the shrinkage guard)
+    would dangle. Each link whose target is missing (or listed for removal) but is a ``legacy_id_map`` id with an
+    article on disk is rewritten to ``./<slug>.md`` (fragment kept). A missing target with no
+    replacement is left as is and returned so the caller can report it. Returns the number of
+    links rewritten and the unresolved ``(file, target)`` pairs. Idempotent.
+    """
+    articles = out / "articles"
+    mapping = _legacy_map(manifest)
+    unmapped = manifest.get("unmapped_legacy_ids")
+    unmapped = unmapped if isinstance(unmapped, dict) else {}
+    superseded = {f for f in (manifest.get("superseded_files") or []) if isinstance(f, str)}
+    rewritten = 0
+    unresolved: List[Tuple[str, str]] = []
+    for old in sorted(set(mapping) | set(unmapped)):
+        rel = f"articles/{old}.md"
+        f = out / rel
+        if rel in superseded or not f.is_file():
+            continue  # absent, or about to be removed
+        text = f.read_text(encoding="utf-8")
+
+        def fix(m):
+            nonlocal rewritten
+            target = m.group(3)
+            if "/" in target or "://" in target:
+                return m.group(0)
+            if (articles / target).exists() and f"articles/{target}" not in superseded:
+                return m.group(0)  # present and staying
+            slug = mapping.get(target[:-3])
+            if slug and (articles / f"{slug}.md").is_file():
+                rewritten += 1
+                return f"{m.group(1)}./{slug}.md{m.group(4) or ''}{m.group(5)}"
+            unresolved.append((f"{old}.md", target))
+            return m.group(0)
+
+        new = _LOCAL_LINK.sub(fix, text)
+        if new != text:
+            f.write_text(new, encoding="utf-8")
+    return rewritten, unresolved
+
+
 def _record_section_paths(rec, d) -> None:
     """Fold a section walk's listing ``d`` of a page into its stored record: the first path stays
     canonical and every other branch (this walk's own, then its alternates) accumulates, since a
@@ -799,6 +846,18 @@ class SiteGuideSnapshot:
         else:
             manifest.pop("superseded_files", None)
 
+    def _relink_retained(self, output_dir: Path, manifest: Dict[str, Any]) -> None:
+        """Keep local links in the atlas articles that stay behind pointing at files that exist."""
+        count, unresolved = rewrite_retained_links(output_dir, manifest)
+        if count:
+            self.logger.info(f"  rewrote {count} local link(s) in retained atlas articles to site slugs")
+        if unresolved:
+            shown = ", ".join(f"{f} -> {t}" for f, t in unresolved[:10])
+            self.logger.warning(
+                f"  {len(unresolved)} local link(s) in retained atlas articles point at a missing "
+                f"file with no site replacement and were left as is: {shown}"
+                + (f", ... ({len(unresolved) - 10} more)" if len(unresolved) > 10 else ""))
+
     def _save_manifest(self, path: Path, manifest: Dict[str, Any]) -> None:
         if self._switching and not self._version_verified:
             raise SnapshotError(
@@ -873,6 +932,7 @@ class SiteGuideSnapshot:
             # let a moved site's TOC be saved.
             self._verify_version(self._start_votes, manifest, require=False, weak=True)
         self._save_manifest(manifest_path, manifest)
+        self._relink_retained(output_dir, manifest)
         self._build_index(output_dir / "index.md", manifest)
         stats = manifest.get("stats", {})
         log_done(self.logger, stats, manifest_path)

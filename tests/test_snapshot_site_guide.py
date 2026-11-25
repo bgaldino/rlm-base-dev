@@ -608,6 +608,27 @@ def main():
               and any("typo.htm" in m for m in lg.logger.lines))
     with tempfile.TemporaryDirectory() as tmp:
         atlas_dir(tmp)
+        gone = Path(tmp) / "articles" / "gone.htm.md"
+        gone.write_text("# Old\n\nSee [a](./odd_old_name.htm.md#sec), [b](./nowhere.htm.md), "
+                        "[c](https://example.com/x.md) and [d](./gone.htm.md).\n", encoding="utf-8")
+        lk = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
+        lk.run()
+        body = gone.read_text(encoding="utf-8")
+        check("a retained atlas article's link to a superseded file is pointed at its site slug, fragment kept",
+              "[a](./deployment-overview.md#sec)" in body)
+        check("a link with no site replacement is left as is and reported, not dropped",
+              "[b](./nowhere.htm.md)" in body
+              and any("nowhere.htm.md" in m and "left as is" in m for m in lk.logger.lines))
+        check("external links and links to a file that stays are untouched",
+              "[c](https://example.com/x.md)" in body and "[d](./gone.htm.md)" in body)
+        check("the rewrite says how many links it changed",
+              any("rewrote 1 local link" in m for m in lk.logger.lines))
+        again = snap(tmp, accept_uncovered=["gone.htm", "rlm_get_started.htm"], **sect)
+        again.run()
+        check("a rerun finds nothing left to rewrite",
+              gone.read_text(encoding="utf-8") == body and not any("rewrote" in m for m in again.logger.lines))
+    with tempfile.TemporaryDirectory() as tmp:
+        atlas_dir(tmp)
         wg = snap(tmp, redirects=redir, mode="refresh", accept_uncovered=["gone.htm"],
                   probe_page="connect-resources-get-catalogs")
         try:
