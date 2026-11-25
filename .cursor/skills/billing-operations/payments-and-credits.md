@@ -105,7 +105,7 @@ What the APIs did with Credit, Payment and Refund Application Level set to Line 
 one observation, so re-measure on the release patch in hand before relying on it; error text
 and object names may change between patches. Header Level was not measured.
 [Measured: 2026-10-15, 264, harness build, API 68.0, Line Level; repeated 2026-11-24, 264,
-fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry their own tag.
+fresh ent-sb0 scratch org, API 68.0, Line Level] Details first recorded on 2026-11-24 carry their own tag.
 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
   as `appliedToId` failed (error `INVALID_FIELD`, "Specify an InvoiceLineId as the appliedToId

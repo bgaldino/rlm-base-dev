@@ -58,13 +58,14 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   [Measured: 2026-11-10, 264, existing org]
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] (see
   [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows
-  were not the ones inserted. A mismatched pair priced (each child at 0 inside the bundle price;
-  not compared with a matched-model bundle) and a `configure` call returned success with no
-  message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; for a static bundle you can't
-  add or remove child products, alter quantities or configure attributes at run time
-  [Help: `ind.product_catalog_create_bundled_products.htm`] (the configurator's selling-model
-  check may not run for static bundles, whose children can't be changed at run time [inferred]);
-  details in the same section. [Open: order, billing and renewal of a mismatched pair]
+  were not the ones inserted. A static bundle with two mismatched pairs priced (each child at 0
+  inside the bundle price; not compared with a matched-model bundle) and a `configure` call
+  returned success with no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; Help
+  says
+  "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time"
+  [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model
+  check may not run for static bundles [inferred]; details in the same section.
+  [Open: order, billing and renewal of a mismatched pair]
   [Open: pricing and a `configure` call on a matched-model static bundle] Whether `CERT007`'s
   matched Term Annual pairs price, order and renew correctly is **Open — needs live
   verification**; do not copy the pattern into a new model.
@@ -73,7 +74,7 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
   See [Selling model of the bundle root](#selling-model-of-the-bundle-root).
 
-Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). One measurement does not fit the rule: a Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. Either the step does not run on the Place or configure path, or the Term Defined/Evergreen half of the rule does not fire as read; which one is not settled [inferred]. An Evergreen static bundle with One Time and Term Annual children drew no message either ([below](#measured-component-selling-model-rules)) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but for a static bundle you can't add or remove child products, alter quantities or configure attributes at run time [Help: `ind.product_catalog_create_bundled_products.htm`]; the configurator's selling-model check may not run for static bundles, whose children can't be changed at run time, a possible explanation for this static result only [inferred]. Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
+Configurator validation of component selling models [Platform behaviour, traced in part]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. In this step, a model on a line that is not one of that product's own options draws a message (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response. So a One Time (or no-model) root expects One Time (or no-model) children, and a term-based child under it draws a child selling-model mismatch message. [Platform behaviour, traced in part] The QuantumBit Starter bundle (One Time root, Term Annual child) would draw it if the step runs on its path; `CERT007` (Term Annual on both parent and children) matches the parent's model, so only a term difference could flag it. Neither the Starter bundle nor `CERT007` has been checked live (Starter message: live check pending). One measurement does not fit the rule: a Term Defined root with Term Defined, Evergreen and One Time children, placed with rules on and then configured, drew no message and no error-log row [Measured: 2026-11-12, 264, scratch]. Either the step does not run on the Place or configure path, or the Term Defined/Evergreen half of the rule does not fire as read; which one is not settled [inferred]. An Evergreen static bundle with One Time and Term Annual children drew no message either ([below](#measured-component-selling-model-rules)) [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but Help says "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time" [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may not run for static bundles, a possible explanation for this static result only [inferred]. Whether the step runs on the Place path was not traced. Whether the message blocks save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
 
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
@@ -99,12 +100,12 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
 
 | Parent product | Insert | Result |
 |---|---|---|
-| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected (INVALID_INPUT, "The parent selling model is unsupported for configurable product bundles. Delete the parent selling model and try again.") |
-| Configurable bundle | A component selling model | Rejected (INVALID_INPUT, "The component selling model is unsupported for configurable product bundles. Delete the component selling model and try again.") |
-| Configurable bundle | Any row without a component group | Rejected (INVALID_INPUT, "Group is mandatory for configurable parent product.") |
-| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false (or omitted, 2026-11-24 run) | Rejected (INVALID_INPUT, "Child component must be added by default for a Static Parent Product.") |
-| Static bundle | One selling model set, the other blank | Rejected (INVALID_INPUT, "The parent and child product selling models must both have values or both be empty.") |
-| Static bundle | Both set, a selling model option missing on either product | Rejected (INVALID_INPUT, "To create a Product Related Component, first add a product selling model option to the related product and product selling model.") |
+| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected (`INVALID_INPUT`, "The parent selling model is unsupported for configurable product bundles. Delete the parent selling model and try again.") |
+| Configurable bundle | A component selling model | Rejected (`INVALID_INPUT`, "The component selling model is unsupported for configurable product bundles. Delete the component selling model and try again.") |
+| Configurable bundle | Any row without a component group | Rejected (`INVALID_INPUT`, "Group is mandatory for configurable parent product.") |
+| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false (or omitted, 2026-11-24 run) | Rejected (`INVALID_INPUT`, "Child component must be added by default for a Static Parent Product.") |
+| Static bundle | One selling model set, the other blank | Rejected (`INVALID_INPUT`, "The parent and child product selling models must both have values or both be empty.") |
+| Static bundle | Both set, a selling model option missing on either product | Rejected (`INVALID_INPUT`, "To create a Product Related Component, first add a product selling model option to the related product and product selling model.") |
 | Static bundle | Both set, each product has the option | Accepted. |
 | Static bundle | Both blank | Accepted. |
 
@@ -129,10 +130,10 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]
   [Open: order, billing and renewal of a mismatched pair]
   [Open: pricing and a `configure` call on a matched-model static bundle] This may not test the
-  traced configurator rule [above](#selling-models-inside-bundles): for a static bundle you
-  can't add or remove child products, alter quantities or configure attributes at run time
-  [Help: `ind.product_catalog_create_bundled_products.htm`] (the configurator's selling-model
-  check may not run for static bundles, whose children can't be changed at run time [inferred]).
+  traced configurator rule [above](#selling-models-inside-bundles): Help says
+  "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time"
+  [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model
+  check may not run for static bundles [inferred].
 - **Duplicates are allowed.** Several rows for one parent and child pair coexisted (four per
   static parent on the 2026-11-24 run, each with a different model pair) [Measured: 2026-11-10, 264, existing org] [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org].
 - **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the

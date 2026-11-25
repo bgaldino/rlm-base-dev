@@ -68,15 +68,17 @@ drop the `.md` suffix of the snapshot file name.
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case [Measured: 2026-11-10, 264, existing org]
   [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] and accepted for static test bundles
-  (inactive on 2026-11-10; inactive and active on 2026-11-24), so the both-set case was not
-  refused on insert [Measured: 2026-11-10, 264, existing org]
-  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A mismatched pair priced (each child at
-  0 inside the bundle price; not compared with a matched-model bundle) and a `configure` call
-  returned success with no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; for a
-  static bundle you can't add or remove child products, alter quantities or configure attributes
-  at run time [Help: `ind.product_catalog_create_bundled_products.htm`] (the configurator's
-  selling-model check may not run for static bundles, whose children can't be changed at run
-  time [inferred]) [Open: order, billing and renewal of a mismatched pair]
+  (inactive on 2026-11-10; inactive and active on 2026-11-24), so the both-set case, when both
+  products had the selling model option, was not refused on insert
+  [Measured: 2026-11-10, 264, existing org]
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
+  pairs priced (each child at 0 inside the bundle price; not compared with a matched-model
+  bundle) and a `configure` call returned success with no message
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; Help says
+  "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time"
+  [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model
+  check may not run for static bundles [inferred]
+  [Open: order, billing and renewal of a mismatched pair]
   [Open: pricing and a `configure` call on a matched-model static bundle]
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
@@ -355,18 +357,19 @@ Every item marked **Open — needs live verification** or `[Open: …]` in this 
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch], which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but for a static bundle you can't add or remove child products, alter quantities or configure attributes at run time [Help: `ind.product_catalog_create_bundled_products.htm`]; the configurator's selling-model check may not run for static bundles, whose children can't be changed at run time, a possible explanation for this static result only [inferred]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message [Measured: 2026-11-12, 264, scratch], which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org], but Help says "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time" [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model check may not run for static bundles, a possible explanation for this static result only [inferred]; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
-  were accepted on new test bundles (not `CERT007`'s own rows)
-  [Measured: 2026-11-10, 264, existing org]
-  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A mismatched pair priced (each child at
-  0 inside the bundle price; not compared with a matched-model bundle) and a `configure` call
-  returned success with no message [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; for a
-  static bundle you can't add or remove child products, alter quantities or configure attributes
-  at run time [Help: `ind.product_catalog_create_bundled_products.htm`] (the configurator's
-  selling-model check may not run for static bundles, whose children can't be changed at run
-  time [inferred]). [Open: order, billing and renewal of a mismatched pair]
+  were accepted on new test bundles when both products had the selling model option (not
+  `CERT007`'s own rows) [Measured: 2026-11-10, 264, existing org]
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. A static bundle with two mismatched
+  pairs priced (each child at 0 inside the bundle price; not compared with a matched-model
+  bundle) and a `configure` call returned success with no message
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]; Help says
+  "For static products, you can't add or remove child products, alter product quantities, or configure product attributes at run time"
+  [Help: `ind.product_catalog_create_bundled_products.htm`], so the configurator's selling-model
+  check may not run for static bundles [inferred].
+  [Open: order, billing and renewal of a mismatched pair]
   [Open: pricing and a `configure` call on a matched-model static bundle] Whether `CERT007`'s
   matched pairs price, order and renew correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
