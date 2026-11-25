@@ -169,6 +169,27 @@ print("list prints DeveloperName, not the DefinitionId")
 run(TWO, {"operation": "list"})
 check("names in the table", "Flow_A" in JOINED(LOGS) and "Flow_B" in JOINED(LOGS), JOINED(LOGS))
 
+print("names match case-insensitively, as the SOQL IN does")
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "deactivate", "developer_names": "flow_a"})
+check("flow_a finds Flow_A", err is None and len(fake.patches) == 1, repr((err, fake.patches)))
+
+print("activate never undoes a rollback and does re-activate a deactivated flow")
+fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Active")],
+                {"operation": "activate", "developer_names": "Flow_A"})
+check("an Obsolete older version is not chosen over the Active one", err is None and not fake.patches,
+      repr((err, fake.patches)))
+fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Active"), row(A, "Flow_A", 3, "Obsolete")],
+                {"operation": "activate", "developer_names": "Flow_A"})
+check("an Obsolete newer version does not displace the Active one", err is None and not fake.patches,
+      repr((err, fake.patches)))
+fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Obsolete")],
+                {"operation": "activate", "developer_names": "Flow_A"})
+check("with nothing Draft or Active, the newest Obsolete version is re-activated",
+      err is None and [b for _, b in fake.patches] == [{"Metadata": {"activeVersionNumber": 2}}],
+      repr((err, fake.patches)))
+_, err = run([row(A, "Flow_A", 1, "InvalidDraft")], {"operation": "activate", "developer_names": "Flow_A"})
+check("only InvalidDraft versions is a per-flow failure", err is not None and "1 flow(s)" in str(err), repr(err))
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")

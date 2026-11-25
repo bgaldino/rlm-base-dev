@@ -2748,7 +2748,7 @@
 
 ### `manage_flows`
 
-**Description:** Manage Flows by DeveloperName - list or query flow versions, activate (newest valid version) or deactivate
+**Description:** Manage Flows by DeveloperName - list or query flow versions, activate (newest Draft or Active version; an Obsolete one only when no Draft or Active exists) or deactivate
 
 **Class:** `tasks.rlm_manage_flows.ManageFlows`
 

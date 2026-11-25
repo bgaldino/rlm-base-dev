@@ -104,6 +104,11 @@ check("developer_name quote escaped in every query", "'Bad\\'Name'" in sent and 
 task.options["version"] = "1 OR 1=1"
 check("version fragment rejected", raises(task._run_task, "version must be a whole number"))
 
+print("export_cml: _build_id_query runs with a non-empty id list")
+q = ExportCML._build_id_query("Product2", ["Id", "Name"], ["01t000000000001", "01t'x"])
+check("ids quoted and escaped", q.endswith("WHERE Id IN ('01t000000000001','01t\\'x')"), q)
+check("empty list still falls back", "WHERE Id = '000000000000000AAA'" in ExportCML._build_id_query("Product2", ["Id"], []))
+
 print("manage_transaction_processing_types: the upsert key value is escaped")
 ManageTransactionProcessingTypes = load("rlm_manage_transaction_processing_types").ManageTransactionProcessingTypes
 import json  # noqa: E402

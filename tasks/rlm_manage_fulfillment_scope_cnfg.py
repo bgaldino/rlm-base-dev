@@ -620,15 +620,12 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         whether the tolerance fires. Reporting the disagreement instead turns a silent
         coin-flip into something an operator can act on.
         """
-        # Escape backslash first, then quote: reversing the order would double-escape
-        # the backslashes this very call introduces and terminate the literal early.
-        escaped = str(tag_title).replace("\\", "\\\\").replace("'", "\\'")
         records = self._data_query(
             access_token,
             instance_url,
             api_version,
             "SELECT ContextAttribute.DataType FROM ContextTag "
-            f"WHERE Title = '{escaped}'",
+            f"WHERE Title = {soql_quote(tag_title)}",
         )
         if not records:
             return ("missing", None)

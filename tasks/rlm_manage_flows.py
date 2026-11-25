@@ -53,7 +53,7 @@ class ManageFlows(BaseSalesforceTask):
     Supports:
     - Querying flow versions (by DeveloperName, status, process type)
     - Listing flows with metadata
-    - Activating (latest usable version) and deactivating flows by DeveloperName
+    - Activating (newest Draft or Active version; see _activation_target) and deactivating flows by DeveloperName
     """
 
     task_options = {
@@ -254,7 +254,7 @@ class ManageFlows(BaseSalesforceTask):
     # -- activate / deactivate ------------------------------------------
 
     def _activate_flows(self):
-        """Activate the newest usable version of each named flow."""
+        """Activate each named flow (see _activation_target for which version)."""
         self._change_activation(activate=True)
 
     def _deactivate_flows(self):
@@ -277,10 +277,13 @@ class ManageFlows(BaseSalesforceTask):
         for row in rows:
             by_definition.setdefault(row["DefinitionId"], []).append(row)
 
+        # SOQL string comparison is case-insensitive, so the check against the names asked for is too.
         found = set()
         for def_id, versions in by_definition.items():
-            found.update((def_id, def_id[:15], self._developer_name(versions[0])))
-        missing = [n for n in names if n not in found]
+            found.update(
+                v.lower() for v in (def_id, def_id[:15], self._developer_name(versions[0]))
+            )
+        missing = [n for n in names if n.lower() not in found]
         if missing:
             raise TaskOptionsError(
                 "No flow matches: " + ", ".join(missing)
@@ -302,10 +305,7 @@ class ManageFlows(BaseSalesforceTask):
             name = self._developer_name(versions[0])
             try:
                 if activate:
-                    usable = [v for v in versions if v.get("Status") != "InvalidDraft"]
-                    if not usable:
-                        raise TaskOptionsError("it has no valid version to activate (all are InvalidDraft)")
-                    target = max(usable, key=lambda v: int(v.get("VersionNumber") or 0))
+                    target = self._activation_target(versions)
                     if target.get("Status") == "Active":
                         skipped += 1
                         self.logger.info(f"'{name}' version {target['VersionNumber']} is already active. Skipping.")
@@ -330,6 +330,27 @@ class ManageFlows(BaseSalesforceTask):
         )
         if fail_count > 0:
             raise TaskOptionsError(f"Failed to {verb} {fail_count} flow(s). Check logs for details.")
+
+    @staticmethod
+    def _activation_target(versions: List[Dict]) -> Dict:
+        """Pick the version to activate.
+
+        The newest Draft or Active version wins, so a newly saved draft is activated and a
+        flow whose newest live version is already Active is left alone. An Obsolete version
+        (superseded or deactivated) is only chosen when no Draft or Active version exists,
+        which re-activates a deactivated flow without undoing a rollback to an older
+        active version. InvalidDraft versions are never chosen.
+        """
+        def newest(rows):
+            return max(rows, key=lambda v: int(v.get("VersionNumber") or 0))
+
+        live = [v for v in versions if v.get("Status") in ("Draft", "Active")]
+        if live:
+            return newest(live)
+        obsolete = [v for v in versions if v.get("Status") == "Obsolete"]
+        if obsolete:
+            return newest(obsolete)
+        raise TaskOptionsError("it has no valid version to activate (all are InvalidDraft)")
 
     def _set_active_version(self, definition_id: str, version_number: int):
         """PATCH FlowDefinition.Metadata.activeVersionNumber (0 deactivates)."""

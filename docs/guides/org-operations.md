@@ -107,7 +107,7 @@ cci task run manage_flows --org <org> -o operation list -o process_type Flow
 cci task run manage_flows --org <org> -o operation activate -o developer_names MyFlow_One,MyFlow_Two
 
 # Manage expression sets
-cci task run manage_expression_sets --org <org> -o operation list -o status Active -o interface_source_type SalesTransaction
+cci task run manage_expression_sets --org <org> -o operation list -o status Active -o interface_source_type PricingProcedure
 
 # Export a constraint model
 cci task run export_cml --org <org> -o developer_name QuantumBitBundle -o version 1 -o output_dir datasets/constraints/qb/QuantumBitBundle

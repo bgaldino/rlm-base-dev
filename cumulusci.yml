@@ -3340,7 +3340,7 @@ tasks:
 
   manage_flows:
     group: Revenue Lifecycle Management
-    description: Manage Flows by DeveloperName - list or query flow versions, activate (newest valid version) or deactivate
+    description: Manage Flows by DeveloperName - list or query flow versions, activate (newest Draft or Active version; an Obsolete one only when no Draft or Active exists) or deactivate
     class_path: tasks.rlm_manage_flows.ManageFlows
     options:
       operation: list  # Options: 'list', 'query', 'activate', 'deactivate'

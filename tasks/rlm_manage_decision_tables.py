@@ -24,7 +24,7 @@ import json
 from typing import List, Dict, Optional, Set
 from datetime import datetime
 
-from tasks.soql_utils import positive_int, require_identifier
+from tasks.soql_utils import positive_int, require_identifier, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -135,11 +135,6 @@ def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
     if all(v is False for v in verdicts):
         return EXPECTED, "every step that uses this list is off for this project's flags"
     return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
-
-
-def _soql_quote(value: str) -> str:
-    """A SOQL string literal: backslash first, then the quote."""
-    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 def _as_name_list(value, option_name: str) -> List[str]:
@@ -381,13 +376,13 @@ class ManageDecisionTables(BaseTask):
         if developer_names:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-            names_str = ", ".join(_soql_quote(name) for name in developer_names)
+            names_str = ", ".join(soql_quote(name) for name in developer_names)
             where_clauses.append(f"DeveloperName IN ({names_str})")
         
         # Filter by status
         status = self.options.get("status", "Active")
         if status:
-            where_clauses.append(f"Status = {_soql_quote(status)}")
+            where_clauses.append(f"Status = {soql_quote(status)}")
         
         # Build query
         soql = f"SELECT {', '.join(fields)} FROM DecisionTable"
@@ -619,7 +614,7 @@ class ManageDecisionTables(BaseTask):
         """{DeveloperName: Status} for those of `names` that exist in the org, in any status."""
         if not names:
             return {}
-        quoted = ", ".join(_soql_quote(n) for n in names)
+        quoted = ", ".join(soql_quote(n) for n in names)
         result = self._sf.query(f"SELECT DeveloperName, Status FROM DecisionTable WHERE DeveloperName IN ({quoted})")
         return {r["DeveloperName"]: r["Status"] for r in (result or {}).get("records") or []}
 
@@ -679,7 +674,7 @@ class ManageDecisionTables(BaseTask):
 
         developer_names = _as_name_list(developer_names, "developer_names")
 
-        names_str = ", ".join(_soql_quote(name) for name in developer_names)
+        names_str = ", ".join(soql_quote(name) for name in developer_names)
         soql = (
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
             f"WHERE DeveloperName IN ({names_str})"

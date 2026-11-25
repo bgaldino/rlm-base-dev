@@ -82,6 +82,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
     # Initialize the task options and environment variables
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        self._activate_requested()  # reject a bad value before any change is made
         self.env = self._get_env()
 
     # Load keychain with either the current keychain or generate a new one based on environment configuration
