@@ -295,8 +295,12 @@ check("a closing --- as the last line with no newline is closed",
       attribution_state(f"---\nsource_url: {URL}\n---") == ("missing", URL))
 check("a closing --- followed by a body is closed",
       attribution_state(f"---\nsource_url: {URL}\n---\nbody\n") == ("missing", URL))
-check("a --- line inside the body does not make unterminated frontmatter closed",
-      attribution_state("---\ntitle: T\nbody\n") [0] == "unterminated-frontmatter")
+check("frontmatter with no closing line at all is unterminated",
+      attribution_state("---\ntitle: T\nbody\n")[0] == "unterminated-frontmatter")
+# A body rule after unclosed frontmatter can't be told from a closing line, so it closes the
+# block; captures never write unclosed frontmatter.
+check("a body --- rule after unclosed frontmatter is read as the closing line",
+      attribution_state("---\ntitle: T\nbody\n\n---\n\nmore\n")[0] == "no-source_url")
 
 print(f"\n{_passed}/{_total} passed")
 sys.exit(0 if _passed == _total else 1)
