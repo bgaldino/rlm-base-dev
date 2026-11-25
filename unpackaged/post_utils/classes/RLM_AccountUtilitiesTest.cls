@@ -932,7 +932,8 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(false, result.completed, 'A run stopped for its query budget did not complete');
         Assert.isTrue(
-            result.reason.contains('more usage records than one run can remove')
+            result.reason.contains('limit on queries')
+                && !result.reason.contains('more usage records than one run can remove')
                 && result.reason.contains('nothing else was touched')
                 && result.reason.contains('Run the reset again'),
             'The reason must be phase 1\'s stop message. Got: ' + result.reason
@@ -1288,6 +1289,96 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.isTrue(
             result.removedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)),
             'Both buckets must be reported. Got: ' + result.removedSummary
+        );
+    }
+
+    @IsTest
+    static void phaseTwoRetryKeepsAnotherAccountsEntitlementUnderOurBucket() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Other Account 438');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
+        // Our entitlement's bucket has a child that holds another account's entitlement.
+        // The child keeps the bucket refused in the loop, so phase 2's entitlement-side
+        // retry walks the tree and must delete only our own entitlement.
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        UsageEntitlementBucket child = newBucket(held.Id, othersTue.Id, f);
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :ownTue.Id],
+            'The account\'s own entitlement must be deleted');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :othersTue.Id],
+            'Another account\'s entitlement must not be deleted by the retry');
+        Assert.areEqual(true, result.cleared, 'Nothing was kept. Retained: ' + result.retainedSummary);
+    }
+
+    @IsTest
+    static void rollbackReasonSaysNothingWasDeletedWhenPhaseOneDeletedNothing() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Rollback Wording Opp');
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(null, result.removedSummary, 'PRECONDITION: phase 1 deleted nothing');
+        Assert.isTrue(
+            result.reason.contains('Nothing was deleted') && !result.reason.contains('Only what the usage'),
+            'The reason must not claim usage records were deleted. Got: ' + result.reason
+        );
+    }
+
+    @IsTest
+    static void rollbackReasonPointsToPhaseOnesDeletesWhenThereWereSome() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        Datetime start = Datetime.now().addDays(-10);
+        insert new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+            EffectiveStartDate = start);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.isNotNull(result.removedSummary, 'PRECONDITION: phase 1 deleted the policy');
+        Assert.isTrue(
+            result.reason.contains('Only what the usage cleanup deleted stays deleted')
+                && !result.reason.contains('Nothing was deleted'),
+            'The reason must point to what phase 1 deleted. Got: ' + result.reason
+        );
+    }
+
+    @IsTest
+    static void rollbackReportsABucketTheLoopNeverSaw() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // No entitlement: the loop never queries this bucket.
+        UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'The bucket is still there after the rollback');
+        Assert.isTrue(
+            result.retainedSummary != null
+                && result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 1) + ' (not deleted'),
+            'The bucket must be reported kept. Got: ' + result.retainedSummary
         );
     }
 
