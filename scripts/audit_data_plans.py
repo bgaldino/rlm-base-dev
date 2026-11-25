@@ -86,10 +86,7 @@ DESCRIBE_KEYS = ("type", "createable", "updateable", "nillable", "defaultedOnCre
 
 # A `picklist` entry stands only for the values triaged here: a different bad value in the same
 # field is a new finding, and the entry goes stale once the triaged ones are gone.
-TRIAGED_VALUES: Dict[Tuple[str, str, str, str], frozenset] = {
-    ("qb/en-US/qb-clm", "ObjectStateValue", "picklist", "ReferenceRecordAccessType"):
-        frozenset({"ReadOnly"}),
-}
+TRIAGED_VALUES: Dict[Tuple[str, str, str, str], frozenset] = {}
 
 # (plan, object, check, field): why it stands. Each entry is a finding the 264 audit triaged and
 # kept (todo 321); a fix removes its entry, and an entry that no longer matches is reported stale.
@@ -104,12 +101,6 @@ KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
        "deployed only with prm_exp_bundle and tso; without them SFDMU drops the column (todo 345)"
        for plan in ("qb/en-US/qb-prm", "qb/en-US/qb-prm-pricing")
        for field in ("RLM_Deal_Expiration_Days__c", "RLM_Minimum_Deal_Size__c")},
-    # qb-clm fails to load with clm_data on (120 rows across 7 objects rejected on a fresh 264
-    # build, todo 346).
-    ("qb/en-US/qb-clm", "DocumentClauseSet", "required", "Category"):
-        "all 20 rows rejected on 264 with clm_data on (todo 346)",
-    ("qb/en-US/qb-clm", "ObjectStateValue", "picklist", "ReferenceRecordAccessType"):
-        "`ReadOnly` is not a value (`Read Only` is); fails with clm_data on (todo 346)",
     # qb-accounting has no load task yet; its BillingBatchFilterCriteria key is a copy-paste of the
     # previous object's (todo 341, which makes the plan loadable with portable keys).
     ("qb/en-US/qb-accounting", "BillingBatchFilterCriteria", "unknown-field", "JournalEntryRuleName"):

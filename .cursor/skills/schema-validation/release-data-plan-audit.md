@@ -160,7 +160,7 @@ declarations against `sobject describe`.
 Fresh `ent-sb0` qb build with `clm_data`, `inapp` and `quote_est_tax` on; 135 objects. 16 gating
 findings, all triaged into `KNOWN_FINDINGS`:
 - `AttributePicklist.Code` in four pcm plans and the PRM deal fields (todo 345);
-- qb-clm's `DocumentClauseSet.Category` and `ReferenceRecordAccessType` (todo 346);
+- qb-clm's `DocumentClauseSet.Category` and `ReferenceRecordAccessType` (todo 346; fixed since, no longer in `KNOWN_FINDINGS`);
 - five in mfg-guidedselling (the mfg rebase list, todo 332);
 - qb-accounting's `BillingBatchFilterCriteria` externalId (`JournalEntryRuleName`, copied from the previous object; todo 341).
 

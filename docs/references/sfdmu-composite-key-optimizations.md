@@ -116,7 +116,7 @@ and its README before deciding which objects need separate handling.
 
 - **FulfillmentStepDefinition**: 9/17 records fail to insert due to unresolved polymorphic `AssignedTo` references (`User`/`Group`) and missing `IntegrationProviderDef` records. These are data dependency issues, not SFDMU bugs.
 - **FulfillmentStepDependencyDef**: 10/13 records depend on the missing FSD records above.
-- **ObjectStateActionDefinition**: `legalS2` fails to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeed.
+- **ObjectStateActionDefinition**: `legalS2` failed to insert (missing `SalesforceContractsCustomAction` reference target). 10/11 records succeeded. The plan no longer ships `legalS2` (todo 346).
 - **Objects excluded in that historical run:** PricebookEntryDerivedPrice, ProductUsageResourcePolicy, ProductUsageGrant, ProductDecompEnrichmentRule, ProductComponentGrpOverride, ProductRelComponentOverride.
 
 ### Bug 5 — Composite `externalId` with traversal fields failed for upsert matching (discovered 2026-04-02; FIXED in 5.6.4)

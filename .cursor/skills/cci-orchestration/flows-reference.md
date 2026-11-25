@@ -278,6 +278,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 **Steps:**
 
 1. **task** `insert_clm_data`  `when: project_config.project__custom__clm and project_config.project__custom__clm_data`
+2. **task** `insert_clm_clause_sets`  `when: project_config.project__custom__clm and project_config.project__custom__clm_data`
 
 ---
 

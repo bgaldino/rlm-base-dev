@@ -39,8 +39,9 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-dro (17 objects)
             │       Fulfillment step definitions, decomp rules, scenarios
             │
-            ├──→ qb-clm (7 objects)
-            │       ObjectStateDefinition, transitions, clause sets
+            ├──→ qb-clm (6 objects)
+            │       ObjectStateDefinition, values, transitions, actions; clause sets load in a
+            │       separate step (insert_clm_clause_sets)
             │
             ├──→ qb-guidedselling-products (1 object)
             │       Product2 guided selling field updates; requires guided selling field metadata

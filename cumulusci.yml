@@ -2222,9 +2222,19 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_clm_dataset
 
+  insert_clm_clause_sets:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert the qb-clm DocumentClauseSet rows. Category is a restricted picklist of the org's
+      ClauseCatgConfiguration record Ids, so the plan cannot carry it in a CSV; this task resolves it
+      per org. Run after insert_clm_data. Rows already on the org are skipped.
+    class_path: tasks.rlm_clm_clause_sets.LoadClmClauseSets
+
   insert_clm_data_prod:
     group: Revenue Lifecycle Management
-    description: Insert CLM Data to Production
+    description: >
+      Insert CLM Data to Production. Does not load the DocumentClauseSet rows: a prod load also needs
+      insert_clm_clause_sets run separately.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_clm_dataset
@@ -4173,6 +4183,9 @@ flows:
     steps:
       1:
         task: insert_clm_data
+        when: project_config.project__custom__clm and project_config.project__custom__clm_data
+      2:
+        task: insert_clm_clause_sets
         when: project_config.project__custom__clm and project_config.project__custom__clm_data
 
   prepare_docgen:

@@ -11,22 +11,37 @@
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
 | 1 | ClauseCatgConfiguration | 1 | Upsert | DeveloperName | 2 |
-| 2 | DocumentClauseSet | 1 | Upsert | Name;CategoryReference.DeveloperName | 20 |
-| 3 | ObjectStateDefinition | 1 | Upsert | Name | 2 |
-| 4 | ObjectStateActionDefinition | 1 | Upsert | Name | 11 |
-| 5 | ObjectStateValue | 1 | Upsert | Name;ObjectStateDefinition.Name | 24 |
-| 6 | ObjectStateTransition | 1 | Upsert | Name;ObjectStateDefinition.Name | 47 |
-| 7 | ObjectStateTransitionAction | 1 | Upsert | Name;ObjectStateDefinition.Name | 41 |
+| 2 | ObjectStateDefinition | 1 | Upsert | Name | 2 |
+| 3 | ObjectStateActionDefinition | 1 | Upsert | Name | 10 |
+| 4 | ObjectStateValue | 1 | Upsert | Name;ObjectStateDefinition.Name | 24 |
+| 5 | ObjectStateTransition | 1 | Upsert | Name;ObjectStateDefinition.Name | 47 |
+| 6 | ObjectStateTransitionAction | 1 | Upsert | Name;ObjectStateDefinition.Name | 40 |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 ClauseCatgConfiguration.csv              # 2 records
-DocumentClauseSet.csv                    # 20 records
 ObjectStateDefinition.csv                # 2 records
-ObjectStateActionDefinition.csv          # 11 records
+ObjectStateActionDefinition.csv          # 10 records
 ObjectStateValue.csv                     # 24 records
 ObjectStateTransition.csv                # 47 records
-ObjectStateTransitionAction.csv          # 41 records
+ObjectStateTransitionAction.csv          # 40 records
 ```
 <!-- generate_plan_readme:end -->
+
+## Notes (todo 346)
+
+- **`DocumentClauseSet` is not in `export.json`, and `DocumentClauseSet.csv` is hand-maintained.** `Category` is a required, restricted picklist whose values are the org's 15-character `ClauseCatgConfiguration` Ids, which no CSV can carry portably. The `insert_clm_clause_sets` task (`tasks/rlm_clm_clause_sets.py`, step 2 of `prepare_clm`) reads the CSV, resolves each row's category by `DeveloperName`, and inserts the rows that are missing; a rerun inserts none. `extract_qb_clm_data` no longer extracts this object, so edit the CSV by hand.
+  - `validate_sfdmu_v5_datasets.py` reports the CSV as an Info ("Tracked CSV names no object any pass declares"). That is expected: the task, not SFDMU, reads it. Declaring the object `excluded: true` would silence the note but would list it in the table above as loaded, so it is left undeclared.
+  - `Status` is not writable, so every clause set loads as Draft, and the CSV's `Status` column (16 rows say Active) is documentary. The task logs a warning with the count on each run.
+- **`insert_clm_data_prod` does not load clause sets.** It runs this plan only, so a prod load needs `insert_clm_clause_sets` run separately.
+- **A second run is needed to activate the Legal definition.** The platform creates `Legal` inactive, so one `insert_clm_data` run leaves it inactive, and the next run's `ObjectStateDefinition` upsert (`IsActive` true) activates it. Run `insert_clm_data` twice, or `prepare_clm` twice, to get it active. The `Contract LifeCycle Management` definition does not behave this way: the platform ships it active, and the plan only upserts it. If a first run reaches `ObjectStateValue`, `ObjectStateTransition` and `ObjectStateTransitionAction` before the definition is active, the Legal rows insert; once it is active those objects skip existing rows.
+- **Existing rows are skipped** (`skipExistingRecords`) for `ObjectStateValue`, `ObjectStateTransition` and `ObjectStateTransitionAction`: the platform rejects an edit under an active Object State Definition. A change to a CSV row that already exists on an org is therefore not applied. To apply one, deactivate the definition (Setup, Object State Definitions), change or remove the row on the org, reload, and reactivate. No repo task does this; it is a manual step, and it is the platform's rule, not the plan's.
+- **State lookups** use the parent's full key (`FromState.$$Name$ObjectStateDefinition.Name`, value `Draft;Legal`). A bare state name made SFDMU invent placeholder parents, which loaded as blank rejected rows.
+- **`ReferenceRecordAccessType`** takes the picklist values `Read Only`, `DML` and `Modify Only` (the CSV had `ReadOnly` and a literal `null`).
+- **`legalS2` is not shipped.** A `ReferenceObject` action needs an OmniScript named `SalesforceContractsCustomAction`, and no qb build ships one, so the action cannot insert. Its `Negotiating_To_CustomLegalS2` transition action is omitted with it; the transition itself loads.

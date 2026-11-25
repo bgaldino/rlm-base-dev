@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**275 tasks** across **9 groups**.
+**276 tasks** across **9 groups**.
 
 ---
 
@@ -873,7 +873,7 @@
 
 ## Revenue Lifecycle Management
 
-*179 task(s)*
+*180 task(s)*
 
 ### `activate_agents`
 
@@ -2363,6 +2363,14 @@
 
 ---
 
+### `insert_clm_clause_sets`
+
+**Description:** Insert the qb-clm DocumentClauseSet rows. Category is a restricted picklist of the org's ClauseCatgConfiguration record Ids, so the plan cannot carry it in a CSV; this task resolves it per org. Run after insert_clm_data. Rows already on the org are skipped.
+
+**Class:** `tasks.rlm_clm_clause_sets.LoadClmClauseSets`
+
+---
+
 ### `insert_clm_data`
 
 **Description:** Insert CLM Data
@@ -2377,7 +2385,7 @@
 
 ### `insert_clm_data_prod`
 
-**Description:** Insert CLM Data to Production
+**Description:** Insert CLM Data to Production. Does not load the DocumentClauseSet rows: a prod load also needs insert_clm_clause_sets run separately.
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 

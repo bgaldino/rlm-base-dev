@@ -10,16 +10,16 @@ Signed;Contract LifeCycle Management,,Signed,Contract LifeCycle Management,,Read
 Canceled;Contract LifeCycle Management,,Canceled,Contract LifeCycle Management,,ReadOnly
 Contract Expired;Contract LifeCycle Management,,Contract Expired,Contract LifeCycle Management,,ReadOnly
 Contract Terminated;Contract LifeCycle Management,,Contract Terminated,Contract LifeCycle Management,,ReadOnly
-Activated;Legal,,Activated,Legal,null,ReadOnly
-Rejected;Legal,,Rejected,Legal,null,ReadOnly
-Negotiating;Legal,,Negotiating,Legal,null,ReadOnly
-Awaiting Signature;Legal,,Awaiting Signature,Legal,null,ReadOnly
-Draft;Legal,,Draft,Legal,null,ReadOnly
-In Approval Process;Legal,,In Approval Process,Legal,null,ReadOnly
-Contract Terminated;Legal,,Contract Terminated,Legal,null,ReadOnly
-Signature Declined;Legal,,Signature Declined,Legal,null,ReadOnly
-Signed;Legal,,Signed,Legal,null,ReadOnly
-Canceled;Legal,,Canceled,Legal,null,ReadOnly
-Contract Expired;Legal,,Contract Expired,Legal,null,ReadOnly
-CustomLegalS1;Legal,,CustomLegalS1,Legal,ReadOnly,null
-CustomLegalS2;Legal,,CustomLegalS2,Legal,ReadOnly,null
+Activated;Legal,,Activated,Legal,,ReadOnly
+Rejected;Legal,,Rejected,Legal,,ReadOnly
+Negotiating;Legal,,Negotiating,Legal,,ReadOnly
+Awaiting Signature;Legal,,Awaiting Signature,Legal,,ReadOnly
+Draft;Legal,,Draft,Legal,,ReadOnly
+In Approval Process;Legal,,In Approval Process,Legal,,ReadOnly
+Contract Terminated;Legal,,Contract Terminated,Legal,,ReadOnly
+Signature Declined;Legal,,Signature Declined,Legal,,ReadOnly
+Signed;Legal,,Signed,Legal,,ReadOnly
+Canceled;Legal,,Canceled,Legal,,ReadOnly
+Contract Expired;Legal,,Contract Expired,Legal,,ReadOnly
+CustomLegalS1;Legal,,CustomLegalS1,Legal,Read Only,
+CustomLegalS2;Legal,,CustomLegalS2,Legal,Read Only,
