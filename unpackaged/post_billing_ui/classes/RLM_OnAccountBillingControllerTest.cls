@@ -438,4 +438,29 @@ private class RLM_OnAccountBillingControllerTest {
     private static Decimal rateOf(Map<String, Decimal> rates, String isoCode) {
         return rates.containsKey(isoCode) ? rates.get(isoCode) : 1;
     }
+
+    // A user who cannot read Account gets a fixed sentence, not the platform's query error and not
+    // balances converted into a default currency.
+    @isTest
+    static void currencyOf_forAUserWhoCannotReadAccounts_throwsAFixedSentence() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = new Account(Name = 'RLM On-Account Unreadable');
+        insert acc;
+        String message;
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            try {
+                RLM_OnAccountBillingController.currencyOf(acc.Id);
+            } catch (AuraHandledException e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(message, 'The refused read is reported.');
+        Assert.areEqual('Unable to read the account\'s currency, so its balances are not shown. Contact your administrator.',
+            message, 'The user-facing sentence is fixed; no platform text is echoed.');
+    }
 }

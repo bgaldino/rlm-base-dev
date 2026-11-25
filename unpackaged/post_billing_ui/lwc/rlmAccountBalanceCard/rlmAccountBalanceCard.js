@@ -18,30 +18,49 @@ export default class RlmAccountBalanceCard extends LightningElement {
     invoiceData;
     billingData;
     isLoading = true;
-    error;
+    invoiceError;
+    billingError;
     _invoiceReady = false;
     _billingReady = false;
 
+    // One error state per wire: a success on a rerun (new recordId, refresh) clears its own error and
+    // an error drops its own stale data, so neither leaves the previous result on screen.
     @wire(getInvoiceSummary, { accountId: '$recordId' })
     wiredInvoice(result) {
         this._invoiceReady = true;
-        if (result.data) { this.invoiceData = result.data; }
-        else if (result.error) { this.error = result.error.body?.message || 'Error loading invoice data'; }
+        if (result.data) {
+            this.invoiceData = result.data;
+            this.invoiceError = undefined;
+        } else if (result.error) {
+            this.invoiceData = undefined;
+            this.invoiceError = result.error.body?.message || 'Error loading invoice data';
+        }
         this._maybeFinish();
     }
 
     @wire(getBillingSummary, { accountId: '$recordId' })
     wiredBilling(result) {
         this._billingReady = true;
-        if (result.data) { this.billingData = result.data; }
+        if (result.data) {
+            this.billingData = result.data;
+            this.billingError = undefined;
+        } else if (result.error) {
+            // No balances without the billing summary (e.g. its currency read was refused): show the
+            // fixed message and hide the figures rather than a $0.00 that reads as a real balance.
+            this.billingData = undefined;
+            this.billingError = result.error.body?.message || 'Error loading billing data';
+        }
         this._maybeFinish();
     }
+
+    get error() { return this.invoiceError || this.billingError; }
+    get billingFailed() { return this.billingError != null; }
 
     _maybeFinish() {
         if (this._invoiceReady && this._billingReady) this.isLoading = false;
     }
 
-    get hasData() { return !this.isLoading && this.invoiceData != null; }
+    get hasData() { return !this.isLoading && this.invoiceData != null && !this.billingFailed; }
 
     get totalInvoiceLabel() {
         const n = this.invoiceData?.totalInvoices || 0;

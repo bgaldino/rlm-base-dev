@@ -36,7 +36,8 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.startTest();
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(
-                new List<Invoice>{ i1, i2 }, ptp, planName, planIds, disputes);
+                new List<Invoice>{ i1, i2 }, ptp, planName, planIds, disputes,
+                new Map<Id, String>{ acctId => 'Acme Corp' });
         Test.stopTest();
 
         System.assertEquals(2, rows.size(), 'Both invoices should produce a wrapper.');
@@ -57,7 +58,7 @@ private class RLM_CollectionsConsoleControllerTest {
         System.assertEquals(null, w2.ptpDate, 'No PTP -> null.');
     }
 
-    // An invoice without a billing account shows a blank account, and no related records
+    // An invoice without a billing account shows a dash for the account, and no related records
     // leave the defaults: a dash for the dispute, a blank plan, no promise to pay.
     @isTest
     static void buildDelinquents_invoiceWithoutBillingAccount_usesDefaults() {
@@ -72,12 +73,12 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.startTest();
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ inv },
-                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new Map<Id, String>());
         Test.stopTest();
 
         Assert.areEqual(1, rows.size(), 'One row per invoice.');
         Assert.areEqual(invId, rows[0].Id, 'The row is the invoice.');
-        Assert.areEqual('', rows[0].businessAccount, 'No billing account, blank name.');
+        Assert.areEqual('—', rows[0].businessAccount, 'No billing account, a dash.');
         Assert.isNull(rows[0].accountId, 'No billing account id.');
         Assert.areEqual('-', rows[0].disputeReason, 'No dispute, a dash.');
         Assert.areEqual('', rows[0].collectionPlanId, 'No plan, blank.');
@@ -89,12 +90,36 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.isNull(rows[0].documentNumber, 'No document number on the invoice, none on the row.');
     }
 
+    // A user who cannot read Account gets no names back, and the rows are still built, with a
+    // dash for the account rather than an exception or a dropped row.
+    @isTest
+    static void buildDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Id acctId = mintId(Account.SObjectType);
+        Invoice i1 = synthInvoice(mintId(Invoice.SObjectType), acctId, 'Acme Corp', 5000, 45, 'INV-001');
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows;
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            Map<Id, String> names = RLM_AccountNames.forIds(new Set<Id>{ acctId });
+            Assert.isTrue(names.isEmpty(), 'A refused Account read gives no names, not an exception.');
+            rows = RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ i1 },
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), names);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, rows.size(), 'The row is kept.');
+        Assert.areEqual('—', rows[0].businessAccount, 'The name shows a dash.');
+        Assert.areEqual(acctId, rows[0].accountId, 'The row still names its account by id.');
+    }
+
     @isTest
     static void buildDelinquents_noInvoices_returnsEmpty() {
         Test.startTest();
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
-                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new Map<Id, String>());
         Test.stopTest();
 
         Assert.isNotNull(rows, 'A list is returned for no invoices.');

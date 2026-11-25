@@ -215,11 +215,11 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             formattedDate,
             statusBadgeClass,
             billingAccountId: baId,
-            billingAccountName: baId || '—',
+            billingAccountName: '—',
             billingArrangementId: arrangementId,
-            billingArrangementName: arrangementId || '—',
+            billingArrangementName: '—',
             billingProfileId: profileId,
-            billingProfileName: profileId || '—',
+            billingProfileName: '—',
             billingArrangementVerNumber: billingArrangementVersionNumber,
             invoiceUrl: this.buildRecordUrl(id),
             billingAccountUrl: baId ? this.buildRecordUrl(baId) : null,
@@ -229,7 +229,7 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             noArrangement: !arrangementId,
             noProfile: !profileId,
             billToContactId,
-            billToContactName: billToContactId || '—',
+            billToContactName: '—',
             settlementStatus: settlementStatus || '—',
             settlementStatusClass
         };

@@ -14,7 +14,7 @@
  * worklist builders keep their rows without account names. The specialist
  * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
  * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
- * list cannot show a refusal. getMyCollectionPlans keeping plans without names when Account is
+ * list cannot show a refusal. getMyCollectionPlans keeping plans with a dash for the name when Account is
  * refused needs a user who owns a plan but cannot read Account, so it is verified live only.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
@@ -805,11 +805,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
-    // A user who cannot read Account still gets the rows (without a name) rather than the caller's
+    // A user who cannot read Account still gets the rows (with a dash for the name) rather than the caller's
     // catch dropping the whole section; the last-resort and critical follow-up builders share the
     // lookup.
     @isTest
-    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithoutNames() {
+    static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account acc = newAccount('RLM High Value Unreadable');
         Date today = Date.newInstance(2026, 6, 30);
@@ -828,7 +828,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
         Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
-        Assert.isNull(wl.highValueDelinquents[0].accountName, 'The name is blank, not a raw exception.');
+        Assert.areEqual(NO_VALUE, wl.highValueDelinquents[0].accountName, 'The name shows a dash, not a raw exception.');
     }
 
     @isTest
@@ -852,7 +852,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, lastResort.highValueDelinquents.size(), 'The last-resort row is kept.');
-        Assert.isNull(lastResort.highValueDelinquents[0].accountName, 'Its name is blank.');
+        Assert.areEqual(NO_VALUE, lastResort.highValueDelinquents[0].accountName, 'Its name shows a dash.');
         Assert.areEqual(1, critical.criticalFollowUpInvoices.size(), 'The critical follow-up row is kept.');
         Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'Its name shows a dash.');
     }

@@ -49,7 +49,7 @@ public with sharing class RLM_SplitInvoicesController {
         List<InvoiceRow> rows = new List<InvoiceRow>();
         String soql = 'SELECT Id, DocumentNumber, InvoiceDate, Balance, Status, '
             + CORRELATION_FIELD + ', '
-            + 'BillingAccountId, BillingAccount.Name, '
+            + 'BillingAccountId, '
             + BILLING_ARRANGEMENT_LOOKUP + ', ' + BILLING_ARRANGEMENT_REL + '.Name, '
             + BILLING_PROFILE_LOOKUP + ', ' + BILLING_PROFILE_REL + '.Name, '
             + BILLING_ARRANGEMENT_VERSION_FIELD + ' '
@@ -61,6 +61,7 @@ public with sharing class RLM_SplitInvoicesController {
             for (SObject inv : invoices) {
                 rows.add(new InvoiceRow(inv));
             }
+            applyAccountNames(rows);
         } catch (QueryException e) {
             System.debug(LoggingLevel.ERROR, 'RLM_SplitInvoicesController SOQL failed: '
                 + e.getTypeName() + ': ' + e.getMessage()
@@ -71,6 +72,22 @@ public with sharing class RLM_SplitInvoicesController {
             throw RLM_AuraErrors.handled('Unable to load split invoices. Contact your administrator.');
         }
         return rows;
+    }
+
+    // Account names are read apart from the invoices: a BillingAccount.Name relationship in the
+    // invoice query would fail it, and list no split invoices, for a user who cannot read Account.
+    // A refused read leaves the rows with a dash.
+    @TestVisible
+    private static void applyAccountNames(List<InvoiceRow> rows) {
+        Set<Id> accountIds = new Set<Id>();
+        for (InvoiceRow row : rows) {
+            if (String.isNotBlank(row.billingAccountId)) accountIds.add((Id) row.billingAccountId);
+        }
+        Map<Id, String> names = RLM_AccountNames.forIds(accountIds);
+        for (InvoiceRow row : rows) {
+            row.billingAccountName = String.isNotBlank(row.billingAccountId) && names.containsKey((Id) row.billingAccountId)
+                ? names.get((Id) row.billingAccountId) : '—';
+        }
     }
 
     /**
@@ -103,7 +120,8 @@ public with sharing class RLM_SplitInvoicesController {
                 idToName.put(String.valueOf(row.get('Id')), (String) row.get('Name'));
             }
         } catch (Exception e) {
-            // Return empty map so other object types can still resolve (e.g. Account)
+            // A refused or failed read for one object type (including Account) returns what was
+            // resolved so far, so the other types still fill in; the caller shows dashes.
             return idToName;
         }
         return idToName;
@@ -138,8 +156,6 @@ public with sharing class RLM_SplitInvoicesController {
             this.Status = (String) inv.get('Status');
             Object baId = inv.get('BillingAccountId');
             this.billingAccountId = baId != null ? String.valueOf(baId) : null;
-            SObject ba = inv.getSObject('BillingAccount');
-            this.billingAccountName = ba != null ? (String) ba.get('Name') : null;
             Object arrId = inv.get(BILLING_ARRANGEMENT_LOOKUP);
             this.billingArrangementId = arrId != null ? String.valueOf(arrId) : null;
             SObject arr = inv.getSObject(BILLING_ARRANGEMENT_REL);

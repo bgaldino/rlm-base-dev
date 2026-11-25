@@ -13,13 +13,7 @@ public with sharing class RLM_OnAccountBillingController {
         Map<String, Decimal> datedRates = new Map<String, Decimal>();
 
         if (isMultiCurrency) {
-            List<SObject> accs = Database.query(
-                'SELECT CurrencyIsoCode FROM Account WHERE Id = :accountId LIMIT 1',
-                AccessLevel.USER_MODE
-            );
-            if (!accs.isEmpty()) {
-                accountCurrency = (String) accs[0].get('CurrencyIsoCode');
-            }
+            accountCurrency = currencyOf(accountId);
             standardRates = loadStandardRates();
             datedRates = loadDatedRates();
             if (datedRates.isEmpty()) {
@@ -76,6 +70,28 @@ public with sharing class RLM_OnAccountBillingController {
         result.putAll(statusInfo);
 
         return result;
+    }
+
+    // The account's currency, which every balance below is converted into. A refused Account read
+    // must not fall back to USD: the balances would then show in the wrong currency as if real.
+    // So the user gets a fixed sentence, and the platform text goes to the debug log only.
+    // An account the user cannot see (empty result) keeps the USD default, as before.
+    @TestVisible
+    private static String currencyOf(Id accountId) {
+        try {
+            List<SObject> accs = Database.query(
+                'SELECT CurrencyIsoCode FROM Account WHERE Id = :accountId LIMIT 1',
+                AccessLevel.USER_MODE
+            );
+            if (!accs.isEmpty()) {
+                return (String) accs[0].get('CurrencyIsoCode');
+            }
+        } catch (QueryException e) {
+            throw RLM_AuraErrors.failed(
+                'Unable to read the account\'s currency, so its balances are not shown. Contact your administrator.',
+                'RLM_OnAccountBillingController.currencyOf', e);
+        }
+        return 'USD';
     }
 
     private static Map<String, Object> queryBillingStatus(Id accountId) {

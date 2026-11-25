@@ -86,7 +86,7 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual(queriesBefore, queriesAfter, 'Blank ids must not run a query.');
     }
 
-    // InvoiceRow maps a queried invoice, including the names on its three lookups. Invoices
+    // InvoiceRow maps a queried invoice, including the names on its arrangement and profile lookups. Invoices
     // are not insertable, so the row is built from an invoice deserialized with its
     // relationships, the shape the correlation query returns.
     @isTest
@@ -104,7 +104,6 @@ private class RLM_SplitInvoicesControllerTest {
             'Balance' => 250,
             'Status' => 'Posted',
             'BillingAccountId' => accountId,
-            'BillingAccount' => related('Account', accountId, 'RLM Split Account'),
             'BillingArrangementId' => arrangementId,
             'BillingArrangement' => related('BillingArrangement', arrangementId, 'RLM Split Arrangement'),
             'BillingProfileId' => profileId,
@@ -122,12 +121,47 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual(250, row.Balance, 'Balance.');
         Assert.areEqual('Posted', row.Status, 'Status.');
         Assert.areEqual(String.valueOf(accountId), row.billingAccountId, 'Billing account id.');
-        Assert.areEqual('RLM Split Account', row.billingAccountName, 'Billing account name.');
+        Assert.isNull(row.billingAccountName, 'The account name is applied by applyAccountNames, not read from the row.');
         Assert.areEqual(String.valueOf(arrangementId), row.billingArrangementId, 'Billing arrangement id.');
         Assert.areEqual('RLM Split Arrangement', row.billingArrangementName, 'Billing arrangement name.');
         Assert.areEqual(String.valueOf(profileId), row.billingProfileId, 'Billing profile id.');
         Assert.areEqual('RLM Split Profile', row.billingProfileName, 'Billing profile name.');
         Assert.areEqual('3', row.billingArrangementVerNumber, 'The version number is shown as text.');
+    }
+
+    // The account name is filled in from a separate read: present for a user who can read Account,
+    // a dash (rows kept) for one who cannot, and for a row with no account.
+    @isTest
+    static void applyAccountNames_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = new Account(Name = 'RLM Split Named');
+        insert acc;
+        List<RLM_SplitInvoicesController.InvoiceRow> forAdmin = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+                'Id' => fakeId('Invoice', 3), 'BillingAccountId' => acc.Id })) };
+        List<RLM_SplitInvoicesController.InvoiceRow> forNoAccess = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+                'Id' => fakeId('Invoice', 4), 'BillingAccountId' => acc.Id })) };
+
+        Test.startTest();
+        RLM_SplitInvoicesController.applyAccountNames(forAdmin);
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            RLM_SplitInvoicesController.applyAccountNames(forNoAccess);
+        }
+        Test.stopTest();
+
+        Assert.areEqual('RLM Split Named', forAdmin[0].billingAccountName, 'A reader gets the name.');
+        Assert.areEqual(1, forNoAccess.size(), 'The row is kept.');
+        List<RLM_SplitInvoicesController.InvoiceRow> noAccountRows = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' }, 'Id' => fakeId('Invoice', 5) })) };
+        RLM_SplitInvoicesController.applyAccountNames(noAccountRows);
+        Assert.areEqual('—', noAccountRows[0].billingAccountName, 'A row with no account also shows a dash.');
+        Assert.areEqual(String.valueOf(acc.Id), forNoAccess[0].billingAccountId, 'The row still carries its account id.');
+        Assert.areEqual('—', forNoAccess[0].billingAccountName, 'The name shows a dash, not a raw exception.');
     }
 
     // An invoice with no lookups set leaves every id and name null rather than failing.

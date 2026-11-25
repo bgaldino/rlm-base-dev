@@ -504,18 +504,22 @@ private class RLM_BSGContextControllerTest {
     @isTest
     static void addArrangementLines_keepsTheQueryOrder() {
         List<BillingArrangementLine> lines = new List<BillingArrangementLine>();
+        Map<String, Id> accountIds = new Map<String, Id>{
+            'Payer' => fakeId(Account.SObjectType, 1), 'Other' => fakeId(Account.SObjectType, 2) };
+        Map<Id, String> names = new Map<Id, String>();
+        for (String n : accountIds.keySet()) names.put(accountIds.get(n), n);
         for (List<Object> r : new List<List<Object>>{
             new List<Object>{ 'Line B', 'Payer', 60, true },
             new List<Object>{ 'Line A', 'Other', 40, false }
         }) {
             lines.add((BillingArrangementLine) row('BillingArrangementLine', new Map<String, Object>{
-                'BillingArrangementLineName' => r[0], 'Account' => new Map<String, Object>{ 'Name' => r[1] },
+                'BillingArrangementLineName' => r[0], 'AccountId' => accountIds.get((String) r[1]),
                 'BillingPercentage' => r[2], 'ShouldBillRemainder' => r[3] }));
         }
         List<RLM_BSGContextController.ArrangementLineData> target = new List<RLM_BSGContextController.ArrangementLineData>();
 
         Test.startTest();
-        RLM_BSGContextController.addArrangementLines(target, lines);
+        RLM_BSGContextController.addArrangementLines(target, lines, names);
         Test.stopTest();
 
         Assert.areEqual(new List<String>{ 'Line B', 'Line A' }, new List<String>{ target[0].lineName, target[1].lineName },
@@ -524,6 +528,29 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual(60, target[0].billingPercentage, 'The share is shown');
         Assert.isTrue(target[0].shouldBillRemainder, 'The remainder flag is shown');
         Assert.isFalse(target[1].shouldBillRemainder, 'Each line keeps its own flag');
+    }
+
+    // A user who cannot read Account gets no names back; the lines are still listed, with a dash.
+    @isTest
+    static void addArrangementLines_forAUserWhoCannotReadAccounts_keepsLinesWithDashNames() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Id accountId = fakeId(Account.SObjectType, 1);
+        List<BillingArrangementLine> lines = new List<BillingArrangementLine>{
+            (BillingArrangementLine) row('BillingArrangementLine', new Map<String, Object>{
+                'BillingArrangementLineName' => 'Line A', 'AccountId' => accountId,
+                'BillingPercentage' => 100, 'ShouldBillRemainder' => false }) };
+        List<RLM_BSGContextController.ArrangementLineData> target = new List<RLM_BSGContextController.ArrangementLineData>();
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            RLM_BSGContextController.addArrangementLines(target, lines, RLM_AccountNames.forIds(new Set<Id>{ accountId }));
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, target.size(), 'The line is kept.');
+        Assert.areEqual('Line A', target[0].lineName, 'The line is the arrangement\'s.');
+        Assert.areEqual('—', target[0].accountName, 'The name shows a dash, not a raw exception.');
     }
 
     // Smoke test: for a plan id that matches no plan, the plan lookup returns an empty plan and

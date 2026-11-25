@@ -174,14 +174,16 @@ private class RLM_BSGTimelineControllerTest {
     }
 
     // A group with no schedules, suspension or milestones: its own fields are mapped, the account
-    // name comes through the relationship, and the schedule list is empty.
+    // name is read apart from the group, and the schedule list is empty.
     @isTest
     static void dataFor_mapsTheGroupsFields() {
         Id groupId = fakeId(BillingScheduleGroup.SObjectType, 1);
         Date start = Date.newInstance(2026, 1, 1);
+        Account acc = new Account(Name = 'Acme Billing');
+        insert acc;
         BillingScheduleGroup bsg = (BillingScheduleGroup) row('BillingScheduleGroup', new Map<String, Object>{
             'Id' => groupId, 'BillingScheduleGroupNumber' => 'BSG-0001', 'ProductName' => 'Data Plan',
-            'BillingAccount' => new Map<String, Object>{ 'Name' => 'Acme Billing' },
+            'BillingAccountId' => acc.Id,
             'TotalBilledAmount' => 100, 'TotalPendingAmount' => 50, 'BillingTerm' => 3,
             'BillingTermUnit' => 'Month', 'BillDayOfMonth' => 15, 'StartDate' => start,
             'EndDate' => start.addYears(1), 'CancellationDate' => start.addMonths(6) });
@@ -193,7 +195,7 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(String.valueOf(groupId), data.id, 'The group id is shown');
         Assert.areEqual('BSG-0001', data.groupNumber, 'The group number is shown');
         Assert.areEqual('Data Plan', data.productName, 'The product is shown');
-        Assert.areEqual('Acme Billing', data.accountName, 'The billing account name comes through the relationship');
+        Assert.areEqual('Acme Billing', data.accountName, 'The billing account name is read by account id');
         Assert.areEqual(100, data.totalBilledAmount, 'Billed is shown');
         Assert.areEqual(50, data.totalPendingAmount, 'Pending is shown');
         Assert.areEqual('3', data.billingTerm, 'The term is shown as text');
@@ -203,6 +205,25 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual(start.addYears(1), data.endDate, 'The end date is shown');
         Assert.areEqual(start.addMonths(6), data.cancellationDate, 'The cancellation date is shown');
         Assert.isTrue(data.billingSchedules.isEmpty(), 'No schedules were found');
+    }
+
+    // A user who cannot read Account gets a dash, not an exception, so the group still shows.
+    @isTest
+    static void accountNameOf_forAUserWhoCannotReadAccounts_isADash() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account acc = new Account(Name = 'Acme Hidden');
+        insert acc;
+        String name = 'unset';
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
+            name = RLM_BSGTimelineController.accountNameOf(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual('—', name, 'The name shows a dash, not a raw exception.');
+        Assert.areEqual('Acme Hidden', RLM_BSGTimelineController.accountNameOf(acc.Id), 'An admin still gets the name.');
     }
 
     // Suspension and resumption dates are taken when set and left blank otherwise.

@@ -3,7 +3,7 @@ public with sharing class RLM_CollectionsConsoleController {
     @AuraEnabled(cacheable=true)
     public static List<DelinquentWrapper> getHighValueDelinquents() {
         List<Invoice> invoices = [
-            SELECT Id, BillingAccountId, BillingAccount.Name, Balance,
+            SELECT Id, BillingAccountId, Balance,
                    DaysInvoiceOverdue, DocumentNumber
             FROM Invoice
             WHERE Balance > 2000 AND DaysInvoiceOverdue > 30
@@ -27,9 +27,15 @@ public with sharing class RLM_CollectionsConsoleController {
                 collectionPlanIdByInvoice, disputeReasonByInvoice);
         }
 
+        // Names are read apart from the invoices: a BillingAccount.Name relationship in the invoice
+        // query would fail the whole query for a user who cannot read Account.
+        Set<Id> accountIds = new Set<Id>();
+        for (Invoice inv : invoices) {
+            if (inv.BillingAccountId != null) accountIds.add(inv.BillingAccountId);
+        }
         return buildDelinquents(
             invoices, latestPtpByInvoice, collectionPlanByInvoice,
-            collectionPlanIdByInvoice, disputeReasonByInvoice
+            collectionPlanIdByInvoice, disputeReasonByInvoice, RLM_AccountNames.forIds(accountIds)
         );
     }
 
@@ -44,13 +50,14 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, Date> latestPtpByInvoice,
         Map<Id, String> collectionPlanByInvoice,
         Map<Id, Id> collectionPlanIdByInvoice,
-        Map<Id, String> disputeReasonByInvoice
+        Map<Id, String> disputeReasonByInvoice,
+        Map<Id, String> accountNames
     ) {
         List<DelinquentWrapper> results = new List<DelinquentWrapper>();
         for (Invoice inv : invoices) {
             DelinquentWrapper w = new DelinquentWrapper();
             w.Id = inv.Id;
-            w.businessAccount = inv.BillingAccount != null ? inv.BillingAccount.Name : '';
+            w.businessAccount = inv.BillingAccountId != null && accountNames.containsKey(inv.BillingAccountId) ? accountNames.get(inv.BillingAccountId) : '—';
             w.accountId = inv.BillingAccountId;
             w.balance = inv.Balance;
             w.overdueDays = inv.DaysInvoiceOverdue;

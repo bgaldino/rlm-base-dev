@@ -91,7 +91,7 @@ public with sharing class RLM_BSGTimelineController {
         try {
             // Query BSG with all required fields using correct field names
             List<BillingScheduleGroup> bsgList = [
-                SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name,
+                SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId,
                        CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit,
                        BillDayOfMonth, CancellationDate, StartDate, EndDate
                 FROM BillingScheduleGroup
@@ -111,6 +111,12 @@ public with sharing class RLM_BSGTimelineController {
         } catch (Exception e) {
             throw RLM_AuraErrors.failed(LOAD_FAILED_MESSAGE, 'RLM_BSGTimelineController.getBillingScheduleGroupData', e);
         }
+    }
+
+    @TestVisible
+    private static String accountNameOf(Id accountId) {
+        String name = accountId != null ? RLM_AccountNames.forIds(new Set<Id>{ accountId }).get(accountId) : null;
+        return name != null ? name : '—';
     }
 
     // The group's data, its schedules, its suspension dates and its milestones, for a queried
@@ -136,7 +142,9 @@ public with sharing class RLM_BSGTimelineController {
         data.id = bsg.Id;
         data.groupNumber = bsg.BillingScheduleGroupNumber;
         data.productName = bsg.ProductName;
-        data.accountName = bsg.BillingAccount?.Name;
+        // Read apart from the group: a BillingAccount.Name relationship in the group query would fail it,
+        // and show no group at all, for a user who cannot read Account. A refused read leaves a dash.
+        data.accountName = accountNameOf(bsg.BillingAccountId);
         data.currencyCode = bsg.CurrencyIsoCode;
         data.totalBilledAmount = bsg.TotalBilledAmount;
         data.totalPendingAmount = bsg.TotalPendingAmount;
