@@ -1319,3 +1319,31 @@ def test_cli_verify_json_usage_error_on_a_closed_pipe_exits_two(monkeypatch):
     with pytest.raises(SystemExit) as raised:
         cli.main(["verify", "--org", "x", "--json", "--bogus"])
     assert raised.value.code == 2
+
+
+@pytest.mark.parametrize("drop, message", [
+    (("CreditMemoLine", "9yx000000000001AAA"), "credit memo line ids not found"),
+    (("CreditMemo", "50g000000000011AAA"), "credit memo ids not found"),
+])
+def test_cli_verify_unreadable_credit_memo_exits_two(monkeypatch, capsys, drop, message):
+    data = _load("line_level.json")
+    obj, record_id = drop
+    data[obj] = [r for r in data[obj] if r["Id"] != record_id]
+    monkeypatch.setattr(cli.SfRestClient, "from_alias",
+                        classmethod(lambda cls, *a, **k: RecordedClient(data)))
+    rc = cli.main(["verify", "--org", "fake", "--invoice-ids", "3tt000000000003AAA", "--json"])
+    _assert_error_exit(rc, capsys, message)
+
+
+def test_header_credit_rows_read_their_memo():
+    # The memo is reached only through a CreditMemoInvApplication row.
+    data = _load("header_level.json")
+    records = fetch_billing_records(RecordedClient(data), ["3tt0000000000H1AAI"])
+    assert [r["Id"] for r in records["CreditMemo"]] == ["50g000000000001AAA"]
+    assert records["CreditMemoLine"] == []
+
+
+def test_level_line_names_the_source_only_when_it_differs():
+    assert render_text(_line()).startswith("Level: line (records)\n")
+    undetermined = _verify(_load("line_level.json"), ["3tt000000000002AAA"])
+    assert render_text(undetermined).startswith("Level: undetermined\n")

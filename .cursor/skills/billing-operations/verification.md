@@ -27,8 +27,10 @@ Exit codes:
 - **0**: no check failed. A skipped check is not a failure, so a run where every
   balance check skipped also exits 0: read the counts. The last text line is
   `RESULT: pass (N checked, M skipped)`, or `RESULT: pass (no balances checked; M
-  skipped)`; `--json` carries `checked` and `skipped`, counting the balance checks
-  (`invoice_balance`, `invoice_line_balance`, `payment_balance`).
+  skipped)`; `--json` carries `checked` and `skipped`. They count balance-check
+  results: one per invoice for `invoice_balance`, one per line when
+  `invoice_line_balance` runs and one per invoice when it skips, and one per payment
+  for `payment_balance`.
 - **1**: at least one check failed. `--json` prints every result with its check name,
   subject id, status and detail.
 - **2**: no report, because the input or a Salesforce request was bad: a malformed,

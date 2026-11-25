@@ -49,9 +49,11 @@ first cause found; a linked skip names the neighbour and the origin, for example
 "linked payment 0aQ...; origin invoice 3tt...: Status Draft; ...". Invoices and
 payments outside the set are not read and do not propagate.
 
-The report counts the balance checks (``invoice_balance``, ``invoice_line_balance``,
-``payment_balance``) that ran (``checked``) and were skipped (``skipped``): exit 0 means
-nothing failed, which includes a run where every balance check skipped. Amounts compare exactly as Decimals; ids may be 15
+The report counts the balance-check results that ran (``checked``) and were skipped
+(``skipped``): one per invoice for ``invoice_balance``, one per line when
+``invoice_line_balance`` runs and one per invoice when it skips, and one per payment for
+``payment_balance``. Exit 0 means nothing failed, which includes a run where every
+balance check skipped. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.
 """
@@ -803,7 +805,8 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
 
 
 def render_text(report: dict) -> str:
-    lines = [f"Level: {report['level'] or report['level_source']} ({report['level_source']})"]
+    level, source = report["level"], report["level_source"]
+    lines = [f"Level: {level} ({source})" if level else f"Level: {source}"]
     for r in report["checks"]:
         lines.append(f"{r['status'].upper():4} {r['check']:20} {r['subject']}: {r['detail']}")
     counts = f"{report['checked']} checked, {report['skipped']} skipped"
