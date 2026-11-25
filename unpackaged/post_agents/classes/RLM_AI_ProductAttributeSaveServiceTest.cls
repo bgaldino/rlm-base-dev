@@ -339,7 +339,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
         Assert.areEqual(new Map<String, Object>{ 'AttributeValue' => 'DCC', 'AttributePicklistValueId' => dcc.Id },
             byRecord.get(rating.Id).record.fieldValues, 'A known picklist value also sends its id');
         Assert.areEqual(new Map<String, Object>{ 'AttributeValue' => '' }, byRecord.get(note.Id).record.fieldValues,
-            'A null selection clears the value');
+            'A null selection is sent as an empty AttributeValue');
     }
 
     @isTest

@@ -22,10 +22,10 @@
  *
  * POST-SAVE READBACK
  * ------------------
- * When at least one submitted attribute exists on the line, savedAttributesJson
- * is built from an actual DB query after the PST call(s) complete, not from the
- * input map, so the agent and confirmation email reflect what was truly persisted.
- * When none does, nothing is sent and the input is echoed back.
+ * After successful PST call(s), savedAttributesJson is read back from the database,
+ * not taken from the input map, so the agent and confirmation email reflect what was
+ * persisted. If no submitted attribute exists on the line, nothing is sent and the
+ * input is echoed back; if a PST call fails, its error is returned without a readback.
  */
 public with sharing class RLM_AI_ProductAttributeSaveService {
 
