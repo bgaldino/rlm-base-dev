@@ -419,7 +419,25 @@ def _cmd_prune(args: argparse.Namespace) -> int:
     return 0
 
 
+def _json_usage_errors(parser: argparse.ArgumentParser, as_json: bool) -> None:
+    """Under ``--json``, also print a usage error as the JSON error object.
+
+    argparse still prints usage and the error to stderr and exits 2; this adds the
+    ``{"ok": false, "error": ...}`` object on stdout so a ``--json`` caller always
+    gets one, whether the input error is caught by argparse or by the command.
+    """
+    original = parser.error
+
+    def error(message: str):
+        if as_json:
+            print(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
+        original(message)
+
+    parser.error = error  # type: ignore[method-assign]
+
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    tokens = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog="python -m scripts.txn_data_harness.cli",
         description="Composable commands for Transaction Data Harness workflows.",
@@ -473,9 +491,10 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     add_connection_args(verify)
     verify.add_argument("--manifest", action="append",
                         help="Run id or manifest path (repeatable); reads its "
-                             "invoice_id(s) and, when present, payment_id(s).")
+                             "invoice_id(s), and payment_id(s) if it has them "
+                             "(harness stages write none).")
     verify.add_argument("--latest", action="store_true",
-                        help="Add the newest manifest's ids.")
+                        help="Add the ids of the newest manifest only.")
     verify.add_argument("--invoice-ids", action="append",
                         help="Invoice ids, comma- or space-separated (repeatable).")
     verify.add_argument("--payment-ids", action="append",
@@ -487,6 +506,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                              "records).")
     verify.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     verify.set_defaults(func=_cmd_verify)
+    _json_usage_errors(verify, "--json" in tokens)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

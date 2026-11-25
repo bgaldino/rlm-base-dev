@@ -127,10 +127,15 @@ applications are at one level (line or header). Exit 0 on pass, 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
 id, missing or malformed manifest, refused query, failed connection, no `sf`
 on `PATH`); with `--json` an error also prints `{"ok": false, "error": ...}`.
-Ids may be 15 or 18 characters. Payment ids are read from a manifest only
-when it has them. `--latest` checks only the newest manifest: after a batch
-of several scenarios, pass each manifest (`--manifest` repeats) or the ids.
-Balances are checked on Posted invoices only; others are skipped.
+A usage error (no `--org`, bad `--expect-level`) exits 2 with argparse usage
+on stderr, plus the same JSON object under `--json`. Ids may be 15 or 18
+characters. Harness manifests carry no payment ids: payments are found
+through the invoices' application rows, or passed with `--payment-ids`.
+`--latest` checks only the newest manifest: after a batch of several
+scenarios, pass each manifest (`--manifest` repeats) or the ids. Where
+nothing was measured a check skips with a reason: balances only on Posted
+invoices without tax lines or header tax, and on Processed payments or
+Canceled ones with no applications.
 `--expect-level line|header` forces the level (default: detect from the
 records). Checks and formulas: `billing-operations` → `verification.md`.
 

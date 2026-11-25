@@ -123,7 +123,13 @@ def test_line_level_fixture_passes_every_check():
     assert report["ok"] is True
     assert (report["level"], report["level_source"]) == ("line", "records")
     for check in CHECK_NAMES:
-        assert _statuses(report, check) == {"pass"}, check
+        if check != "application_level":
+            assert _statuses(report, check) == {"pass"}, check
+    # INV2 has no application rows and no SettlementLevel: no evidence, so skipped.
+    level = {r["subject"]: r["status"] for r in report["checks"]
+             if r["check"] == "application_level"}
+    assert level == {"3tt000000000001AAA": "pass", "3tt000000000002AAA": "skip",
+                     "3tt000000000003AAA": "pass"}
     # Payments found through application rows, plus the one asked for by id.
     assert set(report["payment_ids"]) == {
         "0aQ000000000001EAA", "0aQ000000000002EAA", "0aQ000000000003EAA"}
@@ -413,7 +419,8 @@ def test_zero_or_null_unmeasured_invoice_and_line_fields_are_still_checked(value
     def mutate(data):
         for row in data["Invoice"]:
             row.update({f: value for f in ("TotalConvertedNegAmount", "WriteOffTotalChargeAmount",
-                                           "WriteOffTotalTaxAmount", "TotalAdjustmentAmount")},
+                                           "WriteOffTotalTaxAmount", "TotalAdjustmentAmount",
+                                           "TotalTaxesCapturedAtHeader")},
                        WriteOffStatus=None)
         for row in data["InvoiceLine"]:
             row.update({f: value for f in ("ConvertedNegAmount", "ChargeConvertedNegAmount",
@@ -613,6 +620,100 @@ def test_invoice_that_is_not_posted_is_skipped_not_failed(status):
                and "Posted invoices only" in r["detail"] for r in skipped)
 
 
+@pytest.mark.parametrize("level", ["line", "header"])
+def test_forced_level_skips_an_invoice_with_no_evidence(level):
+    # INV2: no application rows, SettlementLevel null. A forced level is not evidence.
+    report = _verify(_load("line_level.json"), ["3tt000000000002AAA"], level=level)
+    assert report["level_source"] == "argument"
+    result = next(r for r in report["checks"] if r["check"] == "application_level")
+    assert result["status"] == "skip" and "no application rows" in result["detail"]
+    assert report["ok"] is True
+
+
+def test_forced_level_fails_on_one_row_of_the_other_level():
+    # SettlementLevel null, so only the row count can fail it.
+    def mutate(data):
+        data["PaymentLineInvoice"].append({
+            "Id": "0b8000000000099AAA", "InvoiceId": "3tt000000000002AAA",
+            "PaymentId": "0aQ000000000002EAA", "Amount": 0, "Type": "Applied",
+            "HasBeenUnapplied": "No", "AssociatedPaymentLineId": None})
+    report = _line(level="line", mutate=mutate)
+    assert report["failed_checks"] == ["application_level"]
+    failed = [r for r in report["checks"] if r["status"] == "fail"]
+    assert [r["subject"] for r in failed] == ["3tt000000000002AAA"]
+    assert "1 header-level row(s)" in failed[0]["detail"]
+    assert "SettlementLevel is" not in failed[0]["detail"]
+
+
+def test_tax_lines_skip_the_invoice_balance_checks():
+    def mutate(data):
+        _row(data, "InvoiceLine", "5TV000000000021GAA").update(Type="Tax", Balance=1)
+        _row(data, "Invoice", "3tt000000000002AAA").update(Balance=1)
+    report = _line(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = next(r for r in report["checks"] if r["check"] == check
+                      and r["subject"].startswith("3tt000000000002AAA"))
+        assert result["status"] == "skip" and "1 Type Tax line(s)" in result["detail"], check
+
+
+def test_header_tax_skips_the_invoice_balance_checks():
+    def mutate(data):
+        _row(data, "Invoice", "3tt000000000002AAA").update(TotalTaxesCapturedAtHeader=45,
+                                                           Balance=1)
+        _row(data, "InvoiceLine", "5TV000000000021GAA").update(Balance=1)
+    report = _line(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    for check in ("invoice_balance", "invoice_line_balance"):
+        result = next(r for r in report["checks"] if r["check"] == check
+                      and r["subject"].startswith("3tt000000000002AAA"))
+        assert (result["status"] == "skip"
+                and "TotalTaxesCapturedAtHeader 45" in result["detail"]), check
+
+
+@pytest.mark.parametrize("status", ["Draft", "Pending", "Failed", None])
+def test_payment_with_unmeasured_status_is_skipped_not_failed(status):
+    report = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(
+        Status=status, Balance=7))
+    assert report["ok"] is True, report["failed_checks"]
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance"
+                  and r["subject"] == "0aQ000000000001EAA")
+    assert result["status"] == "skip" and f"Status {status or 'null'}" in result["detail"]
+
+
+def test_canceled_payment_with_applications_is_skipped_not_failed():
+    report = _line(mutate=lambda d: _row(d, "Payment", "0aQ000000000001EAA").update(
+        Status="Canceled", Balance=7))
+    assert report["ok"] is True, report["failed_checks"]
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance"
+                  and r["subject"] == "0aQ000000000001EAA")
+    assert result["status"] == "skip"
+    assert "Status Canceled with 1 application row(s)" in result["detail"]
+
+
+def test_processed_and_canceled_unapplied_payments_are_checked():
+    report = _line()
+    statuses = {r["subject"]: r["status"] for r in report["checks"]
+                if r["check"] == "payment_balance"}
+    # 0aQ...1 and 0aQ...3 Processed; 0aQ...2 Canceled with no applications.
+    assert statuses == {"0aQ000000000001EAA": "pass", "0aQ000000000002EAA": "pass",
+                        "0aQ000000000003EAA": "pass"}
+
+
+def test_second_unapplied_row_on_one_applied_row_fails():
+    def mutate(data):
+        data["PaymentLineInvoiceLine"].append({
+            "Id": "1Al000000000009CAA", "InvoiceLineId": "5TV000000000032GAA",
+            "PaymentId": "0aQ000000000003EAA", "Amount": 0, "Type": "Unapplied",
+            "UnappliedStatus": "NA", "RelatedPaymentLineInvcLineId": "1Al000000000002CAA"})
+    report = _line(mutate=mutate)
+    assert report["failed_checks"] == ["unapplied_rows"]
+    pairing = {r["subject"]: r for r in report["checks"] if r["check"] == "unapplied_rows"}
+    assert pairing["PaymentLineInvoiceLine/1Al000000000003CAA"]["status"] == "pass"
+    second = pairing["PaymentLineInvoiceLine/1Al000000000009CAA"]
+    assert second["status"] == "fail" and "already paired" in second["detail"]
+
+
 # ------------------------------------------------------------------ CLI
 
 @pytest.fixture
@@ -792,3 +893,25 @@ def test_cli_verify_other_os_error_exits_two(monkeypatch, capsys):
     monkeypatch.setattr(auth, "resolve_auth", boom)
     rc = cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0], "--json"])
     _assert_error_exit(rc, capsys, "could not run a command or read a file")
+
+
+@pytest.mark.parametrize("argv, fragment", [
+    (["verify", "--invoice-ids", "x", "--json"], "--org"),
+    (["verify", "--org", "fake", "--expect-level", "both", "--json"], "--expect-level"),
+])
+def test_cli_verify_usage_error_with_json_prints_an_error_object(capsys, argv, fragment):
+    with pytest.raises(SystemExit) as raised:
+        cli.main(argv)
+    captured = capsys.readouterr()
+    assert raised.value.code == 2
+    assert "usage:" in captured.err and fragment in captured.err
+    out = json.loads(captured.out)
+    assert out["ok"] is False and fragment in out["error"]
+
+
+def test_cli_verify_usage_error_without_json_prints_no_object(capsys):
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["verify", "--invoice-ids", "x"])
+    captured = capsys.readouterr()
+    assert raised.value.code == 2 and captured.out == ""
+    assert "usage:" in captured.err

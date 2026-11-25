@@ -32,16 +32,20 @@ Exit codes:
   object, or an id value in it that is not a string or a list of strings; a refused
   query or login, a failed connection (including the `--api-version latest` lookup), or
   an `sf` CLI that is not on `PATH`. An `ERROR:` line goes to stderr; with `--json`,
-  stdout gets `{"ok": false, "error": "..."}`.
+  stdout gets `{"ok": false, "error": "..."}`. A usage error (no `--org`, an unknown
+  `--expect-level` value) is reported by argparse instead: usage text and the error on
+  stderr, exit 2, and with `--json` the same error object on stdout.
 
 Ids may be 15 or 18 characters; they are converted to the 18-character form before
-querying. From a manifest, `verify` reads `invoice_id` or `invoice_ids`, and `payment_id`
-or `payment_ids` when the manifest has them. Manifests that stop at an invoice stage carry
-no payment ids. A manifest with no ids is only a warning when another source supplies ids.
+querying. From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
+manifests carry no payment ids (no stage writes them); `payment_id` or `payment_ids` is
+read only if a manifest has one. A manifest with no ids is only a warning when another
+source supplies ids.
 `--latest` reads only the newest manifest, so after a batch of several scenarios pass
 each manifest with `--manifest` (repeatable) or the ids with `--invoice-ids`.
-Payments are the ones named in a manifest or by `--payment-ids`, plus every payment with
-an application row on the invoices. `--payment-ids` alone checks just those payments.
+Payments are found through the invoices' application rows, or passed with
+`--payment-ids` (for example one with no applications). `--payment-ids` alone checks just
+those payments.
 
 ## Checks
 
@@ -53,18 +57,22 @@ always fails.
 **Posted invoices only.** The balance formulas were measured on Posted invoices, so
 `invoice_balance` and `invoice_line_balance` skip an invoice whose `Status` is anything
 else (Draft, for example); the skip names the status. `application_level` still runs.
+Likewise `payment_balance` checks a Processed payment, and a Canceled payment with no
+application rows, the two measured cases; any other status, or a Canceled payment with
+rows, is skipped with the status named. Where nothing was measured, a check skips with a
+reason; it never guesses a formula.
 
 | Check | Passes when |
 | ----- | ----------- |
-| `application_level` | The invoice has no application rows of the other level, and its `SettlementLevel` does not name the other level. Line rows: `PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`. Header rows: `PaymentLineInvoice`, `CreditMemoInvApplication`. |
-| `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows (both levels). Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted. |
-| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected), for an invoice that is not Posted, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
-| `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
-| `unapplied_rows` | Every `Unapplied` row pairs, by its self-lookup, with an `Applied` row marked unapplied (`UnappliedStatus` or `HasBeenUnapplied` = `Yes`), and every `Applied` row marked unapplied has its pair. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. The pair's amounts are not compared (see below). |
+| `application_level` | The invoice has no application rows of the other level, and its `SettlementLevel` does not name the other level. Line rows: `PaymentLineInvoiceLine`, `CreditMemoLineInvoiceLine`. Header rows: `PaymentLineInvoice`, `CreditMemoInvApplication`. Skipped for an invoice with neither application rows nor a `SettlementLevel`, whether the level was detected or forced with `--expect-level`. |
+| `invoice_balance` | `Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of the invoice's credit or payment rows (both levels). Skipped for an invoice with a non-zero `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount` or `TotalAdjustmentAmount`, or any `WriteOffStatus`; the skip names the field. Skipped for an invoice that is not Posted, has `Type` Tax lines, or has a non-zero `TotalTaxesCapturedAtHeader`. |
+| `invoice_line_balance` | Per line, `Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`, and each rollup equals the net of that line's rows. Skipped for every invoice when the level is header (expected or detected), for an invoice that is not Posted or has `Type` Tax lines or a non-zero `TotalTaxesCapturedAtHeader`, for an invoice whose rows are header rows only, and for a line of `Type` Adjustment or with a non-zero `ConvertedNegAmount`, `ChargeConvertedNegAmount` or `AdjustmentAmount`. An invoice with no readable lines fails. |
+| `payment_balance` | `Balance = Amount - NetApplied`, and `NetApplied` equals the net of the payment's rows on any invoice. Checked for a Processed payment and for a Canceled payment with no application rows; skipped for any other status or a Canceled payment with rows. Skipped for a payment whose `NetRefundApplied` or `NetPaymentCreditApplied` is not zero; the skip names the field. |
+| `unapplied_rows` | Every `Unapplied` row pairs, by its self-lookup, with an `Applied` row marked unapplied (`UnappliedStatus` or `HasBeenUnapplied` = `Yes`), and every `Applied` row marked unapplied has its pair, one to one: a second `Unapplied` row on the same `Applied` row fails. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. The pair's amounts are not compared (see below). |
 
 The level to expect comes from `--expect-level`, or else from the records: application
-rows of one level, or a `SettlementLevel` of `InvoiceLine` or `Invoice`. With neither,
-`application_level` is skipped. When the invoices show both levels, each invoice with
+rows of one level, or a `SettlementLevel` of `InvoiceLine` or `Invoice`. An invoice with
+neither is skipped, however the level was chosen. When the invoices show both levels, each invoice with
 rows or a `SettlementLevel` fails, and each invoice with neither is skipped. The Billing Settings
 level itself is not read: `BillingSettings` is not queryable through the Tooling API
 (`INVALID_TYPE`) [Measured: 2026-11-25, 264, scratch org, API 68.0].
@@ -91,12 +99,16 @@ does not compare their amounts, and does not fail on a difference), how
 `NetRefundApplied` and `NetPaymentCreditApplied` change a payment's `Balance` (both were
 0 on every payment read), how converted negative amounts, write-offs and adjustments
 change an invoice's or line's `Balance` (each field listed in the table above was 0 or
-null on every invoice and line read), and invoices with header-level tax or separate tax lines. A failure in one of those cases may be the
-formula, not the data; measure the fields with SOQL before changing either.
+null on every invoice and line read), invoices with header-level tax or separate tax
+lines (every line read was `Type` Charge and `TotalTaxesCapturedAtHeader` was null, so
+both are skipped), and payments in any status other than Processed or Canceled. A failure
+in one of those cases may be the formula, not the data; measure the fields with SOQL
+before changing either.
 
 ## Validation Checks
 
 - `python -m pytest tests/txn_data_harness/test_verify_billing.py` runs every check
   against recorded query results for both levels, plus one failing case per check.
 - On a live org, `--expect-level` set to the wrong level must exit 1 naming
-  `application_level`.
+  `application_level`. Use an invoice with application rows or a `SettlementLevel`: an
+  invoice with neither is skipped, so it cannot fail.

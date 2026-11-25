@@ -13,7 +13,8 @@
       "TotalConvertedNegAmount": null,
       "WriteOffTotalChargeAmount": null,
       "WriteOffTotalTaxAmount": null,
-      "TotalAdjustmentAmount": null
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
     },
     {
       "Id": "3tt000000000002AAA",
@@ -27,7 +28,8 @@
       "TotalConvertedNegAmount": null,
       "WriteOffTotalChargeAmount": null,
       "WriteOffTotalTaxAmount": null,
-      "TotalAdjustmentAmount": null
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
     },
     {
       "Id": "3tt000000000003AAA",
@@ -41,7 +43,8 @@
       "TotalConvertedNegAmount": null,
       "WriteOffTotalChargeAmount": null,
       "WriteOffTotalTaxAmount": null,
-      "TotalAdjustmentAmount": null
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
     }
   ],
   "InvoiceLine": [
