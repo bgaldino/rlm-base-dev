@@ -106,8 +106,8 @@ otherwise. Ask what the customer's finance team expects for unreferenced cash
 
 ## Measured: Line Level application
 
-What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each is
-one observation, so re-measure on the release patch in hand before relying on it; error text
+What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each was
+observed on the build(s) its tags name, so re-measure on the release patch in hand before relying on it; error text
 and object names may change between patches. Header Level was not measured.
 [Measured: 2026-10-15, 264, harness build, API 68.0, Line Level]
 [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0, Line Level] Details first recorded on 2026-11-24 carry their own tag.

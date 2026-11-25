@@ -21,7 +21,7 @@ tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
 `[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
 live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application and
 automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe in
-[invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is one observation on one build: re-measure it on
+[invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
 the release patch in hand before relying on it or repeating it. Where billing-setup holds a
 measurement, link it instead of restating it.
 Object and field names are in `revenue-cloud-data-model` → `domains/billing.md`.
