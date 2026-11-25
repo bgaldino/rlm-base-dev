@@ -22,9 +22,10 @@
  *
  * POST-SAVE READBACK
  * ------------------
- * savedAttributesJson is built from an actual DB query after both PST calls
- * complete, not from the input map. This ensures the agent and confirmation email
- * reflect what was truly persisted.
+ * After successful PST call(s), savedAttributesJson is read back from the database,
+ * not taken from the input map, so the agent and confirmation email reflect what was
+ * persisted. If no submitted attribute exists on the line, nothing is sent and the
+ * input is echoed back; if a PST call fails, its error is returned without a readback.
  */
 public with sharing class RLM_AI_ProductAttributeSaveService {
 
@@ -104,48 +105,28 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             Map<String, QuoteLineItemAttribute> existingByDevName =
                 new Map<String, QuoteLineItemAttribute>();
             Set<Id> picklistIds = new Set<Id>();
-
-            for (QuoteLineItemAttribute qlia : [
+            indexAttributes([
                 SELECT Id,
                        AttributeDefinition.DeveloperName,
                        AttributeDefinition.DataType,
                        AttributeDefinition.PicklistId
                 FROM   QuoteLineItemAttribute
                 WHERE  QuoteLineItemId = :quoteLineItemId
-            ]) {
-                String devName = qlia.AttributeDefinition?.DeveloperName;
-                if (devName == null) continue;
-                existingByDevName.put(devName, qlia);
-                if (qlia.AttributeDefinition.DataType == 'Picklist'
-                        && qlia.AttributeDefinition.PicklistId != null) {
-                    picklistIds.add(qlia.AttributeDefinition.PicklistId);
-                }
-            }
+            ], existingByDevName, picklistIds);
 
             // ── Step 2: Build value → Id map for all relevant picklists ──────────
             Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>();
             if (!picklistIds.isEmpty()) {
-                for (AttributePicklistValue apv : [
+                pvByPicklist = picklistValueIds([
                     SELECT Id, Name, Code, Value, PicklistId
                     FROM   AttributePicklistValue
                     WHERE  PicklistId IN :picklistIds
-                ]) {
-                    if (!pvByPicklist.containsKey(apv.PicklistId)) {
-                        pvByPicklist.put(apv.PicklistId, new Map<String, Id>());
-                    }
-                    Map<String, Id> pvMap = pvByPicklist.get(apv.PicklistId);
-                    pvMap.put(apv.Value, apv.Id);
-                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value
-                        && !pvMap.containsKey(apv.Name)) {
-                        pvMap.put(apv.Name, apv.Id);
-                    }
-                    if (String.isNotBlank(apv.Code) && !pvMap.containsKey(apv.Code)) {
-                        pvMap.put(apv.Code, apv.Id);
-                    }
-                }
+                ]);
             }
 
             // ── Step 3: Split selections into Number-type vs Picklist-type ────────
+            //
+            // "Number" here and below means every non-Picklist type (Number, Text, ...).
             //
             // Number attributes drive BOM component selection (e.g. requiredKW
             // determines which FESBA unit is used). Picklist attributes (e.g.
@@ -156,16 +137,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
 
             Map<String, Object> numberSelections   = new Map<String, Object>();
             Map<String, Object> picklistSelections = new Map<String, Object>();
-
-            for (String devName : selections.keySet()) {
-                if (!existingByDevName.containsKey(devName)) continue;
-                QuoteLineItemAttribute qlia = existingByDevName.get(devName);
-                if (qlia.AttributeDefinition.DataType == 'Picklist') {
-                    picklistSelections.put(devName, selections.get(devName));
-                } else {
-                    numberSelections.put(devName, selections.get(devName));
-                }
-            }
+            splitSelections(selections, existingByDevName, numberSelections, picklistSelections);
 
             // ── Step 4: PST call 1 — Number attributes ───────────────────────────
             if (!numberSelections.isEmpty()) {
@@ -194,20 +166,17 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
 
             // ── Step 6: Post-save readback — reflect actual DB state ──────────────
             //
-            // Build savedAttributesJson from the database after both PST calls
+            // Build savedAttributesJson from the database after the PST call(s)
             // complete. This ensures the agent and confirmation email accurately
             // report what was persisted rather than echoing back the input.
 
             Set<String> submittedDevNames = selections.keySet();
-            Map<String, String> actualValues = new Map<String, String>();
-            for (QuoteLineItemAttribute qlia : [
+            Map<String, String> actualValues = valuesByDevName([
                 SELECT AttributeDefinition.DeveloperName, AttributeValue
                 FROM   QuoteLineItemAttribute
                 WHERE  QuoteLineItemId = :quoteLineItemId
                 AND    AttributeDefinition.DeveloperName IN :submittedDevNames
-            ]) {
-                actualValues.put(qlia.AttributeDefinition.DeveloperName, qlia.AttributeValue);
-            }
+            ]);
 
             out.isSuccess            = true;
             out.isValid              = true;
@@ -239,8 +208,87 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
         ] == 1;
     }
 
+    // ── Seams over queried rows ─────────────────────────────────────────────
+    //
+    // An Apex test cannot create QuoteLineItemAttribute rows (see the test class), so
+    // the queries stay in doSave and what is done with their rows lives here, where a
+    // test can pass rows it builds.
+
+    // Step 1: the line's attributes keyed by definition developer name (a row without
+    // one is skipped; a repeated name keeps the last row), and the picklist ids of its
+    // Picklist attributes.
+    @TestVisible
+    private static void indexAttributes(
+            List<QuoteLineItemAttribute> rows,
+            Map<String, QuoteLineItemAttribute> existingByDevName,
+            Set<Id> picklistIds) {
+        for (QuoteLineItemAttribute qlia : rows) {
+            String devName = qlia.AttributeDefinition?.DeveloperName;
+            if (devName == null) continue;
+            existingByDevName.put(devName, qlia);
+            if (qlia.AttributeDefinition.DataType == 'Picklist'
+                    && qlia.AttributeDefinition.PicklistId != null) {
+                picklistIds.add(qlia.AttributeDefinition.PicklistId);
+            }
+        }
+    }
+
+    // Step 2: per picklist, the value id under its Value (a later Value replaces an
+    // earlier key); under its Name when not blank, not already a key, and not equal to
+    // its Value (Apex String != ignores case); and under its Code when not blank and
+    // not already a key.
+    @TestVisible
+    private static Map<Id, Map<String, Id>> picklistValueIds(List<AttributePicklistValue> rows) {
+        Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>();
+        for (AttributePicklistValue apv : rows) {
+            if (!pvByPicklist.containsKey(apv.PicklistId)) {
+                pvByPicklist.put(apv.PicklistId, new Map<String, Id>());
+            }
+            Map<String, Id> pvMap = pvByPicklist.get(apv.PicklistId);
+            pvMap.put(apv.Value, apv.Id);
+            if (String.isNotBlank(apv.Name) && apv.Name != apv.Value
+                && !pvMap.containsKey(apv.Name)) {
+                pvMap.put(apv.Name, apv.Id);
+            }
+            if (String.isNotBlank(apv.Code) && !pvMap.containsKey(apv.Code)) {
+                pvMap.put(apv.Code, apv.Id);
+            }
+        }
+        return pvByPicklist;
+    }
+
+    // Step 3: each selection for an attribute the line has goes to the Picklist group
+    // or, for any other data type, the Number group; other selections are dropped.
+    @TestVisible
+    private static void splitSelections(
+            Map<String, Object> selections,
+            Map<String, QuoteLineItemAttribute> existingByDevName,
+            Map<String, Object> numberSelections,
+            Map<String, Object> picklistSelections) {
+        for (String devName : selections.keySet()) {
+            if (!existingByDevName.containsKey(devName)) continue;
+            QuoteLineItemAttribute qlia = existingByDevName.get(devName);
+            if (qlia.AttributeDefinition.DataType == 'Picklist') {
+                picklistSelections.put(devName, selections.get(devName));
+            } else {
+                numberSelections.put(devName, selections.get(devName));
+            }
+        }
+    }
+
+    // Step 6: the read-back values keyed by definition developer name.
+    @TestVisible
+    private static Map<String, String> valuesByDevName(List<QuoteLineItemAttribute> rows) {
+        Map<String, String> actualValues = new Map<String, String>();
+        for (QuoteLineItemAttribute qlia : rows) {
+            actualValues.put(qlia.AttributeDefinition.DeveloperName, qlia.AttributeValue);
+        }
+        return actualValues;
+    }
+
     // ── Helper: execute a single PST graph for the given attribute subset ───
 
+    @TestVisible
     private static SaveOutput executePst(
             String quoteId,
             String quoteLineItemId,
@@ -249,6 +297,42 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             Map<Id, Map<String, Id>> pvByPicklist) {
 
         SaveOutput out = new SaveOutput();
+
+        List<RevSalesTrxn.RecordWithReferenceRequest> graphNodes =
+            pstGraphNodes(quoteId, attrSelections, existingByDevName, pvByPicklist);
+
+        if (graphNodes.size() <= 1) {
+            out.isSuccess            = true;
+            out.isValid              = true;
+            out.savedAttributesJson  = JSON.serialize(attrSelections);
+            out.validationErrorsJson = '[]';
+            return out;
+        }
+
+        RevSalesTrxn.GraphRequest graph =
+            new RevSalesTrxn.GraphRequest('configureAndPrice', graphNodes);
+
+        RevSalesTrxn.PlaceSalesTransactionResponse resp =
+            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+                graph,
+                RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+                RevSalesTrxn.ConfigurationExecutionEnum.SYSTEM,
+                new RevSalesTrxn.ConfigurationOptionsInput(),
+                null
+            );
+
+        return pstResult(resp.isSuccess, resp.errorResponse);
+    }
+
+    // The PST graph: a PATCH of the quote, then a PATCH of each selected attribute the
+    // line has, setting AttributeValue (the selection as text, '' for null) and, for a
+    // Picklist attribute whose selection names a known value, AttributePicklistValueId.
+    @TestVisible
+    private static List<RevSalesTrxn.RecordWithReferenceRequest> pstGraphNodes(
+            String quoteId,
+            Map<String, Object> attrSelections,
+            Map<String, QuoteLineItemAttribute> existingByDevName,
+            Map<Id, Map<String, Id>> pvByPicklist) {
 
         List<RevSalesTrxn.RecordWithReferenceRequest> graphNodes =
             new List<RevSalesTrxn.RecordWithReferenceRequest>();
@@ -284,30 +368,17 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             graphNodes.add(new RevSalesTrxn.RecordWithReferenceRequest(
                 'refQlia' + nodeIdx++, qliaNode));
         }
+        return graphNodes;
+    }
 
-        if (graphNodes.size() <= 1) {
-            out.isSuccess            = true;
-            out.isValid              = true;
-            out.savedAttributesJson  = JSON.serialize(attrSelections);
-            out.validationErrorsJson = '[]';
-            return out;
-        }
-
-        RevSalesTrxn.GraphRequest graph =
-            new RevSalesTrxn.GraphRequest('configureAndPrice', graphNodes);
-
-        RevSalesTrxn.PlaceSalesTransactionResponse resp =
-            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                graph,
-                RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
-                RevSalesTrxn.ConfigurationExecutionEnum.SYSTEM,
-                new RevSalesTrxn.ConfigurationOptionsInput(),
-                null
-            );
-
-        if (!resp.isSuccess) {
+    // The output for a PST response: success, or failure carrying each error response
+    // serialized and joined with '; '.
+    @TestVisible
+    private static SaveOutput pstResult(Boolean isSuccess, List<Object> errorResponse) {
+        SaveOutput out = new SaveOutput();
+        if (!isSuccess) {
             List<String> errs = new List<String>();
-            for (Object e : resp.errorResponse) {
+            for (Object e : errorResponse) {
                 errs.add(JSON.serialize(e));
             }
             out.isSuccess    = false;
