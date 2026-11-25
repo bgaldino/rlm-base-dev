@@ -18,30 +18,22 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-  Help says that by default this makes one payment schedule and item per posted invoice;
-  invoices of one account with the same currency and payment method are grouped into one when
-  the payment schedule treatment's Grouping Source is Account, within its Due Date Window, and
-  Billing then records the schedule in the invoice's Payment Schedule field [Help:
-  `ind.billing_payments_consolidate_invoices`]. On a fresh ent-sb0 build the only treatment,
-  Default Payment Schedule Treatment (trigger InvoicePosted, under the org-default Default
-  Payment Schedule Policy), was created during the build by the build's admin user and had
-  Grouping Source **Account** and a blank Due Date Window. Two invoices of 250 and 1,700 for one
-  account, ingested and posted within a second with the same due date, got one Draft payment
-  schedule of 1,950 with one Draft item of 1,950, its processing date the invoices' due date.
-  Both invoices' `PaymentScheduleId` pointed at it; its `ReferenceEntityId` was blank. A second
-  payment schedule created with `ReferenceEntityId` set to one of those invoices was refused
-  (error `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its
-  invoice is associated with another Payment Schedule that's in Draft or Open status."); one
-  with no reference entity was created. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org,
-  API 68.0] No build component (metadata, data plan, task or script) creates a treatment; the
-  repo only enables `enablePaymentSchedulesAndItemsCreation` [Repo:
-  `unpackaged/post_billing/settings/Billing.settings-meta.xml`]. So this treatment, unlike
-  Help's Invoice grouping (Grouping Source Invoice), is the platform's own default on that build
-  [inferred]. On an org whose treatment groups by Account like this, a script that creates a
-  schedule referencing one of those invoices must deal with the automatic one first: find it
-  through the invoice's `PaymentScheduleId`. Canceling or reusing it was not tried, nor Help's
-  Invoice grouping (Grouping Source Invoice), nor invoices posted apart or with different due
-  dates.
+  Help names Invoice as the default Grouping Source (one payment schedule and item per posted
+  invoice); invoices of one account are grouped into one only with Grouping Source Account, the
+  same currency and payment method, and due dates within the Due Date Window [Help:
+  `ind.billing_payments_consolidate_invoices`]. On a fresh ent-sb0 build the treatment named
+  Default Payment Schedule Treatment, created during the build (no build component creates it),
+  had Grouping Source **Account** and a blank Due Date Window; its policy, Default Payment Schedule
+  Policy, had `IsOrgDefault` true. Posting two invoices with the same due date for one account
+  created one Draft payment schedule, which both invoices point to through `PaymentScheduleId`.
+  A second payment schedule with `ReferenceEntityId` set to one of them was refused (error
+  `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
+  is associated with another Payment Schedule that's in Draft or Open status.").
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] The repo only enables
+  `enablePaymentSchedulesAndItemsCreation` [Repo:
+  `unpackaged/post_billing/settings/Billing.settings-meta.xml`], so this treatment is the
+  platform's default on that build [inferred]. Not tried: canceling or reusing the automatic
+  schedule, Grouping Source Invoice, and invoices with different due dates.
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
@@ -106,7 +98,7 @@ What the APIs did with Credit, Payment and Refund Application Level set to Line 
 one observation, so re-measure on the release patch in hand before relying on it; error text
 and object names may change between patches. Header Level was not measured.
 [Measured: 2026-10-15, 264, harness build, API 68.0, Line Level; repeated 2026-11-24, 264,
-fresh ent-sb0 scratch org] Details first recorded on 2026-11-24 carry their own tag.
+fresh ent-sb0 scratch org, API 68.0] Details first recorded on 2026-11-24 carry their own tag.
 
 - **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
   as `appliedToId` failed (error `INVALID_FIELD`, "Specify an InvoiceLineId as the appliedToId
@@ -123,8 +115,9 @@ fresh ent-sb0 scratch org] Details first recorded on 2026-11-24 carry their own 
 - **Payment Schedule Item.** One, on a Payment Schedule with no reference entity, could not
   request more than its payment's balance (error `INVALID_OPERATION`, "The payment balance
   can't be less than requested amount on the Payment Schedule Item. Provide a payment with
-  sufficient balance."). A request equal to the balance was accepted. The error code, the text
-  after "requested amount" and the equal request were first recorded
+  sufficient balance."). A request equal to the balance was accepted. The schedule without a
+  reference entity, the error code, the text after "requested amount" and the equal request
+  were first recorded
   [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org].
 - **The shipped Apply Payment flow.** The Apply Payment quick action launches the flow
   `RLM_Apply_Payments_on_Invoice`, which calls the subflow `RLM_Apply_Payment_To_Invoice_Lines`.

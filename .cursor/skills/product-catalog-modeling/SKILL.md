@@ -68,7 +68,8 @@ drop the `.md` suffix of the snapshot file name.
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case and accepted for static test bundles
   (inactive on an existing org; inactive and active on a fresh build), so Help's static rule
-  looks like guidance, not a guard; a mismatched pair priced and configured with no message
+  looks like guidance, not a guard; a mismatched pair priced, and a `configure` call returned
+  no message (the step may skip static bundles)
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -334,10 +335,11 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Recurring children in a fixed kit.** Which selling model a static kit's Evergreen child
-  is quoted on, and a Term Defined child when its component row sets none or the child has
-  several options (a Term Annual child was quoted on the model its row set [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which model
-  each renews and bills on; how a locked configurable bundle's
+- **Recurring children in a fixed kit.** Which selling model a static kit's child is quoted
+  on when it is Evergreen, sits under a root other than Evergreen, has no model on its
+  component row, or has several options (a Term Annual child under an Evergreen root was quoted
+  on the model its row set [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]); and which
+  model each child renews and bills on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
   quantity does; a CML-set locked quantity and a group out of range are not measured. See
@@ -348,9 +350,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; an Evergreen static bundle with One Time and Term Annual children drew none either, but the step may skip static bundles, which cannot be configured at run time; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help's rule is written for a *new* static bundle. Inserts of rows of that shape
-  were accepted on test bundles (not `CERT007`'s own rows), and a mismatched pair priced and
-  configured with no message; whether `CERT007`'s matched pairs price, order and renew
-  correctly is still open. See
+  were accepted on test bundles (not `CERT007`'s own rows), and a mismatched pair priced, and a
+  `configure` call returned no message (the step may skip static bundles); whether `CERT007`'s
+  matched pairs price, order and renew correctly is still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
