@@ -3,8 +3,10 @@
 Each fixture under ``fixtures/billing_verify/`` is a set of recorded query results,
 one list of rows per object. ``RecordedClient`` answers the verifier's SOQL from
 them, filtering on the ``WHERE <field> IN (...)`` clause, so the fetch path runs
-too. The clean fixtures must pass every check; each negative test breaks one fact
-and asserts that exactly the matching check fails.
+too. Like the API, it refuses a selected field that a recorded row does not have, so
+every fixture row lists every field the verifier selects (null where unmeasured). The
+clean fixtures must pass every check; each negative test breaks one fact and asserts
+that exactly the matching check fails.
 """
 
 from __future__ import annotations
@@ -14,12 +16,15 @@ import re
 from pathlib import Path
 
 import pytest
+import requests
 
-from scripts.txn_data_harness import cli
+from scripts.txn_data_harness import auth, cli
+from scripts.txn_data_harness import verify as verify_mod
 from scripts.txn_data_harness.auth import SfApiError, SfCliError
 from scripts.txn_data_harness.verify import (
     CHECK_NAMES,
     VerifyError,
+    _check_ids,
     fetch_billing_records,
     ids_from_manifest,
     run_checks,
@@ -43,7 +48,11 @@ def _load(name: str) -> dict:
 
 
 class RecordedClient:
-    """Answers SELECT ... WHERE f IN (...) from recorded rows; refuses any write."""
+    """Answers SELECT ... WHERE f IN (...) from recorded rows; refuses any write.
+
+    A selected or filtered field missing from a recorded row raises, as the API's
+    INVALID_FIELD would, instead of answering None.
+    """
 
     def __init__(self, data: dict):
         self.data = data
@@ -58,9 +67,13 @@ class RecordedClient:
         fields = [f.strip() for f in match["fields"].split(",")]
         out = []
         for row in self.data.get(match["obj"], []):
-            if row.get(match["field"]) in wanted:
+            unknown = [f for f in fields + [match["field"]] if f not in row]
+            if unknown:
+                raise AssertionError(f"{match['obj']} row {row.get('Id')} has no "
+                                     f"{', '.join(unknown)}: {soql}")
+            if row[match["field"]] in wanted:
                 out.append({"attributes": {"type": match["obj"]},
-                            **{f: row.get(f) for f in fields}})
+                            **{f: row[f] for f in fields}})
         return out
 
     def post(self, *args):  # pragma: no cover - a call is the failure
@@ -443,14 +456,17 @@ def test_more_ids_than_one_chunk_are_all_read():
     from scripts.txn_data_harness.verify import _id18
     n = 450
     invoices, lines = [], []
+    unmeasured_invoice = dict.fromkeys(verify_mod._UNMEASURED_INVOICE_FIELDS)
+    unmeasured_line = dict.fromkeys(verify_mod._UNMEASURED_LINE_FIELDS)
     for i in range(n):
         iid = _id18(f"3tt{i:012d}")
         invoices.append({"Id": iid, "Status": "Posted", "SettlementLevel": None,
                          "TotalAmountWithTax": 10, "NetCreditsApplied": 0,
-                         "NetPaymentsApplied": 0, "Balance": 10})
+                         "NetPaymentsApplied": 0, "Balance": 10, "WriteOffStatus": None,
+                         **unmeasured_invoice})
         lines.append({"Id": _id18(f"5TV{i:012d}"), "InvoiceId": iid, "Type": "Charge",
                       "LineAmount": 10, "NetCreditsApplied": 0, "NetPaymentsApplied": 0,
-                      "Balance": 10})
+                      "Balance": 10, **unmeasured_line})
     data = {"Invoice": invoices, "InvoiceLine": lines}
     client = RecordedClient(data)
     records = fetch_billing_records(client, [r["Id"] for r in invoices])
@@ -510,6 +526,91 @@ def test_ids_from_manifest_reads_invoice_and_payment_keys(tmp_path):
         "run_id": "run", "kind": "sales_txn_quote", "invoice_id": "3tt000000000001AAA",
         "payment_ids": ["0aQ000000000001EAA"]}))
     assert ids_from_manifest(path) == (["3tt000000000001AAA"], ["0aQ000000000001EAA"])
+
+
+def test_selected_field_missing_from_recorded_rows_fails(monkeypatch):
+    # A field the org may not have (CurrencyIsoCode exists only with multi-currency)
+    # must not read as None: the recorded client refuses it like INVALID_FIELD.
+    monkeypatch.setattr(verify_mod, "INVOICE_FIELDS",
+                        verify_mod.INVOICE_FIELDS + ("CurrencyIsoCode",))
+    with pytest.raises(AssertionError, match="CurrencyIsoCode"):
+        fetch_billing_records(RecordedClient(_load("line_level.json")), LINE_INVOICES)
+
+
+def test_no_selected_field_is_multi_currency_only():
+    selected = set(verify_mod.INVOICE_FIELDS + verify_mod.INVOICE_LINE_FIELDS
+                   + verify_mod.PAYMENT_FIELDS)
+    for obj in verify_mod.APP_OBJECTS:
+        selected |= set(obj.fields)
+    assert "CurrencyIsoCode" not in selected
+
+
+def test_ids_from_manifest_reads_all_four_keys(tmp_path):
+    path = tmp_path / "run.json"
+    path.write_text(json.dumps({
+        "invoice_id": "3tt000000000001AAA",
+        "invoice_ids": ["3tt000000000002AAA", "3tt000000000003AAA"],
+        "payment_id": "0aQ000000000001EAA",
+        "payment_ids": ["0aQ000000000002EAA"]}))
+    assert ids_from_manifest(path) == (
+        ["3tt000000000001AAA", "3tt000000000002AAA", "3tt000000000003AAA"],
+        ["0aQ000000000001EAA", "0aQ000000000002EAA"])
+
+
+@pytest.mark.parametrize("key", ["invoice_id", "invoice_ids", "payment_id", "payment_ids"])
+@pytest.mark.parametrize("value", [12345, ["3tt000000000001AAA", 7], {"id": "x"}, True])
+def test_ids_from_manifest_rejects_non_string_ids(tmp_path, key, value):
+    path = tmp_path / "run.json"
+    path.write_text(json.dumps({key: value}))
+    with pytest.raises(VerifyError, match=f"{key} must be a string id"):
+        ids_from_manifest(path)
+
+
+def test_check_ids_normalizes_deduplicates_and_keeps_order():
+    a, b = LINE_INVOICES[0], LINE_INVOICES[1]
+    assert _check_ids([b, a[:15], " ", a, b[:15], a[:15] + "aaa", None], "ids") == [b, a]
+
+
+def test_settlement_level_alone_sets_the_level():
+    # No application rows on INV2: only its SettlementLevel names a level.
+    data = _load("line_level.json")
+    _row(data, "Invoice", "3tt000000000002AAA")["SettlementLevel"] = "InvoiceLine"
+    report = _verify(data, ["3tt000000000002AAA"])
+    assert (report["level"], report["level_source"]) == ("line", "records")
+    assert _statuses(report, "application_level") == {"pass"}
+    # A SettlementLevel naming the other level makes the set mixed.
+    mixed = _line(mutate=lambda d: _row(d, "Invoice", "3tt000000000002AAA").update(
+        SettlementLevel="Invoice"))
+    assert mixed["level_source"] == "mixed"
+    assert mixed["failed_checks"] == ["application_level"]
+
+
+def test_header_rows_only_invoice_skips_line_balances_even_at_line_level():
+    # Forced line level on header rows: a header application rolled onto the line
+    # must not be judged against line rows that do not exist.
+    def mutate(data):
+        _row(data, "InvoiceLine", "5TV00000000H11AGAS").update(NetPaymentsApplied=300,
+                                                              Balance=800)
+    report = _header(level="line", mutate=mutate)
+    assert report["failed_checks"] == ["application_level"]
+    result = next(r for r in report["checks"] if r["check"] == "invoice_line_balance"
+                  and r["subject"] == "3tt0000000000H1AAI")
+    assert result["status"] == "skip" and "header rows" in result["detail"]
+
+
+@pytest.mark.parametrize("status", ["Draft", "Canceled", None])
+def test_invoice_that_is_not_posted_is_skipped_not_failed(status):
+    # Balances deliberately inconsistent: rollups are measured on Posted invoices only.
+    def mutate(data):
+        _row(data, "Invoice", "3tt000000000002AAA").update(Status=status, Balance=1)
+        _row(data, "InvoiceLine", "5TV000000000021GAA").update(Balance=1)
+    report = _line(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    skipped = [r for r in report["checks"] if r["subject"].startswith("3tt000000000002AAA")
+               and r["check"] in ("invoice_balance", "invoice_line_balance")]
+    assert {r["status"] for r in skipped} == {"skip"} and len(skipped) == 2
+    assert all(f"Status {status or 'null'}" in r["detail"]
+               and "Posted invoices only" in r["detail"] for r in skipped)
 
 
 # ------------------------------------------------------------------ CLI
@@ -640,3 +741,54 @@ def test_cli_verify_needs_some_ids(recorded_org, capsys):
     assert rc == 2
     assert "verify needs" in capsys.readouterr().err
 
+
+
+def _assert_error_exit(rc, capsys, fragment):
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert captured.err.startswith("ERROR: ") and fragment in captured.err
+    assert "Traceback" not in captured.err
+    out = json.loads(captured.out)
+    assert out["ok"] is False and fragment in out["error"]
+
+
+@pytest.mark.parametrize("ids", [{"invoice_id": 3}, {"payment_ids": [None]}])
+def test_cli_verify_manifest_with_non_string_id_exits_two(recorded_org, tmp_path,
+                                                          capsys, ids):
+    path = _manifest(tmp_path, **ids)
+    rc = cli.main(["verify", "--org", "fake", "--manifest", str(path), "--json"])
+    _assert_error_exit(rc, capsys, "must be a string id")
+
+
+def test_cli_verify_manifest_that_is_not_utf8_exits_two(recorded_org, tmp_path, capsys):
+    path = tmp_path / "latin1.json"
+    path.write_bytes(b'{"invoice_id": "caf\xe9"}')
+    rc = cli.main(["verify", "--org", "fake", "--manifest", str(path), "--json"])
+    _assert_error_exit(rc, capsys, "could not be read as JSON")
+
+
+@pytest.mark.parametrize("exc", [requests.ConnectionError("connection refused"),
+                                 requests.HTTPError("401 Client Error")])
+def test_cli_verify_latest_api_version_lookup_failure_exits_two(monkeypatch, capsys, exc):
+    monkeypatch.setattr(auth, "resolve_auth", lambda alias: ("token", "https://x.invalid"))
+
+    def refuse(self):
+        raise exc
+    monkeypatch.setattr(auth.SfRestClient, "_latest_api_version", refuse)
+    rc = cli.main(["verify", "--org", "fake", "--api-version", "latest",
+                   "--invoice-ids", LINE_INVOICES[0], "--json"])
+    _assert_error_exit(rc, capsys, "Salesforce request failed")
+
+
+def test_cli_verify_without_sf_on_path_exits_two(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("PATH", str(tmp_path))
+    rc = cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0], "--json"])
+    _assert_error_exit(rc, capsys, "sf CLI was not found")
+
+
+def test_cli_verify_other_os_error_exits_two(monkeypatch, capsys):
+    def boom(alias):
+        raise PermissionError(13, "Permission denied", "sf")
+    monkeypatch.setattr(auth, "resolve_auth", boom)
+    rc = cli.main(["verify", "--org", "fake", "--invoice-ids", LINE_INVOICES[0], "--json"])
+    _assert_error_exit(rc, capsys, "could not run a command or read a file")

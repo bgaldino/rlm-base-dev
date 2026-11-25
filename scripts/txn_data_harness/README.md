@@ -93,7 +93,7 @@ python -m scripts.txn_data_harness.cli inspect --latest
 python -m scripts.txn_data_harness.cli step --org <your-sf-alias> \
   --manifest <run-id-or-path> --account "<account-name>" --to-stage invoice_draft
 python -m scripts.txn_data_harness.cli report <base-run-id>           # batch summary from disk
-python -m scripts.txn_data_harness.cli verify --org <your-sf-alias> --latest   # read-only billing checks
+python -m scripts.txn_data_harness.cli verify --org <your-sf-alias> --latest   # read-only billing checks, newest manifest only
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
 

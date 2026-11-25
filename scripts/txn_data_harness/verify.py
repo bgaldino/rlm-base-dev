@@ -15,20 +15,26 @@ Checks (formulas are documented in
     level, or when its ``SettlementLevel`` names the other level.
 ``invoice_balance``
     ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
-    each rollup equals the net of the invoice's application rows. Skipped when a
-    converted-negative, write-off or adjustment field is set (effect unmeasured).
+    each rollup equals the net of the invoice's application rows. Skipped for an
+    invoice whose ``Status`` is not Posted (the rollups were measured on Posted
+    invoices only), and when a converted-negative, write-off or adjustment field is
+    set (effect unmeasured).
 ``invoice_line_balance``
     ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
     each rollup equals the net of the line's application rows. Skipped at Header
-    Level, for an invoice whose applications are header rows only, and for a line with
-    a converted-negative or adjustment amount. An invoice with no lines fails.
+    Level, for an invoice that is not Posted, for an invoice whose applications are
+    header rows only, and for a line with a converted-negative or adjustment amount.
+    An invoice with no lines fails.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
     payment's application rows on any invoice. Skipped for a payment whose
     ``NetRefundApplied`` or ``NetPaymentCreditApplied`` is non-zero (effect unmeasured).
 ``unapplied_rows``
     Every ``Unapplied`` row pairs with an ``Applied`` row marked unapplied, and every
-    ``Applied`` row marked unapplied has its ``Unapplied`` row.
+    ``Applied`` row marked unapplied has its ``Unapplied`` row. Pairs are matched by
+    ``Type`` and the self-lookup only; their amounts are not compared, because no
+    ``Unapplied`` row has been measured (neither its sign nor whether it reverses the
+    whole applied amount).
 
 The net of a set of application rows is the sum of ``Applied`` amounts minus the sum
 of ``Unapplied`` amounts (absolute value, since the sign of an Unapplied row's
@@ -84,7 +90,7 @@ _UNMEASURED_INVOICE_FIELDS = (
 _UNMEASURED_LINE_FIELDS = ("ConvertedNegAmount", "ChargeConvertedNegAmount", "AdjustmentAmount")
 
 INVOICE_FIELDS = (
-    "Id", "Status", "SettlementLevel", "CurrencyIsoCode", "TotalAmountWithTax",
+    "Id", "Status", "SettlementLevel", "TotalAmountWithTax",
     "NetCreditsApplied", "NetPaymentsApplied", "Balance", "WriteOffStatus",
 ) + _UNMEASURED_INVOICE_FIELDS
 INVOICE_LINE_FIELDS = (
@@ -128,6 +134,8 @@ APP_OBJECTS = (
 )
 _PAYMENT_APP_OBJECTS = tuple(o for o in APP_OBJECTS if o.kind == "payment")
 _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
+# The balance formulas were measured on Posted invoices; any other Status is skipped.
+_CHECKED_INVOICE_STATUS = "Posted"
 
 
 def _unmeasured(row: dict, fields: Iterable[str]) -> list[str]:
@@ -136,7 +144,7 @@ def _unmeasured(row: dict, fields: Iterable[str]) -> list[str]:
 
 
 class VerifyError(ValueError):
-    """Bad input (bad or unknown id, unreadable manifest). ``cli.main`` prints it, exits 1."""
+    """Bad input (bad or unknown id, unreadable manifest). ``cli verify`` prints it, exits 2."""
 
 
 # --------------------------------------------------------------------------- inputs
@@ -177,12 +185,16 @@ def split_ids(values: Optional[Iterable[str]], label: str) -> list[str]:
     return _check_ids(parts, label)
 
 
-def _as_list(value: Any) -> list[str]:
+def _as_list(value: Any, where: str) -> list[str]:
+    """Return a manifest id value as a list of strings; anything else is bad input."""
     if value is None:
         return []
     if isinstance(value, str):
         return [value]
-    return [v for v in value if isinstance(v, str)]
+    if isinstance(value, list) and all(isinstance(v, str) for v in value):
+        return value
+    raise VerifyError(f"{where} must be a string id or a list of string ids, "
+                      f"not {json.dumps(value)}")
 
 
 def ids_from_manifest(path: Path) -> tuple[list[str], list[str]]:
@@ -196,12 +208,15 @@ def ids_from_manifest(path: Path) -> tuple[list[str], list[str]]:
             data = json.load(handle)
     except FileNotFoundError:
         raise VerifyError(f"manifest not found: {path}") from None
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise VerifyError(f"manifest {path} could not be read as JSON: {exc}") from None
     if not isinstance(data, dict):
         raise VerifyError(f"manifest {path} is not a JSON object")
-    invoices = _as_list(data.get("invoice_id")) + _as_list(data.get("invoice_ids"))
-    payments = _as_list(data.get("payment_id")) + _as_list(data.get("payment_ids"))
+    invoices: list[str] = []
+    payments: list[str] = []
+    for key, out in (("invoice_id", invoices), ("invoice_ids", invoices),
+                     ("payment_id", payments), ("payment_ids", payments)):
+        out.extend(_as_list(data.get(key), f"manifest {path} {key}"))
     return (_check_ids(invoices, f"{path.name} invoice id"),
             _check_ids(payments, f"{path.name} payment id"))
 
@@ -370,6 +385,15 @@ def _result(check: str, subject: str, status: str, detail: str) -> dict:
     return {"check": check, "subject": subject, "status": status, "detail": detail}
 
 
+def _not_posted(invoice: dict) -> Optional[str]:
+    """The skip reason for an invoice whose Status is not Posted, else None."""
+    status = invoice.get("Status")
+    if status == _CHECKED_INVOICE_STATUS:
+        return None
+    return (f"Status {status or 'null'}; balances are checked on "
+            f"{_CHECKED_INVOICE_STATUS} invoices only")
+
+
 def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict]:
     out = []
     for invoice in idx.invoices:
@@ -416,6 +440,10 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
+        not_posted = _not_posted(invoice)
+        if not_posted:
+            out.append(_result("invoice_balance", iid, "skip", not_posted))
+            continue
         unmeasured = _unmeasured(invoice, _UNMEASURED_INVOICE_FIELDS)
         if invoice.get("WriteOffStatus"):
             unmeasured.append(f"WriteOffStatus {invoice['WriteOffStatus']}")
@@ -456,6 +484,10 @@ def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
             out.append(_result("invoice_line_balance", iid, "skip",
                                "level is header; line balances at Header Level are not "
                                "measured"))
+            continue
+        not_posted = _not_posted(invoice)
+        if not_posted:
+            out.append(_result("invoice_line_balance", iid, "skip", not_posted))
             continue
         has_line = any(_invoice_rows(idx, iid, k, "line") for k in ("payment", "credit"))
         has_head = any(_invoice_rows(idx, iid, k, "header") for k in ("payment", "credit"))

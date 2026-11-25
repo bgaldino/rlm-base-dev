@@ -5,31 +5,43 @@
       "Id": "3tt0000000000H1AAI",
       "Status": "Posted",
       "SettlementLevel": "Invoice",
-      "CurrencyIsoCode": "USD",
       "TotalAmountWithTax": 1100,
       "NetCreditsApplied": 100,
       "NetPaymentsApplied": 300,
-      "Balance": 700
+      "Balance": 700,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null
     },
     {
       "Id": "3tt0000000000H2AAI",
       "Status": "Posted",
       "SettlementLevel": null,
-      "CurrencyIsoCode": "USD",
       "TotalAmountWithTax": 330,
       "NetCreditsApplied": 0,
       "NetPaymentsApplied": 0,
-      "Balance": 330
+      "Balance": 330,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null
     },
     {
       "Id": "3tt0000000000H9AAI",
       "Status": "Posted",
       "SettlementLevel": "Invoice",
-      "CurrencyIsoCode": "USD",
       "TotalAmountWithTax": 200,
       "NetCreditsApplied": 0,
       "NetPaymentsApplied": 200,
-      "Balance": 0
+      "Balance": 0,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null
     }
   ],
   "InvoiceLine": [
@@ -40,7 +52,10 @@
       "LineAmount": 1100,
       "NetCreditsApplied": 0,
       "NetPaymentsApplied": 0,
-      "Balance": 1100
+      "Balance": 1100,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
     },
     {
       "Id": "5TV00000000H21AGAS",
@@ -49,7 +64,10 @@
       "LineAmount": 330,
       "NetCreditsApplied": 0,
       "NetPaymentsApplied": 0,
-      "Balance": 330
+      "Balance": 330,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
     },
     {
       "Id": "5TV00000000H91AGAS",
@@ -58,7 +76,10 @@
       "LineAmount": 200,
       "NetCreditsApplied": 0,
       "NetPaymentsApplied": 0,
-      "Balance": 200
+      "Balance": 200,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
     }
   ],
   "PaymentLineInvoiceLine": [],
@@ -136,7 +157,9 @@
       "Status": "Processed",
       "Amount": 500,
       "NetApplied": 500,
-      "Balance": 0
+      "Balance": 0,
+      "NetRefundApplied": null,
+      "NetPaymentCreditApplied": null
     }
   ]
 }

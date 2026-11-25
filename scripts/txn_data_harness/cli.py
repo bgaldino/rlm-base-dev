@@ -11,6 +11,8 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+import requests
+
 from . import generate
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
@@ -372,8 +374,8 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     """Read-only billing checks.
 
     Exit 0 when nothing fails, 1 when any check fails, 2 when the input or a
-    Salesforce request is bad (no report). With ``--json`` an error prints
-    ``{"ok": false, "error": ...}`` on stdout too.
+    Salesforce request is bad, or the ``sf`` CLI cannot run (no report). With
+    ``--json`` an error prints ``{"ok": false, "error": ...}`` on stdout too.
     """
     try:
         invoice_ids, payment_ids = _verify_ids(args)
@@ -381,10 +383,16 @@ def _cmd_verify(args: argparse.Namespace) -> int:
             args.org, api_version=args.api_version, transport=args.transport
         )
         records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
-    except (billing_verify.VerifyError, SfApiError, SfCliError) as exc:
+    except (billing_verify.VerifyError, SfApiError, SfCliError,
+            requests.RequestException, OSError) as exc:
+        # RequestException: the --api-version latest lookup; OSError: sf not runnable.
         message = str(exc)
-        if isinstance(exc, (SfApiError, SfCliError)):
+        if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
             message = f"Salesforce request failed: {exc}"
+        elif isinstance(exc, FileNotFoundError) and exc.filename == "sf":
+            message = "the sf CLI was not found on PATH"
+        elif isinstance(exc, OSError):
+            message = f"could not run a command or read a file: {exc}"
         print(f"ERROR: {message}", file=sys.stderr)
         if args.json:
             print(json.dumps({"ok": False, "error": message}, indent=2))

@@ -125,9 +125,12 @@ Checks, by id and with SOQL only, that each invoice, invoice line and payment
 balance agrees with its payment and credit applications, and that the
 applications are at one level (line or header). Exit 0 on pass, 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
-id, missing manifest, refused query); with `--json` an error also prints
-`{"ok": false, "error": ...}`. Ids may be 15 or 18 characters. Payment ids
-are read from a manifest only when it has them.
+id, missing or malformed manifest, refused query, failed connection, no `sf`
+on `PATH`); with `--json` an error also prints `{"ok": false, "error": ...}`.
+Ids may be 15 or 18 characters. Payment ids are read from a manifest only
+when it has them. `--latest` checks only the newest manifest: after a batch
+of several scenarios, pass each manifest (`--manifest` repeats) or the ids.
+Balances are checked on Posted invoices only; others are skipped.
 `--expect-level line|header` forces the level (default: detect from the
 records). Checks and formulas: `billing-operations` → `verification.md`.
 
