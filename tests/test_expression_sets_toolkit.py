@@ -2271,7 +2271,8 @@ def test_null_rank_guard():
           "cause and the remedy",
           "Enter a valid rank" in msg and "Nothing was written" in msg
           and "could not turn it back on" in msg and "cannot be updated/deleted" in msg
-          and "--values Rank=<n>" in msg and "--deactivate" in msg
+          and "--values Rank=<n>" in msg and "--version X_V1 --deactivate" in msg
+          and "--version X_V1 --activate" in msg
           and "X_V1" in msg, msg)
     draft_msg = null_rank_reactivation_refusal(dict(null_active, IsActive=False), True) or ""
     check("a null-Rank draft the run would activate is refused too",

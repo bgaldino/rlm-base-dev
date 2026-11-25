@@ -312,11 +312,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if definition is None:
                 definition = self._get_expression_set_via_connect(es_id)
             versions = definition.get("versions", [])
-            get_api = versions[0].get("apiName") if versions else None
+            get_apis = [v.get("apiName") for v in versions if v.get("apiName")]
         except Exception:
             return
         sobject_api = esv.get("ApiName")
-        if get_api and sobject_api and get_api != sobject_api:
+        # On a multi-version set the GET lists every version, and the targeted one
+        # need not come first: warn only when none of them carries its name.
+        if get_apis and sobject_api and sobject_api not in get_apis:
+            get_api = get_apis[0] if len(get_apis) == 1 else ", ".join(get_apis)
             self.logger.warning(
                 "Connect GET version apiName '%s' disagrees with the "
                 "ExpressionSetVersion sObject ApiName '%s' (stale clone name). "

@@ -2151,9 +2151,10 @@ def test_overlay_multi_version_target_and_name_guard():
             {"apiName": api, "name": get_names[api], "id": rid,
              "steps": [{"name": "S", "description": "old"}], "variables": []}
             for api, rid in (("C_V1", "9QM1"), ("C_V2", "9QM2"))]}
-        seen = {"writes": [], "edited": []}
+        seen = {"writes": [], "edited": [], "warnings": []}
         task = object.__new__(ApplyExpressionSetOverlay)
         task.logger = logging.getLogger("test_overlay_multi_version")
+        task.logger.warning = lambda msg, *args: seen["warnings"].append(msg % args)
         task.options = {"overlay_file": "unused", **(options or {})}
         task._load_overlay = lambda: {"expressionSetApiName": "C",
                                       "updateSteps": [{"name": "S", "description": "new"}]}
@@ -2163,7 +2164,6 @@ def test_overlay_multi_version_target_and_name_guard():
         task._resolve_version_by_es_id = lambda es_id: dict(rows[1])
         task._get_expression_set_via_connect = lambda es_id: deepcopy(definition)
         task._preflight_validate_overlay_against_definition = lambda *a: None
-        task._check_version_name_consistency = lambda *a: None
         task._list_versions = lambda es_id: [dict(r) for r in rows]
         task._preflight_validate_definition = lambda *a, **k: None
         task._ensure_resource_initialization_type = (
@@ -2189,9 +2189,21 @@ def test_overlay_multi_version_target_and_name_guard():
     check("CCI overlay with no version edits the executing version, not the GET's first",
           ok["error"] is None and ok["edited"] == ["C_V2"]
           and ok["writes"] == ["resourceInitializationType", "mutation"])
+    check("CCI overlay: the executing version listed second in the GET is not a "
+          "stale-name warning, and no version warning when it is the target",
+          ok["warnings"] == [])
     named = run("C V1", {"version_api_name": "C_V1"})
-    check("CCI overlay edits an explicitly named version",
-          named["error"] is None and named["edited"] == ["C_V1"])
+    check("CCI overlay edits an explicitly named version, warning that it does not run",
+          named["error"] is None and named["edited"] == ["C_V1"]
+          and any("C_V2 is the executing version" in w for w in named["warnings"]))
+    stale = object.__new__(ApplyExpressionSetOverlay)
+    stale_warnings = []
+    stale.logger = logging.getLogger("test_overlay_stale_name")
+    stale.logger.warning = lambda msg, *args: stale_warnings.append(msg % args)
+    stale._check_version_name_consistency(
+        "9QLx", {"ApiName": "C_V3"}, {"versions": [{"apiName": "C_V1"}, {"apiName": "C_V2"}]})
+    check("a GET that lacks the target's apiName still warns of a stale clone name",
+          len(stale_warnings) == 1 and "C_V3" in stale_warnings[0])
     clash = run("C V2")
     check("CCI overlay refuses versions sharing a name before any write",
           clash["error"] is not None and "both carry the name" in clash["error"]

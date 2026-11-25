@@ -203,13 +203,15 @@ def _rank_remedy(esv: Dict[str, Any], alternative: Optional[str]) -> str:
     # active version is deactivated, ranked and activated again.
     update = (f"sf data update record --sobject ExpressionSetVersion --record-id "
               f"{esv.get('Id')} --values Rank=<n>")
+    version = f"--version {esv.get('ApiName') or '<ApiName>'}"
     if esv.get("IsActive"):
         how = (" Give it a Rank first. No update of an active version is accepted "
                "(\"An enabled Expression Set Version cannot be updated/deleted.\", "
-               "measured), so: deactivate it (activate_expression_set.py --deactivate; "
-               "it does not run while off), set a Rank that keeps the intended version "
-               f"executing ({update}), and activate it again (activate_expression_set.py "
-               "--activate); each step was measured")
+               "measured), so: deactivate it (activate_expression_set.py "
+               f"{version} --deactivate; it does not run while off), set a Rank that "
+               f"keeps the intended version executing ({update}), and activate it again "
+               f"(activate_expression_set.py {version} --activate); each step was "
+               "measured")
     else:
         how = (" Give it a Rank first, one that keeps the intended version executing "
                f"({update}; measured on an inactive version)")
@@ -400,10 +402,10 @@ def version_name_collision_refusal(
         f"{version_rows(versions)}. The PATCH sends every version, and the platform "
         "rejects it when a version's name is not unique in the set (\"An expression "
         "set version with the name … exists in this expression set\", measured on "
-        f"Release 264, 2026-11-25): {'; '.join(problems)}. Nothing was written. Give "
-        "each version its own label (a Metadata API deploy with a distinct <label> "
-        "per version gave distinct names, measured; an sObject update of "
-        "ExpressionSetVersion.Name did not change the name the GET returns, "
-        "measured), or change one version's step formula with "
+        f"Release 264, 2026-11-25): {'; '.join(problems)}. Nothing was written. "
+        "Versions deployed with their own <label> got distinct names (measured), but "
+        "an sObject update of ExpressionSetVersion.Name did not change the name the "
+        "GET returns (measured) and a deploy over an active version is refused, so on "
+        "an existing set change one version's step formula with "
         "scripts/expression_sets/set_step_formula.py, which edits only that version."
     )
