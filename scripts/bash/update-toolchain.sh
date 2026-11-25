@@ -187,7 +187,7 @@ nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"
 # Carry `sf` and other globals forward, only when the version changed. Passing
 # --reinstall-packages-from=current to `nvm install` instead fails (exit 2) on a
-# re-run where Node is already on the latest LTS.
+# re-run where Node is already on the latest patch of the pinned line.
 if [ "$NEW_NODE" != "$CARRY_FROM" ] && [ "${CARRY_FROM#v}" != "$CARRY_FROM" ]; then
   log "Node: reinstalling global packages from $CARRY_FROM"
   nvm reinstall-packages "$CARRY_FROM" \

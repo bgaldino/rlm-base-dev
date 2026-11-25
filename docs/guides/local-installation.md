@@ -392,7 +392,7 @@ If any command returns "not found", check that `~/.zshenv` contains the blocks f
 ### Ongoing toolchain maintenance
 
 Once the bootstrap above is complete, ongoing updates (new Python patches,
-Node 24 refreshes (the line pinned in `.nvmrc`), sf/CCI/SFDMU upgrades) are handled by a single script:
+Node 24 refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 
 ```bash
 scripts/bash/update-toolchain.sh
