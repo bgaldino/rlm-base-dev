@@ -268,7 +268,9 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
     article on disk is rewritten to ``./<slug>.md`` (fragment kept). A link left
     dangling (no site file for the target, or a link form the rewrite does not handle) stays as
     is and is returned so the caller can report it. Returns the number of links rewritten and
-    those unresolved ``(file, target)`` pairs, one per target per file. Idempotent.
+    those unresolved ``(file, target)`` pairs, one per target per file; a file that cannot be read or
+    written is reported as ``(file, "(unreadable: <error>)")`` or ``(file, "(not writable: <error>)")``.
+    Idempotent.
     """
     articles = out / "articles"
     mapping = _legacy_map(manifest)
@@ -282,11 +284,16 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
         f = out / rel
         if rel in superseded or not f.is_file():
             continue  # absent, or about to be removed
-        text = f.read_text(encoding="utf-8")
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:  # report it; the run is not worth aborting
+            unresolved.append((f"{old}.md", f"(unreadable: {exc.__class__.__name__})"))
+            continue
         seen = set()  # each unresolved target is reported once per file
+        file_count = 0
 
         def fix(m):
-            nonlocal rewritten
+            nonlocal file_count
             target = m.group(3)
             if "/" in target:  # a path or URL, not a sibling article
                 return m.group(0)
@@ -294,7 +301,7 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
                 return m.group(0)  # present and staying
             slug = mapping.get(target[:-3])
             if slug and (articles / f"{slug}.md").is_file():
-                rewritten += 1
+                file_count += 1
                 return f"{m.group(1)}./{slug}.md{m.group(4) or ''}{m.group(5) or ''}{m.group(6)}"
             if target not in seen:
                 seen.add(target)
@@ -308,7 +315,11 @@ def rewrite_retained_links(out: Path, manifest) -> Tuple[int, List[Tuple[str, st
                 seen.add(t)
                 unresolved.append((f"{old}.md", t))
         if new != text:
-            f.write_text(new, encoding="utf-8")
+            try:
+                f.write_text(new, encoding="utf-8")
+                rewritten += file_count
+            except OSError as exc:
+                unresolved.append((f"{old}.md", f"(not writable: {exc.__class__.__name__})"))
     return rewritten, unresolved
 
 
@@ -869,9 +880,9 @@ class SiteGuideSnapshot:
         if unresolved:
             shown = ", ".join(f"{f} -> {t}" for f, t in unresolved[:10])
             self.logger.warning(
-                f"  {len(unresolved)} local link(s) in retained atlas articles point at a missing "
-                "file and were left as is (no site file for the target, or a link form the "
-                f"rewrite does not handle): {shown}"
+                f"  {len(unresolved)} problem(s) with local links in retained atlas articles, left as is "
+                "(a target with no site file, a link form the rewrite does not handle, or an "
+                f"unreadable or unwritable file): {shown}"
                 + (f", ... ({len(unresolved) - 10} more)" if len(unresolved) > 10 else ""))
 
     def _save_manifest(self, path: Path, manifest: Dict[str, Any]) -> None:

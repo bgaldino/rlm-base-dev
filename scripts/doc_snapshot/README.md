@@ -270,10 +270,12 @@ the site over plain HTTP (no browser) through `site_guide.py`:
   and an id that maps to nothing (see `unmapped_legacy_ids`), leave it as the only copy
   and it is not offered for removal. A rerun retries the ids that stayed unmapped. (A
   switch to a different guide abandons the old corpus whole and lists all its files.)
-  Every run also rewrites the relative links in the atlas articles that stay behind
-  (`unmapped_legacy_ids`, held pages) from a missing or superseded `<id>.md` target to its
-  site slug file, keeping the `#fragment`; a link that stays dangling (no site file for the target, or a link form the
-  rewrite does not handle) is left as is and named in a warning.
+  Every run also rewrites the relative links to a sibling article in the atlas articles that
+  stay behind (those in `unmapped_legacy_ids`, pages the shrinkage guard held or whose
+  replacement failed, pages kept with `--accept-uncovered`) from a missing or superseded
+  `<id>.md` target to its site slug file, keeping the `#fragment` and the link title. A link
+  that stays dangling (no site file for the target, or a link form the rewrite does not
+  handle) is left as is and its target named once per file in a warning.
 - Rate limit: `concurrency` pages per batch (default 4), `batch_delay_ms` between
   batches (default 500), three attempts with backoff on a failed connection, 429 or
   5xx. The capture guard (not-found and stub) applies as for atlas.
@@ -295,7 +297,7 @@ the Industries switch was sectioned, so it passed the coverage guard with
 serve), and in the Industries corpus five pages the site serves only as stubs stayed on their atlas text (the rlm corpus holds two the same way; the shrinkage
 guard refused them; their `legacy_id_map` slugs have no file, so cite the atlas `.htm` id).
 Local links inside the retained atlas articles were rewritten to the site slug files, so
-they stay navigable offline (a switch does not do this itself; sweep for broken relative links after one).
+they stay navigable offline (every run keeps doing this; a link it cannot map is named in a warning).
 The 262 `industries` preset and both `contracts` presets stay atlas. A sample run:
 
 ```bash
