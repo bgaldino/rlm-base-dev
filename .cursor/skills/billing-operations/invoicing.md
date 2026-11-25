@@ -196,7 +196,8 @@ is out of scope here [Help: `ind.billing_forecast_console`].
   optional Recalculate All Forecast Lines (Once frequency) [Help: `ind.billing_forecast_schedule`].
   Headless: the invoice-scheduler Connect resource with `jobType` Forecast
   [Dev guide: `connect_resources_create_an_invoice_scheduler`], which needs the Billing
-  Operations User and Data Pipelines Base User permission sets (same page).
+  Operations User and Data Pipelines Base User permission sets
+  [Dev guide: `connect_resources_create_an_invoice_scheduler`].
   `BillingBatchScheduler` itself has no `create()`
   [Dev guide: `sforce_api_objects_billingbatchscheduler`].
 - **Read back.** `BillingForecast` rows (one per schedule and billing period
@@ -216,8 +217,9 @@ is out of scope here [Help: `ind.billing_forecast_console`].
 
 ```bash
 # shouldRecalculateAllForecastLn true overwrites existing forecast rows (full refresh);
-# false is the faster incremental run over PendingForecast schedules (Help: unchecked by
-# default in the UI; the API default is not documented, so set it explicitly).
+# false is the faster incremental run over PendingForecast schedules (unchecked by default
+# in the UI per ind.billing_forecast_schedule; the API default is not documented, so set it
+# explicitly).
 cat > forecast.json <<'JSON'
 {"schedulerName":"<unique name>","jobType":"Forecast","status":"Active",
  "frequencyCadence":"Once","frequencyCadenceOptions":{"shouldStartRunImmediately":true},
@@ -228,19 +230,21 @@ sf api request rest /services/data/v68.0/commerce/invoicing/invoice-schedulers \
 ```
 
 Read back with one `sf data query --target-org <sf-alias> -q "<SOQL>"` call per query
-(an empty result means no forecast run has happened yet; the POST above creates the data).
-The first query lists every Forecast run, newest last; a run that shows 0 lines is a
-non-recalculate run that found nothing `PendingForecast`, not a failure.
+(an empty result from the first query means no forecast run has happened yet; the POST
+above creates the data). The first query lists every Forecast run, newest last. A
+Completed non-recalculate run with 0 lines found nothing `PendingForecast` to forecast
+[inferred from one measured run]; check Status before reading 0 lines as success.
 
 ```sql
 SELECT Id, Status, JobType, CreatedDate, TotalForecastLines, TotalForecastedAmount, BillingBatchSchedulerId FROM InvoiceBatchRun WHERE JobType = 'Forecast' ORDER BY CreatedDate
 SELECT Name, BillingSchedule.BillingScheduleNumber, Category, BillingTermUnit, BillingPeriodStartDate, BillingPeriodEndDate, ChargeAmount, InvoiceBatchRunId FROM BillingForecast ORDER BY Name
-SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate FROM BillingSchedule ORDER BY BillingScheduleNumber
+SELECT BillingScheduleNumber, ForecastStatus, LastForecastRunTargetDate, ForecastBatchRunId FROM BillingSchedule ORDER BY BillingScheduleNumber
 ```
 
 Match each `BillingForecast.InvoiceBatchRunId` to a run from the first query. Schedules
-created after the run show `PendingForecast` until the next run picks them up.
-
+created after the run should show `PendingForecast` until a later run whose filters include
+them picks them up [inferred]. The third query lists every schedule in the org, including
+milestone and usage ones that Help excludes from forecasting.
 
 [Measured: 2026-11-25, 264, fresh `ent-sb0` build, API 68.0, default flags]. One observation:
 
@@ -248,7 +252,7 @@ created after the run show `PendingForecast` until the next run picks them up.
 - The org held three billing schedules (Type LineItemCharge, Category Original, Year term,
   BillingMethod OrderAmount, 2026-11-24 to 2027-11-23; amounts 20000, 450, 450), all
   `ForecastStatus = PendingForecast`, and no `BillingForecast` rows.
-- The POST above (target date 2027-12-31; no `startDate`, `preferredTime` or `invoiceStatus`,
+- The POST above (target date 2027-12-31; no `startDate`, `preferredTime`, `invoiceStatus` or `invoiceDate`,
   which the dev guide marks Required but its forecast example
   [Dev guide: `connect_requests_batch_invoice_scheduler_input`] also omits) returned `{"billingBatchScheduler":{"id":...}}`
   and nothing else. Within one minute the scheduler was `Inactive` (a Once run is spent [inferred]), and
