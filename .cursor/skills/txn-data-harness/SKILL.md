@@ -193,7 +193,8 @@ before adding any quote-creation path to either tool.
 
 1. For invoices with payments or credits applied, run the read-only billing checks
    (exit 1 on a failed check, 2 on bad input; formulas in `billing-operations` →
-   `verification.md`). `--latest` checks only the newest manifest; after a batch of
+   `verification.md`; anything unmeasured, such as unapplied application rows, is
+   skipped with a reason, not failed). `--latest` checks only the newest manifest; after a batch of
    several scenarios, pass each one with `--manifest` (repeatable) or the ids with
    `--invoice-ids`:
 

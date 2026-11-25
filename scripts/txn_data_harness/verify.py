@@ -24,30 +24,24 @@ Checks (formulas are documented in
     a converted-negative, write-off or adjustment field is set (effect unmeasured).
 ``invoice_line_balance``
     ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
-    each rollup equals the net of the line's application rows. Skipped at Header
-    Level, for an invoice with no level of its own (no application rows and no
-    ``SettlementLevel``) when the set has no single level (undetermined or mixed),
-    for an invoice that is not Posted or has Tax
-    lines or header tax, for an
-    invoice whose applications are header rows only, and for a line with a
-    converted-negative or adjustment amount. An invoice with no lines fails.
+    each rollup equals the net of the line's application rows. Runs only on an invoice
+    whose own evidence is line level alone (line application rows and/or
+    ``SettlementLevel`` InvoiceLine, and nothing of the header level); skipped for
+    any other invoice, naming its evidence. Also skipped for an invoice that is not
+    Posted or has Tax lines or header tax, and for a line with a converted-negative
+    or adjustment amount. An invoice with no lines fails.
 ``payment_balance``
     ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
     payment's application rows on any invoice. Checked for a Processed payment, and a
     Canceled payment with no application rows (the two measured cases); any other
     status, or a Canceled payment with rows, is skipped. Also skipped for a payment
     whose ``NetRefundApplied`` or ``NetPaymentCreditApplied`` is non-zero.
-``unapplied_rows``
-    Every ``Unapplied`` row pairs with an ``Applied`` row marked unapplied, and every
-    ``Applied`` row marked unapplied has its ``Unapplied`` row, one to one (a second
-    ``Unapplied`` row on the same ``Applied`` row fails). Pairs are matched by
-    ``Type`` and the self-lookup only; their amounts are not compared, because no
-    ``Unapplied`` row has been measured (neither its sign nor whether it reverses the
-    whole applied amount).
 
-The net of a set of application rows is the sum of ``Applied`` amounts minus the sum
-of ``Unapplied`` amounts (absolute value, since the sign of an Unapplied row's
-``Amount`` has not been measured). Amounts compare exactly as Decimals; ids may be 15
+Unapplied application rows have not been measured on 264 (the org read had none), so
+an invoice or payment with any row of ``Type`` Unapplied, or any row flagged unapplied
+(``UnappliedStatus`` or ``HasBeenUnapplied`` = Yes), skips every balance check that
+reads its application rows. Otherwise the net of a set of application rows is the
+sum of their ``Applied`` amounts. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.
 """
@@ -75,7 +69,6 @@ CHECK_NAMES = (
     "invoice_balance",
     "invoice_line_balance",
     "payment_balance",
-    "unapplied_rows",
 )
 
 LEVELS = ("line", "header")
@@ -124,24 +117,25 @@ class _AppObject:
     target_field: str   # InvoiceLineId (line) or InvoiceId (header)
     source_field: str   # PaymentId / CreditMemoLineId / CreditMemoId
     unapplied_flag: str  # UnappliedStatus / HasBeenUnapplied
-    related_field: str  # the self-lookup pairing Applied and Unapplied rows
 
     @property
     def fields(self) -> tuple[str, ...]:
         return ("Id", self.target_field, self.source_field, "Amount", "Type",
-                self.unapplied_flag, self.related_field)
+                self.unapplied_flag)
 
 
 APP_OBJECTS = (
     _AppObject("PaymentLineInvoiceLine", "line", "payment", "InvoiceLineId", "PaymentId",
-               "UnappliedStatus", "RelatedPaymentLineInvcLineId"),
+               "UnappliedStatus"),
     _AppObject("CreditMemoLineInvoiceLine", "line", "credit", "InvoiceLineId",
-               "CreditMemoLineId", "UnappliedStatus", "RelatedCrMemoLineInvcLineId"),
+               "CreditMemoLineId", "UnappliedStatus"),
     _AppObject("PaymentLineInvoice", "header", "payment", "InvoiceId", "PaymentId",
-               "HasBeenUnapplied", "AssociatedPaymentLineId"),
+               "HasBeenUnapplied"),
     _AppObject("CreditMemoInvApplication", "header", "credit", "InvoiceId", "CreditMemoId",
-               "HasBeenUnapplied", "AssociatedLineId"),
+               "HasBeenUnapplied"),
 )
+_UNAPPLIED_FLAGS = tuple(sorted({o.unapplied_flag for o in APP_OBJECTS}))
+_UNAPPLIED_REASON = "has unapplied application rows (not measured on 264)"
 _PAYMENT_APP_OBJECTS = tuple(o for o in APP_OBJECTS if o.kind == "payment")
 _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
 # The balance formulas were measured on Posted invoices; any other Status is skipped.
@@ -349,14 +343,15 @@ def _fmt(value: Optional[Decimal]) -> str:
 
 
 def _net(rows: Iterable[dict]) -> Decimal:
-    total = Decimal("0")
-    for row in rows:
-        amount = _zero(row.get("Amount"))
-        if row.get("Type") == "Unapplied":
-            total -= abs(amount)
-        elif row.get("Type") == "Applied":
-            total += amount
-    return total
+    """Sum of the Applied amounts. Callers skip any set with unapplied rows first."""
+    return sum((_zero(r.get("Amount")) for r in rows if r.get("Type") == "Applied"),
+               Decimal("0"))
+
+
+def _has_unapplied(rows: Iterable[dict]) -> bool:
+    """True when any row is of Type Unapplied or flagged unapplied (not measured)."""
+    return any(r.get("Type") == "Unapplied"
+               or any(r.get(f) == "Yes" for f in _UNAPPLIED_FLAGS) for r in rows)
 
 
 @dataclass
@@ -393,6 +388,19 @@ def _invoice_rows(idx: _Index, invoice_id: str, kind: str, level: str) -> list[d
     for line in idx.lines_by_invoice.get(invoice_id, []):
         rows.extend(idx.line_rows[kind].get(line["Id"], []))
     return rows
+
+
+def _all_invoice_rows(idx: _Index, invoice_id: str) -> list[dict]:
+    return [r for kind in ("payment", "credit") for level in LEVELS
+            for r in _invoice_rows(idx, invoice_id, kind, level)]
+
+
+def _facts(idx: _Index, invoice: dict) -> str:
+    iid = invoice["Id"]
+    line_n = sum(len(_invoice_rows(idx, iid, k, "line")) for k in ("payment", "credit"))
+    head_n = sum(len(_invoice_rows(idx, iid, k, "header")) for k in ("payment", "credit"))
+    return (f"{line_n} line application row(s), {head_n} header application row(s), "
+            f"SettlementLevel {invoice.get('SettlementLevel') or 'null'}")
 
 
 def _evidence(idx: _Index, invoice: dict) -> set[str]:
@@ -445,8 +453,7 @@ def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict
         line_n = sum(len(_invoice_rows(idx, iid, k, "line")) for k in ("payment", "credit"))
         head_n = sum(len(_invoice_rows(idx, iid, k, "header")) for k in ("payment", "credit"))
         settlement = invoice.get("SettlementLevel")
-        facts = (f"{line_n} line application row(s), {head_n} header application row(s), "
-                 f"SettlementLevel {settlement or 'null'}")
+        facts = _facts(idx, invoice)
         own = _evidence(idx, invoice)
         if not own:
             # Nothing on this invoice shows a level, whether the level was detected,
@@ -499,6 +506,9 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
                                f"{', '.join(unmeasured)}: the effect on Balance is not "
                                "measured"))
             continue
+        if _has_unapplied(_all_invoice_rows(idx, iid)):
+            out.append(_result("invoice_balance", iid, "skip", _UNAPPLIED_REASON))
+            continue
         total = _dec(invoice.get("TotalAmountWithTax"))
         credits = _zero(invoice.get("NetCreditsApplied"))
         payments = _zero(invoice.get("NetPaymentsApplied"))
@@ -523,21 +533,19 @@ def _check_invoice_balance(idx: _Index) -> list[dict]:
     return out
 
 
-def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
+def _check_line_balance(idx: _Index) -> list[dict]:
     out = []
     for invoice in idx.invoices:
         iid = invoice["Id"]
-        if level == "header":
+        # Line balances were measured at Line Level only, so the one gate is this
+        # invoice's own evidence, whatever level the set has or was forced to.
+        own = _evidence(idx, invoice)
+        if own != {"line"}:
+            shown = {0: "no level", 1: f"{''.join(own)} level"}.get(len(own), "both levels")
             out.append(_result("invoice_line_balance", iid, "skip",
-                               "level is header; line balances at Header Level are not "
-                               "measured"))
-            continue
-        if level is None and not _evidence(idx, invoice):
-            # Undetermined set, or a mixed set and this invoice shows no level itself.
-            out.append(_result("invoice_line_balance", iid, "skip",
-                               "level undetermined (no application rows or SettlementLevel "
-                               "on this invoice, and no single level for the set); line "
-                               "balances are measured at Line Level only"))
+                               f"this invoice's own evidence shows {shown} "
+                               f"({_facts(idx, invoice)}); line balances are checked only "
+                               "when it is line level alone"))
             continue
         not_posted = _not_posted(invoice)
         if not_posted:
@@ -548,14 +556,10 @@ def _check_line_balance(idx: _Index, level: Optional[str]) -> list[dict]:
             out.append(_result("invoice_line_balance", iid, "skip",
                                f"{', '.join(tax)}: separate or header tax is not measured"))
             continue
-        has_line = any(_invoice_rows(idx, iid, k, "line") for k in ("payment", "credit"))
-        has_head = any(_invoice_rows(idx, iid, k, "header") for k in ("payment", "credit"))
-        lines = idx.lines_by_invoice.get(iid, [])
-        if has_head and not has_line:
-            out.append(_result("invoice_line_balance", iid, "skip",
-                               "applications are header rows; line balances at Header "
-                               "Level are not measured"))
+        if _has_unapplied(_all_invoice_rows(idx, iid)):
+            out.append(_result("invoice_line_balance", iid, "skip", _UNAPPLIED_REASON))
             continue
+        lines = idx.lines_by_invoice.get(iid, [])
         if not lines:
             # A posted invoice always has lines; none read means the lines are missing
             # or not readable, so the line check cannot pass.
@@ -623,6 +627,10 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
                                f"Status {status}; {', '.join(unmeasured)}: the effect on "
                                "Balance is not measured"))
             continue
+        if _has_unapplied(rows):
+            out.append(_result("payment_balance", pid, "skip",
+                               f"Status {status}; {_UNAPPLIED_REASON}"))
+            continue
         amount = _dec(payment.get("Amount"))
         applied = _zero(payment.get("NetApplied"))
         balance = _dec(payment.get("Balance"))
@@ -643,57 +651,6 @@ def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[
     return out
 
 
-def _check_unapplied(records: dict[str, list[dict]]) -> list[dict]:
-    out = []
-    for obj in APP_OBJECTS:
-        rows = {r["Id"]: r for r in records.get(obj.name, [])}
-        pointed_at: dict[str, str] = {}
-        for rid, row in rows.items():
-            related = row.get(obj.related_field)
-            if related:
-                pointed_at.setdefault(related, rid)
-
-        def partner(rid: str, row: dict) -> Optional[dict]:
-            related = row.get(obj.related_field)
-            if related and related in rows:
-                return rows[related]
-            other = pointed_at.get(rid)
-            return rows.get(other) if other else None
-
-        claimed: dict[str, str] = {}  # Applied row id -> the Unapplied row paired with it
-        for rid, row in sorted(rows.items()):
-            kind = row.get("Type")
-            mate = partner(rid, row)
-            if kind == "Unapplied":
-                if mate is not None and mate["Id"] in claimed:
-                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
-                                       f"Applied row {mate['Id']} is already paired with "
-                                       f"Unapplied row {claimed[mate['Id']]}"))
-                    continue
-                if mate is not None:
-                    claimed[mate["Id"]] = rid
-                if mate is None or mate.get("Type") != "Applied":
-                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
-                                       "Unapplied row has no Applied row paired by "
-                                       f"{obj.related_field}"))
-                elif mate.get(obj.unapplied_flag) != "Yes":
-                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
-                                       f"paired Applied row {mate['Id']} has "
-                                       f"{obj.unapplied_flag} {mate.get(obj.unapplied_flag)!r}, "
-                                       "not 'Yes'"))
-                else:
-                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "pass",
-                                       f"pairs with Applied row {mate['Id']}"))
-            elif kind == "Applied" and row.get(obj.unapplied_flag) == "Yes":
-                if mate is None or mate.get("Type") != "Unapplied":
-                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
-                                       f"Applied row has {obj.unapplied_flag} 'Yes' but no "
-                                       "Unapplied row"))
-    if not out:
-        out.append(_result("unapplied_rows", "all", "pass", "no Unapplied rows"))
-    return out
-
-
 def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> dict:
     """Run every check on fetched (or recorded) rows. Pure: no org access."""
     if expect_level not in ("auto",) + LEVELS:
@@ -706,9 +663,8 @@ def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> di
     results = (
         _check_level(idx, level, source)
         + _check_invoice_balance(idx)
-        + _check_line_balance(idx, level)
+        + _check_line_balance(idx)
         + _check_payment_balance(records, idx)
-        + _check_unapplied(records)
     )
     failed = sorted({r["check"] for r in results if r["status"] == "fail"},
                     key=CHECK_NAMES.index)

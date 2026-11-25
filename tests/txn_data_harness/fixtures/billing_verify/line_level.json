@@ -1,5 +1,5 @@
 {
-  "_about": "Recorded query results, Line Level. Shapes and field values follow the 2026-11-25 264 scratch org reads (API 68.0); ids are synthetic. INV1: payment applied at post; INV2: unpaid; INV3: two credits on one line plus a payment applied then unapplied on the other line.",
+  "_about": "Recorded query results, Line Level. Shapes and field values follow the 2026-11-25 264 scratch org reads (API 68.0); ids are synthetic. INV1: payment applied at post; INV2: unpaid; INV3: two credits on one line. No Unapplied rows: none has been measured, so tests add them where needed.",
   "Invoice": [
     {
       "Id": "3tt000000000001AAA",
@@ -104,26 +104,7 @@
       "PaymentId": "0aQ000000000001EAA",
       "Amount": 1000,
       "Type": "Applied",
-      "UnappliedStatus": "No",
-      "RelatedPaymentLineInvcLineId": null
-    },
-    {
-      "Id": "1Al000000000002CAA",
-      "InvoiceLineId": "5TV000000000032GAA",
-      "PaymentId": "0aQ000000000003EAA",
-      "Amount": 50,
-      "Type": "Applied",
-      "UnappliedStatus": "Yes",
-      "RelatedPaymentLineInvcLineId": null
-    },
-    {
-      "Id": "1Al000000000003CAA",
-      "InvoiceLineId": "5TV000000000032GAA",
-      "PaymentId": "0aQ000000000003EAA",
-      "Amount": 50,
-      "Type": "Unapplied",
-      "UnappliedStatus": "NA",
-      "RelatedPaymentLineInvcLineId": "1Al000000000002CAA"
+      "UnappliedStatus": "No"
     }
   ],
   "CreditMemoLineInvoiceLine": [
@@ -133,8 +114,7 @@
       "CreditMemoLineId": "9yx000000000001AAA",
       "Amount": 40,
       "Type": "Applied",
-      "UnappliedStatus": "No",
-      "RelatedCrMemoLineInvcLineId": null
+      "UnappliedStatus": "No"
     },
     {
       "Id": "4sG000000000002EAA",
@@ -142,8 +122,7 @@
       "CreditMemoLineId": "9yx000000000002AAA",
       "Amount": 60,
       "Type": "Applied",
-      "UnappliedStatus": "No",
-      "RelatedCrMemoLineInvcLineId": null
+      "UnappliedStatus": "No"
     }
   ],
   "PaymentLineInvoice": [],
@@ -164,15 +143,6 @@
       "Amount": 1000,
       "NetApplied": 0,
       "Balance": 1000,
-      "NetRefundApplied": null,
-      "NetPaymentCreditApplied": null
-    },
-    {
-      "Id": "0aQ000000000003EAA",
-      "Status": "Processed",
-      "Amount": 50,
-      "NetApplied": 0,
-      "Balance": 50,
       "NetRefundApplied": null,
       "NetPaymentCreditApplied": null
     }
