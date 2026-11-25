@@ -1,20 +1,22 @@
 """
-Custom CumulusCI task for comprehensive Flow management.
+Custom CumulusCI task for Flow management.
 
 This task provides functionality to:
-- Query/list flows (by type, status, name, etc.)
-- Activate/deactivate flows
-- Manage flow versions
-- Filter by processType, status, and other metadata
+- Query/list flow versions (by DeveloperName, status, process type)
+- Activate/deactivate flows by DeveloperName
 
-Flows have:
-- DeveloperName, Label, Status (Active/Inactive/Draft)
-- ProcessType (AutoLaunchedFlow, ScreenFlow, etc.)
-- ApiVersion
-- Description
+Tooling API model (verified live on 264):
+- `Flow` is one row per flow VERSION: Id, DefinitionId, Definition.DeveloperName,
+  MasterLabel, Status (Active/Draft/Obsolete/InvalidDraft), ProcessType, VersionNumber.
+  It is read-only for status changes (a PATCH of Status is rejected).
+- `FlowDefinition` is one row per flow. Activating or deactivating means PATCHing
+  Metadata.activeVersionNumber (the version number to activate, 0 to deactivate).
 """
-from typing import List, Dict, Optional
-from datetime import datetime
+import re
+from typing import Dict, List
+
+# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+from tasks.soql_utils import positive_int, soql_quote, split_names
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -24,52 +26,82 @@ except ImportError:
     TaskOptionsError = Exception
 
 
+# A FlowDefinition Id (key prefix 300), 15 or 18 characters.
+_DEFINITION_ID = re.compile(r"^300[A-Za-z0-9]{12}([A-Za-z0-9]{3})?$")
+
+# sort_by values accepted, mapped to the Flow field they order by.
+_SORT_FIELDS = {
+    "developername": "Definition.DeveloperName",
+    "label": "MasterLabel",
+    "masterlabel": "MasterLabel",
+    "status": "Status",
+    "processtype": "ProcessType",
+    "versionnumber": "VersionNumber",
+    "createddate": "CreatedDate",
+    # Flow has no LastModifiedDate; a version is immutable once created.
+    "lastmodifieddate": "CreatedDate",
+}
+
+# sort_by/sort_order carry cumulusci.yml defaults and cannot change what is activated.
+_MUTATING_REJECTS = ("status", "limit")
+
+
 class ManageFlows(BaseSalesforceTask):
     """
-    Comprehensive Flow management task.
-    
+    Flow management task.
+
     Supports:
-    - Querying flows (by type, status, name, etc.)
+    - Querying flow versions (by DeveloperName, status, process type)
     - Listing flows with metadata
-    - Activating/deactivating flows
-    - Managing flow versions
+    - Activating (latest usable version) and deactivating flows by DeveloperName
     """
-    
+
     task_options = {
         "operation": {
             "description": "Operation to perform: 'list', 'query', 'activate', 'deactivate'",
             "required": True
         },
         "developer_names": {
-            "description": "List of Flow DeveloperNames to operate on. If not provided, queries all flows.",
+            "description": (
+                "Flow DeveloperNames to operate on: a comma-separated string or a list "
+                "(a FlowDefinition Id also works). Required for activate and deactivate. "
+                "For list and query, omitted means all flows. Names that match no flow "
+                "are an error."
+            ),
             "required": False
         },
         "status": {
-            "description": "Filter by Status ('Active', 'Inactive', 'Draft', or None for all). Default: None",
+            "description": (
+                "list/query only: filter flow versions by Status ('Active', 'Draft', "
+                "'Obsolete', 'InvalidDraft'). Default: all. Rejected by activate and deactivate."
+            ),
             "required": False
         },
         "process_type": {
-            "description": "Filter by ProcessType (e.g., 'AutoLaunchedFlow', 'ScreenFlow', 'Workflow', etc.). Default: None",
+            "description": "Filter by ProcessType (e.g., 'AutoLaunchedFlow', 'Flow', 'Workflow'). Default: None",
             "required": False
         },
         "sort_by": {
-            "description": "Field to sort by (e.g., 'LastModifiedDate', 'DeveloperName', 'Label'). Default: 'LastModifiedDate'",
+            "description": (
+                "list/query: DeveloperName, Label, Status, ProcessType, VersionNumber or "
+                "CreatedDate. LastModifiedDate is accepted as CreatedDate. Default: CreatedDate"
+            ),
             "required": False
         },
         "sort_order": {
-            "description": "Sort order: 'Asc' or 'Desc'. Default: 'Desc'",
+            "description": "list/query: 'Asc' or 'Desc'. Default: 'Desc'",
             "required": False
         },
         "limit": {
-            "description": "Maximum number of flows to return. Default: None (no limit)",
+            "description": "list/query only: maximum number of flow versions to return. Default: None (no limit). Rejected by activate and deactivate.",
             "required": False
         }
     }
-    
+
     def _run_task(self):
         """Execute the task based on the operation specified."""
-        operation = self.options.get("operation", "").lower()
-        
+        operation = str(self.options.get("operation", "")).lower()
+
         if operation == "list":
             self._list_flows()
         elif operation == "query":
@@ -80,279 +112,234 @@ class ManageFlows(BaseSalesforceTask):
             self._deactivate_flows()
         else:
             raise TaskOptionsError(f"Unknown operation: {operation}. Supported operations: 'list', 'query', 'activate', 'deactivate'")
-    
+
+    # -- shared plumbing ------------------------------------------------
+
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "68.0")
+        )
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+            "Content-Type": "application/json",
+        }
+
+    def _tooling_url(self, path: str) -> str:
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version()}/tooling/{path}"
+
+    def _tooling_query(self, soql: str) -> List[Dict]:
+        """Run a Tooling API query and follow nextRecordsUrl."""
+        import requests
+
+        self.logger.debug(f"Executing Tooling API SOQL query: {soql}")
+        response = requests.get(self._tooling_url("query"), headers=self._headers(), params={"q": soql})
+        records: List[Dict] = []
+        while True:
+            if not response.ok:
+                raise TaskOptionsError(f"Failed to query flows: {response.status_code} - {response.text}")
+            body = response.json() or {}
+            records.extend(body.get("records", []))
+            next_url = body.get("nextRecordsUrl")
+            if not next_url or body.get("done", True):
+                break
+            response = requests.get(
+                f"{self.org_config.instance_url}{next_url}", headers=self._headers()
+            )
+        for record in records:
+            record.pop("attributes", None)
+        return records
+
+    def _requested_names(self) -> List[str]:
+        value = self.options.get("developer_names")
+        if value is None or value == "" or value == []:
+            return []
+        return split_names(value, "developer_names", TaskOptionsError)
+
+    # -- list / query ---------------------------------------------------
+
     def _list_flows(self):
         """List flows with their metadata."""
         flows = self._query_flows()
-        
+
         if not flows:
             self.logger.info("No flows found matching the criteria.")
-            return
-        
-        self.logger.info(f"Found {len(flows)} flow(s):")
-        self.logger.info("")
-        self.logger.info(f"{'DefinitionId':<50} {'MasterLabel':<50} {'Status':<12} {'ProcessType':<20} {'Version':<10}")
-        self.logger.info("-" * 142)
-        
-        for flow in flows:
-            definition_id = flow.get('DefinitionId', 'N/A')
-            label = flow.get('MasterLabel', 'N/A')
-            status = flow.get('Status', 'N/A')
-            process_type = flow.get('ProcessType', 'N/A')
-            version = flow.get('VersionNumber', 'N/A')
-            
-            self.logger.info(f"{definition_id:<50} {label:<50} {status:<12} {process_type:<20} {version:<10}")
-        
-        return flows
-    
-    def _query_flows(self) -> List[Dict]:
-        """
-        Query flows from Salesforce using Tooling API.
-        
-        Returns a list of flow records with their metadata.
-        """
-        try:
-            if not hasattr(self, 'org_config') or not self.org_config:
-                raise TaskOptionsError("No org_config available")
-            
-            # Use requests library for Tooling API calls (like refresh_decision_table task)
-            import requests
-            
-            # Get access token and instance URL
-            access_token = self.org_config.access_token
-            instance_url = self.org_config.instance_url
-            # Get API version from project config or org config
-            api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '68.0')
-            
-            # First, try to describe Flow object to see available fields
-            describe_url = f"{instance_url}/services/data/v{api_version}/tooling/sobjects/Flow/describe"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            
-            describe_response = requests.get(describe_url, headers=headers)
-            if describe_response.ok:
-                describe_data = describe_response.json()
-                field_names = [f['name'] for f in describe_data.get('fields', [])]
-                self.logger.debug(f"Available Flow fields: {', '.join(field_names[:10])}...")
-            
-            # Build SOQL query
-            soql = self._build_soql_query()
-            
-            self.logger.debug(f"Executing Tooling API SOQL query: {soql}")
-            
-            # Query using Tooling API endpoint
-            url = f"{instance_url}/services/data/v{api_version}/tooling/query"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            params = {"q": soql}
-            
-            self.logger.debug(f"Query URL: {url}")
-            self.logger.debug(f"Query params: {params}")
-            
-            response = requests.get(url, headers=headers, params=params)
-            
-            if not response.ok:
-                self.logger.error(f"Tooling API query failed: {response.status_code} - {response.text}")
-                raise TaskOptionsError(f"Failed to query flows: {response.text}")
-            
-            query_result = response.json()
-            
-            if not query_result or 'records' not in query_result:
-                self.logger.warning("No records returned from query.")
-                return []
-            
-            flows = query_result['records']
-            
-            # Remove attributes field if present
-            for flow in flows:
-                flow.pop('attributes', None)
-            
-            self.logger.info(f"Query returned {len(flows)} flow(s).")
-            
             return flows
-            
-        except Exception as e:
-            self.logger.error(f"Error querying flows: {e}")
-            raise TaskOptionsError(f"Failed to query flows: {e}")
-    
-    def _build_soql_query(self) -> str:
-        """Build SOQL query based on task options."""
-        # Base fields to query - Flow object fields (from describe)
-        # Flow uses: DefinitionId, MasterLabel (not Label), Status, ProcessType, etc.
+
+        self.logger.info(f"Found {len(flows)} flow version(s):")
+        self.logger.info("")
+        self.logger.info(f"{'DeveloperName':<50} {'MasterLabel':<50} {'Status':<12} {'ProcessType':<20} {'Version':<10}")
+        self.logger.info("-" * 142)
+
+        for flow in flows:
+            self.logger.info(
+                f"{self._developer_name(flow):<50} {flow.get('MasterLabel') or 'N/A':<50} "
+                f"{flow.get('Status') or 'N/A':<12} {flow.get('ProcessType') or 'N/A':<20} "
+                f"{str(flow.get('VersionNumber', 'N/A')):<10}"
+            )
+
+        return flows
+
+    @staticmethod
+    def _developer_name(flow: Dict) -> str:
+        return (flow.get("Definition") or {}).get("DeveloperName") or flow.get("DefinitionId") or "N/A"
+
+    def _query_flows(self) -> List[Dict]:
+        """Query flow versions from the Tooling API, one row per version."""
+        flows = self._tooling_query(self._build_soql_query())
+        self.logger.info(f"Query returned {len(flows)} flow version(s).")
+        return flows
+
+    def _name_clause(self, names: List[str]) -> str:
+        ids = [n for n in names if _DEFINITION_ID.match(n)]
+        dev_names = [n for n in names if n not in ids]
+        parts = []
+        if dev_names:
+            parts.append("Definition.DeveloperName IN (" + ", ".join(soql_quote(n) for n in dev_names) + ")")
+        if ids:
+            parts.append("DefinitionId IN (" + ", ".join(soql_quote(n) for n in ids) + ")")
+        return parts[0] if len(parts) == 1 else "(" + " OR ".join(parts) + ")"
+
+    def _build_soql_query(self, names=None, include_status=True, ordered=True) -> str:
+        """Build the Flow SOQL from the task options (every value escaped or whitelisted)."""
         fields = [
             "Id",
-            "DefinitionId",  # Flow uses DefinitionId, not DeveloperName
-            "MasterLabel",  # Flow uses MasterLabel, not Label
+            "DefinitionId",
+            "Definition.DeveloperName",
+            "MasterLabel",
             "Status",
             "ProcessType",
-            "VersionNumber",  # Flow has VersionNumber, not ApiVersion
+            "VersionNumber",
             "Description",
-            "CreatedDate",  # Flow has CreatedDate, not LastModifiedDate
-            "CreatedById"  # Flow has CreatedById, not LastModifiedBy
+            "CreatedDate",
         ]
-        
-        # Build WHERE clause
-        where_clauses = []
-        
-        # Filter by developer names if provided (Flow uses DefinitionId)
-        developer_names = self.options.get("developer_names")
-        if developer_names:
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-            
-            # Escape single quotes in developer names
-            escaped_names = [name.replace("'", "\\'") for name in developer_names]
-            names_str = "', '".join(escaped_names)
-            where_clauses.append(f"DefinitionId IN ('{names_str}')")
-        
-        # Filter by status
+        where = []
+
+        names = self._requested_names() if names is None else names
+        if names:
+            where.append(self._name_clause(names))
+
         status = self.options.get("status")
-        if status:
-            where_clauses.append(f"Status = '{status}'")
-        
-        # Filter by process type
+        if status and include_status:
+            where.append(f"Status = {soql_quote(status)}")
+
         process_type = self.options.get("process_type")
         if process_type:
-            where_clauses.append(f"ProcessType = '{process_type}'")
-        
-        # Build query - Try Flow object directly (may work in Tooling API)
-        # Note: FlowDefinition is metadata, Flow is the runtime object
-        # For querying active flows, we might need to use Flow object
+            where.append(f"ProcessType = {soql_quote(process_type)}")
+
         soql = f"SELECT {', '.join(fields)} FROM Flow"
-        
-        if where_clauses:
-            soql += " WHERE " + " AND ".join(where_clauses)
-        
-        # Add sorting (Flow uses CreatedDate instead of LastModifiedDate)
-        sort_by = self.options.get("sort_by", "CreatedDate")
-        if sort_by == "LastModifiedDate":
-            sort_by = "CreatedDate"  # Flow doesn't have LastModifiedDate
-        sort_order = self.options.get("sort_order", "Desc")
-        soql += f" ORDER BY {sort_by} {sort_order}"
-        
-        # Add limit if specified
-        limit = self.options.get("limit")
-        if limit:
-            soql += f" LIMIT {limit}"
-        
+        if where:
+            soql += " WHERE " + " AND ".join(where)
+
+        if ordered:
+            sort_key = str(self.options.get("sort_by") or "CreatedDate").replace("_", "").lower()
+            if sort_key not in _SORT_FIELDS:
+                raise TaskOptionsError(
+                    f"sort_by must be one of DeveloperName, Label, Status, ProcessType, "
+                    f"VersionNumber, CreatedDate; got {self.options.get('sort_by')!r}"
+                )
+            sort_order = str(self.options.get("sort_order") or "Desc").capitalize()
+            if sort_order not in ("Asc", "Desc"):
+                raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
+            soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
+
+            limit = self.options.get("limit")
+            if limit not in (None, ""):
+                soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
+
         return soql
-    
+
+    # -- activate / deactivate ------------------------------------------
+
     def _activate_flows(self):
-        """Activate flows using the Tooling API."""
-        flows = self._get_flows_to_operate_on()
-        
-        if not flows:
-            self.logger.warning("No flows found to activate.")
-            return
-        
-        self.logger.info(f"Activating {len(flows)} flow(s)...")
-        
-        success_count = 0
-        fail_count = 0
-        
-        for flow in flows:
-            developer_name = flow.get('DeveloperName')
-            flow_id = flow.get('Id')
-            
-            try:
-                self._update_flow_status(flow_id, 'Active')
-                success_count += 1
-                self.logger.info(f"✅ Successfully activated '{definition_id}'")
-            except Exception as e:
-                fail_count += 1
-                self.logger.error(f"❌ Failed to activate '{definition_id}': {e}")
-        
-        self.logger.info(f"Activation Summary: {success_count} succeeded, {fail_count} failed")
-        
-        if fail_count > 0:
-            raise TaskOptionsError(f"Failed to activate {fail_count} flow(s). Check logs for details.")
-    
+        """Activate the newest usable version of each named flow."""
+        self._change_activation(activate=True)
+
     def _deactivate_flows(self):
-        """Deactivate flows using the Tooling API."""
-        flows = self._get_flows_to_operate_on()
-        
-        if not flows:
-            self.logger.warning("No flows found to deactivate.")
-            return
-        
-        self.logger.info(f"Deactivating {len(flows)} flow(s)...")
-        
-        success_count = 0
-        fail_count = 0
-        
-        for flow in flows:
-            developer_name = flow.get('DeveloperName')
-            flow_id = flow.get('Id')
-            
+        """Deactivate each named flow (no version stays active)."""
+        self._change_activation(activate=False)
+
+    def _definitions_to_change(self, verb: str) -> Dict[str, List[Dict]]:
+        """Resolve developer_names to {DefinitionId: [version rows]}; error on any miss."""
+        for opt in _MUTATING_REJECTS:
+            if self.options.get(opt) not in (None, ""):
+                raise TaskOptionsError(
+                    f"{opt} is not used by {verb}; it only filters list and query. Remove it."
+                )
+        names = self._requested_names()
+        if not names:
+            raise TaskOptionsError(f"developer_names is required for {verb}")
+
+        rows = self._tooling_query(self._build_soql_query(names=names, ordered=False))
+        by_definition: Dict[str, List[Dict]] = {}
+        for row in rows:
+            by_definition.setdefault(row["DefinitionId"], []).append(row)
+
+        found = set()
+        for def_id, versions in by_definition.items():
+            found.update((def_id, def_id[:15], self._developer_name(versions[0])))
+        missing = [n for n in names if n not in found]
+        if missing:
+            raise TaskOptionsError(
+                "No flow matches: " + ", ".join(missing)
+                + ". Nothing was changed. Run the list operation to see the DeveloperNames."
+            )
+        return by_definition
+
+    def _change_activation(self, activate: bool):
+        verb, past, gerund = (
+            ("activate", "activated", "Activating") if activate
+            else ("deactivate", "deactivated", "Deactivating")
+        )
+        definitions = self._definitions_to_change(verb)
+
+        self.logger.info(f"{gerund} {len(definitions)} flow(s)...")
+        success_count = skipped = fail_count = 0
+
+        for def_id, versions in definitions.items():
+            name = self._developer_name(versions[0])
             try:
-                self._update_flow_status(flow_id, 'Inactive')
+                if activate:
+                    usable = [v for v in versions if v.get("Status") != "InvalidDraft"]
+                    if not usable:
+                        raise TaskOptionsError("it has no valid version to activate (all are InvalidDraft)")
+                    target = max(usable, key=lambda v: int(v.get("VersionNumber") or 0))
+                    if target.get("Status") == "Active":
+                        skipped += 1
+                        self.logger.info(f"'{name}' version {target['VersionNumber']} is already active. Skipping.")
+                        continue
+                    self._set_active_version(def_id, int(target["VersionNumber"]))
+                    self.logger.info(f"Activated '{name}' (version {target['VersionNumber']})")
+                else:
+                    if not any(v.get("Status") == "Active" for v in versions):
+                        skipped += 1
+                        self.logger.info(f"'{name}' has no active version. Skipping.")
+                        continue
+                    self._set_active_version(def_id, 0)
+                    self.logger.info(f"Deactivated '{name}'")
                 success_count += 1
-                self.logger.info(f"✅ Successfully deactivated '{definition_id}'")
             except Exception as e:
                 fail_count += 1
-                self.logger.error(f"❌ Failed to deactivate '{definition_id}': {e}")
-        
-        self.logger.info(f"Deactivation Summary: {success_count} succeeded, {fail_count} failed")
-        
+                self.logger.error(f"Failed to {verb} '{name}': {e}")
+
+        self.logger.info(
+            f"{verb.capitalize()} summary: {success_count} {past}, "
+            f"{skipped} already in that state, {fail_count} failed"
+        )
         if fail_count > 0:
-            raise TaskOptionsError(f"Failed to deactivate {fail_count} flow(s). Check logs for details.")
-    
-    def _get_flows_to_operate_on(self) -> List[Dict]:
-        """Get flows to operate on based on developer_names or query all."""
-        developer_names = self.options.get("developer_names")
-        
-        if developer_names:
-            # Convert to list if string
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-            
-            # Query specific flows
-            flows = self._query_flows()
-        else:
-            # Query all flows matching filters
-            flows = self._query_flows()
-        
-        return flows
-    
-    def _update_flow_status(self, flow_id: str, status: str):
-        """
-        Update flow status using Tooling API REST call.
-        
-        Args:
-            flow_id: The Flow Id
-            status: 'Active' or 'Inactive'
-        """
-        if not hasattr(self, 'org_config') or not self.org_config:
-            raise TaskOptionsError("No org_config available")
-        
-        # Use Tooling API REST endpoint to update Flow
+            raise TaskOptionsError(f"Failed to {verb} {fail_count} flow(s). Check logs for details.")
+
+    def _set_active_version(self, definition_id: str, version_number: int):
+        """PATCH FlowDefinition.Metadata.activeVersionNumber (0 deactivates)."""
         import requests
-        
-        access_token = self.org_config.access_token
-        instance_url = self.org_config.instance_url
-        # Get API version from project config or org config
-        api_version = getattr(self.org_config, 'api_version', None) or getattr(self.project_config, 'project__package__api_version', '68.0')
-        
-        url = f"{instance_url}/services/data/v{api_version}/tooling/sobjects/Flow/{flow_id}"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        payload = {"Status": status}
-        
-        try:
-            response = requests.patch(url, headers=headers, json=payload)
-            if response.status_code in [200, 204]:
-                return True
-            else:
-                raise TaskOptionsError(f"Failed to update flow status: {response.status_code} - {response.text}")
-        except Exception as e:
-            raise TaskOptionsError(f"Failed to update flow status to {status}: {e}")
+
+        url = self._tooling_url(f"sobjects/FlowDefinition/{definition_id}")
+        payload = {"Metadata": {"activeVersionNumber": version_number}}
+        response = requests.patch(url, headers=self._headers(), json=payload)
+        if response.status_code not in (200, 204):
+            raise TaskOptionsError(
+                f"FlowDefinition update returned {response.status_code} - {response.text}"
+            )
+        return True

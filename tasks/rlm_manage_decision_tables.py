@@ -24,6 +24,8 @@ import json
 from typing import List, Dict, Optional, Set
 from datetime import datetime
 
+from tasks.soql_utils import positive_int, require_identifier
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -394,14 +396,16 @@ class ManageDecisionTables(BaseTask):
             soql += " WHERE " + " AND ".join(where_clauses)
         
         # Add sorting
-        sort_by = self.options.get("sort_by", "LastSyncDate")
-        sort_order = self.options.get("sort_order", "Desc")
+        sort_by = require_identifier(self.options.get("sort_by") or "LastSyncDate", "sort_by", TaskOptionsError)
+        sort_order = str(self.options.get("sort_order") or "Desc").capitalize()
+        if sort_order not in ("Asc", "Desc"):
+            raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {sort_by} {sort_order}"
         
         # Add limit if specified
         limit = self.options.get("limit")
-        if limit:
-            soql += f" LIMIT {limit}"
+        if limit not in (None, ""):
+            soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
         
         return soql
     

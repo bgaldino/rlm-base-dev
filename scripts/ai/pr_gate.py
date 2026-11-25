@@ -1032,6 +1032,8 @@ STDLIB_SUITES = [
     "tests/test_fix_scratch_identity.py",
     "tests/test_implementation_planning_ledger.py",
     "tests/test_manage_expression_sets_constraint_activation.py",
+    "tests/test_manage_expression_sets_filters.py",
+    "tests/test_manage_flows.py",
     "tests/test_mcp_scripts_security.py",
     "tests/test_org_cleanup.py",
     "tests/test_post_process_extraction.py",
@@ -1069,6 +1071,7 @@ REQUESTS_SUITES = [
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
     "tests/test_rlm_mcp_configure.py",
+    "tests/test_soql_option_hardening.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and

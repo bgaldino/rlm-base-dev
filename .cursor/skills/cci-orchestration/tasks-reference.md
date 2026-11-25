@@ -2728,7 +2728,7 @@
 
 ### `manage_expression_sets`
 
-**Description:** Comprehensive Expression Set management (list, query, manage versions)
+**Description:** Manage Expression Sets - list or query sets (filter by status, interface_source_type, process_type), list versions, activate or deactivate versions
 
 **Class:** `tasks.rlm_manage_expression_sets.ManageExpressionSets`
 
@@ -2748,7 +2748,7 @@
 
 ### `manage_flows`
 
-**Description:** Comprehensive Flow management (list, query, activate, deactivate)
+**Description:** Manage Flows by DeveloperName - list or query flow versions, activate (newest valid version) or deactivate
 
 **Class:** `tasks.rlm_manage_flows.ManageFlows`
 

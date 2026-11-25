@@ -21,12 +21,16 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
+
 
 OBJECT_NAME = "CustomFulfillmentScopeCnfg"
 DEFAULT_OUTPUT_FILE = "datasets/tooling/CustomFulfillmentScopeCnfg.json"
@@ -368,8 +372,7 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         chunk_size = 50
         for i in range(0, len(key_values), chunk_size):
             chunk = key_values[i : i + chunk_size]
-            escaped = [str(v).replace(chr(39), chr(92) + chr(39)) for v in chunk]
-            in_clause = ", ".join(f"'{v}'" for v in escaped)
+            in_clause = ", ".join(soql_quote(v) for v in chunk)
             records = self._query(
                 access_token,
                 instance_url,

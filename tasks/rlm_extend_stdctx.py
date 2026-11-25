@@ -4,6 +4,7 @@ import time
 import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -62,7 +63,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             "required": True,
         },
         "activate": {
-            "description": "Whether the context definition should be activated",
+            "description": "Whether to activate the context definition after the plan is applied (true or false; false leaves it inactive)",
             "required": True,
         }
         ,
@@ -380,7 +381,21 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         }
         self._make_request("patch", url, headers=headers, json=payload)
         self._apply_plan_if_present()
-        self._activate_context_id()
+        if self._activate_requested():
+            self._activate_context_id()
+        else:
+            self.logger.info("      activate is false: leaving the context definition inactive.")
+
+    def _activate_requested(self) -> bool:
+        value = self.options.get("activate", True)
+        if isinstance(value, str):
+            text = value.strip().lower()
+            if text in ("true", "yes", "y", "1", "on"):
+                return True
+            if text in ("false", "no", "n", "0", "off"):
+                return False
+            raise TaskOptionsError(f"activate must be true or false, got {value!r}")
+        return bool(value)
 
     def _apply_plan_if_present(self):
         plan_file = self.options.get("plan_file")

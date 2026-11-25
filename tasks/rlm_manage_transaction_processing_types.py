@@ -8,6 +8,9 @@ from typing import Dict, Any, List
 import json
 import os
 
+# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -137,7 +140,7 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
                 access_token,
                 instance_url,
                 api_version,
-                f"SELECT Id FROM TransactionProcessingType WHERE {key_field} = '{key_value}'",
+                f"SELECT Id FROM TransactionProcessingType WHERE {key_field} = {soql_quote(key_value)}",
             )
             if existing:
                 record_id = existing[0]["Id"]

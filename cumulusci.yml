@@ -3340,24 +3340,25 @@ tasks:
 
   manage_flows:
     group: Revenue Lifecycle Management
-    description: Comprehensive Flow management (list, query, activate, deactivate)
+    description: Manage Flows by DeveloperName - list or query flow versions, activate (newest valid version) or deactivate
     class_path: tasks.rlm_manage_flows.ManageFlows
     options:
       operation: list  # Options: 'list', 'query', 'activate', 'deactivate'
-      status: null     # Filter by status (Active, Inactive, Draft, or null for all)
-      process_type: null  # Filter by ProcessType (AutoLaunchedFlow, ScreenFlow, etc.)
-      sort_by: LastModifiedDate
+      status: null     # list/query only: Active, Draft, Obsolete, InvalidDraft, or null for all
+      process_type: null  # Filter by ProcessType (AutoLaunchedFlow, Flow, Workflow, etc.)
+      sort_by: LastModifiedDate  # list/query only; mapped to CreatedDate (flow versions are immutable)
       sort_order: Desc
+      # developer_names: comma-separated DeveloperNames; required for activate/deactivate
 
   manage_expression_sets:
     group: Revenue Lifecycle Management
-    description: Comprehensive Expression Set management (list, query, manage versions)
+    description: Manage Expression Sets - list or query sets (filter by status, interface_source_type, process_type), list versions, activate or deactivate versions
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: list  # Options: 'list', 'query', 'list_versions', 'activate_version', 'deactivate_version'
-      status: null     # Filter by status (Active, Inactive, Draft, or null for all)
-      interface_source_type: null  # Filter by InterfaceSourceType (PricingProcedure, RatingProcedure, etc.)
-      process_type: null  # Filter by ProcessType (DefaultPricing, DefaultRating, etc.)
+      status: null     # Keep sets that have a version with this status (Active, Draft, or null for all)
+      interface_source_type: null  # Keep sets with this InterfaceSourceType (PricingProcedure, RatingProcedure, etc.); read from each set's metadata
+      process_type: null  # Keep sets with this ProcessType (DefaultPricing, DefaultRating, etc.); read from each set's metadata
       version_full_name: null  # For version operations: Full name of the version
       version_full_names: null  # For bulk version operations: list or comma-separated FullName values
       metadata_path: force-app/main/default/expressionSetDefinition  # For bulk operations when version names are omitted

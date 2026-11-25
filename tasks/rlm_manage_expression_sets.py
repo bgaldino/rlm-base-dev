@@ -13,10 +13,12 @@ Expression Sets have:
 - Versions with: fullName, status, rank, startDate, etc.
 """
 from typing import List, Dict
-from datetime import datetime
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import time
+
+# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+from tasks.soql_utils import positive_int, soql_quote, split_names
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -24,6 +26,16 @@ try:
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
+
+
+# sort_by values accepted for list/query, mapped to ExpressionSetDefinition fields.
+_SORT_FIELDS = {
+    "developername": "DeveloperName",
+    "label": "MasterLabel",
+    "masterlabel": "MasterLabel",
+    "lastmodifieddate": "LastModifiedDate",
+    "createddate": "CreatedDate",
+}
 
 
 class ManageExpressionSets(BaseSalesforceTask):
@@ -42,19 +54,19 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": True
         },
         "developer_names": {
-            "description": "List of Expression Set DeveloperNames to operate on. If not provided, queries all expression sets. Used by list, query and list_versions only; version operations ignore it: activate_version and deactivate_version read version_full_name; activate_versions and deactivate_versions read version_full_names, else every version under metadata_path (default force-app/main/default/expressionSetDefinition).",
+            "description": "Expression Set DeveloperNames to operate on (comma-separated string or list). If not provided, queries all expression sets. Used by list, query and list_versions only; version operations ignore it: activate_version and deactivate_version read version_full_name; activate_versions and deactivate_versions read version_full_names, else every version under metadata_path (default force-app/main/default/expressionSetDefinition).",
             "required": False
         },
         "status": {
-            "description": "Filter by Status ('Active', 'Inactive', 'Draft', or None for all). Default: None",
+            "description": "list/query/list_versions: keep only expression sets that have at least one version with this Status ('Active', 'Draft' or 'Inactive'). Status lives on the version, not on the expression set. Default: None",
             "required": False
         },
         "interface_source_type": {
-            "description": "Filter by InterfaceSourceType (e.g., 'PricingProcedure', 'RatingProcedure', 'DiscoveryProcedure', etc.). Default: None",
+            "description": "list/query/list_versions: keep only expression sets whose InterfaceSourceType matches (e.g., 'PricingProcedure', 'RatingProcedure', 'DiscoveryProcedure'). Read from each set's metadata, so it costs one request per candidate set. Default: None",
             "required": False
         },
         "process_type": {
-            "description": "Filter by ProcessType (e.g., 'DefaultPricing', 'DefaultRating', 'PricingDiscovery', etc.). Default: None",
+            "description": "list/query/list_versions: keep only expression sets whose ProcessType matches (e.g., 'DefaultPricing', 'DefaultRating', 'PricingDiscovery'). Read from each set's metadata, so it costs one request per candidate set. Default: None",
             "required": False
         },
         "version_full_name": {
@@ -70,15 +82,15 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": False
         },
         "sort_by": {
-            "description": "Field to sort by (e.g., 'LastModifiedDate', 'DeveloperName', 'Label'). Default: 'LastModifiedDate'",
+            "description": "list/query/list_versions: DeveloperName, Label, LastModifiedDate or CreatedDate. Default: 'LastModifiedDate'",
             "required": False
         },
         "sort_order": {
-            "description": "Sort order: 'Asc' or 'Desc'. Default: 'Desc'",
+            "description": "list/query/list_versions: 'Asc' or 'Desc'. Default: 'Desc'",
             "required": False
         },
         "limit": {
-            "description": "Maximum number of expression sets to return. Default: None (no limit)",
+            "description": "list/query/list_versions: maximum number of expression sets to return, applied after the filters. Default: None (no limit)",
             "required": False
         }
     }
@@ -125,8 +137,12 @@ class ManageExpressionSets(BaseSalesforceTask):
         
         self.logger.info(f"Found {len(expression_sets)} expression set(s):")
         self.logger.info("")
-        self.logger.info(f"{'DeveloperName':<50} {'MasterLabel':<50} {'LastModified':<20}")
-        self.logger.info("-" * 120)
+        with_meta = any("InterfaceSourceType" in es for es in expression_sets)
+        header = f"{'DeveloperName':<50} {'MasterLabel':<50} {'LastModified':<20}"
+        if with_meta:
+            header += f" {'InterfaceSourceType':<22} {'ProcessType':<20}"
+        self.logger.info(header)
+        self.logger.info("-" * len(header))
         
         for es in expression_sets:
             dev_name = es.get('DeveloperName', 'N/A')
@@ -142,141 +158,141 @@ class ManageExpressionSets(BaseSalesforceTask):
                 except:
                     pass
             
-            self.logger.info(f"{dev_name:<50} {label:<50} {last_modified:<20}")
+            line = f"{dev_name:<50} {label:<50} {last_modified:<20}"
+            if with_meta:
+                line += f" {es.get('InterfaceSourceType') or 'N/A':<22} {es.get('ProcessType') or 'N/A':<20}"
+            self.logger.info(line)
         
         return expression_sets
     
     def _query_expression_sets(self) -> List[Dict]:
         """
         Query expression sets from Salesforce using Tooling API.
-        
-        Returns a list of expression set records with their metadata.
+
+        Status is filtered in SOQL (a semi-join on the versions). InterfaceSourceType and
+        ProcessType exist only in each set's Metadata, which the Tooling API returns one
+        record at a time, so those two filters read each candidate set's Metadata and
+        filter here; the limit then applies to the filtered result.
         """
-        try:
-            if not hasattr(self, 'org_config') or not self.org_config:
-                raise TaskOptionsError("No org_config available")
-            
-            # Use requests library for Tooling API calls
-            import requests
-            
-            # Get access token and instance URL
-            access_token = self.org_config.access_token
-            instance_url = self.org_config.instance_url
-            # Get API version from project config or org config
-            api_version = self._get_api_version()
-            
-            # First, try to describe ExpressionSetDefinition object to see available fields
-            describe_url = f"{instance_url}/services/data/v{api_version}/tooling/sobjects/ExpressionSetDefinition/describe"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            
-            describe_response = requests.get(describe_url, headers=headers)
-            if describe_response.ok:
-                describe_data = describe_response.json()
-                field_names = [f['name'] for f in describe_data.get('fields', [])]
-                self.logger.debug(f"Available ExpressionSetDefinition fields: {', '.join(field_names[:10])}...")
-            
-            # Build SOQL query
-            soql = self._build_soql_query()
-            
-            self.logger.debug(f"Executing Tooling API SOQL query: {soql}")
-            
-            # Query using Tooling API endpoint
-            url = f"{instance_url}/services/data/v{api_version}/tooling/query"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            params = {"q": soql}
-            
-            response = requests.get(url, headers=headers, params=params)
-            
-            if not response.ok:
-                self.logger.error(f"Tooling API query failed: {response.status_code} - {response.text}")
-                raise TaskOptionsError(f"Failed to query expression sets: {response.text}")
-            
-            query_result = response.json()
-            
-            if not query_result or 'records' not in query_result:
-                self.logger.warning("No records returned from query.")
-                return []
-            
-            expression_sets = query_result['records']
-            
-            # Remove attributes field if present
+        if not hasattr(self, 'org_config') or not self.org_config:
+            raise TaskOptionsError("No org_config available")
+
+        interface_type = self._option_text("interface_source_type")
+        process_type = self._option_text("process_type")
+        needs_metadata = bool(interface_type or process_type)
+
+        limit = self.options.get("limit")
+        limit = positive_int(limit, "limit", TaskOptionsError) if limit not in (None, "") else None
+        soql = self._build_soql_query(apply_limit=not needs_metadata)
+        expression_sets = self._tooling_query(soql, "expression sets")
+
+        if needs_metadata:
+            matched = []
             for es in expression_sets:
-                es.pop('attributes', None)
-            
-            self.logger.info(f"Query returned {len(expression_sets)} expression set(s).")
-            
-            return expression_sets
-            
-        except Exception as e:
-            self.logger.error(f"Error querying expression sets: {e}")
-            raise TaskOptionsError(f"Failed to query expression sets: {e}")
-    
-    def _build_soql_query(self) -> str:
-        """Build SOQL query based on task options."""
-        # Base fields to query - ExpressionSetDefinition fields (from describe)
-        # Available fields: Id, DeveloperName, MasterLabel, LastModifiedDate, LastModifiedBy
-        # Note: Description, InterfaceSourceType, and ProcessType are not on ExpressionSetDefinition
-        # They exist on ExpressionSetDefinitionVersion instead
+                meta = self._tooling_get(
+                    f"sobjects/ExpressionSetDefinition/{es['Id']}", "expression set metadata"
+                ).get("Metadata") or {}
+                es["InterfaceSourceType"] = meta.get("interfaceSourceType")
+                es["ProcessType"] = meta.get("processType")
+                if interface_type and es["InterfaceSourceType"] != interface_type:
+                    continue
+                if process_type and es["ProcessType"] != process_type:
+                    continue
+                matched.append(es)
+            expression_sets = matched[:limit] if limit else matched
+
+        self.logger.info(f"Query returned {len(expression_sets)} expression set(s).")
+        return expression_sets
+
+    def _option_text(self, name: str):
+        value = self.options.get(name)
+        return str(value).strip() if value not in (None, "") else None
+
+    def _tooling_headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+            "Content-Type": "application/json",
+        }
+
+    def _tooling_url(self, path: str) -> str:
+        return f"{self.org_config.instance_url}/services/data/v{self._get_api_version()}/tooling/{path}"
+
+    def _tooling_get(self, path: str, what: str) -> Dict:
+        import requests
+
+        response = requests.get(self._tooling_url(path), headers=self._tooling_headers())
+        if not response.ok:
+            raise TaskOptionsError(f"Failed to read {what}: {response.status_code} - {response.text}")
+        return response.json() or {}
+
+    def _tooling_query(self, soql: str, what: str) -> List[Dict]:
+        """Run a Tooling API query, follow nextRecordsUrl, and drop `attributes`."""
+        import requests
+
+        self.logger.debug(f"Executing Tooling API SOQL query: {soql}")
+        response = requests.get(
+            self._tooling_url("query"), headers=self._tooling_headers(), params={"q": soql}
+        )
+        records: List[Dict] = []
+        while True:
+            if not response.ok:
+                raise TaskOptionsError(f"Failed to query {what}: {response.status_code} - {response.text}")
+            body = response.json() or {}
+            records.extend(body.get("records", []))
+            next_url = body.get("nextRecordsUrl")
+            if not next_url or body.get("done", True):
+                break
+            response = requests.get(
+                f"{self.org_config.instance_url}{next_url}", headers=self._tooling_headers()
+            )
+        for record in records:
+            record.pop("attributes", None)
+        return records
+
+    def _build_soql_query(self, apply_limit: bool = True) -> str:
+        """Build the ExpressionSetDefinition SOQL (every value escaped or whitelisted)."""
         fields = [
             "Id",
             "DeveloperName",
-            "MasterLabel",  # ExpressionSetDefinition uses MasterLabel, not Label
+            "MasterLabel",
             "LastModifiedDate",
-            "LastModifiedBy.Name"  # Relationship field for LastModifiedBy
+            "LastModifiedBy.Name",
         ]
-        
-        # Build WHERE clause
         where_clauses = []
-        
-        # Filter by developer names if provided
+
         developer_names = self.options.get("developer_names")
-        if developer_names:
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-            
-            # Escape single quotes in developer names
-            escaped_names = [name.replace("'", "\\'") for name in developer_names]
-            names_str = "', '".join(escaped_names)
-            where_clauses.append(f"DeveloperName IN ('{names_str}')")
-        
-        # Note: InterfaceSourceType and ProcessType are not directly queryable on ExpressionSetDefinition
-        # They exist on ExpressionSetDefinitionVersion. We'll filter after querying or query versions.
-        # For now, we'll skip these filters at the ExpressionSetDefinition level
-        # TODO: Implement filtering via ExpressionSetDefinitionVersion queries
-        
-        interface_type = self.options.get("interface_source_type")
-        process_type = self.options.get("process_type")
-        
-        if interface_type or process_type:
-            self.logger.warning("Filtering by interface_source_type or process_type is not supported at ExpressionSetDefinition level.")
-            self.logger.warning("These fields exist on ExpressionSetDefinitionVersion. Use list_versions operation to filter by these fields.")
-        
-        # Build query
+        if developer_names not in (None, "", []):
+            names = split_names(developer_names, "developer_names", TaskOptionsError)
+            where_clauses.append("DeveloperName IN (" + ", ".join(soql_quote(n) for n in names) + ")")
+
+        status = self._option_text("status")
+        if status:
+            where_clauses.append(
+                "Id IN (SELECT ExpressionSetDefinitionId FROM ExpressionSetDefinitionVersion "
+                f"WHERE Status = {soql_quote(status)})"
+            )
+
         soql = f"SELECT {', '.join(fields)} FROM ExpressionSetDefinition"
-        
         if where_clauses:
             soql += " WHERE " + " AND ".join(where_clauses)
-        
-        # Add sorting
-        sort_by = self.options.get("sort_by", "LastModifiedDate")
-        sort_order = self.options.get("sort_order", "Desc")
-        soql += f" ORDER BY {sort_by} {sort_order}"
-        
-        # Add limit if specified
+
+        sort_key = str(self.options.get("sort_by") or "LastModifiedDate").replace("_", "").lower()
+        if sort_key not in _SORT_FIELDS:
+            raise TaskOptionsError(
+                "sort_by must be one of DeveloperName, Label, LastModifiedDate, CreatedDate; "
+                f"got {self.options.get('sort_by')!r}"
+            )
+        sort_order = str(self.options.get("sort_order") or "Desc").capitalize()
+        if sort_order not in ("Asc", "Desc"):
+            raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
+        soql += f" ORDER BY {_SORT_FIELDS[sort_key]} {sort_order}"
+
         limit = self.options.get("limit")
-        if limit:
-            soql += f" LIMIT {limit}"
-        
+        if apply_limit and limit not in (None, ""):
+            soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
+
         return soql
-    
+
     def _list_versions(self):
         """List versions for expression sets."""
         expression_sets = self._get_expression_sets_to_operate_on()
@@ -296,79 +312,31 @@ class ManageExpressionSets(BaseSalesforceTask):
                 
                 self.logger.info("")
                 self.logger.info(f"Expression Set: {developer_name}")
-                self.logger.info(f"{'Version FullName':<60} {'Status':<12} {'Rank':<6} {'StartDate':<25}")
-                self.logger.info("-" * 103)
+                self.logger.info(f"{'Version FullName':<60} {'Status':<12} {'Version':<8}")
+                self.logger.info("-" * 82)
                 
                 for version in versions:
-                    full_name = version.get('FullName', 'N/A')
-                    status = version.get('Status', 'N/A')
-                    rank = version.get('Rank', 'N/A')
-                    start_date = version.get('StartDate', 'N/A')
-                    
-                    # Format start date
-                    if start_date and start_date != 'N/A':
-                        try:
-                            dt_obj = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-                            start_date = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
-                        except:
-                            pass
-                    
-                    self.logger.info(f"{full_name:<60} {status:<12} {rank:<6} {start_date:<25}")
-                
+                    self.logger.info(
+                        f"{version.get('FullName') or 'N/A':<60} "
+                        f"{version.get('Status') or 'N/A':<12} "
+                        f"{str(version.get('VersionNumber', 'N/A')):<8}"
+                    )
+
             except Exception as e:
                 self.logger.error(f"❌ Failed to list versions for '{developer_name}': {e}")
     
     def _query_expression_set_versions(self, expression_set_id: str) -> List[Dict]:
         """Query versions for a specific expression set."""
-        try:
-            if not hasattr(self, 'org_config') or not self.org_config:
-                raise TaskOptionsError("No org_config available")
-            
-            # Use requests library for Tooling API calls
-            import requests
-            
-            # Get access token and instance URL
-            access_token = self.org_config.access_token
-            instance_url = self.org_config.instance_url
-            # Get API version from project config or org config
-            api_version = self._get_api_version()
-            
-            # Query ExpressionSetDefinitionVersion using Tooling API
-            soql = f"SELECT Id, FullName, Status, Rank, StartDate, Label, Description FROM ExpressionSetDefinitionVersion WHERE ExpressionSetDefinitionId = '{expression_set_id}' ORDER BY Rank ASC"
-            
-            self.logger.debug(f"Executing Tooling API SOQL query: {soql}")
-            
-            # Query using Tooling API endpoint
-            url = f"{instance_url}/services/data/v{api_version}/tooling/query"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/json"
-            }
-            params = {"q": soql}
-            
-            response = requests.get(url, headers=headers, params=params)
-            
-            if not response.ok:
-                self.logger.error(f"Tooling API query failed: {response.status_code} - {response.text}")
-                raise TaskOptionsError(f"Failed to query expression set versions: {response.text}")
-            
-            query_result = response.json()
-            
-            if not query_result or 'records' not in query_result:
-                return []
-            
-            versions = query_result['records']
-            
-            # Remove attributes field if present
-            for version in versions:
-                version.pop('attributes', None)
-            
-            return versions
-            
-        except Exception as e:
-            self.logger.error(f"Error querying expression set versions: {e}")
-            raise TaskOptionsError(f"Failed to query expression set versions: {e}")
-    
+        if not hasattr(self, 'org_config') or not self.org_config:
+            raise TaskOptionsError("No org_config available")
+        soql = (
+            "SELECT Id, FullName, VersionNumber, Status, MasterLabel "
+            "FROM ExpressionSetDefinitionVersion "
+            f"WHERE ExpressionSetDefinitionId = {soql_quote(expression_set_id)} "
+            "ORDER BY VersionNumber ASC"
+        )
+        return self._tooling_query(soql, "expression set versions")
+
     def _activate_version(self):
         """Activate an expression set version."""
         version_full_name = self.options.get("version_full_name")
@@ -510,15 +478,6 @@ class ManageExpressionSets(BaseSalesforceTask):
     
     def _get_expression_sets_to_operate_on(self) -> List[Dict]:
         """Get expression sets to operate on based on developer_names or query all."""
-        developer_names = self.options.get("developer_names")
-        
-        if developer_names:
-            # Convert to list if string
-            if isinstance(developer_names, str):
-                developer_names = [developer_names]
-            elif not isinstance(developer_names, list):
-                raise TaskOptionsError("developer_names must be a string or list of strings")
-        
         # Query expression sets
         return self._query_expression_sets()
     
@@ -554,7 +513,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         # Query ExpressionSetVersion by ApiName to get record Id.
         soql = (
             "SELECT Id, IsActive, ExpressionSetId, ExpressionSet.UsageType FROM ExpressionSetVersion "
-            f"WHERE ApiName = '{version_full_name}'"
+            f"WHERE ApiName = {soql_quote(version_full_name)}"
         )
         url = f"{instance_url}/services/data/v{api_version}/query"
         headers = {
