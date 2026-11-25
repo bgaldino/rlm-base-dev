@@ -255,7 +255,8 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   so expect a refusal there.
 - **Edit the version that executes.** A change to any other version changes no
   price: a constant written into `_V1` changed no price, written into the executing
-  v40 it changed every price [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Use
+  version, VersionNumber 4 (ApiName `…_v40`), it changed every price [Measured:
+  2026-09-03, 264, upgraded org (ramp264)]. Use
   `set_step_formula.py` for formula edits; it defaults to the executing version and
   reads the result back.
 - **No tool picks the first version.** A tool given no version works on the
@@ -268,10 +269,17 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
   needs a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
   scratch build, disposable sets], so a run that would end by activating a null-Rank
   version fails after its change is written: an active version would be left off, a
-  draft changed but not activated. Every path that would activate one refuses before
-  any write and says to give the version a Rank first: `set_step_formula`, relabel
-  and label restore, import, overlay, `activate_expression_set --activate`, and a
-  whole-set delete (whose rollback reactivates), toolkit and CCI. Runs without
+  draft changed but not activated. These tools refuse it before any write and say to
+  give the version a Rank first: `set_step_formula`, `relabel_expression_set` and
+  the label restore, `import_expression_set`, `apply_expression_set_overlay`,
+  `activate_expression_set --activate` and `delete_expression_set` (whose rollback
+  reactivates), and the CCI `import_expression_set`, `apply_expression_set_overlay`
+  and `delete_expression_set` tasks. Other activation paths do not pre-check: the
+  CCI `ManageExpressionSets` tasks (`activate_expression_sets`,
+  `activate_prm_expression_sets`, `activate_procedure_plan_expression_sets`, and
+  `manage_expression_sets` with `operation: activate_version` or
+  `activate_versions`) only set the status, so a null-Rank version fails at the
+  platform's refusal with nothing else written for it. Runs without
   activation (`--no-activate`; CCI `activate_after_apply` / `activate_after_import`
   false) are allowed; `activate_expression_set --deactivate` warns that the step is
   one-way. To give a version a Rank: an sObject update of `ExpressionSetVersion.Rank`

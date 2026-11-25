@@ -1310,6 +1310,19 @@ def test_version_selection_never_takes_the_first():
     check("describe finds the executing version by VersionNumber despite a stale name",
           rc == 0 and any(s.get("name") == "GetPrice"
                           for s in described.get("steps", [])), described)
+    labelled = dict(chain, versions=[draft, dict(running, enabled=True)])
+    out = io.StringIO()
+    undo = _patch(desc_mod, **dict(common, _fetch_labels=lambda *a, **k: {},
+                                   fetch_definition=lambda *a, **k: deepcopy(labelled)))
+    try:
+        with redirect_stdout(out):
+            desc_mod.main(["--target-org", "x", "--developer-name", "P", "--labels"])
+    finally:
+        undo()
+    check("describe's relabel command names the version's real ApiName, not the GET's "
+          "stale clone name",
+          "--version P_V2 " in out.getvalue() and "P_OLD_CLONE --auto" not in out.getvalue(),
+          out.getvalue())
 
     with tempfile.TemporaryDirectory() as td:
         two_file = Path(td) / "two.json"

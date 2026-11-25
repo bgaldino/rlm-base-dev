@@ -358,11 +358,17 @@ edit, list the versions:
   differs from what it should be.
 - **A version with no Rank cannot be cycled.** The API refuses to activate a version
   without a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
-  scratch build, disposable sets], so every path that would activate a null-Rank
-  version (mutators with activation on, `--activate`, a whole-set delete's rollback;
-  toolkit and CCI) refuses before any write. Give it a Rank first, or run without
-  activation. An sObject update of `Rank` works on an inactive version; an active one
-  refuses every update ("An enabled Expression Set Version cannot be
+  scratch build, disposable sets], so the toolkit mutators with activation on
+  (`set_step_formula`, relabel, import, overlay), `activate_expression_set --activate`,
+  the whole-set delete (its rollback reactivates) and the CCI import, overlay and
+  delete tasks refuse a null-Rank version before any write. Give it a Rank first, or
+  run without activation. The CCI `ManageExpressionSets` tasks
+  (`activate_expression_sets`, `activate_prm_expression_sets`,
+  `activate_procedure_plan_expression_sets`, `manage_expression_sets`
+  `activate_version(s)`) do not pre-check: they only set the status, so a null-Rank
+  version fails at the platform's refusal with nothing else written for it. An
+  sObject update of `Rank` works on an inactive version; an active one refuses every
+  update ("An enabled Expression Set Version cannot be
   updated/deleted."), so deactivate it without cascading, set a numeric Rank (higher
   than every other active version's if it should execute; equal Ranks are refused)
   and activate it again without cascading [Measured: 2026-11-25, 264, QB scratch

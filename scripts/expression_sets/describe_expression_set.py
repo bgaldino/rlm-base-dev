@@ -306,12 +306,17 @@ def main(argv=None) -> int:
                   f"(label missing or == name): {', '.join(drifted)}")
             # Relabelling cycles the version; keep an inactive one inactive. When its
             # state is unknown the step is described rather than printed.
+            # --version is the sObject row's real ApiName: the GET block's apiName
+            # can be a stale clone name, which relabel would not find. A name with no
+            # sObject row (no VersionNumber) gets no command.
             enabled = version.get("enabled", version.get("isActive"))
             command = relabel_command(
                 target_org=args.target_org,
                 es_api_name=args.developer_name or definition.get("apiName"),
-                version_api_name=version.get("apiName"),
-                no_activate=enabled is False) if isinstance(enabled, bool) else None
+                version_api_name=row.get("ApiName"),
+                no_activate=enabled is False
+            ) if (isinstance(enabled, bool) and row.get("ApiName")
+                  and row.get("VersionNumber") is not None) else None
             print("    Set readable labels with relabel_expression_set.py"
                   + (", for example best-effort labels derived from the step names: "
                      + command if command else "."))
