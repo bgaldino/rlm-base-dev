@@ -230,8 +230,10 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
         }
     }
 
-    // Step 2: per picklist, the value id under its Value, and under its Name and Code
-    // when those are set and not already taken.
+    // Step 2: per picklist, the value id under its Value (a later Value replaces an
+    // earlier key); under its Name when set, not already a key, and not equal to its
+    // Value (Apex String != ignores case); and under its Code when set and not already
+    // a key.
     @TestVisible
     private static Map<Id, Map<String, Id>> picklistValueIds(List<AttributePicklistValue> rows) {
         Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>();

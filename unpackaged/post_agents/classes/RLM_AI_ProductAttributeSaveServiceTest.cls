@@ -96,16 +96,18 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
     // rows on the line. An Apex test cannot create them: ordinary DML is
     // refused ("use insertAsync() or insertImmediate()"), insertAsync is
     // refused for this object, and insertImmediate reports success but the row
-    // is never queryable. So saveAttributeSelections only reaches the
-    // no-matching-attributes branch above, and what the service does with the
-    // rows is tested through the seams that take them (after "Seams over
-    // queried rows"), with rows built by JSON.deserialize and fake ids.
+    // is never queryable. So, past the input guards, saveAttributeSelections
+    // only reaches the no-matching-attributes branch above, and what the
+    // service does with the rows is tested through the seams that take them
+    // (after "Seams over queried rows"), with rows built by JSON.deserialize
+    // and fake ids.
     //
     // executePst is called directly: PST runs in a test and refuses a patch of
     // a row that does not exist, so its failure path runs against the
     // platform. Live-only: a successful PST call, the order of the two calls
-    // in doSave (Number before Picklist, stopping at the first failure), and
-    // the readback query.
+    // in doSave (Number before Picklist, stopping at the first failure), the
+    // picklist-value query (it runs only for Picklist rows), and the readback
+    // query.
 
     // ── Input guards ─────────────────────────────────────────────────────────
 
@@ -207,7 +209,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
     static void indexAttributes_keysByDeveloperNameAndCollectsPicklistIds() {
         Id dutyPicklist = fakeId(AttributePicklist.SObjectType, 1);
         List<QuoteLineItemAttribute> rows = new List<QuoteLineItemAttribute>{
-            attributeRow(1, 'requiredKW', 'Number', null, null),
+            attributeRow(1, 'requiredKW', 'Number', fakeId(AttributePicklist.SObjectType, 9), null),
             attributeRow(2, 'DutyRating', 'Picklist', dutyPicklist, null),
             attributeRow(3, 'Finish', 'Picklist', null, null),
             attributeRow(4, null, 'Text', null, null),
@@ -225,7 +227,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
             'Rows without a definition developer name are skipped');
         Assert.areEqual(rows[1].Id, byDevName.get('DutyRating').Id, 'Each name maps to its row');
         Assert.areEqual(new Set<Id>{ dutyPicklist }, picklistIds,
-            'Only a Picklist attribute with a picklist id contributes one');
+            'Only a Picklist attribute with a picklist id contributes one; a Number row\'s picklist id is ignored');
     }
 
     @isTest
@@ -246,7 +248,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
         Id duty = fakeId(AttributePicklist.SObjectType, 1);
         Id finish = fakeId(AttributePicklist.SObjectType, 2);
         AttributePicklistValue continuous = picklistValueRow(1, duty, 'DCC', 'Duty Continuous', 'DC');
-        AttributePicklistValue standby = picklistValueRow(2, duty, 'STB', 'STB', null);
+        AttributePicklistValue standby = picklistValueRow(2, duty, 'STB', 'Stb', null);
         AttributePicklistValue matte = picklistValueRow(3, finish, 'Matte', null, 'MT');
 
         Map<Id, Map<String, Id>> result = RLM_AI_ProductAttributeSaveService.picklistValueIds(
@@ -256,7 +258,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
         Assert.areEqual(new Map<String, Id>{
                 'DCC' => continuous.Id, 'Duty Continuous' => continuous.Id, 'DC' => continuous.Id,
                 'STB' => standby.Id
-            }, result.get(duty), 'A value is found by its Value, Name and Code; a Name equal to the Value adds nothing');
+            }, result.get(duty), 'A value is found by its Value, Name and Code; a Name equal to the Value, ignoring case, adds nothing');
         Assert.areEqual(new Map<String, Id>{ 'Matte' => matte.Id, 'MT' => matte.Id }, result.get(finish),
             'A blank Name adds nothing');
     }
@@ -310,8 +312,10 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
         Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>{
             duty => new Map<String, Id>{ 'DCC' => dcc.Id }
         };
+        // 'Unknown' (no attribute on the line) sits between kept selections, so a number
+        // spent on it would leave a gap in the reference ids.
         Map<String, Object> selections = new Map<String, Object>{
-            'requiredKW' => 1500, 'DutyRating' => 'DCC', 'Note' => null, 'Unknown' => 'x'
+            'requiredKW' => 1500, 'Unknown' => 'x', 'DutyRating' => 'DCC', 'Note' => null
         };
 
         List<RevSalesTrxn.RecordWithReferenceRequest> nodes = RLM_AI_ProductAttributeSaveService.pstGraphNodes(
