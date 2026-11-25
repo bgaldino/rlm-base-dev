@@ -77,7 +77,12 @@ check("the step is in the tracked definitions",
 print("every tracked conditions file names steps its plan has")
 # The load's rename guard fires only on an org that meets the requirement, which no default build
 # does; this offline check covers a renamed step on every build.
-tracked = sorted((REPO / "datasets").rglob(cs.CONDITIONS_FILENAME))
+# Git-tracked files only: a local extraction (gitignored, datasets/sfdmu/extractions/) holds a copy
+# whose CSV legitimately lacks the step.
+sys.path.insert(0, str(REPO / "scripts"))
+from repo_paths import tracked_paths  # noqa: E402
+candidates = [str(p) for p in (REPO / "datasets").rglob(cs.CONDITIONS_FILENAME)]
+tracked = sorted(pathlib.Path(p) for p in tracked_paths(candidates, str(REPO)))
 check("at least the qb-dro conditions file is found", PLAN / cs.CONDITIONS_FILENAME in tracked, True)
 for spec in tracked:
     names = {r[cs.DEFINITION_NAME_COLUMN] for r in rows(spec.parent, cs.DEFINITION_CSV)}
