@@ -1,0 +1,147 @@
+{
+  "_about": "Recorded query results, Line Level. Shapes and field values follow the 2026-11-25 264 scratch org reads (API 68.0); ids are synthetic. INV1: payment applied at post; INV2: unpaid; INV3: two credits on one line plus a payment applied then unapplied on the other line.",
+  "Invoice": [
+    {
+      "Id": "3tt000000000001AAA",
+      "Status": "Posted",
+      "SettlementLevel": "InvoiceLine",
+      "CurrencyIsoCode": "USD",
+      "TotalAmountWithTax": 4950,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 1000,
+      "Balance": 3950
+    },
+    {
+      "Id": "3tt000000000002AAA",
+      "Status": "Posted",
+      "SettlementLevel": null,
+      "CurrencyIsoCode": "USD",
+      "TotalAmountWithTax": 495,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 495
+    },
+    {
+      "Id": "3tt000000000003AAA",
+      "Status": "Posted",
+      "SettlementLevel": "InvoiceLine",
+      "CurrencyIsoCode": "USD",
+      "TotalAmountWithTax": 250,
+      "NetCreditsApplied": 100,
+      "NetPaymentsApplied": 0,
+      "Balance": 150
+    }
+  ],
+  "InvoiceLine": [
+    {
+      "Id": "5TV000000000011AAA",
+      "InvoiceId": "3tt000000000001AAA",
+      "Type": "Charge",
+      "LineAmount": 4950,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 1000,
+      "Balance": 3950
+    },
+    {
+      "Id": "5TV000000000021AAA",
+      "InvoiceId": "3tt000000000002AAA",
+      "Type": "Charge",
+      "LineAmount": 495,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 495
+    },
+    {
+      "Id": "5TV000000000031AAA",
+      "InvoiceId": "3tt000000000003AAA",
+      "Type": "Charge",
+      "LineAmount": 100,
+      "NetCreditsApplied": 100,
+      "NetPaymentsApplied": 0,
+      "Balance": 0
+    },
+    {
+      "Id": "5TV000000000032AAA",
+      "InvoiceId": "3tt000000000003AAA",
+      "Type": "Charge",
+      "LineAmount": 150,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 150
+    }
+  ],
+  "PaymentLineInvoiceLine": [
+    {
+      "Id": "1Al000000000001AAA",
+      "InvoiceLineId": "5TV000000000011AAA",
+      "PaymentId": "0aQ000000000001AAA",
+      "Amount": 1000,
+      "Type": "Applied",
+      "UnappliedStatus": "No",
+      "RelatedPaymentLineInvcLineId": null
+    },
+    {
+      "Id": "1Al000000000002AAA",
+      "InvoiceLineId": "5TV000000000032AAA",
+      "PaymentId": "0aQ000000000003AAA",
+      "Amount": 50,
+      "Type": "Applied",
+      "UnappliedStatus": "Yes",
+      "RelatedPaymentLineInvcLineId": null
+    },
+    {
+      "Id": "1Al000000000003AAA",
+      "InvoiceLineId": "5TV000000000032AAA",
+      "PaymentId": "0aQ000000000003AAA",
+      "Amount": 50,
+      "Type": "Unapplied",
+      "UnappliedStatus": "NA",
+      "RelatedPaymentLineInvcLineId": "1Al000000000002AAA"
+    }
+  ],
+  "CreditMemoLineInvoiceLine": [
+    {
+      "Id": "4sG000000000001AAA",
+      "InvoiceLineId": "5TV000000000031AAA",
+      "CreditMemoLineId": "9yx000000000001AAA",
+      "Amount": 40,
+      "Type": "Applied",
+      "UnappliedStatus": "No",
+      "RelatedCrMemoLineInvcLineId": null
+    },
+    {
+      "Id": "4sG000000000002AAA",
+      "InvoiceLineId": "5TV000000000031AAA",
+      "CreditMemoLineId": "9yx000000000002AAA",
+      "Amount": 60,
+      "Type": "Applied",
+      "UnappliedStatus": "No",
+      "RelatedCrMemoLineInvcLineId": null
+    }
+  ],
+  "PaymentLineInvoice": [],
+  "CreditMemoInvApplication": [],
+  "Payment": [
+    {
+      "Id": "0aQ000000000001AAA",
+      "Status": "Processed",
+      "Amount": 1000,
+      "NetApplied": 1000,
+      "Balance": 0
+    },
+    {
+      "Id": "0aQ000000000002AAA",
+      "Status": "Canceled",
+      "Amount": 1000,
+      "NetApplied": 0,
+      "Balance": 1000
+    },
+    {
+      "Id": "0aQ000000000003AAA",
+      "Status": "Processed",
+      "Amount": 50,
+      "NetApplied": 0,
+      "Balance": 50
+    }
+  ]
+}

@@ -23,6 +23,7 @@ from .manifests import (
     load_manifest,
     parse_retention,
     prune_old_runs,
+    resolve_manifest_path,
     summarize_manifest,
     write_manifest,
 )
@@ -31,6 +32,7 @@ from .models import STAGES_QUOTE, LineItem
 from .report import build_batch_report, render_markdown
 from .runner import draw_lines
 from .steps import StepContext, execute_step
+from . import verify as billing_verify
 
 
 def _generate_argv(args: argparse.Namespace, *, dry_run: bool = False) -> list[str]:
@@ -335,6 +337,47 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
+    """Collect invoice and payment ids from manifests and/or explicit flags."""
+    invoice_ids = billing_verify.split_ids(args.invoice_ids, "--invoice-ids")
+    payment_ids = billing_verify.split_ids(args.payment_ids, "--payment-ids")
+    paths = [resolve_manifest_path(m) for m in (args.manifest or [])]
+    if args.latest:
+        manifests = list_manifests()
+        if not manifests:
+            raise billing_verify.VerifyError("No manifests found.")
+        paths.append(manifests[0])
+    for path in paths:
+        inv, pay = billing_verify.ids_from_manifest(path)
+        if not inv and not pay:
+            raise billing_verify.VerifyError(
+                f"manifest {path} names no invoice or payment id; "
+                f"pass --invoice-ids instead"
+            )
+        invoice_ids += [i for i in inv if i not in invoice_ids]
+        payment_ids += [p for p in pay if p not in payment_ids]
+    if not invoice_ids and not payment_ids:
+        raise billing_verify.VerifyError(
+            "verify needs --manifest, --latest, --invoice-ids or --payment-ids"
+        )
+    return invoice_ids, payment_ids
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    """Read-only billing checks. Exit 0 when nothing fails, 1 when any check fails."""
+    invoice_ids, payment_ids = _verify_ids(args)
+    client = SfRestClient.from_alias(
+        args.org, api_version=args.api_version, transport=args.transport
+    )
+    records = billing_verify.fetch_billing_records(client, invoice_ids, payment_ids)
+    report = billing_verify.run_checks(records, args.expect_level)
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        print(billing_verify.render_text(report))
+    return 0 if report["ok"] else 1
+
+
 def _cmd_prune(args: argparse.Namespace) -> int:
     """Delete manifest files older than a retention window (dry-run by default)."""
     retention = parse_retention(args.older_than)
@@ -394,6 +437,28 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     report.add_argument("--markdown", action="store_true",
                         help="Print markdown instead of JSON.")
     report.set_defaults(func=_cmd_report)
+
+    verify = sub.add_parser(
+        "verify",
+        help="Read-only billing checks on invoices and payments (exit 1 on any failure).",
+    )
+    add_connection_args(verify)
+    verify.add_argument("--manifest", action="append",
+                        help="Run id or manifest path (repeatable); reads its invoice "
+                             "and payment ids.")
+    verify.add_argument("--latest", action="store_true",
+                        help="Add the newest manifest's ids.")
+    verify.add_argument("--invoice-ids", action="append",
+                        help="Invoice ids, comma- or space-separated (repeatable).")
+    verify.add_argument("--payment-ids", action="append",
+                        help="Extra payment ids to check, such as one with no "
+                             "applications (repeatable).")
+    verify.add_argument("--expect-level", choices=["auto", "line", "header"],
+                        default="auto",
+                        help="Application level to expect (default: detect from the "
+                             "records).")
+    verify.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    verify.set_defaults(func=_cmd_verify)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

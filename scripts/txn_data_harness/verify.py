@@ -1,0 +1,537 @@
+"""Read-only billing verifier: invoice, line and payment balances against their applications.
+
+``cli verify`` reads invoice and payment ids from harness manifests (or from
+``--invoice-ids`` / ``--payment-ids``), runs SOQL reads only, and checks the billing
+records against each other. It never writes. Exit 0 when every check passes or is
+skipped, 1 when any check fails.
+
+Checks (formulas are documented in
+``.cursor/skills/billing-operations/verification.md``):
+
+``application_level``
+    Line Level orgs put applications in ``PaymentLineInvoiceLine`` /
+    ``CreditMemoLineInvoiceLine``; Header Level orgs in ``PaymentLineInvoice`` /
+    ``CreditMemoInvApplication``. An invoice fails when it has rows of the other
+    level, or when its ``SettlementLevel`` names the other level.
+``invoice_balance``
+    ``Balance = TotalAmountWithTax - NetCreditsApplied - NetPaymentsApplied``, and
+    each rollup equals the net of the invoice's application rows.
+``invoice_line_balance``
+    ``Balance = LineAmount - NetCreditsApplied - NetPaymentsApplied`` per line, and
+    each rollup equals the net of the line's application rows. Skipped for an invoice
+    whose applications are header rows only.
+``payment_balance``
+    ``Balance = Amount - NetApplied``, and ``NetApplied`` equals the net of the
+    payment's application rows on any invoice.
+``unapplied_rows``
+    Every ``Unapplied`` row pairs with an ``Applied`` row marked unapplied, and every
+    ``Applied`` row marked unapplied has its ``Unapplied`` row.
+
+The net of a set of application rows is the sum of ``Applied`` amounts minus the sum
+of ``Unapplied`` amounts (absolute value, since the sign of an Unapplied row's
+``Amount`` has not been measured).
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass, field
+from decimal import Decimal
+from pathlib import Path
+from typing import Any, Iterable, Optional
+
+__all__ = [
+    "CHECK_NAMES",
+    "VerifyError",
+    "fetch_billing_records",
+    "ids_from_manifest",
+    "render_text",
+    "run_checks",
+]
+
+CHECK_NAMES = (
+    "application_level",
+    "invoice_balance",
+    "invoice_line_balance",
+    "payment_balance",
+    "unapplied_rows",
+)
+
+LEVELS = ("line", "header")
+
+# Half a cent: currency fields carry two decimals, so any real difference is >= 0.01.
+_TOLERANCE = Decimal("0.005")
+_ID_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
+_IN_CHUNK = 200
+
+INVOICE_FIELDS = (
+    "Id", "Status", "SettlementLevel", "CurrencyIsoCode", "TotalAmountWithTax",
+    "NetCreditsApplied", "NetPaymentsApplied", "Balance",
+)
+INVOICE_LINE_FIELDS = (
+    "Id", "InvoiceId", "Type", "LineAmount", "NetCreditsApplied", "NetPaymentsApplied",
+    "Balance",
+)
+PAYMENT_FIELDS = ("Id", "Status", "Amount", "NetApplied", "Balance")
+
+
+@dataclass(frozen=True)
+class _AppObject:
+    """One of the four application junction objects and the fields that matter."""
+
+    name: str
+    level: str          # "line" | "header"
+    kind: str           # "payment" | "credit"
+    target_field: str   # InvoiceLineId (line) or InvoiceId (header)
+    source_field: str   # PaymentId / CreditMemoLineId / CreditMemoId
+    unapplied_flag: str  # UnappliedStatus / HasBeenUnapplied
+    related_field: str  # the self-lookup pairing Applied and Unapplied rows
+
+    @property
+    def fields(self) -> tuple[str, ...]:
+        return ("Id", self.target_field, self.source_field, "Amount", "Type",
+                self.unapplied_flag, self.related_field)
+
+
+APP_OBJECTS = (
+    _AppObject("PaymentLineInvoiceLine", "line", "payment", "InvoiceLineId", "PaymentId",
+               "UnappliedStatus", "RelatedPaymentLineInvcLineId"),
+    _AppObject("CreditMemoLineInvoiceLine", "line", "credit", "InvoiceLineId",
+               "CreditMemoLineId", "UnappliedStatus", "RelatedCrMemoLineInvcLineId"),
+    _AppObject("PaymentLineInvoice", "header", "payment", "InvoiceId", "PaymentId",
+               "HasBeenUnapplied", "AssociatedPaymentLineId"),
+    _AppObject("CreditMemoInvApplication", "header", "credit", "InvoiceId", "CreditMemoId",
+               "HasBeenUnapplied", "AssociatedLineId"),
+)
+_PAYMENT_APP_OBJECTS = tuple(o for o in APP_OBJECTS if o.kind == "payment")
+_SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
+
+
+class VerifyError(ValueError):
+    """Bad input (unknown id, manifest with no invoice). ``cli.main`` prints it, exits 1."""
+
+
+# --------------------------------------------------------------------------- inputs
+
+def _check_ids(ids: Iterable[str], label: str) -> list[str]:
+    out: list[str] = []
+    for raw in ids:
+        value = (raw or "").strip()
+        if not value:
+            continue
+        if not _ID_RE.match(value):
+            raise VerifyError(f"{label}: {value!r} is not a Salesforce id")
+        if value not in out:
+            out.append(value)
+    return out
+
+
+def split_ids(values: Optional[Iterable[str]], label: str) -> list[str]:
+    """Accept ``--invoice-ids a,b c`` (commas, spaces or repeated flags)."""
+    parts: list[str] = []
+    for value in values or []:
+        parts.extend(re.split(r"[\s,]+", value))
+    return _check_ids(parts, label)
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return [v for v in value if isinstance(v, str)]
+
+
+def ids_from_manifest(path: Path) -> tuple[list[str], list[str]]:
+    """Return ``(invoice_ids, payment_ids)`` named by a manifest file.
+
+    Reads the raw JSON rather than ``Manifest.from_dict`` so that keys added by
+    later stages (payment ids, for example) are read without a model change.
+    """
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    invoices = _as_list(data.get("invoice_id")) + _as_list(data.get("invoice_ids"))
+    payments = _as_list(data.get("payment_id")) + _as_list(data.get("payment_ids"))
+    return (_check_ids(invoices, f"{path.name} invoice id"),
+            _check_ids(payments, f"{path.name} payment id"))
+
+
+# --------------------------------------------------------------------------- fetch
+
+def _query_in(client, obj: str, fields: Iterable[str], where_field: str,
+              ids: list[str]) -> list[dict]:
+    rows: list[dict] = []
+    for start in range(0, len(ids), _IN_CHUNK):
+        chunk = ids[start:start + _IN_CHUNK]
+        quoted = ", ".join(f"'{i}'" for i in chunk)
+        soql = (f"SELECT {', '.join(fields)} FROM {obj} "
+                f"WHERE {where_field} IN ({quoted})")
+        for row in client.query(soql):
+            row = {k: v for k, v in row.items() if k != "attributes"}
+            rows.append(row)
+    return rows
+
+
+def _merge(rows: list[dict], more: list[dict]) -> list[dict]:
+    seen = {r["Id"] for r in rows}
+    return rows + [r for r in more if r["Id"] not in seen]
+
+
+def fetch_billing_records(client, invoice_ids: list[str],
+                          payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
+    """Read everything the checks need, by id. SOQL reads only.
+
+    Returns ``{object name: rows}`` for Invoice, InvoiceLine, Payment and the four
+    application objects. Payments are the ones asked for plus every payment that
+    has an application row on these invoices; for each payment, all of its payment
+    application rows are read too, so ``NetApplied`` can be checked against rows on
+    invoices outside the set.
+    """
+    invoice_ids = _check_ids(invoice_ids, "invoice id")
+    payment_ids = _check_ids(payment_ids or [], "payment id")
+    if not invoice_ids and not payment_ids:
+        raise VerifyError("no invoice or payment ids to verify")
+
+    records: dict[str, list[dict]] = {}
+    invoices = _query_in(client, "Invoice", INVOICE_FIELDS, "Id", invoice_ids)
+    missing = sorted(set(invoice_ids) - {r["Id"] for r in invoices})
+    if missing:
+        raise VerifyError(f"invoice ids not found or not readable: {', '.join(missing)}")
+    records["Invoice"] = invoices
+    lines = (_query_in(client, "InvoiceLine", INVOICE_LINE_FIELDS, "InvoiceId", invoice_ids)
+             if invoice_ids else [])
+    records["InvoiceLine"] = lines
+    line_ids = [r["Id"] for r in lines]
+
+    for obj in APP_OBJECTS:
+        targets = line_ids if obj.level == "line" else invoice_ids
+        records[obj.name] = (_query_in(client, obj.name, obj.fields, obj.target_field, targets)
+                             if targets else [])
+
+    for obj in _PAYMENT_APP_OBJECTS:
+        for row in records[obj.name]:
+            pid = row.get(obj.source_field)
+            if pid and pid not in payment_ids:
+                payment_ids.append(pid)
+    payments = _query_in(client, "Payment", PAYMENT_FIELDS, "Id", payment_ids) if payment_ids else []
+    missing = sorted(set(payment_ids) - {r["Id"] for r in payments})
+    if missing:
+        raise VerifyError(f"payment ids not found or not readable: {', '.join(missing)}")
+    records["Payment"] = payments
+    if payment_ids:
+        for obj in _PAYMENT_APP_OBJECTS:
+            more = _query_in(client, obj.name, obj.fields, obj.source_field, payment_ids)
+            records[obj.name] = _merge(records[obj.name], more)
+    return records
+
+
+# --------------------------------------------------------------------------- checks
+
+def _dec(value: Any) -> Optional[Decimal]:
+    if value is None:
+        return None
+    return Decimal(str(value))
+
+
+def _zero(value: Any) -> Decimal:
+    d = _dec(value)
+    return d if d is not None else Decimal("0")
+
+
+def _eq(a: Optional[Decimal], b: Optional[Decimal]) -> bool:
+    return a is not None and b is not None and abs(a - b) <= _TOLERANCE
+
+
+def _fmt(value: Optional[Decimal]) -> str:
+    return "null" if value is None else f"{value:.2f}"
+
+
+def _net(rows: Iterable[dict]) -> Decimal:
+    total = Decimal("0")
+    for row in rows:
+        amount = _zero(row.get("Amount"))
+        if row.get("Type") == "Unapplied":
+            total -= abs(amount)
+        elif row.get("Type") == "Applied":
+            total += amount
+    return total
+
+
+@dataclass
+class _Index:
+    invoices: list[dict]
+    lines_by_invoice: dict[str, list[dict]] = field(default_factory=dict)
+    line_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> line id -> rows
+    header_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> invoice id -> rows
+    rows_by_payment: dict[str, list[dict]] = field(default_factory=dict)
+
+
+def _index(records: dict[str, list[dict]]) -> _Index:
+    idx = _Index(invoices=records.get("Invoice", []))
+    for line in records.get("InvoiceLine", []):
+        idx.lines_by_invoice.setdefault(line["InvoiceId"], []).append(line)
+    for kind in ("payment", "credit"):
+        idx.line_rows[kind] = {}
+        idx.header_rows[kind] = {}
+    for obj in APP_OBJECTS:
+        for row in records.get(obj.name, []):
+            # Rows a payment has on invoices outside the set are indexed too; lookups go
+            # by this set's invoice and line ids, so they count for the payment only.
+            bucket = idx.line_rows if obj.level == "line" else idx.header_rows
+            bucket[obj.kind].setdefault(row.get(obj.target_field), []).append(row)
+            if obj.kind == "payment":
+                idx.rows_by_payment.setdefault(row.get(obj.source_field), []).append(row)
+    return idx
+
+
+def _invoice_rows(idx: _Index, invoice_id: str, kind: str, level: str) -> list[dict]:
+    if level == "header":
+        return idx.header_rows[kind].get(invoice_id, [])
+    rows: list[dict] = []
+    for line in idx.lines_by_invoice.get(invoice_id, []):
+        rows.extend(idx.line_rows[kind].get(line["Id"], []))
+    return rows
+
+
+def _evidence(idx: _Index, invoice: dict) -> set[str]:
+    found: set[str] = set()
+    iid = invoice["Id"]
+    for level in LEVELS:
+        if any(_invoice_rows(idx, iid, kind, level) for kind in ("payment", "credit")):
+            found.add(level)
+    settlement = _SETTLEMENT_LEVEL.get(invoice.get("SettlementLevel") or "")
+    if settlement:
+        found.add(settlement)
+    return found
+
+
+def _detect_level(idx: _Index) -> tuple[Optional[str], str]:
+    found: set[str] = set()
+    for invoice in idx.invoices:
+        found |= _evidence(idx, invoice)
+    if len(found) == 1:
+        return next(iter(found)), "records"
+    if not found:
+        return None, "undetermined"
+    return None, "mixed"
+
+
+def _result(check: str, subject: str, status: str, detail: str) -> dict:
+    return {"check": check, "subject": subject, "status": status, "detail": detail}
+
+
+def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict]:
+    out = []
+    for invoice in idx.invoices:
+        iid = invoice["Id"]
+        line_n = sum(len(_invoice_rows(idx, iid, k, "line")) for k in ("payment", "credit"))
+        head_n = sum(len(_invoice_rows(idx, iid, k, "header")) for k in ("payment", "credit"))
+        settlement = invoice.get("SettlementLevel")
+        facts = (f"{line_n} line application row(s), {head_n} header application row(s), "
+                 f"SettlementLevel {settlement or 'null'}")
+        if expected is None:
+            if source == "mixed":
+                out.append(_result("application_level", iid, "fail",
+                                   f"the invoices disagree on the level; {facts}"))
+            else:
+                out.append(_result("application_level", iid, "skip",
+                                   f"no application rows and no SettlementLevel to compare; {facts}"))
+            continue
+        other = "header" if expected == "line" else "line"
+        wrong_rows = head_n if expected == "line" else line_n
+        settled = _SETTLEMENT_LEVEL.get(settlement or "")
+        problems = []
+        if wrong_rows:
+            problems.append(f"{wrong_rows} {other}-level row(s)")
+        if settled == other:
+            problems.append(f"SettlementLevel is {settlement}")
+        if problems:
+            out.append(_result("application_level", iid, "fail",
+                               f"expected {expected} level ({source}) but found "
+                               f"{' and '.join(problems)}; {facts}"))
+        else:
+            out.append(_result("application_level", iid, "pass",
+                               f"{expected} level ({source}); {facts}"))
+    return out
+
+
+def _check_invoice_balance(idx: _Index) -> list[dict]:
+    out = []
+    for invoice in idx.invoices:
+        iid = invoice["Id"]
+        total = _dec(invoice.get("TotalAmountWithTax"))
+        credits = _zero(invoice.get("NetCreditsApplied"))
+        payments = _zero(invoice.get("NetPaymentsApplied"))
+        balance = _dec(invoice.get("Balance"))
+        rec_pay = sum((_net(_invoice_rows(idx, iid, "payment", lvl)) for lvl in LEVELS), Decimal("0"))
+        rec_cred = sum((_net(_invoice_rows(idx, iid, "credit", lvl)) for lvl in LEVELS), Decimal("0"))
+        expected = None if total is None else total - credits - payments
+        problems = []
+        if not _eq(balance, expected):
+            problems.append(f"Balance {_fmt(balance)} != TotalAmountWithTax {_fmt(total)} "
+                            f"- NetCreditsApplied {_fmt(credits)} - NetPaymentsApplied "
+                            f"{_fmt(payments)} = {_fmt(expected)}")
+        if not _eq(payments, rec_pay):
+            problems.append(f"NetPaymentsApplied {_fmt(payments)} != payment rows {_fmt(rec_pay)}")
+        if not _eq(credits, rec_cred):
+            problems.append(f"NetCreditsApplied {_fmt(credits)} != credit rows {_fmt(rec_cred)}")
+        if problems:
+            out.append(_result("invoice_balance", iid, "fail", "; ".join(problems)))
+        else:
+            out.append(_result("invoice_balance", iid, "pass",
+                               f"{_fmt(balance)} = {_fmt(total)} - {_fmt(credits)} - {_fmt(payments)}"))
+    return out
+
+
+def _check_line_balance(idx: _Index) -> list[dict]:
+    out = []
+    for invoice in idx.invoices:
+        iid = invoice["Id"]
+        has_line = any(_invoice_rows(idx, iid, k, "line") for k in ("payment", "credit"))
+        has_head = any(_invoice_rows(idx, iid, k, "header") for k in ("payment", "credit"))
+        lines = idx.lines_by_invoice.get(iid, [])
+        if has_head and not has_line:
+            out.append(_result("invoice_line_balance", iid, "skip",
+                               "applications are header rows; line balances at Header "
+                               "Level are not measured"))
+            continue
+        if not lines:
+            out.append(_result("invoice_line_balance", iid, "fail", "invoice has no lines"))
+            continue
+        for line in lines:
+            lid = line["Id"]
+            amount = _dec(line.get("LineAmount"))
+            credits = _zero(line.get("NetCreditsApplied"))
+            payments = _zero(line.get("NetPaymentsApplied"))
+            balance = _dec(line.get("Balance"))
+            rec_pay = _net(idx.line_rows["payment"].get(lid, []))
+            rec_cred = _net(idx.line_rows["credit"].get(lid, []))
+            expected = None if amount is None else amount - credits - payments
+            problems = []
+            if not _eq(balance, expected):
+                problems.append(f"Balance {_fmt(balance)} != LineAmount {_fmt(amount)} "
+                                f"- NetCreditsApplied {_fmt(credits)} - NetPaymentsApplied "
+                                f"{_fmt(payments)} = {_fmt(expected)}")
+            if not _eq(payments, rec_pay):
+                problems.append(f"NetPaymentsApplied {_fmt(payments)} != "
+                                f"PaymentLineInvoiceLine rows {_fmt(rec_pay)}")
+            if not _eq(credits, rec_cred):
+                problems.append(f"NetCreditsApplied {_fmt(credits)} != "
+                                f"CreditMemoLineInvoiceLine rows {_fmt(rec_cred)}")
+            subject = f"{iid}/{lid}"
+            if problems:
+                out.append(_result("invoice_line_balance", subject, "fail", "; ".join(problems)))
+            else:
+                out.append(_result("invoice_line_balance", subject, "pass",
+                                   f"{_fmt(balance)} = {_fmt(amount)} - {_fmt(credits)} - "
+                                   f"{_fmt(payments)}"))
+    return out
+
+
+def _check_payment_balance(records: dict[str, list[dict]], idx: _Index) -> list[dict]:
+    out = []
+    for payment in records.get("Payment", []):
+        pid = payment["Id"]
+        amount = _dec(payment.get("Amount"))
+        applied = _zero(payment.get("NetApplied"))
+        balance = _dec(payment.get("Balance"))
+        rec = _net(idx.rows_by_payment.get(pid, []))
+        expected = None if amount is None else amount - applied
+        problems = []
+        if not _eq(balance, expected):
+            problems.append(f"Balance {_fmt(balance)} != Amount {_fmt(amount)} - NetApplied "
+                            f"{_fmt(applied)} = {_fmt(expected)}")
+        if not _eq(applied, rec):
+            problems.append(f"NetApplied {_fmt(applied)} != application rows {_fmt(rec)}")
+        status = payment.get("Status")
+        if problems:
+            out.append(_result("payment_balance", pid, "fail",
+                               f"Status {status}; " + "; ".join(problems)))
+        else:
+            out.append(_result("payment_balance", pid, "pass",
+                               f"Status {status}; {_fmt(balance)} = {_fmt(amount)} - {_fmt(applied)}"))
+    return out
+
+
+def _check_unapplied(records: dict[str, list[dict]]) -> list[dict]:
+    out = []
+    for obj in APP_OBJECTS:
+        rows = {r["Id"]: r for r in records.get(obj.name, [])}
+        pointed_at: dict[str, str] = {}
+        for rid, row in rows.items():
+            related = row.get(obj.related_field)
+            if related:
+                pointed_at.setdefault(related, rid)
+
+        def partner(rid: str, row: dict) -> Optional[dict]:
+            related = row.get(obj.related_field)
+            if related and related in rows:
+                return rows[related]
+            other = pointed_at.get(rid)
+            return rows.get(other) if other else None
+
+        for rid, row in rows.items():
+            kind = row.get("Type")
+            mate = partner(rid, row)
+            if kind == "Unapplied":
+                if mate is None or mate.get("Type") != "Applied":
+                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
+                                       "Unapplied row has no Applied row paired by "
+                                       f"{obj.related_field}"))
+                elif mate.get(obj.unapplied_flag) != "Yes":
+                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
+                                       f"paired Applied row {mate['Id']} has "
+                                       f"{obj.unapplied_flag} {mate.get(obj.unapplied_flag)!r}, "
+                                       "not 'Yes'"))
+                else:
+                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "pass",
+                                       f"pairs with Applied row {mate['Id']}"))
+            elif kind == "Applied" and row.get(obj.unapplied_flag) == "Yes":
+                if mate is None or mate.get("Type") != "Unapplied":
+                    out.append(_result("unapplied_rows", f"{obj.name}/{rid}", "fail",
+                                       f"Applied row has {obj.unapplied_flag} 'Yes' but no "
+                                       "Unapplied row"))
+    if not out:
+        out.append(_result("unapplied_rows", "all", "pass", "no Unapplied rows"))
+    return out
+
+
+def run_checks(records: dict[str, list[dict]], expect_level: str = "auto") -> dict:
+    """Run every check on fetched (or recorded) rows. Pure: no org access."""
+    if expect_level not in ("auto",) + LEVELS:
+        raise VerifyError(f"expect_level must be auto, line or header (got {expect_level!r})")
+    idx = _index(records)
+    if expect_level == "auto":
+        level, source = _detect_level(idx)
+    else:
+        level, source = expect_level, "argument"
+    results = (
+        _check_level(idx, level, source)
+        + _check_invoice_balance(idx)
+        + _check_line_balance(idx)
+        + _check_payment_balance(records, idx)
+        + _check_unapplied(records)
+    )
+    failed = sorted({r["check"] for r in results if r["status"] == "fail"},
+                    key=CHECK_NAMES.index)
+    return {
+        "ok": not failed,
+        "level": level,
+        "level_source": source,
+        "invoice_ids": [r["Id"] for r in records.get("Invoice", [])],
+        "payment_ids": [r["Id"] for r in records.get("Payment", [])],
+        "failed_checks": failed,
+        "checks": results,
+    }
+
+
+def render_text(report: dict) -> str:
+    lines = [f"Level: {report['level'] or report['level_source']} ({report['level_source']})"]
+    for r in report["checks"]:
+        lines.append(f"{r['status'].upper():4} {r['check']:20} {r['subject']}: {r['detail']}")
+    if report["ok"]:
+        lines.append("RESULT: pass")
+    else:
+        lines.append(f"RESULT: fail ({', '.join(report['failed_checks'])})")
+    return "\n".join(lines)
