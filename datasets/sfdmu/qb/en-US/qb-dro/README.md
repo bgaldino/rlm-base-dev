@@ -60,16 +60,19 @@ Measured on a fresh 264 `dro` build [Measured: 2026-11-25, 264, scratch, one org
   measured.
 - The failed step stalls the plan [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision Licensing/Features depend on it, and
   Provision Licensing/Features gates Initiate Billing, which gates Post Invoice, which gates Receive Payment (it also
-  gates Activate Tokens, which was not on these plans). All stayed `Pending` and the plan stayed `InProgress`, so
-  billing was not initiated in the measured run.
+  gates Activate Tokens, which was not on these plans). Initiate Billing also depends on Start Project; whether that step
+  was on these plans was not checked. All stayed `Pending` and the plan stayed `InProgress` (observed), so billing was
+  not initiated in the measured run.
 - `ExecutionMessage` on the failed step reads `Fallout Rule is misconfigured: Specify valid name for Data set Link`,
   not the exception text, on a build that lacks the fallout and jeopardy decision tables (`FulfillmentFalloutRules`,
   `Fulfillment_Step_Jeopardy_Rule_Decision_Table`). The exception text was seen only in the
   debug log. Whether it surfaces once the tables exist was not measured, and neither was whether the class's non-2xx branch
   (todo 381) also ends the step `FatallyFailed` once they exist.
+- Fulfillment orders stayed `Draft` for every order measured, including one whose plan had no failed step; why they did not
+  leave Draft was not measured.
 - An earlier headless check that called `executeCallout` directly and then saw fulfillment orders still `Draft` and
   no `FlowOrchestrationInstance` records concluded "not wired". That was a test-design error: fulfillment orders
-  stayed `Draft` on every order measured on the 2026-11-25 build, DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
+  stayed `Draft` there (see the previous bullet), DRO plans here are `FulfillmentPlan` and `FulfillmentStep`
   records rather than Flow Orchestration instances [inferred from the zero count], and the orders it used contained only `QB-API`/`QB-API-FLEX`.
   See [Verify a DRO Step on a Fresh Build](../../../../../.cursor/skills/dro-plans/updates-and-runtime.md#verify-a-dro-step-on-a-fresh-build).
 

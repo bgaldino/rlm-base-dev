@@ -518,7 +518,9 @@ This repo ships neither the `RLM` named credential nor the REST resource. On a f
   measured.
 - It stalls the billing chain [inferred from the dependency definitions]. Receive Key + Assign to Asset and Provision
   Licensing/Features depend on it; Provision Licensing/Features gates Initiate Billing (and Activate Tokens, not on these plans), which gates Post Invoice,
-  which gates Receive Payment. All stayed `Pending` and the plan stayed `InProgress` (observed).
+  which gates Receive Payment. Initiate Billing also depends on Start Project; whether that step was on these plans was not
+  checked, so Initiate Billing staying `Pending` does not by itself show the callout is the blocker. All stayed `Pending`
+  and the plan stayed `InProgress` (observed).
 - `ExecutionMessage` showed `Fallout Rule is misconfigured: Specify valid name for Data set Link`, not the exception text,
   on a build with no fallout or jeopardy decision tables (see **Fallout and jeopardy rules** above); the tables are the
   likely cause [inferred]. The exception text was visible only in the debug log. Whether it surfaces with the tables
@@ -543,8 +545,8 @@ remove or condition the step. This section records behaviour, not a fix.
    builds quote, order and activation headlessly (its default is two accounts and a 2026-06-01 start; add `--allow-existing-asset` on a rerun). Activation is the part
    that matters for this check; the script's later wait for a new `Asset` can fail if assetizing waits on the stalled
    step [inferred], which does not mean the DRO check failed. A direct
-   `OrderItem` create was rejected because `ProductSellingModelId` was not writable [Measured: 2026-11-25, 264, scratch, one org].
-3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` in the measured run; a plan
+   `OrderItem` create was rejected with `ProductSellingModelId` reported as not writable [Measured: 2026-11-25, 264, scratch, one org].
+3. Read the result by the order id, as `FulfillmentPlan.SourceIdentifier` (`SourceType` was `StandardOrder` [Measured: 2026-11-25, 264, scratch, one org]; a plan
    sourced from order items would carry an OrderItem id [inferred from `RLM_AccountUtilities`, which queries both
    source types], so then use `SourceIdentifier IN ('<orderId>', <orderItemIds>)`):
 
@@ -559,8 +561,8 @@ remove or condition the step. This section records behaviour, not a fix.
    In the measured run the step's `ActualStartDate` equalled the plan's `CreatedDate` and no non-test `AsyncApexJob`
    existed [Measured: 2026-11-25, 264, scratch, one org]; that it ran at activation rather than from a queued job is
    [inferred], since DRO's own async work need not appear as an `AsyncApexJob`.
-5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error is
-   not in the record. Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
+5. For a Callout or Auto Task step whose `ExecutionMessage` is the fallout `Data set Link` text, the underlying error was
+   not in the record on the builds measured (both lacked the tables). Check that the fallout and jeopardy decision tables exist, and read the real error from a debug
    log (trace flag on the activating user).
 
 ## Update Acceptance Scenarios
