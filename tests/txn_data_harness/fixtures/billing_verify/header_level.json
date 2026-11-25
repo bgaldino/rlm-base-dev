@@ -1,0 +1,136 @@
+{
+  "_about": "Recorded query results, Header Level. Not measured live: built from the field shapes of the header application objects; ids are synthetic. INVH1: a payment and a credit memo applied at the header; the same payment also has a row on an invoice outside the set. INVH2: unpaid. No Unapplied rows: none has been measured.",
+  "Invoice": [
+    {
+      "Id": "3tt0000000000H1AAI",
+      "Status": "Posted",
+      "SettlementLevel": "Invoice",
+      "TotalAmountWithTax": 1100,
+      "NetCreditsApplied": 100,
+      "NetPaymentsApplied": 300,
+      "Balance": 700,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
+    },
+    {
+      "Id": "3tt0000000000H2AAI",
+      "Status": "Posted",
+      "SettlementLevel": null,
+      "TotalAmountWithTax": 330,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 330,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
+    },
+    {
+      "Id": "3tt0000000000H9AAI",
+      "Status": "Posted",
+      "SettlementLevel": "Invoice",
+      "TotalAmountWithTax": 200,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 200,
+      "Balance": 0,
+      "WriteOffStatus": null,
+      "TotalConvertedNegAmount": null,
+      "WriteOffTotalChargeAmount": null,
+      "WriteOffTotalTaxAmount": null,
+      "TotalAdjustmentAmount": null,
+      "TotalTaxesCapturedAtHeader": null
+    }
+  ],
+  "InvoiceLine": [
+    {
+      "Id": "5TV00000000H11AGAS",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "Type": "Charge",
+      "LineAmount": 1100,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 1100,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
+    },
+    {
+      "Id": "5TV00000000H21AGAS",
+      "InvoiceId": "3tt0000000000H2AAI",
+      "Type": "Charge",
+      "LineAmount": 330,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 330,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
+    },
+    {
+      "Id": "5TV00000000H91AGAS",
+      "InvoiceId": "3tt0000000000H9AAI",
+      "Type": "Charge",
+      "LineAmount": 200,
+      "NetCreditsApplied": 0,
+      "NetPaymentsApplied": 0,
+      "Balance": 200,
+      "ConvertedNegAmount": null,
+      "ChargeConvertedNegAmount": null,
+      "AdjustmentAmount": null
+    }
+  ],
+  "PaymentLineInvoiceLine": [],
+  "CreditMemoLineInvoiceLine": [],
+  "PaymentLineInvoice": [
+    {
+      "Id": "0b8000000000001AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
+      "Amount": 300,
+      "Type": "Applied",
+      "HasBeenUnapplied": "No"
+    },
+    {
+      "Id": "0b8000000000002AAA",
+      "InvoiceId": "3tt0000000000H9AAI",
+      "PaymentId": "0aQ0000000000H1EAI",
+      "Amount": 200,
+      "Type": "Applied",
+      "HasBeenUnapplied": "No"
+    }
+  ],
+  "CreditMemoInvApplication": [
+    {
+      "Id": "0c0000000000001AAA",
+      "InvoiceId": "3tt0000000000H1AAI",
+      "CreditMemoId": "50g000000000001AAA",
+      "Amount": 100,
+      "Type": "Applied",
+      "HasBeenUnapplied": "No"
+    }
+  ],
+  "Payment": [
+    {
+      "Id": "0aQ0000000000H1EAI",
+      "Status": "Processed",
+      "Amount": 500,
+      "NetApplied": 500,
+      "Balance": 0,
+      "NetRefundApplied": null,
+      "NetPaymentCreditApplied": null
+    }
+  ],
+  "CreditMemoLine": [],
+  "CreditMemo": [
+    {
+      "Id": "50g000000000001AAA",
+      "Status": "Posted"
+    }
+  ]
+}

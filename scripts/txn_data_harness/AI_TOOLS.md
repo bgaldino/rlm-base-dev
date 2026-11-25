@@ -112,6 +112,43 @@ Rebuilds the batch report from manifests already on disk (all `out/*.json` shari
 the `<base_run_id>` prefix). Use it to re-summarize an older batch or to read a
 failure-signature rollup when triaging which scenarios to continue or clean up.
 
+### Verify billing (read-only)
+
+```bash
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>
+python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
+  --invoice-ids <invoiceId>,<invoiceId> --payment-ids <paymentId>
+```
+
+Checks, by id and with SOQL only, that each invoice, invoice line and payment
+balance agrees with its payment and credit applications, and that the
+applications are at one level (line or header). Exit 0 when nothing fails,
+skips included, so read the counts (`RESULT: pass (N checked, M skipped)`, or
+`no balances checked`; `checked` and `skipped` in `--json`, counting one result
+per invoice, per checked line or skipped invoice (an invoice whose lines
+cannot be read is one failed result, counted as checked), and per payment); 1 on any
+failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
+id, missing or malformed manifest, refused query, failed connection, no `sf`
+on `PATH`, any unexpected error); with `--json` an error also prints
+`{"ok": false, "error": ...}`. A usage error (no `--org`, bad
+`--expect-level`, an unrecognized or extra argument) exits 2 with argparse
+usage on stderr and, when the command line contains `--json`, one
+`{"ok": false, "error": "usage: ..."}` object on stdout. Abbreviated options
+are refused. Ids may be 15 or 18
+characters. Harness manifests carry no payment ids: payments are found
+through the invoices' application rows, or passed with `--payment-ids`.
+`--latest` checks only the newest manifest: after a batch of several
+scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
+inside one allow-list of measured cases (Line Level: Posted invoices, taxed
+ones included, without write-off or other unmeasured totals, separate Tax lines
+or header-captured tax; Charge lines; Applied rows; Processed
+payments with applications or Canceled ones without; Posted credit memos), and
+an invoice and a payment or credit memo joined by a row are measured only
+together; anything else skips naming its first cause and origin.
+`--expect-level line|header` forces the level (default: detect from the
+records). Checks and formulas: `billing-operations` → `verification.md`.
+
 ### Prune
 
 ```bash

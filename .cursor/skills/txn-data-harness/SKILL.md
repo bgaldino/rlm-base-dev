@@ -147,6 +147,7 @@ before adding any quote-creation path to either tool.
 | Rebuild a batch summary | `python -m scripts.txn_data_harness.cli report ...` |
 | Prune old local manifests | `python -m scripts.txn_data_harness.cli prune ...` |
 | Start usage rating after `target_stage: usage_upload` | `python -m scripts.txn_data_harness.cli rate ...` |
+| Check invoice, line and payment balances against their applications (read-only) | `python -m scripts.txn_data_harness.cli verify ...` |
 
 ## Standard Workflow
 
@@ -188,6 +189,19 @@ before adding any quote-creation path to either tool.
    sf data query --target-org <sf-alias> -q "
      SELECT Id, InvoiceNumber, Status, TotalAmount
      FROM Invoice WHERE Id = '<invoiceId>'"
+   ```
+
+1. For invoices with payments or credits applied, run the read-only billing checks
+   (exit 1 on a failed check, 2 on bad input; formulas in `billing-operations` →
+   `verification.md`; anything unmeasured, such as unapplied application rows, is
+   skipped with a reason, not failed). `--latest` checks only the newest manifest; after a batch of
+   several scenarios, pass each one with `--manifest` (repeatable) or the ids with
+   `--invoice-ids`:
+
+   ```bash
+   python -m scripts.txn_data_harness.cli verify --org <sf-alias> --latest --json
+   python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
+     --manifest <run_id> --manifest <run_id> --json
    ```
 
 1. Scale only after the smoke run verifies cleanly. Increase `--concurrency`
@@ -249,6 +263,7 @@ python -m compileall scripts/txn_data_harness
 python -m scripts.txn_data_harness.generate --help
 python -m scripts.txn_data_harness.cli --help
 python -m scripts.txn_data_harness.cli step --help
+python -m scripts.txn_data_harness.cli verify --help
 ```
 
 For behavioral lifecycle changes, also run a live smoke scenario against a

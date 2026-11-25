@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -11,8 +12,10 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+import requests
+
 from . import generate
-from .auth import SfRestClient
+from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
@@ -23,6 +26,7 @@ from .manifests import (
     load_manifest,
     parse_retention,
     prune_old_runs,
+    resolve_manifest_path,
     summarize_manifest,
     write_manifest,
 )
@@ -31,6 +35,7 @@ from .models import STAGES_QUOTE, LineItem
 from .report import build_batch_report, render_markdown
 from .runner import draw_lines
 from .steps import StepContext, execute_step
+from . import verify as billing_verify
 
 
 def _generate_argv(args: argparse.Namespace, *, dry_run: bool = False) -> list[str]:
@@ -335,6 +340,90 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_ids(args: argparse.Namespace) -> tuple[list[str], list[str]]:
+    """Collect invoice and payment ids from manifests and/or explicit flags."""
+    invoice_ids = billing_verify.split_ids(args.invoice_ids, "--invoice-ids")
+    payment_ids = billing_verify.split_ids(args.payment_ids, "--payment-ids")
+    paths = [resolve_manifest_path(m) for m in (args.manifest or [])]
+    if args.latest:
+        manifests = list_manifests()
+        if not manifests:
+            raise billing_verify.VerifyError("No manifests found.")
+        paths.append(manifests[0])
+    empty = []
+    for path in paths:
+        inv, pay = billing_verify.ids_from_manifest(path)
+        if not inv and not pay:
+            empty.append(str(path))
+        invoice_ids += [i for i in inv if i not in invoice_ids]
+        payment_ids += [p for p in pay if p not in payment_ids]
+    if not invoice_ids and not payment_ids:
+        if empty:
+            raise billing_verify.VerifyError(
+                f"manifest {', '.join(empty)} names no invoice or payment id; "
+                f"pass --invoice-ids instead"
+            )
+        raise billing_verify.VerifyError(
+            "verify needs --manifest, --latest, --invoice-ids or --payment-ids"
+        )
+    for path in empty:
+        print(f"WARNING: manifest {path} names no invoice or payment id", file=sys.stderr)
+    return invoice_ids, payment_ids
+
+
+def _cmd_verify(args: argparse.Namespace) -> int:
+    """Read-only billing checks.
+
+    Exit 0 when nothing fails, 1 when any check fails, 2 when the input or a
+    Salesforce request is bad, or the ``sf`` CLI cannot run (no report). With
+    ``--json`` an error prints ``{"ok": false, "error": ...}`` on stdout too.
+    """
+    try:
+        invoice_ids, payment_ids = _verify_ids(args)
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
+        report = billing_verify.run_checks(records, args.expect_level)
+    except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
+        # Exit 1 means a check failed, so no error may reach main() (which maps
+        # ValueError to 1) or escape as a traceback.
+        if isinstance(exc, billing_verify.VerifyError):
+            message = str(exc)
+        elif isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
+            # RequestException: the --api-version latest lookup.
+            message = f"Salesforce request failed: {exc}"
+        elif isinstance(exc, FileNotFoundError) and exc.filename == "sf":
+            message = "the sf CLI was not found on PATH"
+        elif isinstance(exc, OSError):
+            message = f"could not run a command or read a file: {exc}"
+        else:
+            message = f"unexpected {type(exc).__name__}: {exc}"
+        print(f"ERROR: {message}", file=sys.stderr)
+        if args.json:
+            _emit(json.dumps({"ok": False, "error": message}, indent=2))
+        return 2
+    _emit(json.dumps(report, indent=2) if args.json else billing_verify.render_text(report))
+    return 0 if report["ok"] else 1
+
+
+def _emit(text: str) -> None:
+    """Print to stdout; a reader that closed the pipe (``| head -1``) is not an error.
+
+    The exit code stays the one already computed. stdout is pointed at /dev/null so
+    the interpreter's final flush does not raise again.
+    """
+    try:
+        print(text)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        try:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+        except (OSError, ValueError):  # no real file descriptor (captured stdout)
+            pass
+
+
 def _cmd_prune(args: argparse.Namespace) -> int:
     """Delete manifest files older than a retention window (dry-run by default)."""
     retention = parse_retention(args.older_than)
@@ -349,7 +438,30 @@ def _cmd_prune(args: argparse.Namespace) -> int:
     return 0
 
 
+def _json_usage_errors(parsers: list[argparse.ArgumentParser], as_json: bool) -> None:
+    """For ``verify --json``, also print an argparse usage error as the JSON error object.
+
+    Installed on the top-level parser (unrecognized or extra arguments) and the
+    ``verify`` subparser (missing ``--org``, a bad choice), so every usage error of
+    a ``verify`` command line that contains the exact token ``--json`` prints one
+    ``{"ok": false, "error": "usage: ..."}`` object on stdout. argparse still prints
+    usage and the error on stderr and exits 2; the first error exits, so there is
+    never a second object. ``verify`` refuses abbreviated options, so ``--json`` is
+    the only spelling that sets JSON output.
+    """
+    for parser in parsers:
+        original = parser.error
+
+        def error(message: str, _original=original):
+            if as_json:
+                _emit(json.dumps({"ok": False, "error": f"usage: {message}"}, indent=2))
+            _original(message)
+
+        parser.error = error  # type: ignore[method-assign]
+
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+    tokens = list(sys.argv[1:] if argv is None else argv)
     parser = argparse.ArgumentParser(
         prog="python -m scripts.txn_data_harness.cli",
         description="Composable commands for Transaction Data Harness workflows.",
@@ -394,6 +506,33 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     report.add_argument("--markdown", action="store_true",
                         help="Print markdown instead of JSON.")
     report.set_defaults(func=_cmd_report)
+
+    verify = sub.add_parser(
+        "verify",
+        allow_abbrev=False,
+        help="Read-only billing checks on invoices and payments "
+             "(exit 1 on a failed check, 2 on bad input).",
+    )
+    add_connection_args(verify)
+    verify.add_argument("--manifest", action="append",
+                        help="Run id or manifest path (repeatable); reads its "
+                             "invoice_id(s), and payment_id(s) if it has them "
+                             "(harness stages write none).")
+    verify.add_argument("--latest", action="store_true",
+                        help="Add the ids of the newest manifest only.")
+    verify.add_argument("--invoice-ids", action="append",
+                        help="Invoice ids, comma- or space-separated (repeatable).")
+    verify.add_argument("--payment-ids", action="append",
+                        help="Extra payment ids to check, such as one with no "
+                             "applications (repeatable).")
+    verify.add_argument("--expect-level", choices=["auto", "line", "header"],
+                        default="auto",
+                        help="Application level to expect (default: detect from the "
+                             "records).")
+    verify.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
+    verify.set_defaults(func=_cmd_verify)
+    # The top-level parser has no options but -h, so its first token is the command.
+    _json_usage_errors([parser, verify], tokens[:1] == ["verify"] and "--json" in tokens)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,
