@@ -23,7 +23,7 @@
  * POST-SAVE READBACK
  * ------------------
  * When at least one submitted attribute exists on the line, savedAttributesJson
- * is built from an actual DB query after both PST calls complete, not from the
+ * is built from an actual DB query after the PST call(s) complete, not from the
  * input map, so the agent and confirmation email reflect what was truly persisted.
  * When none does, nothing is sent and the input is echoed back.
  */
@@ -124,7 +124,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
                 ]);
             }
 
-            // ── Step 3: Split selections into Number-type vs Picklist-type ────────
+            // ── Step 3: Split selections into Picklist vs every other type ────────
             //
             // Number attributes drive BOM component selection (e.g. requiredKW
             // determines which FESBA unit is used). Picklist attributes (e.g.
@@ -164,7 +164,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
 
             // ── Step 6: Post-save readback — reflect actual DB state ──────────────
             //
-            // Build savedAttributesJson from the database after both PST calls
+            // Build savedAttributesJson from the database after the PST call(s)
             // complete. This ensures the agent and confirmation email accurately
             // report what was persisted rather than echoing back the input.
 
