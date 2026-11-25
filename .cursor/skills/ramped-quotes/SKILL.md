@@ -456,11 +456,15 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 - **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
-  `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`.
+  `ARCStepFailed`, `QuoteRequestFailed`, `CloneFailed`, `ImportQLIFailed`.
+- **Settled partially, investigate (do not auto-retry):** `QuoteRequestPartiallySaved`, `PartialSaveSuccess`.
+  The repo's pollers treat both as failed (`E2ECommon.robot` `@{QUOTE_CALC_FAILED}`) and the large-deal
+  guide says investigate rather than retry (`troubleshooting/large-deal-preprocess-reference.md`).
 - **In-flight (keep polling):** `NotStarted`, `TaxCalculationWaiting`,
   `TaxCalculationInProcess`, `PriceCalculationQueued`, `PriceCalculationInProgress`,
   `Saving`, `ConfigurationInProgress`, `ReconciliationInProgress`,
-  `ContextHydrationInProgress`, `ARCInProgress`, `CloneInProgress`, and every
+  `ContextHydrationInProgress`, `ARCInProgress`, `CloneInProgress`, `ImportQLIInProgress`, `ImportQLISuccess`
+  (the import is done but pricing may not have started; `E2ECommon.robot` retries it), and every
   `QueuedFor…` value (`QueuedForConfiguration`, `QueuedForPricing`,
   `QueuedForPricingAndSaving`, `QueuedForSaving`, `QueuedForARC`, `QueuedForClone`).
 
