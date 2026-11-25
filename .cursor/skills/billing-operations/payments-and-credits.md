@@ -22,18 +22,19 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   invoice); invoices of one account are grouped into one only with Grouping Source Account, the
   same currency and payment method, and due dates within the Due Date Window [Help:
   `ind.billing_payments_consolidate_invoices`]. On a fresh ent-sb0 build the treatment named
-  Default Payment Schedule Treatment, created during the build (no build component creates it),
-  had Grouping Source **Account** and a blank Due Date Window; its policy, Default Payment Schedule
-  Policy, had `IsOrgDefault` true. Posting two invoices with the same due date for one account
-  created one Draft payment schedule, which both invoices point to through `PaymentScheduleId`.
-  A second payment schedule with `ReferenceEntityId` set to one of them was refused (error
-  `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
-  is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0] The repo only enables
-  `enablePaymentSchedulesAndItemsCreation` [Repo:
-  `unpackaged/post_billing/settings/Billing.settings-meta.xml`], so this treatment is the
-  platform's default on that build [inferred]. Not tried: canceling or reusing the automatic
-  schedule, Grouping Source Invoice, and invoices with different due dates.
+  Default Payment Schedule Treatment, created during the build, had Grouping Source **Account**,
+  not the Invoice default Help states, and a blank Due Date Window; its policy, Default Payment
+  Schedule Policy, had `IsOrgDefault` true. Posting two invoices with the same due date for one
+  account created one Draft payment schedule, which both invoices point to through
+  `PaymentScheduleId`. A second payment schedule with `ReferenceEntityId` set to one of them was
+  refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule
+  because its invoice is associated with another Payment Schedule that's in Draft or Open
+  status."). [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org, API 68.0]
+  Of the payment schedule settings, the repo sets only `enablePaymentSchedulesAndItemsCreation`, and no build component creates a payment schedule
+  treatment or policy [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`], so
+  the platform created this treatment record during the build [inferred]. Not tried: canceling
+  or reusing the automatic schedule, Grouping Source Invoice, and invoices with different due
+  dates.
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during

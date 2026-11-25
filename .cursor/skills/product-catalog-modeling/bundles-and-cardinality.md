@@ -49,7 +49,7 @@ subscription that must renew or bill on its own model) is not settled by the rul
   options, and whether the child
   then renews and bills on that model: **Open — needs live verification.**
 
-Until that is measured, the shape to test against a static kit is a **locked configurable
+Until the open cases above are measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
 *Require this component* and *Include component by default* on and *Allow quantity changes*
 (`IsQuantityEditable`) off, and group limits that pass
