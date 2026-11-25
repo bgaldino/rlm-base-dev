@@ -3,6 +3,7 @@ import { getRecord, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getInvoiceStatusCounts from '@salesforce/apex/RLM_InvoiceBatchRunMonitorController.getInvoiceStatusCounts';
+import TIME_ZONE from '@salesforce/i18n/timeZone';
 
 const FIELDS = [
     'InvoiceBatchRun.InvoiceBatchRunNumber',
@@ -291,11 +292,14 @@ export default class RlmInvoiceBatchRunMonitor extends NavigationMixin(Lightning
         return `${mins}m ${secs}s${isRunning ? ' (running)' : ''}`;
     }
 
+    // In the user's Salesforce time zone (the zone the record's own Start Time and Completion Time
+    // fields use), not the browser's. The 'en-US' format is unchanged.
     fmtDateTime(val) {
         if (!val) return '—';
         return new Date(val).toLocaleString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', hour12: true
+            hour: 'numeric', minute: '2-digit', hour12: true,
+            timeZone: TIME_ZONE
         });
     }
 
