@@ -314,6 +314,30 @@ Rules for `end_date:`:
 
 Full schema in `scenarios/README.md` → *Explicit `EndDate` overrides*.
 
+### Recipes — settlement (credit and payment after the Posted invoice)
+
+```bash
+python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml
+python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml \
+  --concurrency 1
+python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "settlement" block
+```
+
+- `target_stage: credit_applied | payment_applied` needs a `settlement:` block
+  (schema: `scenarios/README.md` → *Settlement*). Valid on all three kinds.
+- The manifest records `application_level` (+ source), `settlement_baseline`
+  (what the platform applied at post), credit memo / payment ids, application
+  record ids, amounts, `payment_mode` and the invoice balance after.
+- Continue a Posted manifest: `cli step --manifest <id> --to-stage
+  payment_applied` (add `--config` with a `settlement:` scenario when the
+  manifest has none).
+- Use `--concurrency 1` with over-payments: posting another scenario's invoice
+  can absorb the unapplied rest.
+- Line Level is live-verified on 264; Header Level is not. Contract:
+  `docs/contracts-billing-settlement.md`.
+
 ## Decision Flow
 
 ```mermaid
@@ -342,6 +366,19 @@ sf data query --target-org <sf-alias> -q "
   FROM Invoice WHERE Id = '<invoiceId>'"
 ```
 
+For settlement (`payment_applied`), by manifest ids:
+
+```bash
+sf data query --target-org <sf-alias> -q "
+  SELECT Id, Balance, NetCreditsApplied, NetPaymentsApplied, SettlementStatus,
+         SettlementLevel FROM Invoice WHERE Id = '<invoiceId>'"
+sf data query --target-org <sf-alias> -q "
+  SELECT Id, Amount, Balance, NetApplied FROM Payment WHERE Id = '<paymentId>'"
+sf data query --target-org <sf-alias> -q "
+  SELECT Id, InvoiceLineId, Amount, Type FROM PaymentLineInvoiceLine
+  WHERE PaymentId = '<paymentId>'"
+```
+
 For Posted invoice linkage after `post`:
 
 ```bash
@@ -364,9 +401,13 @@ Stop and ask for guidance when:
   invoice by manifest id.
 - Cleanup is requested for Posted invoices or BillingSchedules; explain that they
   are not cleanly deletable.
+- A settlement manifest carries `settlement_warnings` you did not expect (rows
+  at the other application level, platform-applied amounts in
+  `settlement_baseline`, a capped credit) — report them before scaling up.
 
 ## Cleanup Reminder
 
 Use `docs/guides/txn-data-harness.md` cleanup recipes. Delete what is deletable
 from manifest ids: assets/orders, then quote, then opportunity. Revert activated
-orders to Draft before deleting. Posted invoices and BillingSchedules remain.
+orders to Draft before deleting. Posted invoices and BillingSchedules remain, and
+so do settlement payments, credit memos and their application records.

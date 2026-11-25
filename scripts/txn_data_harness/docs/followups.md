@@ -79,6 +79,13 @@ placeholders or explicitly labeled QB example data.
     `contracts-invoice-ingestion.md`). Those are evidence, not instructions —
     leave them alone. If 264 returns a `v68.0` `statusURL`, that is a finding to
     record here, not a value to pre-emptively edit.
+  - Partial evidence (2026-11-25, `rlm-base__apexcov-ac1125-r1`, a 264 scratch
+    org, API v68.0): while verifying the settlement stages, `sales_txn_quote`,
+    `sales_txn_order` and `invoice_ingestion` (Posted, non-taxable) each reached
+    a Posted invoice through the harness at `v68.0` (runs in
+    [`contracts-billing-settlement.md`](contracts-billing-settlement.md#live-runs-2026-11-25-line-level)).
+    Response shapes (for example the post `statusURL` version) were not
+    captured, so this entry stays open.
 
 ### Standalone-billing Posted ingestion
 
@@ -139,8 +146,9 @@ below.
   row spanning the full deal. We assume periodic rows are an
   invoicing-time artifact (driven by `NextBillingDate` advancing),
   but haven't observed the fan-out actually happening — every harness
-  flow stops at `post`, which creates one Posted invoice per
-  activation. Open:
+  flow ends at the first Posted invoice per activation (the settlement
+  stages after it credit and pay that invoice; they create no further
+  invoices). Open:
   - Do periodic rows ever materialize as separate `BillingSchedule`
     records, or is the single activation-time row the only
     schedule object that ever exists for the deal?
@@ -290,6 +298,53 @@ design decision.
   - **Possible fix:** derive from `BillingSchedule.Status` picklist
     describe (cache per-run), or expose as config.
   - Ref: `lifecycle.py:44,323`.
+
+### Billing settlement
+
+Contract: [`contracts-billing-settlement.md`](contracts-billing-settlement.md).
+Line Level is live-verified on 264; everything below is not.
+
+- `[verify]` **Header Level end-to-end.** The Header Level branch (payment
+  `appliedToId` = Invoice id; reads `PaymentLineInvoice` /
+  `CreditMemoInvApplication`) and the mapping BillingSettings
+  `enableTransactionsApplicationToInvoices = true` → Header Level come from the
+  developer guide and Help only.
+  - `[probe]` On a fresh scratch org set to Header Level before any billing
+    data exists, read BillingSettings, run one `invoice_ingestion` and one
+    `sales_txn_quote` scenario to `payment_applied`, and confirm the rows land
+    in the header junctions and the invoice `SettlementLevel` reads `Invoice`.
+    Also confirm whether the credit action still requires `invoiceLines` at
+    Header Level (the guide says it always does).
+- `[anomaly]` **`CopyFromInvoiceLine` copied the whole line tax onto a partial
+  credit** (45 credited on a 450 + 45 tax line → memo 45 + 45 tax). Measured
+  once, on a quote-path invoice whose tax sits on `TaxAmount` while
+  `ChargeTaxAmount` reads 0 and `ChargeAmountWithTax` equals `ChargeAmount`.
+  - `[probe]` Repeat on an ingested tax-on line (explicit `InvoiceLineTax`)
+    and with a full-line credit; if the copy is always whole, keep `auto` as
+    the default and say so in the scenario docs.
+- `[gap]` **`Calculate` on ingested taxable lines.** `auto` sends `Calculate`
+  for any line with `TaxAmount > 0`. Measured only on a quote-path line taxed
+  by the org's engine; ingested tax-on lines (explicit `InvoiceLineTax`, no
+  engine call) were not tried.
+- `[probe]` **Which invoice absorbs an open balance at post, and when.** The
+  post action applied an account's unapplied payment and credit balances to
+  the invoice being posted; ingesting as Posted did not; a payment created
+  after posting stayed unapplied for 60 s. Open: with several open invoices,
+  does the rule set (`{"first":"Payments","rules":["EA","OI","HI"]}` on the
+  verification org) pick the newly posted one or an older one? Does a
+  scheduled invoice or payment run apply a standalone payment later (Help:
+  standalone processed payments apply "during an invoice run")? Does
+  Draft-ingest-then-post (`promote_to_posted`) trigger it like the PST post?
+- `[gap]` **Over-payment and concurrency.** An `over` payment (or any memo
+  left with a balance) is absorbed by the account's next invoice posted
+  through the post action — with `--concurrency > 1` that can be a sibling
+  scenario's invoice in the same batch, which then shows the amount in its
+  `settlement_baseline`. The harness warns but does not serialize.
+- `[gap]` **Multi-currency payments.** The payment copies
+  `Invoice.CurrencyIsoCode`; only USD was exercised.
+- `[gap]` **Settlement cleanup.** No unapply, payment cancel or credit memo
+  void was probed; settlement records are treated as leftovers like Posted
+  invoices.
 
 ### Cleanup
 

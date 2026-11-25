@@ -39,6 +39,7 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | `12-usage-consumption.yaml` | `usage_upload` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops after journals; kick off org-wide rating separately. |
 | `13-multi-year-terms.yaml` | `invoice_posted` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 | `14-end-date-overrides.yaml` | `order_activated` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence orders. |
+| `17-settlement.yaml` | `payment_applied` | 2 | **Settlement** after the Posted invoice: a 10% credit then an exact payment (fully settled), and a fixed credit then a smaller fixed payment (partially paid). See [Settlement](#settlement). Live-verified at Line Level on 264 — see [`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md). |
 
 ### `sales_txn_order/`
 
@@ -54,6 +55,7 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | `15-standalone-billing.yaml` | `invoice_posted` (ingest) | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted` — mints a Posted invoice directly. **Prereq:** the org must have an active non-taxable `TaxTreatment` (`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice` raises `LifecycleError` with seed instructions (see the scenario YAML header). Every line is non-taxable in this scenario; tax-on Posted lives in `15-standalone-billing-taxable.yaml`. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Posted ingested invoices are not deletable. |
 | `15-standalone-billing-expanded.yaml` | `invoice_posted` (ingest) | 4 | Companion stress scenario for the non-taxable Posted path. Same prereq as `15-standalone-billing.yaml` (active non-taxable `TaxTreatment`). Exercises shapes the canonical smoke doesn't: multi-line invoices, the `charge_amount` override (line bills at the override, not `quantity × unit_price`), per-line `description` + `line_start_date`/`line_end_date`, invoice-level `currency` override on a multi-currency org (EUR on a USD account), and explicit `invoice_date`/`due_date`/`posted_date` (not derived from defaults). Live-verified on R262 — see the **Verified Posted shapes** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
 | `15-standalone-billing-taxable.yaml` | `invoice_posted` (ingest) | 4 | **Tax-on Posted** — each `taxable: true` line ships its own `InvoiceLineTax` graph record in the same composite-graph POST. **Prereqs:** both an active non-taxable `TaxTreatment` (stamped on non-taxable lines) and an active taxable `TaxTreatment` (stamped on taxable lines, picked by `discovery.resolve_taxable_tax_treatment` with most-recent `CreatedDate`; override via `invoice.taxable_tax_treatment_name`). Covers uniform-rate, mixed taxable+exempt on one invoice, and per-line tax overrides (flat amount, different jurisdiction/rate). Live-verified on R262 — see the **Tax-on Posted Path** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
+| `17-settlement.yaml` | `payment_applied` (ingest) | 2 | **Settlement on ingested invoices** — ingests Posted (same non-taxable `TaxTreatment` prereq as `15-standalone-billing.yaml`), credits one line by name, pays 50% of the rest; a second scenario over-pays (120%). See [Settlement](#settlement). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -79,7 +81,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | ----- | ---- | ------- | ------- |
 | `kind` | enum | `sales_txn_quote` | Scenario handler. `sales_txn_quote` (default) drives the Opportunity → Quote → Order (via `createOrderFromQuote`) → Activate → Invoice → Post chain. `sales_txn_order` skips the Quote — PST direct-places the Order, the harness writes the `AppUsageAssignment(RevenueLifecycleManagement)` row, and the post-Order tail is identical to the quote path. `invoice_ingestion` skips PST entirely and mints a Draft invoice through the Composite-Graph ingest API. Legacy aliases `sales_transaction` and `transaction` are **rejected** with a hint pointing at the new name. |
 | `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order_draft`). |
-| `target_stage` | enum | `invoice_posted` | How far to run. Valid set depends on `kind`: <br/>• `sales_txn_quote`: `opportunity_created` \| `quote_placed` \| `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` <br/>• `sales_txn_order`: `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` (no Opportunity, no Quote — R262 `Order` has no `OpportunityId` field) <br/>• `invoice_ingestion`: `invoice_draft` \| `invoice_posted` (Posted requires an active non-taxable `TaxTreatment` in the org; see the `kind: invoice_ingestion` section below). Defaults to `invoice_draft` for this kind. <br/>Hierarchical — each stage runs all stages before it. `usage_upload` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
+| `target_stage` | enum | `invoice_posted` | How far to run. Valid set depends on `kind`: <br/>• `sales_txn_quote`: `opportunity_created` \| `quote_placed` \| `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` \| `credit_applied` \| `payment_applied` <br/>• `sales_txn_order`: `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` \| `credit_applied` \| `payment_applied` (no Opportunity, no Quote — R262 `Order` has no `OpportunityId` field) <br/>• `invoice_ingestion`: `invoice_draft` \| `invoice_posted` \| `credit_applied` \| `payment_applied` (Posted requires an active non-taxable `TaxTreatment` in the org; see the `kind: invoice_ingestion` section below). Defaults to `invoice_draft` for this kind. <br/>Hierarchical — each stage runs all stages before it. `usage_upload` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. `credit_applied` / `payment_applied` need a `settlement:` block; see [Settlement](#settlement). |
 | `with_opportunity` | bool | `false` | **`sales_txn_quote` only.** Prepend an Opportunity the quote links to. (`target_stage: opportunity_created` implies one even if this is false.) Rejected at parse time for `sales_txn_order` (R262 `Order` has no `OpportunityId` field) and `invoice_ingestion` (no Opportunity step). |
 | `opportunity_stage` | string | first open | **`sales_txn_quote` only.** Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. Rejected at parse time for `sales_txn_order` and `invoice_ingestion`. |
 | `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
@@ -90,6 +92,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `start_date` | date / range / window | today | The quote line **StartDate** (the platform anchors the line's `EndDate` off this + the term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
 | `term` | int, or `{count, unit}` | PSM default → `{12, Months}` | Subscription cadence for **TermDefined** lines only. Drives `QuoteLineItem.SubscriptionTerm` / `SubscriptionTermUnit`; the platform derives `EndDate` from those + `StartDate`. A bare int (`term: 36`) overrides count only — unit follows the resolved PSM. A map (`{count: 3, unit: Annual}`) sets both; `unit` must match the resolved PSM's `PricingTermUnit`. Picklist: `Months`, `Quarterly`, `Semi-Annual`, `Annual`. Alias: `Years -> Annual`. Range 1–120. Rejected on `Evergreen` / `OneTime` products. Falls back through line → scenario → `ProductSellingModel.PricingTerm` → `(12, Months)`. May sit on the scenario (default for all lines) or on a `products[]` entry (per-line wins). |
 | `end_date` | ISO date, int (days), or `"<n><unit>"` | unset (platform derives) | **Optional** explicit `EndDate` override for **TermDefined** lines only. Requires an accompanying `term:` — a cadence is still needed for `SubscriptionTerm` / billing-schedule derivation. Forms: absolute (`"2027-01-14"` or a YAML date), bare int = days (`364`), suffixed offset (`"364d"`, `"12mo"`, `"3q"`, `"1y"`). Supported units: `d` (days), `mo` (calendar months, day-clamped), `q` (3 months), `y` (12 months). Bare `"m"` is **rejected** as ambiguous. Forward-only (zero/negative reject). Range 1d–20y. The override is resolved against the line's drawn `StartDate` at place time, so a scenario-level `end_date:` co-terms every line on the quote to the same calendar anchor. The platform honors the explicit date and prorates `PricingTermCount` against the actual span (~0.27% drift vs the derived 365/366-day default). |
+| `settlement` | mapping | none | **All kinds.** Credit and payment options for the `credit_applied` / `payment_applied` stages: `application_level` (`auto` \| `line` \| `header`), `credit: {amount \| percent, lines?, tax_strategy?}`, `payment: {amount: exact \| <n> \| percent: <n>, lines?}`. Required when `target_stage` is a settlement stage; an explicit block on an earlier stage is an error, one inherited from `defaults` is dropped. See [Settlement](#settlement). |
 | `selling_model` | string | unpinned | Exact `ProductSellingModel.Name`; applied after currency filtering. Set on the scenario or per `products[]` entry. Multiple PBEs remaining in the selected currency require a model pin; duplicate PBEs with the same currency/model remain an error. |
 | `currency` | three-letter ISO code | account currency | **Sales transaction kinds:** selects the PBE currency and transaction header currency. Set in `defaults`, on the scenario, or per `products[]` entry (entry wins). Codes are normalized to uppercase; an explicit `null` returns to the account default. Every product in a pool must resolve to the same currency. Missing currency/model combinations fail before writes. On single-currency orgs omit this pin; `CurrencyIsoCode` is absent. Invoice ingestion keeps its separate `invoice.currency` option. |
 
@@ -114,7 +117,7 @@ on this kind.
 
 - **Valid `target_stage` values:** `opportunity_created`, `quote_placed`,
   `order_draft`, `order_activated`, `usage_upload`, `invoice_draft`,
-  `invoice_posted`.
+  `invoice_posted`, `credit_applied`, `payment_applied`.
 - **Opportunity head:** `with_opportunity: true` prepends an Opportunity the
   Quote links to (`Quote.OpportunityId` is writable on R262).
   `opportunity_stage:` pins the StageName (must be a valid **open** stage in
@@ -147,7 +150,8 @@ The post-Order tail (Activate → BillingSchedule + Asset → Invoice → Post) 
 shared with the quote path.
 
 - **Valid `target_stage` values:** `order_draft`, `order_activated`,
-  `usage_upload`, `invoice_draft`, `invoice_posted`.
+  `usage_upload`, `invoice_draft`, `invoice_posted`, `credit_applied`,
+  `payment_applied`.
 - **No Opportunity:** the R262 `Order` sobject has **no** `OpportunityId`
   field (live-verified via describe on `2026-06-25` against
   `rlm-base__jun17_1`). The direct-Order PST graph cannot link to an
@@ -186,8 +190,9 @@ Standalone billing: a single typed Composite-Graph `POST` to
 (`CreationMode = External`) without going through PST. No Opportunity, no
 Quote, no Order, no Asset, no BillingSchedule.
 
-- **Valid `target_stage` values:** `invoice_draft` (default) and
-  `invoice_posted`. Posted ingestion requires an active non-taxable
+- **Valid `target_stage` values:** `invoice_draft` (default),
+  `invoice_posted`, `credit_applied` and `payment_applied` (the settlement
+  targets ingest the invoice Posted). Posted ingestion requires an active non-taxable
   `TaxTreatment` in the org (`IsTaxable=false`, `Status=Active`); the
   harness discovers it at bootstrap and stamps `InvoiceLine.taxTreatmentId`
   on every line. Without one, `ingest_invoice` raises `LifecycleError`
@@ -402,6 +407,56 @@ Rules:
   proration appears to use an internal day denominator (~30.97),
   not calendar days. See `../CONTRACTS.md` →
   *BillingSchedule fan-out across `end_date` scenarios*.
+
+## Settlement
+
+`credit_applied` and `payment_applied` follow `invoice_posted` on every kind.
+A `settlement:` block drives them; each stage is a no-op without its own
+sub-block. Contract and live evidence:
+[`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md).
+
+```yaml
+target_stage: payment_applied
+settlement:
+  application_level: auto      # auto (read Billing Settings once) | line | header
+  credit:                      # one credit memo, applied to the Posted invoice
+    percent: 10                # or amount: 50 -- pre-tax; exactly one of the two
+    lines: [0, "Onboarding"]   # optional: 0-based index (ingest order, else Id order) or line name / SKU
+    tax_strategy: auto         # auto | Calculate | Ignore | CopyFromInvoiceLine
+  payment:                     # one processed payment (no gateway), applied after the invoice posts
+    amount: exact              # exact (default) | a number | percent: N (over 100 = over-payment)
+    lines: all                 # optional; ignored at Header Level
+```
+
+- **Order:** credit first, then payment, so `amount: exact` pays what is left
+  after the credit.
+- **Application level:** at Line Level the credit and payment go to the
+  chosen invoice lines (one apply call per line); at Header Level the payment
+  goes to the invoice. `auto` reads the org's setting once per run; the
+  manifest records it. Header Level is **not live-verified**.
+- **Amounts** are computed against the open balance when the stage runs.
+  `percent` on a credit is a share of the creditable pre-tax amount of the
+  chosen lines; on a payment, of their open balance. A credit is capped per
+  line so the memo (tax included) fits the line's balance; a larger request
+  is capped with a warning.
+- **`tax_strategy: auto`** sends `Calculate` on lines with tax (tax added in
+  proportion) and `Ignore` on lines without. `CopyFromInvoiceLine` was
+  measured copying the line's **whole** tax onto a partial credit.
+- **Posting applies open balances.** Posting an invoice through the post action
+  applied the account's unapplied payment and credit balances to it (measured
+  on the quote path). The harness creates its payment after the post and
+  records what was already applied in `settlement_baseline`. An `over`
+  payment leaves its rest on the payment, where the account's next posted
+  invoice — possibly another scenario's in the same batch — may absorb it.
+- **Manifest fields:** `settlement`, `application_level`,
+  `application_level_source`, `settlement_baseline`, `credit_memo_ids`,
+  `credit_application_ids`, `credit_amount_requested`, `credit_amount_applied`,
+  `payment_ids`, `payment_application_ids`, `payment_amount`,
+  `payment_apply_target`, `payment_amount_applied`, `payment_mode`
+  (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`.
+- **Resume:** `cli step --to-stage payment_applied` uses the manifest's
+  persisted `settlement`; a manifest from a run without one needs
+  `--config` pointing at a scenario with a `settlement:` block.
 
 ## What makes an account / product a valid target
 

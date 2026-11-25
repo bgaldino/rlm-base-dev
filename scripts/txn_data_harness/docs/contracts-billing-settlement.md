@@ -1,0 +1,248 @@
+# Billing Settlement (credit_applied / payment_applied) — Contracts
+
+> ✅ VERIFIED LIVE at **Line Level** (2026-11-25, `rlm-base__apexcov-ac1125-r1` —
+> Release 264 scratch org, API v68.0, account Infinitech, Credit, Payment and
+> Refund Application Level = Line Level). Every request below was sent at
+> `v68.0`.
+>
+> ⚠️ **Header Level is NOT live-verified.** The verification org is at Line
+> Level and its level was not changed. The Header Level branch (payment applied
+> to the Invoice id, application rows read from `PaymentLineInvoice` /
+> `CreditMemoInvApplication`) is implemented from the 264 developer guide and
+> Help, and tested offline only. So is the mapping of the BillingSettings
+> value `true` to Header Level. See [`followups.md`](followups.md#billing-settlement).
+
+The settlement stages run after `invoice_posted` on every kind
+(`sales_txn_quote`, `sales_txn_order`, `invoice_ingestion`):
+
+```text
+... → invoice_posted → credit_applied → payment_applied
+```
+
+`credit_applied` credits the Posted invoice with one credit memo;
+`payment_applied` creates one processed payment and applies it. Each is driven
+by the scenario's `settlement:` block and is a no-op (it only advances
+`reached_stage`) when its own block is absent. Code: `lifecycle.py` → *Step 7 —
+Settlement*; `steps.py` → `run_credit`, `run_payment`.
+
+## Application level — read once per org
+
+| Source | How | Observed |
+| ------ | --- | -------- |
+| BillingSettings (primary) | Metadata SOAP `readMetadata`, type `BillingSettings`, fullName `Billing`, `POST /services/Soap/m/68.0` with the session id. No REST equivalent (BillingSettings is not a Tooling sObject). | `enableTransactionsApplicationToInvoices` = `false` on this Line Level org (Line Level confirmed by the payment-apply error below). |
+| `Invoice.SettlementLevel` (fallback) | `SELECT SettlementLevel FROM Invoice WHERE SettlementLevel != null ORDER BY LastModifiedDate DESC LIMIT 1` | `null` on a Posted invoice until something is applied, then `InvoiceLine`. Picklist: `InvoiceLine`, `Invoice`. (`CreditMemo.SettlementLevel` read `LineLevel`.) |
+| `settlement.application_level: line\|header` | Pinned in the scenario; skips the read. | — |
+
+The harness maps `false → line`, `true → header`. The `true` half is inferred
+from the developer guide (the setting "applies balances of credit memos and
+payments to invoices or balances of credit memo lines and payments lines to
+invoice lines") and the Help setup page (a Line Level / Header Level choice);
+it was not read on a Header Level org. The result is cached per instance URL
+for the process and recorded on the manifest (`application_level`,
+`application_level_source`); a resumed manifest keeps its recorded level.
+
+Other BillingSettings values on the verification org that shape settlement:
+
+```xml
+<enablePaymentApplicationToPostedInvoices>true</enablePaymentApplicationToPostedInvoices>
+<enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
+<ruleBasedCrAndPymtAppln>{"first":"Payments","rules":["EA","OI","HI"]}</ruleBasedCrAndPymtAppln>
+```
+
+## Order matters: the platform applies open balances at post
+
+| Observation | Evidence |
+| ----------- | -------- |
+| **Posting a Draft invoice through the post action applied the account's unapplied payment and credit balances to it.** A payment with 40 unapplied and a credit memo with 10 unapplied were both applied to the next quote-path invoice at post, before the settlement stages ran. | Run `DEMO-20261125T142256Z`, invoice `3ttWt000002lgVhIAI`: `PaymentLineInvoiceLine` `1AlWt000000fk0TKAQ` (40, payment `0aQWt000000XOefMAG`) and `CreditMemoLineInvoiceLine` `4sGWt0000000tqvMAA` (10, memo `50gWt000001BElRIAW`), both created 14:23:46Z, the post time. The manifest's `settlement_baseline` recorded both. |
+| Same effect reported earlier on this org: a Processed payment created before a Draft invoice was posted was applied to it at post (invoice `NetPaymentsApplied` 1000, payment `Balance` 0). | Payment `0aQWt000000XOLJMA4`, invoice `3ttWt000002lg4HIAQ`, `PaymentLineInvoiceLine` `1AlWt000000fjafKAA`. |
+| **Ingesting an invoice directly as Posted did not apply open balances.** | Run `DEMO-20261125T142132Z` (40 + 10 available) and runs `DEMO-20261125T142843Z`, `DEMO-20261125T143052Z` (99 available): baseline `net_payments_applied` and `net_credits_applied` both 0. |
+| **A payment created after the invoice posts was not applied on its own** within 60 s, with several open Posted invoices on the account. | Payment `0aQWt000000XOefMAG`: `Balance` 100, no application rows at 0–60 s. |
+
+How the harness designs around it:
+
+1. The payment is created **in `payment_applied`, after the invoice is Posted**,
+   and applied explicitly — never created ahead of the post.
+2. Before applying anything, the first settlement stage records
+   `settlement_baseline` (invoice `Balance`, `NetCreditsApplied`,
+   `NetPaymentsApplied`, and the ids of any application rows already there).
+   Non-zero values were applied by the platform; the stage adds a warning.
+3. Amounts (`exact`, `percent`) are computed against the open balance **read
+   when the stage runs**, i.e. after whatever the platform applied.
+4. Credits are capped so the memo is fully applied (an over-balance memo keeps
+   an unapplied balance, measured below), and an `over` payment warns, because
+   either leftover will settle the account's next invoice posted through the
+   post action — including another scenario's in the same batch.
+5. What was applied is read back from the application records, not assumed.
+
+## Credit — `POST /commerce/invoicing/invoices/{invoiceId}/actions/credit`
+
+Async. Measured request and response (invoice `3ttWt000002lgQrIAI`):
+
+```jsonc
+POST /services/data/v68.0/commerce/invoicing/invoices/3ttWt000002lgQrIAI/actions/credit
+{
+  "type": "POSTED",
+  "taxStrategy": "CopyFromInvoiceLine",
+  "effectiveDate": "2026-11-25",
+  "description": "PROBE-275 credit",
+  "invoiceLines": [{ "invoiceLineId": "5TVWt000002HH1hOAG", "amountToCredit": 40 }]
+}
+→ 201 (0.59 s)
+{ "errors": [], "referenceLineErrorResults": null, "referenceLineType": null,
+  "requestIdentifier": "7ce2a890-e55f-45eb-bdb9-f165285ada32",
+  "statusURL": "", "success": true }
+```
+
+- No tracker (`statusURL` empty). The `CreditMemo` row (`ReferenceEntityId` =
+  invoice, `Description` from the body) exists at once in `Pending`, then reads
+  `Posted` with the application done about 3 s later.
+- Line Level read-back: one `CreditMemoLineInvoiceLine` (`Type` Applied,
+  `InvoiceLineId`, `CreditMemoLineId`); no `CreditMemoInvApplication`. Invoice
+  `Balance` 250 → 210, `SettlementLevel` `InvoiceLine`, `SettlementStatus`
+  `Partially Settled`; line `Balance` 100 → 60.
+- The harness sends `description: "<run_id> credit"` and finds the memo by
+  `ReferenceEntityId` + `Description` (the action has no idempotency key; a
+  retry after an accepted POST polls instead of POSTing again).
+
+### Tax strategy (per line; the top-level value is required)
+
+| `taxStrategy` | Line | `amountToCredit` | Memo `TotalAmount` / `TotalTaxAmount` / `TotalAmountWithTax` |
+| ------------- | ---- | ---------------- | ------------------------------------------------------------ |
+| `CopyFromInvoiceLine` | taxed (charge 450, tax 45) | 45 | 45 / **45** / 90 — the line's **whole** tax was copied onto a partial credit (run `DEMO-20261125T142256Z`, memo `50gWt000001BEofIAG`) |
+| `Calculate` | same taxed line | 10 | 10 / 1 / 11 — tax in proportion (memo `50gWt000001BErtIAG`) |
+| `Calculate` (per line, top-level also `Calculate`) | taxed | 45 | 45 / 4.5 / 49.5 (run `DEMO-20261125T142717Z`, memo `50gWt000001BEv7IAG`) |
+| `Ignore` | same taxed line | 10 | 10 / 0 / 10 (memo `50gWt000001BEqHIAW`) |
+| `CopyFromInvoiceLine` | untaxed ingested line | 20 | 20 / 0 / 20 (run `DEMO-20261125T142132Z`, memo `50gWt000001BEn3IAG`) |
+| `Ignore` (per line) | untaxed ingested line | 30 | 30 / 0 / 30 (runs `DEMO-20261125T142843Z`, `DEMO-20261125T143052Z`) |
+| `Calculate` | untaxed ingested line | 5 | **refused** (below) |
+
+The harness default `tax_strategy: auto` sends `Calculate` on lines with
+`TaxAmount > 0` and `Ignore` on lines without. Each line carries its own
+`taxStrategy`; the top-level value is the first line's.
+
+### Credit errors (all synchronous, HTTP 400, no memo created)
+
+| Case | Response |
+| ---- | -------- |
+| `amountToCredit` 200 > line charge 100 | `{"enhancedErrorType":"RecordError","message":"Can't complete request because one or more invoice lines contained an invalid value.","output":{"errors":[],"referenceLineErrorResults":[{"errors":[{"errorCode":"INVALID_API_INPUT","message":"Couldn't credit invoice line 5TVWt000002HH1hOAG because the credit line amount exceeds the invoice line amount"}],"referenceLineId":"5TVWt000002HH1hOAG"}],"referenceLineType":"Invoice Line","requestIdentifier":null,"statusURL":"","success":false}}` |
+| `invoiceLines: []` | `{"enhancedErrorType":"RecordError","message":"Provide at least one invoice line","output":{"errors":[{"errorCode":"INVALID_API_INPUT","message":"Provide at least one invoice line"}],...,"success":false}}` |
+| `Calculate` on a line with no tax line | `{"enhancedErrorType":"RecordError","message":"Couldn't create credit memo.","output":{"errors":[{"errorCode":"INVALID_API_INPUT","message":"To calculate tax, the invoice line must have a tax line."}],...,"success":false}}` |
+
+(Apostrophes arrive HTML-escaped as `&#39;` in the raw body.)
+
+### Over the balance but within the charge: accepted, leaves a credit balance
+
+`amountToCredit` 70 on a line with charge 100 and balance 60 was **accepted**:
+memo `50gWt000001BElRIAW` posted at 70, applied 60, and kept `Balance` 10. That
+10 was later applied by the platform to the next invoice posted through the post
+action (above). The harness caps each line's credit so the memo, tax included,
+fits the line's open balance: `Ignore` → balance; `Calculate` → balance ×
+charge / line amount, rounded down to the cent; `CopyFromInvoiceLine` → balance
+less the line's tax; every case also capped at the charge amount.
+
+## Payment — create, then `POST /commerce/billing/payments/{paymentId}/actions/apply`
+
+### Create (sObject, synchronous)
+
+```jsonc
+POST /services/data/v68.0/sobjects/Payment
+{
+  "AccountId": "001Wt00001rcnYbIAI",
+  "Amount": 230.0,
+  "Status": "Processed",
+  "Type": "Sale",
+  "ProcessingMode": "External",
+  "GatewayRefNumber": "<run_id>-PAY",
+  "Comments": "Transaction Data Harness payment (<run_id>)",
+  "EffectiveDate": "2026-11-25T00:00:00.000Z",
+  "CurrencyIsoCode": "USD"          // the invoice's currency; omitted on single-currency orgs
+}
+→ { "id": "0aQWt000000XOl7MAG", "success": true, "errors": [] }
+```
+
+No gateway is involved. `GatewayRefNumber` is the retry key (`Comments` is a
+textarea and cannot be filtered). The org is multi-currency; the harness copies
+`Invoice.CurrencyIsoCode` onto the payment. Only USD was exercised.
+
+### Apply (synchronous)
+
+```jsonc
+POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/apply
+{ "appliedToId": "5TVWt000002HH1iOAG", "amount": 60,
+  "comments": "PROBE-275 apply", "effectiveDate": "2026-11-25T00:00:00.000Z" }
+→ 201 (1.25 s)
+{ "appliedDate": "2026-11-25T14:14:38.273Z", "id": "1AlWt000000fjvdKAA" }
+```
+
+- The returned `id` is the `PaymentLineInvoiceLine` (`Type` Applied,
+  `PaymentBalance` 40, `InvoiceLineBalance` 90). No `PaymentLineInvoice` row.
+  Payment `Balance` 100 → 40, `NetApplied` 60.
+- One call per line at Line Level; the harness spreads the amount over the
+  chosen lines in order, each up to its balance.
+- At Header Level the harness sends the Invoice id as `appliedToId` (not
+  live-verified).
+
+### Apply errors (HTTP 400, synchronous)
+
+| Case | Response |
+| ---- | -------- |
+| `appliedToId` = Invoice id at Line Level | `[{"errorCode":"INVALID_FIELD","message":"Specify an InvoiceLineId as the appliedToId because the Credit Application Level is Invoice Line."}]` |
+| `amount` 160 > line balance 150 | `[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"Enter an amount that’s less than or equal to the balance of the related invoice line."}]` |
+| `amount` 5 on a line with balance 0 | same as above |
+| `amount` 150 > payment balance 100 | `[{"errorCode":"FIELD_INTEGRITY_EXCEPTION","message":"Enter an amount that’s less than or equal to the balance of the related payment."}]` |
+
+## Read-back queries the harness uses
+
+```sql
+-- credit (memo ids from the manifest)
+SELECT Id, Amount, InvoiceLineId FROM CreditMemoLineInvoiceLine
+ WHERE CreditMemoLine.CreditMemoId IN (...) AND Type = 'Applied'      -- Line Level
+SELECT Id, Amount, InvoiceId FROM CreditMemoInvApplication
+ WHERE CreditMemoId IN (...) AND Type = 'Applied'                      -- Header Level
+-- payment
+SELECT Id, Amount, InvoiceLineId FROM PaymentLineInvoiceLine
+ WHERE PaymentId IN (...) AND Type = 'Applied'                         -- Line Level
+SELECT Id, Amount, InvoiceId FROM PaymentLineInvoice
+ WHERE PaymentId IN (...) AND Type = 'Applied'                         -- Header Level
+-- invoice
+SELECT Balance, NetCreditsApplied, NetPaymentsApplied, SettlementStatus, SettlementLevel
+  FROM Invoice WHERE Id = '<invoiceId>'
+```
+
+Both junctions are read whatever the level; rows in the other level's junction
+are recorded and raise a warning (they would mean the level read was wrong).
+
+## Live runs (2026-11-25, Line Level)
+
+Each ran `cli plan` first, then `cli run --concurrency 1`, count 1. Balances
+are from SOQL on the invoice, payment and credit memo by manifest id.
+
+| Run | Kind | Settlement | Invoice (total) | Credit memo (applied) | Payment (amount / applied / mode) | Invoice balance after |
+| --- | ---- | ---------- | --------------- | --------------------- | --------------------------------- | --------------------- |
+| `DEMO-20261125T142132Z` | `invoice_ingestion` | credit 20% of line 0 (`CopyFromInvoiceLine`, before `auto`), payment exact | `3ttWt000002lgU5IAI` (250) | `50gWt000001BEn3IAG` (20) | `0aQWt000000XOl7MAG` 230 / 230 / exact (2 line applications) | 0, Settled |
+| `DEMO-20261125T142256Z` | `sales_txn_quote` | credit 45 (`CopyFromInvoiceLine`), payment 100 | `3ttWt000002lgVhIAI` (495) | `50gWt000001BEofIAG` (90: 45 + 45 copied tax) | `0aQWt000000XOmjMAG` 100 / 100 / partial | 255 (40 + 10 applied by the platform at post) |
+| `DEMO-20261125T142717Z` | `sales_txn_quote` | credit 10% (`auto` → `Calculate`), payment exact | `3ttWt000002lgXJIAY` (495) | `50gWt000001BEv7IAG` (49.5) | `0aQWt000000XOpxMAG` 445.5 / 445.5 / exact | 0, Settled |
+| `DEMO-20261125T142843Z` | `invoice_ingestion` | credit 30 on line "Partial Line B" (`auto` → `Ignore`), payment 50% | `3ttWt000002lgYvIAI` (300) | `50gWt000001BEwjIAG` (30) | `0aQWt000000XOrZMAW` 135 / 135 / partial (2 line applications) | 135 |
+| `DEMO-20261125T142934Z` | `sales_txn_order` | payment 120% | `3ttWt000002lgaXIAQ` (495) | — | `0aQWt000000XOtBMAW` 594 / 495 / over (payment keeps 99) | 0, Settled |
+| `DEMO-20261125T143052Z` | `invoice_ingestion` | run to `invoice_posted`, then `cli step --to-stage payment_applied --config ...` (credit 30 on "Partial Line B", payment 50%) | `3ttWt000002lgc9IAA` (300) | `50gWt000001BEyLIAW` (30) | `0aQWt000000XOunMAG` 135 / 135 / partial | 135 |
+
+Every application row landed in `CreditMemoLineInvoiceLine` /
+`PaymentLineInvoiceLine`; `PaymentLineInvoice` and `CreditMemoInvApplication`
+were empty for all six invoices. The `cli step` resume without `--config` (no
+settlement on the manifest) failed before any write, as designed.
+
+Probe records left on the org (not from a harness run): invoice
+`3ttWt000002lgQrIAI` (ingested Posted, balance 90 after probes), memos
+`50gWt000001BEiDIAW`, `50gWt000001BElRIAW`, payment `0aQWt000000XOefMAG`;
+probe memos `50gWt000001BEqHIAW`, `50gWt000001BErtIAG` on `3ttWt000002lgVhIAI`
+(its balance is 234 after them). Payment `0aQWt000000XOtBMAW` still holds 99
+unapplied, which the next Infinitech invoice posted through the post action will
+likely absorb.
+
+## Cleanup
+
+Payments, credit memos and their application records were not deleted and no
+cleanup path was probed. A Payment's `Status` picklist includes `Canceled`;
+unapplying (`.../paymentlines/{id}/actions/unapply`) and voiding credit memos
+are documented but not exercised here. Treat settlement records like Posted
+invoices: leftovers. Tracked in [`followups.md`](followups.md#billing-settlement).

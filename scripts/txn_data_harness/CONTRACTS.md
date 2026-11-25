@@ -14,6 +14,10 @@ kind:
   post-Order tail).
 - [`docs/contracts-invoice-ingestion.md`](docs/contracts-invoice-ingestion.md) —
   Standalone-billing ingestion (bypasses the PST spine).
+- [`docs/contracts-billing-settlement.md`](docs/contracts-billing-settlement.md) —
+  Settlement stages after `invoice_posted` on every kind (credit memo and
+  payment applied at the org's application level; platform auto-application
+  at post). Line Level live-verified on 264; Header Level not.
 
 Open questions and unverified behaviors continue to live in
 [`docs/followups.md`](docs/followups.md).
