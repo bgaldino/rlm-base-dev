@@ -2141,8 +2141,10 @@ def test_import_replace_restores_every_version():
     import tempfile as _tempfile
     from tasks.rlm_expression_set_connect import ImportExpressionSet
 
-    versions = [{"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1},
-                {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}]
+    versions = [{"Id": "9QMa", "ApiName": "V1", "Name": "V1", "IsActive": True,
+                 "VersionNumber": 1},
+                {"Id": "9QMd", "ApiName": "V2", "Name": "V2", "IsActive": False,
+                 "VersionNumber": 2}]
     seen = {}
     task = object.__new__(ImportExpressionSet)
     task.logger = logging.getLogger("test_import_replace")

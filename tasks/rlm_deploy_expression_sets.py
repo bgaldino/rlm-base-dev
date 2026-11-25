@@ -170,7 +170,7 @@ def version_findings(expected: List[Dict], org_versions: Dict[str, List[Dict]],
         if running is None or running.get("ApiName") != api_name:
             runs = (f"{running.get('ApiName')} (v{running.get('VersionNumber')}) is the "
                     "executing version (highest Rank among active versions in their "
-                    "date window)" if running else
+                    "date window; earliest created among null Ranks)" if running else
                     f"{api_name}'s date window does not cover now, so it is not running")
             findings.append(
                 f"{definition}: the deployed {api_name} is active but does not execute; "

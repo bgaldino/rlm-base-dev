@@ -995,7 +995,8 @@ def test_cli_restore_boundary():
             resolve_expression_set_id=lambda *a, **k: "9QLx",
             resolve_definition_id=lambda *a, **k: "9QAx",  # found → replace mode
             resolve_version_by_es_id=lambda *a, **k: {
-                "Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                "Id": "9QMv", "ApiName": "TEST_V1", "Name": "TEST", "IsActive": True,
+                "VersionNumber": 1},
             validate_definition=lambda *a, **k: _passing_validation(),
             capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
             strip_readonly_fields=lambda p, **k: p,
@@ -1028,8 +1029,10 @@ def test_cli_restore_boundary():
             u = _patch_cli(
                 import_mod, restore_labels_after_clobber=record_restore,
                 list_versions=lambda *a, **k: [
-                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
-                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "Name": "TEST", "IsActive": True,
+                     "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "Name": "TEST draft",
+                     "IsActive": False, "VersionNumber": 2}],
                 capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
             )
             rc_multi = import_mod.main(["--target-org", "x", "--input-file",
@@ -1989,6 +1992,20 @@ def test_import_guards():
     check("a payload version without apiName is refused on a multi-version set",
           "(no apiName)" in (import_target_refusal("X", draft, draft[0],
                                                     {"versions": [{}]}) or ""))
+    loose = [dict(draft[0]), dict(draft[1], Name="  x ")]
+    check("labels are compared ignoring case and spacing (fail closed)",
+          "share the label" in (import_target_refusal(
+              "X", loose, loose[0], payload(("X_V1", "X"))) or ""))
+    unlabelled = [{k: v for k, v in r.items() if k != "Name"} for r in draft]
+    check("no label on the payload or the org row: refused, naming the missing label",
+          "carries a label" in (import_target_refusal(
+              "X", unlabelled, unlabelled[0], {"versions": [{"apiName": "X_V1"}]}) or ""))
+    check("a non-dict payload entry still counts as a version (refused as two)",
+          "carries 2 versions" in (import_target_refusal(
+              "X", draft, draft[0], {"versions": [None, {"apiName": "X_V1"}]}) or ""))
+    check("payload versions that are not a list: refused as zero versions",
+          "carries 0 versions" in (import_target_refusal(
+              "X", draft, draft[0], {"versions": "X_V1"}) or ""))
     shared_draft = [dict(draft[0]), dict(draft[1], Name="X")]
     check("active+draft with a shared label: refused even for the target",
           "share the label" in (import_target_refusal(

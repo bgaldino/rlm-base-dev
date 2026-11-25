@@ -213,7 +213,9 @@ def import_target_refusal(
     1. the payload carries exactly one version;
     2. that version's ``apiName`` is the target's ``ApiName``;
     3. no other existing version shares its label (``name``; the target's ``Name``
-       when the payload has none).
+       when the payload has none), compared ignoring case and spacing (the
+       platform's comparison is not measured, so this errs towards refusing); with
+       no label to compare at all, the import is refused.
 
     Anything else is refused, naming the condition that failed. The caller refuses
     before any write.
@@ -229,7 +231,8 @@ def import_target_refusal(
         "name and the version apiName)."
     )
     prefix = f"Expression set '{api_name}' has {len(versions)} versions: {rows}. "
-    payload_versions = [v for v in (payload.get("versions") or []) if isinstance(v, dict)]
+    payload_versions = payload.get("versions")
+    payload_versions = payload_versions if isinstance(payload_versions, list) else []
     if len(payload_versions) != 1:
         return (
             prefix + f"The payload carries {len(payload_versions)} versions; on a "
@@ -237,7 +240,7 @@ def import_target_refusal(
             "imports (a two-version payload was rejected whether or not the versions "
             f"shared a label, {MEASURED}). " + alternatives
         )
-    incoming = payload_versions[0]
+    incoming = payload_versions[0] if isinstance(payload_versions[0], dict) else {}
     incoming_api = incoming.get("apiName")
     if incoming_api != target.get("ApiName"):
         return (
@@ -248,9 +251,22 @@ def import_target_refusal(
             "partially applying, ramp264). " + alternatives
         )
     label = incoming.get("name") or target.get("Name")
+    if not label:
+        return (
+            prefix + "Neither the payload's version nor the org row carries a label "
+            "(name / Name), so the import cannot confirm that no other version shares "
+            f"it ({MEASURED}: a shared label is rejected). Set versions[0].name. "
+            + alternatives
+        )
+
+    def _norm(text: Any) -> str:
+        # Whether the platform's name check ignores case or spacing is not
+        # measured; comparing loosely refuses more, never less.
+        return " ".join(str(text or "").split()).casefold()
+
     sharing = [v.get("ApiName") for v in versions
-               if v.get("ApiName") != target.get("ApiName") and label
-               and v.get("Name") == label]
+               if v.get("ApiName") != target.get("ApiName")
+               and _norm(v.get("Name")) == _norm(label)]
     if sharing:
         return (
             prefix + f"Other version(s) {', '.join(sharing)} share the label "
