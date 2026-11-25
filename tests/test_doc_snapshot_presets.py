@@ -513,11 +513,11 @@ def main():
 
     # Site-source dev-guide presets (pack 437).
     from scripts.doc_snapshot.site_guide import SiteGuideSnapshot
-    for key, sections, tail in (("rlm", False, "264/dev-guide"), ("industries_site", True, "dev-guide-industries-site")):
+    for key, sections, tail in (("rlm", False, None), ("industries_site", True, "dev-guide-industries-site")):
         opts = presets.resolve(releases, "264", "dev_guide", key)
         check(f"{key} is a site preset on API 68.0 (rlm: the corpus switched in place)",
               presets.dev_guide_source(opts) == "site" and opts["api_version"] == "68.0"
-              and opts.get("output_dir", "docs/salesforce/264/dev-guide").endswith(tail))
+              and (opts["output_dir"].endswith(tail) if tail else "output_dir" not in opts))
         check(f"{key} resolves to the site snapshotter and normalises",
               cli._class_for("dev_guide", opts) is SiteGuideSnapshot
               and SiteGuideSnapshot(opts).options["mode"] == "all")
