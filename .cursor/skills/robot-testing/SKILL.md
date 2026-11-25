@@ -137,6 +137,8 @@ browser override with no driver set (WARN: webdriver-manager sizes its driver fo
 and an override that exists but does not run cleanly, e.g. a wrong-architecture build or a
 nonzero `--version` exit (FAIL).
 
+**Chrome 158 breaks Setup XPath lookups (2026-11).** Stock Chrome and chromedriver 158.0.8127.x make every WebDriver XPath element lookup on Setup pages raise `StaleElementReferenceException`, so Setup suites fail on a machine that auto-updated. CSS lookups and in-page `Execute JavaScript` still work. Pin Chrome for Testing 157.0.8103.78 through `CHROME_BINARY` and `CHROMEDRIVER_PATH` (commands and `.env.local` lines: `docs/guides/local-installation.md` → Chrome for Testing) before any live Robot run or build.
+
 ---
 
 ## Related Skills

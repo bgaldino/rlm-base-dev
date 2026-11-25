@@ -46,7 +46,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (`npm install -g @salesforce/cli@latest`; `sf update` refuses npm installs) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `for n in 1 2; do .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all --stage $n); done` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
-| **Chrome for Testing** *(managed workstations only)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome crashes on Setup pages | any CfT version, browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
+| **Chrome for Testing** *(managed workstations, and everywhere while Chrome 158.0.8127.x is current)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome fails on Setup pages | pin 157.0.8103.78 (Chrome 158 breaks Setup XPath lookups); browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
 | **gh, git, GCM** | `brew install gh git; brew install --cask git-credential-manager` | Source control + PR workflow | latest |
 | **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
 
@@ -658,8 +658,9 @@ For a clean macOS workstation, in order:
    any cached shell snapshot from the new configs. Open the new window outside
    the repo, then `cd` in: a restored tab that reopens in the repo starts with
    the system PATH order (see §2, `~/.zprofile`).
-6. **Managed workstation only: Chrome for Testing.** If stock Chrome can't
-   drive Salesforce Setup pages on this machine, install Chrome for Testing and
+6. **Chrome for Testing (every machine while Chrome 158.0.8127.x is current;
+   also managed workstations).** On Chrome 158.0.8127.x, or whenever stock
+   Chrome can't drive Salesforce Setup pages on this machine, install Chrome for Testing 157.0.8103.78 and
    put `CHROME_BINARY` and `CHROMEDRIVER_PATH` in `.env.local` at the repo root
    (gitignored; `.envrc` and `./tui-cci` both load it), per
    [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations).
