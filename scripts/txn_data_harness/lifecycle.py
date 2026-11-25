@@ -1312,16 +1312,18 @@ def currency_decimal_places(client: SfRestClient, iso_code: Optional[str]) -> in
 
     Every settlement amount the harness computes or sends (percent shares,
     per-line caps, Payment.Amount, apply amounts) is rounded to this. A
-    single-currency org (no invoice currency) uses 2. A successful read is
-    cached per org and code; a failed read is never cached. Only an org that
-    says ``CurrencyType`` is not there for this user (``INVALID_TYPE``) falls
-    back to 2 with a warning; any other failure raises, so a transient error
-    cannot fix the rounding of a whole run.
+    single-currency org (no invoice currency) uses its default currency's ISO
+    4217 minor units (:func:`single_currency_decimal_places`). A successful
+    read is cached per org and code; a failed read is never cached. Only an
+    org that says ``CurrencyType`` is not there for this user
+    (``INVALID_TYPE``) falls back, with a warning, to the ISO 4217 minor units
+    of ``iso_code``; any other failure raises, so a transient error cannot fix
+    the rounding of a whole run.
     """
     from .auth import SfApiError
 
     if not iso_code:
-        return 2
+        return single_currency_decimal_places(client)[0]
     key = (client.instance_url, iso_code)
     if key in _decimals_cache:
         return _decimals_cache[key]
@@ -1332,13 +1334,61 @@ def currency_decimal_places(client: SfRestClient, iso_code: Optional[str]) -> in
     except SfApiError as exc:
         if "INVALID_TYPE" not in (exc.body or ""):
             raise
-        log.warning("CurrencyType is not readable (%s); rounding to 2 places", exc)
-        return 2
-    places = 2
+        fallback = _ISO_4217_MINOR_UNITS.get(iso_code.upper(), 2)
+        log.warning("CurrencyType is not readable (%s); using ISO 4217 %s places",
+                    exc, fallback)
+        return fallback
+    places = _ISO_4217_MINOR_UNITS.get(iso_code.upper(), 2)
     if rows and rows[0].get("DecimalPlaces") is not None:
         places = int(rows[0]["DecimalPlaces"])
     _decimals_cache[key] = places
     return places
+
+
+# ISO 4217 minor units for the currencies that do not use 2 (source: the ISO
+# 4217 list maintained by SIX, "Minor unit" column). Everything else uses 2.
+_ISO_4217_MINOR_UNITS = {
+    **{c: 0 for c in ("BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG",
+                      "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF")},
+    **{c: 3 for c in ("BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND")},
+}
+_org_currency_cache: dict[str, str] = {}
+
+
+def org_default_currency(client: SfRestClient) -> Optional[str]:
+    """``Organization.DefaultCurrencyIsoCode`` (cached per org once read).
+
+    The field exists on single-currency orgs only; a multi-currency org
+    answers ``INVALID_FIELD`` (measured 2026-11-25), and ``None`` is returned
+    (its invoices carry ``CurrencyIsoCode``, so this is not reached there).
+    Any other failure raises.
+    """
+    from .auth import SfApiError
+
+    key = client.instance_url
+    if key not in _org_currency_cache:
+        try:
+            rows = client.query("SELECT DefaultCurrencyIsoCode FROM Organization LIMIT 1")
+        except SfApiError as exc:
+            if not is_missing_column(exc, "DefaultCurrencyIsoCode"):
+                raise
+            log.warning("Organization has no DefaultCurrencyIsoCode (multi-currency org)")
+            return None
+        code = rows[0].get("DefaultCurrencyIsoCode") if rows else None
+        if not code:
+            return None
+        _org_currency_cache[key] = code
+    return _org_currency_cache[key]
+
+
+def single_currency_decimal_places(client: SfRestClient) -> tuple[int, Optional[str]]:
+    """Decimal places on a single-currency org (invoices carry no currency).
+
+    The org's ``DefaultCurrencyIsoCode`` mapped through ISO 4217 minor units
+    (JPY 0, KWD 3, most others 2). Returns ``(places, iso_code)``.
+    """
+    code = org_default_currency(client)
+    return _ISO_4217_MINOR_UNITS.get((code or "").upper(), 2), code
 
 
 def line_tax_strategy(line: dict, strategy: str) -> str:
@@ -1542,8 +1592,12 @@ def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
             ) from exc
         raise
     if not isinstance(result, dict) or not result.get("success"):
+        # A 2xx is never a refusal: the action may have been accepted. The
+        # caller keeps credit_submitted and looks for the memo by its tag.
         errs = result.get("errors") if isinstance(result, dict) else result
-        raise LifecycleError("credit", f"credit failed: {errs}", record_id=invoice_id)
+        raise LifecycleError(
+            "credit", f"credit answered 2xx without success: {errs}", record_id=invoice_id
+        )
     return result
 
 

@@ -138,6 +138,10 @@ def resolve_auth(alias: str) -> tuple[str, str]:
     return access_token, instance_url.rstrip("/")
 
 
+# BillingSettings retrieve on the cli transport: sf's --wait and our own cap.
+_RETRIEVE_WAIT_MINUTES = 1
+_RETRIEVE_TIMEOUT_S = 90
+
 # Metadata SOAP readMetadata for BillingSettings (no REST equivalent).
 _BILLING_SETTINGS_SOAP = (
     '<?xml version="1.0" encoding="utf-8"?>'
@@ -390,12 +394,20 @@ class SfRestClient:
         from pathlib import Path
 
         with tempfile.TemporaryDirectory() as tmp:
-            proc = subprocess.run(
-                ["sf", "project", "retrieve", "start", "--metadata", "Settings:Billing",
-                 "--target-metadata-dir", tmp, "--unzip", "--target-org", self.alias,
-                 "--json"],
-                capture_output=True, text=True,
-            )
+            # ``--wait`` (minutes) bounds sf's own polling (33 min by default);
+            # the subprocess timeout bounds everything else. The caller holds
+            # the per-org level lock, so this must never hang.
+            try:
+                proc = subprocess.run(
+                    ["sf", "project", "retrieve", "start", "--metadata", "Settings:Billing",
+                     "--target-metadata-dir", tmp, "--unzip", "--target-org", self.alias,
+                     "--wait", str(_RETRIEVE_WAIT_MINUTES), "--json"],
+                    capture_output=True, text=True, timeout=_RETRIEVE_TIMEOUT_S,
+                )
+            except subprocess.TimeoutExpired:
+                log.warning("BillingSettings retrieve timed out after %ss",
+                            _RETRIEVE_TIMEOUT_S)
+                return None
             if proc.returncode != 0:
                 log.warning("BillingSettings retrieve failed: %s",
                             (proc.stderr or proc.stdout).strip()[:300])

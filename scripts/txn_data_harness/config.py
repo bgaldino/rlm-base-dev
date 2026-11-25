@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -483,6 +484,14 @@ def _coerce_line_selector(value: Any, where: str) -> Optional[list[Any]]:
     return out
 
 
+def _finite(value: float, where: str, field: str) -> float:
+    """Refuse NaN and +/-inf: ``float()`` accepts ``.nan``/``.inf`` (YAML) and
+    the strings "nan"/"inf", and NaN slips through every ``<``/``>`` check."""
+    if not math.isfinite(value):
+        raise ConfigError(f"{where}: {field} must be a finite number (got {value})")
+    return value
+
+
 def _coerce_positive(value: Any, where: str, field: str) -> float:
     if isinstance(value, bool):
         raise ConfigError(f"{where}: {field} must be a number")
@@ -490,6 +499,7 @@ def _coerce_positive(value: Any, where: str, field: str) -> float:
         f = float(value)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: {field} must be a number") from exc
+    _finite(f, where, field)
     if f <= 0:
         raise ConfigError(f"{where}: {field} must be > 0 (got {f:g})")
     # Not rounded here: the stage rounds to the invoice currency's decimal
@@ -619,8 +629,8 @@ def _check_settlement_stage(
 ) -> None:
     """Reject a settlement stage with nothing to do.
 
-    ``credit_applied`` needs a ``credit`` block or nothing would be created;
-    ``payment_applied`` needs at least a credit or payment block. A block whose
+    ``credit_applied`` needs a ``credit`` block and ``payment_applied`` a
+    ``payment`` block, or the target stage would create nothing. A block whose
     stages lie past the target (a ``payment`` part with target
     ``credit_applied``, or any block with an earlier target such as
     ``--target-stage invoice_posted``) is not a contradiction: those parts
@@ -637,6 +647,11 @@ def _check_settlement_stage(
     if stage == "credit_applied" and settlement.credit is None:
         raise ConfigError(
             f"{where}: target_stage 'credit_applied' needs 'settlement.credit'"
+        )
+    if stage == "payment_applied" and settlement.payment is None:
+        raise ConfigError(
+            f"{where}: target_stage 'payment_applied' needs 'settlement.payment' "
+            f"(for a credit only, set target_stage: credit_applied)"
         )
 
 
@@ -716,6 +731,8 @@ def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: discount must be number(s)") from exc
+    _finite(lo, where, "discount")
+    _finite(hi, where, "discount")
     if lo > hi:
         raise ConfigError(f"{where}: discount min ({lo}) > max ({hi})")
     if lo < 0 or hi > 100:
@@ -917,6 +934,8 @@ def _coerce_float_range(value: Any, where: str, field: str) -> tuple[float, floa
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: {field} must be number(s)") from exc
+    _finite(lo, where, field)
+    _finite(hi, where, field)
     if lo > hi:
         raise ConfigError(f"{where}: {field} min ({lo}) > max ({hi})")
     if lo < 0:
@@ -1284,6 +1303,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
         quantity_f = float(quantity)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: quantity must be a number") from exc
+    _finite(quantity_f, where, "quantity")
     if quantity_f <= 0:
         raise ConfigError(f"{where}: quantity must be > 0 (got {quantity_f})")
 
@@ -1292,6 +1312,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
         unit_price_f = float(unit_price)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: unit_price must be a number") from exc
+    _finite(unit_price_f, where, "unit_price")
     if unit_price_f < 0:
         raise ConfigError(f"{where}: unit_price must be >= 0 (got {unit_price_f})")
 
@@ -1301,6 +1322,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
             charge_amount = float(charge_amount)
         except (TypeError, ValueError) as exc:
             raise ConfigError(f"{where}: charge_amount must be a number") from exc
+        _finite(charge_amount, where, "charge_amount")
 
     sku = raw.get("sku")
     if sku is not None and not isinstance(sku, str):
@@ -1348,6 +1370,7 @@ def _coerce_tax_amount(raw: Any, where: str, field: str) -> Optional[float]:
         v = float(raw)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: {field} must be a number") from exc
+    _finite(v, where, field)
     if v < 0:
         raise ConfigError(f"{where}: {field} must be >= 0 (got {v})")
     return v

@@ -239,8 +239,10 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   records `credit_submitted` (checkpointed) **before** the credit POST. From
   then on neither a scenario retry nor a `cli step` resume POSTs again: they
   poll for the memo by its tag (`<run> credit`, `<run> credit N` for later
-  attempts). Only a confirmed refusal (4xx: nothing was created) clears it.
-  After a 5xx or transport failure the step waits up to 15 s for the memo (a
+  attempts). Only a confirmed refusal (HTTP 4xx: nothing was created) clears
+  it; a 2xx without `success: true` (or a body that is not JSON) counts as
+  accepted. After a 5xx, a transport failure or such a 2xx the step waits up
+  to 15 s for the memo (a
   convenience, not a safety measure); if none shows up it fails with an error
   pinned non-retryable that names the next command. A late memo is picked up
   by the next resume.
@@ -251,28 +253,46 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   adopted and nothing is sent. While an attempt has no memo yet it keeps
   reading for up to 15 s. Only when no memo is live does it record the failed
   attempt as a warning, increment `credit_attempt` and send the credit with
-  the next tag. It works whether or not `credit_submitted` was recorded (a
-  crash between an accepted POST and its checkpoint). With `--config <file>`
+  the next tag. It also works when `credit_submitted` is false, which only a
+  manifest written before this rule can show after a crash between an
+  accepted POST and its checkpoint (the flag is now recorded before the
+  POST). More than one live memo of the run fails: the invoice was credited
+  twice and is settled by hand. With `--config <file>`
   the config's `credit` sub-block replaces the manifest's while no memo is
   recorded (for options the API refused).
-- **Double-credit check.** After the credit stage, the invoice's
-  `NetCreditsApplied` less `settlement_baseline.net_credits_applied` must
-  equal what this run's memo applied; any difference (a second memo of this
-  run that committed late, or another process's credit) fails the stage
-  rather than warning.
-- **`--config` on a resume is never ignored.** Identical to the manifest's
-  block: the manifest's is used. A `payment` sub-block the manifest lacks is
+- **Double-credit check.** Just before each attempt's POST the invoice's
+  `NetCreditsApplied` is recorded in `credit_baselines[<attempt>]`. After the
+  credit stage, `NetCreditsApplied` less the current attempt's baseline must
+  equal what this run's memo applied; any difference, larger or smaller (a
+  second memo of this run that committed late, another process's credit, a
+  reversal), fails the stage rather than warning. A credit the platform
+  applied between attempts falls before the later attempt's baseline and is
+  not counted. Older manifests without `credit_baselines` compare against
+  `settlement_baseline.net_credits_applied`.
+- **`--config` on a resume is never ignored**, even when the manifest
+  already reached the target (it is reconciled before that check).
+  Identical to the manifest's block: the manifest's is used. A `payment` sub-block the manifest lacks is
   added while no payment was planned or created; with `--resubmit-credit` the
   `credit` sub-block may be replaced (above). Any other difference is refused,
   naming the keys. A config scenario pinning an account's new name matches the
-  manifest when that name resolves to the manifest's `account_id`.
+  manifest when that name resolves to the manifest's `account_id`. A change
+  that only a stage already run could use is refused; the one exception is a
+  payment added to an old manifest that reached `payment_applied` without
+  one, which runs `payment_applied` again.
+- **`payment_applied` never advances without a payment.** A config whose
+  target is `payment_applied` needs `settlement.payment`, and the stage
+  refuses (not retried) a settlement block without one, naming the `cli step
+  --config` command that adds it.
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without
   it; the message echoes the whole SOQL, so the column name alone proves
   nothing) and
-  `INVALID_TYPE` on `CurrencyType` (2 places, not cached). A transient error is
-  never recorded as "no currency" or cached as 2 places.
+  `INVALID_TYPE` on `CurrencyType` (ISO 4217 minor units of the code, not
+  cached). A transient error is never recorded as "no currency" or cached.
+- The BillingSettings retrieve on `cli` is bounded (`--wait 1` and a 90 s
+  process timeout); on a timeout or failure the level comes from the
+  invoice-evidence probe, with the reason logged.
 
 ## Currency precision
 
@@ -280,8 +300,13 @@ Every amount the harness computes or sends is rounded to
 `CurrencyType.DecimalPlaces` of the invoice currency: percent shares, per-line
 credit caps and allocations, `Payment.Amount`, each apply `amount`, and the
 balances they are compared with. The places are recorded in
-`settlement_baseline.decimal_places` (2 on a single-currency org, whose
-invoices have no `CurrencyIsoCode`). Config `amount:` values are not
+`settlement_baseline.decimal_places`. A single-currency org's invoices have
+no `CurrencyIsoCode` and the org no `CurrencyType` to read, so its places come
+from `Organization.DefaultCurrencyIsoCode` (a field single-currency orgs have;
+a multi-currency org answers `INVALID_FIELD`, measured) through ISO 4217 minor
+units (source: the ISO 4217 list maintained by SIX): 0 for BIF, CLP, DJF, GNF,
+ISK, JPY, KMF, KRW, PYG, RWF, UGX, UYI, VND, VUV, XAF, XOF, XPF; 3 for BHD,
+IQD, JOD, KWD, LYD, OMR, TND; 2 otherwise. Config `amount:` values are not
 pre-rounded, so a 3-place currency keeps `10.005`. Read on the verification
 org: USD, EUR, GBP, CAD, AUD, CHF = 2, **JPY = 0**. Only USD invoices were
 settled live; JPY and 3-place currencies (KWD) are covered offline only.

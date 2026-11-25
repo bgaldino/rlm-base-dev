@@ -411,8 +411,10 @@ Rules:
 ## Settlement
 
 `credit_applied` and `payment_applied` follow `invoice_posted` on every kind.
-A `settlement:` block drives them; each stage is a no-op without its own
-sub-block. Contract and live evidence:
+A `settlement:` block drives them. `credit_applied` is a no-op without a
+`credit:` sub-block (a payment-only scenario passes through it);
+`payment_applied` needs a `payment:` sub-block and refuses to advance without
+one. Contract and live evidence:
 [`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md).
 
 ```yaml
@@ -443,7 +445,9 @@ value (null) means no payment, like leaving the key out.
   not reached yet and stay on the manifest for a later `cli step` (so
   `--target-stage invoice_posted` on a settlement config is fine). Only a
   settlement target with nothing to do is an error: `credit_applied` without
-  `credit:`, or `payment_applied` with neither `credit:` nor `payment:`.
+  `credit:`, or `payment_applied` without `payment:` (for a credit only, stop
+  at `credit_applied`). Amounts and percents must be finite numbers (`.nan`
+  and `.inf` are refused).
 
 - **Order:** credit first, then payment, so `amount: exact` pays what is left
   after the credit.
@@ -476,7 +480,8 @@ value (null) means no payment, like leaving the key out.
   `CurrencyType.DecimalPlaces` everywhere they are computed or sent: credit
   caps and allocations, `Payment.Amount`, each apply amount, and the balances
   they are compared with (JPY = 0, KWD = 3). Config `amount:` values are not
-  pre-rounded; a single-currency org uses 2. Only USD was settled live.
+  pre-rounded. A single-currency org uses its default currency's ISO 4217
+  minor units (JPY 0, KWD 3, most others 2). Only USD was settled live.
 - **Account:** the credit and the payment belong to the invoice's account
   (`Invoice.BillingAccountId`, else the manifest's `account_id`). `cli step`
   looks the account up by the manifest's `account_id`; an `--account` that
@@ -485,9 +490,10 @@ value (null) means no payment, like leaving the key out.
   persisted `settlement`; a manifest from a run without one needs
   `--config` with exactly one `settlement:` block among the scenarios of the
   manifest's `kind` and account (a renamed account matches by Id).
-  `--config` is read only for a settlement target and is never ignored: on a
-  manifest that has a block it may add a missing `payment` (before any
-  payment exists); any other difference is refused, naming the keys.
+  `--config` is read only for a settlement target and is never ignored,
+  even on a manifest that already reached the target: on a manifest that has
+  a block it may add a missing `payment` (before any payment exists); any
+  other difference is refused, naming the keys.
   `--application-level line|header` replaces a wrongly recorded
   level (an apply refused with `INVALID_FIELD` on `appliedToId` says so).
   The recipe "run to `invoice_posted`, then `cli step --to-stage
@@ -495,7 +501,8 @@ value (null) means no payment, like leaving the key out.
 - **The credit POST is sent at most once per attempt.** `credit_submitted`
   is recorded before the POST; a 5xx or lost response fails the stage (not
   retried) with the next command, and every later resume only polls for the
-  memo by tag. If the memo is in `Error`, `Canceled` or `Voided`, or never
+  memo by tag. Only an HTTP 4xx refusal clears the flag; a 2xx without
+  `success` counts as accepted. If the memo is in `Error`, `Canceled` or `Voided`, or never
   appears, run `cli step --manifest <id> --to-stage payment_applied
   --resubmit-credit`. It checks the org first: a live memo of any attempt of
   this run is adopted and nothing is sent; only when none is live is the
@@ -503,8 +510,9 @@ value (null) means no payment, like leaving the key out.
   <file>` to replace the `credit` sub-block (the way to correct options the
   API refused).
 - **A second credit fails the stage.** After `credit_applied` the invoice's
-  `NetCreditsApplied` gain since the baseline must equal what this run's memo
-  applied; otherwise the stage fails and names both amounts.
+  `NetCreditsApplied` gain since the current attempt's baseline (read just
+  before its POST) must equal what this run's memo applied; otherwise the
+  stage fails and names both amounts.
 
 ## What makes an account / product a valid target
 

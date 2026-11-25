@@ -206,7 +206,7 @@ All three kinds share the two settlement stages after `invoice_posted`.
 | `invoice_draft` | Draft Invoice (+ lines), tagged | **yes** |
 | `invoice_posted` | Posted Invoice (InvoiceNumber assigned) | **yes** |
 | `credit_applied` | Credit memo applied to the Posted invoice (`settlement.credit`; no-op without it) | **yes** (PST kinds) |
-| `payment_applied` | Processed payment created and applied (`settlement.payment`; no-op without it) | **yes** (PST kinds) |
+| `payment_applied` | Processed payment created and applied (`settlement.payment`; required: refuses without it) | **yes** (PST kinds) |
 
 An account **without** a BillingAccount still goes `quote → order` (useful
 pipeline + order demo data), but **activation** generates BillingSchedules and
@@ -304,7 +304,7 @@ count.
   (thread-local); all workers share the read-only token + instance URL.
 - **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest
   --include`, so our process sends no token (BillingSettings is read with `sf
-  project retrieve start`). The status line it prints gives the real HTTP
+  project retrieve start`, bounded by `--wait 1` and a 90 s timeout). The status line it prints gives the real HTTP
   status, so a 4xx refusal and a 5xx are told apart as on `requests`. Retries
   are the CLI's own (its HTTP library's defaults: GET/PUT/DELETE/HEAD retried
   up to twice on 5xx/429/network errors; POST and PATCH never), not the

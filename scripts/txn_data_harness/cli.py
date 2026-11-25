@@ -216,12 +216,17 @@ def _cmd_step(args: argparse.Namespace) -> int:
     steps = handler.remaining_steps(
         manifest.reached_stage, target, args.with_opportunity
     )
+    # --config is reconciled (or refused) before anything else, so it is
+    # never ignored -- not even on a manifest that already reached the target.
+    settlement = _settlement_for_step(args, manifest, client)
+    if not steps and settlement is not None:
+        steps = _rerun_for_new_settlement(manifest, target, settlement)
     if not steps:
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
 
     step_ctx = _build_step_context(
-        args, handler, client, ctx, account, manifest
+        args, handler, client, ctx, account, manifest, settlement=settlement
     )
 
     try:
@@ -279,6 +284,33 @@ def _resolve_step_account(client: SfRestClient, args: argparse.Namespace, manife
     return resolve_account(client, manifest.account_name)
 
 
+def _rerun_for_new_settlement(manifest, target: str, settlement) -> list[str]:
+    """Steps to run when ``--config`` changed the settlement of a manifest that
+    already reached ``target``.
+
+    The one change that can still take effect is a payment added to a
+    manifest that reached ``payment_applied`` without one (written before the
+    payment stage refused that): ``payment_applied`` runs again. Anything else
+    would change a stage that already ran, so it is refused.
+    """
+    if (
+        target == "payment_applied"
+        and manifest.reached_stage == "payment_applied"
+        and settlement.payment is not None
+        and not manifest.payment_ids
+        and manifest.payment_apply_target is None
+    ):
+        return ["payment_applied"]
+    raise LifecycleError(
+        "step",
+        f"--config changes the settlement of manifest {manifest.run_id}, which already "
+        f"reached {manifest.reached_stage}; nothing would run with it. Drop --config.",
+    )
+
+
+_UNSET = object()
+
+
 def _build_step_context(
     args: argparse.Namespace,
     handler,
@@ -286,6 +318,7 @@ def _build_step_context(
     ctx,
     account,
     manifest,
+    settlement=_UNSET,
 ) -> StepContext:
     """Build the per-kind StepContext for a ``cli step`` invocation.
 
@@ -296,7 +329,8 @@ def _build_step_context(
     ``ingest_invoice`` is already done by the time we hit ``promote_to_posted``
     and the remaining step (post the existing Draft) only needs the invoice id.
     """
-    settlement = _settlement_for_step(args, manifest, client)
+    if settlement is _UNSET:
+        settlement = _settlement_for_step(args, manifest, client)
     if handler.kind == "invoice_ingestion":
         return StepContext(
             client=client,

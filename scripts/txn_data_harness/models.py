@@ -211,6 +211,11 @@ class Manifest:
     # Canceled, Voided) or none at all, and the new memo gets its own
     # description tag (lifecycle.credit_tag).
     credit_attempt: int = 1
+    # Invoice.NetCreditsApplied read just before each attempt's credit POST,
+    # keyed by attempt number (as a string, for JSON). The double-credit check
+    # compares against the current attempt's value, so a credit the platform
+    # applied between attempts is not counted against this run.
+    credit_baselines: dict = field(default_factory=dict)
     credit_amount_requested: Optional[float] = None
     credit_amount_applied: Optional[float] = None
     # Payment ids created by payment_applied, and the application records

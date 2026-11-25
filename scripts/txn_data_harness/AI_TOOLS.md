@@ -347,8 +347,10 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   to replace the `credit` sub-block). Never pass the flag unasked. A
   `NetCreditsApplied` mismatch after the credit means a second credit: stop
   and report it.
-- `--config` on a resume is never ignored: it may add a missing `payment`;
-  any other difference from the manifest's block is refused.
+- `--config` on a resume is never ignored, even when the manifest already
+  reached the target: it may add a missing `payment`; any other difference
+  from the manifest's block is refused. `payment_applied` refuses a block
+  without `payment` (stop at `credit_applied` for a credit only).
 - `cli step` uses the manifest's `account_id`; an `--account` that resolves to
   another account is refused. Amounts round to the invoice currency's
   decimal places (KWD = 3, JPY = 0).

@@ -657,8 +657,17 @@ def _resubmit_credit(ctx: StepContext, manifest: Manifest) -> Optional[dict]:
             ctx.client, manifest.invoice_id, ctx.run_id, manifest.credit_attempt
         )
         live = [m for m in memos if m.get("Status") not in lifecycle._CREDIT_MEMO_FAIL]
+        if len(live) > 1:
+            raise LifecycleError(
+                "credit",
+                "--resubmit-credit: more than one live credit memo of this run on the "
+                f"invoice ({', '.join(m['Id'] + ' attempt ' + str(m['attempt']) for m in live)}); "
+                "the invoice was credited more than once. Settle it in the org by hand.",
+                record_id=manifest.invoice_id,
+                failure_class="deterministic",
+            )
         if live:
-            memo = live[0]
+            (memo,) = live
             _warn(
                 manifest,
                 f"--resubmit-credit: credit memo {memo['Id']} ({memo.get('Status')}) of "
@@ -688,37 +697,48 @@ def _submit_credit_once(
 ) -> None:
     """Send the credit POST at most once per attempt.
 
-    ``credit_submitted`` is recorded (checkpointed) before the POST, so a crash
-    or an unknown outcome leaves a manifest that polls by tag instead of
-    POSTing again. Only a confirmed refusal (4xx: nothing was created) clears
-    it. A 5xx or transport failure waits briefly for the memo; if none shows
-    up the step fails with a non-retryable error naming the next command.
+    ``credit_submitted`` is recorded (checkpointed) before the POST, together
+    with this attempt's ``NetCreditsApplied`` baseline, so a crash or an
+    unknown outcome leaves a manifest that polls by tag instead of POSTing
+    again. Only a confirmed refusal (HTTP 4xx: nothing was created) clears it.
+    Anything else -- a 5xx, a transport failure, a 2xx without ``success`` --
+    waits briefly for the memo; if none shows up the step fails with a
+    non-retryable error naming the next command.
     """
     from .auth import SfApiError
 
+    header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
+    manifest.credit_baselines[str(manifest.credit_attempt)] = lifecycle._money(
+        header.get("NetCreditsApplied"), _places(manifest)
+    )
     manifest.credit_submitted = True
     _checkpoint(ctx, manifest)
     try:
         lifecycle.submit_credit(ctx.client, manifest.invoice_id, body)
+        return
     except LifecycleError as exc:
-        manifest.credit_submitted = False
-        _checkpoint(ctx, manifest)
-        raise LifecycleError(
-            exc.step,
-            f"{exc.detail}. Fix the settlement block and resume with "
-            f"{_step_command(ctx, manifest, ' --resubmit-credit --config <file>')}",
-            record_id=exc.record_id,
-        ) from exc
+        if not lifecycle.is_api_refusal(exc.__cause__):
+            failure, cause = exc.detail, exc
+        else:
+            manifest.credit_submitted = False
+            _checkpoint(ctx, manifest)
+            raise LifecycleError(
+                exc.step,
+                f"{exc.detail}. Fix the settlement block and resume with "
+                f"{_step_command(ctx, manifest, ' --resubmit-credit --config <file>')}",
+                record_id=exc.record_id,
+            ) from exc
     except SfApiError as exc:
-        if _find_memo_after_failed_post(ctx, manifest) is not None:
-            return
-        raise LifecycleError(
-            "credit",
-            f"credit POST outcome unknown ({type(exc).__name__}, HTTP {exc.status}) and no "
-            f"memo appeared yet; it is not sent again by a retry. {_resubmit_hint(ctx, manifest)}",
-            record_id=manifest.invoice_id,
-            failure_class="deterministic",
-        ) from exc
+        failure, cause = f"{type(exc).__name__}, HTTP {exc.status}", exc
+    if _find_memo_after_failed_post(ctx, manifest) is not None:
+        return
+    raise LifecycleError(
+        "credit",
+        f"credit POST outcome unknown ({failure}) and no memo appeared yet; it is not "
+        f"sent again by a retry. {_resubmit_hint(ctx, manifest)}",
+        record_id=manifest.invoice_id,
+        failure_class="deterministic",
+    ) from cause
 
 
 def _check_no_other_credit(ctx: StepContext, manifest: Manifest, header: dict) -> None:
@@ -726,10 +746,14 @@ def _check_no_other_credit(ctx: StepContext, manifest: Manifest, header: dict) -
 
     ``NetCreditsApplied`` less the baseline must equal what this run's memo
     applied; a difference is a second credit (a duplicate memo of this run,
-    or another process's) applied to the invoice.
+    or another process's) applied to the invoice. The baseline is the one
+    taken just before the current attempt's POST; a manifest from before
+    per-attempt baselines falls back to ``settlement_baseline``.
     """
     places = _places(manifest)
-    baseline = (manifest.settlement_baseline or {}).get("net_credits_applied") or 0.0
+    baseline = manifest.credit_baselines.get(str(manifest.credit_attempt))
+    if baseline is None:
+        baseline = (manifest.settlement_baseline or {}).get("net_credits_applied") or 0.0
     gained = lifecycle._money(float(header.get("NetCreditsApplied") or 0.0) - baseline, places)
     applied = lifecycle._money(manifest.credit_amount_applied or 0.0, places)
     if gained != applied:
@@ -903,8 +927,16 @@ def run_payment(ctx: StepContext, manifest: Manifest) -> Manifest:
     """
     spec = _settlement_spec(ctx, manifest)
     if spec is None or spec.payment is None:
-        manifest.reached_stage = "payment_applied"
-        return manifest
+        # Never advance to payment_applied without a payment: a manifest that
+        # reached it could no longer be given one.
+        raise LifecycleError(
+            "payment",
+            "the settlement block has no 'payment', so payment_applied would create "
+            f"nothing. Add one with `cli step --manifest {manifest.run_id} --to-stage "
+            "payment_applied --config <file>` (a scenario of this kind and account whose "
+            "settlement block adds 'payment'), or stop at credit_applied.",
+            failure_class="deterministic",
+        )
     if not manifest.invoice_id:
         raise LifecycleError("payment", "invoice_id is required before payment")
     account_id = _settlement_account_id(ctx, manifest)
