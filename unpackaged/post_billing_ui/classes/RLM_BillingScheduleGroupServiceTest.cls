@@ -12,7 +12,8 @@
  * The other tests run as the deploying admin and read Account, BillingAccount,
  * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE. On a
  * Release 264 org the System Administrator profile's ObjectPermissions grant read on all six
- * (read from the org, not from a test run).
+ * (read from the org, not from a test run). The create path also reads CurrencyType, and
+ * findBillingTreatmentId_* read BillingTreatment and BillingTreatmentItem, in USER_MODE.
  *
  * Payload (the create path sends what the modal chose): the legal entity (LegalEntityId__std), the
  * billing term when one is given (BillingTerm__std), the billing treatment that carries the chosen
@@ -972,7 +973,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.mockTreatmentCandidates = candidates(
             new RLM_BillingScheduleGroupService.TreatmentCandidate(trId, 'Arrears', CUR));
         CreateArgs args = new CreateArgs(ba.Id);
-        args.legalEntityId = leId;
         args.billingTerm = 7;
         args.billingType = 'Arrears';
 
@@ -1536,6 +1536,66 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isTrue(thrown.getMessage().contains('the links between the billing account and its accounts'),
             'It is the oldest-link read: ' + thrown.getMessage());
         Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The legal entity read runs as the user. With no LegalEntity read it is refused and named; with
+    // read but no sharing on an entity the admin owns, it is refused as not visible where legal
+    // entities are private, and passes where sharing lets the user see it (both are real outcomes).
+    @isTest
+    static void createViaAPI_legalEntityReadRefusedOrHidden_isRefused() {
+        Account a = new Account(Name = 'BSG LE Read Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG LE Read BA', AccountId = a.Id);
+        insert ba;
+        User noRead = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress' });
+        User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>{ 'LegalEntity' },
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status' });
+        CreateArgs args = new CreateArgs(ba.Id);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
+
+        AuraHandledException refused;
+        AuraHandledException hidden;
+        Boolean visible;
+        Test.startTest();
+        System.runAs(noRead) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM LegalEntity LIMIT 1'),
+                'PRECONDITION: the user cannot read LegalEntity.');
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                refused = e;
+            }
+        }
+        System.runAs(readNoSharing) {
+            visible = ![SELECT Id FROM LegalEntity WHERE Id = :args.legalEntityId WITH USER_MODE].isEmpty();
+            try {
+                args.call();
+            } catch (AuraHandledException e) {
+                hidden = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(refused, 'No LegalEntity read refuses create.');
+        Assert.isTrue(refused.getMessage().contains('read the legal entity this screen needs'),
+            'It names the legal entity read: ' + refused.getMessage());
+        if (visible) {
+            Assert.isNull(hidden, 'A legal entity the user can see passes the read: ' + hidden);
+            Assert.isNotNull(RLM_BillingScheduleGroupService.lastTransactionDetails,
+                'The visible-entity call reached the action.');
+        } else {
+            Assert.isNotNull(hidden, 'A legal entity hidden by sharing refuses create.');
+            Assert.isTrue(hidden.getMessage().contains('not visible to you'),
+                'It says the legal entity is not visible: ' + hidden.getMessage());
+            Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+        }
     }
 
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only

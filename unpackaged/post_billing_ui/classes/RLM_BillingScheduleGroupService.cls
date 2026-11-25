@@ -20,9 +20,8 @@
  * because BillingType__std and BillingTypePicklistTiming__std are rejected
  * ("Invalid tag attribute name key"); BillingTerm__std is accepted when a term
  * is given (the modal sends none; it has no input). A shipping address tag is
- * required: ShippingCity__std (the
- * account's ShippingCity, else the billingCity the caller submitted, which
- * create requires).
+ * required: ShippingCity__std (the account's ShippingCity, else the billingCity
+ * the caller submitted, which create requires).
  *
  * The account: the modal passes the id of the account page it opened on
  * (pageAccountId). When that account is the billing account's own, or is linked
