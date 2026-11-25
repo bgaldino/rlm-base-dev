@@ -499,13 +499,13 @@ def test_more_ids_than_one_chunk_are_all_read():
 def test_unknown_invoice_id_is_an_error():
     with pytest.raises(VerifyError, match="not found"):
         fetch_records(RecordedClient(_load("line_level.json")),
-                              ["3tt00000000000ZAAQ"])
+                      ["3tt00000000000ZAAQ"])
 
 
 def test_unknown_payment_id_is_an_error():
     with pytest.raises(VerifyError, match="payment ids not found"):
         fetch_records(RecordedClient(_load("line_level.json")),
-                              [LINE_INVOICES[1]], ["0aQ00000000000ZEAQ"])
+                      [LINE_INVOICES[1]], ["0aQ00000000000ZEAQ"])
 
 
 def test_fifteen_character_ids_are_normalized_and_deduplicated():

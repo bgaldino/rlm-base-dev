@@ -292,7 +292,7 @@ def _merge(rows: list[dict], more: list[dict]) -> list[dict]:
 
 
 def fetch_records(client, invoice_ids: list[str],
-                          payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
+                  payment_ids: Optional[list[str]] = None) -> dict[str, list[dict]]:
     """Read everything the checks need, by id. SOQL reads only.
 
     Returns ``{object name: rows}`` for Invoice, InvoiceLine, Payment, CreditMemoLine,
