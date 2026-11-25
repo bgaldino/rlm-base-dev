@@ -108,8 +108,9 @@ ProductCategoryProduct.csv               # 72 records
   (`sf project deploy start --metadata StaticResource:RLM_product_placeholder --target-org <sf_alias>`;
   do not rerun `deploy_full` on a built org, since it redeploys force-app's expression set
   definitions and the platform refuses an update to an active version), then reload this plan
-  (`cci task run insert_q3_pcm_data --org <cci_alias>`), then rebuild the search index
-  (`cci task run rebuild_search_index --org <cci_alias>`), which
+  (`cci task run insert_q3_pcm_data --org <cci_alias>`), then refresh the decision tables
+  (`cci flow run refresh_all_decision_tables --org <cci_alias>`) and rebuild the search index
+  (`cci task run rebuild_search_index --org <cci_alias>`), in that order, which
   `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md` step 6 requires after a
   catalog load. An org loaded before todo 325 should be rebuilt rather than reloaded (see the
   note at the top of this README). Until the resource is in the org, the 78 rows point at an image that does not resolve.
