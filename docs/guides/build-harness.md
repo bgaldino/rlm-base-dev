@@ -23,7 +23,7 @@ The harness is designed for both human operators and AI agents.
 - TUI launcher: `./tui-cci`
 - Artifacts root: `.harness/runs/<run_id>/`
 
-`harness.py` is the CLI entrypoint (`run`, `resume`, `report`).
+`harness.py` is the CLI entrypoint (`run`, `resume`, `report`, `prune`).
 Execution, config loading, reporting, and provenance logic live under
 `scripts/build_harness/harness/` for easier maintenance.
 Notable shared modules:
@@ -129,7 +129,11 @@ Fast path from project root:
 ./tui-cci
 ```
 
-Manual path:
+Manual path (after creating the venv as `tui-cci` does):
+
+```bash
+.harness/tui-venv/bin/python -m scripts.build_harness.tui
+```
 
 The wrapper creates and reuses a repo-scoped venv at `.harness/tui-venv`.
 Use `--upgrade` to force a dependency refresh:

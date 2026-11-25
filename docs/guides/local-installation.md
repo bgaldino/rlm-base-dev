@@ -146,7 +146,7 @@ brew uninstall node
 
 [pyenv](https://github.com/pyenv/pyenv) lets you install and switch between Python versions without touching the system Python.
 
-**Python 3.12 or 3.13 is recommended for CumulusCI** — both are stable and tested with CCI 4.x. Python 3.14 is very new (released October 2025) and has known dependency compatibility issues. Avoid it for CCI.
+**Python 3.13 is the line this repository pins** (CI, the Docker image and `update-toolchain.sh` use it; 3.12 also works with CCI 4.x). CumulusCI 4.10.1 requires `<3.14`, so avoid Python 3.14 for CCI.
 
 ```bash
 # Install pyenv, plus OpenSSL 3 for the Python 3.13 build (see the note below)
@@ -451,7 +451,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Verify: `node --version`
 
 8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)
-   - Python 3.11 to 3.13 (CumulusCI 4.10.1 requires `>=3.11,<3.14`); **3.12 recommended** for CumulusCI (3.13 is what the CI workflow uses and is the dev-environment-setup default; 3.14 has known dependency compatibility issues). (The standalone schema-diff and skill-manifest scripts need only 3.10.)
+   - Python 3.11 to 3.13 (CumulusCI 4.10.1 requires `>=3.11,<3.14`); **3.13 recommended** (what the CI workflow, the Docker image, `update-toolchain.sh` and the dev-environment-setup guide use; 3.12 also works; 3.14 is outside CumulusCI's supported range). (The standalone schema-diff and skill-manifest scripts need only 3.10.)
    - macOS: use [pyenv](https://github.com/pyenv/pyenv) — `brew install pyenv` — to manage versions
    - Required packages are included with CumulusCI; use a venv for local script development
    - The repo's `.venv` is also the gate interpreter for `scripts/ai/pr_gate.py`: create it with Python 3.13 and install the gate requirements into it (see [Step 6](#step-6--create-and-activate-a-virtual-environment-venv))

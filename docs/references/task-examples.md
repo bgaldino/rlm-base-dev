@@ -69,14 +69,16 @@ cci task run manage_flows --operation query --status Active --process_type Scree
 
 ### Activate/Deactivate Operations
 
+`developer_names` is matched against the flow `DefinitionId` (see Notes), not the flow's API name, so the examples below take FlowDefinition Ids. With no filters, `activate` and `deactivate` act on every flow the query returns, so always pass `--developer_names` or `--status`/`--process_type`. As written in `tasks/rlm_manage_flows.py`, the success and failure log lines for both operations reference a variable that is never defined, so activation or deactivation may abort with a `NameError` [inferred from reading the code; not run in an org].
+
 #### 12. Activate a Specific Flow
 ```bash
-cci task run manage_flows --operation activate --developer_names RLM_Refresh_Decision_Tables_Bulk
+cci task run manage_flows --operation activate --developer_names <flow_definition_id>
 ```
 
 #### 13. Activate Multiple Flows
 ```bash
-cci task run manage_flows --operation activate --developer_names "RLM_Refresh_Decision_Tables_Bulk,RLM_Account_Utilities"
+cci task run manage_flows --operation activate --developer_names "<flow_definition_id_1>,<flow_definition_id_2>"
 ```
 
 #### 14. Deactivate All Draft Flows
@@ -86,7 +88,7 @@ cci task run manage_flows --operation deactivate --status Draft
 
 #### 15. Deactivate Specific Flows
 ```bash
-cci task run manage_flows --operation deactivate --developer_names "Flow1,Flow2"
+cci task run manage_flows --operation deactivate --developer_names "<flow_definition_id_1>,<flow_definition_id_2>"
 ```
 
 ### Sorting Options
@@ -124,96 +126,49 @@ cci task run manage_expression_sets --operation list --limit 10
 cci task run manage_expression_sets --operation query --limit 5
 ```
 
-### Filtering by Interface Source Type
+### Filtering
 
-#### 4. List Pricing Procedures
-```bash
-cci task run manage_expression_sets --operation list --interface_source_type PricingProcedure
-```
-
-#### 5. List Rating Procedures
-```bash
-cci task run manage_expression_sets --operation list --interface_source_type RatingProcedure
-```
-
-#### 6. List Discovery Procedures
-```bash
-cci task run manage_expression_sets --operation list --interface_source_type DiscoveryProcedure
-```
-
-### Filtering by Process Type
-
-#### 7. List Default Pricing Procedures
-```bash
-cci task run manage_expression_sets --operation list --process_type DefaultPricing
-```
-
-#### 8. List Default Rating Procedures
-```bash
-cci task run manage_expression_sets --operation list --process_type DefaultRating
-```
-
-#### 9. List Pricing Discovery Procedures
-```bash
-cci task run manage_expression_sets --operation list --process_type PricingDiscovery
-```
-
-### Combined Filters
-
-#### 10. List Active Pricing Procedures
-```bash
-cci task run manage_expression_sets --operation list --status Active --interface_source_type PricingProcedure
-```
-
-#### 11. Query Active Rating Procedures (Limit 5)
-```bash
-cci task run manage_expression_sets --operation query --status Active --interface_source_type RatingProcedure --limit 5
-```
+`--interface_source_type`, `--process_type` and `--status` do not filter `list` or `query`: those fields live on `ExpressionSetDefinitionVersion`, so the task logs a warning and returns every expression set. Use `list_versions` to see each version's status, then narrow by `--developer_names`.
 
 ### Version Management
 
-#### 12. List Versions for a Specific Expression Set
+#### 4. List Versions for a Specific Expression Set
 ```bash
 cci task run manage_expression_sets --operation list_versions --developer_names RLM_DefaultPricingProcedure
 ```
 
-#### 13. List Versions for Multiple Expression Sets
+#### 5. List Versions for Multiple Expression Sets
 ```bash
 cci task run manage_expression_sets --operation list_versions --developer_names "RLM_DefaultPricingProcedure,RLM_DefaultRatingProcedure"
 ```
 
-#### 14. Activate a Specific Version
+#### 6. Activate a Specific Version
 ```bash
 cci task run manage_expression_sets --operation activate_version --version_full_name RLM_DefaultPricingProcedure_V1
 ```
 
-#### 15. Deactivate a Specific Version
+#### 7. Deactivate a Specific Version
 ```bash
 cci task run manage_expression_sets --operation deactivate_version --version_full_name RLM_DefaultPricingProcedure_V1
 ```
 
 ### Filtering by Developer Names
 
-#### 16. List Specific Expression Sets
+#### 8. List Specific Expression Sets
 ```bash
 cci task run manage_expression_sets --operation list --developer_names "RLM_DefaultPricingProcedure,RLM_DefaultRatingProcedure"
 ```
 
-#### 17. Query Specific Expression Sets
+#### 9. Query Specific Expression Sets
 ```bash
 cci task run manage_expression_sets --operation query --developer_names RLM_DefaultPricingProcedure
 ```
 
 ### Sorting Options
 
-#### 18. List Expression Sets Sorted by Last Modified (Ascending)
+#### 10. List Expression Sets Sorted by Last Modified (Ascending)
 ```bash
 cci task run manage_expression_sets --operation list --sort_by LastModifiedDate --sort_order Asc
-```
-
-#### 19. List Expression Sets Sorted by Process Type
-```bash
-cci task run manage_expression_sets --operation list --sort_by ProcessType --sort_order Asc
 ```
 
 ---
@@ -229,7 +184,7 @@ cci task run manage_transaction_processing_types --operation list
 
 #### 2. Upsert Transaction Processing Types from File
 ```bash
-cci task run manage_transaction_processing_types --operation upsert --input_file datasets/transaction_processing_types.json
+cci task run manage_transaction_processing_types --operation upsert --input_file <path/to/transaction_processing_types.json>
 ```
 
 ### Example Input File
@@ -250,24 +205,26 @@ cci task run manage_transaction_processing_types --operation upsert --input_file
 Notes:
 - `DeveloperName` is the default key field.
 - Use `--dry_run true` to validate without changes.
+- Also accepts `--key_field` (default `DeveloperName`).
 - For the SFDMU-based load order used in deployments, see `docs/guides/constraints-setup.md`.
 
 ---
 
 ## Common Use Cases
 
-### Refresh Decision Tables (Using Flow)
+### Activate the Decision Table Refresh Flow
 ```bash
-# First, activate the decision table refresh flow
-cci task run manage_flows --operation activate --developer_names RLM_Refresh_Decision_Tables_Bulk
+# Activating the flow does not itself refresh any table; use <flow_definition_id> for
+# RLM_Refresh_Decision_Tables_Bulk. To refresh tables see the decision-tables skill.
+cci task run manage_flows --operation activate --developer_names <flow_definition_id>
 ```
 
-### Activate All Active Pricing Procedures
+### Activate a Pricing Procedure Version
 ```bash
-# List active pricing procedures first
-cci task run manage_expression_sets --operation list --status Active --interface_source_type PricingProcedure
+# List the versions and their status first
+cci task run manage_expression_sets --operation list_versions --developer_names RLM_DefaultPricingProcedure
 
-# Then activate specific versions
+# Then activate a specific version
 cci task run manage_expression_sets --operation activate_version --version_full_name RLM_DefaultPricingProcedure_V1
 ```
 
@@ -294,9 +251,9 @@ cci task run manage_expression_sets --operation list_versions --developer_names 
 - **Process Types**: Common flow process types include `ScreenFlow`, `AutoLaunchedFlow`, `Workflow`, `ApprovalWorkflow`.
 - **Interface Source Types & Process Types**: 
   - These fields exist on `ExpressionSetDefinitionVersion`, not `ExpressionSetDefinition`
-  - Use `list_versions` operation to see these fields for expression sets
-  - Filtering by these fields at the definition level is not supported (they're on versions)
-- **Status Values**: `Active`, `Inactive`, `Draft` (for flows), `Active`, `Inactive`, `Draft` (for expression sets).
+  - Use `list_versions` operation to see version status for expression sets
+  - Filtering by these fields (or by `--status`) at the definition level is not supported; the task ignores them with a warning
+- **Status Values**: `Active`, `Inactive`, `Draft` filter flows (`--status`). For expression sets, status is a per-version value shown by `list_versions`.
 - **Field Names**:
   - Flows use: `DefinitionId`, `MasterLabel`, `VersionNumber`, `CreatedDate`
   - Expression Sets use: `DeveloperName`, `MasterLabel`, `LastModifiedDate`

@@ -91,7 +91,7 @@ python -m scripts.txn_data_harness.generate --org <sf-alias> --count 25 --concur
 ```
 
 Re-run to confirm batches **accumulate** — each run gets a distinct
-`DEMO-<UTC>` base id. Start concurrency low (verified at 3) and raise gradually;
+`DEMO-<UTC>` base id. The default is 4 but only 3 has been verified, so start low and raise gradually;
 high values are untested against API limits and billing-engine async contention.
 
 ### 5. Mixed config run
@@ -333,7 +333,7 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
 | `ERROR: could not authenticate` (exit 2) | `sf` can't resolve `--org`. Confirm the **sf** alias (not CCI) with `sf org display --target-org <alias>`. |
 | `discovery failed` / `could not resolve … account/product` (exit 3) | No billing-ready account, or the pinned `--account`/`--product` name/SKU doesn't exist. Run `--dry-run` to see what discovery found. |
 | `bad config` (exit 4) | Malformed YAML or an invalid `target_stage`/`count`. The message names the offending scenario index. |
-| Scenario capped to `order` unexpectedly | The account has no `BillingAccount` — it can't be activated/invoiced. Pin a billing-ready account or accept the cap (quotes + orders still land). |
+| Scenario capped to `order_draft` unexpectedly | The account has no `BillingAccount` — it can't be activated/invoiced. Pin a billing-ready account or accept the cap (quotes + orders still land). |
 | Product won't place (PST fails) | A clean `PricebookEntry` isn't sufficient for every product. Default-configured bundles can place because PST expands the component graph server-side. Bundles whose mandatory slots need user choice will fail; pin a known-good simple SKU for your dataset. |
 | Invoice step times out | Billing async lag exceeded `--poll-timeout`. Raise it (default 180s) or check `RevenueTransactionErrorLog` in the org. |
 | `INVALID_AUTH_HEADER` from CCI (not this tool) | Unrelated CLI token-redaction bug — see [cci-sf-cli-token-workaround.md](cci-sf-cli-token-workaround.md). This tool uses `sf` directly and is unaffected. |

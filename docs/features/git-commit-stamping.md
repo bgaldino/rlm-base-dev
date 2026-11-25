@@ -12,7 +12,7 @@ When debugging issues or auditing org configurations, there was no way to trace 
 
 ### Custom Metadata Type
 
-**Object:** `RLM_Build_Info__mdt` (deployed via `force-app/` at step 5 of `prepare_rlm_org`)
+**Object:** `RLM_Build_Info__mdt` (source in `unpackaged/post_utils/`, deployed by `deploy_post_utils` in the `prepare_quantumbit` and `prepare_tso` flows, so only builds with `quantumbit` or `tso` enabled get the type)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -31,7 +31,7 @@ When debugging issues or auditing org configurations, there was no way to trace 
 
 The task reads the current git state and project config, generates a CMDT record XML in a temporary directory, and deploys it to the org via `sf project deploy start`. It runs as the last step (step 37) of `prepare_rlm_org`.
 
-**Non-fatal by design:** Deploy failures are logged as warnings. The task never fails a flow that has already completed all real work. This protects against network blips, first-run scenarios where the CMDT type hasn't been deployed yet, or other transient issues.
+**Non-fatal by design:** Deploy failures are logged as warnings. The task never fails a flow that has already completed all real work. This protects against network blips, builds where the CMDT type was never deployed (neither `quantumbit` nor `tso` enabled), or other transient issues.
 
 ```bash
 # Standalone usage

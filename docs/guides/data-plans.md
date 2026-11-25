@@ -123,6 +123,7 @@ precedence over that base. See the [extraction task](../../tasks/rlm_sfdmu.py).
 | qb-transactionprocessingtypes | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/` | Transaction Processing Type records | [README](../../datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) |
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](../../datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](../../datasets/sfdmu/qb/en-US/qb-rates/README.md) |
+| qb-rating-entitlements | `datasets/sfdmu/qb/en-US/qb-rating-entitlements/` | Per-product usage policies (`ProductUsageResourcePolicy`) and grants (`ProductUsageGrant`), loaded right after `qb-rating` | [README](../../datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md) |
 | qb-prm | `datasets/sfdmu/qb/en-US/qb-prm/` | Partner Relationship Management (channel programs, levels, members) | [README](../../datasets/sfdmu/qb/en-US/qb-prm/README.md) |
 | qb-prm-pricing | `datasets/sfdmu/qb/en-US/qb-prm-pricing/` | PRM pricing overlay data (partner accounts, channel programs, member pricing, account self-lookups) | [README](../../datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
 | qb-accounting | `datasets/sfdmu/qb/en-US/qb-accounting/` | General ledger and billing accounting reference data (not wired into CCI) | [README](../../datasets/sfdmu/qb/en-US/qb-accounting/README.md) |
