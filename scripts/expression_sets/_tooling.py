@@ -55,6 +55,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from ._client import ExpressionSetClientError, soql_literal
+from ._guards import VERSION_FIELDS
 
 ESDV_SOBJECT = "ExpressionSetDefinitionVersion"
 
@@ -486,7 +487,7 @@ def restore_labels_after_clobber(
         return {"ok": True, "changed": [], "error": None}
     try:
         rows = engine.t.soql(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
             f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
             f"AND ApiName = '{soql_literal(version_api_name)}'"
         )

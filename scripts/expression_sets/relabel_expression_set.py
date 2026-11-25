@@ -81,6 +81,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
     soql_literal,
 )
+from scripts.expression_sets._guards import VERSION_FIELDS  # noqa: E402
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
@@ -146,7 +147,7 @@ def _resolve_target_version(engine, es_id, version_api_name, target_org, api_ver
     """Resolve the ExpressionSetVersion (9QM) to relabel — explicit or active/latest."""
     if version_api_name:
         rows = engine.t.soql(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
             f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
             f"AND ApiName = '{soql_literal(version_api_name)}'"
         )

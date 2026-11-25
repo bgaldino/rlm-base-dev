@@ -51,6 +51,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 from ._client import CONNECT_BASE, ExpressionSetClientError, soql_literal
+from ._guards import null_rank_reactivation_refusal
 
 
 class LifecycleError(RuntimeError):
@@ -371,6 +372,9 @@ class LifecycleEngine:
         failure never knocks a live procedure offline. The failure is still raised.
         Default False preserves the strict Connect-PATCH safety.
         """
+        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        if refusal:
+            raise LifecycleError(refusal)
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False

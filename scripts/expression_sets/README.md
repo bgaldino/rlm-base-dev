@@ -243,14 +243,33 @@ v4, three active; v4 ran). Consequences:
 - **Edit the version that executes.** A change to any other version changes no
   price. Use `set_step_formula.py` for formula edits; it defaults to the executing
   version and reads the result back.
+- **A version with no Rank cannot be cycled.** Activating a version through the API
+  needs a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so a
+  deactivate → change → reactivate run on an active null-Rank version would leave it
+  off. Every mutator (`set_step_formula`, relabel and label restore, import, overlay;
+  toolkit and CCI) refuses that before any write and says to give the version a Rank
+  first.
 
-`apply_expression_set_overlay` is not affected by the importer rule (it PATCHes the
-graph it read). In the build, `activate_and_deploy_expression_sets` reads back which
-version each deployed repo procedure executes and fails when it is not the deployed
-one (`-o version_check warn` to continue). The read-back runs only after a
+`apply_expression_set_overlay` is not guarded by the importer rule, and it does send
+every version of the set: it PATCHes the whole definition it read with a GET. An
+overlay on a set with one active version and an inactive draft (distinct labels, in
+GET order) succeeded live on 264 (commit 68dccf7bd); the measured import failures
+were payloads built by hand (reordered versions, or shared labels). Whether an
+overlay succeeds on a chain whose versions share one label is not measured, so on
+such a set prefer `set_step_formula.py`.
+
+In the build, `activate_and_deploy_expression_sets` reads back which version each
+deployed repo procedure executes and fails when it is not the deployed one. The
+deploy handler matches versions by VersionNumber, and its code path suggests a
+version found under another number can be skipped silently [Platform behaviour,
+traced]; the one construction measured (264, 2026-11-24: lower version deleted,
+`_V1` redeployed at the freed number) failed the deploy loudly instead. The
+read-back reports any VersionNumber mismatch either way. It runs only after a
 successful deploy, and that step cannot be re-run in place on a built org: the
 redeploy is refused ("You can't update the expression set version … because it's
-active"), measured on 264, 2026-11-24, with or without the read-back.
+active", measured on 264, 2026-11-24). When it fails, resume the build after the
+step and, if the wrong version executes, edit or re-rank the executing version;
+`-o version_check warn` is for future builds on an org whose chain is known.
 
 ### Discovery Procedure "Unused" Outputs
 

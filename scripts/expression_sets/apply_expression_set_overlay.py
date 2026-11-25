@@ -55,6 +55,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     Transport,
     eprint,
 )
+from scripts.expression_sets._guards import null_rank_reactivation_refusal  # noqa: E402
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._overlay import (  # noqa: E402
     OverlayError,
@@ -222,6 +223,10 @@ def main(argv=None) -> int:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
                    "will NOT be restored (run relabel_expression_set.py to fix).")
 
+        # Before any write: a null-Rank active version could not be reactivated.
+        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        if refusal:
+            raise LifecycleError(refusal)
         engine.ensure_resource_initialization_type(
             es_id, preflight_def.get("resourceInitializationType")
         )

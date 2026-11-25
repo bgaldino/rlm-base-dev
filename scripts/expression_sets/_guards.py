@@ -184,6 +184,31 @@ def target_version_warning(es_id: str, active: List[Dict[str, Any]],
     return None
 
 
+def null_rank_reactivation_refusal(esv: Dict[str, Any], activate_after: bool) -> Optional[str]:
+    """Why a deactivate → mutate → reactivate cycle must not start on ``esv``, or None.
+
+    Activating a version through the API needs a Rank: the platform refused it on
+    264 with "Enter a valid rank to enable …" (measured 2026-11-25). A cycle on an
+    active version whose Rank is null (possible only after a Metadata API deploy)
+    would deactivate it and then fail to turn it back on, leaving the procedure off.
+    Refused before any write when the cycle would reactivate. A row read without a
+    ``Rank`` field is not judged.
+    """
+    if not (activate_after and esv.get("IsActive") and "Rank" in esv
+            and esv.get("Rank") is None):
+        return None
+    return (
+        f"ExpressionSetVersion {esv.get('ApiName') or esv.get('Id')} is active with no "
+        "Rank, and the platform refuses to activate a version through the API without "
+        "one (\"Enter a valid rank to enable …\", measured on Release 264, "
+        "2026-11-25), so this run would deactivate it and could not turn it back on. "
+        "Nothing was written. Give it a Rank first (sf data update record --sobject "
+        f"ExpressionSetVersion --record-id {esv.get('Id')} --values Rank=<n>, choosing "
+        "a Rank that keeps the intended version executing), or change it with a "
+        "Metadata API deploy."
+    )
+
+
 def version_rows(versions: List[Dict[str, Any]]) -> str:
     """``"ApiName (vN, rank R, active), ..."``, lowest number first, for messages."""
     return ", ".join(

@@ -2211,6 +2211,35 @@ def test_resolve_version_targets_the_executing_version():
           bad is not None and "soon" in str(bad))
 
 
+def test_null_rank_active_version_is_not_cycled():
+    # Todo pack 172: activating a version through the API needs a Rank ("Enter a
+    # valid rank to enable …", measured on 264), so the CCI activation cycle
+    # refuses an active null-Rank version before any write.
+    task = _MutationTask({"PPV_A": True})
+    calls = []
+    try:
+        task._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True, "Rank": None},
+            mutate=lambda: calls.append("mutate"), dry_run=False,
+            activate_after=True, cascade=True, verb="Import",
+        )
+        error = None
+    except Exception as exc:  # noqa: BLE001 -- the test inspects what was raised
+        error = exc
+    check("CCI: an active null-Rank version is refused before any write",
+          error is not None and "Enter a valid rank" in str(error)
+          and calls == [] and task.patch_calls == []
+          and task.states == {"PPV_A": True, "ESV": True})
+    ok = _MutationTask({"PPV_A": True})
+    ok._run_connect_mutation(
+        es_def_id="ESD", esv={"Id": "ESV", "IsActive": True, "Rank": 1},
+        mutate=lambda: None, dry_run=False, activate_after=True, cascade=True,
+        verb="Import",
+    )
+    check("CCI: a ranked active version cycles as before",
+          ok.states == {"PPV_A": True, "ESV": True} and ok.patch_calls != [])
+
+
 def test_import_replace_refuses_a_version_rebind():
     # Todo pack 172: on a multi-version set the CCI task imports only a one-version
     # payload for the targeted version whose label no other version shares — the

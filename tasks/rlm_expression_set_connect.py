@@ -82,6 +82,7 @@ from scripts.expression_sets._guards import (
     VERSION_FIELDS,
     executing_version,
     import_target_refusal,
+    null_rank_reactivation_refusal,
     rank_order_warning,
     target_version_warning,
 )
@@ -756,6 +757,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
         """
+        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        if refusal:
+            raise TaskOptionsError(refusal)
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
         deactivated = False
@@ -1571,6 +1575,10 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         simulated = self._apply_overlay(preflight_definition, overlay)
         self._preflight_validate_definition(simulated, log_summary=False)
 
+        # Before any write: a null-Rank active version could not be reactivated.
+        refusal = null_rank_reactivation_refusal(esv, activate_after)
+        if refusal:
+            raise TaskOptionsError(refusal)
         # Align ResourceInitializationType to the value the PATCH body will
         # carry (GET fabricates "Off" over a stored null), before touching
         # activation state.
@@ -2086,7 +2094,8 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             # On a multi-version set, refuse a PATCH that would rebind the
             # payload's version onto another one, before ANY write (the
             # ResourceInitializationType alignment below is a write too).
-            refusal = import_target_refusal(api_name, versions, esv, payload)
+            refusal = (import_target_refusal(api_name, versions, esv, payload)
+                       or null_rank_reactivation_refusal(esv, activate_after))
             if refusal:
                 raise TaskOptionsError(refusal)
 

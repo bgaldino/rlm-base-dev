@@ -2248,6 +2248,75 @@ def test_set_step_formula():
           any("is not the executing version" in m for m in logs), logs)
 
 
+def test_null_rank_guard():
+    """An active version with a null Rank cannot be reactivated through the API
+    ("Enter a valid rank to enable …", measured on 264): every deactivate → mutate →
+    reactivate path refuses it before any write (todo pack 172)."""
+    print("test_null_rank_guard")
+    import scripts.expression_sets.set_step_formula as sf_mod
+    from scripts.expression_sets._guards import null_rank_reactivation_refusal
+    from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError
+    from scripts.expression_sets._tooling import relabel_version
+
+    null_active = {"Id": "9QMv", "ApiName": "X_V1", "IsActive": True, "Rank": None}
+    msg = null_rank_reactivation_refusal(null_active, True) or ""
+    check("an active null-Rank version that would be reactivated is refused, naming the "
+          "cause and the remedy",
+          "Enter a valid rank" in msg and "Nothing was written" in msg
+          and "Rank=<n>" in msg and "9QMv" in msg, msg)
+    for label, esv, activate_after in (
+            ("a numeric Rank", dict(null_active, Rank=1), True),
+            ("a row read without Rank", {k: v for k, v in null_active.items() if k != "Rank"},
+             True),
+            ("an inactive version", dict(null_active, IsActive=False), True),
+            ("no reactivation requested", null_active, False)):
+        check(f"not refused: {label}", null_rank_reactivation_refusal(esv, activate_after) is None)
+
+    t = _PlanTransport(plans={"1Cv1": True})
+    calls = []
+    try:
+        LifecycleEngine(t, logger=lambda *a: None).run_mutation(
+            es_def_id="9QAx", esv=null_active, mutate=lambda: calls.append("mutate"),
+            activate_after=True, cascade=True)
+        raised = None
+    except LifecycleError as exc:
+        raised = exc
+    check("run_mutation refuses it before cascading, deactivating or mutating",
+          raised is not None and calls == [] and t.plans == {"1Cv1": True}
+          and t.esv_active is True, (raised, calls, t.plans, t.esv_active))
+
+    # relabel: the shared relabel core runs the same cycle.
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True})
+    engine = LifecycleEngine(t, logger=lambda *a: None)
+    try:
+        relabel_version(engine, es_def_id="9QAx",
+                        esv=dict(null_active, VersionNumber=4),
+                        name_to_label={"Getbaseprices": "Get base prices"})
+        raised = None
+    except LifecycleError as exc:
+        raised = exc
+    check("relabel refuses a null-Rank active version before any write",
+          raised is not None and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True} and t.esv_active is True, (raised, t.events))
+
+    # set_step_formula: the executing (default) target has a null Rank.
+    versions = [dict(v) for v in RAMP264_VERSIONS]
+    for v in versions:
+        v["Rank"] = None
+    t = _FormulaTransport(metadata=_formula_metadata(), plans={"1Cv1": True},
+                          versions=versions)
+    rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--formula", "777",
+                                    "--confirm", "--version-api-name",
+                                    versions[3]["ApiName"]])
+    check("set_step_formula refuses a null-Rank active target before any write (exit 1)",
+          rc == 1 and not any(e[0] == "tooling-patch" for e in t.events)
+          and t.plans == {"1Cv1": True} and t.esv_active is True
+          and any("Enter a valid rank" in m for m in logs), (rc, t.events, logs))
+    rc, logs = _run_set_formula(t, ["--parent-step", _RAMP_PARENT, "--show",
+                                    "--version-api-name", versions[3]["ApiName"]])
+    check("--show still reads a null-Rank version", rc == 0, logs)
+
+
 def test_client_auth_hint():
     """The alias/auth hint appears only when auth can be the cause (todo 227)."""
     import subprocess
@@ -2286,7 +2355,7 @@ def main():
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
-               test_import_guards, test_set_step_formula):
+               test_import_guards, test_set_step_formula, test_null_rank_guard):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

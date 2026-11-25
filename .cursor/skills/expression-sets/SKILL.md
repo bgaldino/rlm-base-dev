@@ -349,6 +349,10 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   since a Tooling sObject update is atomic), and exits 1 when the read-back formula,
   the version state or any referencing `ProcedurePlanDefinitionVersion.IsActive`
   differs from what it should be.
+- **A version with no Rank cannot be cycled.** The API refuses to activate a version
+  without a Rank ("Enter a valid rank to enable …", measured on 264, 2026-11-25), so
+  every mutator, toolkit and CCI, refuses to deactivate and reactivate an active
+  null-Rank version, before any write. Give it a Rank first.
 - **A whole-set import works in one shape only.** On a multi-version set both
   `import_expression_set` surfaces allow only a payload with exactly one version,
   the one the import targets, and no other version sharing its label; everything
@@ -357,14 +361,19 @@ active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3 and
   `CalculationProcedureId`), and a one-version payload failed whenever another
   version shared its label. Platform version chains share one label.
 - **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
-  deployed repo version is missing, sits under a different `VersionNumber` (the
-  deploy handler matches versions by number, so it changed nothing), is inactive, or
-  is not the version that executes. `-o version_check warn` logs instead, for an org
-  whose chain is intended. The step runs in the build; re-running it on a built org
-  is refused by the platform at the deploy ("You can't update the expression set
-  version … because it's active", measured on 264, 2026-11-24), so the read-back is
-  not a way to audit a built org. Toolkit detail: `scripts/expression_sets/README.md`
-  → *Multi-version expression sets*.
+  deployed repo version is missing, sits under a different `VersionNumber` than the
+  package, is inactive, or is not the version that executes. The deploy handler
+  matches versions by number, and its code path suggests such a version can be
+  skipped silently [Platform behaviour, traced]; the one construction measured (264,
+  2026-11-24: lower version deleted, `_V1` redeployed at the freed number) failed the
+  deploy loudly instead. The read-back reports any mismatch either way. When it fails,
+  the deploy is already applied and the step cannot be re-run on a built org (the
+  redeploy is refused: "You can't update the expression set version … because it's
+  active", measured on 264, 2026-11-24): resume the build after the step and, if the
+  wrong version executes, edit or re-rank the executing version (`set_step_formula.py`
+  for formulas). `-o version_check warn` is for future builds on an org whose chain is
+  known. The read-back is not a way to audit a built org. Toolkit detail:
+  `scripts/expression_sets/README.md` → *Multi-version expression sets*.
 
 ## Overlays & dependency capture (summary)
 

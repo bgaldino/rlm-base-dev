@@ -72,7 +72,10 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_version_by_es_id,
     list_versions,
 )
-from scripts.expression_sets._guards import import_target_refusal  # noqa: E402
+from scripts.expression_sets._guards import (  # noqa: E402
+    import_target_refusal,
+    null_rank_reactivation_refusal,
+)
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
     capture_version_labels,
@@ -228,6 +231,11 @@ def main(argv=None) -> int:
             elif not preserve_labels:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
                        "restored (run relabel_expression_set.py to fix).")
+            # Before any write: a null-Rank active version could not be reactivated.
+            refusal = null_rank_reactivation_refusal(esv, activate_after)
+            if refusal:
+                eprint(f"\nREFUSED: {refusal}")
+                return 1
             engine.ensure_resource_initialization_type(
                 es_id, payload.get("resourceInitializationType")
             )
