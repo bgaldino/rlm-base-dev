@@ -124,7 +124,9 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
                 ]);
             }
 
-            // ── Step 3: Split selections into Picklist vs every other type ────────
+            // ── Step 3: Split selections into Number-type vs Picklist-type ────────
+            //
+            // "Number" here and below means every non-Picklist type (Number, Text, ...).
             //
             // Number attributes drive BOM component selection (e.g. requiredKW
             // determines which FESBA unit is used). Picklist attributes (e.g.
