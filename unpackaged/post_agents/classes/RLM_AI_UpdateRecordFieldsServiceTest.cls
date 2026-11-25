@@ -662,6 +662,36 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals('Original description', unchanged.Description);
     }
 
+    // One refused row rolls back the whole update: the valid rows stay unchanged and the display
+    // says how many of them there were.
+    @isTest
+    static void partialRefusalRollsBackTheOtherLines() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta', 'Quinn Gamma' });
+        RLM_AI_UpdateRecordFieldsService.testRefuseSaveLineIds = new Set<Id>{ f.lineIds[0] };
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.applyToAll = true;
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk updated"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals(0, out.updatedCount);
+        System.assertEquals('No records were updated.', out.errorMessage);
+        System.assertEquals('Could not update:\n- **Quinn Alpha** (Qty 1) — '
+            + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE
+            + '\nThe other 2 records in this update were not changed.', out.resultsDisplay);
+        for (QuoteLineItem qli : [SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
+            System.assertEquals('Original description', qli.Description);
+        }
+    }
+
     // Every refused row is reported under its own product name.
     @isTest
     static void refusedSaveReportsEachFailedLine() {

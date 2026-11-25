@@ -49,6 +49,12 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     @TestVisible
     private static Set<Id> testForceOneTimeLineIds;
 
+    // Test-only: a quote line in this set gets an over-length Description in
+    // the update, so the platform refuses that one row and a test can exercise
+    // a partial refusal (the rest roll back). Null/empty in production.
+    @TestVisible
+    private static Set<Id> testRefuseSaveLineIds;
+
     public class UpdateFieldsInput {
         @InvocableVariable(label='Quote Id'
             description='18-character Salesforce Id of the Quote (starts with 0Q0). Optional when Quote Line Item Ids are supplied — the parent quote is derived from the line(s); otherwise required.')
@@ -236,6 +242,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 applyFields(rec, applicable);
                 SObject bare = rec.getSObjectType().newSObject(rec.Id);
                 applyFields(bare, applicable);
+                if (testRefuseSaveLineIds != null && testRefuseSaveLineIds.contains(rec.Id)) {
+                    bare.put('Description', 'x'.repeat(300));
+                }
                 dmlRecords.add(bare);
                 dmlTargets.add(rec);
             }
@@ -257,11 +266,15 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                     Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
                 } catch (DmlException e) {
                     saved = false;
-                    failedRows = e.getNumDml();
+                    Set<Integer> failedIndexes = new Set<Integer>();
                     for (Integer i = 0; i < e.getNumDml(); i++) {
+                        if (!failedIndexes.add(e.getDmlIndex(i))) {
+                            continue;
+                        }
                         failedLines.add(recordLabel(typeName, dmlTargets[e.getDmlIndex(i)]) + ' — '
                             + saveErrorText(e.getDmlType(i), e.getDmlMessage(i)));
                     }
+                    failedRows = failedIndexes.size();
                     if (failedLines.isEmpty()) {
                         System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed with no row: '
                             + e.getMessage());
@@ -286,8 +299,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             Integer rolledBack = dmlTargets.size() - failedRows;
             if (failedRows > 0 && rolledBack > 0) {
                 out.resultsDisplay += '\n' + (rolledBack == 1
-                    ? 'The other record was not changed.'
-                    : 'The other ' + rolledBack + ' records were not changed.');
+                    ? 'The other record in this update was not changed.'
+                    : 'The other ' + rolledBack + ' records in this update were not changed.');
             }
             if (!saved || (successCount == 0 && skippedLines.isEmpty())) {
                 out.errorMessage = 'No records were updated.';
