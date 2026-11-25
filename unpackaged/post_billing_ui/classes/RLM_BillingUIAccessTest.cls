@@ -244,6 +244,20 @@ private class RLM_BillingUIAccessTest {
             'A Billing-licensed user can be given RLM_BillingUIAssetAttributes');
     }
 
+    // Without a license that allows CoreCPQUser the set cannot be assigned at all, which is why the
+    // permission is kept out of RLM_BillingUI. The test user holds only the Salesforce user license.
+    @IsTest
+    static void assetAttributeSetIsNotAssignableWithoutALicenseThatAllowsIt() {
+        StatusCode refused;
+        try {
+            RLM_BillingUITestUsers.create(new List<String>{ 'RLM_BillingUIAssetAttributes' }, new List<String>());
+        } catch (DmlException e) {
+            refused = e.getDmlType(0);
+        }
+        Assert.areEqual(StatusCode.FIELD_INTEGRITY_EXCEPTION, refused,
+            'RLM_BillingUIAssetAttributes needs a license that allows Core CPQ User');
+    }
+
     private static List<String> unreadable(Map<String, List<String>> manifest) {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();
