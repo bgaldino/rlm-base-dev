@@ -254,16 +254,20 @@ def test_invoice_balance_off_by_one_fails(runner, invoice):
     assert [r["subject"] for r in failed] == [invoice]
 
 
-@pytest.mark.parametrize("runner, invoice", [(_line, "3tt000000000003AAA")])
-def test_invoice_rollup_disagreeing_with_rows_fails(runner, invoice):
+@pytest.mark.parametrize("invoice, rollup, rows", [
+    ("3tt000000000003AAA", "NetCreditsApplied", "credit rows"),
+    ("3tt000000000001AAA", "NetPaymentsApplied", "payment rows"),
+])
+def test_invoice_rollup_disagreeing_with_rows_fails(invoice, rollup, rows):
+    # The invoice arithmetic still holds and the lines are untouched: only the
+    # comparison of the rollup with the application rows can fail.
     def mutate(data):
         inv = _row(data, "Invoice", invoice)
-        inv.update(NetCreditsApplied=inv["NetCreditsApplied"] - 1,
-                   Balance=inv["Balance"] + 1)  # arithmetic still holds
-    report = runner(mutate=mutate)
+        inv.update({rollup: inv[rollup] - 1, "Balance": inv["Balance"] + 1})
+    report = _line(mutate=mutate)
     assert report["failed_checks"] == ["invoice_balance"]
     detail = next(r["detail"] for r in report["checks"] if r["status"] == "fail")
-    assert "credit rows" in detail
+    assert f"{rollup} " in detail and rows in detail
 
 
 # ------------------------------------------------------------------ invoice_line_balance
@@ -1347,3 +1351,37 @@ def test_level_line_names_the_source_only_when_it_differs():
     assert render_text(_line()).startswith("Level: line (records)\n")
     undetermined = _verify(_load("line_level.json"), ["3tt000000000002AAA"])
     assert render_text(undetermined).startswith("Level: undetermined\n")
+
+
+def test_split_ids_accepts_spaces_commas_and_repeats():
+    a, b, c = LINE_INVOICES
+    assert split_ids([f"{a} {b}", f"{c},{a}"], "ids") == [a, b, c]
+    assert split_ids([f" {a}\t{b} ,  {c} "], "ids") == [a, b, c]
+
+
+def test_cli_verify_json_error_on_a_really_closed_pipe_exits_two():
+    # A real child process whose stdout reader is gone: without redirecting the
+    # descriptor, the interpreter's final flush fails and the exit code becomes 120.
+    import subprocess
+    root = Path(__file__).resolve().parents[2]
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "scripts.txn_data_harness.cli", "verify", "--org", "x",
+         "--json", "--bogus"],
+        cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc.stdout.close()
+    stderr = proc.stderr.read().decode()
+    proc.stderr.close()
+    assert proc.wait(timeout=60) == 2, stderr
+    assert "Exception ignored" not in stderr and "Traceback" not in stderr
+
+
+def test_cli_verify_latest_without_manifests_says_so(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "list_manifests", lambda: [])
+    rc = cli.main(["verify", "--org", "fake", "--latest", "--json"])
+    _assert_error_exit(rc, capsys, "No manifests found.")
+
+
+@pytest.mark.parametrize("level", ["both", "", None])
+def test_run_checks_rejects_an_unknown_expected_level(level):
+    with pytest.raises(VerifyError, match="expect_level must be auto, line or header"):
+        run_checks({"Invoice": []}, level)

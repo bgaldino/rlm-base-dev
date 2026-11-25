@@ -126,7 +126,8 @@ balance agrees with its payment and credit applications, and that the
 applications are at one level (line or header). Exit 0 when nothing fails,
 skips included, so read the counts (`RESULT: pass (N checked, M skipped)`, or
 `no balances checked`; `checked` and `skipped` in `--json`, counting one result
-per invoice, per checked line or skipped invoice, and per payment); 1 on any
+per invoice, per checked line or skipped invoice (an invoice whose lines
+cannot be read is one failed result, counted as checked), and per payment); 1 on any
 failed check, 2 with an `ERROR:` line for bad input (unknown or malformed
 id, missing or malformed manifest, refused query, failed connection, no `sf`
 on `PATH`, any unexpected error); with `--json` an error also prints

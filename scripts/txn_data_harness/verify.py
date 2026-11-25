@@ -51,8 +51,8 @@ payments outside the set are not read and do not propagate.
 
 The report counts the balance-check results that ran (``checked``) and were skipped
 (``skipped``): one per invoice for ``invoice_balance``, one per line when
-``invoice_line_balance`` runs and one per invoice when it skips, and one per payment for
-``payment_balance``. Exit 0 means nothing failed, which includes a run where every
+``invoice_line_balance`` runs and one per invoice when it skips (or fails because no
+lines could be read, counted as checked), and one per payment for ``payment_balance``. Exit 0 means nothing failed, which includes a run where every
 balance check skipped. Amounts compare exactly as Decimals; ids may be 15
 or 18 characters and are normalized to 18 before querying; an 18-character id's
 case is restored from its suffix, as Salesforce does.

@@ -29,8 +29,9 @@ Exit codes:
   `RESULT: pass (N checked, M skipped)`, or `RESULT: pass (no balances checked; M
   skipped)`; `--json` carries `checked` and `skipped`. They count balance-check
   results: one per invoice for `invoice_balance`, one per line when
-  `invoice_line_balance` runs and one per invoice when it skips, and one per payment
-  for `payment_balance`.
+  `invoice_line_balance` runs and one per invoice when it skips (or when it fails
+  because no lines could be read, counted as checked), and one per payment for
+  `payment_balance`.
 - **1**: at least one check failed. `--json` prints every result with its check name,
   subject id, status and detail.
 - **2**: no report, because the input or a Salesforce request was bad: a malformed,
@@ -49,7 +50,9 @@ Ids may be 15 or 18 characters; they are converted to the 18-character form befo
 querying. As in Salesforce, the suffix of an 18-character id restores the case of its
 first 15 characters, so `3TT000000000001AAA` reads as `3tt000000000001AAA`; an id whose
 suffix fits no casing is refused. If stdout is closed early (`verify --json | head -1`),
-the output stops quietly and the exit code is still the checks' result. From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
+the output stops quietly and the verify process still exits with the checks' result; a
+shell pipeline reports the last command's status, so read verify's with
+`set -o pipefail` or `PIPESTATUS` (`pipestatus` in zsh). From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
 manifests carry no payment ids (no stage writes them); `payment_id` or `payment_ids` is
 read only if a manifest has one. A manifest with no ids is only a warning when another
 source supplies ids.
@@ -83,8 +86,10 @@ and this repeats until nothing changes, so a payment or memo applied to two invo
 links them. At every hop the skip names the neighbour and the origin record with its
 cause, for example `linked payment 0aQ...; origin invoice 3tt...: Status Draft; ...`.
 Invoices and payments outside the set are not read, so they do not propagate. Header
-Level was never measured, so at header level every balance check skips;
-`application_level` still runs.
+Level was never measured, so every record with header evidence (header rows or
+`SettlementLevel` `Invoice`) skips its balance checks; an unpaid invoice with no
+evidence still gets `invoice_balance`, as the table says, and `application_level`
+still runs.
 
 | Check | Passes when |
 | ----- | ----------- |
@@ -131,7 +136,8 @@ before changing either.
 - `python -m pytest tests/txn_data_harness/test_verify_billing.py` runs every check
   against recorded query results, plus one failing case per check. The line-level
   fixture exercises the balance checks; the header-level fixture asserts that they skip
-  and that `application_level` still runs.
+  for its records with header evidence, that its unpaid invoice with no evidence still
+  gets `invoice_balance`, and that `application_level` still runs.
 - On a live org, `--expect-level` set to the wrong level must exit 1 naming
   `application_level`. Use an invoice with application rows or a `SettlementLevel`: an
   invoice with neither is skipped, so it cannot fail.
