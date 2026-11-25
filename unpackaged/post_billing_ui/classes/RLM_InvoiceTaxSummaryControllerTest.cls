@@ -76,18 +76,19 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         ]);
         Assert.areEqual(3, rows.size(), 'One row per group, including two groups with the same name.');
         Assert.areEqual('RLM Tax Summary B', rows[0].taxName, 'Rows keep the given order, not re-sorted.');
-        Assert.areEqual('Banking', rows[0].currencyIsoCode, 'The first group\'s second key.');
-        Assert.areEqual(2, rows[0].totalTaxAmount, 'The first group\'s total.');
+        Assert.areEqual('Energy', rows[0].currencyIsoCode, 'The first group\'s second key.');
+        Assert.areEqual(-2, rows[0].totalTaxAmount, 'The first group\'s total, sign kept (a credit).');
         Assert.areEqual('RLM Tax Summary B', rows[1].taxName, 'The same name again, as its own row.');
-        Assert.areEqual('Energy', rows[1].currencyIsoCode, 'The second group\'s second key.');
-        Assert.areEqual(3, rows[1].totalTaxAmount, 'The second group\'s total.');
+        Assert.areEqual('Banking', rows[1].currencyIsoCode, 'The second group\'s second key.');
+        Assert.areEqual(2, rows[1].totalTaxAmount, 'The second group\'s total.');
         Assert.areEqual('RLM Tax Summary A', rows[2].taxName, 'The third group\'s name.');
         Assert.areEqual('Banking', rows[2].currencyIsoCode, 'The third group\'s second key.');
         Assert.areEqual(1.25, rows[2].totalTaxAmount, 'The third group\'s total, fraction kept.');
     }
 
     // With the real CurrencyIsoCode column (the query's GROUP BY puts both B accounts in one group),
-    // the row carries the group's real currency code and total.
+    // the row carries the group's real currency code and total. The two amounts net to zero, and
+    // a zero total is still a row.
     @isTest
     static void toRows_readsTheRealCurrencyColumn() {
         String corporate = insertAccounts();
@@ -98,7 +99,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
             GROUP BY Name, CurrencyIsoCode
         ]);
         Assert.areEqual(1, rows.size(), 'One group.');
-        Assert.areEqual(5, rows[0].totalTaxAmount, 'The group\'s total.');
+        Assert.areEqual(0, rows[0].totalTaxAmount, 'The group\'s total: 2 and -2 net to zero.');
         Assert.areEqual(corporate, rows[0].currencyIsoCode, 'The group\'s currency.');
     }
 
@@ -123,7 +124,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         ]);
         Assert.areEqual(1, rows.size(), 'No account has an AccountNumber: one group.');
         Assert.isNull(rows[0].taxName, 'A null group name stays null.');
-        Assert.areEqual(6.25, rows[0].totalTaxAmount, 'The group\'s total.');
+        Assert.areEqual(1.25, rows[0].totalTaxAmount, 'The group\'s total.');
     }
 
     // A group whose amounts are all null has a null SUM: the row keeps the null total.
@@ -165,7 +166,7 @@ private class RLM_InvoiceTaxSummaryControllerTest {
     }
 
     // Three accounts in the corporate currency, so SUM(AnnualRevenue) needs no conversion:
-    // "RLM Tax Summary A" 1.25 (Banking), "RLM Tax Summary B" 2 (Banking) and 3 (Energy).
+    // "RLM Tax Summary A" 1.25 (Banking), "RLM Tax Summary B" 2 (Banking) and -2 (Energy).
     // AnnualRevenue is Currency(18, 0), but an Apex insert keeps the fraction (measured on a 264
     // build); the 1.25 is there so a toRows that rounds the total fails.
     // Returns the corporate currency code.
@@ -174,10 +175,10 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         List<Account> accounts = new List<Account>{
             new Account(Name = 'RLM Tax Summary A', AnnualRevenue = 1.25, Industry = 'Banking'),
             new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 2, Industry = 'Banking'),
-            new Account(Name = 'RLM Tax Summary B', AnnualRevenue = 3, Industry = 'Energy')
+            new Account(Name = 'RLM Tax Summary B', AnnualRevenue = -2, Industry = 'Energy')
         };
         for (Account a : accounts) {
-            a.put('CurrencyIsoCode', corporate);
+            a.CurrencyIsoCode = corporate;
         }
         insert accounts;
         return corporate;
