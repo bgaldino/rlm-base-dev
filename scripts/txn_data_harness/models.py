@@ -214,9 +214,6 @@ class Manifest:
     # double-credit check compares the gain since then with the memo's amount.
     credit_baseline: Optional[float] = None
     credit_amount_requested: Optional[float] = None
-    # Pre-tax total actually allocated over the lines (requested, capped at
-    # their open balances); the memo must apply at least this much.
-    credit_amount_allocated: Optional[float] = None
     credit_amount_applied: Optional[float] = None
     # Payment ids created by payment_applied, and the application records
     # (PaymentLineInvoiceLine / PaymentLineInvoice) read back for them.

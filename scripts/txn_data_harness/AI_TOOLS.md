@@ -342,9 +342,8 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
   --application-level line|header` (before the target is reached). Once the payment is planned the level is
   fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
   run with `settlement.application_level` pinned).
-- At most one credit and one payment are created per run. A lost response
-  fails the stage (not retried) and a `cli step` resume looks the record up
-  by its tag. A refused write created nothing; rerunning sends the same
+- At most one credit and one payment are created per run. After a 5xx or a
+  lost response the write is never re-sent; the stage looks the record up by its tag for a short wait (15 s) and fails only if it has not appeared; a `cli step` resume keeps looking it up. A refused write created nothing; rerunning sends the same
   write again and will normally be refused again (new options need a new
   run). A memo in `Error` / `Canceled` / `Voided`, two records under a tag,
   a reversed application, or a `NetCreditsApplied` mismatch mean the run

@@ -607,6 +607,8 @@ class SettleOrg:
             inv_id = path.split("/invoices/")[1].split("/")[0]
             memo = {"Id": f"50g{len(self.memos) + 1}", "ReferenceEntityId": inv_id,
                     "Description": body["description"], "Status": "Pending", "Balance": 0.0,
+                    "TotalAmountWithTax": self._r(sum(ln["amountToCredit"]
+                                                      for ln in body["invoiceLines"])),
                     "_visible_after": self.memo_queries + self.memo_visible_after,
                     "_allocs": [(ln["invoiceLineId"], ln["amountToCredit"])
                                 for ln in body["invoiceLines"]]}
@@ -3166,20 +3168,6 @@ def test_apply_is_capped_at_the_current_balance_and_warns(level, billable_accoun
     assert any("payment applied 100.0 of the 250.0 planned" in w for w in m.settlement_warnings)
 
 
-def test_memo_left_with_a_balance_warns(billable_account) -> None:
-    org = SettleOrg("line")
-    real = org._post_memo
-
-    def post_with_rest(memo):
-        real(memo)
-        memo["Balance"] = 5.0
-
-    org._post_memo = post_with_rest
-    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
-    assert any("keeps 5.0 unapplied" in w for w in m.settlement_warnings)
-
-
 def test_memo_not_posted_in_time_names_the_resume(billable_account) -> None:
     org = SettleOrg("line")
     org.memo_statuses = ["Pending"]
@@ -3339,34 +3327,57 @@ def test_fixed_sub_unit_payment_is_refused_before_the_credit_post(billable_accou
     assert org.posts == [] and org.memos == []
 
 
-@pytest.mark.parametrize("applied_share", [0.0, 0.5])
-def test_posted_memo_not_applied_as_allocated_fails(applied_share, billable_account) -> None:
-    org = SettleOrg("line")
+# -- review round 13 (todo 275): the memo applies its whole total here ----------
+
+
+def _post_and_then(org, change):
     real = org._post_memo
 
-    def post_partially(memo):
-        allocs = memo.get("_allocs") or []
-        memo["_allocs"] = [(lid, amt * applied_share) for lid, amt in allocs if applied_share]
+    def post(memo):
+        had = bool(memo.get("_allocs"))
         real(memo)
-        memo["Balance"] = 20.0 * (1 - applied_share)
+        if had:
+            change(memo)
 
-    org._post_memo = post_partially
+    org._post_memo = post
+
+
+def test_memo_tax_shortfall_fails(billable_account) -> None:
+    """Platform tax 0.50 above what was applied: the 0.50 left would settle
+    the account's next posted invoice."""
+    org = SettleOrg("line")
+    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=20.5, Balance=0.5))
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _posted_manifest()
     with pytest.raises(lifecycle.SettlementError,
-                       match="credit memo 50g1 is Posted but applied .* start a new run") as info:
+                       match=r"credit memo 50g1 applied 20.0 to this invoice but its total is "
+                             r"20.5.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic" and m.reached_stage == "invoice_posted"
 
 
-def test_posted_memo_with_nothing_applied_fails_without_a_recorded_allocation(billable_account) -> None:
-    """A resumed manifest (submitted before the allocation was recorded): a
-    Posted memo that applied nothing still fails."""
+def test_memo_leftover_absorbed_by_another_invoice_fails(billable_account) -> None:
+    """Balance 0 because another invoice took the rest: still a failure."""
+    org = SettleOrg("line")
+    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=30.0, Balance=0.0))
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    with pytest.raises(lifecycle.SettlementError, match="applied 20.0 to this invoice but its total is 30.0"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+
+
+def test_posted_memo_with_nothing_applied_here_fails(billable_account) -> None:
     org = SettleOrg("line")
     org.memos.append({"Id": "50gONLY", "ReferenceEntityId": "3ttINV", "Description": "RUN credit",
-                      "Status": "Posted", "Balance": 20.0, "_statuses": ["Posted"]})
+                      "Status": "Posted", "Balance": 0.0, "TotalAmountWithTax": 20.0,
+                      "_statuses": ["Posted"]})
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
-    m = _submitted()
-    assert m.credit_amount_allocated is None
-    with pytest.raises(lifecycle.SettlementError, match="50gONLY is Posted but applied 0"):
-        steps.run_credit(_settle_ctx(org, billable_account, spec), m)
+    with pytest.raises(lifecycle.SettlementError, match="50gONLY applied 0.0 to this invoice"):
+        steps.run_credit(_settle_ctx(org, billable_account, spec), _submitted())
+
+
+def test_memo_applied_in_full_passes(billable_account) -> None:
+    org = SettleOrg("line")
+    _post_and_then(org, lambda memo: memo.update(TotalAmountWithTax=20.01))  # within one unit
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
+    m = steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
+    assert m.reached_stage == "credit_applied" and m.credit_amount_applied == 20.0

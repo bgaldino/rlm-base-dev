@@ -88,8 +88,9 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
     invoice's account (`cli step` accepts an `--account` name only when the
     manifest's Id is among the accounts with that name).
     At most one credit and one payment are created per run (the submitted
-    flag is recorded first; any 4xx clears it, a lost response fails and is
-    not retried). A refused write is resent by a rerun and normally refused
+    flag is recorded first; any 4xx clears it; after a lost response the
+    write is never re-sent, the record is looked up by its tag for a short
+    wait, and the stage fails only if it has not appeared). A refused write is resent by a rerun and normally refused
     again; a failed memo, two records under a tag, a reversed application or
     a `NetCreditsApplied` gain other than the run's memo fail the stage;
     recovering needs a new run.

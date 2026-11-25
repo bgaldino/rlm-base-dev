@@ -336,11 +336,16 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   first write of the run (so a sub-unit payment refuses before the credit
   is sent), percents where they are computed. Only lines with no open
   balance at all skip the stage with a warning.
-- **A Posted memo must be applied as allocated.** When the memo is Posted
-  with a balance left and it applied nothing, or less than the allocated
-  pre-tax total (`credit_amount_allocated`) by more than one minor unit, the
-  stage fails (memo id named; start a new run): that balance would settle
-  the account's next posted invoice.
+- **The memo must apply its whole total to this invoice.** Every memo the
+  harness creates is for this one invoice, so the amount applied to it
+  (application rows filtered by this invoice) must equal the memo's
+  `TotalAmountWithTax` within one minor unit, whatever its `Balance`.
+  Otherwise the stage fails, naming the memo, the applied amount and the
+  total (start a new run): a shortfall -- e.g. the platform's tax on a
+  `Calculate` credit above what was applied -- either stays on the memo and
+  would settle the account's next posted invoice, or was already absorbed by
+  another invoice (measured: memo `50gWt000001BElRIAW` has a second row on
+  another invoice).
 - A failed header read (`fetch_invoice_header`) or `CurrencyType` read raises,
   except the two answers that mean "not there": SOQL `INVALID_FIELD` with
   `No such column 'CurrencyIsoCode'` (single-currency org, read again without

@@ -658,27 +658,24 @@ def _check_fixed_amounts(spec: SettlementSpec, manifest: Manifest, places: int) 
             raise _below_minor_unit(what, manifest, places)
 
 
-def _check_memo_applied(
-    manifest: Manifest, memo: Optional[dict], applied: float, places: int
-) -> None:
-    """Fail when the Posted memo was not applied as allocated.
+def _check_memo_applied(memo: Optional[dict], applied: float, places: int) -> None:
+    """Fail unless this run's memo is applied in full to this invoice.
 
-    A memo left with its balance unapplied settles the account's next posted
-    invoice. Applied 0, or below the allocated total by more than one minor
-    unit, while the memo still has a balance, fails the stage.
+    Every memo the harness creates is for this one invoice, so what was
+    applied to it (rows filtered by this invoice) must equal the memo's
+    ``TotalAmountWithTax`` within one minor unit, whatever its ``Balance``:
+    a shortfall either stays on the memo (it would settle the account's next
+    posted invoice) or was already absorbed by another invoice.
     """
-    if memo is None or lifecycle._money(memo.get("Balance"), places) <= 0:
+    if memo is None:
         return
-    allocated = manifest.credit_amount_allocated
-    unit = 10 ** -places
-    short = applied <= 0 or (allocated is not None and applied < allocated - unit)
-    if short:
+    total = lifecycle._money(memo.get("TotalAmountWithTax"), places)
+    if abs(applied - total) > 10 ** -places + 1e-9:  # more than one minor unit
         raise SettlementError(
             "credit",
-            f"credit memo {memo['Id']} is Posted but applied {applied} of the "
-            f"{allocated if allocated is not None else 'credited'} amount, keeping "
-            f"{lifecycle._money(memo.get('Balance'), places)} unapplied; that balance would "
-            f"settle the account's next posted invoice. {lifecycle.CANNOT_SETTLE}",
+            f"credit memo {memo['Id']} applied {applied} to this invoice but its total "
+            f"is {total}; the rest is unapplied or went to another invoice. "
+            f"{lifecycle.CANNOT_SETTLE}",
             record_id=memo["Id"],
         )
 
@@ -946,7 +943,6 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
                 manifest.reached_stage = "credit_applied"
                 return manifest
             total = lifecycle._money(sum(a for _, a in allocations), places)
-            manifest.credit_amount_allocated = total
             if total < requested:
                 _warn(
                     manifest,
@@ -985,13 +981,7 @@ def run_credit(ctx: StepContext, manifest: Manifest) -> Manifest:
     manifest.credit_application_ids = ids
     manifest.credit_amount_applied = applied
     memo = _find_memo(ctx, manifest)
-    _check_memo_applied(manifest, memo, applied, places)
-    if memo is not None and lifecycle._money(memo.get("Balance"), places) > 0:
-        _warn(
-            manifest,
-            f"credit memo {memo['Id']} keeps {lifecycle._money(memo.get('Balance'), places)} "
-            "unapplied; the platform may apply it to the account's next posted invoice",
-        )
+    _check_memo_applied(memo, applied, places)
     header = lifecycle.fetch_invoice_header(ctx.client, manifest.invoice_id)
     manifest.invoice_balance = lifecycle._money(header.get("Balance"), places)
     _check_no_other_credit(manifest, header)

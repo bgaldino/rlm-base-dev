@@ -287,8 +287,9 @@ count.
   again; new options need a new run) and a retryable 4xx (429, 420, a lock)
   retries; these need a new run: a write whose outcome stayed unknown and
   whose record never appeared, a memo in `Error` / `Canceled` / `Voided`, two
-  records under one tag, a reversed application, a Posted memo not applied
-  as allocated, and a `NetCreditsApplied` mismatch. The settlement block is
+  records under one tag, a reversed application, a memo not applied in full
+  (its `TotalAmountWithTax`) to this invoice, and a `NetCreditsApplied`
+  mismatch. The settlement block is
   fixed once a settlement step records it on the manifest; `cli step
   --config` supplies it only to a manifest without one. Amounts round to the
   invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →

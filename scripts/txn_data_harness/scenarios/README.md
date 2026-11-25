@@ -512,9 +512,10 @@ value (null) means no payment, like leaving the key out.
   HTTP 4xx created nothing and clears it: a throttle or lock (429, 420,
   `UNABLE_TO_LOCK_ROW`, ...) is retried; a refusal fails the stage, and
   rerunning sends the same write again (normally refused again; to change
-  options, start a new run). A 5xx or lost response keeps it: the stage
-  fails, not retried, and every resume looks the record up by its tag. A
-  memo in `Error`, `Canceled` or `Voided`, two records under a tag, an
+  options, start a new run). A 5xx or lost response keeps it: the write is never re-sent; the stage looks the record up by its tag for a short wait (15 s) and fails only if it has not appeared; every
+  resume looks it up again. A memo applied to this invoice short of its
+  `TotalAmountWithTax`, a memo in `Error`, `Canceled` or `Voided`, two
+  records under a tag, an
   application reversed in the org, or a `NetCreditsApplied` gain the memo
   does not explain fail for good: this run cannot settle; start a new run.
 
