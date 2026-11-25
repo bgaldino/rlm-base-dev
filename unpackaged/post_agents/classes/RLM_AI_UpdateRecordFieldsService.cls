@@ -27,6 +27,20 @@
  */
 public with sharing class RLM_AI_UpdateRecordFieldsService {
 
+    // User-facing error text (apex-security-hardening -> "User-facing error text"): sentences this
+    // class writes about the user's own input are shown as written; platform exception text and
+    // non-validation save errors carry internal detail (record ids, trigger names and lines), so
+    // the user gets a fixed sentence and the detail goes to the debug log.
+    private static final String UPDATE_FAILED_MESSAGE =
+        'The update could not be completed. Try again, or contact your administrator.';
+    @TestVisible
+    private static final String ROW_SAVE_FAILED_MESSAGE =
+        'This record could not be saved. Check the values and try again, or contact your administrator.';
+
+    // Thrown only with sentences this class writes about the caller's input, so the entry point
+    // can show them as written while every other exception is replaced.
+    private class UserFacingException extends Exception {}
+
     // Test-only seam: QuoteLineItem Ids to treat as one-time selling model.
     // QuoteLineItem.SellingModelType/ProductSellingModelId are not createable
     // (the model flows from the product/pricebook), so a one-time line cannot be
@@ -34,6 +48,12 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     // path. Null/empty in production.
     @TestVisible
     private static Set<Id> testForceOneTimeLineIds;
+
+    // Test-only: a quote line in this set gets an over-length Description in
+    // the update, so the platform refuses that one row and a test can exercise
+    // a partial refusal (the rest roll back). Null/empty in production.
+    @TestVisible
+    private static Set<Id> testRefuseSaveLineIds;
 
     public class UpdateFieldsInput {
         @InvocableVariable(label='Quote Id'
@@ -208,6 +228,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // that includes lines it will skip anyway.
             List<SObject> dmlRecords = new List<SObject>();
             List<SObject> dmlTargets = new List<SObject>();
+            List<String> dmlLabels = new List<String>();
             List<String> skippedLines = new List<String>();
             for (SObject rec : targets) {
                 Map<String, CoercedField> applicable = fieldsForRecord(typeName, rec, coercedFields);
@@ -217,11 +238,17 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                         + ' — skipped (one-time product; dates do not apply)');
                     continue;
                 }
+                // A refused row is labelled as it still is (the update rolled back), so take
+                // its label before the loaded row is mutated.
+                dmlLabels.add(recordLabel(typeName, rec));
                 // Mutate the loaded row too, so recordLabel/summarizeChanges read
                 // the new values; it is never sent to the database.
                 applyFields(rec, applicable);
                 SObject bare = rec.getSObjectType().newSObject(rec.Id);
                 applyFields(bare, applicable);
+                if (testRefuseSaveLineIds != null && testRefuseSaveLineIds.contains(rec.Id)) {
+                    bare.put('Description', 'x'.repeat(300));
+                }
                 dmlRecords.add(bare);
                 dmlTargets.add(rec);
             }
@@ -234,21 +261,35 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             List<String> failedLines = new List<String>();
             Integer successCount = 0;
 
+            Boolean saved = true;
+            Integer failedRows = 0;
             if (!dmlRecords.isEmpty()) {
-                Database.SaveResult[] saveResults =
+                try {
+                    // All or none: one row that cannot be saved rolls the whole update back,
+                    // so a bulk edit never leaves a quote half changed.
                     Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
-
-                for (Integer i = 0; i < saveResults.size(); i++) {
-                    Database.SaveResult sr = saveResults[i];
-                    SObject rec = dmlTargets[i];
-                    String recLabel = recordLabel(typeName, rec);
-                    if (sr.isSuccess()) {
+                } catch (DmlException e) {
+                    saved = false;
+                    Set<Integer> failedIndexes = new Set<Integer>();
+                    for (Integer i = 0; i < e.getNumDml(); i++) {
+                        if (!failedIndexes.add(e.getDmlIndex(i))) {
+                            continue;
+                        }
+                        failedLines.add(dmlLabels[e.getDmlIndex(i)] + ' — '
+                            + saveErrorText(e.getDmlType(i), e.getDmlMessage(i)));
+                    }
+                    failedRows = failedIndexes.size();
+                    if (failedLines.isEmpty()) {
+                        System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed with no row: '
+                            + e.getMessage());
+                        failedLines.add(UPDATE_FAILED_MESSAGE);
+                    }
+                }
+                if (saved) {
+                    for (SObject rec : dmlTargets) {
                         successCount++;
                         Map<String, CoercedField> applied = fieldsForRecord(typeName, rec, coercedFields);
-                        successLines.add(recLabel + ' — ' + summarizeChanges(rec, applied));
-                    } else {
-                        String err = summarizeErrors(sr.getErrors());
-                        failedLines.add(recLabel + ' — ' + err);
+                        successLines.add(recordLabel(typeName, rec) + ' — ' + summarizeChanges(rec, applied));
                     }
                 }
             }
@@ -259,15 +300,24 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // (or every targeted line was legitimately skipped).
             out.isSuccess = failedLines.isEmpty() && (successCount > 0 || !skippedLines.isEmpty());
             out.resultsDisplay = buildResultsDisplay(successLines, failedLines, skippedLines);
-            if (successCount == 0 && skippedLines.isEmpty()) {
+            Integer rolledBack = dmlTargets.size() - failedRows;
+            if (failedRows > 0 && rolledBack > 0) {
+                out.resultsDisplay += '\n' + (rolledBack == 1
+                    ? 'The other record in this update was not changed.'
+                    : 'The other ' + rolledBack + ' records in this update were not changed.');
+            }
+            if (!saved || (successCount == 0 && skippedLines.isEmpty())) {
                 out.errorMessage = 'No records were updated.';
-            } else if (!failedLines.isEmpty()) {
-                out.errorMessage = 'Some records could not be updated.';
             }
 
-        } catch (Exception e) {
+        } catch (UserFacingException e) {
             out.isSuccess = false;
             out.errorMessage = e.getMessage();
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService update failed: '
+                + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            out.isSuccess = false;
+            out.errorMessage = UPDATE_FAILED_MESSAGE;
         }
         return out;
     }
@@ -309,7 +359,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 updates.add(fu);
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException('Invalid field updates JSON: ' + e.getMessage());
+            System.debug(LoggingLevel.WARN, 'RLM_AI_UpdateRecordFieldsService field updates JSON did not parse: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            throw new UserFacingException('Invalid field updates JSON. Send a list of '
+                + '{"fieldApiName": "...", "value": "..."} entries.');
         }
         return updates;
     }
@@ -322,7 +375,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         try {
             objDescribe = Schema.getGlobalDescribe().get(objectType).getDescribe();
         } catch (Exception e) {
-            throw new IllegalArgumentException('Unknown object type: ' + objectType);
+            throw new UserFacingException('Unknown object type: ' + objectType);
         }
 
         Map<String, Schema.SObjectField> fieldMap = objDescribe.fields.getMap();
@@ -331,12 +384,12 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         for (FieldUpdate fu : fieldUpdates) {
             String apiName = resolveFieldApiName(fu.fieldApiName, fieldMap);
             if (apiName == null) {
-                throw new IllegalArgumentException('Unknown field: ' + fu.fieldApiName + ' on ' + objectType);
+                throw new UserFacingException('Unknown field: ' + fu.fieldApiName + ' on ' + objectType);
             }
             Schema.SObjectField field = fieldMap.get(apiName);
             Schema.DescribeFieldResult dfr = field.getDescribe();
             if (!dfr.isUpdateable()) {
-                throw new IllegalArgumentException(
+                throw new UserFacingException(
                     'Field ' + fu.fieldApiName + ' cannot be edited (read-only or system field).'
                 );
             }
@@ -354,7 +407,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             if (fu.value == null || (fu.value instanceof String && String.isBlank((String) fu.value))) {
                 // Explicit clear
                 if (!dfr.isNillable()) {
-                    throw new IllegalArgumentException(
+                    throw new UserFacingException(
                         'Field ' + fu.fieldApiName + ' cannot be cleared (required field).'
                     );
                 }
@@ -387,7 +440,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return Date.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
+                throw new UserFacingException(
                     'Invalid date value for ' + dfr.getName() + '. Use the format YYYY-MM-DD.'
                 );
             }
@@ -396,7 +449,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return DateTime.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
+                throw new UserFacingException(
                     'Invalid datetime value for ' + dfr.getName() + '.'
                 );
             }
@@ -409,7 +462,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             if (normalized == 'false' || normalized == 'no' || normalized == 'n' || normalized == '0') {
                 return false;
             }
-            throw new IllegalArgumentException(
+            throw new UserFacingException(
                 'Invalid boolean value for ' + dfr.getName() + '. Use true/false, yes/no, or 1/0.'
             );
         }
@@ -417,7 +470,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return Integer.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
+                throw new UserFacingException(
                     'Invalid integer value for ' + dfr.getName() + '.'
                 );
             }
@@ -426,7 +479,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             try {
                 return Decimal.valueOf(rawValue);
             } catch (Exception e) {
-                throw new IllegalArgumentException(
+                throw new UserFacingException(
                     'Invalid number value for ' + dfr.getName() + '.'
                 );
             }
@@ -451,7 +504,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
             // Neither matched
             List<String> validOptions = new List<String>(apiValues);
-            throw new IllegalArgumentException(
+            throw new UserFacingException(
                 'Invalid picklist value "' + rawValue + '" for ' + dfr.getName() +
                 '. Valid options: ' + String.join(validOptions, ', ')
             );
@@ -796,7 +849,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
         }
         if (!failed.isEmpty()) {
-            parts.add('');
+            if (!parts.isEmpty()) {
+                parts.add('');
+            }
             parts.add('Could not update:');
             for (String line : failed) {
                 parts.add('- ' + line);
@@ -815,14 +870,18 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return String.valueOf(value);
     }
 
-    private static String summarizeErrors(List<Database.Error> errors) {
-        if (errors == null || errors.isEmpty()) {
-            return 'Update failed.';
+    // FIELD_CUSTOM_VALIDATION_EXCEPTION is the status the platform gives both a validation rule's
+    // message and a trigger's addError text, which is written to be read by the person saving the
+    // record, so it is shown as written (the same status rule as RLM_UsageUploaderController).
+    // The caller reports a row with several errors once, with its first.
+    // Every other save error becomes ROW_SAVE_FAILED_MESSAGE, with the detail in the debug log.
+    @TestVisible
+    private static String saveErrorText(StatusCode status, String message) {
+        if (status == StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION && String.isNotBlank(message)) {
+            return message;
         }
-        List<String> msgs = new List<String>();
-        for (Database.Error e : errors) {
-            msgs.add(e.getMessage());
-        }
-        return String.join(msgs, '; ');
+        System.debug(LoggingLevel.ERROR, 'RLM_AI_UpdateRecordFieldsService save failed: '
+            + status + ': ' + message);
+        return ROW_SAVE_FAILED_MESSAGE;
     }
 }

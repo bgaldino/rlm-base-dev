@@ -79,9 +79,11 @@ transaction statuses (Saved, Posted, ...) are logged when code-shaped, not mappe
   ("Quote Id is required.", "Invalid quote Id: <the id they gave>") leak nothing; keep them.
 - **Echoing admin-authored configuration is fine.** `RLM_UsageDataController` repeats App Builder config text
   (property values an admin typed); keep it.
-- **Never echo** platform exception text, record data, or another user's data to a user who is not an admin. Known
-  exception, not covered by these decisions: `RLM_AI_UpdateRecordFieldsService` still returns `e.getMessage()` and
-  per-row DML error text; treat it as a defect to fix, not a pattern to copy.
+- **Never echo** platform exception text, record data, or another user's data to a user who is not an admin.
+  `RLM_AI_UpdateRecordFieldsService` shows the pattern for an invocable: its own sentences about the input are set
+  on the output or thrown in a private `UserFacingException` and shown as written, any other exception becomes a
+  fixed sentence, and a save error is shown only when its status is `FIELD_CUSTOM_VALIDATION_EXCEPTION`, with the
+  detail in the debug log.
 - **Add-line refusals stay a fixed sentence** (`RLM_AI_AddProductToQuoteService.refusalMessage`). The managed
   add-line action's `errorMessage` carries validation-rule text and platform text in one field with no marker to tell
   them apart, so a rule's wording cannot be passed through as provably user-authored.

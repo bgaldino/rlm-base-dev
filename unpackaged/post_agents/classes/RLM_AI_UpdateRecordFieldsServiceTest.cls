@@ -630,7 +630,113 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
         System.assertEquals(false, out.isSuccess, 'should fail');
-        System.assert(out.errorMessage.contains('Invalid'), 'error: ' + out.errorMessage);
+        // The JSON parser's own text (character and position) stays in the debug log.
+        System.assertEquals('Invalid field updates JSON. Send a list of '
+            + '{"fieldApiName": "...", "value": "..."} entries.', out.errorMessage);
+    }
+
+    // A save the platform refuses (here a value longer than the field) rolls the update back and
+    // reports the line with the fixed sentence, not the platform's STRING_TOO_LONG text.
+    @isTest
+    static void refusedSaveReportsTheLineWithoutPlatformText() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"' + 'x'.repeat(300) + '"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals(0, out.updatedCount);
+        System.assertEquals('No records were updated.', out.errorMessage);
+        System.assertEquals('Could not update:\n- **Quinn Alpha** (Qty 1) — '
+            + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE, out.resultsDisplay);
+        QuoteLineItem unchanged = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        System.assertEquals('Original description', unchanged.Description);
+    }
+
+    // One refused row rolls back the whole update: the valid rows stay unchanged and the display
+    // says how many of them there were.
+    @isTest
+    static void partialRefusalRollsBackTheOtherLines() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta', 'Quinn Gamma' });
+        RLM_AI_UpdateRecordFieldsService.testRefuseSaveLineIds = new Set<Id>{ f.lineIds[0] };
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.applyToAll = true;
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"Bulk updated"},'
+            + '{"fieldApiName":"Quantity","value":"5"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals(0, out.updatedCount);
+        System.assertEquals('No records were updated.', out.errorMessage);
+        // The refused line is named as it still is (Qty 1), not with the quantity that was tried.
+        System.assertEquals('Could not update:\n- **Quinn Alpha** (Qty 1) — '
+            + RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE
+            + '\nThe other 2 records in this update were not changed.', out.resultsDisplay);
+        for (QuoteLineItem qli : [SELECT Description, Quantity FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
+            System.assertEquals('Original description', qli.Description);
+            System.assertEquals(1, qli.Quantity);
+        }
+    }
+
+    // Every refused row is reported under its own product name.
+    @isTest
+    static void refusedSaveReportsEachFailedLine() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.applyToAll = true;
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"' + 'x'.repeat(300) + '"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(false, out.isSuccess, 'should fail');
+        System.assertEquals('No records were updated.', out.errorMessage);
+        String fixed = RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE;
+        System.assert(out.resultsDisplay.contains('- **Quinn Alpha** (Qty 1) — ' + fixed), out.resultsDisplay);
+        System.assert(out.resultsDisplay.contains('- **Quinn Beta** (Qty 1) — ' + fixed), out.resultsDisplay);
+        System.assert(!out.resultsDisplay.contains('not changed'),
+            'no row was left out of the failure list: ' + out.resultsDisplay);
+        for (QuoteLineItem qli : [SELECT Description FROM QuoteLineItem WHERE Id IN :f.lineIds]) {
+            System.assertEquals('Original description', qli.Description);
+        }
+    }
+
+    // A validation rule's message (or a trigger's addError text; the platform gives both this
+    // status) is shown as written. A blank one, or any other status, gets the fixed sentence.
+    @isTest
+    static void saveErrorTextShowsOnlyValidationMessages() {
+        String fixed = RLM_AI_UpdateRecordFieldsService.ROW_SAVE_FAILED_MESSAGE;
+        System.assertEquals('End date must follow the start date.',
+            RLM_AI_UpdateRecordFieldsService.saveErrorText(
+                StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION, 'End date must follow the start date.'));
+        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.saveErrorText(
+            StatusCode.FIELD_CUSTOM_VALIDATION_EXCEPTION, ' '));
+        System.assertEquals(fixed, RLM_AI_UpdateRecordFieldsService.saveErrorText(
+            StatusCode.DUPLICATE_VALUE,
+            'duplicate value found: Code__c duplicates value on record with id: 0QLxx0000000001'));
     }
 
     // ---- Bulk applyToAll across many lines (no per-request cap) ----
