@@ -68,7 +68,7 @@ drop the `.md` suffix of the snapshot file name.
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case and accepted for static test bundles
   (inactive on an existing org; inactive and active on a fresh build), so Help's static rule
-  looks like guidance, not a guard; a mismatched pair then priced and configured with no message
+  looks like guidance, not a guard; a mismatched pair priced and configured with no message
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -334,9 +334,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Recurring children in a fixed kit.** Which selling model a static kit's Term Defined
-  or Evergreen child is quoted on when its component row sets none or the child has several
-  options (where the row set one, Place used it), and which it renews and bills on; how a locked configurable bundle's
+- **Recurring children in a fixed kit.** Which selling model a static kit's Evergreen child
+  is quoted on, and a Term Defined child when its component row sets none or the child has
+  several options (a Term Annual child was quoted on the model its row set); and which model
+  each renews and bills on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
   quantity does; a CML-set locked quantity and a group out of range are not measured. See

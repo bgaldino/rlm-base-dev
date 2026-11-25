@@ -42,11 +42,11 @@ subscription that must renew or bill on its own model) is not settled by the rul
   the configurator's Product Header offers one for each product or option; and a static
   bundle cannot be configured at run time. [Help: `ind.qocal_discover_and_configure_products.htm`; `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
   No snapshot article says which selling model a static kit's Term Defined or Evergreen
-  child is quoted on. Where the component row set a child selling model (the child's only
-  option), Place quoted the child on it
-  ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). With
-  no model on the row or several options on the child, and whether the child then renews and
-  bills on it: **Open — needs live verification.**
+  child is quoted on. Under an Evergreen root, Place quoted a Term Defined (Term Annual) child
+  on the child selling model its component row set, which was the child's only option
+  ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
+  Evergreen child, a row with no model or a child with several options, and whether the child
+  then renews and bills on that model: **Open — needs live verification.**
 
 Until that is measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with

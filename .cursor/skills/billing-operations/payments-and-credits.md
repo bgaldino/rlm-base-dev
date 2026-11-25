@@ -19,24 +19,29 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
   By default this makes one payment schedule and item per posted invoice; invoices of one
-  account are grouped into one when the payment schedule treatment's Grouping Source is
-  Account, within its Due Date Window, and Billing then records the schedule in the invoice's
-  Payment Schedule field [Help: `ind.billing_payments_consolidate_invoices`]. A fresh build
-  did not match Help's default: its only treatment, Default Payment Schedule Treatment (trigger
-  InvoicePosted, under the org-default Default Payment Schedule Policy), had Grouping Source
-  **Account** and a blank Due Date Window. It was created during the build by the build's admin
-  user, and no file in the repo creates or references a payment schedule treatment or policy,
-  so this is the platform's own default on that build. Two invoices of 250 and 1,700 for one
-  account, ingested and posted within a second with the same due date, got one Draft payment schedule of 1,950 with one
-  Draft item of 1,950, its processing date the invoices' due date. Both invoices'
-  `PaymentScheduleId` pointed at it; its `ReferenceEntityId` was blank. A second payment
-  schedule created with `ReferenceEntityId` set to one of those invoices was refused (error
-  `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule because its invoice
-  is associated with another Payment Schedule that's in Draft or Open status.").
-  [Measured: 2026-11-24, 264, fresh build, API 68.0] So, on an org whose treatment groups by Account like this, a script
-  that creates its own schedule after posting must deal with the automatic one first: find it
-  through the invoice's `PaymentScheduleId`. Canceling or reusing it was not tried, nor the
-  default Invoice grouping, nor invoices posted apart.
+  account with the same currency and payment method are grouped into one when the payment
+  schedule treatment's Grouping Source is Account, within its Due Date Window, and Billing then
+  records the schedule in the invoice's Payment Schedule field
+  [Help: `ind.billing_payments_consolidate_invoices`]. On a fresh build the only treatment,
+  Default Payment Schedule Treatment (trigger InvoicePosted, under the org-default Default
+  Payment Schedule Policy), was created during the build by the build's admin user and had
+  Grouping Source **Account** and a blank Due Date Window. Two invoices of 250 and 1,700 for
+  one account, ingested and posted within a second with the same due date, got one Draft
+  payment schedule of 1,950 with one Draft item of 1,950, its processing date the invoices' due
+  date. Both invoices' `PaymentScheduleId` pointed at it; its `ReferenceEntityId` was blank. A
+  second payment schedule created with `ReferenceEntityId` set to one of those invoices was
+  refused (error `INVALID_FIELD_FOR_INSERT_UPDATE`, "We can't create this Payment Schedule
+  because its invoice is associated with another Payment Schedule that's in Draft or Open
+  status."); one with no reference entity was created.
+  [Measured: 2026-11-24, 264, fresh build, API 68.0] No build component (metadata, data plan,
+  task or script) creates a treatment; the repo only enables
+  `enablePaymentSchedulesAndItemsCreation` [Repo:
+  `unpackaged/post_billing/settings/Billing.settings-meta.xml`]. So this treatment, unlike
+  Help's Invoice default, is the platform's own default on that build [inferred]. On an org
+  whose treatment groups by Account like this, a script that creates a schedule referencing
+  one of those invoices must deal with the automatic one first: find it through the invoice's
+  `PaymentScheduleId`. Canceling or reusing it was not tried, nor the default Invoice grouping,
+  nor invoices posted apart or with different due dates.
 - Retry Failed Payments: needs a default payment retry rule set
   [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
@@ -125,7 +130,7 @@ fresh build]
   smaller of the payment's balance and the invoice's balance. Copies ship in the
   billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
   `unpackaged/post_payments/`, `unpackaged/post_collections/`] Called directly
-  (`/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs `paymentId`, `invoiceId`),
+  (`/services/data/v68.0/actions/custom/flow/RLM_Apply_Payment_To_Invoice_Lines`, inputs `paymentId`, `invoiceId`),
   it applied a 1000 payment to lines of 250, 250 and 1200 as 250, 250 and 500, with no
   header-level rows. A second 1000 payment on the remaining 700 applied 700 and reported
   `unappliedAmount` 0: that output is what is left of the capped amount, not of the payment,

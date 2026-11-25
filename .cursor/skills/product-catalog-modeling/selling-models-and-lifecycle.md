@@ -113,9 +113,10 @@ seen on a scratch load ([`bundles-and-cardinality.md`](bundles-and-cardinality.m
   and added both children, each on the child selling model of its row (the Term Annual line got
   a one-year term and billing frequency Annual), each linked to the root by a
   `QuoteLineRelationship` with pricing `IncludedInBundlePrice`. The quote priced
-  (`CompletedWithPricing`): the root at its price book entry, each child at 0 because the rows'
-  `DoesBundlePriceIncludeChild` defaults to true. A configurator `configure` call on the root
-  line, rules and pricing on, returned `success: true`, `solverStatus: "success"`, no messages
+  (`CompletedWithPricing`) with the root at its price book entry and each child at 0; both
+  component rows, inserted without `DoesBundlePriceIncludeChild`, stored it as true (and
+  `IsQuantityEditable` as false). A configurator `configure` call on the root line, rules and
+  pricing on, returned `success: true`, `solverStatus: "success"`, no messages
   and a null `ValidationResult` on every line; no `RevenueTransactionErrorLog` row was written.
   Not compared against a matched-model bundle; ordering, billing and renewal of such a bundle
   were not tried. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] This does not test the
