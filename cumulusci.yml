@@ -110,7 +110,7 @@ project:
     tax: true                 # Tax engine
     quote_est_tax: false      # Estimated tax on quotes and orders; needs tax (turned on after the tax engine). Off: a price-lowering Sales Price Amendment fails with it on
     calmdelete: true          # CALM Delete
-    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. On by default; native CollectionsAndRecoveryPsl is always assigned.
+    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue; post_collections_case_flow; RLM_CollectionsUI permission set) + CollectionConsole UX. On by default; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
@@ -4762,8 +4762,8 @@ flows:
           api_names:
             - RLM_CollectionsUI
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
-    # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
+    # RLM_Collections_Account_Record_Page) and the two apps (the standard__CollectionConsole
+    # override and RLM_Receivables_Management) are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
     # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
