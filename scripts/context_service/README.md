@@ -136,17 +136,17 @@ field per mapping (the reuse-lens: `Quote.AccountId` in `QuoteEntitiesMapping`,
 ```bash
 # everything that touches a field, across all lenses (hydration + persistence)
 python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --field RLM_RampMode__c
+  --developer-name RLM_SalesTransactionContext --field RLM_ConstraintEngineNodeStatus__c
 
 # every field a tag reads/writes; scope to one lens with --mapping
 python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --tag RampMode__c \
+  --developer-name RLM_SalesTransactionContext --tag ConstraintEngineNodeStatus__c \
   --mapping QuoteEntitiesMapping
 
 # one attribute (node.attr or bare name)
 python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --attribute SalesTransactionItem.RampMode__c
+  --attribute SalesTransactionItem.ConstraintEngineNodeStatus__c
 
 # gaps: tagged-but-unbound (never populated), bound-but-untagged (unreachable by
 # an ES), inert (neither). Drop --mapping for the never-anywhere signal.
@@ -347,7 +347,7 @@ python scripts/context_service/definition/delete_context.py --target-org rlm-bas
 # one custom attribute + its dependent tag/attr-mapping
 python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --delete-artifact attribute SalesTransactionItem.RampMode__c \
+  --delete-artifact attribute SalesTransactionItem.ConstraintEngineNodeStatus__c \
   --cascade --deactivate-first --confirm-delete
 
 # whole definition (platform cascade)
@@ -392,7 +392,7 @@ Five mutually-exclusive ops; previews unless `--confirm`:
 # flip a custom attribute's IsTransient (a modify → deactivate first, reactivate after)
 python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --set-transient SalesTransactionItem.RampMode__c true \
+  --set-transient SalesTransactionItem.ConstraintEngineNodeStatus__c true \
   --deactivate-first --reactivate --confirm
 
 # re-designate the default context mapping (a modify → deactivate first)
@@ -403,7 +403,7 @@ python scripts/context_service/definition/mutate_context.py --target-org rlm-bas
 # add a custom tag alias to an attribute (an insert → runs on the active version)
 python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm
+  --add-tag SalesTransactionItem.ConstraintEngineNodeStatus__c NodeStatusAlias__c --confirm
 
 # bind an attribute to an SObject field on an existing node mapping
 # (a granular, sibling-safe insert → runs on the active version). This is the
@@ -417,7 +417,7 @@ python scripts/context_service/definition/mutate_context.py --target-org rlm-bas
 # remove a custom tag (a delete → deactivate first)
 python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --remove-tag RampModeAlias__c --deactivate-first --reactivate --confirm
+  --remove-tag NodeStatusAlias__c --deactivate-first --reactivate --confirm
 ```
 
 Two op-specific guards, both **live-verified** on v67.0:

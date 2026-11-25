@@ -1,7 +1,7 @@
 ---
 mode: master
 area: "Product Catalog Management"
-file_version: 0.1
+document_version: 0.1
 status: draft
 last_updated: 2026-05-06
 authors:

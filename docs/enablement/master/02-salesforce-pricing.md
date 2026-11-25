@@ -1,7 +1,7 @@
 ---
 mode: master
 area: "Salesforce Pricing"
-file_version: 0.1
+document_version: 0.1
 status: draft
 last_updated: 2026-05-06
 authors:

@@ -352,8 +352,6 @@ Schema was queried against a 260 scratch org. Findings below.
 | GeneralLedgerAcctAsgntRule  | `Name`                                                                   | No            | ✅ Names are unique in this dataset |
 | PaymentRetryRule            | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | No            | ✅ Composite uniqueness |
 | Product2                    | `StockKeepingUnit`                                                       | No*           | ✅ Platform-enforced unique when RLM enabled |
-| SequencePolicy              | `Name`                                                                   | No            | ✅ Human-readable |
-| SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | **Yes**       | ✅ Composite (direct int + parent traversal) satisfies SFDMU Bug 1 requirement |
 
 ## Large-deal billing — known limitation with `LegalEntity` treatment selection
 

@@ -5,10 +5,10 @@
     "apiVersion": "68.0",
     "source": "CLM extension derived from scripts/erd/schema_diff/264-clm-schema.json",
     "org_aliases": [
-      "rlm-base__ent_1002",
-      "rlm-base__ent_1002_2",
-      "rlm-base__ent_1002_main",
-      "rlm-base__ent_1001"
+      "clm-org-a",
+      "clm-org-b",
+      "clm-org-c",
+      "clm-org-d"
     ],
     "lastRefreshedOn": "2026-10-13",
     "note": "40 new CLM nodes; 8 CLM-adjacent nodes already exist in the Revenue Cloud ERD. Feature-gated objects and polymorphic target unions are documented in the source snapshot. Polymorphic fields with more than five possible targets remain visible in field details but are omitted as graph edges to avoid misleading all-to-many hairballs. The extension relationship list stores only edges not already represented in the base Revenue Cloud ERD.",

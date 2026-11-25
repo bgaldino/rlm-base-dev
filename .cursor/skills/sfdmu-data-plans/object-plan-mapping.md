@@ -76,7 +76,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | BillingTreatment | `Name` | Upsert | 1 | 15 treatments: 7 regions (US, CA, EU, UK, AU, CH, JP) × Advance/Arrears + Milestone |
 | BillingTreatmentItem | `Name;BillingTreatment.Name` | Upsert | 1 | 18 items |
 | Product2 | `StockKeepingUnit` | Update | 1 | Sets BillingPolicyId |
-| GeneralLedgerAccount | `Name` | Upsert | 1 | |
+| GeneralLedgerAccount | `AccountingCode` | Upsert | 1 | |
 | GeneralLedgerAcctAsgntRule | `Name` | Upsert | 1 | |
 | PaymentRetryRuleSet | `Name` | Upsert | 1 | |
 | PaymentRetryRule | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | Upsert | 1 | |

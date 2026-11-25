@@ -25,14 +25,14 @@ scratch_data (Account, Contact, BillingAccount)
             │       TaxPolicy, TaxTreatment, TaxEngine, TaxEngineProvider (NamedCredential Readonly)
             │       Also creates LegalEntity (idempotent with qb-billing)
             │
-            ├──→ qb-rating (12 objects, 2 passes)
+            ├──→ qb-rating (17 object entries, 2 passes)
             │       UoM, UoMClass, UsageResource, UsageResourceBillingPolicy, PUR, usage policies
             │       Pass 2 updates existing rows without Status; activateRatingRecords.apex activates
             │       │
             │       ├──→ qb-rating-entitlements (12 objects: PURP + PUG, 10 Readonly; 2 passes)
             │       │       Matches PURP and PUG on ProductUsageResourceId, resolved on the target org
             │       │
-            │       └──→ qb-rates (5 objects)
+            │       └──→ qb-rates (8 object entries, 2 passes)
             │               RateCard, RateCardEntry, RABT, PriceBookRateCard
             │               MUST load after qb-rating (RCE and RABT → UsageResource)
             │               Upstream: qb-pricing (PriceBook2)
