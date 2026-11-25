@@ -275,7 +275,7 @@ PCIe PC,false,Allowed,"QB-Accel VegaX200 - high-performance GPU designed for AI/
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Switch Mainboard,PROD-416568204,,,PROD-416568204,Bundle,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Electro‑mechanical Lock,PROD-44164144,,,PROD-44164144,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Brush Strip 1U,PROD-448734868,,,PROD-448734868,,
-PC-QB-SERVER,false,Allowed,,/resource/omniserver,Bundle,true,false,false,QuantumBit - OmniRack DC42 Series,PROD-455868158,Each,,PROD-455868158,Bundle,
+PC-QB-SERVER,false,Allowed,,/resource/powerswerve,Bundle,true,false,false,QuantumBit - OmniRack DC42 Series,PROD-455868158,Each,,PROD-455868158,Bundle,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Cable Management Hook,PROD-460189389,,,PROD-460189389,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Generic Component A,PROD-462218852,,,PROD-462218852,Bundle,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,,true,false,false,Copper Harness Kits,PROD-490571009,,,PROD-490571009,,

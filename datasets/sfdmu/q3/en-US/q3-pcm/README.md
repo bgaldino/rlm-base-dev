@@ -96,3 +96,37 @@ ProductCategoryProduct.csv               # 72 records
   source org kept both from before the rule existed (todo 319, owner decision).
 - The source org's `Unit` UnitOfMeasureClass had no `Type`, which 264 requires. Nothing references
   it, so it was dropped (todo 319).
+- **Product images use one shipped placeholder (todo 416).** All 78 products point
+  `DisplayUrl` at `/resource/RLM_product_placeholder`, a neutral 200x200 image in
+  `force-app/main/default/staticresources/` that `deploy_full` deploys on every build. That is
+  one deliberate fallback image, as the product-catalog-modeling skill asks, rather than a split
+  by whichever rows happened to have an address. 39 of them used to hotlink images on 18
+  third-party hosts, which break without notice and which the repo has no license to use; the
+  other 39 had none. To give a product its own image, ship it as a static resource and point the
+  row at `/resource/<name>`.
+
+  To move an org loaded before this change, first deploy that one static resource
+  (`sf project deploy start --metadata StaticResource:RLM_product_placeholder --target-org <sf_alias>`;
+  not `deploy_full`, which a built org refuses because it redeploys active expression set
+  versions). Then either set `Product2.DisplayUrl` to `/resource/RLM_product_placeholder` on the
+  plan's products, identified by the `StockKeepingUnit` values in `Product2.csv` (no follow-up
+  step needed: on 2026-11-24 such updates showed at once on Browse Catalogs cards and in the
+  configurator header, with no search-index rebuild), or reload this
+  plan (`insert_q3_pcm_data`, then the `refresh_all_decision_tables` flow and the
+  `rebuild_search_index` task, as `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md`
+  step 6 orders them). A reload resets every q3-pcm record to the plan's values, overwriting
+  edits made on the org, so it is the simpler choice only on an org with no catalog edits; an
+  org loaded before todo 325 should be rebuilt rather than reloaded (see the note at the top of
+  this README).
+- **The trusted sites added for the hotlinked images are gone from the repo.**
+  `unpackaged/post_quantumbit` used to deploy 16 CSP trusted sites (`img-src` only) that were
+  added for those images; nothing else in the repo used them, so they were removed. They
+  deployed with the `quantumbit` flag, not with q3, so every org built with `quantumbit` on before
+  this change has them, most qb builds included. Metadata deploys don't delete, so such an org
+  keeps the 16 records until they are deleted by hand in Setup → Trusted URLs: `amazon_media`,
+  `apjonlinecdn`, `bruneau`, `cfassets`, `cxotoday`, `elitedatascience`, `gangslifestyle`,
+  `gstatic`, `imagesgoogle`, `imimg`, `istockphoto`, `jiomart`, `pcmag`, `philips`,
+  `shutterstock`, `unsplash`. Delete them only after the org's q3 `DisplayUrl` values point at the
+  placeholder (above): deleting them first makes the q3 images that still use those hosts
+  disappear, with no error (see the product-catalog-modeling skill's product-images notes). An
+  org where the q3-pcm plan was never loaded can delete the 16 sites at once.

@@ -2,6 +2,8 @@
 
 This directory holds SFDMU v5 data plans for the Manufacturing data shape, following the same conventions as the QuantumBit shape under `datasets/sfdmu/qb/en-US/`.
 
+> **Not wired into `cumulusci.yml` at this release.** The mfg-specific CCI tasks, flows and feature flags named below (`insert_badger_pcm_data`, `prepare_mfg_data`, `prepare_manufacturing` and the other `*_badger_*` and `*_mfg_*` tasks and flows; the flags `badger`, `badger_data`, `mfg_aaf`, `mfg_guidedselling`, `mfg_rebates` and `mfg_visuals`) do not exist in this release's `cumulusci.yml`; mfg plans are loaded by hand. For the static resources mfg-pcm's product images need, see [`en-US/mfg-pcm/README.md`](en-US/mfg-pcm/README.md).
+
 ## Table of Contents
 
 - [Directory Structure](#directory-structure)

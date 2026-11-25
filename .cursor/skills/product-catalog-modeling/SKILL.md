@@ -354,8 +354,6 @@ Every item marked **Open — needs live verification** in this skill and its sub
   on a fresh harness build, and on an active static bundle. How pricing and the configurator
   treat a mismatched parent and child model that insert accepted is also open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
-- **An external `https` `DisplayUrl`.** Whether this repo's UI renders one without a trusted-site
-  entry; the q3 plan already loads such addresses, so a q3 product is the test case. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#product-images).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.

@@ -237,10 +237,20 @@ In this repo:
   `unpackaged/post_quantumbit/staticresources/`, and six (`powersupply`, `liquidcooler`,
   `nvexpand`, `RAIDController`, `cacheboost`, `cpuheatsink`) in
   `force-app/main/default/staticresources/`. A product with no art of its own points at one
-  shared logo, and most do. **Known gap:** `/resource/omniserver` (product `PROD-455868158`)
-  has no resource in either location, so that image does not resolve. [Repo:
+  shared logo, and most do. Every path names a resource that ships in one of the two places;
+  point a product at an existing image rather than at a name that does not ship
+  (`PROD-455868158` reuses `powerswerve`). [Repo:
   `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
-  `force-app/main/default/staticresources/`]
+  `force-app/main/default/staticresources/`] An org built with `qb` on before that fix
+  keeps `/resource/omniserver`, which does not resolve, on `PROD-455868158`. Fix that one record:
+  `sf data update record --sobject Product2 --where "StockKeepingUnit='PROD-455868158'" --values "DisplayUrl=/resource/powerswerve" --target-org <sf_alias>`
+  [Measured: 2026-11-25, 264, existing org]. No follow-up step is needed: a `DisplayUrl` change
+  made this way, with no search-index rebuild, showed at once on Browse Catalogs cards and in the
+  configurator header (`PROD-455868158` on a qb org; `LLMCERT001` and `CERT007` on a q3 org)
+  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org]. Reloading qb-pcm also works, but its Upsert resets
+  every qb-pcm record to the plan's values, overwriting edits made on the org; after a reload, run
+  [`catalogs-and-loading.md`](catalogs-and-loading.md) step 6 (the `refresh_all_decision_tables`
+  flow, then `rebuild_search_index`).
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
   after the product plan blanked the images whenever the product plan was reloaded alone; the
   URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
@@ -253,11 +263,37 @@ In this repo:
   and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
-- **The q3 plan uses external `https` addresses.** 39 rows of
-  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at third-party image hosts (`CERT007`
-  among them), as does the dev guide's example response. Whether this repo's UI renders such an
-  address without a trusted-site entry is **Open — needs live verification** (open a q3 product
-  such as `CERT007` in the configurator and on the product page).
+- **The q3 plan uses one shipped placeholder for every product.** All 78 rows of
+  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at `/resource/RLM_product_placeholder`, a
+  neutral image in `force-app/main/default/staticresources/`, so q3 follows the rule above: one
+  deliberate fallback, not a split by whichever rows happened to have an address. Half of them
+  used to hotlink third-party hosts, which break without notice and which the repo has no license
+  to use; do not reintroduce such addresses. The dev guide's example responses still show
+  external `https` addresses. An org built with `quantumbit` on before that change (most qb
+  builds too) keeps the 16 `img-src` trusted sites added for those hosts until they are removed
+  in Setup → Trusted URLs; the list is in `datasets/sfdmu/q3/en-US/q3-pcm/README.md`. Remove
+  them only after that org's q3 `DisplayUrl` values point at the placeholder: removed first, the
+  q3 images that still use those hosts disappear without an error (the fallback below). An org
+  where the q3-pcm plan was never loaded can delete the 16 sites at once.
+- **An external `https` address loads only from an allowed host.** In Lightning, the page's
+  `img-src` policy is the org's `img-src` CSP Trusted Sites plus Salesforce's built-in list
+  (`*.ctfassets.net`, `*.cloudinary.com`, `*.salesforce.com`, `*.force.com` and others), with no
+  `https:` wildcard; a host in neither is blocked by the browser. Method: the policy was read off
+  a Lightning Product2 record page in Chrome, and each address was loaded in that page as a test
+  image (`new Image()` with a `securitypolicyviolation` listener): `images.ctfassets.net` loaded
+  with no trusted site, a `gstatic` host loaded through its trusted site (deployed by the build
+  of that day; the repo no longer ships it, so a fresh build has none), and hosts in neither list
+  were blocked. A record page does not render the product image itself; its Details tab
+  shows `DisplayUrl` as text. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] So ship
+  images as static resources rather than adding a trusted site per host.
+- **Catalog cards and the configurator header follow the same rule, and fail silently.** Browse
+  Catalogs product cards and the configurator header render `DisplayUrl`; an allowed host
+  (`images.ctfassets.net` with no trusted site) and a static resource (`/resource/powerswerve`,
+  `/resource/RLM_product_placeholder`) both render. A host outside `img-src` shows no error: the
+  card falls back to Salesforce's own `/img/industriesCpq/plp-image-placeholder.svg`, the image a
+  blank `DisplayUrl` gets, and the configurator leaves the image block out. Seen on test quotes in
+  Chrome. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] So a bad or disallowed external `DisplayUrl` goes
+  unnoticed in a demo until someone looks for the picture.
 
-In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
+In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 53 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
