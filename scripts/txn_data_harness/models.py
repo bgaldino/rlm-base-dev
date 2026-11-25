@@ -209,19 +209,20 @@ class Manifest:
     # Set once the credit POST is accepted: the action has no idempotency key,
     # so a retry polls for the memo instead of POSTing again.
     credit_submitted: bool = False
-    # Which credit attempt the manifest is on. 1 = the first; ``cli step
-    # --resubmit-credit`` moves to the next after a failed memo (Error,
-    # Canceled, Voided) or none at all, and the new memo gets its own
-    # description tag (lifecycle.credit_tag).
+    # Which credit attempt the manifest is on; it only increases. 1 = the
+    # first; ``cli step --resubmit-credit`` moves to the next after a failed
+    # memo (Error, Canceled, Voided) or none at all, and the new memo gets its
+    # own description tag (lifecycle.credit_tag), never reused.
     credit_attempt: int = 1
     # Invoice.NetCreditsApplied read just before each attempt's credit POST,
     # keyed by attempt number (as a string, for JSON). The double-credit check
     # compares against the current attempt's value, so a credit the platform
     # applied between attempts is not counted against this run.
     credit_baselines: dict = field(default_factory=dict)
-    # Credit attempts the API refused (HTTP 4xx): nothing was created, so
-    # --resubmit-credit does not wait for their memos.
-    credit_refused_attempts: list[int] = field(default_factory=list)
+    # The attempt whose memo was adopted instead of sending (a late memo of an
+    # earlier attempt found live before a POST). ``credit_attempt`` never
+    # moves back; the credit step follows this attempt's tag when it is set.
+    credit_adopted_attempt: Optional[int] = None
     credit_amount_requested: Optional[float] = None
     credit_amount_applied: Optional[float] = None
     # Payment ids created by payment_applied, and the application records

@@ -643,8 +643,10 @@ def _check_settlement_stage(
     stages lie past the target (a ``payment`` part with target
     ``credit_applied``, or any block with an earlier target such as
     ``--target-stage invoice_posted``) is not a contradiction: those parts
-    are simply not reached yet, and ``cli step`` runs them later from the
-    manifest.
+    are simply not reached yet. The manifest records only the parts a run
+    reaches, when its first settlement step starts; a run that stopped before
+    the settlement stages records nothing, and ``cli step`` then takes the
+    block from ``--config``.
     """
     if stage not in _SETTLEMENT_STAGES:
         return

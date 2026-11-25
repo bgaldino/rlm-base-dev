@@ -211,9 +211,12 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
 - A 4xx from the credit action or the apply becomes a `LifecycleError` with the
   API's own messages. An apply `INVALID_FIELD` on `appliedToId` is reported as a
   likely wrong application level: the payment is then Processed and unapplied
-  (and may be absorbed by the account's next posted invoice), and
-  `cli step --to-stage payment_applied --application-level line|header`
-  replaces the recorded level and applies it.
+  (and may be absorbed by the account's next posted invoice). The level cannot
+  change once the payment is planned (amount and apply target are fixed
+  before the first apply): `cli step --application-level` is refused then;
+  start a new run with `settlement.application_level` pinned.
+  `--application-level` corrects the level only before the payment is
+  planned, and is the remedy when the level cannot be read at all.
 - The 4xx / 5xx split holds on both transports. `--transport cli` runs
   `sf api request rest --include`, whose output starts with the HTTP status
   line and headers, then the body with no blank line in between (measured
@@ -246,39 +249,45 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   convenience, not a safety measure); if none shows up it fails with an error
   pinned non-retryable that names the next command. A late memo is picked up
   by the next resume.
-- **`--resubmit-credit` decides from the org.** `cli step --manifest <id>
-  --to-stage payment_applied --resubmit-credit` reads every memo this run
-  tagged on the invoice (all attempts so far). Any memo not in `Error`,
-  `Canceled` or `Voided` -- including a late memo of an earlier attempt -- is
-  adopted and nothing is sent. While an attempt has no memo yet it keeps
-  reading for up to 15 s. Only when no memo is live does it record the failed
-  attempt as a warning, increment `credit_attempt` and send the credit with
-  the next tag. It also works when `credit_submitted` is false, which only a
-  manifest written before this rule can show after a crash between an
-  accepted POST and its checkpoint (the flag is now recorded before the
-  POST). More than one live memo of the run fails: the invoice was credited
-  twice and is settled by hand. It re-sends the recorded credit: options
-  never change on a resume. Attempts the API refused (HTTP 4xx,
-  `credit_refused_attempts`) created nothing and are not waited for.
-- **Double-credit check.** Just before each attempt's POST the invoice's
-  `NetCreditsApplied` is recorded in `credit_baselines[<attempt>]`. After the
-  credit stage, `NetCreditsApplied` less the current attempt's baseline must
-  equal what this run's memo applied; any difference, larger or smaller (a
-  second memo of this run that committed late, another process's credit, a
-  reversal), fails the stage rather than warning. A credit the platform
-  applied between attempts falls before the later attempt's baseline and is
-  not counted. Older manifests without `credit_baselines` compare against
+- **`--resubmit-credit`.** `cli step --manifest <id> --to-stage <the run's
+  target> --resubmit-credit` (the command the failing step prints) gives up
+  the followed attempt only when its memo is in `Error`, `Canceled` or
+  `Voided`, or, for a submitted attempt, none appears within 15 s. The next
+  attempt is numbered `credit_attempt + 1`: `credit_attempt` only increases
+  and a tag is never reused. Every send -- first, rerun or resubmit -- reads
+  the `NetCreditsApplied` baseline first, then every memo this run tagged on
+  the invoice (all attempts), and POSTs only when none is live; a live one is
+  adopted (`credit_adopted_attempt`) and nothing is sent, more than one live
+  fails (credited twice, settle by hand). A refused attempt (4xx) created
+  nothing: a plain rerun or resubmit re-sends it under its own tag without
+  waiting. Options never change on a resume (a new run).
+- **Double-credit check.** The baseline is stored in
+  `credit_baselines[<attempt>]` just before that attempt's POST. After the
+  credit stage, two checks fail the stage (not a warning): every memo of the
+  run's tags on the invoice together must have applied exactly what the
+  followed memo applied (a late memo of an abandoned attempt, wherever it
+  landed), and `NetCreditsApplied` less the followed attempt's baseline must
+  equal it too (another process's credit, a reversal). A credit the platform
+  applied before an attempt's baseline is not counted. Older manifests
+  without `credit_baselines` compare against
   `settlement_baseline.net_credits_applied`.
 - **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
   scenario pinning an account's new name matches the manifest when that name
   resolves to the manifest's `account_id`. The check runs before the
   "already reached" check, so a differing `--config` is never ignored; a
   manifest that reached its target never reruns a stage.
-- **Settlement failures are never retried by the runner.** Every settlement
-  `LifecycleError` is a `SettlementError`, pinned `deterministic`: its text
-  holds run and record ids whose digits (`...T150342Z` holds "503") would
-  match the transient patterns. Read failures (`SfApiError` 5xx) stay
-  transient. A successful `cli step` clears `error` and `failure_class`.
+- **Settlement failures are classified by cause, not by text.** Every
+  settlement error is a `SettlementError`, pinned `deterministic` (its text
+  holds run and record ids whose digits, `...T150342Z` holds "503", would
+  match the transient patterns), and a raw 4xx `SfApiError` from a settlement
+  query or write is wrapped into one at the step boundary. Two stay
+  transient: a 5xx / transport `SfApiError`, and an application level that
+  could not be read because the BillingSettings read failed in a way that may
+  clear (5xx, network, CLI retrieve failure or timeout) with no invoice
+  evidence; if the read was refused, that is deterministic. Both level
+  errors name `cli step --application-level line|header`. A successful `cli
+  step` clears `error` and `failure_class`, as does a `cli step` to a stage
+  the manifest already reached.
 - **`payment_applied` never advances without a payment.** A config whose
   target is `payment_applied` needs `settlement.payment`, and the stage
   refuses (not retried) a settlement block without one: with `cli step

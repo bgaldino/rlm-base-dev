@@ -336,15 +336,17 @@ python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "set
 - `--concurrency 1` is required when a settlement target shares its account
   with another transaction in the batch (`cli run` refuses otherwise; `cli
   plan` warns): posting an invoice applies the account's open payment balance.
-- A wrong recorded application level (apply refused with `INVALID_FIELD` on
-  `appliedToId`): resume with `cli step ... --to-stage payment_applied
-  --application-level line|header`.
+- An application level that could not be read: resume with `cli step ...
+  --application-level line|header`. Once the payment is planned the level is
+  fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
+  run with `settlement.application_level` pinned).
 - The credit POST goes out at most once per attempt; a lost response fails
   the stage (not retried) and a resume polls for the memo. If the memo failed
   (`Error` / `Canceled` / `Voided`) or never appears, resume with `cli step
-  --manifest <id> --to-stage payment_applied --resubmit-credit`: it adopts any
-  live memo of the run and re-sends the recorded credit only when none is
-  live. Never pass the flag unasked. A
+  --manifest <id> --to-stage <the run's target> --resubmit-credit` (the error
+  prints the exact command): it adopts any live memo of the run and sends the
+  recorded credit as a new attempt only when none is live. Never pass the
+  flag unasked. A
   `NetCreditsApplied` mismatch after the credit means a second credit: stop
   and report it.
 - The settlement block is fixed once recorded (when the first settlement

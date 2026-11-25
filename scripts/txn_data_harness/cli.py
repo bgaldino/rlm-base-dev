@@ -221,6 +221,12 @@ def _cmd_step(args: argparse.Namespace) -> int:
     # even on a manifest that already reached the target.
     settlement = _settlement_for_step(args, manifest, client)
     if not steps:
+        # Already at the target: an earlier failure on a later stage (a
+        # credit-only run whose payment stage failed) no longer applies.
+        if manifest.error or manifest.failure_class:
+            manifest.error = None
+            manifest.failure_class = None
+            write_manifest(manifest)
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
 
@@ -386,7 +392,8 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
             recorded = settlement_from_dict(manifest.settlement)
             wanted = _config_settlement(args, manifest, client)
             diffs = _settlement_diff(
-                recorded.to_dict() if recorded else {}, _trim(wanted, to_stage).to_dict()
+                _trim(recorded, to_stage).to_dict() if recorded else {},
+                _trim(wanted, to_stage).to_dict(),
             )
             if diffs:
                 raise SettlementError(

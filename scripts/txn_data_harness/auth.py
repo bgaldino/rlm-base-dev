@@ -368,7 +368,12 @@ class SfRestClient:
 
     # ----- metadata read (BillingSettings) -----------------------------------
     def read_billing_settings_xml(self) -> Optional[str]:
-        """The org's ``BillingSettings`` XML, or ``None`` when unreadable.
+        """The org's ``BillingSettings`` XML, or ``None`` when refused.
+
+        A refusal (HTTP 4xx) returns ``None``; anything that may clear on a
+        retry (5xx, network error, a CLI retrieve that failed or timed out)
+        raises ``SfApiError`` / ``requests.RequestException`` so the caller
+        can classify it as transient.
 
         There is no REST read for it. ``requests``: Metadata SOAP
         ``readMetadata`` through this thread's session (the SOAP API takes the
@@ -385,9 +390,11 @@ class SfRestClient:
             headers={"Content-Type": "text/xml; charset=UTF-8", "SOAPAction": '""'},
             timeout=60,
         )
-        if resp.status_code != 200:
-            log.warning("BillingSettings read returned HTTP %s", resp.status_code)
+        if 400 <= resp.status_code < 500:
+            log.warning("BillingSettings read refused: HTTP %s", resp.status_code)
             return None
+        if resp.status_code != 200:
+            raise SfApiError(resp.status_code, resp.text, "POST", "/services/Soap/m")
         return resp.text
 
     def _read_billing_settings_cli(self) -> Optional[str]:
@@ -404,14 +411,16 @@ class SfRestClient:
                      "--wait", str(_RETRIEVE_WAIT_MINUTES), "--json"],
                     capture_output=True, text=True, timeout=_RETRIEVE_TIMEOUT_S,
                 )
-            except subprocess.TimeoutExpired:
-                log.warning("BillingSettings retrieve timed out after %ss",
-                            _RETRIEVE_TIMEOUT_S)
-                return None
+            except subprocess.TimeoutExpired as exc:
+                raise SfApiError(
+                    -1, f"retrieve timed out after {_RETRIEVE_TIMEOUT_S}s", "retrieve",
+                    "Settings:Billing",
+                ) from exc
             if proc.returncode != 0:
-                log.warning("BillingSettings retrieve failed: %s",
-                            (proc.stderr or proc.stdout).strip()[:300])
-                return None
+                raise SfApiError(
+                    -1, (proc.stderr or proc.stdout).strip()[:300], "retrieve",
+                    "Settings:Billing",
+                )
             found = list(Path(tmp).rglob("Billing.settings"))
             return found[0].read_text(encoding="utf-8") if found else None
 

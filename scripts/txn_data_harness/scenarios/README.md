@@ -472,6 +472,7 @@ value (null) means no payment, like leaving the key out.
 - **Manifest fields:** `settlement`, `application_level`,
   `application_level_source`, `settlement_baseline`, `credit_memo_ids`,
   `credit_application_ids`, `credit_submitted`, `credit_attempt`,
+  `credit_adopted_attempt`, `credit_baselines`,
   `credit_amount_requested`, `credit_amount_applied`,
   `payment_ids`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
@@ -490,9 +491,11 @@ value (null) means no payment, like leaving the key out.
   `settlement:` block among the scenarios of the manifest's `kind` and
   account (a renamed account matches by Id). A `--config` identical to the
   recorded block is accepted, even on a manifest that already reached its
-  target (which runs nothing). `--application-level line|header` replaces a
-  wrongly recorded level (an apply refused with `INVALID_FIELD` on
-  `appliedToId` says so). The recipe is "run to `invoice_posted`, then `cli
+  target (which runs nothing, and clears an earlier error).
+  `--application-level line|header` sets the level when it could not be read
+  or was read wrong, until the payment is planned; after that it is refused
+  (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new run
+  with `settlement.application_level` pinned). The recipe is "run to `invoice_posted`, then `cli
   step --to-stage payment_applied --config <file>`"; a run that stopped at
   `credit_applied` recorded no payment and cannot be given one.
 - **The credit POST is sent at most once per attempt.** `credit_submitted`
@@ -500,16 +503,18 @@ value (null) means no payment, like leaving the key out.
   retried) with the next command, and every later resume only polls for the
   memo by tag. Only an HTTP 4xx refusal clears the flag; a 2xx without
   `success` counts as accepted. If the memo is in `Error`, `Canceled` or `Voided`, or never
-  appears, run `cli step --manifest <id> --to-stage payment_applied
-  --resubmit-credit`. It checks the org first: a live memo of any attempt of
-  this run is adopted and nothing is sent; only when none is live is the
-  recorded credit sent again as the next attempt (tagged `<run> credit 2`,
-  …). A refused credit (4xx) is not waited for. Options the API refused are
-  corrected in a new run.
-- **A second credit fails the stage.** After `credit_applied` the invoice's
-  `NetCreditsApplied` gain since the current attempt's baseline (read just
-  before its POST) must equal what this run's memo applied; otherwise the
-  stage fails and names both amounts.
+  appears, run `cli step --manifest <id> --to-stage <the run's target>
+  --resubmit-credit` (the error prints it). Every send checks the org first:
+  a live memo of any attempt of this run is adopted and nothing is sent;
+  otherwise the recorded credit goes out as the next attempt (`<run> credit
+  2`, …; attempts only increase, tags are never reused). A refused credit
+  (4xx) created nothing and is re-sent under its own tag by a plain rerun.
+  Options the API refused are corrected in a new run.
+- **A second credit fails the stage.** After `credit_applied`, every memo of
+  the run's tags on the invoice together, and the invoice's
+  `NetCreditsApplied` gain since the attempt's baseline (read before its memo
+  lookup and POST), must both equal what the followed memo applied;
+  otherwise the stage fails and names the amounts.
 
 ## What makes an account / product a valid target
 

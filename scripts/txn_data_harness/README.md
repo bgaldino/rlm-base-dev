@@ -280,8 +280,8 @@ count.
   application record ids, the amounts applied and a `settlement_baseline` of
   anything the platform applied at post. Settlement batches with more than one
   transaction on an account need `--concurrency 1` (`cli run` refuses
-  otherwise). `cli step --application-level line|header` corrects a wrongly
-  recorded level; the credit POST goes out at most once per attempt, and
+  otherwise). `cli step --application-level line|header` sets the level
+  until the payment is planned; the credit POST goes out at most once per attempt, and
   `cli step --resubmit-credit` sends it again only when no memo of the run on
   the invoice is live (a live one is adopted). The settlement block is
   fixed once a settlement step records it on the manifest; `cli step

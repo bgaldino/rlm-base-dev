@@ -1177,8 +1177,11 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
     """Return ``(level, source)`` for the org, read once per process.
 
     ``source`` is ``billing_settings`` (Metadata API) or
-    ``invoice_settlement_level`` (fallback). Raises ``LifecycleError`` when
-    neither answers, asking the operator to pin ``settlement.application_level``.
+    ``invoice_settlement_level`` (fallback). When neither answers: if the
+    BillingSettings read failed in a way that may clear (5xx, network, a CLI
+    retrieve failure or timeout) the error is transient (retried); if it was
+    read or refused, it is deterministic. Both name the remedy that works on a
+    resume: ``cli step ... --application-level line|header``.
     """
     key = client.instance_url
     with _level_lock:
@@ -1187,20 +1190,36 @@ def read_application_level(client: SfRestClient) -> tuple[str, str]:
             return cached
         level: Optional[str] = None
         source = ""
+        transient = ""
         try:
             level = _read_billing_settings_level(client)
             source = "billing_settings"
         except Exception as exc:  # noqa: BLE001 -- fall through to the probe
             log.warning("BillingSettings read failed (%s); falling back", exc)
+            if not is_api_refusal(exc):
+                transient = str(exc)[:300]
         if level is None:
             level = _level_from_invoice_evidence(client)
             source = "invoice_settlement_level"
         if level is None:
+            remedy = (
+                "Pin it on the resume: `cli step --manifest <run> --to-stage <target> "
+                "--application-level line|header` (a new run can also pin "
+                "settlement.application_level)."
+            )
+            if transient:
+                raise SettlementError(
+                    "settlement",
+                    f"could not read the Credit, Payment and Refund Application Level: "
+                    f"BillingSettings read failed ({transient}) and no invoice has a "
+                    f"SettlementLevel yet. Retry, or {remedy[0].lower()}{remedy[1:]}",
+                    failure_class="transient",
+                )
             raise SettlementError(
                 "settlement",
                 "could not read the Credit, Payment and Refund Application Level "
                 "(BillingSettings unreadable and no invoice has a SettlementLevel "
-                "yet). Pin settlement.application_level: line or header.",
+                f"yet). {remedy}",
             )
         _level_cache[key] = (level, source)
         log.info("application level: %s (from %s)", level, source)
@@ -1771,8 +1790,9 @@ def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
                 f"apply refused ({detail}). The recorded application level is "
                 "likely wrong for this org. Payment is Processed and unapplied, "
                 "and the account's next invoice posted through the post action "
-                "may absorb it. Resume with `cli step --to-stage payment_applied "
-                "--application-level line|header`.",
+                "may absorb it; apply it in the org, or leave it. The level cannot "
+                "change once the payment is planned: start a new run with "
+                "settlement.application_level pinned to the other level.",
                 record_id=payment_id,
             ) from exc
         raise SettlementError(
