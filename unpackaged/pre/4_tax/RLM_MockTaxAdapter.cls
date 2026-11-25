@@ -1,5 +1,7 @@
 global virtual class RLM_MockTaxAdapter implements commercetax.TaxEngineAdapter {
 
+    // The plain numeric codes below ('404', '504', '400', '500') are the mock's own, not RLM_TAX_ adapter
+    // codes (RLM_CalculateTaxService owns those).
     global commercetax.TaxEngineResponse processRequest(commercetax.TaxEngineContext taxEngineContext) {
         commercetax.RequestType requestType = taxEngineContext.getRequestType();
         commercetax.CalculateTaxRequest request = (commercetax.CalculateTaxRequest)taxEngineContext.getRequest();
