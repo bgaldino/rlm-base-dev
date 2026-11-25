@@ -26,4 +26,5 @@
 | [`contracts-sales-txn-quote.md`](contracts-sales-txn-quote.md) | Quote-path lifecycle steps (Opportunity → PST place → Order → Activate → Usage → Invoice → Post) |
 | [`contracts-sales-txn-order.md`](contracts-sales-txn-order.md) | Direct-order path (PST Order graph, AppUsageAssignment gate, shared post-Order tail) |
 | [`contracts-invoice-ingestion.md`](contracts-invoice-ingestion.md) | Invoice ingestion path (standalone billing, bypasses PST spine) |
+| [`contracts-billing-settlement.md`](contracts-billing-settlement.md) | Settlement stages (`credit_applied`, `payment_applied`) on every kind: application level, credit and payment-apply bodies, errors, auto-application at post (264, API v68.0, Line Level) |
 | [`followups.md`](followups.md) | Open probes, anomalies, and behavior not yet safe to generalize |

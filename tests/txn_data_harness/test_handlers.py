@@ -55,7 +55,11 @@ def test_sales_txn_order_handler_registered() -> None:
 
 @pytest.mark.parametrize(
     "target_stage",
-    ["opportunity_created", "quote_placed", "order_draft", "order_activated", "usage_upload", "invoice_draft", "invoice_posted"],
+    [
+        "opportunity_created", "quote_placed", "order_draft", "order_activated",
+        "usage_upload", "invoice_draft", "invoice_posted", "credit_applied",
+        "payment_applied",
+    ],
 )
 @pytest.mark.parametrize("with_opportunity", [False, True])
 def test_step_graph_matches_stage_sequence(

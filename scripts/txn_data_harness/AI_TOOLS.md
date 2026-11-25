@@ -314,6 +314,55 @@ Rules for `end_date:`:
 
 Full schema in `scenarios/README.md` → *Explicit `EndDate` overrides*.
 
+### Recipes — settlement (credit and payment after the Posted invoice)
+
+```bash
+python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml
+python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml \
+  --concurrency 1
+python -m scripts.txn_data_harness.cli inspect --latest --json   # read the "settlement" block
+```
+
+- `target_stage: credit_applied | payment_applied` needs a `settlement:` block
+  (schema: `scenarios/README.md` → *Settlement*). Valid on all three kinds.
+- The manifest records `application_level` (+ source), `settlement_baseline`
+  (what the platform applied at post), credit memo / payment ids, application
+  record ids, amounts, `payment_mode` and the invoice balance after.
+- Continue a Posted manifest: `cli step --manifest <id> --to-stage
+  payment_applied`, adding `--config` with a `settlement:` scenario when the
+  manifest has no block yet (a run that stopped at `invoice_posted`).
+- `--concurrency 1` is required when a settlement target shares its account
+  with another transaction in the batch (`cli run` refuses otherwise; `cli
+  plan` warns): posting an invoice applies the account's open payment balance.
+- Only the payment stage needs the application level (the credit reads its
+  rows back from both junctions). A level that could not be read fails the
+  payment stage. After a transient settings read failure (5xx, timeout,
+  network) with no evidence on the invoice, the failure is transient: a later
+  retry may succeed. In either case `cli step ... --to-stage payment_applied
+  --application-level line|header` pins it (before the target is reached). Once the payment is planned the level is
+  fixed (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new
+  run with `settlement.application_level` pinned).
+- At most one credit and one payment are created per run. After a 5xx or a
+  lost response the write is never re-sent; the stage looks the record up by its tag for a short wait (15 s) and fails only if it has not appeared; a `cli step` resume keeps looking it up. A refused write created nothing; rerunning sends the same
+  write again and will normally be refused again (new options need a new
+  run). A memo in `Error` / `Canceled` / `Voided`, two records under a tag,
+  a reversed application, a memo not applied in full (its
+  `TotalAmountWithTax`) to this invoice, a recorded credit memo that can no
+  longer be read (deleted, or no access), a payment applied beyond its
+  planned target, or a `NetCreditsApplied` mismatch mean the run cannot
+  settle: report it; a new run is the only recovery.
+- The settlement block is fixed once recorded (when the first settlement
+  step starts). A `--config` that differs from it is refused, naming the
+  keys: different options need a new run. `payment_applied` refuses a block
+  without `payment` (stop at `credit_applied` for a credit only).
+- `cli step` uses the manifest's `account_id`; an `--account` name is accepted
+  when the manifest's Id is among the accounts with that name, else refused. Amounts round to the invoice currency's
+  decimal places (KWD = 3, JPY = 0).
+- Line Level is live-verified on 264; Header Level is not. Contract:
+  `docs/contracts-billing-settlement.md`.
+
 ## Decision Flow
 
 ```mermaid
@@ -342,6 +391,18 @@ sf data query --target-org <sf-alias> -q "
   FROM Invoice WHERE Id = '<invoiceId>'"
 ```
 
+For settlement (`credit_applied` / `payment_applied`), run the read-only
+verifier on the manifest: `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>`. It reads the manifest's `invoice_id` and
+`payment_ids`; report its checked and skipped counts (a skip carries a reason
+and is not a pass). Use SOQL only for what it does not check, e.g. the credit
+memo by `credit_memo_ids`:
+
+```bash
+sf data query --target-org <sf-alias> -q "
+  SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo
+  WHERE Id = '<creditMemoId>'"
+```
+
 For Posted invoice linkage after `post`:
 
 ```bash
@@ -364,9 +425,13 @@ Stop and ask for guidance when:
   invoice by manifest id.
 - Cleanup is requested for Posted invoices or BillingSchedules; explain that they
   are not cleanly deletable.
+- A settlement manifest carries `settlement_warnings` you did not expect (rows
+  at the other application level, platform-applied amounts in
+  `settlement_baseline`, a capped credit) — report them before scaling up.
 
 ## Cleanup Reminder
 
 Use `docs/guides/txn-data-harness.md` cleanup recipes. Delete what is deletable
 from manifest ids: assets/orders, then quote, then opportunity. Revert activated
-orders to Draft before deleting. Posted invoices and BillingSchedules remain.
+orders to Draft before deleting. Posted invoices and BillingSchedules remain, and
+so do settlement payments, credit memos and their application records.

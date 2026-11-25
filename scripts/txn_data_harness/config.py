@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -69,16 +70,22 @@ _VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 # sobject has no ``OpportunityId`` field -- the direct-Order PST graph cannot
 # link an Order to an Opportunity. Live-verified via describe on 2026-06-25
 # against rlm-base__jun17_1. See docs/contracts-sales-txn-order.md § 2.
+#
+# ``credit_applied`` / ``payment_applied`` follow ``invoice_posted`` on every
+# kind (see :data:`_SETTLEMENT_STAGES`); they need a ``settlement:`` block.
+_SETTLEMENT_STAGES = ("credit_applied", "payment_applied")
+
 _KIND_VALID_STAGES: dict[str, set[str]] = {
     "sales_txn_quote": {
         "opportunity_created", "quote_placed", "order_draft",
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+        *_SETTLEMENT_STAGES,
     },
     "sales_txn_order": {
         "order_draft", "order_activated", "usage_upload",
-        "invoice_draft", "invoice_posted",
+        "invoice_draft", "invoice_posted", *_SETTLEMENT_STAGES,
     },
-    "invoice_ingestion": {"invoice_draft", "invoice_posted"},
+    "invoice_ingestion": {"invoice_draft", "invoice_posted", *_SETTLEMENT_STAGES},
 }
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
@@ -98,7 +105,20 @@ _BUILTIN_DEFAULTS: dict[str, Any] = {
 _VALID_STAGES = {
     "opportunity_created", "quote_placed", "order_draft",
     "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+    *_SETTLEMENT_STAGES,
 }
+
+# Settlement knobs (``settlement:`` block). ``application_level: auto`` reads
+# the org's Credit, Payment and Refund Application Level once per run.
+_VALID_APPLICATION_LEVELS = {"auto", "line", "header"}
+# Tax strategies the credit action accepts without per-line tax input, plus
+# ``auto`` (the default: ``Calculate`` on lines with tax, ``Ignore`` on lines
+# without). ``ManualOverride`` needs a ``taxes`` list per line, which the
+# harness does not build, so it is refused at parse time.
+_VALID_CREDIT_TAX_STRATEGIES = {"auto", "CopyFromInvoiceLine", "Ignore", "Calculate"}
+# Upper bound on ``payment.percent``: above 100 is an over-payment; this just
+# catches typos like 5000.
+_MAX_PAYMENT_PERCENT = 1000.0
 
 # QuoteLineItem picklists (verified live against a Revenue Cloud R262 scratch
 # org, API v67.0). Some term products carry a proration policy that requires
@@ -212,6 +232,10 @@ class ScenarioSpec:
     # doesn't pin its own ``end_date``. Co-term shorthand: a scenario can pin
     # one EndDate so all of a quote's lines end on the same calendar anchor.
     end_date: Optional[EndDateOverride] = None
+    # Credit/payment options for the settlement stages (credit_applied,
+    # payment_applied). ``None`` when the scenario stops at or before
+    # ``invoice_posted``.
+    settlement: Optional["SettlementSpec"] = None
 
 
 # Invoice-ingestion config types. They stay separate from PST specs because
@@ -353,6 +377,299 @@ class InvoiceIngestionScenarioSpec:
     # PST-shape fields kept for protocol symmetry with :class:`ScenarioSpec`
     # so the handler dispatcher / batch driver can read them uniformly.
     with_opportunity: bool = False
+    settlement: Optional["SettlementSpec"] = None
+
+
+@dataclass
+class CreditSpec:
+    """``settlement.credit``: credit the posted invoice with a credit memo.
+
+    Exactly one of ``amount`` (currency) or ``percent`` (0-100, of the
+    creditable pre-tax amount of the chosen lines when the stage runs: each
+    line's capacity per ``tax_strategy``, see ``lifecycle.credit_capacity``)
+    is set. ``lines`` picks
+    the invoice lines to credit: ``None`` means every charge line; otherwise a
+    list of 0-based line indexes and/or line names or SKUs. The amount is the
+    pre-tax amount credited; tax is added per ``tax_strategy`` (``auto``:
+    ``Calculate`` on lines with tax, ``Ignore`` on lines without). It is spread
+    over the chosen lines in order, each capped so the memo (tax included)
+    fits the line's open balance: a memo with an unapplied balance would
+    settle the account's next posted invoice.
+    """
+
+    amount: Optional[float] = None
+    percent: Optional[float] = None
+    lines: Optional[list[Any]] = None
+    tax_strategy: str = "auto"
+
+    def to_dict(self) -> dict:
+        return {
+            "amount": self.amount,
+            "percent": self.percent,
+            "lines": self.lines,
+            "tax_strategy": self.tax_strategy,
+        }
+
+
+@dataclass
+class PaymentSpec:
+    """``settlement.payment``: create a processed payment and apply it.
+
+    ``amount: exact`` (the default) pays the open balance of the chosen lines
+    when the stage runs. A number pays that much; ``percent`` pays that share
+    of the open balance (over 100 is an over-payment). Whatever exceeds the
+    open balance stays on the payment as an unapplied balance.
+    """
+
+    amount: Optional[float] = None  # None + percent None => exact
+    percent: Optional[float] = None
+    lines: Optional[list[Any]] = None
+
+    @property
+    def is_exact(self) -> bool:
+        return self.amount is None and self.percent is None
+
+    def to_dict(self) -> dict:
+        return {
+            "amount": "exact" if self.is_exact else self.amount,
+            "percent": self.percent,
+            "lines": self.lines,
+        }
+
+
+@dataclass
+class SettlementSpec:
+    """``settlement:`` block driving ``credit_applied`` / ``payment_applied``."""
+
+    application_level: str = "auto"
+    credit: Optional[CreditSpec] = None
+    payment: Optional[PaymentSpec] = None
+
+    def to_dict(self) -> dict:
+        # Absent sub-blocks are omitted, not written as None: a None here
+        # must never read back as a block (a credit-only manifest resumed to
+        # payment_applied would otherwise pay the open balance unasked).
+        data: dict = {"application_level": self.application_level}
+        if self.credit is not None:
+            data["credit"] = self.credit.to_dict()
+        if self.payment is not None:
+            data["payment"] = self.payment.to_dict()
+        return data
+
+
+def settlement_from_dict(data: Optional[dict]) -> Optional[SettlementSpec]:
+    """Rebuild a :class:`SettlementSpec` from ``Manifest.settlement``."""
+    if not data:
+        return None
+    return _coerce_settlement(data, "manifest.settlement")
+
+
+def _coerce_line_selector(value: Any, where: str) -> Optional[list[Any]]:
+    if value is None or value == "all":
+        return None
+    if isinstance(value, (int, str)) and not isinstance(value, bool):
+        value = [value]
+    if not isinstance(value, list) or not value:
+        raise ConfigError(
+            f"{where}: lines must be 'all', a line index, a line name/SKU, or a "
+            f"non-empty list of those"
+        )
+    out: list[Any] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, (int, str)):
+            raise ConfigError(f"{where}: each lines entry must be an index or a name")
+        if isinstance(item, int) and item < 0:
+            raise ConfigError(f"{where}: line index must be >= 0 (got {item})")
+        if isinstance(item, str) and not item.strip():
+            raise ConfigError(f"{where}: line name must not be empty")
+        out.append(item)
+    return out
+
+
+def _finite(value: float, where: str, field: str) -> float:
+    """Refuse NaN and +/-inf: ``float()`` accepts ``.nan``/``.inf`` (YAML) and
+    the strings "nan"/"inf", and NaN slips through every ``<``/``>`` check."""
+    if not math.isfinite(value):
+        raise ConfigError(f"{where}: {field} must be a finite number (got {value})")
+    return value
+
+
+def _coerce_positive(value: Any, where: str, field: str) -> float:
+    if isinstance(value, bool):
+        raise ConfigError(f"{where}: {field} must be a number")
+    try:
+        f = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: {field} must be a number") from exc
+    _finite(f, where, field)
+    if f <= 0:
+        raise ConfigError(f"{where}: {field} must be > 0 (got {f:g})")
+    # Not rounded here: the stage rounds to the invoice currency's decimal
+    # places (CurrencyType.DecimalPlaces), which only the org knows.
+    return f
+
+
+def _coerce_credit(raw: Any, where: str) -> CreditSpec:
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: credit must be a mapping")
+    unknown = set(raw) - {"amount", "percent", "lines", "tax_strategy"}
+    if unknown:
+        raise ConfigError(f"{where}: unknown credit field(s): {', '.join(sorted(unknown))}")
+    has_amount = raw.get("amount") is not None
+    has_percent = raw.get("percent") is not None
+    if has_amount == has_percent:
+        raise ConfigError(f"{where}: credit needs exactly one of 'amount' or 'percent'")
+    amount = _coerce_positive(raw["amount"], where, "amount") if has_amount else None
+    percent = _coerce_positive(raw["percent"], where, "percent") if has_percent else None
+    if percent is not None and percent > 100:
+        raise ConfigError(f"{where}: credit percent must be <= 100 (got {percent:g})")
+    tax_strategy = raw.get("tax_strategy") or "auto"
+    if tax_strategy not in _VALID_CREDIT_TAX_STRATEGIES:
+        raise ConfigError(
+            f"{where}: credit tax_strategy '{tax_strategy}' is not supported "
+            f"(valid: {', '.join(sorted(_VALID_CREDIT_TAX_STRATEGIES))})"
+        )
+    return CreditSpec(
+        amount=amount,
+        percent=percent,
+        lines=_coerce_line_selector(raw.get("lines"), f"{where}.lines"),
+        tax_strategy=tax_strategy,
+    )
+
+
+def _coerce_payment(raw: Any, where: str) -> PaymentSpec:
+    if raw == "exact":
+        return PaymentSpec()
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: payment must be a mapping (or 'exact')")
+    unknown = set(raw) - {"amount", "percent", "lines"}
+    if unknown:
+        raise ConfigError(f"{where}: unknown payment field(s): {', '.join(sorted(unknown))}")
+    amount_raw = raw.get("amount")
+    percent_raw = raw.get("percent")
+    if amount_raw is not None and amount_raw != "exact" and percent_raw is not None:
+        raise ConfigError(f"{where}: payment takes 'amount' or 'percent', not both")
+    amount = None
+    percent = None
+    if amount_raw not in (None, "exact"):
+        amount = _coerce_positive(amount_raw, where, "amount")
+    if percent_raw is not None:
+        if amount_raw == "exact":
+            raise ConfigError(f"{where}: payment takes 'amount: exact' or 'percent', not both")
+        percent = _coerce_positive(percent_raw, where, "percent")
+        if percent > _MAX_PAYMENT_PERCENT:
+            raise ConfigError(
+                f"{where}: payment percent must be <= {_MAX_PAYMENT_PERCENT:g} (got {percent:g})"
+            )
+    return PaymentSpec(
+        amount=amount,
+        percent=percent,
+        lines=_coerce_line_selector(raw.get("lines"), f"{where}.lines"),
+    )
+
+
+def _coerce_settlement(raw: Any, where: str) -> Optional[SettlementSpec]:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: settlement must be a mapping")
+    unknown = set(raw) - {"application_level", "credit", "payment"}
+    if unknown:
+        raise ConfigError(
+            f"{where}: unknown settlement field(s): {', '.join(sorted(unknown))}"
+        )
+    level = raw.get("application_level") or "auto"
+    if level not in _VALID_APPLICATION_LEVELS:
+        raise ConfigError(
+            f"{where}: settlement.application_level '{level}' is not valid "
+            f"(valid: {', '.join(sorted(_VALID_APPLICATION_LEVELS))})"
+        )
+    credit = (
+        _coerce_credit(raw["credit"], f"{where}.settlement.credit")
+        if raw.get("credit") is not None else None
+    )
+    # ``payment: null`` (or a bare ``payment:``) is absent, like a missing
+    # key; ask for an exact payment with ``payment: exact`` or ``payment: {}``.
+    payment = (
+        _coerce_payment(raw["payment"], f"{where}.settlement.payment")
+        if raw.get("payment") is not None else None
+    )
+    return SettlementSpec(application_level=level, credit=credit, payment=payment)
+
+
+def _resolve_settlement(
+    merged: dict[str, Any], stage: str, where: str
+) -> Optional[SettlementSpec]:
+    """Parse ``settlement:`` and check it against ``stage``.
+
+    A block inherited from the config-level ``defaults`` is dropped on a
+    scenario that stops before the settlement stages, and its ``payment``
+    part is dropped on a scenario that stops at ``credit_applied``, so one
+    config can share settlement defaults across scenarios that stop at
+    different stages. A block set on the scenario itself is kept whatever the
+    stage (the steps record only the parts the run's target reaches). Only
+    real contradictions are errors (see :func:`check_settlement_stage`).
+
+    ``cli step`` evaluates the block against its ``--to-stage`` instead of the
+    file's own ``target_stage`` (``merged["_settlement_stage"]``, set by
+    :func:`load_scenarios`); a scenario without any block is then skipped
+    rather than refused, and the stage check is left to the caller, which
+    applies it to the one scenario matching the manifest
+    (:func:`check_settlement_stage`) -- an unrelated scenario in the same
+    file must not make the resume fail.
+    """
+    override = merged.get("_settlement_stage")
+    if override:
+        stage = override
+    settlement = _coerce_settlement(merged.get("settlement"), where)
+    if override and settlement is None:
+        return None
+    explicit = "settlement" in merged.get("_explicit_keys", set(merged))
+    if not explicit:
+        if stage not in _SETTLEMENT_STAGES:
+            return None
+        if stage == "credit_applied" and settlement is not None:
+            settlement = SettlementSpec(
+                application_level=settlement.application_level,
+                credit=settlement.credit,
+                payment=None,
+            )
+    if not override:
+        check_settlement_stage(settlement, stage, where)
+    return settlement
+
+
+def check_settlement_stage(
+    settlement: Optional[SettlementSpec], stage: str, where: str
+) -> None:
+    """Reject a settlement stage with nothing to do.
+
+    ``credit_applied`` needs a ``credit`` block and ``payment_applied`` a
+    ``payment`` block, or the target stage would create nothing. A block whose
+    stages lie past the target (a ``payment`` part with target
+    ``credit_applied``, or any block with an earlier target such as
+    ``--target-stage invoice_posted``) is not a contradiction: those parts
+    are simply not reached yet. The manifest records only the parts a run
+    reaches, when its first settlement step starts; a run that stopped before
+    the settlement stages records nothing, and ``cli step`` then takes the
+    block from ``--config``.
+    """
+    if stage not in _SETTLEMENT_STAGES:
+        return
+    if settlement is None or (settlement.credit is None and settlement.payment is None):
+        raise ConfigError(
+            f"{where}: target_stage '{stage}' needs a 'settlement:' block "
+            f"with 'credit:' and/or 'payment:'"
+        )
+    if stage == "credit_applied" and settlement.credit is None:
+        raise ConfigError(
+            f"{where}: target_stage 'credit_applied' needs 'settlement.credit'"
+        )
+    if stage == "payment_applied" and settlement.payment is None:
+        raise ConfigError(
+            f"{where}: target_stage 'payment_applied' needs 'settlement.payment' "
+            f"(for a credit only, set target_stage: credit_applied)"
+        )
 
 
 def _load_file(path: str) -> dict:
@@ -431,6 +748,8 @@ def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: discount must be number(s)") from exc
+    _finite(lo, where, "discount")
+    _finite(hi, where, "discount")
     if lo > hi:
         raise ConfigError(f"{where}: discount min ({lo}) > max ({hi})")
     if lo < 0 or hi > 100:
@@ -632,6 +951,8 @@ def _coerce_float_range(value: Any, where: str, field: str) -> tuple[float, floa
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: {field} must be number(s)") from exc
+    _finite(lo, where, field)
+    _finite(hi, where, field)
     if lo > hi:
         raise ConfigError(f"{where}: {field} min ({lo}) > max ({hi})")
     if lo < 0:
@@ -969,6 +1290,8 @@ def _coerce_sales_transaction_spec(
             )
         ]
 
+    settlement = _resolve_settlement(merged, stage, where)
+
     return ScenarioSpec(
         account=merged.get("account"),
         products=products,
@@ -980,6 +1303,7 @@ def _coerce_sales_transaction_spec(
         start_date=_coerce_start_date(merged.get("start_date"), where),
         term=_coerce_term(merged.get("term"), where),
         end_date=_coerce_end_date(merged.get("end_date"), where),
+        settlement=settlement,
     )
 
 
@@ -996,6 +1320,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
         quantity_f = float(quantity)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: quantity must be a number") from exc
+    _finite(quantity_f, where, "quantity")
     if quantity_f <= 0:
         raise ConfigError(f"{where}: quantity must be > 0 (got {quantity_f})")
 
@@ -1004,6 +1329,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
         unit_price_f = float(unit_price)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: unit_price must be a number") from exc
+    _finite(unit_price_f, where, "unit_price")
     if unit_price_f < 0:
         raise ConfigError(f"{where}: unit_price must be >= 0 (got {unit_price_f})")
 
@@ -1013,6 +1339,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
             charge_amount = float(charge_amount)
         except (TypeError, ValueError) as exc:
             raise ConfigError(f"{where}: charge_amount must be a number") from exc
+        _finite(charge_amount, where, "charge_amount")
 
     sku = raw.get("sku")
     if sku is not None and not isinstance(sku, str):
@@ -1060,6 +1387,7 @@ def _coerce_tax_amount(raw: Any, where: str, field: str) -> Optional[float]:
         v = float(raw)
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: {field} must be a number") from exc
+    _finite(v, where, field)
     if v < 0:
         raise ConfigError(f"{where}: {field} must be >= 0 (got {v})")
     return v
@@ -1299,6 +1627,8 @@ def _coerce_invoice_ingestion_spec(
                 f"'taxable: true' on the same line (or remove the tax block)"
             )
 
+    settlement = _resolve_settlement(merged, stage, where)
+
     return InvoiceIngestionScenarioSpec(
         account=merged.get("account"),
         invoice_lines=invoice_lines,
@@ -1307,6 +1637,7 @@ def _coerce_invoice_ingestion_spec(
         invoice=overrides,
         tax=tax_defaults,
         kind=kind,
+        settlement=settlement,
     )
 
 
@@ -1349,7 +1680,7 @@ def _coerce_spec(merged: dict[str, Any], where: str):
     return _KIND_COERCERS[kind](merged, kind, where)
 
 
-def load_scenarios(args: Any):
+def load_scenarios(args: Any, settlement_stage: Optional[str] = None):
     """Resolve the run into a list of un-resolved scenario specs.
 
     No ``--config`` -> one spec from CLI flags + built-ins. With ``--config``,
@@ -1361,8 +1692,13 @@ def load_scenarios(args: Any):
     (:class:`ScenarioSpec` for PST, :class:`InvoiceIngestionScenarioSpec` for
     invoice ingestion). The handler dispatcher reads ``spec.kind`` and routes
     to ``SCENARIO_HANDLERS[kind]``.
+
+    ``settlement_stage`` (``cli step --to-stage``) evaluates every scenario's
+    ``settlement:`` block against that stage rather than the file's own
+    ``target_stage``.
     """
     cli = _cli_overrides(args)
+    extra = {"_settlement_stage": settlement_stage} if settlement_stage else {}
     config_path = getattr(args, "config", None)
 
     if not config_path:
@@ -1371,7 +1707,7 @@ def load_scenarios(args: Any):
         # No config file: every non-builtin value came from a CLI flag, so the
         # CLI keys are the explicitly-set set (see ``_coerce_invoice_ingestion_spec``).
         merged["_explicit_keys"] = set(cli)
-        return [_coerce_spec(merged, "cli")]
+        return [_coerce_spec({**merged, **extra}, "cli")]
 
     data = _load_file(config_path)
     config_defaults = data.get("defaults") or {}
@@ -1391,7 +1727,7 @@ def load_scenarios(args: Any):
         )
         # No per-scenario block: the explicitly-set set is config defaults + CLI.
         base["_explicit_keys"] = set(config_defaults) | set(cli)
-        return [_coerce_spec(base, "defaults")]
+        return [_coerce_spec({**base, **extra}, "defaults")]
 
     if not isinstance(scenarios, list) or not scenarios:
         raise ConfigError("config 'scenarios' must be a non-empty list")
@@ -1414,5 +1750,5 @@ def load_scenarios(args: Any):
         # defaults (e.g. ``defaults: {term: 12}``) don't break a mixed config
         # that also contains an ``invoice_ingestion`` scenario.
         merged["_explicit_keys"] = set(raw) | set(cli)
-        specs.append(_coerce_spec(merged, f"scenarios[{i}]"))
+        specs.append(_coerce_spec({**merged, **extra}, f"scenarios[{i}]"))
     return specs

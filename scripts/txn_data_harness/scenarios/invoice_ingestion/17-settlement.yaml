@@ -1,0 +1,41 @@
+# Settlement on ingested invoices -- credit one line, pay part of the rest.
+#
+#   python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml
+#   python -m scripts.txn_data_harness.cli run ... --concurrency 1
+#
+# --concurrency 1 is required (one account; `cli run` refuses otherwise): a
+# payment is open between its create and apply calls, and a sibling's post can
+# absorb it. The over-payment's rest stays on its payment and the account's
+# next invoice posted through the post action may absorb it.
+#
+# A settlement target ingests the invoice as Posted (needs an active
+# non-taxable TaxTreatment, as in 15-standalone-billing.yaml), then runs
+# `credit_applied` and `payment_applied`. `lines:` picks invoice lines by
+# 0-based index (record-Id order, usually ingest order) or by line name / SKU
+# (matched ignoring case and spaces around the entry); omit it for all lines.
+# Contract: docs/contracts-billing-settlement.md.
+defaults:
+  kind: invoice_ingestion
+  target_stage: payment_applied
+  invoice:
+    tax_calculation_status: Posted
+
+scenarios:
+  - account: "Infinitech"
+    count: 1
+    invoice_lines:
+      - {name: API Flex, sku: QB-API-FLEX, quantity: 2, unit_price: 50}
+      - {name: Onboarding, quantity: 1, unit_price: 200}
+    settlement:
+      application_level: auto     # auto | line | header
+      credit: {amount: 30, lines: ["Onboarding"]}
+      payment: {percent: 50}      # half of what is open after the credit
+
+  # Over-payment: 120% of the open balance; the rest stays on the payment.
+  - account: "Infinitech"
+    count: 1
+    invoice_lines:
+      - {name: API Flex, sku: QB-API-FLEX, quantity: 4, unit_price: 25}
+    settlement:
+      payment: {percent: 120}

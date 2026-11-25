@@ -17,22 +17,16 @@ from typing import Any, Iterable
 
 from .handlers import SCENARIO_HANDLERS
 from .manifests import MANIFEST_DIR, write_json
-from .models import Manifest
+from .models import STAGES_INGESTION, STAGES_ORDER, STAGES_QUOTE, Manifest
 
 # Per-kind stage allowlist for the report's histogram. The handler's
 # ``STEP_GRAPH`` keys are the stages a manifest can reach for that kind, in
 # the order they're hit. ``(none)`` is appended so a manifest that never
 # checkpointed a stage still buckets cleanly.
 _STAGES_BY_KIND: dict[str, list[str]] = {
-    "sales_txn_quote": [
-        "opportunity_created", "quote_placed", "order_draft",
-        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
-    ],
-    "sales_txn_order": [
-        "order_draft",
-        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
-    ],
-    "invoice_ingestion": ["invoice_draft", "invoice_posted"],
+    "sales_txn_quote": list(STAGES_QUOTE),
+    "sales_txn_order": list(STAGES_ORDER),
+    "invoice_ingestion": list(STAGES_INGESTION),
 }
 
 # Errors are keyed by class + a truncated message so distinct transient blips

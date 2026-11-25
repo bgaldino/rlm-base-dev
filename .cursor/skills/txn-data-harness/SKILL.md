@@ -3,7 +3,8 @@ name: txn-data-harness
 description: >-
   Plan, generate, inspect, continue, verify, and clean up Revenue Cloud transaction demo
   data with the Transaction Data Harness. Use for harness scenarios, run manifests,
-  lifecycle checkpoints, smoke runs, and separate usage-upload and rating stages.
+  lifecycle checkpoints, smoke runs, separate usage-upload and rating stages, and
+  crediting and paying Posted invoices (settlement stages).
 ---
 
 # Transaction Data Harness — Sales Demo Data Workflows
@@ -69,6 +70,37 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
       (tax-on Posted).
     Legacy `sales_transaction` and `transaction` kind names are rejected at
     config-load time with a hint pointing at the new names.
+12. **Settlement continues past the Posted invoice on every kind:**
+    `invoice_posted → credit_applied → payment_applied`, driven by a scenario
+    `settlement:` block (`credit: {amount | percent, lines?, tax_strategy?}`,
+    `payment: {amount: exact | <n> | percent: <n>, lines?}`). The org's
+    Credit, Payment and Refund Application Level is read once (Billing
+    Settings) by the payment stage and recorded on the manifest: Line Level
+    applies the payment to invoice lines, Header Level to the invoice (the
+    credit stage needs no level). **Only Line Level is live-verified**
+    (264). Posting an invoice through the post action applied the account's open
+    payment and credit balances to it, so the harness creates its payment
+    after the post, records what was already applied in
+    `settlement_baseline`, and reads back what it applied to this invoice.
+    Settlement batches with more than one transaction on an account must run
+    `--concurrency 1` (`cli run` refuses otherwise). Amounts round to the
+    invoice currency's decimal places; the credit and payment use the
+    invoice's account (`cli step` accepts an `--account` name only when the
+    manifest's Id is among the accounts with that name).
+    At most one credit and one payment are created per run (the submitted
+    flag is recorded first; any 4xx clears it; after a lost response the
+    write is never re-sent, the record is looked up by its tag for a short
+    wait, and the stage fails only if it has not appeared). A refused write is resent by a rerun and normally refused
+    again; a failed memo, two records under a tag, a reversed application, a
+    memo not applied in full (its `TotalAmountWithTax`) to this invoice, a
+    recorded memo that can no longer be read, a payment applied beyond its
+    planned target, or a `NetCreditsApplied` gain other than the run's memo
+    fail the stage; recovering needs a new run.
+    The settlement block is fixed once a settlement step records it; `cli
+    step --config` supplies it only to a manifest without one and is refused
+    if it differs (new options = a new run). Contract:
+    `scripts/txn_data_harness/docs/contracts-billing-settlement.md`; examples:
+    `scenarios/*/17-settlement.yaml`.
 
 ## DO NOT
 
@@ -83,6 +115,12 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
   verification. A behavioral claim needs a live smoke run.
 - **DO NOT** edit lifecycle payloads from memory; check
   `scripts/txn_data_harness/CONTRACTS.md` and update it with any verified change.
+- **DO NOT** create a payment for an account before its invoice posts, or
+  apply a payment to the invoice id without knowing the org is at Header
+  Level: posting can absorb open balances, and Line Level refuses an invoice
+  id. Use the settlement stages, which handle both.
+- **DO NOT** present Header Level settlement as verified; it has only been
+  tested offline.
 - **DO NOT** copy org aliases, run ids, invoice numbers, or order numbers from
   `CONTRACTS.md` / `docs/followups.md` into operator docs. Those files are
   evidence notebooks; reusable docs should use placeholders or explicitly
@@ -94,6 +132,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | ----------- | --------------- | ----- |
 | Generate Sales/Revenue Cloud demo transactions | Yes | Plan first, then run one smoke scenario. |
 | Mint standalone-billing Draft or Posted invoices (no PST chain) | Yes | Use `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml` (Draft), `15-standalone-billing.yaml` (non-taxable Posted; needs an active non-taxable `TaxTreatment`), or `15-standalone-billing-taxable.yaml` (tax-on Posted; additionally needs an active taxable `TaxTreatment`). |
+| Credit or pay demo invoices (partial, exact, over-payment) | Yes | `target_stage: payment_applied` with a `settlement:` block; see `scenarios/*/17-settlement.yaml`. Line Level verified; Header Level not. |
 | Inspect or continue a partial harness run | Yes | Use manifest-driven `inspect` / `step`. |
 | Verify orders/invoices created by the harness | Yes | Query by manifest ids. |
 | Clean up harness-created records | Yes | Explain non-deletable leftovers. |
@@ -102,7 +141,8 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | Change skill guidance itself | Maybe | Also read `skill-authoring/SKILL.md`. |
 | Create SFDMU data plans | No | Use `sfdmu-data-plans/SKILL.md`. |
 | Use general Revenue Cloud REST APIs | Maybe | Use `rlm-business-apis/SKILL.md` for API reference. |
-| Build a **backdated** Quote→Order→**Asset** chain for usage rating | No | This harness stops at invoices. Use `usage-consumption/building-usage-assets.md`. |
+| Build a **backdated** Quote→Order→**Asset** chain for usage rating | No | This harness ends at a current-dated invoice and its settlement; it does not backdate. Use `usage-consumption/building-usage-assets.md`. |
+| Configure billing settings, payment gateways, or application rules | No | Use `billing-operations/SKILL.md`; the harness only reads the application level. |
 | Record or rate usage against assets | No | Use `.cursor/skills/usage-consumption/SKILL.md`. |
 
 ### Adjacent tool: `scripts/build_quote_to_asset.py`
@@ -227,7 +267,8 @@ barriers as full runs.
 Drive cleanup from manifest ids. Delete what is deletable child → parent:
 assets/orders, then quote, then opportunity. Activated orders must be reverted to
 Draft before deletion. Posted invoices and BillingSchedules are not cleanly
-deletable; tell the user before attempting cleanup.
+deletable; settlement payments, credit memos and their application records have
+no probed cleanup path. Tell the user before attempting cleanup.
 
 For copy-paste cleanup recipes, use `docs/guides/txn-data-harness.md`.
 
@@ -246,6 +287,18 @@ For copy-paste cleanup recipes, use `docs/guides/txn-data-harness.md`.
 Inspect the manifest and plan output. Non-billing accounts cap at `order_draft` because
 activation creates BillingSchedules/Assets and needs billing setup. Recommend a
 billing-ready account for the target dataset.
+
+### User asks: "Make some invoices that are partly paid and one that was over-paid"
+
+1. Start from `scenarios/invoice_ingestion/17-settlement.yaml` (or the
+   `sales_txn_quote` one) and set `payment: {percent: 50}` / `{percent: 120}`.
+2. Run `cli plan`, then `cli run --concurrency 1` (required: posting a
+   sibling's invoice could absorb a payment between its create and apply).
+3. Inspect the manifest's `settlement` block: `application_level`,
+   `payment_mode`, `payment_amount_applied`, `invoice_balance`, warnings.
+4. Verify with `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>` (it reads the manifest's `invoice_id` and
+   `payment_ids`; report its checked and skipped counts). Query by hand only
+   what it does not check, such as the credit memo by `credit_memo_ids`.
 
 ### User asks: "Change the PST payload"
 
@@ -267,4 +320,7 @@ python -m scripts.txn_data_harness.cli verify --help
 ```
 
 For behavioral lifecycle changes, also run a live smoke scenario against a
-scratch/sandbox org and verify the manifest ids in Salesforce.
+scratch/sandbox org and verify the manifest ids in Salesforce. For settlement
+changes, run `python -m scripts.txn_data_harness.cli verify --org <sf-alias> --manifest <run_id>` and read its checked and skipped counts; use SOQL only
+for what it does not check (the credit memo's `Status` and
+`TotalAmountWithTax`, by `credit_memo_ids`).

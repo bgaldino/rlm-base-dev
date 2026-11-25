@@ -4,10 +4,22 @@ Generate realistic, high-volume Revenue Cloud demo data by driving the **real
 transaction lifecycle** against a target org. Three scenario kinds:
 
 ```text
-kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Draft Invoice → Posted Invoice
-kind: sales_txn_order           — (Opportunity) → Order (PST direct-place) → Activate → Draft Invoice → Posted Invoice
-kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Draft (or Posted) Invoice (CreationMode=External)
+kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Draft Invoice → Posted Invoice → (Credit) → (Payment)
+kind: sales_txn_order           — Order (PST direct-place) → Activate → Draft Invoice → Posted Invoice → (Credit) → (Payment)
+kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Draft (or Posted) Invoice (CreationMode=External) → (Credit) → (Payment)
 ```
+
+Every kind can continue past the Posted invoice into two **settlement**
+stages: `credit_applied` (a credit memo applied to the invoice) and
+`payment_applied` (a processed payment created after the invoice posts and
+applied to it), driven by a scenario `settlement:` block. The org's Credit,
+Payment and Refund Application Level is read once by the payment stage and
+decides whether the payment is applied to invoice lines (Line Level) or the
+invoice (Header Level); the credit stage needs no level.
+Line Level is live-verified on 264; Header Level is not. Contract:
+[`docs/contracts-billing-settlement.md`](docs/contracts-billing-settlement.md);
+examples: [`scenarios/sales_txn_quote/17-settlement.yaml`](scenarios/sales_txn_quote/17-settlement.yaml),
+[`scenarios/invoice_ingestion/17-settlement.yaml`](scenarios/invoice_ingestion/17-settlement.yaml).
 
 The two PST kinds share the same post-Order tail (Activate → Invoice → Post);
 only the head differs. `sales_txn_order` places an Order via PST directly (no
@@ -115,7 +127,7 @@ python -m scripts.txn_data_harness.generate --org <cci-alias> ...      # fails i
 | `--org` | *(required)* | Target org: sf alias or username (NOT a CCI alias). |
 | `--config` | — | YAML/JSON config file (all fields optional). |
 | `--count` | 1 | Transactions to generate. Overrides `defaults.count` in a config, but **per-scenario `count:` wins** (precedence: builtins < config `defaults` < CLI < per-scenario). To shrink a multi-scenario config for a smoke run, edit the per-scenario `count:` rather than passing `--count`. |
-| `--target-stage` | `invoice_posted` | How far to run: `opportunity_created`\|`quote_placed`\|`order_draft`\|`order_activated`\|`usage_upload`\|`invoice_draft`\|`invoice_posted`. |
+| `--target-stage` | `invoice_posted` | How far to run: `opportunity_created`\|`quote_placed`\|`order_draft`\|`order_activated`\|`usage_upload`\|`invoice_draft`\|`invoice_posted`\|`credit_applied`\|`payment_applied`. The settlement stages need a scenario `settlement:` block, so set them in a config. |
 | `--account` | auto | Pin the account by **Name**. |
 | `--product` | auto (QB-preferred) | Pin the product by **SKU**. |
 | `--with-opportunity` | off | Prepend an Opportunity the quote links to. |
@@ -181,6 +193,7 @@ ingestion path (`kind: invoice_ingestion`) runs a single `ingest_invoice` step
 that creates an `Invoice` directly — Draft or Posted, depending on
 `target_stage` — and an optional `promote_to_posted` step for the
 Draft→Posted resume case; it has no Quote/Order/Activate/BillingSchedule.
+All three kinds share the two settlement stages after `invoice_posted`.
 
 `target_stage` is hierarchical — each stage runs everything before it.
 
@@ -193,6 +206,8 @@ Draft→Posted resume case; it has no Quote/Order/Activate/BillingSchedule.
 | `usage_upload` | TransactionJournal consumption rows for opted-in usage lines | **yes** |
 | `invoice_draft` | Draft Invoice (+ lines), tagged | **yes** |
 | `invoice_posted` | Posted Invoice (InvoiceNumber assigned) | **yes** |
+| `credit_applied` | Credit memo applied to the Posted invoice (`settlement.credit`; no-op without it) | **yes** (PST kinds) |
+| `payment_applied` | Processed payment created and applied (`settlement.payment`; required: refuses without it) | **yes** (PST kinds) |
 
 An account **without** a BillingAccount still goes `quote → order` (useful
 pipeline + order demo data), but **activation** generates BillingSchedules and
@@ -258,6 +273,28 @@ count.
   cannot influence attribute or selling-model choices from YAML; bundles that
   require user input on mandatory slots will fail to place. See **Bundles caveat**
   below for the known invoice-poller workaround.
+- **Settlement is opt-in** — a `settlement:` block with `credit:` (`amount` or
+  `percent`, optional `lines`, `tax_strategy`) and/or `payment:` (`amount:
+  exact` by default, a number, or `percent`; optional `lines`) runs
+  `credit_applied` / `payment_applied` after the Posted invoice. The manifest
+  records `application_level`, `credit_memo_ids`, `payment_ids`, the
+  application record ids, the amounts applied and a `settlement_baseline` of
+  anything the platform applied at post. Settlement batches with more than one
+  transaction on an account need `--concurrency 1` (`cli run` refuses
+  otherwise). `cli step --application-level line|header` sets the level
+  until the payment is planned; at most one credit and one payment are
+  created per run. A refused write can be rerun (it is normally refused
+  again; new options need a new run) and a retryable 4xx (429, 420, a lock)
+  retries; these need a new run: a write whose outcome stayed unknown and
+  whose record never appeared, a memo in `Error` / `Canceled` / `Voided`, two
+  records under one tag, a reversed application, a memo not applied in full
+  (its `TotalAmountWithTax`) to this invoice, a recorded credit memo that can
+  no longer be read (deleted, or no access), a payment applied beyond its
+  planned target, and a `NetCreditsApplied` mismatch. The settlement block is
+  fixed once a settlement step records it on the manifest; `cli step
+  --config` supplies it only to a manifest without one. Amounts round to the
+  invoice currency's `CurrencyType.DecimalPlaces`. See `scenarios/README.md` →
+  *Settlement*.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write
   `TransactionJournal` rows after activation. `target_stage: usage_upload` stops
   after journals so you can run `cli rate --org <sf-alias>` once for the batch;
@@ -274,15 +311,21 @@ count.
 - **`requests` (default)** — native `requests.Session` with connection pooling and
   bounded retry/backoff. Sessions aren't thread-safe, so each worker gets its own
   (thread-local); all workers share the read-only token + instance URL.
-- **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest`, so
-  our process never sees a token. Maximally stable if the CLI ever stops surfacing
-  tokens, at the cost of a process spawn per call. JWT/connected-app auth is
-  outside the current command surface.
+- **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest
+  --include`, so our process sends no token (BillingSettings is read with `sf
+  project retrieve start`, bounded by `--wait 1` and a 90 s timeout). The status line it prints gives the real HTTP
+  status, so a 4xx refusal and a 5xx are told apart as on `requests`. Retries
+  are the CLI's own (its HTTP library's defaults: GET/PUT/DELETE/HEAD retried
+  up to twice on 5xx/429/network errors; POST and PATCH never), not the
+  harness's backoff. Maximally stable if the CLI ever stops surfacing tokens,
+  at the cost of a process spawn per call. JWT/connected-app auth is outside
+  the current command surface.
 
 ## Manifests & cleanup
 
 Every scenario writes `scripts/txn_data_harness/out/<run_id>.json` listing all ids it
-created (quote, order, billing schedules, assets, invoice). This directory is
+created (quote, order, billing schedules, assets, invoice, and for settlement
+runs the credit memo, payment and application records). This directory is
 **git-ignored** — it's runtime output, not source. The manifest is the source of
 truth for verification and cleanup.
 
@@ -318,6 +361,10 @@ Deletability to assume:
   isn't directly writable to Canceled). A `--target-stage invoice_draft` Draft invoice is.
 - **BillingSchedules** — **not** deletable (system-managed: "insufficient access
   rights on object id").
+- **Payments, credit memos and their application records** (settlement
+  stages) — no cleanup path is implemented or probed; treat them as leftovers.
+  An over-payment's unapplied rest stays on the payment and the account's next
+  invoice posted through the post action may absorb it.
 
 See [`docs/guides/txn-data-harness.md`](../../docs/guides/txn-data-harness.md)
 → *Cleanup* for copy-paste recipes. There is no dedup/idempotency — re-running adds
@@ -345,6 +392,9 @@ a fresh batch with a new run id (by design).
   org **admin** — that is the assumed invoker. The minimal PSL/PS for a
   non-admin/integration user is out of scope and intentionally not specified
   here.
+- **Settlement: Header Level not live-verified.** The settlement stages were
+  verified at Line Level only; the Header Level branch follows the developer
+  guide. Open items: `docs/followups.md` → *Billing settlement*.
 - **Composite batching intentionally skipped.** The lifecycle is async-poll-bound,
   not request-bound, so Composite would save negligible wall-clock;
   scenario-level concurrency is the real win. See `CONTRACTS.md` for the

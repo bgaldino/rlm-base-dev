@@ -2,7 +2,7 @@
 
 Both ``sales_txn_quote`` and ``sales_txn_order`` drive the same post-Quote/
 post-Order tail: ``order_activated -> usage_upload -> invoice_draft ->
-invoice_posted``. Only the head differs -- quote-path goes through PST place
+invoice_posted -> credit_applied -> payment_applied``. Only the head differs -- quote-path goes through PST place
 + ``order_from_quote``; order-path goes through PST place-on-Order
 (``order_direct``). The split lives in each subclass's :attr:`STAGES` and
 :attr:`STEP_GRAPH`; the resolve/run/retry/summarize logic is shared here so a
@@ -27,6 +27,7 @@ from ..failure import classify_exception
 from ..lifecycle import LifecycleError
 from ..manifests import write_manifest
 from ..models import IMPLEMENTED_MAX_STAGE, Manifest, ResolvedSpec
+from .base import settlement_summary
 from ..steps import StepContext, execute_step
 
 log = logging.getLogger("txn_data_harness.handlers.sales_transaction_base")
@@ -203,6 +204,7 @@ class SalesTransactionBaseHandler:
             start_date=start_date,
             checkpoint=write_manifest,
             target_stage=target_stage,
+            settlement=getattr(resolved.spec, "settlement", None),
         )
 
         effective = self.effective_stage(target_stage, resolved.account)
@@ -217,9 +219,10 @@ class SalesTransactionBaseHandler:
                 for public_stage in public_stages:
                     internal = self._internal_step(public_stage)
                     manifest = execute_step(internal, step_ctx, manifest)
+                    # Same write as the stage reached: no stale error survives.
+                    manifest.error = None
+                    manifest.failure_class = None
                     write_manifest(manifest)
-                manifest.error = None
-                manifest.failure_class = None
                 break
             except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
                 manifest.error = (
@@ -287,4 +290,5 @@ class SalesTransactionBaseHandler:
                 "error": m.invoice_order_link_error,
             },
             "invoice_number": m.invoice_number,
+            "settlement": settlement_summary(m),
         }

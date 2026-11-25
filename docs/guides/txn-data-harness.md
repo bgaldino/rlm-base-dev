@@ -1,8 +1,9 @@
 # Guide: Transaction Data Harness
 
 How to populate a Revenue Cloud org with realistic, high-volume demo data —
-Opportunities, Quotes, Orders, activated Assets, Billing Schedules, and **Posted
-Invoices** — by driving the real transaction lifecycle.
+Opportunities, Quotes, Orders, activated Assets, Billing Schedules, **Posted
+Invoices**, and optionally credits and payments applied to them — by driving the
+real transaction lifecycle.
 
 The tool lives at [`scripts/txn_data_harness/`](../../scripts/txn_data_harness/); its
 [`README.md`](../../scripts/txn_data_harness/README.md) is the CLI/flag/config reference.
@@ -19,6 +20,7 @@ demo invoices is to run the actual chain:
 (Opportunity) → Quote (Place Sales Transaction) → Order (createOrderFromQuote)
    → Activate Order → [BillingSchedule + Asset auto-generated]
    → Generate Invoice (Draft) → Post Invoice
+   → (Credit memo applied) → (Payment created and applied)
 ```
 
 Every endpoint, body, response shape, and async-polling rule the tool relies on is
@@ -83,6 +85,24 @@ python -m scripts.txn_data_harness.cli run --org <sf-alias> --count 1 --target-s
 python -m scripts.txn_data_harness.generate --org <sf-alias> --target-stage order_activated  # stops after activation
 python -m scripts.txn_data_harness.generate --org <sf-alias> --target-stage invoice_draft     # leaves a Draft invoice
 ```
+
+Settlement past the Posted invoice needs a `settlement:` block, so it runs from
+a config (all three kinds):
+
+```bash
+python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml
+python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+  --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml --concurrency 1
+```
+
+`--concurrency 1` is required when a settlement target shares its account with
+another transaction in the batch: posting an invoice applies the account's open
+payment balance to it. The manifest's `settlement` block (via `cli inspect`) gives the application
+level read from the org, the credit memo and payment ids, the application
+records, the amounts applied, and anything the platform applied at post.
+Contract: `scripts/txn_data_harness/docs/contracts-billing-settlement.md`
+(Line Level live-verified on 264; Header Level not).
 
 ### 4. Volume + concurrency
 
@@ -256,7 +276,9 @@ Checkpointing uses completed stage barriers. For example, `activate` is not
 recorded as reached until BillingSchedule polling and asset polling finish. Draft
 invoice ingestion retries only if a transient failure happens before any invoice
 id is observed; once the org returns an invoice id, the manifest keeps that id and
-the run stops rather than replaying the ingest graph.
+the run stops rather than replaying the ingest graph, unless the invoice is
+already Posted: the settlement stages after it are retried, since they find
+their own payment and credit memo again and apply only what is still missing.
 
 ## Verifying in the org
 
@@ -325,6 +347,10 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
   Canceled," and `Invoice.Status` is not directly writable to `Canceled`. A *Draft*
   invoice (a `--target-stage invoice_draft` run) **is** deletable.
 - **BillingSchedules** — "insufficient access rights on object id"; system-managed.
+- **Settlement records** — payments, credit memos and their application records
+  from `credit_applied` / `payment_applied`. No cleanup path was probed; an
+  over-payment's unapplied rest stays on the payment and may be applied to the
+  account's next posted invoice.
 
 ## Troubleshooting
 

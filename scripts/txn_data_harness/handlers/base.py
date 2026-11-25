@@ -69,3 +69,37 @@ class ScenarioHandler(Protocol):
     ) -> Manifest:
         """Drive one scenario through this kind's lifecycle."""
         ...
+
+
+def settlement_summary(m: Manifest) -> Optional[dict[str, Any]]:
+    """Settlement block of an inspect/report summary; ``None`` before settlement.
+
+    Shared by every kind so ``credit_applied`` / ``payment_applied`` read the
+    same way whichever lifecycle produced the invoice.
+    """
+    if not (m.application_level or m.credit_memo_ids or m.payment_ids or m.settlement_warnings):
+        return None
+    return {
+        "application_level": m.application_level,
+        "application_level_source": m.application_level_source,
+        "baseline": m.settlement_baseline,
+        "credit": {
+            "memo_ids": m.credit_memo_ids,
+            "application_ids": m.credit_application_ids,
+            "requested": m.credit_amount_requested,
+            "applied": m.credit_amount_applied,
+            "submitted": m.credit_submitted,
+            "baseline": m.credit_baseline,
+        },
+        "payment": {
+            "ids": m.payment_ids,
+            "submitted": m.payment_submitted,
+            "application_ids": m.payment_application_ids,
+            "amount": m.payment_amount,
+            "planned_apply": m.payment_apply_target,
+            "applied": m.payment_amount_applied,
+            "mode": m.payment_mode,
+        },
+        "invoice_balance": m.invoice_balance,
+        "warnings": m.settlement_warnings,
+    }

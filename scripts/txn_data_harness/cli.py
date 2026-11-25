@@ -17,9 +17,15 @@ import requests
 from . import generate
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
-from .config import ConfigError, load_scenarios
+from .config import (
+    ConfigError,
+    check_settlement_stage,
+    load_scenarios,
+    settlement_from_dict,
+)
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
-from .lifecycle import LifecycleError
+from .failure import classify_exception
+from .lifecycle import LifecycleError, SettlementError
 from .manifests import (
     MANIFEST_DIR,
     list_manifests,
@@ -31,7 +37,7 @@ from .manifests import (
     write_manifest,
 )
 from .handlers import SCENARIO_HANDLERS
-from .models import STAGES_QUOTE, LineItem
+from .models import STAGES_QUOTE, STAGES_SETTLEMENT, LineItem
 from .report import build_batch_report, render_markdown
 from .runner import draw_lines
 from .steps import StepContext, execute_step
@@ -185,12 +191,7 @@ def _cmd_step(args: argparse.Namespace) -> int:
         args.org, api_version=args.api_version, transport=args.transport
     )
     manifest = load_manifest(args.manifest)
-    account_name = args.account or manifest.account_name
-    if not account_name:
-        raise DiscoveryError(
-            "step requires --account when the manifest has no account_name"
-        )
-    account = resolve_account(client, account_name)
+    account = _resolve_step_account(client, args, manifest)
     ctx = discover(
         client,
         account_name=account.name,
@@ -221,12 +222,28 @@ def _cmd_step(args: argparse.Namespace) -> int:
     steps = handler.remaining_steps(
         manifest.reached_stage, target, args.with_opportunity
     )
+    # --config is checked before anything else, so it is never ignored -- not
+    # even on a manifest that already reached the target.
+    settlement = _settlement_for_step(args, manifest, client)
+    if getattr(args, "application_level", None):
+        if args.to_stage != "payment_applied":
+            raise LifecycleError(
+                "step", "--application-level applies only to --to-stage payment_applied "
+                "(the level decides where the payment is applied)",
+            )
+        if not steps:
+            raise LifecycleError(
+                "step", f"--application-level: manifest {manifest.run_id} already reached "
+                f"{manifest.reached_stage}; nothing would run with it",
+            )
     if not steps:
+        # Nothing runs, so nothing changes: an earlier error stays. Only a
+        # step that runs and succeeds clears error / failure_class.
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
 
     step_ctx = _build_step_context(
-        args, handler, client, ctx, account, manifest
+        args, handler, client, ctx, account, manifest, settlement=settlement
     )
 
     try:
@@ -241,13 +258,59 @@ def _cmd_step(args: argparse.Namespace) -> int:
                 else step
             )
             manifest = execute_step(internal_step, step_ctx, manifest)
+            # The write that records the stage reached also clears an earlier
+            # failure (one write: a kill cannot leave a stale error behind).
+            manifest.error = None
+            manifest.failure_class = None
             write_manifest(manifest)
-    except LifecycleError as exc:
-        manifest.error = str(exc)
+    except Exception as exc:  # noqa: BLE001 -- record any failure, then re-raise
+        # SfApiError (a 5xx, or a refusal outside a settlement call) and
+        # transport errors land here as well as LifecycleError.
+        manifest.error = (
+            str(exc) if isinstance(exc, LifecycleError) else f"{type(exc).__name__}: {exc}"
+        )
+        manifest.failure_class = classify_exception(exc)
         write_manifest(manifest)
         raise
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
+
+
+def _resolve_step_account(client: SfRestClient, args: argparse.Namespace, manifest):
+    """The account a ``cli step`` resume runs against.
+
+    The manifest's ``account_id`` is used when it has one (looked up by Id, so
+    a rename or a duplicate name cannot redirect a resume). ``--account``
+    must then name that account: names are not unique, so it is accepted when
+    the manifest's Id is among the accounts with that name; otherwise it is
+    refused before anything is written.
+    """
+    from .discovery import account_ids_named
+
+    if args.account and manifest.account_id:
+        ids = account_ids_named(client, args.account)
+        if manifest.account_id not in ids:
+            raise LifecycleError(
+                "step",
+                f"--account '{args.account}' resolves to {', '.join(ids) or 'no account'}, "
+                f"but manifest {manifest.run_id} belongs to account {manifest.account_id} "
+                f"('{manifest.account_name}'); omit --account to use the manifest's",
+            )
+    elif args.account:
+        return resolve_account(client, args.account)
+    if manifest.account_id:
+        return resolve_account(
+            client, manifest.account_name or manifest.account_id,
+            account_id=manifest.account_id,
+        )
+    if not manifest.account_name:
+        raise DiscoveryError(
+            "step requires --account when the manifest has no account_name"
+        )
+    return resolve_account(client, manifest.account_name)
+
+
+_UNSET = object()
 
 
 def _build_step_context(
@@ -257,6 +320,7 @@ def _build_step_context(
     ctx,
     account,
     manifest,
+    settlement=_UNSET,
 ) -> StepContext:
     """Build the per-kind StepContext for a ``cli step`` invocation.
 
@@ -267,6 +331,8 @@ def _build_step_context(
     ``ingest_invoice`` is already done by the time we hit ``promote_to_posted``
     and the remaining step (post the existing Draft) only needs the invoice id.
     """
+    if settlement is _UNSET:
+        settlement = _settlement_for_step(args, manifest, client)
     if handler.kind == "invoice_ingestion":
         return StepContext(
             client=client,
@@ -280,6 +346,8 @@ def _build_step_context(
             target_stage=args.to_stage,
             invoice_lines=[],
             invoice_spec=None,
+            settlement=settlement,
+            application_level_override=getattr(args, "application_level", None),
         )
 
     # Persisted selection wins; do not run unrelated default discovery first.
@@ -297,7 +365,7 @@ def _build_step_context(
         if len(currencies) > 1:
             raise ConfigError("Manifest lines must use the same currency")
         account = replace(account, currency_iso_code=lines[0].product.currency_iso_code)
-    if not lines and args.to_stage not in {"invoice_draft", "invoice_posted"}:
+    if not lines and args.to_stage not in {"invoice_draft", "invoice_posted", *STAGES_SETTLEMENT}:
         raise LifecycleError(
             "step", "no manifest lines or config product lines to use"
         )
@@ -310,7 +378,130 @@ def _build_step_context(
         with_opportunity=args.with_opportunity,
         poll_timeout=args.poll_timeout,
         checkpoint=write_manifest,
+        target_stage=args.to_stage,
+        settlement=settlement,
+        application_level_override=getattr(args, "application_level", None),
     )
+
+
+def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
+    """Settlement options for a ``cli step`` resume.
+
+    Only a settlement target (``credit_applied`` / ``payment_applied``) reads
+    them. The block is fixed once recorded on the manifest (the first
+    settlement step records it): the recorded block is used, and a
+    ``--config`` that differs from it is refused, naming the keys (changed
+    options = a new run). ``--config`` supplies the block only when the
+    manifest has none; it is evaluated against ``--to-stage``, not the file's
+    own ``target_stage``. A settlement target with no options at all fails
+    here, before any org write.
+    """
+    to_stage = getattr(args, "to_stage", None)
+    if to_stage not in STAGES_SETTLEMENT:
+        return None
+    config = getattr(args, "config", None)
+    if manifest.settlement is not None:
+        recorded = settlement_from_dict(manifest.settlement)
+        if config:
+            wanted = _config_settlement(args, manifest, client)
+            diffs = _settlement_diff(
+                _trim(recorded, to_stage).to_dict() if recorded else {},
+                _trim(wanted, to_stage).to_dict(),
+            )
+            if diffs:
+                raise SettlementError(
+                    "step",
+                    f"--config's settlement block differs from the one recorded on "
+                    f"manifest {manifest.run_id} in {', '.join(diffs)}. The recorded "
+                    "block is fixed: drop --config to resume with it, or start a new "
+                    "run for different options",
+                )
+        if (
+            to_stage == "payment_applied"
+            and (recorded is None or recorded.payment is None)
+            and manifest.reached_stage != "payment_applied"
+        ):
+            # Refuse before any step runs: the credit stage would otherwise
+            # write first and the payment stage refuse only afterwards.
+            raise SettlementError(
+                "step",
+                f"--to-stage payment_applied: manifest {manifest.run_id}'s recorded "
+                "settlement block has no 'payment' and is fixed; stop at "
+                "credit_applied, or start a new run whose block has 'payment'",
+            )
+        return None
+    if not config:
+        raise SettlementError(
+            "step",
+            f"--to-stage {to_stage} needs settlement options: the manifest has none; pass "
+            f"--config with a scenario of kind '{manifest.kind}' for account "
+            f"'{manifest.account_name}' with a 'settlement:' block",
+        )
+    return _config_settlement(args, manifest, client)
+
+
+def _trim(spec, to_stage: str):
+    """The parts of ``spec`` a run to ``to_stage`` records (see steps)."""
+    from .config import SettlementSpec
+
+    if to_stage == "credit_applied" and spec.payment is not None:
+        return SettlementSpec(spec.application_level, spec.credit, None)
+    return spec
+
+
+def _config_settlement(args: argparse.Namespace, manifest, client):
+    """The one ``settlement:`` block ``--config`` holds for this manifest."""
+    from .discovery import account_ids_named
+
+    ids_by_name: dict[str, list[str]] = {}
+
+    def same_account(name: str) -> bool:
+        if not manifest.account_name or name == manifest.account_name:
+            return True
+        if client is None or not manifest.account_id:
+            return False
+        if name not in ids_by_name:
+            ids_by_name[name] = account_ids_named(client, name)
+        return manifest.account_id in ids_by_name[name]
+
+    matches = []
+    for spec in load_scenarios(args, settlement_stage=args.to_stage):
+        settlement = getattr(spec, "settlement", None)
+        if settlement is None or spec.kind != manifest.kind:
+            continue
+        if spec.account and not same_account(spec.account):
+            continue
+        if settlement not in matches:
+            matches.append(settlement)
+    if len(matches) == 1:
+        # The --to-stage check runs on the matching scenario only.
+        check_settlement_stage(matches[0], args.to_stage, "--config")
+        return matches[0]
+    if len(matches) > 1:
+        raise SettlementError(
+            "step",
+            f"--config has {len(matches)} different settlement blocks for kind "
+            f"'{manifest.kind}' / account '{manifest.account_name}'; pass a config "
+            "with one matching scenario",
+        )
+    raise SettlementError(
+        "step",
+        f"--config has no scenario of kind '{manifest.kind}' for account "
+        f"'{manifest.account_name}' ({manifest.account_id}) with a 'settlement:' block",
+    )
+
+
+def _settlement_diff(a, b, prefix: str = "") -> list[str]:
+    """Dotted keys whose values differ between two settlement dicts."""
+    keys = []
+    for key in sorted(set(a or {}) | set(b or {})):
+        va, vb = (a or {}).get(key), (b or {}).get(key)
+        name = f"{prefix}{key}"
+        if isinstance(va, dict) and isinstance(vb, dict):
+            keys.extend(_settlement_diff(va, vb, f"{name}."))
+        elif va != vb:
+            keys.append(name)
+    return keys
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
@@ -499,6 +690,13 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     step.add_argument("--manifest", required=True, help="Run id or manifest path.")
     step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
+    step.add_argument("--application-level", choices=["line", "header"],
+                      help="--to-stage payment_applied only: set the "
+                           "application level when it could not be read or was read "
+                           "wrong. A value equal to the recorded level is ignored; a "
+                           "different one is refused once the payment is planned, and "
+                           "the flag is refused when the manifest already reached "
+                           "--to-stage.")
     step.set_defaults(func=_cmd_step)
 
     report = sub.add_parser("report", help="Rebuild a batch report from on-disk manifests.")
@@ -516,8 +714,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     add_connection_args(verify)
     verify.add_argument("--manifest", action="append",
                         help="Run id or manifest path (repeatable); reads its "
-                             "invoice_id(s), and payment_id(s) if it has them "
-                             "(harness stages write none).")
+                             "invoice_id(s) and payment_id(s) (the settlement "
+                             "stage payment_applied writes payment_ids).")
     verify.add_argument("--latest", action="store_true",
                         help="Add the ids of the newest manifest only.")
     verify.add_argument("--invoice-ids", action="append",

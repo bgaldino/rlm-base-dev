@@ -168,7 +168,7 @@ class FakeClient:
         self.query_responses: list[list[dict]] = []
         self.get_responses: list[object] = []
 
-    def post(self, path: str, body: object):
+    def post(self, path: str, body: object, **kwargs):
         self.posts.append((path, body))
         return self.post_responses.pop(0) if self.post_responses else {"success": True, "id": "NEWID"}
 

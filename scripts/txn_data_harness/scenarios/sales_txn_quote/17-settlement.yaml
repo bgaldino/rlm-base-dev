@@ -1,0 +1,52 @@
+# Settlement -- credit and pay Posted invoices (quote path).
+#
+#   python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/17-settlement.yaml \
+#       --concurrency 1
+#
+# --concurrency 1 is required: both scenarios use one account, and posting an
+# invoice applies the account's open payment balance to it, so parallel
+# scenarios could take each other's payment. `cli run` refuses otherwise.
+#
+# After `invoice_posted`, `credit_applied` credits the invoice with one credit
+# memo and `payment_applied` creates one processed payment (no gateway) and
+# applies it. The org's Credit, Payment and Refund Application Level is read
+# once (Billing Settings) and decides where applications land: invoice lines
+# at Line Level, the invoice at Header Level. The manifest records the level,
+# the credit memo / payment ids, the application record ids and the amounts.
+#
+# Order matters: posting an invoice can apply the account's open payment and
+# credit balances to it. The payment is created only after the invoice posts,
+# and what the platform applied first is recorded in `settlement_baseline`.
+# An over-payment leaves its rest on the payment, where the account's next
+# posted invoice may absorb it.
+#
+# Contract: docs/contracts-billing-settlement.md (Line Level live-verified on
+# 264; Header Level not).
+defaults:
+  kind: sales_txn_quote
+  target_stage: payment_applied
+
+scenarios:
+  # Fully settled: a 10% credit (tax added in proportion on taxed lines), then
+  # a payment for exactly what is left.
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 1
+    settlement:
+      credit: {percent: 10}
+      payment: {amount: exact}
+
+  # Partially paid: a fixed credit and a fixed payment smaller than the rest.
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 2
+    count: 1
+    settlement:
+      credit: {amount: 50}
+      payment: {amount: 300}

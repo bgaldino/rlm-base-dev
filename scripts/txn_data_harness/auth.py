@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -53,14 +54,87 @@ class SfCliError(RuntimeError):
 
 
 class SfApiError(RuntimeError):
-    """A Salesforce REST call returned a non-2xx status after retries."""
+    """A Salesforce REST call returned a non-2xx status after retries.
 
-    def __init__(self, status: int, body: str, method: str, path: str):
+    ``body`` is kept raw for classification (status, ``errorCode``). It is
+    either a server response body, or -- with ``safe_text=True`` -- a message
+    the harness composed itself and already made safe (a transport failure,
+    a CLI error from ``_sf_error_text``). ``detail`` and ``str()`` render it
+    for people through :func:`render_error_body`, so a raw page never
+    reaches an error message or a log line.
+    """
+
+    def __init__(
+        self, status: int, body: str, method: str, path: str, *, safe_text: bool = False
+    ):
         self.status = status
         self.body = body
         self.method = method
         self.path = path
-        super().__init__(f"{method} {path} -> HTTP {status}: {body[:500]}")
+        self.safe_text = safe_text
+        super().__init__(f"{method} {path} -> HTTP {status}: {self.detail}")
+
+    @property
+    def detail(self) -> str:
+        return render_error_body(self.body, safe=self.safe_text)
+
+
+def error_entries(data: Any) -> list[dict]:
+    """The error objects of a decoded Connect/REST error body, defensively.
+
+    Walks only the expected shapes -- a list of errors, or a dict with
+    ``output.errors`` and ``output.referenceLineErrorResults[].errors`` -- and
+    skips any value that is not the expected dict/list.
+    """
+    out: list[dict] = []
+
+    def add(errors: Any) -> None:
+        if isinstance(errors, list):
+            out.extend(e for e in errors if isinstance(e, dict))
+
+    if isinstance(data, list):
+        add(data)
+    elif isinstance(data, dict):
+        output = data.get("output")
+        if isinstance(output, dict):
+            add(output.get("errors"))
+            refs = output.get("referenceLineErrorResults")
+            if isinstance(refs, list):
+                for ref in refs:
+                    if isinstance(ref, dict):
+                        add(ref.get("errors"))
+    return out
+
+
+def render_error_body(body: Optional[str], *, safe: bool = False) -> str:
+    """An error body for people. The one rendering rule; never raises.
+
+    Text the harness composed itself (``safe``): shown as is. A JSON body:
+    the string ``errorCode`` / ``message`` of its error objects
+    (:func:`error_entries`), else a top-level string ``message``, else the
+    JSON itself, capped. Any other body (an HTML maintenance page, a SOAP
+    fault, proxy output): its length only, never shown.
+    """
+    import html
+
+    text = body if isinstance(body, str) else ("" if body is None else str(body))
+    if safe:
+        return text[:500]
+    try:
+        data = json.loads(text)
+    except (TypeError, ValueError):
+        return f"a non-JSON body ({len(text)} characters, not shown)"
+    try:
+        msgs: list[str] = []
+        for e in error_entries(data):
+            message, code = e.get("message"), e.get("errorCode")
+            if isinstance(message, str) and message:
+                msgs.append(f"{code}: {message}" if isinstance(code, str) and code else message)
+        if not msgs and isinstance(data, dict) and isinstance(data.get("message"), str):
+            msgs.append(data["message"])
+        return html.unescape("; ".join(msgs)) if msgs else text[:500]
+    except Exception:  # noqa: BLE001 -- rendering must never hide the real error
+        return f"an error body ({len(text)} characters) that could not be read"
 
 
 def _run_sf(args: list[str]) -> dict:
@@ -109,6 +183,30 @@ def _sf_error_text(proc: subprocess.CompletedProcess) -> str:
     return f"no error text ({len(proc.stdout)} characters of output, not shown)"
 
 
+def _sf_error_name(proc: subprocess.CompletedProcess) -> Optional[str]:
+    """The ``name`` of the JSON error a failed ``sf --json`` call prints, if any
+    (an ``sf:`` prefix removed). Structured field only; stdout is not shown."""
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    name = payload.get("name") if isinstance(payload, dict) else None
+    if not isinstance(name, str) or not name:
+        return None
+    return name.split(":", 1)[1] if name.startswith("sf:") else name
+
+
+# sf error names that refuse a call for good: a retry cannot succeed. Only
+# measured names: NamedOrgNotFoundError (unknown alias, sf 2.159, exit 2), plus
+# the Salesforce refusal codes sf passes through (optionally ``sf:``-prefixed).
+# Not RefreshTokenAuthError: sf-core raises it for any failed refresh,
+# network errors and OAuth 5xx included.
+_SF_REFUSAL_NAMES = frozenset({
+    "INSUFFICIENT_ACCESS", "INSUFFICIENT_ACCESS_OR_READONLY", "INVALID_SESSION_ID",
+    "API_DISABLED_FOR_ORG", "INVALID_TYPE", "NamedOrgNotFoundError",
+})
+
+
 def resolve_auth(alias: str) -> tuple[str, str]:
     """Resolve ``(access_token, instance_url)`` for an sf alias/username.
 
@@ -135,6 +233,60 @@ def resolve_auth(alias: str) -> tuple[str, str]:
             f"Check `sf org display --target-org {alias} --json`."
         )
     return access_token, instance_url.rstrip("/")
+
+
+# SOAP faultcodes that refuse a Metadata read for good (they arrive as HTTP 500).
+_SOAP_REFUSALS = frozenset({
+    "INVALID_SESSION_ID", "INSUFFICIENT_ACCESS", "INVALID_TYPE",
+    "INSUFFICIENT_ACCESS_OR_READONLY", "API_DISABLED_FOR_ORG",
+})
+
+
+def soap_faultcode(text: str) -> Optional[str]:
+    """The ``faultcode`` of a SOAP fault body without its prefix, else ``None``."""
+    m = re.search(r"<faultcode>\s*(?:[\w-]+:)?(\w+)\s*</faultcode>", text or "")
+    return m.group(1) if m else None
+
+
+# BillingSettings retrieve on the cli transport: sf's --wait and our own cap.
+_RETRIEVE_WAIT_MINUTES = 1
+_RETRIEVE_TIMEOUT_S = 90
+
+# Metadata SOAP readMetadata for BillingSettings (no REST equivalent).
+_BILLING_SETTINGS_SOAP = (
+    '<?xml version="1.0" encoding="utf-8"?>'
+    '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+    'xmlns:met="http://soap.sforce.com/2006/04/metadata">'
+    "<soapenv:Header><met:SessionHeader><met:sessionId>{session}</met:sessionId>"
+    "</met:SessionHeader></soapenv:Header><soapenv:Body><met:readMetadata>"
+    "<met:type>BillingSettings</met:type><met:fullNames>Billing</met:fullNames>"
+    "</met:readMetadata></soapenv:Body></soapenv:Envelope>"
+)
+
+
+_CLI_STATUS_LINE = re.compile(r"^HTTP/\S+\s+(\d{3})\b")
+_CLI_HEADER_LINE = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+:")
+
+
+def parse_cli_response(stdout: str) -> tuple[Optional[int], str]:
+    """Split ``sf api request rest --include`` output into ``(status, body)``.
+
+    The CLI prints ``HTTP/1.1 <status>``, the response headers one per line,
+    then the body, with no blank line in between (sf 2.159, measured
+    2026-11-25 on 200, 400 and 404). Returns ``(None, stdout)`` when there is
+    no status line (the request never reached the API).
+    """
+    text = (stdout or "").lstrip("\r\n")
+    lines = text.split("\n")
+    m = _CLI_STATUS_LINE.match(lines[0]) if lines else None
+    if not m:
+        return None, (stdout or "").strip()
+    i = 1
+    while i < len(lines) and _CLI_HEADER_LINE.match(lines[i].rstrip("\r")):
+        i += 1
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    return int(m.group(1)), "\n".join(lines[i:]).strip()
 
 
 @dataclass
@@ -206,8 +358,11 @@ class SfRestClient:
     def get(self, path: str) -> Any:
         return self._request("GET", path)
 
-    def post(self, path: str, body: Any) -> Any:
-        return self._request("POST", path, body)
+    def post(self, path: str, body: Any, *, retry: bool = True) -> Any:
+        """POST ``body``. ``retry=False`` sends it once: for actions with no
+        idempotency key, where a 5xx after the server committed would make a
+        transport-level retry act twice. The caller decides what to do."""
+        return self._request("POST", path, body, retry=retry)
 
     def patch(self, path: str, body: Any) -> Any:
         return self._request("PATCH", path, body)
@@ -236,11 +391,11 @@ class SfRestClient:
         return records
 
     # ----- transport dispatch ------------------------------------------------
-    def _request(self, method: str, path: str, body: Any = None) -> Any:
+    def _request(self, method: str, path: str, body: Any = None, *, retry: bool = True) -> Any:
         path = self._normalize_path(path)
         if self.transport == "cli":
             return self._request_cli(method, path, body)
-        return self._request_requests(method, path, body)
+        return self._request_requests(method, path, body, retry=retry)
 
     @staticmethod
     def _normalize_path(path: str) -> str:
@@ -259,32 +414,43 @@ class SfRestClient:
             return parts.path + (f"?{parts.query}" if parts.query else "")
         return path
 
-    def _request_requests(self, method: str, path: str, body: Any) -> Any:
+    def _request_requests(
+        self, method: str, path: str, body: Any, *, retry: bool = True
+    ) -> Any:
         url = f"{self.instance_url}{path}"
         data = json.dumps(body) if body is not None else None
         last_exc: Optional[Exception] = None
-        for attempt in range(_MAX_RETRIES):
+        attempts = _MAX_RETRIES if retry else 1
+        for attempt in range(attempts):
             try:
                 resp = self._session.request(method, url, data=data)
             except requests.RequestException as exc:
                 last_exc = exc
-                self._sleep_backoff(attempt, reason=str(exc))
+                if attempt < attempts - 1:
+                    self._sleep_backoff(attempt, reason=str(exc))
                 continue
-            if resp.status_code in _RETRYABLE_STATUS and attempt < _MAX_RETRIES - 1:
+            if resp.status_code in _RETRYABLE_STATUS and attempt < attempts - 1:
                 self._sleep_backoff(attempt, reason=f"HTTP {resp.status_code}")
                 continue
             if not (200 <= resp.status_code < 300):
                 raise SfApiError(resp.status_code, resp.text, method, path)
             return self._decode(resp.status_code, resp.text)
-        raise SfApiError(-1, f"exhausted retries: {last_exc}", method, path)
+        raise SfApiError(-1, f"exhausted retries: {last_exc}", method, path, safe_text=True)
 
     def _request_cli(self, method: str, path: str, body: Any) -> Any:
         """Fallback transport: ``sf api request rest`` makes the call for us.
 
-        Our process never handles a token here. Non-2xx is reported by the CLI
-        on stderr / non-zero exit; we surface it as SfApiError.
+        Our process never handles a token here. ``--include`` makes the CLI
+        print the HTTP status line and headers ahead of the body, so a
+        non-2xx surfaces as ``SfApiError`` with the real HTTP status (a 400
+        refusal and a 503 are told apart exactly as on the ``requests``
+        transport) and the bare response body. A failure that never reached
+        the API (no status line: auth, CLI error) keeps the CLI exit code as
+        ``status``, which is outside every HTTP range.
         """
-        args = ["sf", "api", "request", "rest", path, "--target-org", self.alias]
+        args = [
+            "sf", "api", "request", "rest", path, "--target-org", self.alias, "--include",
+        ]
         tmp = None
         if method != "GET":
             args += ["--method", method]
@@ -299,12 +465,92 @@ class SfRestClient:
         finally:
             if tmp is not None:
                 os.unlink(tmp.name)
-        out = proc.stdout.strip()
-        if proc.returncode != 0:
-            raise SfApiError(
-                proc.returncode, proc.stderr.strip() or out, method, path
-            )
-        return self._decode(200, out)
+        status, text = parse_cli_response(proc.stdout)
+        if status is None:
+            if proc.returncode != 0:
+                # No HTTP status: the call never reached the API. Same rule as
+                # _run_sf -- never echo raw sf stdout.
+                raise SfApiError(
+                    proc.returncode, _sf_error_text(proc), method, path, safe_text=True
+                )
+            return self._decode(200, text)
+        if not (200 <= status < 300):
+            raise SfApiError(status, text, method, path)
+        return self._decode(status, text)
+
+    # ----- metadata read (BillingSettings) -----------------------------------
+    def read_billing_settings_xml(self) -> Optional[str]:
+        """The org's ``BillingSettings`` XML, or ``None`` when refused.
+
+        A refusal returns ``None``: an HTTP 4xx other than 420/429, or a SOAP
+        fault whose ``faultcode`` is a refusal (:data:`_SOAP_REFUSALS`; SOAP
+        faults come back as HTTP 500 -- measured: ``INVALID_SESSION_ID``).
+        On ``cli`` a failed retrieve whose JSON error ``name`` is a refusal
+        (:data:`_SF_REFUSAL_NAMES`, e.g. ``NamedOrgNotFoundError``) returns
+        ``None`` too. Anything that may clear on a retry (another 5xx,
+        420/429, a network error, a retrieve that timed out or failed with
+        any other error) raises ``SfApiError`` /
+        ``requests.RequestException`` so the caller can classify it as
+        transient.
+
+        There is no REST read for it. ``requests``: Metadata SOAP
+        ``readMetadata`` through this thread's session (the SOAP API takes the
+        session only inside the envelope, not as a bearer header -- measured
+        2026-11-25: ``INVALID_SESSION_ID``). ``cli``: ``sf project retrieve
+        start --metadata Settings:Billing`` into a temporary directory, so our
+        process never handles a token (works outside an sfdx project).
+        """
+        if self.transport == "cli":
+            return self._read_billing_settings_cli()
+        resp = self._session.post(
+            f"{self.instance_url}/services/Soap/m/{self.api_version}",
+            data=_BILLING_SETTINGS_SOAP.format(session=self.access_token).encode("utf-8"),
+            headers={"Content-Type": "text/xml; charset=UTF-8", "SOAPAction": '""'},
+            timeout=60,
+        )
+        fault = soap_faultcode(resp.text) if resp.status_code != 200 else None
+        if (
+            400 <= resp.status_code < 500 and resp.status_code not in _RETRYABLE_STATUS
+        ) or fault in _SOAP_REFUSALS:
+            log.warning("BillingSettings read refused: HTTP %s %s", resp.status_code, fault or "")
+            return None
+        if resp.status_code != 200:
+            raise SfApiError(resp.status_code, resp.text, "POST", "/services/Soap/m")
+        return resp.text
+
+    def _read_billing_settings_cli(self) -> Optional[str]:
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            # ``--wait`` (minutes) bounds sf's own polling (33 min by default);
+            # the subprocess timeout bounds everything else. The caller holds
+            # the per-org level lock, so this must never hang.
+            try:
+                proc = subprocess.run(
+                    ["sf", "project", "retrieve", "start", "--metadata", "Settings:Billing",
+                     "--target-metadata-dir", tmp, "--unzip", "--target-org", self.alias,
+                     "--wait", str(_RETRIEVE_WAIT_MINUTES), "--json"],
+                    capture_output=True, text=True, timeout=_RETRIEVE_TIMEOUT_S,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise SfApiError(
+                    -1, f"retrieve timed out after {_RETRIEVE_TIMEOUT_S}s", "retrieve",
+                    "Settings:Billing", safe_text=True,
+                ) from exc
+            if proc.returncode != 0:
+                # Refused for good (permission, auth, unknown alias): like a 4xx
+                # on the requests transport, return None. Anything else may
+                # clear on a retry: raise (classed transient).
+                if (_sf_error_name(proc) or "") in _SF_REFUSAL_NAMES:
+                    log.warning("BillingSettings retrieve refused: %s",
+                                _sf_error_text(proc)[:300])
+                    return None
+                raise SfApiError(
+                    -1, _sf_error_text(proc)[:300], "retrieve", "Settings:Billing",
+                    safe_text=True,
+                )
+            found = list(Path(tmp).rglob("Billing.settings"))
+            return found[0].read_text(encoding="utf-8") if found else None
 
     # ----- helpers -----------------------------------------------------------
     @staticmethod

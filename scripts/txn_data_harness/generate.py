@@ -23,7 +23,13 @@ from .cli_args import add_generate_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, OrgContext, discover
 from .handlers import SCENARIO_HANDLERS
-from .models import IMPLEMENTED_MAX_STAGE, Manifest, ResolvedSpec
+from .models import (
+    IMPLEMENTED_MAX_STAGE,
+    POSTED_STAGES,
+    STAGES_SETTLEMENT,
+    Manifest,
+    ResolvedSpec,
+)
 from .report import build_batch_report, write_batch_report
 from .runner import current_run_id, run_batch
 
@@ -120,6 +126,7 @@ def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
         print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
               f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
     print(f"  Stages       : {' → '.join(stages_run)}")
+    _print_settlement(getattr(r.spec, "settlement", None))
     return r.spec.count
 
 
@@ -131,8 +138,8 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
     always ``target_stage`` for ingestion -- no billing-ready cap applies.
     """
     spec = r.spec
-    target = r.effective_stage  # "invoice_draft" (Draft) or "invoice_posted" (Posted)
-    status = "Posted" if target == "invoice_posted" else "Draft"
+    target = r.effective_stage  # "invoice_draft" (Draft); Posted at/after "invoice_posted"
+    status = "Posted" if target in POSTED_STAGES else "Draft"
     print(f"\n--- Spec {index + 1}/{total}  (x{spec.count}) ---")
     print(f"  Kind         : invoice_ingestion ({status})")
     print(f"  Account      : {r.account.name} ({r.account.id})  "
@@ -163,11 +170,61 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
         if ov.tax_calculation_status:
             bits.append(f"tax_calc_status={ov.tax_calculation_status}")
         print(f"  Invoice ov   : {', '.join(bits)}")
-    steps = ["ingest_invoice"]
-    if target == "invoice_posted":
-        steps.append("promote_to_posted")
+    steps = SCENARIO_HANDLERS["invoice_ingestion"].stage_sequence(target, False)
     print(f"  Steps        : {' → '.join(steps)}")
+    _print_settlement(getattr(spec, "settlement", None))
     return spec.count
+
+
+def settlement_concurrency_conflicts(resolved: list) -> list[str]:
+    """Accounts where a settlement target shares the account with another
+    transaction in the batch.
+
+    Posting an invoice through the post action applies the account's open
+    payment and credit balances to it (measured), and a settlement payment is
+    open between its create and apply calls. Two transactions on one account
+    running in parallel can therefore take each other's payment, so such a
+    batch must run with ``--concurrency 1``.
+    """
+    totals: dict[str, int] = {}
+    names: dict[str, str] = {}
+    settles: set[str] = set()
+    for r in resolved:
+        acct = r.account.id
+        names[acct] = r.account.name
+        totals[acct] = totals.get(acct, 0) + r.spec.count
+        if r.effective_stage in STAGES_SETTLEMENT:
+            settles.add(acct)
+    return sorted(names[a] for a in settles if totals[a] > 1)
+
+
+def _print_settlement(settlement) -> None:
+    """Render a scenario's ``settlement:`` block (credit/payment options)."""
+    if settlement is None:
+        return
+    print(f"  Settlement   : application_level={settlement.application_level}"
+          + (" (read from Billing Settings at run time)"
+             if settlement.application_level == "auto" else " (pinned)"))
+    lines_of = lambda sel: "all lines" if sel is None else f"lines {sel}"  # noqa: E731
+    if settlement.credit is not None:
+        c = settlement.credit
+        how = (f"{c.amount:g}" if c.amount is not None
+               else f"{c.percent:g}% of the creditable pre-tax amount")
+        print(f"    • credit   : {how} on {lines_of(c.lines)} "
+              f"(tax_strategy={c.tax_strategy})")
+    if settlement.payment is not None:
+        pm = settlement.payment
+        if pm.is_exact:
+            how = "exact (the open balance)"
+        elif pm.amount is not None:
+            how = f"{pm.amount:g}"
+        else:
+            how = f"{pm.percent:g}% of open balance"
+        print(f"    • payment  : {how} on {lines_of(pm.lines)}; created after the "
+              f"invoice posts, then applied explicitly")
+        if pm.percent is not None and pm.percent > 100:
+            print("      ⚠  over-payment: the unapplied rest may settle the "
+                  "account's next posted invoice")
 
 
 def _print_plan(
@@ -242,9 +299,23 @@ def main(argv: Optional[list[str]] = None) -> int:
               file=sys.stderr)
         return 3
 
+    conflicts = settlement_concurrency_conflicts(resolved)
+    serial_note = (
+        f"settlement on account(s) {', '.join(conflicts)} with more than one "
+        "transaction needs --concurrency 1: posting an invoice applies the "
+        "account's open payment balance, so parallel scenarios on one account "
+        "can take each other's payment."
+    )
+
     if args.dry_run:
         _print_plan(args, ctx, resolved)
+        if conflicts and args.concurrency > 1:
+            print(f"\n⚠  This run will be refused: {serial_note}")
         return 0
+
+    if conflicts and args.concurrency > 1:
+        print(f"ERROR: bad config:\n  {serial_note}", file=sys.stderr)
+        return 4
 
     # ----- live execution -----
     for r in resolved:

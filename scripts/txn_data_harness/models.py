@@ -20,15 +20,38 @@ from .config import (
 from .discovery import Account, InvoiceLineProduct, Product
 from .term import EndDateOverride, Term
 
+# Settlement stages run after ``invoice_posted`` on every kind: a credit memo
+# applied to the posted invoice, then a payment applied to it. Credits come
+# first so an ``exact`` payment settles what is left after the credit. Both are
+# driven by the scenario's ``settlement:`` block. ``credit_applied`` without a
+# ``credit`` part advances without writing anything (a payment-only scenario
+# passes through it); ``payment_applied`` refuses to advance without a
+# ``payment`` part. Live-verified contract:
+# ``docs/contracts-billing-settlement.md``.
+STAGES_SETTLEMENT = ["credit_applied", "payment_applied"]
+
 STAGES_QUOTE = [
     "opportunity_created", "quote_placed", "order_draft",
     "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+    *STAGES_SETTLEMENT,
 ]
 
 STAGES_ORDER = [
     "order_draft", "order_activated",
     "usage_upload", "invoice_draft", "invoice_posted",
+    *STAGES_SETTLEMENT,
 ]
+
+STAGES_INGESTION = ["invoice_draft", "invoice_posted", *STAGES_SETTLEMENT]
+
+# Every public stage any kind can reach, in lifecycle order. The CLI's
+# ``--target-stage`` / ``--to-stage`` choices; config validation narrows it
+# per kind.
+ALL_STAGES = list(STAGES_QUOTE)
+
+# Stages at which the invoice is Posted (``invoice_posted`` and everything
+# after it). Ingestion posts in the ingest call when the target is any of these.
+POSTED_STAGES = frozenset({"invoice_posted", *STAGES_SETTLEMENT})
 
 # Backward-compatible alias for callers that still import the quote-path stage list
 # as STAGES.
@@ -40,6 +63,10 @@ __all__ = [
     "STAGES",
     "STAGES_QUOTE",
     "STAGES_ORDER",
+    "STAGES_INGESTION",
+    "STAGES_SETTLEMENT",
+    "ALL_STAGES",
+    "POSTED_STAGES",
     "IMPLEMENTED_MAX_STAGE",
     "EndDateOverride",
     "Manifest",
@@ -55,7 +82,7 @@ __all__ = [
 ]
 
 # Full lifecycle implemented by the harness.
-IMPLEMENTED_MAX_STAGE = "invoice_posted"
+IMPLEMENTED_MAX_STAGE = "payment_applied"
 
 
 @dataclass
@@ -153,6 +180,62 @@ class Manifest:
     # The classification of the final ``error`` (transient/deterministic/unknown)
     # as decided by failure.classify_exception; None when the scenario succeeded.
     failure_class: Optional[str] = None
+
+    # -- settlement (credit_applied / payment_applied) -----------------------
+    # The scenario's ``settlement:`` block as a dict, recorded when the first
+    # settlement step starts (trimmed to the stages the run's target reaches)
+    # and fixed from then on: ``cli step`` resumes with it and refuses a
+    # ``--config`` that differs. ``None`` until a settlement step starts.
+    settlement: Optional[dict] = None
+    # "line" (Credit, Payment and Refund Application Level = Line Level) or
+    # "header". Read once per org; a resume reuses the recorded value.
+    application_level: Optional[str] = None
+    # Where the level came from: "billing_settings" (Metadata API read),
+    # "invoice_evidence" (this invoice's SettlementLevel or application rows,
+    # when the settings could not be read), "config" (pinned by
+    # settlement.application_level), or "override" (cli step).
+    application_level_source: Optional[str] = None
+    # Invoice balances read at the start of the first settlement stage, before
+    # the harness applied anything. Non-zero ``net_payments_applied`` /
+    # ``net_credits_applied`` here were applied by the platform at post (an
+    # account's unapplied payment and credit balances settle a newly posted
+    # invoice when Billing Settings turn that on). The ``foreign_*`` lists
+    # hold those application record ids.
+    settlement_baseline: Optional[dict] = None
+    # CreditMemo ids created by credit_applied, and the application records
+    # (CreditMemoLineInvoiceLine at Line Level, CreditMemoInvApplication at
+    # Header Level) read back for them.
+    credit_memo_ids: list[str] = field(default_factory=list)
+    credit_application_ids: list[str] = field(default_factory=list)
+    # Set (and checkpointed) just before the run's one credit POST: the action
+    # has no idempotency key, so a retry polls for the memo by its tag instead
+    # of POSTing again. Any 4xx (nothing was created) clears it.
+    credit_submitted: bool = False
+    # Invoice.NetCreditsApplied read just before the credit POST; the
+    # double-credit check compares the gain since then with the memo's amount.
+    credit_baseline: Optional[float] = None
+    credit_amount_requested: Optional[float] = None
+    credit_amount_applied: Optional[float] = None
+    # Payment ids created by payment_applied, and the application records
+    # (PaymentLineInvoiceLine / PaymentLineInvoice) read back for them.
+    payment_ids: list[str] = field(default_factory=list)
+    # Set (and checkpointed) just before the run's one Payment insert, as for
+    # the credit: a retry looks the payment up by its tag instead of
+    # inserting again. Only a 4xx (nothing created) clears it.
+    payment_submitted: bool = False
+    payment_application_ids: list[str] = field(default_factory=list)
+    # Payment.Amount, the amount the stage meant to apply (open balance capped
+    # at the payment), and the amount the application records add up to.
+    payment_amount: Optional[float] = None
+    payment_apply_target: Optional[float] = None
+    payment_amount_applied: Optional[float] = None
+    # "partial", "exact" or "over", decided against the open balance.
+    payment_mode: Optional[str] = None
+    # Invoice.Balance read after the last settlement stage that ran.
+    invoice_balance: Optional[float] = None
+    # Non-fatal surprises during settlement (application rows in the junction
+    # for the other level, a credit capped at the open balance, ...).
+    settlement_warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)

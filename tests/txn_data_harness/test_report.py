@@ -155,8 +155,10 @@ def test_mixed_kind_stage_histogram_isolates_kinds() -> None:
     report = build_batch_report(manifests)
     ingestion = report["stage_histogram_by_kind"]["invoice_ingestion"]
 
-    # Ingestion only ever reaches invoice_draft or invoice_posted (plus the "(none)" catch-all).
-    assert set(ingestion) == {"invoice_draft", "invoice_posted", "(none)"}
+    # Ingestion reaches the invoice and settlement stages (plus the "(none)" catch-all).
+    assert set(ingestion) == {
+        "invoice_draft", "invoice_posted", "credit_applied", "payment_applied", "(none)",
+    }
     assert ingestion["invoice_draft"] == 1
     assert ingestion["invoice_posted"] == 1
 

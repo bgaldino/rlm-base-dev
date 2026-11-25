@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable, NamedTuple, Optional
@@ -50,14 +51,50 @@ class AssetPollResult(NamedTuple):
 
 
 class LifecycleError(RuntimeError):
-    """A lifecycle step failed in a way the run should surface, not swallow."""
+    """A lifecycle step failed in a way the run should surface, not swallow.
 
-    def __init__(self, step: str, detail: str, record_id: Optional[str] = None):
+    ``failure_class`` pins the retry classification (see
+    ``failure.classify_exception``) when the message text must not decide it:
+    ``"deterministic"`` for a failure a scenario retry must never replay, such
+    as a credit POST whose outcome is unknown.
+    """
+
+    def __init__(
+        self,
+        step: str,
+        detail: str,
+        record_id: Optional[str] = None,
+        failure_class: Optional[str] = None,
+    ):
         self.step = step
         self.detail = detail
         self.record_id = record_id
+        self.failure_class = failure_class
         super().__init__(f"[{step}] {detail}" + (f" (id={record_id})" if record_id else ""))
 
+
+
+class SettlementError(LifecycleError):
+    """A credit/payment settlement failure with a pinned retry class.
+
+    ``failure_class`` defaults to ``deterministic``; it is pinned
+    ``transient`` where a retry is safe and may succeed: a retryable 4xx
+    (420/429 or a retryable ``errorCode``; nothing was created), a 5xx or
+    timeout outside a write (``settlement_failure_class``), or an application
+    level whose read failed transiently. Pinned either way, so the message
+    text never decides: settlement messages embed run and record ids whose
+    digits (``...T150342Z`` holds "503") would match ``failure.py``'s
+    transient patterns. A write whose outcome is unknown is never transient.
+    """
+
+    def __init__(
+        self,
+        step: str,
+        detail: str,
+        record_id: Optional[str] = None,
+        failure_class: Optional[str] = "deterministic",
+    ):
+        super().__init__(step, detail, record_id, failure_class)
 
 def _iso_today() -> str:
     return date.today().isoformat()
@@ -1060,6 +1097,916 @@ def _await_async_tracker(
     raise LifecycleError(
         step, f"{step} did not complete within tracker deadline", record_id=record_id
     )
+
+
+# ---------------------------------------------------------------------------
+# Step 7 -- Settlement: credit memo + payment applied to a Posted invoice.
+# Live-verified contract: docs/contracts-billing-settlement.md.
+#
+# Application level (Billing Settings -> Credit, Payment and Refund
+# Application Level) decides where an application lands: Line Level writes
+# CreditMemoLineInvoiceLine / PaymentLineInvoiceLine and a payment must be
+# applied to an InvoiceLine id; Header Level writes CreditMemoInvApplication /
+# PaymentLineInvoice and a payment is applied to the Invoice id. The level is
+# read once per org (Metadata API BillingSettings) and recorded on the manifest.
+# ---------------------------------------------------------------------------
+LEVEL_LINE = "line"
+LEVEL_HEADER = "header"
+
+_CREDIT_MEMO_FAIL = {"Error", "Canceled", "Voided"}
+_CREDIT_MEMO_DONE = {"Posted"}
+
+_level_cache: dict[str, tuple[str, str]] = {}
+_level_lock = threading.Lock()
+
+
+def parse_settings_application_level(xml_text: str) -> Optional[str]:
+    """Map a ``readMetadata`` BillingSettings response to ``line``/``header``.
+
+    ``enableTransactionsApplicationToInvoices`` is the Metadata API name of the
+    Credit, Payment and Refund Application Level setting. ``false`` was read on
+    an org the payment-apply error confirms is at Line Level (2026-11-25, 264);
+    ``true`` is taken to be Header Level (the setting "applies balances of
+    credit memos and payments to invoices") -- not measured on a Header Level
+    org. Returns ``None`` when the element is absent.
+    """
+    import re
+
+    m = re.search(
+        r"<(?:\w+:)?enableTransactionsApplicationToInvoices>\s*(true|false)\s*<",
+        xml_text or "",
+    )
+    if not m:
+        return None
+    return LEVEL_HEADER if m.group(1) == "true" else LEVEL_LINE
+
+
+def _read_settings_application_level(client: SfRestClient) -> Optional[str]:
+    """Read BillingSettings through the client's own transport.
+
+    ``SfRestClient.read_billing_settings_xml`` uses the Metadata SOAP API on the
+    ``requests`` transport and ``sf project retrieve start`` on the ``cli``
+    transport, so nothing from our process carries a token there.
+    """
+    xml_text = client.read_billing_settings_xml()
+    if xml_text is None:
+        log.warning("BillingSettings could not be read; falling back")
+        return None
+    return parse_settings_application_level(xml_text)
+
+
+def invoice_level_evidence(client: SfRestClient, invoice_id: str) -> tuple[Optional[str], str]:
+    """The application level THIS invoice shows, with its source, else ``(None, "")``.
+
+    ``Invoice.SettlementLevel`` stays null until something is applied to the
+    invoice, then reads ``InvoiceLine`` or ``Invoice``; failing that, the
+    junction of any application row already on the invoice.
+    """
+    header = fetch_invoice_header(client, invoice_id)
+    level = {"InvoiceLine": LEVEL_LINE, "Invoice": LEVEL_HEADER}.get(
+        header.get("SettlementLevel") or ""
+    )
+    if level:
+        return level, "Invoice.SettlementLevel"
+    apps = read_invoice_applications(client, invoice_id)
+    if apps["payment_line"] or apps["credit_line"]:
+        return LEVEL_LINE, "an application row on the invoice lines"
+    if apps["payment_header"] or apps["credit_header"]:
+        return LEVEL_HEADER, "an application row on the invoice"
+    return None, ""
+
+
+def read_application_level(
+    client: SfRestClient, invoice_id: Optional[str] = None
+) -> tuple[str, str]:
+    """Return ``(level, source)``: the org's setting, read once per process.
+
+    ``source`` is ``billing_settings`` (Metadata API, cached per org). When
+    the settings cannot be read, only evidence on THIS invoice is used
+    (:func:`invoice_level_evidence`, source ``invoice_evidence``, never
+    cached) -- never another invoice's level, which may predate a change of
+    the setting. With no evidence: transient when the settings read failed
+    in a way that may clear (5xx, 420/429, network, a CLI retrieve timeout or
+    a retrieve error not named as a refusal: retry later), deterministic
+    when it was refused (a 4xx, a refusal SOAP fault, or a CLI retrieve
+    error named as one, e.g. ``NamedOrgNotFoundError``). Both name the
+    remedy that works on a resume: ``cli step ... --application-level``.
+    """
+    key = client.instance_url
+    with _level_lock:
+        cached = _level_cache.get(key)
+        if cached is not None:
+            return cached
+        level: Optional[str] = None
+        source = ""
+        transient = ""
+        try:
+            level = _read_settings_application_level(client)
+            source = "billing_settings"
+        except Exception as exc:  # noqa: BLE001 -- fall through to the probe
+            log.warning("BillingSettings read failed (%s); falling back", exc)
+            if not is_api_refusal(exc):
+                transient = str(exc)[:300]
+        if level is not None:
+            _level_cache[key] = (level, source)
+            log.info("application level: %s (from %s)", level, source)
+            return level, source
+        if invoice_id:
+            evidence, where = invoice_level_evidence(client, invoice_id)
+            if evidence is not None:
+                log.info("application level: %s (from %s of %s)", evidence, where, invoice_id)
+                return evidence, "invoice_evidence"
+        remedy = (
+            "Pin it on the resume: `cli step --manifest <run> --to-stage <target> "
+            "--application-level line|header` (a new run can also pin "
+            "settlement.application_level)."
+        )
+        if transient:
+            raise SettlementError(
+                "settlement",
+                f"could not read the Credit, Payment and Refund Application Level: "
+                f"BillingSettings read failed ({transient}) and this invoice shows no "
+                f"level yet. Retry later, or {remedy[0].lower()}{remedy[1:]}",
+                failure_class="transient",
+            )
+        raise SettlementError(
+            "settlement",
+            "could not read the Credit, Payment and Refund Application Level "
+            "(BillingSettings unreadable and this invoice shows no level yet). "
+            f"{remedy}",
+        )
+
+
+# 4xx answers that clear on a retry: by HTTP status, or by the errorCode in
+# the JSON body. Structured fields only -- never the raw body or message text.
+_RETRYABLE_CLIENT_STATUS = frozenset({420, 429})
+_RETRYABLE_ERROR_CODES = frozenset({
+    "UNABLE_TO_LOCK_ROW", "REQUEST_LIMIT_EXCEEDED", "QUERY_TIMEOUT",
+    "TOO_MANY_CONCURRENT_REQUESTS",
+})
+
+
+def api_error_codes(body: str) -> list[str]:
+    """The ``errorCode`` fields of a Connect/REST error body (both shapes)."""
+    import json as _json
+
+    from .auth import error_entries
+
+    try:
+        data = _json.loads(body or "")
+    except (TypeError, ValueError):
+        return []
+    errors = error_entries(data) + ([data] if isinstance(data, dict) else [])
+    return [e["errorCode"] for e in errors
+            if isinstance(e.get("errorCode"), str) and e["errorCode"]]
+
+
+def is_client_error(exc: BaseException) -> bool:
+    """HTTP 4xx: the server created nothing (a refusal or a throttle)."""
+    from .auth import SfApiError
+
+    return isinstance(exc, SfApiError) and 400 <= exc.status < 500
+
+
+def is_retryable_client_error(exc: BaseException) -> bool:
+    """A 4xx that clears on a retry: 420/429, or a retryable ``errorCode``."""
+    return is_client_error(exc) and (
+        exc.status in _RETRYABLE_CLIENT_STATUS
+        or any(c in _RETRYABLE_ERROR_CODES for c in api_error_codes(exc.body))
+    )
+
+
+def is_api_refusal(exc: BaseException) -> bool:
+    """A 4xx the API will answer the same way again (not retryable).
+
+    Classified from the HTTP status and the body's ``errorCode`` fields only
+    (:func:`is_retryable_client_error`); a 5xx, a transport failure or a CLI
+    failure that never reached the API is not a refusal.
+    """
+    return is_client_error(exc) and not is_retryable_client_error(exc)
+
+
+def settlement_failure_class(exc: BaseException) -> str:
+    """Retry class of an ``SfApiError`` leaving a settlement step.
+
+    4xx: transient when retryable (nothing was created, so a retry re-sends
+    safely), else deterministic. 5xx and ``-1`` (timeout, exhausted retries,
+    a CLI retrieve that failed): transient. Any other status is a CLI exit
+    code from a call that never reached the API (expired auth, CLI error):
+    deterministic.
+    """
+    from .auth import SfApiError
+
+    if not isinstance(exc, SfApiError):
+        return "deterministic"
+    if is_client_error(exc):
+        return "transient" if is_retryable_client_error(exc) else "deterministic"
+    if exc.status >= 500 or exc.status == -1:
+        return "transient"
+    return "deterministic"
+
+
+def is_missing_column(exc: BaseException, name: str) -> bool:
+    """True when ``exc`` is SOQL's ``INVALID_FIELD`` for column ``name``.
+
+    Classified by the error code and the ``No such column '<name>'`` text, not
+    the status, so it reads the same on both transports. The message echoes the
+    whole SOQL, so the bare column name is in it whichever column is missing.
+    """
+    from .auth import SfApiError
+
+    body = exc.body if isinstance(exc, SfApiError) else ""
+    return "INVALID_FIELD" in (body or "") and f"No such column '{name}'" in (body or "")
+
+
+def fetch_invoice_header(client: SfRestClient, invoice_id: str) -> dict:
+    """Read the invoice fields settlement needs (currency when multi-currency).
+
+    ``CurrencyIsoCode`` exists only on multi-currency orgs: the query is
+    retried without it only when the org says the column does not exist
+    (``INVALID_FIELD``). Any other failure raises -- a transient error must
+    not be recorded as "no currency".
+    """
+    from .auth import SfApiError
+
+    base = (
+        "Id, Status, BillingAccountId, Balance, TotalAmountWithTax, "
+        "NetCreditsApplied, NetPaymentsApplied, SettlementLevel"
+    )
+    try:
+        rows = client.query(
+            f"SELECT {base}, CurrencyIsoCode FROM Invoice WHERE Id = '{invoice_id}'"
+        )
+    except SfApiError as exc:
+        if not is_missing_column(exc, "CurrencyIsoCode"):
+            raise
+        rows = client.query(f"SELECT {base} FROM Invoice WHERE Id = '{invoice_id}'")
+    if not rows:
+        raise SettlementError("settlement", "invoice not found", record_id=invoice_id)
+    return rows[0]
+
+
+def fetch_invoice_lines_for_settlement(
+    client: SfRestClient, invoice_id: str
+) -> list[dict]:
+    """Charge lines of ``invoice_id`` with balances, ordered by Id."""
+    return client.query(
+        "SELECT Id, Name, Type, ChargeAmount, TaxAmount, LineAmount, Balance, "
+        "Product2.StockKeepingUnit FROM InvoiceLine "
+        f"WHERE InvoiceId = '{invoice_id}' AND Type = 'Charge' ORDER BY Id"
+    )
+
+
+def order_invoice_lines(lines: list[dict], preferred_ids: list[str]) -> list[dict]:
+    """Order lines by ``preferred_ids`` (record-Id order from the ingest), the rest by Id."""
+    pos = {lid: i for i, lid in enumerate(preferred_ids)}
+    return sorted(lines, key=lambda r: (pos.get(r["Id"], len(pos)), r["Id"]))
+
+
+def select_invoice_lines(lines: list[dict], selector: Optional[list[Any]]) -> list[dict]:
+    """Pick the lines a credit/payment targets.
+
+    ``None`` -> all lines. Otherwise each selector entry is a 0-based index
+    into ``lines`` or a string matched (case-insensitively) against the line
+    Name or its Product2 SKU; a string may match several lines. Order follows
+    ``lines``; duplicates are dropped. An entry that matches nothing raises.
+    """
+    if selector is None:
+        return list(lines)
+    chosen: list[str] = []
+    for entry in selector:
+        if isinstance(entry, int):
+            if entry >= len(lines):
+                raise SettlementError(
+                    "settlement",
+                    f"line index {entry} out of range (invoice has {len(lines)} "
+                    f"charge line(s))",
+                )
+            ids = [lines[entry]["Id"]]
+        else:
+            needle = entry.strip().lower()
+            ids = [
+                r["Id"] for r in lines
+                if (r.get("Name") or "").lower() == needle
+                or ((r.get("Product2") or {}).get("StockKeepingUnit") or "").lower() == needle
+            ]
+            if not ids:
+                raise SettlementError(
+                    "settlement", f"no invoice line named or with SKU '{entry}'"
+                )
+        chosen.extend(i for i in ids if i not in chosen)
+    return [r for r in lines if r["Id"] in chosen]
+
+
+def _money(value: Any, places: int) -> float:
+    """Round to the currency's decimal places (``CurrencyType.DecimalPlaces``)."""
+    return round(float(value or 0.0), places)
+
+
+def _floor_amount(value: float, places: int) -> float:
+    import math
+
+    factor = 10 ** places
+    return math.floor(round(value * factor, 6)) / factor
+
+
+_decimals_cache: dict[tuple[str, str], int] = {}
+
+
+def currency_decimal_places(client: SfRestClient, iso_code: Optional[str]) -> int:
+    """``CurrencyType.DecimalPlaces`` for ``iso_code``.
+
+    Every settlement amount the harness computes or sends (percent shares,
+    per-line caps, Payment.Amount, apply amounts) is rounded to this. A
+    single-currency org (no invoice currency) uses its default currency's ISO
+    4217 minor units (:func:`single_currency_decimal_places`). A successful
+    read is cached per org and code; a failed read is never cached. Only an
+    org that says ``CurrencyType`` is not there for this user
+    (``INVALID_TYPE``) falls back, with a warning, to the ISO 4217 minor units
+    of ``iso_code``; any other failure raises, so a transient error cannot fix
+    the rounding of a whole run.
+    """
+    from .auth import SfApiError
+
+    if not iso_code:
+        return single_currency_decimal_places(client)[0]
+    key = (client.instance_url, iso_code)
+    if key in _decimals_cache:
+        return _decimals_cache[key]
+    try:
+        rows = client.query(
+            f"SELECT DecimalPlaces FROM CurrencyType WHERE IsoCode = '{iso_code}' LIMIT 1"
+        )
+    except SfApiError as exc:
+        if "INVALID_TYPE" not in (exc.body or ""):
+            raise
+        fallback = _ISO_4217_MINOR_UNITS.get(iso_code.upper(), 2)
+        log.warning("CurrencyType is not readable (%s); using ISO 4217 %s places",
+                    exc, fallback)
+        return fallback
+    places = _ISO_4217_MINOR_UNITS.get(iso_code.upper(), 2)
+    if rows and rows[0].get("DecimalPlaces") is not None:
+        places = int(rows[0]["DecimalPlaces"])
+    _decimals_cache[key] = places
+    return places
+
+
+# ISO 4217 minor units for the currencies that do not use 2 (source: the ISO
+# 4217 list maintained by SIX, "Minor unit" column). Everything else uses 2.
+_ISO_4217_MINOR_UNITS = {
+    **{c: 0 for c in ("BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG",
+                      "RWF", "UGX", "UYI", "VND", "VUV", "XAF", "XOF", "XPF")},
+    **{c: 3 for c in ("BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND")},
+}
+_org_currency_cache: dict[str, str] = {}
+
+
+def org_default_currency(client: SfRestClient) -> Optional[str]:
+    """``Organization.DefaultCurrencyIsoCode`` (cached per org once read).
+
+    The field exists on single-currency orgs only; a multi-currency org
+    answers ``INVALID_FIELD`` (measured 2026-11-25), and ``None`` is returned
+    (its invoices carry ``CurrencyIsoCode``, so this is not reached there).
+    Any other failure raises.
+    """
+    from .auth import SfApiError
+
+    key = client.instance_url
+    if key not in _org_currency_cache:
+        try:
+            rows = client.query("SELECT DefaultCurrencyIsoCode FROM Organization LIMIT 1")
+        except SfApiError as exc:
+            if not is_missing_column(exc, "DefaultCurrencyIsoCode"):
+                raise
+            log.warning("Organization has no DefaultCurrencyIsoCode (multi-currency org)")
+            return None
+        code = rows[0].get("DefaultCurrencyIsoCode") if rows else None
+        if not code:
+            return None
+        _org_currency_cache[key] = code
+    return _org_currency_cache[key]
+
+
+def single_currency_decimal_places(client: SfRestClient) -> tuple[int, Optional[str]]:
+    """Decimal places on a single-currency org (invoices carry no currency).
+
+    The org's ``DefaultCurrencyIsoCode`` mapped through ISO 4217 minor units
+    (JPY 0, KWD 3, most others 2). Returns ``(places, iso_code)``.
+    """
+    code = org_default_currency(client)
+    return _ISO_4217_MINOR_UNITS.get((code or "").upper(), 2), code
+
+
+def line_tax_strategy(line: dict, strategy: str) -> str:
+    """The credit tax strategy to send for one line.
+
+    ``auto`` picks ``Calculate`` for a line that carries tax and ``Ignore`` for
+    one that does not: ``Calculate`` is refused on a line with no tax line
+    ("To calculate tax, the invoice line must have a tax line."), and
+    ``CopyFromInvoiceLine`` copied the line's whole tax onto a partial credit
+    (both measured 2026-11-25, 264). Any other value is sent as given.
+    """
+    if strategy != "auto":
+        return strategy
+    return "Calculate" if float(line.get("TaxAmount") or 0.0) > 0 else "Ignore"
+
+
+def credit_capacity(line: dict, strategy: str, places: int) -> float:
+    """Pre-tax amount creditable on a line without leaving an unapplied memo.
+
+    ``amountToCredit`` is the pre-tax charge and may not exceed the line's
+    charge amount; the memo then adds tax by strategy, and whatever of the memo
+    exceeds the line balance stays unapplied on it (measured). So:
+
+    * ``Ignore`` -- no tax added: up to the balance.
+    * ``Calculate`` -- tax added in proportion: the balance's pre-tax share
+      (``Balance * ChargeAmount / LineAmount``), rounded down to the
+      currency's smallest unit (``places``).
+    * ``CopyFromInvoiceLine`` -- the line's whole ``TaxAmount`` is added: the
+      balance less that tax.
+
+    Every case is also capped at ``ChargeAmount``.
+    """
+    balance = _money(line.get("Balance"), places)
+    charge = _money(line.get("ChargeAmount"), places)
+    tax = _money(line.get("TaxAmount"), places)
+    line_amount = _money(line.get("LineAmount"), places) or _money(charge + tax, places)
+    effective = line_tax_strategy(line, strategy)
+    if effective == "Calculate" and line_amount > 0:
+        cap = _floor_amount(balance * charge / line_amount, places)
+    elif effective == "CopyFromInvoiceLine" and tax > 0:
+        cap = _money(balance - tax, places)
+    else:
+        cap = balance
+    return max(0.0, min(cap, charge)) if charge > 0 else max(0.0, cap)
+
+
+def credit_with_tax(line: dict, amount: float, strategy: str, places: int) -> float:
+    """The memo amount (tax included) that a pre-tax credit of ``amount`` on
+    ``line`` makes, rounded UP to the minor unit (a safe upper bound)."""
+    import math
+
+    if amount <= 0:
+        return 0.0
+    charge = _money(line.get("ChargeAmount"), places)
+    tax = _money(line.get("TaxAmount"), places)
+    line_amount = _money(line.get("LineAmount"), places) or _money(charge + tax, places)
+    effective = line_tax_strategy(line, strategy)
+    if effective == "Calculate" and charge > 0 and line_amount > 0:
+        factor = 10 ** places
+        return math.ceil(round(amount * line_amount / charge * factor, 6)) / factor
+    if effective == "CopyFromInvoiceLine":
+        return _money(amount + tax, places)
+    return _money(amount, places)
+
+
+def allocate_credit(
+    amount: float, lines: list[dict], strategy: str, places: int, invoice_open: float
+) -> list[tuple[str, float]]:
+    """Spread a pre-tax credit over ``lines`` in order, each up to its
+    :func:`credit_capacity`, and the whole memo (tax included, per
+    :func:`credit_with_tax`) up to the invoice's own Balance
+    (``invoice_open``): the lines' balances can add up to more than it.
+
+    Per line the invoice budget left is turned into its pre-tax share with
+    the same per-strategy rule the capacity uses (Calculate: in proportion;
+    CopyFromInvoiceLine: less the line's tax; Ignore: as is), rounded down.
+    """
+    remaining = _money(amount, places)
+    budget = _money(invoice_open, places)
+    out: list[tuple[str, float]] = []
+    for line in lines:
+        if remaining <= 0 or budget <= 0:
+            break
+        within = credit_capacity({**line, "Balance": budget}, strategy, places)
+        take = _money(min(remaining, credit_capacity(line, strategy, places), within), places)
+        if take > 0:
+            out.append((line["Id"], take))
+            remaining = _money(remaining - take, places)
+            budget = _money(budget - credit_with_tax(line, take, strategy, places), places)
+    return out
+
+
+def allocate(
+    amount: float, lines: list[dict], capacity, places: int
+) -> list[tuple[str, float]]:
+    """Spread ``amount`` over ``lines`` in order, each up to ``capacity(line)``.
+
+    Returns ``[(line_id, amount), ...]`` for the lines that receive something.
+    The total is ``min(amount, sum of capacities)``.
+    """
+    remaining = _money(amount, places)
+    out: list[tuple[str, float]] = []
+    for line in lines:
+        if remaining <= 0:
+            break
+        take = _money(min(remaining, capacity(line)), places)
+        if take > 0:
+            out.append((line["Id"], take))
+            remaining = _money(remaining - take, places)
+    return out
+
+
+def describe_response(result: Any) -> str:
+    """A settlement response for an error message, without raw output.
+
+    A body the transport could not decode arrives as ``{"_raw": text}``
+    (``SfRestClient._decode``); its text is never shown, only its length --
+    the rule ``auth._run_sf`` applies to sf output. JSON ``errors`` are shown.
+    """
+    if result is None:
+        return "an empty response"
+    if isinstance(result, dict):
+        if "_raw" in result:
+            return f"a non-JSON response ({len(str(result['_raw']))} characters, not shown)"
+        errors = result.get("errors")
+        if errors:
+            return f"errors {errors}"
+        return f"a response without the expected fields (keys: {sorted(result)})"
+    if isinstance(result, list):
+        return f"errors {result}"
+    return f"a {type(result).__name__} response (not shown)"
+
+
+def credit_tag(run_id: str) -> str:
+    """Description stamped on the harness's credit memo (one per run)."""
+    return f"{run_id} credit"
+
+
+def payment_tag(run_id: str) -> str:
+    """GatewayRefNumber stamped on the harness's payment (retry correlation)."""
+    return f"{run_id}-PAY"
+
+
+def build_credit_payload(
+    allocations: list[tuple[str, float]],
+    run_id: str,
+    line_strategies: Optional[dict[str, str]] = None,
+    effective_date: Optional[str] = None,
+) -> dict:
+    """Body for ``POST .../invoices/{id}/actions/credit`` (live-verified shape).
+
+    ``line_strategies`` maps line id -> tax strategy (see
+    :func:`line_tax_strategy`); each line carries its own ``taxStrategy`` and
+    the top-level one (required) is the first line's.
+    """
+    if not allocations:
+        raise SettlementError("credit", "nothing to credit (no open balance on the chosen lines)")
+    strategies = line_strategies or {}
+    lines = [
+        {
+            "invoiceLineId": line_id,
+            "amountToCredit": amt,
+            "taxStrategy": strategies.get(line_id, "Ignore"),
+        }
+        for line_id, amt in allocations
+    ]
+    return {
+        "type": "POSTED",
+        "taxStrategy": lines[0]["taxStrategy"],
+        "effectiveDate": effective_date or _iso_today(),
+        "description": credit_tag(run_id),
+        "invoiceLines": lines,
+    }
+
+
+def find_credit_memos(client: SfRestClient, invoice_id: str, run_id: str) -> list[dict]:
+    """Every memo on ``invoice_id`` carrying this run's tag (newest first).
+
+    A run sends one credit, so more than one row means the invoice was
+    credited twice; callers fail on it.
+    """
+    return client.query(
+        "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
+        f"WHERE ReferenceEntityId = '{invoice_id}' "
+        f"AND Description = '{credit_tag(run_id)}' ORDER BY CreatedDate DESC"
+    )
+
+
+CANNOT_SETTLE = "This run cannot settle; start a new run."
+
+
+def get_credit_memo(client: SfRestClient, memo_id: str) -> Optional[dict]:
+    """The credit memo with ``memo_id`` (by Id, not by tag), or ``None``."""
+    rows = client.query(
+        "SELECT Id, Status, Balance, TotalAmountWithTax FROM CreditMemo "
+        f"WHERE Id = '{memo_id}'"
+    )
+    return rows[0] if rows else None
+
+
+def find_credit_memo(client: SfRestClient, invoice_id: str, run_id: str) -> Optional[dict]:
+    """This run's credit memo, or ``None``; two memos under the tag raise."""
+    rows = find_credit_memos(client, invoice_id, run_id)
+    if len(rows) > 1:
+        raise SettlementError(
+            "credit",
+            f"{len(rows)} credit memos carry this run's tag '{credit_tag(run_id)}' "
+            f"({', '.join(r['Id'] for r in rows)}): the invoice was credited more than "
+            f"once. {CANNOT_SETTLE}",
+            record_id=invoice_id,
+        )
+    return rows[0] if rows else None
+
+
+def api_error_text(body: str) -> str:
+    """A server error body for people (``auth.render_error_body``): JSON
+    error codes and messages; any non-JSON body by its length only."""
+    from .auth import render_error_body
+
+    return render_error_body(body)
+
+
+def submit_credit(client: SfRestClient, invoice_id: str, body: dict) -> dict:
+    """POST the credit action once. Async: success + requestIdentifier, empty statusURL.
+
+    Sent without transport retries: the action has no idempotency key, so a
+    5xx after the server committed would credit twice. Any ``SfApiError``
+    propagates; the caller classifies it (a 4xx created nothing).
+    """
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/"
+        f"{invoice_id}/actions/credit",
+        body,
+        retry=False,
+    )
+    if not isinstance(result, dict) or not result.get("success"):
+        # A 2xx is never a refusal: the action may have been accepted. The
+        # caller keeps credit_submitted and looks for the memo by its tag.
+        raise SettlementError(
+            "credit", f"credit answered 2xx without success: {describe_response(result)}",
+            record_id=invoice_id,
+        )
+    return result
+
+
+def poll_credit_memo(
+    client: SfRestClient, invoice_id: str, run_id: str, timeout: int = 180
+) -> dict:
+    """Wait for the credit memo to reach Posted; return its row.
+
+    The memo appears Pending right after the POST and turns Posted (applied)
+    a few seconds later. Error/Canceled/Voided fail for good: the run sends
+    one credit and never another.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        memo = find_credit_memo(client, invoice_id, run_id)
+        if memo is not None:
+            status = memo.get("Status")
+            if status in _CREDIT_MEMO_DONE:
+                return memo
+            if status in _CREDIT_MEMO_FAIL:
+                raise SettlementError(
+                    "credit", f"credit memo in {status}. {CANNOT_SETTLE}", record_id=memo["Id"]
+                )
+        time.sleep(_POLL_INTERVAL)
+    raise SettlementError(
+        "credit", f"credit memo not Posted within {timeout}s", record_id=invoice_id
+    )
+
+
+def _unreversed(rows: list[dict], flag: str, what: str) -> list[dict]:
+    """``rows`` when none was reversed; otherwise fail the stage.
+
+    Unapplying or voiding keeps the original ``Applied`` row, flags it
+    (``UnappliedStatus`` on the line junctions, ``HasBeenUnapplied`` on the
+    header ones = ``Yes``) and adds an ``Unapplied`` row. The harness does not
+    model reversals (not measured), so any such row means the amounts it reads
+    back can no longer be trusted.
+    """
+    for r in rows:
+        if r.get("Type") != "Applied" or r.get(flag) == "Yes":
+            raise SettlementError(
+                what,
+                f"an application was reversed outside the harness (row {r.get('Id')}: "
+                f"Type {r.get('Type')}, {flag} {r.get(flag)}). {CANNOT_SETTLE}",
+            )
+    return rows
+
+
+def read_credit_applications(
+    client: SfRestClient, memo_ids: list[str], invoice_id: str
+) -> dict:
+    """Application rows for ``memo_ids`` on ``invoice_id``, at both levels.
+
+    Returns ``{"line": [...], "header": [...]}`` of ``{"Id", "Amount"}`` rows.
+    Applications of the same memo to any other invoice are not counted. Every
+    row is read (any ``Type``); a reversed one fails (:func:`_unreversed`).
+    """
+    if not memo_ids:
+        return {LEVEL_LINE: [], LEVEL_HEADER: []}
+    in_list = ", ".join(f"'{i}'" for i in memo_ids)
+    line_rows = client.query(
+        "SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM CreditMemoLineInvoiceLine "
+        f"WHERE CreditMemoLine.CreditMemoId IN ({in_list}) "
+        f"AND InvoiceLine.InvoiceId = '{invoice_id}'"
+    )
+    header_rows = client.query(
+        "SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM CreditMemoInvApplication "
+        f"WHERE CreditMemoId IN ({in_list}) AND InvoiceId = '{invoice_id}'"
+    )
+    return {
+        LEVEL_LINE: _unreversed(line_rows, "UnappliedStatus", "credit"),
+        LEVEL_HEADER: _unreversed(header_rows, "HasBeenUnapplied", "credit"),
+    }
+
+
+def build_payment_record(
+    account_id: str,
+    amount: float,
+    run_id: str,
+    currency: Optional[str] = None,
+    *,
+    places: int,
+) -> dict:
+    """Payment sObject body: an External, Processed Sale (no gateway needed).
+
+    ``Amount`` is rounded to the currency's decimal places (``places``).
+    """
+    body = {
+        "AccountId": account_id,
+        "Amount": _money(amount, places),
+        "Status": "Processed",
+        "Type": "Sale",
+        "ProcessingMode": "External",
+        "GatewayRefNumber": payment_tag(run_id),
+        "Comments": f"Transaction Data Harness payment ({run_id})",
+        "EffectiveDate": f"{_iso_today()}T00:00:00.000Z",
+    }
+    if currency:
+        body["CurrencyIsoCode"] = currency
+    return body
+
+
+def find_payment(client: SfRestClient, account_id: str, run_id: str) -> Optional[str]:
+    """This run's payment (``GatewayRefNumber`` tag), or ``None``.
+
+    A run creates one payment; two under the tag fail, naming the later
+    one(s) so the operator can cancel them.
+    """
+    rows = client.query(
+        f"SELECT Id FROM Payment WHERE AccountId = '{account_id}' "
+        f"AND GatewayRefNumber = '{payment_tag(run_id)}' ORDER BY CreatedDate"
+    )
+    if len(rows) > 1:
+        stray = ", ".join(r["Id"] for r in rows[1:])
+        raise SettlementError(
+            "payment",
+            f"{len(rows)} payments carry this run's tag '{payment_tag(run_id)}' "
+            f"(first {rows[0]['Id']}; stray {stray}: cancel it in the org). {CANNOT_SETTLE}",
+        )
+    return rows[0]["Id"] if rows else None
+
+
+def create_payment(client: SfRestClient, body: dict) -> str:
+    """Insert the Payment record once (no transport retry).
+
+    Any ``SfApiError`` propagates; the caller classifies it. A 2xx without
+    an id raises ``SettlementError`` (outcome unknown).
+    """
+    result = client.post(_sobject_path(client, "Payment"), body, retry=False)
+    if not isinstance(result, dict) or not result.get("success") or not result.get("id"):
+        raise SettlementError(
+            "payment", f"payment create answered without an id: {describe_response(result)}"
+        )
+    log.info("payment %s created (%s)", result["id"], body.get("Amount"))
+    return result["id"]
+
+
+def build_payment_apply_payload(
+    applied_to_id: str,
+    amount: float,
+    run_id: str,
+    account_id: Optional[str] = None,
+    *,
+    places: int,
+) -> dict:
+    """Body for ``POST .../payments/{id}/actions/apply`` (live-verified shape).
+
+    ``appliedToId`` is an InvoiceLine id at Line Level and the Invoice id at
+    Header Level; the action refuses the wrong one. ``amount`` is rounded to
+    the currency's decimal places (``places``).
+    """
+    body = {
+        "appliedToId": applied_to_id,
+        "amount": _money(amount, places),
+        "effectiveDate": f"{_iso_today()}T00:00:00.000Z",
+        "comments": f"Transaction Data Harness ({run_id})",
+    }
+    if account_id:
+        body["associatedAccountId"] = account_id
+    return body
+
+
+def apply_payment(client: SfRestClient, payment_id: str, body: dict) -> str:
+    """Apply a payment once; synchronous. Returns the application record id.
+
+    No transport retry: a 5xx after the apply committed would apply twice.
+    The caller re-reads what is applied and applies only the remainder. A
+    refusal (HTTP 4xx, either transport) becomes a ``LifecycleError``; ``INVALID_FIELD`` (an
+    Invoice id at Line Level, or an InvoiceLine id at Header Level) is
+    reported as a likely wrong application level.
+    """
+    from .auth import SfApiError
+
+    try:
+        result = client.post(
+            f"/services/data/v{client.api_version}/commerce/billing/payments/"
+            f"{payment_id}/actions/apply",
+            body,
+            retry=False,
+        )
+    except SfApiError as exc:
+        if not is_api_refusal(exc):
+            raise
+        detail = exc.detail
+        if "INVALID_FIELD" in (exc.body or "") and "appliedToId" in (exc.body or ""):
+            raise SettlementError(
+                "payment",
+                f"apply refused ({detail}). The recorded application level is "
+                "likely wrong for this org; it cannot change once the payment is "
+                "planned: start a new run with settlement.application_level pinned "
+                f"to the other level. {_partly_applied(payment_id)}",
+                record_id=payment_id,
+            ) from exc
+        raise SettlementError(
+            "payment",
+            f"apply refused: {detail}. {_partly_applied(payment_id)}",
+            record_id=payment_id,
+        ) from exc
+    if not isinstance(result, dict) or not result.get("id"):
+        # A 2xx that may have committed: not a refusal. The caller turns it
+        # into the rerun message (a rerun re-reads what was applied).
+        raise UnknownApplyOutcome(
+            "payment", f"apply returned no id: {describe_response(result)}", record_id=payment_id
+        )
+    return result["id"]
+
+
+def _partly_applied(payment_id: str) -> str:
+    return (
+        f"Payment {payment_id} may be partly applied (earlier lines may have applied): "
+        "check its applications in the org, then apply the rest, or unapply them and "
+        "cancel the payment, before posting more invoices on this account (the next "
+        "posted invoice may absorb it)."
+    )
+
+
+class UnknownApplyOutcome(SettlementError):
+    """An apply answered 2xx without an id: it may have committed."""
+
+
+def read_payment_applications(
+    client: SfRestClient, payment_ids: list[str], invoice_id: str
+) -> dict:
+    """Application rows for ``payment_ids`` on ``invoice_id``, at both levels.
+
+    An over-payment's rest can be applied to another invoice (the account's
+    next one posted); those rows are not this scenario's and are not counted.
+    Every row is read (any ``Type``); a reversed one fails (:func:`_unreversed`).
+    """
+    if not payment_ids:
+        return {LEVEL_LINE: [], LEVEL_HEADER: []}
+    in_list = ", ".join(f"'{i}'" for i in payment_ids)
+    line_rows = client.query(
+        "SELECT Id, Amount, InvoiceLineId, Type, UnappliedStatus FROM PaymentLineInvoiceLine "
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceLine.InvoiceId = '{invoice_id}'"
+    )
+    header_rows = client.query(
+        "SELECT Id, Amount, InvoiceId, Type, HasBeenUnapplied FROM PaymentLineInvoice "
+        f"WHERE PaymentId IN ({in_list}) AND InvoiceId = '{invoice_id}'"
+    )
+    return {
+        LEVEL_LINE: _unreversed(line_rows, "UnappliedStatus", "payment"),
+        LEVEL_HEADER: _unreversed(header_rows, "HasBeenUnapplied", "payment"),
+    }
+
+
+def read_invoice_applications(client: SfRestClient, invoice_id: str) -> dict:
+    """Every applied credit/payment row on ``invoice_id`` (both levels).
+
+    Used for the settlement baseline: rows present before the harness applied
+    anything were applied by the platform (e.g. at post).
+    """
+    return {
+        "payment_line": client.query(
+            "SELECT Id, Amount, PaymentId FROM PaymentLineInvoiceLine "
+            f"WHERE InvoiceLine.InvoiceId = '{invoice_id}' AND Type = 'Applied'"
+        ),
+        "payment_header": client.query(
+            "SELECT Id, Amount, PaymentId FROM PaymentLineInvoice "
+            f"WHERE InvoiceId = '{invoice_id}' AND Type = 'Applied'"
+        ),
+        "credit_line": client.query(
+            "SELECT Id, Amount, CreditMemoLine.CreditMemoId FROM CreditMemoLineInvoiceLine "
+            f"WHERE InvoiceLine.InvoiceId = '{invoice_id}' AND Type = 'Applied'"
+        ),
+        "credit_header": client.query(
+            "SELECT Id, Amount, CreditMemoId FROM CreditMemoInvApplication "
+            f"WHERE InvoiceId = '{invoice_id}' AND Type = 'Applied'"
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------
