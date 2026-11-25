@@ -17,7 +17,8 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import time
 
-# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
+# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
 from tasks.soql_utils import positive_int, soql_quote, split_names
 
 try:

@@ -4,7 +4,7 @@ Invariant: task options that reach SOQL are escaped or whitelisted, and an accep
 
     python tests/test_soql_option_hardening.py
 
-Needs `requests` (rlm_cml imports it) and a real CumulusCI install (the stdctx task subclasses its base\nclasses); run it with the repo .venv interpreter.
+Needs `requests` (rlm_cml imports it) and a real CumulusCI install (the stdctx task subclasses its base classes); run it with the repo .venv interpreter.
 
 Covers the pack 457 class sweep of tasks no flow calls: tasks/soql_utils.py, manage_decision_tables
 (sort_by / sort_order / limit), export_cml (developer_name, version), manage_transaction_processing_types
@@ -103,6 +103,9 @@ sent = " ".join(q for q, _ in queries if q != "esdv")
 check("developer_name quote escaped in every query", "'Bad\\'Name'" in sent and "'Bad'Name'" not in sent, sent)
 task.options["version"] = "1 OR 1=1"
 check("version fragment rejected", raises(task._run_task, "version must be a whole number"))
+for bad in ("\u0661", "\uff11", "0"):
+    task.options["version"] = bad
+    check(f"version {bad!r} (non-ASCII digit or zero) rejected", raises(task._run_task, "version must be a whole number"))
 
 print("export_cml: _build_id_query runs with a non-empty id list")
 q = ExportCML._build_id_query("Product2", ["Id", "Name"], ["01t000000000001", "01t'x"])
@@ -139,6 +142,7 @@ def activate_requested(value):
 
 check("true, 'true' and unset activate", activate_requested(True) and activate_requested("True") and activate_requested(None))
 check("false and 'false' leave it inactive", not activate_requested(False) and not activate_requested("false"))
+check("a null or blank activate takes the default (true)", activate_requested("") and activate_requested("  "))
 check("a non-boolean string is rejected", raises(lambda: activate_requested("maybe"), "activate must be"))
 check("a non-bool, non-string value is rejected", raises(lambda: activate_requested(1), "activate must be"))
 

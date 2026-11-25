@@ -14,6 +14,7 @@ Why this file exists (pack 457, measured live on 264)
 - developer_names was not split on commas, and filtered DefinitionId rather than DeveloperName.
 - status, process_type, sort_by, sort_order and limit reached SOQL unescaped.
 """
+import re
 import sys
 import types
 from pathlib import Path
@@ -48,18 +49,31 @@ def row(def_id, name, version, status, process_type="AutoLaunchedFlow"):
 
 
 class FakeTooling(types.ModuleType):
-    """Answers every query with `rows`; records queries and PATCHes. `fail_patch_for` ids get a 400."""
+    """Answers queries from `rows`, honouring a Status = 'X' WHERE clause; records queries and PATCHes.
+    `fail_patch_for` ids get a 400. A nextRecordsUrl call (params None) returns the `pages` tail."""
 
-    def __init__(self, rows, fail_patch_for=()):
+    def __init__(self, rows, fail_patch_for=(), pages=None):
         super().__init__("requests")
         self.rows = rows
+        self.pages = pages
         self.fail_patch_for = set(fail_patch_for)
         self.queries = []
         self.patches = []
 
     def get(self, url, headers=None, params=None):
-        self.queries.append(params["q"])
-        return FakeResponse(200, {"records": [dict(r, attributes={}) for r in self.rows], "done": True})
+        if params is None:  # follow-up page
+            self.queries.append("<next page>")
+            return FakeResponse(200, {"records": [dict(r, attributes={}) for r in (self.pages or [])], "done": True})
+        q = params["q"]
+        self.queries.append(q)
+        rows = self.rows
+        m = re.search(r"Status = '([^']*)'", q)
+        if m:
+            rows = [r for r in rows if r["Status"] == m.group(1)]
+        body = {"records": [dict(r, attributes={}) for r in rows], "done": True}
+        if self.pages is not None and not m:
+            body.update(done=False, nextRecordsUrl="/services/data/next")
+        return FakeResponse(200, body)
 
     def patch(self, url, headers=None, json=None):
         self.patches.append((url, json))
@@ -73,8 +87,8 @@ from tasks.rlm_manage_flows import ManageFlows  # noqa: E402
 LOGS = []
 
 
-def run(rows, options, fail_patch_for=()):
-    fake = FakeTooling(rows, fail_patch_for)
+def run(rows, options, fail_patch_for=(), pages=None):
+    fake = FakeTooling(rows, fail_patch_for, pages)
     sys.modules["requests"] = fake
     LOGS.clear()
     task = ManageFlows.__new__(ManageFlows)
@@ -207,6 +221,14 @@ fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "develope
 check("a status filter that excludes an existing flow is not a missing name",
       err is None and len(fake.queries) == 2 and "Status = 'Draft'" in fake.queries[0] and "Status" not in fake.queries[1].split("WHERE")[1],
       repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 1, "Active"), row(B, "Flow_B", 1, "Active")],
+                {"operation": "list", "developer_names": "Flow_A,Flow_B", "limit": "1"})
+check("a limit does not make an existing name missing",
+      err is None and len(fake.queries) == 2 and fake.queries[0].endswith("LIMIT 1") and "LIMIT" not in fake.queries[1],
+      repr((err, fake.queries)))
+fake, err = run([row(A, "Flow_A", 1, "Active")], {"operation": "list", "developer_names": "Flow_A"},
+                pages=[row(B, "Flow_B", 1, "Active")])
+check("a paginated query follows nextRecordsUrl", err is None and "<next page>" in fake.queries, repr((err, fake.queries)))
 
 print("activate never undoes a rollback and does re-activate a deactivated flow")
 fake, err = run([row(A, "Flow_A", 1, "Obsolete"), row(A, "Flow_A", 2, "Active")],

@@ -15,7 +15,8 @@ Tooling API model (verified live on 264):
 import re
 from typing import Dict, List
 
-# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
+# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
 from tasks.soql_utils import positive_int, soql_quote, split_names
 
 try:
@@ -191,11 +192,10 @@ class ManageFlows(BaseSalesforceTask):
         names = self._requested_names()
         flows = self._tooling_query(self._build_soql_query(names=names))
         if names:
-            # status/process_type may legitimately exclude a flow that exists, so a name is
-            # only "missing" when no flow of that name exists at all.
-            by_name = flows
-            if self.options.get("status") or self.options.get("process_type"):
-                by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
+            # status, process_type and limit may legitimately leave out a flow that exists, so a
+            # name is only "missing" when no flow of that name exists at all: check against an
+            # unfiltered, unordered, unlimited query.
+            by_name = self._tooling_query(self._build_soql_query(names=names, filtered=False, ordered=False))
             self._raise_on_missing(names, by_name)
         self.logger.info(f"Query returned {len(flows)} flow version(s).")
         return flows
@@ -352,7 +352,9 @@ class ManageFlows(BaseSalesforceTask):
           itself (the flow is skipped), so a rollback to an older active version stands and an
           abandoned older draft is never picked.
         - When none is Active: the newest Draft or Obsolete version, so a deactivated flow
-          returns to the version that was live rather than to a stale older draft.
+          is restored to its newest non-active version. The org keeps no record of which
+          version was last active, so this is the newest Draft or Obsolete one, not
+          necessarily the version that was live.
         """
         def number(v):
             return int(v.get("VersionNumber") or 0)

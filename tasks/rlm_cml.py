@@ -16,7 +16,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 
-# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
+# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
 from tasks.soql_utils import soql_quote
 
 try:
@@ -431,7 +432,7 @@ class ExportCML(CMLBaseTask):
     def _run_task(self):
         dev_name = self.options["developer_name"]
         version = str(self.options.get("version", "1")).strip()
-        if not version.isdigit():
+        if not (version.isascii() and version.isdigit() and int(version) > 0):
             raise TaskOptionsError(f"version must be a whole number, got {version!r}")
         output_dir = self.options["output_dir"]
         api_name_versioned = f"{dev_name}_V{version}"

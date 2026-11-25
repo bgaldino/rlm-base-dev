@@ -24,6 +24,8 @@ import json
 from typing import List, Dict, Optional, Set
 from datetime import datetime
 
+# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
+# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
 from tasks.soql_utils import positive_int, require_identifier, soql_quote
 
 try:

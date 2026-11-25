@@ -8,7 +8,8 @@ from typing import Dict, Any, List
 import json
 import os
 
-# Imported before CumulusCI: importing cumulusci replaces the `tasks` module in sys.modules.
+# Import before CumulusCI: importing cumulusci can replace the `tasks` package in sys.modules, after which
+# `tasks.soql_utils` no longer resolves (offline tests run with a real CumulusCI installed).
 from tasks.soql_utils import soql_quote
 
 try:

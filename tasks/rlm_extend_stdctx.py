@@ -363,6 +363,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             self.logger.info(f"      Found {len(version_list)} version(s)")
             if version_list:
                 self._process_version_list(version_list)
+            else:
+                self.logger.warning(
+                    "      No versions listed: skipped setting the default mapping, applying plan_file and activation."
+                )
 
     # Process the version list obtained from context definitions to obtain context mappings
     def _process_version_list(self, version_list):
@@ -377,6 +381,11 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 )
                 self._update_context_mappings()
                 break
+        else:
+            self.logger.warning(
+                f"      No mapping named '{default_mapping}' found: skipped setting the default "
+                "mapping, applying plan_file and activation."
+            )
 
     # Update context mappings, typically for marking certain context mappings the default
     def _update_context_mappings(self):
@@ -406,7 +415,9 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.info("      activate is false: leaving the new context definition inactive.")
 
     def _activate_requested(self) -> bool:
-        value = self.options.get("activate", True)
+        value = self.options.get("activate")
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return True
         if isinstance(value, str):
             text = value.strip().lower()
             if text in ("true", "yes", "y", "1", "on"):

@@ -60,7 +60,7 @@ cci task run manage_flows --org <org> -o operation list -o sort_by ProcessType -
 
 ### Activating and deactivating
 
-`activate` picks one version per flow. When a version is `Active`, it activates the newest `Draft` numbered above it, otherwise the flow is skipped, so a rollback to an older active version stands and an abandoned older draft is never picked. When no version is `Active` (a deactivated flow), it activates the newest `Draft` or `Obsolete` version, so the flow returns to the version that was live rather than to a stale older draft. `InvalidDraft` versions are never chosen; a flow with nothing else fails with the statuses it has. `deactivate` leaves no version active; a flow with no active version is skipped. The task checks every name before changing anything, continues past a per-flow failure, and fails at the end if any flow failed.
+`activate` picks one version per flow. When a version is `Active`, it activates the newest `Draft` numbered above it, otherwise the flow is skipped, so a rollback to an older active version stands and an abandoned older draft is never picked. When no version is `Active` (a deactivated flow), it activates the newest `Draft` or `Obsolete` version, so the flow is restored to its newest non-active version (the org keeps no record of which version was last active, so this need not be the one that was live). `InvalidDraft` versions are never chosen; a flow with nothing else fails with the statuses it has. `deactivate` leaves no version active; a flow with no active version is skipped. The task checks every name before changing anything, continues past a per-flow failure, and fails at the end if any flow failed.
 
 ```bash
 # One flow
