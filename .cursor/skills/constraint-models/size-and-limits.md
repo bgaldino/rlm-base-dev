@@ -12,7 +12,7 @@ fails with "You reached the size limit for this constraint model."
 - On a 264 Enterprise scratch org the threshold was exactly 10,000,000 bytes: saves of
   5.5, 6.0 and 6.5 MiB, 9 MiB and 9,999,999 / 10,000,000 bytes passed, and 10,000,001
   bytes and larger failed `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`.
-  Do not copy 10,000,000 to another org; measure it or pass it to the size tool.
+  Do not copy 10,000,000 to another org. The size tool has no default limit: pass `--limit` to see a share of it.
 - The Apex code size limit could not be set on a scratch org, so raising it, and whether
   the CML check follows the change, was not tested
   `[Open: Support-adjusted org value; not testable on a scratch org]`.
@@ -31,12 +31,13 @@ Constraint Builder or through the resource. A model that imports cleanly can the
 become impossible to save. Check the size at authoring time:
 
 ```bash
-python scripts/constraint_models/cml_tool.py size --target-org <sf_alias_or_username> [--limit <bytes>]
+python scripts/constraint_models/cml_tool.py size --target-org <sf_alias_or_username> --limit <bytes>
 ```
 
-It prints each constraint model version's byte length and its share of the limit, and exits
+It prints each constraint model version's byte length (from the stored blob, not the
+HTML-escaped Connect read; [tooling.md](tooling.md)) and, with `--limit`, its share, and exits
 1 when any is over ([tooling.md](tooling.md)). The shipped models are far below the limit: the repo files are 8,774 and 21,541 bytes, and
-the active models read back from an org at 9,694 and 24,899 bytes
+the same two models read from the stored blob in an org at the same sizes
 `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`.
 
 ## What counts, and what else is limited

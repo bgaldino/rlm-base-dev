@@ -8,7 +8,7 @@ Shipped models (``datasets/constraints/``) go through the CCI tasks
 measuring a model, cycling a one-off model, and building a disposable catalog
 plus constraint model for an experiment. Skill: ``.cursor/skills/constraint-models``.
 
-    # size of every constraint model version against the org limit
+    # byte length of every constraint model version (add --limit <bytes> for a share)
     python scripts/constraint_models/cml_tool.py size --target-org <sf_alias>
 
     # deactivate -> upload -> activate (preview unless --confirm)
@@ -32,21 +32,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.expression_sets._client import (  # noqa: E402
     ExpressionSetClientError,
     Transport,
+    _run_sf,
     eprint,
     soql_literal,
 )
 
-# Measured on a 264 Enterprise scratch org: the save check allows exactly this many
-# bytes. It is an org value (it follows the Apex code size limit), so override it.
-DEFAULT_LIMIT_BYTES = 10_000_000
+# The save-size limit is an org value (it follows the Apex code size limit) and cannot be
+# read from the org, so --limit is optional: without it only the byte count is reported.
 DEFAULT_CONTEXT = "RLM_SalesTransactionContext"
 
 
-def size_report(model_text, limit=DEFAULT_LIMIT_BYTES):
-    """Return the byte length of a model and its share of the limit."""
+def size_report(model_text, limit=None):
+    """Return the byte length of a model and, given a limit, its share of it."""
     size = len((model_text or "").encode("utf-8"))
-    return {"bytes": size, "limit": limit, "percent": round(100.0 * size / limit, 3),
-            "over": size > limit}
+    rep = {"bytes": size, "limit": limit, "percent": None, "over": False}
+    if limit:
+        rep.update(percent=round(100.0 * size / limit, 3), over=size > limit)
+    return rep
+
+
+def fmt_size(rep):
+    tail = f" = {rep['percent']}% of {rep['limit']:,}" if rep["limit"] else ""
+    return f"{rep['bytes']:,} bytes{tail}" + ("  OVER LIMIT" if rep["over"] else "")
 
 
 def constraint_versions(t, api_name=None):
@@ -60,10 +67,29 @@ def constraint_versions(t, api_name=None):
     )
 
 
+def esdv_id(t, version):
+    rows = t.soql("SELECT Id FROM ExpressionSetDefinitionVersion "
+                  f"WHERE DeveloperName = '{soql_literal(version['ApiName'])}'")
+    if not rows:
+        raise SystemExit(f"no ExpressionSetDefinitionVersion {version['ApiName']}")
+    return rows[0]["Id"]
+
+
 def read_model(t, version):
-    """Model text through the constraint-version resource (the route the builder uses)."""
-    body = t.get(f"industries/constraints/{version['ExpressionSetId']}/versions/{version['Id']}")
-    return (body or {}).get("constraintModel") or ""
+    """Model text from the stored blob (ExpressionSetDefinitionVersion.ConstraintModel).
+
+    Not the constraint-version Connect GET: that returns constraintModel HTML-escaped
+    (quote -> &quot;, ampersand -> &amp;), so its length is wrong and writing it back
+    breaks the model. The blob GET returns the raw text, which is not JSON, so it goes
+    through the sf CLI directly.
+    """
+    path = (f"/services/data/v{t.api_version}/sobjects/ExpressionSetDefinitionVersion/"
+            f"{esdv_id(t, version)}/ConstraintModel")
+    res = _run_sf(["api", "request", "rest", path, "--target-org", t.target_org], timeout=120)
+    if res.returncode != 0:
+        raise ExpressionSetClientError(f"reading the model failed: {(res.stdout or res.stderr)[:300]}")
+    # the CLI appends one newline to the printed body
+    return res.stdout[:-1] if res.stdout.endswith("\n") else res.stdout
 
 
 def cmd_size(t, args):
@@ -76,8 +102,7 @@ def cmd_size(t, args):
         print(json.dumps(rows, indent=2))
     for r in rows:
         if not args.json:
-            print(f"{r['model']} v{r['version']} active={r['active']}: {r['bytes']:,} bytes "
-                  f"= {r['percent']}% of {r['limit']:,}" + ("  OVER LIMIT" if r["over"] else ""))
+            print(f"{r['model']} v{r['version']} active={r['active']}: {fmt_size(r)}")
     return 1 if any(r["over"] for r in rows) else 0
 
 
@@ -91,6 +116,13 @@ def push_model(t, version, model_bytes):
     res = t.connect("PATCH", path, {"status": "Active"})
     if isinstance(res, dict) and res.get("success") is False:
         raise ExpressionSetClientError(f"activation reported failure: {json.dumps(res)[:400]}")
+    # Read back: the stored blob must equal the file and the version must be active.
+    stored = read_model(t, version)
+    active = t.soql(f"SELECT IsActive FROM ExpressionSetVersion WHERE Id = '{version['Id']}'")
+    if stored.strip() != model_bytes.decode("utf-8").strip():
+        raise ExpressionSetClientError("stored model differs from the file after push")
+    if not (active and active[0]["IsActive"]):
+        raise ExpressionSetClientError("version is not active after push")
 
 
 def cmd_push(t, args):
@@ -98,20 +130,15 @@ def cmd_push(t, args):
     if not versions:
         raise SystemExit(f"no constraint model named {args.api_name}")
     version = versions[-1]
-    esdv = t.soql("SELECT Id FROM ExpressionSetDefinitionVersion "
-                  f"WHERE DeveloperName = '{soql_literal(version['ApiName'])}'")
-    if not esdv:
-        raise SystemExit(f"no ExpressionSetDefinitionVersion {version['ApiName']}")
-    version["_esdv"] = esdv[0]["Id"]
+    version["_esdv"] = esdv_id(t, version)
     data = Path(args.file).read_bytes()
     rep = size_report(data.decode("utf-8"), args.limit)
-    eprint(f"{version['ApiName']}: {rep['bytes']:,} bytes ({rep['percent']}% of limit)")
+    eprint(f"{version['ApiName']}: {fmt_size(rep)}")
     if not args.confirm:
         eprint("preview only; add --confirm to deactivate, upload and activate")
         return 0
     push_model(t, version, data)
-    print(json.dumps(t.soql("SELECT IsActive FROM ExpressionSetVersion "
-                            f"WHERE Id = '{version['Id']}'")))
+    print("pushed, read back identical, version active")
     return 0
 
 
@@ -218,8 +245,9 @@ def main(argv=None):
         s.set_defaults(fn=fn)
         if name != "scaffold":
             s.add_argument("--api-name", required=(name == "push"), help="ExpressionSet ApiName")
-            s.add_argument("--limit", type=int, default=DEFAULT_LIMIT_BYTES,
-                           help="org's model size limit in bytes (default: measured 264 value)")
+            s.add_argument("--limit", type=int, default=None,
+                           help="org's model size limit in bytes (not readable from the org; "
+                                "without it only bytes are reported)")
         if name == "size":
             s.add_argument("--json", action="store_true")
         if name == "push":

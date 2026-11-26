@@ -336,8 +336,8 @@ Before calling a constraint-model change done:
   container also draws "Missing port association" and "Missing type association"; its
   relations have no `Port` by design.
 - **A standalone `import_cml` never cycles the version**; `prepare_constraints` does
-  (steps 9-10). No single task does import-and-cycle; `cml_tool.py push` does for one file
-  ([tooling.md](tooling.md)).
+  (steps 9-10), and `cml_tool.py push` does for one file ([tooling.md](tooling.md)).
+  Never write back text read from the constraint-version GET: it is HTML-escaped.
 - **No passive signal distinguishes "stored" from "deployed".** Run a configurator
   `configure` POST (Validation check 7).
 - **`import_cml` still half-applies on failure.** Both failure modes raise (outside

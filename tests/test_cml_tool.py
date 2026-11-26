@@ -21,6 +21,9 @@ class FakeTransport:
         self.calls.append((method, path, body))
         return {"success": True}
 
+    def soql(self, query):
+        return [{"IsActive": True}]
+
     def sobject(self, method, sobject, record_id=None, body=None, **kw):
         self.calls.append((method, f"{sobject}/{record_id}", sorted(body)))
         return {}
@@ -31,14 +34,26 @@ def main():
     assert rep["bytes"] == 602 and rep["percent"] == 60.2 and not rep["over"], rep
     assert cml_tool.size_report("a" * 11, 10)["over"]
 
+    model = b'message("a & b", "x");'
+    stored = {"text": model.decode()}
+    cml_tool.read_model = lambda t, v: stored["text"]  # the blob read, stubbed offline
     t = FakeTransport()
     version = {"Id": "V", "ExpressionSetId": "E", "IsActive": True, "_esdv": "D"}
-    cml_tool.push_model(t, version, b"type X : LineItem;")
+    cml_tool.push_model(t, version, model)
     order = [c[0] + " " + c[1] for c in t.calls]
     assert order == ["PATCH industries/constraints/E/versions/V",
                      "PATCH ExpressionSetDefinitionVersion/D",
                      "PATCH industries/constraints/E/versions/V"], order
     assert t.calls[0][2] == {"status": "Inactive"} and t.calls[2][2] == {"status": "Active"}
+
+    # A read that comes back HTML-escaped (the Connect GET does this) must fail the push.
+    stored["text"] = model.decode().replace("&", "&amp;").replace('"', "&quot;")
+    try:
+        cml_tool.push_model(FakeTransport(), version, model)
+    except cml_tool.ExpressionSetClientError:
+        pass
+    else:
+        raise AssertionError("escaped read-back accepted")
 
     for bad in ({}, {"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
         try:

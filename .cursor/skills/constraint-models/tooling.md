@@ -35,19 +35,24 @@ a developer name and picklist `values`) and `products` (a name and a tag). Produ
   `export_cml`, `validate_cml` and `prepare_constraints`; they remap record ids through
   CSVs, which this tool does not.
 
+## Gotcha: never round-trip the Connect read
+
+`GET industries/constraints/{expressionSetId}/versions/{versionId}` returns `constraintModel`
+HTML-escaped (`"` as `&quot;`, `&` as `&amp;`). Its length is wrong, and writing it back
+stores escaped text that fails to parse on activation
+`[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`. Read the stored blob
+(`ExpressionSetDefinitionVersion.ConstraintModel`) for sizes and read-backs; the tool does,
+and `push` reads the blob back after activation and fails if it differs from the file or
+the version is not active. The shipped models measure 8,774 and 21,541 bytes, the same as
+their repo files.
+
 ## Status
 
 The unit test (`tests/test_cml_tool.py`) covers size arithmetic, the push call order
-against a fake transport, and spec validation. `size` ran against two live constraint
-models on a full 264 build and printed their byte lengths
-`[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`. `push`: the preview ran; a
-`--confirm` run deactivated the model, then the constraint-version PATCH failed with a
-connection reset, leaving the model inactive. Rerun the same command: `push` skips the
-deactivate step for an inactive version, so a rerun is the recovery. Because of that, the
-write path and the scaffold's constraint-row step have not completed against a live org
-`[Open: needs a rerun on a build with the Constraints Engine enabled]`.
-
-The text the constraint-version resource returns for a model is not always the file that
-was uploaded: the two shipped models read back at 9,694 and 24,899 bytes while active,
-against 8,774 and 21,541 bytes in the repo files, and one model read 27,811 bytes once
-inactive. Compare sizes only against readings taken the same way.
+against a fake transport, a read-back that comes back escaped, and spec validation.
+Run against a full 264 build `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`:
+`size` (read-only) and `scaffold` through the constraint-row step, which created the
+classification, attributes, product and Expression Set with its association. `push` has
+not completed against a live org after the fix `[Open: needs a run on a disposable model]`;
+if a cycle is interrupted (a connection reset left a model inactive once), rerun the same
+command, which skips the deactivate step for an inactive version.
