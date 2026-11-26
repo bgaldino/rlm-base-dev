@@ -1065,6 +1065,11 @@ for options, needle in (({"poll_attempts": "abc"}, "poll_attempts must be a posi
           "after the two deploys)", err is not None and needle in err and calls == [] and sleeps == [],
           repr((err, calls, sleeps)))
 
+# Padded settings paths pass the stripped directory check, so the deploys must get the stripped value
+# too; the raw option would reach sf padded and fail after pricing had been disabled.
+err, calls, sleeps = eps_run({"disable_settings_path": f" {EPS_DISABLE} ", "enable_settings_path": f" {EPS_ENABLE} "})
+check("ensure_pricing_schedules: padded settings paths are deployed stripped",
+      err is None and calls[2:4] == [("deploy", EPS_DISABLE), ("deploy", EPS_ENABLE)], repr((err, calls)))
 # Default-value mutants: poll_attempts 6 and poll_interval_seconds 10 when nothing is set.
 err, calls, sleeps = eps_run({}, still_missing=99)
 check("ensure_pricing_schedules: unset poll_attempts polls six times, 10s apart, then fails",

@@ -6,7 +6,7 @@ from typing import List
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
 from tasks.soql_utils import option_flag, option_text, project_api_version, requested_names, soql_quote
 
-# Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
+# Why: .cursor/skills/cci-orchestration/custom-task-authoring.md → Import Pattern (tasks.* first) and Task Options (no offline process_bool_arg fallback).
 try:
     import requests
     from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -99,7 +99,7 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Execute the task after preparation, where the core functionality will be implemented
     def _run_task(self):
         # Options are read before any request: a refused option must leave the org untouched.
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        # Why: .cursor/skills/cci-orchestration/custom-task-authoring.md → Task Options (the option helpers).
         developer_names = self._option_names("developerNames")
         is_incremental = self._option_flag("isIncremental")
         if not developer_names:
