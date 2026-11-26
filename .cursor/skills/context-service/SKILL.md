@@ -86,9 +86,9 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    a production runtime (engines like pricing/DocGen/BRE hydrate their own
    contexts). `context_session.py` sequences create→use→persist→delete from one
    Python process with a `data` payload from `build_hydration_data.py`, but it is
-   **not** a scope workaround — each step is a separate `sf api request`, so
-   chaining create→query→persist across them still needs `--context-scope SESSION`
-   (pilot) or a reused `--context-id` (see rule 10). Full lifecycle, scoping, and
+   each step is still a separate `sf api request`, so
+   it creates a SESSION-scoped instance whenever `--query`/`--persist`/`--update-attr`/`--write-tag`
+   is given (REQUEST would expire between steps); SESSION may be pilot-gated on some orgs (rule 10). Full lifecycle, scoping, and
    TTL in `runtime-and-persistence.md`.
 10. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
    Multi-call REST can't complete the lifecycle — `query-record`/`query-tags` are
@@ -143,7 +143,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
   invocations — it is request-scoped (rule 9), and `context_session.py` does not
   change that (its steps are separate `sf api request`s too). If a standalone
   `query`/`persist`/`delete` fails not-found, the REQUEST-scoped instance expired;
-  re-create with `--context-scope SESSION` (pilot) / enable the org's
+  re-create with `--context-scope SESSION` (pilot on some orgs) / enable the org's
   Instance-Reuse setting, or run the whole lifecycle from Apex/one Flow (rule 10).
   And **DO NOT** confuse `delete_context_instance.py` (evicts a runtime instance
   / clears the runtime schema cache) with `delete_context.py` (deactivates /
@@ -154,6 +154,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | I need to... | Do this |
 |--------------|---------|
 | Extend a standard context (add a custom layer) | `extend_context_*` task (or `extend_standard_context` with `name`/`baseReference`); see `authoring-and-lifecycle.md` → extend-vs-clone |
+| Add a new custom attribute a procedure will read (field, attribute, Quote and Order rows, tag) | `authoring-and-lifecycle.md` → *Procedure: add a new custom attribute* |
 | Apply an additive attribute/tag/mapping plan | `apply_context_*` task, or `manage_context_definition -o plan_file <manifest>`; preflight first (Quick Rule 6) |
 | Create a brand-new custom definition | Plan with `"create": true` + `developerName`/`label` (e.g. DocGen); `manage_context_definition` |
 | Understand an org's mapping / hydration | `python scripts/context_service/definition/describe_context.py --target-org <sf_alias> --developer-name <name>` |

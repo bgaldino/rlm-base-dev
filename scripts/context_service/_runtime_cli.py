@@ -31,13 +31,13 @@ from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
 # the SESSION/reuse path is the pilot-gated cross-call option.
 CONTEXT_ID_SCOPE_NOTE = (
     "Note: a runtime contextId is request-scoped and does NOT survive across "
-    "separate CLI invocations by default — each script (context_session.py "
-    "included) shells each step through its own `sf api request`. To chain "
-    "create→use→persist across calls you must create the instance with "
-    "--context-scope SESSION (pilot: requires ContextServicePilot + the org's "
-    "\"Runtime Context Instance Reuse\" setting, within contextTtl), or reuse an "
-    "existing instance via --context-id. For a GA single-request lifecycle, drive "
-    "it from Apex (Context.IndustriesContext) or one Flow."
+    "separate CLI invocations by default. context_session.py creates a "
+    "SESSION-scoped instance whenever a later step (--query, --persist, "
+    "--update-attr, --write-tag) is requested; the other scripts need an "
+    "instance created with --context-scope SESSION (within contextTtl) or a "
+    "reused --context-id. SESSION query-record worked on a 264 org with no pilot "
+    "error; some orgs gate it behind ContextServicePilot. For a GA "
+    "single-request lifecycle, drive it from Apex (Context.IndustriesContext) or one Flow."
 )
 
 EXPERIMENTAL_BANNER = (

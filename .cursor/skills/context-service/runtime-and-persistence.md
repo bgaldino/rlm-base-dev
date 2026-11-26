@@ -51,6 +51,18 @@ completes end-to-end:**
 | `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | pilot-gated (`ContextServicePilot`) |
 | `persist-records` (and the PATCHes) | ❌ `RECORD_NOT_FOUND` | GA endpoint, but the REQUEST-scoped `contextId` from the create call is already gone by the next `sf api request` — surviving it needs **SESSION scope** (pilot) |
 
+**264 re-measure.** On a 264 org where no permission set carried `SessionScopeContext`,
+`context_session.py --context-scope SESSION --query` created, queried and evicted an instance
+with no pilot error, and `query_context_instance.py` read a `--keep`-ed SESSION instance from a
+separate CLI call [Measured: 2026-11-27, 264, scratch build, one org]. The same run with the
+default REQUEST scope failed `query-record` with `RECORD_NOT_FOUND` ("Context with id ...
+doesn't exist or expired"), not `API_DISABLED_FOR_ORG`: the instance was gone before the next
+call. So on 264 the `--query` failure was the REQUEST default, not the pilot gate;
+`context_session.py` now selects SESSION whenever `--query`, `--persist`, `--update-attr` or
+`--write-tag` is given (pass `--context-scope REQUEST` to force the old behavior). The
+`API_DISABLED_FOR_ORG` rows above were measured on 262; whether a given 264 org still gates
+SESSION is [Open: only one 264 org measured, persist not re-run].
+
 So without SESSION scope **and** `ContextServicePilot`, **Apex (or a single Flow)
 is the only working path** — and it needs no pilot permission, only GA
 `IndustriesContext`. Both keep create → query → (update) → persist in one request,

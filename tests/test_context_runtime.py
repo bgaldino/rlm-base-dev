@@ -14,6 +14,7 @@ network), the ``_resolve`` mapping selection, the hydration skeleton, and the
 ``FakeTransport`` that records every call as ``(method, path, body, dry_run)`` and
 returns canned responses, so no org is touched.
 """
+import argparse
 import os
 import sys
 
@@ -1102,6 +1103,19 @@ def test_lci_count_interface_tags_recurses():
     check("interface node-tag count includes nested nodes", counts == (2, 3))
     check("no node-tag list → None (e.g. the list endpoint)",
           lci._count_interface_tags({"contextDefinitionInterfaceMetadataList": []}) is None)
+
+
+def test_session_default_scope():
+    from scripts.context_service.instance import context_session as cs
+    A = argparse.Namespace
+    base = dict(context_scope=None, query=False, persist=False, update_attr=None, write_tag=None)
+    check("no later step keeps scope unset", cs.effective_scope(A(**base)) is None)
+    check("--query defaults to SESSION", cs.effective_scope(A(**{**base, "query": True})) == "SESSION")
+    check("--persist defaults to SESSION", cs.effective_scope(A(**{**base, "persist": True})) == "SESSION")
+    check("--update-attr defaults to SESSION",
+          cs.effective_scope(A(**{**base, "update_attr": [["-", "a", "b"]]})) == "SESSION")
+    check("explicit REQUEST is kept",
+          cs.effective_scope(A(**{**base, "query": True, "context_scope": "REQUEST"})) == "REQUEST")
 
 
 # --------------------------------------------------------------------------- #
