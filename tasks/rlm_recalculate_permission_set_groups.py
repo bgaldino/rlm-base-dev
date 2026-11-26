@@ -22,7 +22,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_flag, project_api_version, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -41,11 +41,11 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
             "required": True,
         },
         "timeout_seconds": {
-            "description": "Max time to wait for all PSGs to become Updated (per attempt).",
+            "description": "Max time to wait for all PSGs to become Updated (per attempt). Default 300, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_seconds": {
-            "description": "Polling interval in seconds.",
+            "description": "Polling interval in seconds. Default 10, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "trigger_recalc": {
@@ -53,19 +53,19 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
             "required": False,
         },
         "initial_delay_seconds": {
-            "description": "Seconds to wait before starting to poll (gives platform time after PSL assign/deploy).",
+            "description": "Seconds to wait before starting to poll (gives platform time after PSL assign/deploy). Default 0, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "retry_count": {
-            "description": "Number of retries after a timeout (sleep then poll again).",
+            "description": "Number of retries after a timeout (sleep then poll again). Default 2, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "retry_delay_seconds": {
-            "description": "Seconds to wait before retrying after a timeout.",
+            "description": "Seconds to wait before retrying after a timeout. Default 120, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "post_trigger_delay_seconds": {
-            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating).",
+            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating). Default 90, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "use_tooling_api": {
@@ -84,16 +84,19 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
 
     def _run_task(self):
         names = self._parse_names(self.options.get("api_names"))
-        timeout_seconds = int(self.options.get("timeout_seconds", 300))
-        poll_seconds = int(self.options.get("poll_seconds", 10))
+        # Numbers too, before the first query: None, blank or whitespace is the default; anything
+        # else must be a whole number (positive, or 0 or more for initial_delay_seconds and
+        # retry_count), or it is refused by name. They were raw int(), so blank raised ValueError.
+        timeout_seconds = self._int_option("timeout_seconds", 300)
+        poll_seconds = self._int_option("poll_seconds", 10)
         # Booleans and names are read before the first query: None, blank or whitespace is the
         # default (trigger_recalc True, the rest False), padded text is read, and a list for a
         # boolean, an unparseable boolean or a non-string name is refused by name.
         trigger_recalc = option_flag(self.options.get("trigger_recalc"), "trigger_recalc", TaskOptionsError, default=True)
-        initial_delay_seconds = int(self.options.get("initial_delay_seconds", 0))
-        retry_count = int(self.options.get("retry_count", 2))
-        retry_delay_seconds = int(self.options.get("retry_delay_seconds", 120))
-        post_trigger_delay_seconds = int(self.options.get("post_trigger_delay_seconds", 90))
+        initial_delay_seconds = self._int_option("initial_delay_seconds", 0, allow_zero=True)
+        retry_count = self._int_option("retry_count", 2, allow_zero=True)
+        retry_delay_seconds = self._int_option("retry_delay_seconds", 120)
+        post_trigger_delay_seconds = self._int_option("post_trigger_delay_seconds", 90)
         use_tooling_api = option_flag(self.options.get("use_tooling_api"), "use_tooling_api", TaskOptionsError)
         self._use_tooling_api = use_tooling_api
         force_recalc = option_flag(self.options.get("force_recalc"), "force_recalc", TaskOptionsError)
@@ -356,6 +359,21 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
                 raise TaskOptionsError("Timed out waiting for forced Permission Set Groups: "
                                        + ", ".join(f"{n}:{status.get(n, 'Missing')}" for n in names))
             time.sleep(poll_seconds)
+
+    def _int_option(self, name: str, default: int, allow_zero: bool = False) -> int:
+        """None, blank or whitespace is `default`; otherwise a positive integer (or 0 or more with
+        allow_zero), or a TaskOptionsError naming the option."""
+        text = option_text(self.options.get(name), name, TaskOptionsError)
+        if text is None:
+            return default
+        if allow_zero and text == "0":
+            return 0
+        if allow_zero:
+            try:
+                return positive_int(text, name, TaskOptionsError)
+            except TaskOptionsError:
+                raise TaskOptionsError(f"{name} must be a whole number, 0 or more, got {self.options.get(name)!r}")
+        return positive_int(text, name, TaskOptionsError)
 
     def _parse_names(self, value) -> List[str]:
         """api_names: a list or a comma-separated string. A null or other non-string item (a YAML

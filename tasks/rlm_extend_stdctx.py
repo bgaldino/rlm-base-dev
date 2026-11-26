@@ -441,19 +441,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         return option_flag(self.options.get("allow_skip_if_unavailable"), "allow_skip_if_unavailable", TaskOptionsError)
 
     def _activate_requested(self) -> bool:
-        value = self.options.get("activate")
-        if value is None or (isinstance(value, str) and not value.strip()):
-            return True
-        if isinstance(value, str):
-            text = value.strip().lower()
-            if text in ("true", "yes", "y", "1", "on"):
-                return True
-            if text in ("false", "no", "n", "0", "off"):
-                return False
-            raise TaskOptionsError(f"activate must be true or false, got {value!r}")
-        if isinstance(value, bool):
-            return value
-        raise TaskOptionsError(f"activate must be true or false, got {value!r}")
+        """activate through soql_utils.option_flag, like allow_skip_if_unavailable: None, blank or
+        whitespace is the default (True), any int its truth value, and a list or a value outside
+        CumulusCI's vocabulary is refused by name."""
+        return option_flag(self.options.get("activate"), "activate", TaskOptionsError, default=True)
 
     def _status_text(self):
         status = self._last_response_status

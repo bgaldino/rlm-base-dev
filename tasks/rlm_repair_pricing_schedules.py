@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -24,15 +24,15 @@ class EnsurePricingSchedules(BaseSalesforceTask):
 
     task_options = {
         "schedule_names": {
-            "description": "List of PriceAdjustmentSchedule names to verify.",
+            "description": "PriceAdjustmentSchedule names to verify, a list or comma-separated. Blank is the three Standard schedules.",
             "required": False,
         },
         "poll_attempts": {
-            "description": "Number of times to poll after toggle.",
+            "description": "Number of times to poll after toggle. Default 6, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Seconds to wait between polls.",
+            "description": "Seconds to wait between polls. Default 10, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "disable_settings_path": {
@@ -50,34 +50,43 @@ class EnsurePricingSchedules(BaseSalesforceTask):
             "required": False,
         },
         "validate_decision_table_lookups": {
-            "description": "When true, ensure lookup DecisionTable records referenced by expression sets exist.",
+            "description": "When true, ensure lookup DecisionTable records referenced by expression sets exist. Default true, also when blank; a list or an unparseable value is refused.",
             "required": False,
         },
     }
 
+    DEFAULT_SCHEDULE_NAMES = [
+        "Standard Attribute Based Adjustment",
+        "Standard Price Adjustment Tier",
+        "Standard Bundle Based Adjustment",
+    ]
+
+    def _positive_option(self, name: str, default: int) -> int:
+        text = option_text(self.options.get(name), name, TaskOptionsError)
+        return default if text is None else positive_int(text, name, TaskOptionsError)
+
     def _run_task(self):
-        # An unset or blank option means the defaults, not "check nothing".
-        schedule_names = requested_names(
-            self.options.get("schedule_names"), "schedule_names", TaskOptionsError
-        ) or [
-            "Standard Attribute Based Adjustment",
-            "Standard Price Adjustment Tier",
-            "Standard Bundle Based Adjustment",
-        ]
-        validate_decision_tables = (
-            str(self.options.get("validate_decision_table_lookups", "true")).lower()
-            == "true"
+        # Every option is read before the first query (poll_attempts and poll_interval_seconds were
+        # read after the two settings deploys). None, blank or whitespace is the default; a list for a
+        # scalar, a value outside CumulusCI's boolean vocabulary, a non-positive number, or a schedule
+        # name that is not a string is refused by name.
+        # schedule_names: a list or comma-separated; a string used to be iterated character by character.
+        schedule_names = (
+            requested_names(self.options.get("schedule_names"), "schedule_names", TaskOptionsError)
+            or list(self.DEFAULT_SCHEDULE_NAMES)
         )
+        validate_decision_tables = option_flag(
+            self.options.get("validate_decision_table_lookups"), "validate_decision_table_lookups",
+            TaskOptionsError, default=True,
+        )
+        attempts = self._positive_option("poll_attempts", 6)
+        interval = self._positive_option("poll_interval_seconds", 10)
         decision_table_names = (
             self._discover_lookup_decision_tables()
             if validate_decision_tables
             else []
         )
 
-        attempts = int(self.options.get("poll_attempts") or 6)
-        if attempts < 1:
-            raise TaskOptionsError("poll_attempts must be at least 1.")
-        interval = int(self.options.get("poll_interval_seconds") or 10)
         enable_path = self.options["enable_settings_path"]
 
         pricing_was_off = False

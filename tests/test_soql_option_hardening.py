@@ -260,7 +260,11 @@ check("true, 'true' and unset activate", activate_requested(True) and activate_r
 check("false and 'false' leave it inactive", not activate_requested(False) and not activate_requested("false"))
 check("a null or blank activate takes the default (true)", activate_requested("") and activate_requested("  "))
 check("a non-boolean string is rejected", raises(lambda: activate_requested("maybe"), "activate must be"))
-check("a non-bool, non-string value is rejected", raises(lambda: activate_requested(1), "activate must be"))
+check("an int is its truth value, as in CumulusCI (todo 488: it was refused)",
+      activate_requested(1) is True and activate_requested(2) is True and activate_requested(0) is False)
+check("a list or a dict is rejected, naming the option",
+      raises(lambda: activate_requested(["true"]), "activate must be a single value")
+      and raises(lambda: activate_requested({"a": 1}), "activate must be a single value"))
 
 t = ExtendStandardContext.__new__(ExtendStandardContext)
 t.instance_url, t.access_token = "https://x", "tok"
@@ -927,6 +931,84 @@ for options, needle in (({"trigger_recalc": ["true"]}, "trigger_recalc must be a
     check(f"psg: {options!r} refused by name before any query",
           err is not None and needle in err and not seen["queries"] and not seen["wait"] and not seen["force"],
           repr((err, seen)))
+
+# The int options were raw int(): blank raised ValueError, "abc" an opaque one, 0 a silent no-wait.
+for options, field, want in (({"timeout_seconds": "  "}, "timeout_seconds", 300), ({"timeout_seconds": " 60 "}, "timeout_seconds", 60),
+                             ({"poll_seconds": ""}, "poll_seconds", 10), ({"post_trigger_delay_seconds": None}, "post_trigger_delay_seconds", 90),
+                             ({"post_trigger_delay_seconds": "5"}, "post_trigger_delay_seconds", 5)):
+    err, seen = psg_run(options)
+    check(f"psg: {options!r} gives {field}={want} and the wait runs",
+          err is None and seen["wait"] and seen["wait"][field] == want, repr((err, seen)))
+_slept = []
+with mock.patch.object(_psg.time, "sleep", lambda s: _slept.append(s)):
+    for value, want in (("  ", None), ("0", None), (" 3 ", 3)):
+        del _slept[:]
+        err, seen = psg_run({"initial_delay_seconds": value})
+        check(f"psg: initial_delay_seconds {value!r} is accepted (0 or more; blank is 0)",
+              err is None and seen["wait"] and _slept == ([] if want is None else [want]), repr((err, _slept)))
+for value in ("", "0", " 4 "):
+    err, seen = psg_run({"retry_count": value})
+    check(f"psg: retry_count {value!r} is accepted (0 or more; blank is 2)", err is None and seen["wait"], repr((err, seen)))
+for options, needle in (({"timeout_seconds": "abc"}, "timeout_seconds must be a positive integer"),
+                        ({"poll_seconds": 0}, "poll_seconds must be a positive integer"),
+                        ({"retry_delay_seconds": ["5"]}, "retry_delay_seconds must be a single value"),
+                        ({"post_trigger_delay_seconds": "-1"}, "post_trigger_delay_seconds must be a positive integer"),
+                        ({"initial_delay_seconds": "abc"}, "initial_delay_seconds must be a whole number, 0 or more"),
+                        ({"retry_count": "-1"}, "retry_count must be a whole number, 0 or more")):
+    err, seen = psg_run(options)
+    check(f"psg: {options!r} refused by name before any query",
+          err is not None and needle in err and not seen["queries"] and not seen["wait"], repr((err, seen)))
+
+_eps = load("rlm_repair_pricing_schedules")
+
+
+def eps_run(options, still_missing=0):
+    """EnsurePricingSchedules._run_task with one schedule missing at first; return (error, calls, sleeps).
+
+    still_missing: how many polls still report it missing (more than poll_attempts fails the task)."""
+    calls, sleeps = [], []
+    polls = {"n": 0}
+    t = _eps.EnsurePricingSchedules.__new__(_eps.EnsurePricingSchedules)
+    t.options = {"disable_settings_path": "d", "enable_settings_path": "e", **options}
+    t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+    t._discover_lookup_decision_tables = lambda: calls.append("discover") or []
+
+    def missing(names):
+        calls.append(("schedules", list(names)))
+        polls["n"] += 1
+        return [names[0]] if polls["n"] <= 1 + still_missing else []
+    t._get_missing_schedules = missing
+    t._get_missing_decision_tables = lambda names: []
+    t._deploy_settings = lambda path: calls.append(("deploy", path))
+    with mock.patch.object(_eps.time, "sleep", lambda secs: sleeps.append(secs)):
+        try:
+            t._run_task()
+            return None, calls, sleeps
+        except Exception as exc:
+            return str(exc), calls, sleeps
+
+
+err, calls, sleeps = eps_run({})
+check("ensure_pricing_schedules: defaults (blank or unset) poll every 10s, discover lookups, check the three schedules",
+      err is None and "discover" in calls and calls[1] == ("schedules", list(_eps.EnsurePricingSchedules.DEFAULT_SCHEDULE_NAMES))
+      and ("deploy", "d") in calls and sleeps == [10], repr((err, calls, sleeps)))
+err, calls, sleeps = eps_run({"poll_attempts": "  ", "poll_interval_seconds": " 3 ",
+                              "validate_decision_table_lookups": " off ", "schedule_names": "A, B"})
+check("ensure_pricing_schedules: padded interval, blank attempts, ' off ' skips discovery, a comma string is two names",
+      err is None and "discover" not in calls and calls[0] == ("schedules", ["A", "B"]) and sleeps == [3],
+      repr((err, calls, sleeps)))
+err, calls, sleeps = eps_run({"poll_attempts": " 2 ", "poll_interval_seconds": 1}, still_missing=5)
+check("ensure_pricing_schedules: poll_attempts ' 2 ' polls twice, then fails naming what is missing",
+      err is not None and "PriceAdjustmentSchedule" in err and sleeps == [1, 1], repr((err, sleeps)))
+for options, needle in (({"poll_attempts": "abc"}, "poll_attempts must be a positive integer"),
+                        ({"poll_attempts": 0}, "poll_attempts must be a positive integer"),
+                        ({"poll_interval_seconds": ["5"]}, "poll_interval_seconds must be a single value"),
+                        ({"validate_decision_table_lookups": "maybe"}, "validate_decision_table_lookups must be true or false"),
+                        ({"schedule_names": ["A", None]}, "schedule_names items must be names")):
+    err, calls, sleeps = eps_run(options)
+    check(f"ensure_pricing_schedules: {options!r} refused by name before any query or deploy (the polls were read "
+          "after the two deploys)", err is not None and needle in err and calls == [] and sleeps == [],
+          repr((err, calls, sleeps)))
 
 _ppd = load("rlm_create_procedure_plan_def")
 
