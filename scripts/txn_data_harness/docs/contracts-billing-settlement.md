@@ -529,9 +529,10 @@ Measured live on 2026-11-26 (264 scratch org, Line Level, API 68.0, org and
 API user time zone America/Los_Angeles). BillingSettings carried
 `ruleBasedCrAndPymtAppln` = `{"first":"Payments","rules":["EA","OI","HI"]}`
 (the value the build deploys; the metadata has no separate enable element).
-The account had about 16 open Posted invoices. Each probe created External
-Processed payments (as `payment_applied` does) after the invoices posted, then
-called:
+The account had about 16 open Posted invoices. Probes 1-4 each created one
+External Processed payment (as `payment_applied` does) after the invoices
+posted; probe 5 used a run's payment and credit memo freed by `cli unapply`.
+Each then called:
 
 | Call | Response |
 |---|---|
@@ -557,7 +558,7 @@ The probes, in the order they ran (invoice numbers are that org's
 | 2 | payment 100.00 (no invoice at 100.00) | none | DOC-23 (495.00, left 395.00), the earliest-created candidate | Match Balance, Prioritize Oldest Invoices |
 | 3 | payment 135.00 (DOC-9 and DOC-11 at 135.00, posted the day before) | none | DOC-25 (495.00, left 360.00); not DOC-23, still open at 395.00 | Match Balance, Prioritize Oldest Invoices |
 | 4 | payment 234.00 (DOC-7 at 234.00, posted the day before) | `2026-11-25` | DOC-7 | Match Balance |
-| 5 | payment 445.50 and credit memo 49.50, freed by `cli unapply` (no candidate at either balance) | none | both to DOC-28 (495.00): the payment 445.50, the credit the 49.50 it left; not DOC-23 (395.00) or DOC-25 (360.00) | Match Balance, Prioritize Oldest Invoices |
+| 5 | payment 445.50 and credit memo 49.50, freed by `cli unapply` (no candidate at either balance) | none | both to DOC-28 (495.00): the payment 445.50, the credit the 49.50 it left; not DOC-23 (395.00) or DOC-25 (360.00), and not the run's own DOC-36 (495.00, posted that day, still open after) | Match Balance, Prioritize Oldest Invoices |
 
 - **Without `targetDate` only invoices posted that UTC day were candidates.**
   The calls ran at about 06:10Z (22:10 the previous day in the org's time
@@ -591,8 +592,9 @@ anyone else's. Exit
 0 when the platform reports `isSuccess` true and either nothing was applied or
 the checks passed with at least one balance checked (the pass line gives the
 checked and skipped counts); 1 when the platform reports failure, a check
-fails, no balance could be checked, or the response counts payment (or credit)
-applications and no new payment (or credit) row was found; 2 when the account
+fails, no balance could be checked, or the response counts more payment (or
+credit) applications than new payment (or credit) rows were found (each
+applied payment or memo writes at least one row); 2 when the account
 cannot be resolved (none or several by that name), the org cannot be read, or
 the call, its response (not the measured shape) or a later read fails. A failed call may or may not have applied anything:
 read the account's payments and credit memos before calling again.

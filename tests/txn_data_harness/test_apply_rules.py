@@ -57,6 +57,12 @@ def test_resolve_account_id_by_id_and_by_escaped_name():
     assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = 'O\\'Hare \\\\ Co'"
 
 
+def test_resolve_account_id_takes_a_15_character_id():
+    org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
+    lifecycle.resolve_account_id(org, ACCOUNT[:15])
+    assert org.queries[-1] == f"SELECT Id FROM Account WHERE Id = '{ACCOUNT[:15]}'"
+
+
 def test_resolve_account_id_reads_an_id_with_a_trailing_newline_as_a_name():
     org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
     lifecycle.resolve_account_id(org, "001AAAAAAAAAAAA\n")
@@ -162,7 +168,7 @@ class Org:
         self.result = result
         self.calls: list[tuple] = []
         self.fail: dict[str, Exception] = {}
-        self.report = report or {"ok": True, "checked": 2, "skipped": 0, "level": "line",
+        self.report = report or {"ok": True, "checked": 2, "skipped": 1, "level": "line",
                                  "level_source": "records", "failed_checks": [],
                                  "checks": []}
         m = monkeypatch
@@ -210,7 +216,7 @@ def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     assert "1AlOLD" not in out
     assert "RULES: Match Balance, Prioritize Oldest Invoices;" in out
     assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made; "
-            "2 balance(s) checked, 0 skipped)") in out
+            "2 balance(s) checked, 1 skipped)") in out
 
 
 def test_passes_the_target_date(monkeypatch):
@@ -244,8 +250,8 @@ def test_counted_applications_with_no_new_row_fail(monkeypatch, capsys):
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
     out = capsys.readouterr().out
-    assert ("the response counts 1 payment and 1 credit application(s), but no new row "
-            "of that kind") in out
+    assert ("the response counts 1 payment application(s) but 0 new payment row(s) and "
+            "1 credit application(s) but 0 new credit row(s)") in out
     assert "APPLY-RULES: fail" in out
 
 
@@ -256,7 +262,22 @@ def test_a_counted_kind_with_no_new_row_fails_even_when_another_kind_has_one(
     assert "fetch" not in org.names()
     out = capsys.readouterr().out
     assert f"APPLIED: credit {MEMO} 49.5" in out
-    assert "the response counts 1 payment application(s), but no new row" in out
+    assert "the response counts 1 payment application(s) but 0 new payment row(s) on" in out
+
+
+def test_fewer_new_rows_than_the_count_of_their_kind_fail(monkeypatch, capsys):
+    result = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                                   totalPaymentApplications=2))
+    org = Org(monkeypatch, result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert "2 payment application(s) but 1 new payment row(s)" in capsys.readouterr().out
+
+
+def test_more_new_rows_than_the_count_pass(monkeypatch):
+    extra = _row("1AlNEW2", "payment", PAYMENT, INVOICE_B, 5)
+    Org(monkeypatch, after=[OLD, NEW_PAY, extra, NEW_CREDIT])
+    assert _apply_rules() == 0
 
 
 @pytest.mark.parametrize("result", [
@@ -313,6 +334,16 @@ def test_a_failed_call_is_an_error(monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "ERROR: apply-rules: Salesforce request failed" in err
     assert "read the account's payments and credit memos before calling again" in err
+
+
+def test_a_response_it_cannot_read_is_an_error(monkeypatch, capsys):
+    org = Org(monkeypatch)
+    org.fail["apply"] = lifecycle.SettlementError(
+        "apply-rules", "rules application answered an unexpected shape")
+    assert _apply_rules() == 2
+    assert "read" == org.names()[-2] and org.names()[-1] == "apply"
+    err = capsys.readouterr().err
+    assert "unexpected shape; read the account's payments and credit memos" in err
 
 
 def test_a_failed_read_after_the_call_is_an_error(monkeypatch, capsys):

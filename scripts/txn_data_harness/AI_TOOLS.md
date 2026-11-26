@@ -174,8 +174,8 @@ gives the checked and skipped counts. Without `--target-date`, one measured
 evening's calls considered only invoices posted that UTC day. Exit 0 when the
 platform reports success and nothing was applied or the checks passed with a
 balance checked, 1 when it reports failure, a check fails, nothing could be
-checked, or it counts payment (or credit) applications and no new payment (or
-credit) row was found, 2 when the account (none or several by that name) or
+checked, or it counts more payment (or credit) applications than new payment
+(or credit) rows were found, 2 when the account (none or several by that name) or
 the org cannot be read, or the call, its response or a later read fails; read
 the account's payments and credit memos before calling again after a 2. To free a
 run's balances first, `unapply` it. Measurements:

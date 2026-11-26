@@ -177,8 +177,8 @@ python -m scripts.txn_data_harness.cli apply-rules --org $ORG --account "Infinit
 every open payment and credit memo there, not only this run's, and applies them
 to whichever invoices the rules pick. It prints each application it made and the rules the platform
 reports, then runs the `verify` checks on the invoices and payments it touched.
-What was measured (264, Line Level, the build's rules Match Balance, then
-Prioritize Oldest Invoices):
+What was measured (264, Line Level, the build's rules Match Balance, Prioritize
+Oldest Invoices, then HI; only the first two were reached):
 
 - Without `--target-date`, only invoices posted that UTC day were candidates;
   pass `--target-date YYYY-MM-DD` to include older ones.
