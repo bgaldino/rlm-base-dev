@@ -547,7 +547,9 @@ Each then called:
   one, which reads every row on the account, ran end to end at 07:38Z: run
   DEMO-20261126T073706Z through `quote-to-cash`, `unapply`, then `apply-rules`
   listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35,
-  not on the run's own DOC-37, posted that day and still open at 495.00 after),
+  posted that day with 495.00 open before the call, as its verify line shows:
+  0.0 = 495.0 - 49.5 - 445.5; not on the run's own DOC-37, also posted that day
+  and still open at 495.00 after),
   `cli verify` passed on them (3 balances checked, 0 skipped) and it exited 0.
 - **Rule names.** `appliedRules` gives Help names, not the settings codes.
   Calls that reported Match Balance alone (probes 1 and 4) put the payment on
@@ -612,7 +614,7 @@ runs the `cli verify` checks on every invoice and payment the new rows touch.
 It works on the account, not on a run: the platform considers everything open
 there, a run's freed balances or anyone else's, and a row another process
 writes on the account meanwhile is listed and checked too. Exit 0 when the
-platform reports `isSuccess` true and either nothing was applied or the checks
+platform reports `isSuccess` true with no errors and either nothing was applied or the checks
 passed with at least one balance checked (the pass line gives the checked and
 skipped counts); 1 when the platform reports failure (no eligible invoice
 included), a check fails, no balance could be checked, or the response

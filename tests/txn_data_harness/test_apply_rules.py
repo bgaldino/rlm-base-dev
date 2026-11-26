@@ -139,6 +139,7 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     {}, {k: v for k, v in OK.items() if k != "isSuccess"}, dict(OK, isSuccess="true"),
     {"isSuccess": False, "rulesApplicationSummary": [1]},
     dict(OK, errors=5), dict(OK, errors="boom"), dict(OK, errors={"message": "m"}),
+    dict(OK, errors={}), dict(OK, errors=""), dict(OK, errors=0),
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
@@ -268,6 +269,20 @@ def test_a_reported_failure_with_counts_prints_the_platform_error(monkeypatch, c
     Org(monkeypatch, after=[OLD], result=result)
     assert _apply_rules() == 1
     assert "Rolled back: lock" in capsys.readouterr().out
+
+
+def test_string_error_items_are_printed(monkeypatch, capsys):
+    Org(monkeypatch, result={"isSuccess": False, "errors": ["plain text error"]})
+    assert _apply_rules() == 1
+    assert "plain text error" in capsys.readouterr().out
+
+
+def test_a_row_without_an_invoice_is_listed_but_not_sent_to_verify(monkeypatch, capsys):
+    orphan = _row("4sGNOINV", "credit", MEMO, None, 1)
+    org = Org(monkeypatch, after=[OLD, NEW_PAY, orphan])
+    assert _apply_rules() == 0
+    assert ("fetch", [INVOICE_A], [PAYMENT]) in org.calls
+    assert "4sGNOINV" in capsys.readouterr().out
 
 
 def test_a_success_with_empty_errors_verifies(monkeypatch):
