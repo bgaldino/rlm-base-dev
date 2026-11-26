@@ -55,6 +55,10 @@ class UiCheckTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 ui_check._password(args)
 
+    def test_unwritten_screenshot_fails(self):
+        with self.assertRaises(SystemExit):
+            ui_check._save(mock.Mock(**{"save_screenshot.return_value": False}), "/no/such/dir/x.png", False)
+
 
 if __name__ == "__main__":
     unittest.main()

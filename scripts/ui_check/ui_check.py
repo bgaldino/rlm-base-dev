@@ -133,7 +133,8 @@ def page_text(driver):
 
 
 def _save(driver, out, want_text):
-    driver.save_screenshot(out)
+    if not driver.save_screenshot(out):  # returns False instead of raising
+        raise SystemExit(f"screenshot not written: {out}")
     print("screenshot:", out)
     print("title:", driver.title)
     print("path:", urlparse(driver.current_url).path)
