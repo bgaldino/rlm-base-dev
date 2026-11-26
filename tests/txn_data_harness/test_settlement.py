@@ -2635,7 +2635,7 @@ def test_reversed_credit_application_fails_the_stage(fields, billable_account) -
     org._post_memo = post_then_reverse
     spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=20.0))
     m = _posted_manifest()
-    with pytest.raises(LifecycleError, match="reversed outside the harness.*start a new run") as info:
+    with pytest.raises(LifecycleError, match="an application was reversed.*start a new run") as info:
         steps.run_credit(_settle_ctx(org, billable_account, spec), m)
     assert info.value.failure_class == "deterministic" and m.reached_stage == "invoice_posted"
 
@@ -2653,7 +2653,7 @@ def test_reversed_payment_application_fails_the_resume(level, fields, billable_a
     m = steps.run_payment(ctx, _posted_manifest())
     _reverse(org, "payment", **fields)
     m.reached_stage = "credit_applied"
-    with pytest.raises(LifecycleError, match="reversed outside the harness"):
+    with pytest.raises(LifecycleError, match="an application was reversed"):
         steps.run_payment(ctx, m)
 
 
@@ -2931,7 +2931,7 @@ def test_reversal_flag_is_read_from_each_objects_own_field(obj, level, flag, bil
 
         org._post_memo = post_then_reverse
         spec = SettlementSpec(application_level=level, credit=CreditSpec(amount=20.0))
-        with pytest.raises(lifecycle.SettlementError, match=f"reversed outside the harness.*{flag} Yes"):
+        with pytest.raises(lifecycle.SettlementError, match=f"an application was reversed.*{flag} Yes"):
             steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
     else:
         spec = SettlementSpec(application_level=level, payment=PaymentSpec(amount=100.0))
@@ -2939,7 +2939,7 @@ def test_reversal_flag_is_read_from_each_objects_own_field(obj, level, flag, bil
         m = steps.run_payment(ctx, _posted_manifest())
         org.payment_apps[0][flag] = "Yes"
         m.reached_stage = "credit_applied"
-        with pytest.raises(lifecycle.SettlementError, match=f"reversed outside the harness.*{flag} Yes"):
+        with pytest.raises(lifecycle.SettlementError, match=f"an application was reversed.*{flag} Yes"):
             steps.run_payment(ctx, m)
 
 

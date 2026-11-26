@@ -1502,13 +1502,28 @@ def test_a_reversed_pair_with_a_stale_rollup_fails():
         and r["subject"] == "3tt000000000001AAA")
 
 
-@pytest.mark.parametrize("kwargs, why", [
-    ({"amount": 999}, "an Unapplied row of another amount"),
-    ({"related": "1Al000000000099CAA"}, "an Unapplied row reversing another row"),
-    ({"reversals": 2}, "two Unapplied rows for one Applied row"),
+def _unflag(data):
+    _row(data, "PaymentLineInvoiceLine", "1Al000000000001CAA")["UnappliedStatus"] = "No"
+
+
+def _move_reversal(data):
+    _row(data, "PaymentLineInvoiceLine", "1Al000000000090CAA")["InvoiceLineId"] = (
+        "5TV000000000021GAA")
+
+
+@pytest.mark.parametrize("kwargs, after, why", [
+    ({"amount": 999}, None, "an Unapplied row of another amount"),
+    ({"related": "1Al000000000099CAA"}, None, "an Unapplied row reversing another row"),
+    ({"reversals": 2}, None, "two Unapplied rows for one Applied row"),
+    ({}, _unflag, "the reversed Applied row not flagged Yes"),
+    ({}, _move_reversal, "the Unapplied row on another invoice line"),
 ])
-def test_a_pair_that_is_not_the_measured_shape_is_skipped(kwargs, why):
-    report = _line(mutate=lambda d: _unapply_payment_row(d, **kwargs))
+def test_a_pair_that_is_not_the_measured_shape_is_skipped(kwargs, after, why):
+    def mutate(data):
+        _unapply_payment_row(data, **kwargs)
+        if after:
+            after(data)
+    report = _line(mutate=mutate)
     assert report["ok"] is True, (why, report["failed_checks"])
     results = _inv1_and_payment(report)
     assert all(r["status"] == "skip" and "measured on 264" in r["detail"]

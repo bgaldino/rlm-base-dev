@@ -192,6 +192,10 @@ def _cmd_step(args: argparse.Namespace) -> int:
         args.org, api_version=args.api_version, transport=args.transport
     )
     manifest = load_manifest(args.manifest)
+    if manifest.unapplied_row_ids:
+        raise SettlementError(
+            "step", f"manifest {manifest.run_id}'s settlement was reversed by `cli "
+            "unapply`; the run is closed: start a new run")
     account = _resolve_step_account(client, args, manifest)
     ctx = discover(
         client,
@@ -702,23 +706,29 @@ UNAPPLY_KINDS = ("payment", "credit")
 def _cmd_unapply(args: argparse.Namespace) -> int:
     """Unapply this run's own line-level applications: the payment's, then the credit's.
 
-    Reads each recorded application row first. One already unapplied is not sent
-    again (the platform refuses a second unapply); its Unapplied row is looked up
-    and recorded instead. Exit 0 when every selected application is unapplied,
-    1 when one could not be, 2 when the manifest or the org cannot be read or the
-    run is not at Line Level (the only level unapply was measured at).
+    Reads each recorded application row first; only a line-level Applied row is
+    unapplied (unapply was measured at Line Level only). A row already unapplied is
+    not sent again (the platform refuses a second unapply); its Unapplied row is
+    looked up and recorded instead. Exit 0 when every selected application is
+    unapplied and recorded; 1 when one could not be, or nothing was recorded to
+    unapply; 2 when the manifest or the org cannot be read or the run is at Header
+    Level. A run it reversed is closed: `cli step` refuses it.
     """
     try:
         manifest = load_manifest(args.manifest)
     except Exception as exc:  # noqa: BLE001 - an unreadable manifest is an input error
         print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
         return 2
-    if manifest.application_level != "line":
-        print(f"ERROR: unapply: manifest {manifest.run_id} is at "
-              f"{manifest.application_level or 'no'} application level; unapply was "
-              "measured at Line Level only", file=sys.stderr)
+    if manifest.application_level == "header":
+        print(f"ERROR: unapply: manifest {manifest.run_id} is at header application "
+              "level; unapply was measured at Line Level only", file=sys.stderr)
         return 2
     kinds = UNAPPLY_KINDS if args.only is None else (args.only,)
+    if not any(_application_ids(manifest, kind) for kind in kinds):
+        print(f"FAIL: {manifest.run_id} recorded no {' or '.join(kinds)} application "
+              "to unapply")
+        print(f"UNAPPLY: fail ({manifest.run_id})")
+        return 1
     try:
         client = SfRestClient.from_alias(
             args.org, api_version=args.api_version, transport=args.transport
@@ -728,39 +738,44 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001 - nothing was written yet
         print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
         return 2
-    failures = 0
+    failures = sent = 0
     for kind in kinds:
-        ids = _application_ids(manifest, kind)
-        if not ids:
-            print(f"{kind}: no application recorded on {manifest.run_id}")
-        for row_id in ids:
+        for row_id in _application_ids(manifest, kind):
             row = rows[kind].get(row_id)
             try:
                 if row is None or row.get("Type") != "Applied":
                     raise SettlementError(
-                        "unapply", f"{kind} application {row_id} is not an Applied row "
-                        "the org returns", record_id=row_id)
+                        "unapply", f"{kind} application {row_id} is not a line-level "
+                        "Applied row the org returns (unapply is measured at Line Level "
+                        "only)", record_id=row_id)
                 if row.get("UnappliedStatus") == "Yes":
                     new_id = lifecycle.find_unapplied_row(client, kind, row_id)
                     note = "already unapplied"
-                elif kind == "payment":
-                    new_id = lifecycle.unapply_payment_line(client, row["PaymentId"], row_id)
-                    note = "unapplied"
+                    if not new_id:
+                        raise SettlementError(
+                            "unapply", f"{kind} application {row_id} is flagged unapplied "
+                            "but no Unapplied row names it (not the measured shape)",
+                            record_id=row_id)
                 else:
-                    new_id = lifecycle.unapply_credit_line(client, row_id)
+                    new_id = (lifecycle.unapply_payment_line(client, row["PaymentId"], row_id)
+                              if kind == "payment"
+                              else lifecycle.unapply_credit_line(client, row_id))
                     note = "unapplied"
+                    sent += 1
+                if new_id not in manifest.unapplied_row_ids:
+                    manifest.unapplied_row_ids.append(new_id)
+                    write_manifest(manifest)
             except Exception as exc:  # noqa: BLE001 - report and go on to the next row
                 failures += 1
-                print(f"FAIL: {kind} {row_id}: {_error_message(exc)}")
+                print(f"FAIL: {kind} {row_id}: {_error_message(exc)} (rerun to retry; a "
+                      "row already unapplied is looked up, not sent again)")
                 continue
-            if new_id and new_id not in manifest.unapplied_row_ids:
-                manifest.unapplied_row_ids.append(new_id)
-                write_manifest(manifest)
             print(f"{note.upper()}: {kind} {row_id} ({row.get('Amount')}) -> "
-                  f"Unapplied row {new_id or '(not found)'}")
-    print("NOTE: the payment and credit memo now carry open balances; posting the "
-          "account's next invoice applies them to it (measured), so a later settlement "
-          "run on this account may find nothing left to credit or pay")
+                  f"Unapplied row {new_id}")
+    if sent:
+        print(f"NOTE: {sent} application(s) unapplied; what they held is open again on "
+              "the payment or credit memo, and posting the account's next invoice may "
+              "apply it there (measured)")
     print(f"UNAPPLY: {'fail' if failures else 'done'} ({manifest.run_id})")
     return 1 if failures else 0
 

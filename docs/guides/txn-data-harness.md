@@ -352,9 +352,11 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
   invoice (a `--target-stage invoice_draft` run) **is** deletable.
 - **BillingSchedules** — "insufficient access rights on object id"; system-managed.
 - **Settlement records** — payments, credit memos and their application records
-  from `credit_applied` / `payment_applied`. No cleanup path was probed; an
-  over-payment's unapplied rest stays on the payment and may be applied to the
-  account's next posted invoice.
+  from `credit_applied` / `payment_applied`. `cli unapply` reverses a run's
+  applications at Line Level (see the
+  [Quote-to-Cash Runbook](quote-to-cash-runbook.md#undo-the-settlement)); no
+  delete, void or cancel path was probed. An unapplied or over-paid amount stays
+  on the payment or memo and may be applied to the account's next posted invoice.
 
 ## Troubleshooting
 

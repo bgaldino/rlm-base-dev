@@ -367,7 +367,9 @@ Deletability to assume:
 - **BillingSchedules** — **not** deletable (system-managed: "insufficient access
   rights on object id").
 - **Payments, credit memos and their application records** (settlement
-  stages) — no cleanup path is implemented or probed; treat them as leftovers.
+  stages) — not deletable here; `cli unapply` reverses a run's applications
+  (Line Level), which leaves the payment and memo with open balances; no void
+  or cancel path is probed.
   An over-payment's unapplied rest stays on the payment and the account's next
   invoice posted through the post action may absorb it.
 

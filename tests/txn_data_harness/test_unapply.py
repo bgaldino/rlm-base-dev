@@ -118,7 +118,8 @@ def test_unapplies_the_payment_then_the_credit_and_records_the_new_rows(run, cap
     assert _recorded(path) == ["1AlNEW000000000001", "4sGNEW000000000002"]
     out = capsys.readouterr().out
     assert "UNAPPLIED: payment 1AlROW0000000001AA (445.5)" in out
-    assert "open balances" in out and out.rstrip().endswith("UNAPPLY: done (DEMO-U)")
+    assert "NOTE: 2 application(s) unapplied" in out
+    assert out.rstrip().endswith("UNAPPLY: done (DEMO-U)")
 
 
 def test_a_second_run_sends_nothing_and_records_the_existing_rows(run, capsys):
@@ -152,7 +153,8 @@ def test_a_row_the_org_does_not_return_fails(run, capsys):
     org, _path = run
     del org.rows[CREDIT_ROW]
     assert _unapply() == 1
-    assert f"credit application {CREDIT_ROW} is not an Applied row" in capsys.readouterr().out
+    assert f"credit application {CREDIT_ROW} is not a line-level Applied row" in (
+        capsys.readouterr().out)
 
 
 def test_header_level_is_refused_before_any_read(run, capsys):
@@ -196,3 +198,66 @@ def test_unapply_calls_fail_on_a_response_without_a_new_row():
         lifecycle.unapply_credit_line(
             Org({"creditMemoLineInvoiceLineId": None, "errors": ["x"], "success": False}),
             CREDIT_ROW)
+
+
+def _set(path, **fields):
+    path.write_text(json.dumps({**json.loads(path.read_text()), **fields}))
+
+
+def test_a_credit_only_run_with_no_recorded_level_is_unapplied(run):
+    # The credit stage records no application level; the rows decide.
+    org, path = run
+    _set(path, application_level=None, reached_stage="credit_applied", payment_ids=[],
+         payment_application_ids=[])
+    assert _unapply() == 0
+    assert _recorded(path) == ["4sGNEW000000000001"]
+
+
+def test_a_flagged_row_with_no_unapplied_row_fails(run, capsys):
+    org, path = run
+    org.rows[PAY_ROW]["UnappliedStatus"] = "Yes"  # reversed some unmeasured way
+    assert _unapply("--only", "payment") == 1
+    assert org.posts == []
+    out = capsys.readouterr().out
+    assert "no Unapplied row names it" in out and "NOTE" not in out
+
+
+def test_nothing_recorded_to_unapply_fails_without_reading(run, capsys):
+    org, path = run
+    _set(path, payment_application_ids=[])
+    org.fail_reads = True
+    assert _unapply("--only", "payment") == 1
+    assert "recorded no payment application to unapply" in capsys.readouterr().out
+
+
+def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, capsys):
+    org, path = run
+    real = cli.write_manifest
+    calls = []
+
+    def flaky(m):
+        calls.append(1)
+        if len(calls) == 1:
+            raise OSError(28, "No space left on device")
+        return real(m)
+
+    monkeypatch.setattr(cli, "write_manifest", flaky)
+    assert _unapply() == 1
+    out = capsys.readouterr().out
+    assert f"FAIL: payment {PAY_ROW}:" in out and "rerun to retry" in out
+    assert "UNAPPLIED: credit" in out
+    # A rerun looks the payment's Unapplied row up instead of sending again.
+    org.posts.clear()
+    monkeypatch.setattr(cli, "write_manifest", real)
+    assert _unapply() == 0
+    assert org.posts == []
+    assert sorted(_recorded(path)) == ["1AlNEW000000000001", "4sGNEW000000000002"]
+
+
+def test_cli_step_refuses_a_run_that_was_unapplied(run, capsys):
+    org, path = run
+    assert _unapply() == 0
+    code = cli.main(["step", "--org", "x", "--manifest", "DEMO-U",
+                     "--to-stage", "payment_applied"])
+    assert code == 1
+    assert "reversed by `cli unapply`; the run is closed" in capsys.readouterr().err

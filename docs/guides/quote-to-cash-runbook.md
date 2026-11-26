@@ -148,15 +148,17 @@ python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN
 `Type` Unapplied row pointing at the original, which stays Applied and is
 flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
 balances return to what they were before it was applied, and `verify` checks
-the pair (measured at Line Level on 264). Rerunning sends nothing for a row
-already unapplied. Two limits:
+the pair (measured at Line Level on 264, the payment unapplied before the
+credit). Rerunning sends nothing for a row already unapplied. Limits:
 
+- The run is closed: `cli step` refuses it, and nothing reapplies.
 - The payment and credit memo now carry open balances, and posting the
-  account's next invoice applies them to it, so the next `quote-to-cash` on
-  that account fails with no credit memo or payment of its own. Run it again:
-  the leftover balances are used up by then.
-- Nothing reapplies after an unapply, and Header Level was not measured (the
-  command refuses it).
+  account's next invoice applies what it can of them. When that covers the
+  whole invoice, as in the one measured case (both reversed, a same-sized next
+  invoice), that run has nothing left to credit or pay and `quote-to-cash`
+  fails it with no credit memo or payment of its own; rerun until the leftover
+  is used up.
+- Header Level was not measured; the command refuses a run recorded there.
 
 ## When a stage fails
 
@@ -187,7 +189,8 @@ Drive any cleanup from the manifest ids
 - **Posted invoices**: only Draft or Canceled invoices can be deleted, and
   `Status` cannot be set to Canceled.
 - **Billing schedules**: system-managed.
-- **Credit memos, payments and their applications**: no unapply, void or
+- **Credit memos, payments and their applications**: they cannot be deleted
+  here, only reversed ([Undo the settlement](#undo-the-settlement)); no void or
   cancel path was measured.
 
 The harness guide's recipes for assets, the order and the quote were written

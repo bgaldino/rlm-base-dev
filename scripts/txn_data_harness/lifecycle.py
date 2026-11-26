@@ -1771,15 +1771,15 @@ def _unreversed(rows: list[dict], flag: str, what: str) -> list[dict]:
 
     Unapplying or voiding keeps the original ``Applied`` row, flags it
     (``UnappliedStatus`` on the line junctions, ``HasBeenUnapplied`` on the
-    header ones = ``Yes``) and adds an ``Unapplied`` row. The harness does not
-    model reversals (not measured), so any such row means the amounts it reads
-    back can no longer be trusted.
+    header ones = ``Yes``) and adds an ``Unapplied`` row. The settlement stages
+    do not compute amounts across a reversal (``cli unapply`` closes the run), so
+    any such row means the amounts they read back can no longer be trusted.
     """
     for r in rows:
         if r.get("Type") != "Applied" or r.get(flag) == "Yes":
             raise SettlementError(
                 what,
-                f"an application was reversed outside the harness (row {r.get('Id')}: "
+                f"an application was reversed (row {r.get('Id')}: "
                 f"Type {r.get('Type')}, {flag} {r.get(flag)}). {CANNOT_SETTLE}",
             )
     return rows
