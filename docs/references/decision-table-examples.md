@@ -382,7 +382,7 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 ### Status
 - **Required**: No
 - **Options**: `Active`, `Inactive`, or `""` (empty string, for all)
-- **Default**: `Active` (applied by `_build_soql_query`, so it backs `list`, `query`, `refresh`, and `validate_lists`; pass an empty `--status ""` to include all statuses — a non-empty value including the literal `null` is used as-is in the `Status =` filter and matches only a status of that name)
+- **Default**: `Active` (applied by `_build_soql_query`, so it backs `list`, `query`, `refresh`, and `validate_lists`; pass an empty or whitespace-only `--status ""` to include all statuses; a YAML null also means `Active`, but the CLI string `null` is a non-empty value — a non-empty value including the literal `null` is used as-is in the `Status =` filter and matches only a status of that name)
 - **Description**: Filter decision tables by status
 
 ### Is Incremental

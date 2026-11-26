@@ -139,26 +139,6 @@ def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
     return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
 
 
-def _as_name_list(value, option_name: str) -> List[str]:
-    """
-    Normalise a task option that names one or more records into a list, splitting a
-    comma-separated CLI string. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-    """
-    if isinstance(value, str):
-        names = [part.strip() for part in value.split(",")]
-    elif isinstance(value, list):
-        names = [str(part).strip() for part in value]
-    else:
-        raise TaskOptionsError(
-            f"{option_name} must be a string or list of strings, got {type(value).__name__}"
-        )
-
-    names = [name for name in names if name]
-    if not names:
-        raise TaskOptionsError(f"{option_name} was provided but contained no usable names.")
-    return names
-
-
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
@@ -229,7 +209,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "status": {
-            "description": "Filter by Status ('Active', 'Inactive'). Not given (or null) means 'Active'; an explicit empty value (-o status \"\") means no status filter; padding is trimmed.",
+            "description": "Filter by Status ('Active', 'Inactive'). Not given, or a YAML null (not the CLI string null), means 'Active'; an explicit empty or whitespace value (-o status \"\") means no status filter; padding is trimmed.",
             "required": False
         },
         "is_incremental": {
@@ -511,7 +491,9 @@ class ManageDecisionTables(BaseTask):
         - Reports DTs in org that are not in any configured list.
         - Reports list entries that are not in the org (invalid/missing).
         """
-        strict = self._option_flag("strict")  # read first so a malformed value is refused before any query
+        # Read first so a malformed option is refused before any query.
+        strict = self._option_flag("strict")
+        list_anchors = self._option_names("list_anchors")
         # Query all active decision tables (ignore developer_names so we get full org list)
         saved_dev_names = self.options.get("developer_names")
         try:
@@ -532,7 +514,6 @@ class ManageDecisionTables(BaseTask):
         org_names = set(org_by_name.keys())
 
         # Resolve which list anchors to validate
-        list_anchors = self._option_names("list_anchors")
         if not list_anchors:
             list_anchors = self._get_decision_table_list_anchors()
 

@@ -266,7 +266,7 @@ _manage = load_task_module("rlm_manage_decision_tables")
 _refresh = load_task_module("rlm_refresh_decision_table")
 ManageDecisionTables = _manage.ManageDecisionTables
 RefreshDecisionTable = _refresh.RefreshDecisionTable
-_as_name_list = _manage._as_name_list
+requested_names = _manage.requested_names
 
 check("ManageDecisionTables.salesforce_task is True", ManageDecisionTables.salesforce_task is True)
 check("RefreshDecisionTable.salesforce_task is True", RefreshDecisionTable.salesforce_task is True)
@@ -392,20 +392,20 @@ except Exception as exc:
 # ---------------------------------------------------------------------------
 # 2. Name normalisation. A comma-separated CLI string used to become ONE name.
 # ---------------------------------------------------------------------------
-print("\n[2] _as_name_list splits, trims and rejects blanks")
+print("\n[2] requested_names (the task's developer_names reader) splits, trims and rejects blanks")
 
 try:  # GUARDED — see the note in section 1
-    check('"A,B,C" splits into three', _as_name_list("A,B,C", "x") == ["A", "B", "C"])
-    check('" A , B " trims', _as_name_list(" A , B ", "x") == ["A", "B"])
-    check("a real list passes through", _as_name_list(["A", "B"], "x") == ["A", "B"])
-    check("single name still works", _as_name_list("A", "x") == ["A"])
+    check('"A,B,C" splits into three', requested_names("A,B,C", "x", ValueError) == ["A", "B", "C"])
+    check('" A , B " trims', requested_names(" A , B ", "x", ValueError) == ["A", "B"])
+    check("a real list passes through", requested_names(["A", "B"], "x", ValueError) == ["A", "B"])
+    check("single name still works", requested_names("A", "x", ValueError) == ["A"])
 except Exception as exc:
-    check('"A,B,C" splits into three (and the 3 sibling _as_name_list checks)', False,
+    check('"A,B,C" splits into three (and the 3 sibling requested_names checks)', False,
           f"driver raised {type(exc).__name__}: {exc}")
 
 for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5, "wrong type")):
     try:
-        _as_name_list(bad, "x")
+        requested_names(bad, "x", ValueError)
         check(f"{why} raises", False, "no exception")
     except Exception:
         check(f"{why} raises", True)
@@ -1802,10 +1802,11 @@ opt_query("string developer_names filter", {"developer_names": " A , B "}, "Deve
 opt_refused("list operation is refused", {"operation": ["query"]}, "must be a single value", operation=None)
 opt_refused("whitespace developer_names on activate is 'required'", {"developer_names": " "}, "developer_names is required", operation="activate")
 _err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
-check("list-typed strict is refused with the helper's error", _err is not None and "must be a single value" in _err, repr(_err))
+check("list-typed strict is refused with the helper's error, before any query",
+      _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists")
 check("blank strict and list_anchors fall back to defaults; a query was sent",
-      bool(_fake.queries) and (_err is None or "single value" not in _err), repr((_err, _fake.queries)))
+      bool(_fake.queries) and _err is None, repr((_err, _fake.queries)))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.
