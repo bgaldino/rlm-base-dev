@@ -20,7 +20,7 @@ import requests
 from pathlib import Path
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -131,7 +131,7 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
             return {}
 
         names = [t["Name"] for t in templates]
-        names_soql = ", ".join(f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in names)
+        names_soql = ", ".join(soql_quote(n) for n in names)
         soql = f"SELECT Id, Name FROM EmailTemplate WHERE Name IN ({names_soql})"
         resp = session.get(
             f"{base_url}/query",
@@ -192,9 +192,7 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
             self.logger.info("No alert→template mappings to process.")
             return
 
-        alert_names_soql = ", ".join(
-            f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in alert_to_template_id
-        )
+        alert_names_soql = ", ".join(soql_quote(n) for n in alert_to_template_id)
         soql = (
             f"SELECT Id, Name, EmailTemplateId FROM ApprovalAlertContentDef"
             f" WHERE Name IN ({alert_names_soql})"

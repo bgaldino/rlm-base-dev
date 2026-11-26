@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import Iterable, List, Set
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import Deploy
@@ -188,10 +188,10 @@ class DeactivateChangedDecisionTables(Deploy):
 
     def _active_tables(self, names: List[str]) -> dict:
         """DeveloperName -> Id for the given tables that are Active in the org."""
-        escaped = "', '".join(name.replace("'", "\\'") for name in names)
+        escaped = ", ".join(soql_quote(name) for name in names)
         soql = (
             "SELECT Id, DeveloperName FROM DecisionTable "
-            f"WHERE DeveloperName IN ('{escaped}') AND Status = 'Active'"
+            f"WHERE DeveloperName IN ({escaped}) AND Status = 'Active'"
         )
         try:
             records = self._sf.query(soql).get("records", [])

@@ -331,7 +331,9 @@ Line Level is live-verified on 264; everything below is not.
   the invoice being posted; ingesting as Posted did not; a payment created
   after posting stayed unapplied for 60 s. Open: with several open invoices,
   does the rule set (`{"first":"Payments","rules":["EA","OI","HI"]}` on the
-  verification org) pick the newly posted one or an older one? Does a
+  verification org; the rule-based apply call reported Match Balance and
+  Prioritize Oldest Invoices, taken to be EA and OI) pick the newly posted one or an
+  older one? Does a
   scheduled invoice or payment run apply a standalone payment later (Help:
   standalone processed payments apply "during an invoice run")? Does
   Draft-ingest-then-post (`promote_to_posted`) trigger it like the PST post?
@@ -356,8 +358,27 @@ Line Level is live-verified on 264; everything below is not.
 - `[gap]` **Reversals in the settlement stages.** Line-level unapply is
   measured and `cli unapply` does it (todo 490); void and header-level unapply
   are not. `cli unapply` takes only a finished settlement, which no `cli step`
-  can advance; nothing reapplies. The stages' read-backs fail on an `Unapplied`
+  can advance; the run's own stages never reapply (`cli apply-rules` can, by
+  the account's rules). The stages' read-backs fail on an `Unapplied`
   row or an unapplied flag among the rows they read.
+- `[gap]` **Rule-based application beyond the measured cases.** `cli
+  apply-rules` (todo 498) rests on raw calls with payments and two `cli
+  apply-rules` runs on a freed payment and credit memo pair (one on an
+  earlier read by source Id, one on the current account-wide read), on responses that reported Match Balance and Prioritize
+  Oldest Invoices, at Line Level
+  ([contract](contracts-billing-settlement.md#rule-based-application)). Not
+  measured: Credits First, Match ID, Prioritize Highest Balance Invoices
+  reached, ties on Match Balance, a credit memo alone, header level, and
+  `areAllInvoicesConsidered` false. The default target date is inferred
+  ("today, UTC") from one evening's calls. Which rule places an unmatched
+  payment is open: every candidate in the probes was posted the same UTC day,
+  and each went to the highest-balance one, while the response reported
+  Prioritize Oldest Invoices.
+  - `[probe]` Call it twice around 00:00 UTC, and once more near midnight
+    in the org's time zone, to pin the default.
+  - `[probe]` With `--target-date` before two open invoices posted on
+    different days, the older one with the lower balance, apply a payment
+    that matches neither: oldest or highest decides it.
 - `[gap]` **Changing settlement options means a new run.** The block is
   fixed once recorded (whole, so a run that stopped at `credit_applied`
   continues to `payment_applied` with the payment it was configured with),

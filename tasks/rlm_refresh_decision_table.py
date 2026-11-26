@@ -4,7 +4,7 @@ from typing import List
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, project_api_version, requested_names
+from tasks.soql_utils import option_text, project_api_version, requested_names, soql_quote
 
 # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
 try:
@@ -178,7 +178,7 @@ class RefreshDecisionTable(SFDXBaseTask):
         Raises when the query itself fails: without it a missing table cannot be told
         apart from a failed refresh, and the refreshes would fail for the same reason.
         """
-        quoted = ", ".join("'" + name.replace("\\", "\\\\").replace("'", "\\'") + "'" for name in developer_names)
+        quoted = ", ".join(soql_quote(name) for name in developer_names)
         url, headers = self._build_url_and_headers("query")
         response = self._make_request(
             "get",

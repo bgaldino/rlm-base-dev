@@ -1127,8 +1127,13 @@ tasks:
       agent: quoting-assistant
 
   deploy_quantumbit:
-    description: Deploy QuantumBit Metadata
-    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy QuantumBit Metadata. The SalesforceContractsExtCredentials AwsAccountId is a
+      placeholder in the repo: the deploy sets it from the aws_account_id option or the
+      RLM_AWS_ACCOUNT_ID environment variable (12 digits), and leaves the parameter out
+      when neither is set. Repo files are never modified (the value goes into the deploy zip).
+    class_path: tasks.rlm_external_credentials.DeployWithAwsAccountId
     options:
       path: unpackaged/post_quantumbit
 
@@ -2474,7 +2479,13 @@ tasks:
 
   create_docgen_library:
     group: Revenue Lifecycle Management
-    description: Create DocGen Library
+    description: >-
+      Create the Docgen Document Template Library and give runtime users read-only access to
+      its template files: a read-only library permission (RLM DocGen Template Viewer) and a
+      public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no
+      members) added as a library member. Without the membership only the build admin can read
+      the templates, and every other user's document generation fails (todo 435). Idempotent;
+      rerun it on an org built before this fix.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/createDocgenTemplateLibrary.apex

@@ -356,7 +356,8 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
   applications at Line Level (see the
   [Quote-to-Cash Runbook](quote-to-cash-runbook.md#undo-the-settlement)); no
   delete, void or cancel path was probed. An unapplied or over-paid amount stays
-  on the payment or memo and may be applied to the account's next posted invoice.
+  on the payment or memo and may be applied to the account's next posted invoice,
+  or by `cli apply-rules` ([Apply by the rules](quote-to-cash-runbook.md#apply-by-the-rules)).
 
 ## Troubleshooting
 

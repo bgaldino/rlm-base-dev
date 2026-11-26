@@ -55,7 +55,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import Deploy
@@ -351,10 +351,10 @@ class DeployExpressionSets(Deploy):
 
     def _org_versions(self, definitions: List[str]) -> Dict[str, List[Dict]]:
         """``{definition DeveloperName: [ExpressionSetVersion rows]}``, two queries."""
-        names = "', '".join(d.replace("\\", "\\\\").replace("'", "\\'") for d in definitions)
+        names = ", ".join(soql_quote(d) for d in definitions)
         sets = self._query_all(
             "SELECT Id, ExpressionSetDefinition.DeveloperName FROM ExpressionSet "
-            f"WHERE ExpressionSetDefinition.DeveloperName IN ('{names}')"
+            f"WHERE ExpressionSetDefinition.DeveloperName IN ({names})"
         ).get("records", [])
         by_set = {
             r["Id"]: (r.get("ExpressionSetDefinition") or {}).get("DeveloperName")
@@ -363,10 +363,10 @@ class DeployExpressionSets(Deploy):
         out: Dict[str, List[Dict]] = {d: [] for d in definitions}
         if not by_set:
             return out
-        ids = "', '".join(by_set)
+        ids = ", ".join(soql_quote(i) for i in by_set)
         rows = self._query_all(
             f"SELECT {VERSION_FIELDS}, ExpressionSetId "
-            f"FROM ExpressionSetVersion WHERE ExpressionSetId IN ('{ids}')"
+            f"FROM ExpressionSetVersion WHERE ExpressionSetId IN ({ids})"
         ).get("records", [])
         for row in rows:
             definition = by_set.get(row.get("ExpressionSetId"))

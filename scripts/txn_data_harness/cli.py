@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -816,6 +817,122 @@ def _application_ids(manifest, kind: str) -> list[str]:
                 else manifest.credit_application_ids)
 
 
+def _cmd_apply_rules(args: argparse.Namespace) -> int:
+    """Apply an account's open payments and credits by the Billing Settings rules.
+
+    Reads every application row on the account's payments and credit memos,
+    sends the rule-based application once for the whole account, reads them
+    again, lists each new row, then runs the ``cli verify`` checks on the
+    invoices and payments the new rows touch. Exit 0 when the platform reports
+    success with no errors and either nothing was applied or the checks passed
+    with at least one balance checked; 1 when the platform reports failure or errors, a check fails,
+    nothing could be checked, or it counts more applications of a kind than new
+    rows of that kind were found; 2 when the account or the org cannot be read, or
+    the call, its response or a later read fails.
+    """
+    try:
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        account_id = lifecycle.resolve_account_id(client, args.account)
+        before = {r["id"] for r in lifecycle.read_account_applications(client, account_id)}
+    except Exception as exc:  # noqa: BLE001 - nothing was written yet
+        print(f"ERROR: apply-rules: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    try:
+        result = lifecycle.apply_rules(client, account_id, args.target_date)
+    except Exception as exc:  # noqa: BLE001 - exit 1 is a verdict, never an error
+        print(f"ERROR: apply-rules: {_error_message(exc)}; read the account's payments "
+              "and credit memos before calling again", file=sys.stderr)
+        return 2
+    # The platform's answer first, so it shows even if the read below fails.
+    summary = result.get("rulesApplicationSummary") or {}
+    rules = ", ".join(result.get("appliedRules") or []) or "none"
+    _emit(f"RULES: {rules}; isSuccess {result.get('isSuccess')}; "
+          f"{json.dumps(summary, sort_keys=True)}")
+    if summary.get("areAllInvoicesConsidered") is False:
+        _emit("WARNING: the platform did not consider every invoice "
+              "(areAllInvoicesConsidered false)")
+    try:
+        new = [r for r in lifecycle.read_account_applications(client, account_id)
+               if r["id"] not in before]
+    except Exception as exc:  # noqa: BLE001 - the call already ran
+        print(f"ERROR: apply-rules: the call returned (RULES line above), but its "
+              f"applications could not be read: {_error_message(exc)}; read the "
+              "account's payments and credit memos before calling again", file=sys.stderr)
+        return 2
+    for r in new:
+        _emit(f"APPLIED: {r['kind']} {r['source_id']} {r['amount']} -> invoice "
+              f"{r['invoice_id']} ({r['object']} {r['id']}, {r['type']})")
+    label = f"account {account_id}"
+    if result.get("isSuccess") is not True or result.get("errors"):
+        messages = [html.unescape(str(e.get("message") or e.get("errorCode") or json.dumps(e)))
+                    if isinstance(e, dict) else str(e)
+                    for e in result.get("errors") or []]
+        _emit(f"FAIL: the platform reported "
+              f"{'failure' if result.get('isSuccess') is not True else 'errors'}: "
+              f"{'; '.join(messages) or 'no error message'}")
+        _emit(f"APPLY-RULES: fail ({label})")
+        return 1
+    # Any applied payment or credit memo writes at least one row of its kind on
+    # the account, so fewer new rows than the count means one went unseen.
+    unseen = []
+    for kind, key in (("payment", "totalPaymentApplications"),
+                      ("credit", "totalCreditMemoApplications")):
+        count = summary.get(key)
+        found = sum(1 for r in new if r["kind"] == kind)
+        if isinstance(count, int) and found < count:
+            unseen.append(f"{count} {kind} application(s) but {found} new {kind} row(s)")
+    if unseen:
+        _emit(f"FAIL: the response counts {' and '.join(unseen)} on the account's "
+              "payments and credit memos; an application went unseen")
+        _emit(f"APPLY-RULES: fail ({label})")
+        return 1
+    if not new:
+        _emit(f"APPLY-RULES: pass ({label}: nothing applied)")
+        return 0
+    invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
+    payment_ids = list(dict.fromkeys(r["source_id"] for r in new
+                                     if r["kind"] == "payment" and r["source_id"]))
+    # A row that names neither a readable invoice nor (for a payment) its
+    # payment reaches no check at all.
+    unchecked = [r for r in new if not r["invoice_id"]
+                 and not (r["kind"] == "payment" and r["source_id"])]
+    for r in unchecked:
+        _emit(f"SKIP: {r['kind']} {r['source_id']} ({r['object']} {r['id']}) names no "
+              "readable invoice; not checked")
+    if not invoice_ids and not payment_ids:
+        _emit(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
+              "readable invoice or payment)")
+        return 1
+    try:
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
+        report = billing_verify.run_checks(records)
+    except Exception as exc:  # noqa: BLE001 - verify could not report
+        print(f"ERROR: apply-rules verify: {_error_message(exc)} (the call applied "
+              f"{len(new)} row(s), listed above)", file=sys.stderr)
+        return 2
+    _emit(billing_verify.render_text(report))
+    skipped = report["skipped"] + len(unchecked)
+    if not report["ok"] or not report["checked"]:
+        reason = "a check failed" if not report["ok"] else "no balance was checked"
+        _emit(f"APPLY-RULES: fail ({label}: {reason})")
+        return 1
+    _emit(f"APPLY-RULES: pass ({label}: {len(new)} application row(s) made; "
+          f"{report['checked']} balance(s) checked, {skipped} skipped)")
+    return 0
+
+
+def _target_date(value: str) -> str:
+    """argparse type: an ISO date (YYYY-MM-DD)."""
+    from datetime import date
+
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a date (YYYY-MM-DD): {value!r}") from None
+
+
 def _emit(text: str) -> None:
     """Print to stdout; a reader that closed the pipe (``| head -1``) is not an error.
 
@@ -976,6 +1093,22 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                          help="Unapply only the payment's or only the credit's "
                               "applications (default: both, payment first).")
     unapply.set_defaults(func=_cmd_unapply)
+
+    apply_rules = sub.add_parser(
+        "apply-rules",
+        help="Apply an account's open payments and credits by the Billing Settings "
+             "rules, then verify what was applied (writes; exit 1 on a failed check).",
+    )
+    add_connection_args(apply_rules)
+    apply_rules.add_argument("--account", required=True,
+                             help="Account name, or Account Id when the name is not "
+                                  "unique.")
+    apply_rules.add_argument("--target-date", type=_target_date,
+                             help="Consider only invoices posted on or after this date "
+                                  "(YYYY-MM-DD). Without it, one measured evening's "
+                                  "calls considered only invoices posted that UTC "
+                                  "day.")
+    apply_rules.set_defaults(func=_cmd_apply_rules)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

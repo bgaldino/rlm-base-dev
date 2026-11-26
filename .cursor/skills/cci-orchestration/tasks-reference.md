@@ -875,7 +875,7 @@
 
 ## Revenue Lifecycle Management
 
-*177 task(s)*
+*178 task(s)*
 
 ### `activate_agents`
 
@@ -1388,7 +1388,7 @@
 
 ### `create_docgen_library`
 
-**Description:** Create DocGen Library
+**Description:** Create the Docgen Document Template Library and give runtime users read-only access to its template files: a read-only library permission (RLM DocGen Template Viewer) and a public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no members) added as a library member. Without the membership only the build admin can read the templates, and every other user's document generation fails (todo 435). Idempotent; rerun it on an org built before this fix.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -1955,6 +1955,18 @@
 **Options:**
 
 - `path`: `unpackaged/pre`
+
+---
+
+### `deploy_quantumbit`
+
+**Description:** Deploy QuantumBit Metadata. The SalesforceContractsExtCredentials AwsAccountId is a placeholder in the repo: the deploy sets it from the aws_account_id option or the RLM_AWS_ACCOUNT_ID environment variable (12 digits), and leaves the parameter out when neither is set. Repo files are never modified (the value goes into the deploy zip).
+
+**Class:** `tasks.rlm_external_credentials.DeployWithAwsAccountId`
+
+**Options:**
+
+- `path`: `unpackaged/post_quantumbit`
 
 ---
 
@@ -3208,7 +3220,7 @@
 
 ## Uncategorized
 
-*23 task(s)*
+*22 task(s)*
 
 ### `create_partner_central`
 
@@ -3422,18 +3434,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_utils`
-
----
-
-### `deploy_quantumbit`
-
-**Description:** Deploy QuantumBit Metadata
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_quantumbit`
 
 ---
 

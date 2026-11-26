@@ -14,6 +14,10 @@ import glob
 import os
 import xml.etree.ElementTree as ET
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -65,10 +69,9 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
         )
 
         # Find the DocGen library
-        safe_lib = library_dev_name.replace("'", "\\'")
         result = self.sf.query(
             f"SELECT Id FROM ContentWorkspace "
-            f"WHERE DeveloperName = '{safe_lib}' LIMIT 1"
+            f"WHERE DeveloperName = {soql_quote(library_dev_name)} LIMIT 1"
         )
         if not result["records"]:
             raise TaskOptionsError(
@@ -138,13 +141,12 @@ class FixDocumentTemplateBinaries(BaseSalesforceApiTask):
         Return the ContentDocumentId of the most recently created ContentDocument
         in the DocGen library whose Title matches template_name.
         """
-        safe_name = template_name.replace("'", "\\'")
         result = self.sf.query(
             f"SELECT Id, CreatedDate FROM ContentDocument "
-            f"WHERE Title = '{safe_name}' "
+            f"WHERE Title = {soql_quote(template_name)} "
             f"AND Id IN ("
             f"  SELECT ContentDocumentId FROM ContentWorkspaceDoc "
-            f"  WHERE ContentWorkspaceId = '{library_id}'"
+            f"  WHERE ContentWorkspaceId = {soql_quote(library_id)}"
             f") "
             f"ORDER BY CreatedDate DESC LIMIT 1"
         )

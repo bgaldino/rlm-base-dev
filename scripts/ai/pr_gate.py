@@ -796,8 +796,18 @@ CHECKS = [
         # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
-                  # tests/test_soql_option_hardening.py covers these task modules (pack 457).
+                  # tests/test_soql_option_hardening.py covers these task modules (pack 457, 467).
                   "tasks/soql_utils.py", "tests/test_soql_option_hardening.py",
+                  "tasks/rlm_docgen.py", "tasks/rlm_context_service.py", "scripts/docgen/",
+                  "tasks/rlm_deactivate_changed_decision_tables.py",
+                  "tasks/rlm_create_persona_user.py",
+                  "tasks/rlm_deploy_expression_sets.py",
+                  "tasks/rlm_refresh_decision_table.py",
+                  "tasks/rlm_billing.py",
+                  "tasks/rlm_create_approval_email_templates.py",
+                  "tasks/rlm_sharing.py",
+                  "tasks/rlm_validate_keys.py",
+                  "scripts/sfdmu_conditional_steps.py", "scripts/sync_appmenu_from_user.py",
                   "tasks/rlm_extend_stdctx.py", "tasks/rlm_manage_decision_tables.py",
                   "tasks/rlm_manage_transaction_processing_types.py",
                   "tasks/rlm_manage_fulfillment_scope_cnfg.py",
@@ -863,6 +873,7 @@ CHECKS = [
              "tests/test_workflow_policy.py",
              "tests/test_docker_publish.py",
              "tests/test_deploy_with_fragments.py",
+             "tests/test_external_credentials.py",
              "tests/test_rlm_stamp_commit.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
@@ -897,7 +908,14 @@ CHECKS = [
                   # def) may set enableQuoteEstimatedTaxCPQ behind the flag's back.
                   "tests/test_deploy_with_fragments.py", "unpackaged/pre/", "unpackaged/post_prm/",
                   "unpackaged/post_quote_est_tax_settings/", "orgs/", "force-app/main/default/settings/",
-                  "templates/"],
+                  "templates/",
+                  # todo 481: the SalesforceContractsExtCredentials AwsAccountId is a placeholder
+                  # deploy_quantumbit fills in the deploy zip. The suite scans every file, of any
+                  # type, under unpackaged/, force-app/ and templates/ for a committed 12-digit
+                  # parameterValue.
+                  "tests/test_external_credentials.py", "unpackaged/", "force-app/",
+                  # It also asserts the launchers forward RLM_AWS_ACCOUNT_ID by name only.
+                  "docker/rlm", "docker/compose.yaml", ".devcontainer/devcontainer.json"],
         deps=["PyYAML"], gating=True,
     ),
     dict(

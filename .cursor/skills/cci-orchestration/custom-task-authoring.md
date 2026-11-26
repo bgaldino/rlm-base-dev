@@ -457,6 +457,7 @@ tasks:
 | `rlm_sync_pricing_data.py` | `SyncPricingData` | Sync pricing data |
 | `rlm_reconfigure_expression_set.py` | `ReconfigureExpressionSet` | Reconfigure autoproc expression sets |
 | `rlm_deploy_with_fragments.py` | `DeployWithFragments`, `SpliceFragmentsTransform` | Deploy a bundle with text spliced in at markers when a project flag is on (flag-dependent permission set grants and settings) |
+| `rlm_external_credentials.py` | `DeployWithAwsAccountId`, `AwsAccountIdTransform` | `deploy_quantumbit`: sets the committed placeholder AwsAccountId of an AWS external credential from the `aws_account_id` option or `RLM_AWS_ACCOUNT_ID` in the deploy zip, or drops the parameter when neither is set; repo files are never written |
 | `rlm_deactivate_changed_decision_tables.py` | `DeactivateChangedDecisionTables` | Check-only deploy active repo DTs; deactivate and deploy only those a structural change blocks |
 | `rlm_cml.py` | `ExportCML`, `ImportCML`, `ValidateCML` | Constraint Model Language operations |
 | `rlm_clm_clause_sets.py` | `LoadClmClauseSets` | Load the qb-clm DocumentClauseSet rows (`insert_clm_clause_sets`) |
@@ -476,7 +477,7 @@ tasks:
 | `rlm_mcp.py` | `ConfigureMcpServers` | Activate hosted MCP servers and build the custom sales-transactions server |
 | `rlm_sharing.py` | `SetOrgWideDefaultsSharingOnly`, `AssertSObjectOWDs` | Set the sharing-only org-wide defaults, and assert sObject OWDs |
 | `rlm_validate_keys.py` | `ValidateSourceDataKeys` | Pre-extraction check of a plan's externalId key fields |
-| `soql_utils.py` | (utilities) | `soql_quote`, `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
+| `soql_utils.py` | (utilities) | `soql_quote`, `soql_like_prefix` (LIKE prefixes), `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
 ---

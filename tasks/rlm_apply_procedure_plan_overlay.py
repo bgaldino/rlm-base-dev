@@ -15,7 +15,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.core.exceptions import TaskOptionsError
@@ -92,10 +92,6 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         if isinstance(value, bool):
             return value
         return str(value).strip().lower() in {"1", "true", "yes", "y"}
-
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        return value.replace("\\", "\\\\").replace("'", "\\'")
 
     @staticmethod
     def _clean_body(
@@ -182,11 +178,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         return overlay
 
     def _get_version(self, developer_name: str) -> Dict[str, Any]:
-        safe_name = self._soql_escape(developer_name)
+        safe_name = soql_quote(developer_name)
         records = self._query(
             "SELECT Id, DeveloperName, IsActive, Rank, EffectiveFrom "
             "FROM ProcedurePlanDefinitionVersion "
-            f"WHERE DeveloperName = '{safe_name}' "
+            f"WHERE DeveloperName = {safe_name} "
             "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
             "LIMIT 1"
         )
@@ -218,7 +214,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         while waited <= max_wait:
             records = self._query(
                 "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
-                f"WHERE Id = '{self._soql_escape(version_id)}'"
+                f"WHERE Id = {soql_quote(version_id)}"
             )
             if records and bool(records[0].get("IsActive")) is active:
                 self.logger.info(
@@ -236,21 +232,21 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         )
 
     def _get_section_records(self, version_id: str, sub_section_type: str) -> List[Dict[str, Any]]:
-        safe_version_id = self._soql_escape(version_id)
-        safe_sub_section = self._soql_escape(sub_section_type)
+        safe_version_id = soql_quote(version_id)
+        safe_sub_section = soql_quote(sub_section_type)
         return self._query(
             "SELECT Id, Description, Phase, ResolutionType, SectionType, Sequence, SubSectionType "
             "FROM ProcedurePlanSection "
-            f"WHERE ProcedurePlanVersionId = '{safe_version_id}' "
-            f"AND SubSectionType = '{safe_sub_section}'"
+            f"WHERE ProcedurePlanVersionId = {safe_version_id} "
+            f"AND SubSectionType = {safe_sub_section}"
         )
 
     def _get_all_section_records(self, version_id: str) -> List[Dict[str, Any]]:
-        safe_version_id = self._soql_escape(version_id)
+        safe_version_id = soql_quote(version_id)
         return self._query(
             "SELECT Id, Description, Phase, ResolutionType, SectionType, Sequence, SubSectionType "
             "FROM ProcedurePlanSection "
-            f"WHERE ProcedurePlanVersionId = '{safe_version_id}' "
+            f"WHERE ProcedurePlanVersionId = {safe_version_id} "
             "ORDER BY Sequence ASC, SubSectionType ASC"
         )
 
@@ -482,10 +478,10 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         self._resequence_sections(version_id, section_order, dry_run)
 
     def _get_expression_set_id(self, developer_name: str) -> str:
-        safe_name = self._soql_escape(developer_name)
+        safe_name = soql_quote(developer_name)
         records = self._query(
             "SELECT Id, DeveloperName FROM ExpressionSetDefinition "
-            f"WHERE DeveloperName = '{safe_name}'"
+            f"WHERE DeveloperName = {safe_name}"
         )
         if len(records) != 1:
             raise TaskOptionsError(
@@ -494,12 +490,12 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         return records[0]["Id"]
 
     def _get_option_records(self, section_id: str, priority: Any) -> List[Dict[str, Any]]:
-        safe_section_id = self._soql_escape(section_id)
+        safe_section_id = soql_quote(section_id)
         return self._query(
             "SELECT Id, CriteriaLogic, ExpressionSetDefinitionId, Priority, "
             "ReadContextMapping, SaveContextMapping "
             "FROM ProcedurePlanOption "
-            f"WHERE ProcedurePlanSectionId = '{safe_section_id}' "
+            f"WHERE ProcedurePlanSectionId = {safe_section_id} "
             f"AND Priority = {int(priority)}"
         )
 
@@ -581,11 +577,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         )
 
     def _get_criterion_records(self, option_id: str, sequence: Any) -> List[Dict[str, Any]]:
-        safe_option_id = self._soql_escape(option_id)
+        safe_option_id = soql_quote(option_id)
         return self._query(
             "SELECT Id, ActualValue, DataType, FieldPath, ObjectField, Operator, Sequence "
             "FROM ProcedurePlanCriterion "
-            f"WHERE ProcedurePlanOptionId = '{safe_option_id}' "
+            f"WHERE ProcedurePlanOptionId = {safe_option_id} "
             f"AND Sequence = {int(sequence)}"
         )
 
