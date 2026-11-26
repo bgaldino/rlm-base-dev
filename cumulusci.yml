@@ -3349,7 +3349,7 @@ tasks:
     options:
       operation: list  # Options: 'list', 'query', 'refresh', 'activate', 'deactivate', 'validate_lists'
       status: Active   # Filter by status; a YAML null also means Active, an explicit empty value means no filter
-      is_incremental: false  # For refresh: true for incremental, false for full
+      is_incremental: false  # For refresh: true requests incremental; false: no incremental requested, the platform chooses the type
       sort_by: LastSyncDate
       sort_order: Desc
 

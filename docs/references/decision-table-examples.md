@@ -202,7 +202,7 @@ Advanced; CSV tables use the Advanced pool. Batch initial setup accordingly.
 
 ⚠ **Release 264 does not consult `isIncrementalSyncEnabled`** (read from Core source
 and confirmed live, 2026-10-27): an incremental request runs whatever the flag says,
-and a full request can run as incremental too. See the decision-tables skill,
+and a request with no incremental (`is_incremental: false`) can run as incremental too. See the decision-tables skill,
 `lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*. The flag is
 `false` on every table this repo ships, and nothing here gates on it.
 
@@ -473,7 +473,7 @@ action input.
 
 The Manager judges freshness by the later of `LastSyncDate` and
 `LastIncrementalSyncDate`, the rule the Decision Table app page uses, because Release
-264 can run a full request as incremental (issue #587). It no longer refuses an
+264 can run a request with no incremental as incremental (issue #587). It no longer refuses an
 incremental request on a table with `IsIncrementalSyncEnabled` false: 264 does not
 consult that flag.
 
@@ -491,10 +491,12 @@ deploys on its own when `quantumbit` or `tso` is on.
 - **Refresh Limits**: Separate 40 Standard / 60 Advanced full-refresh pools per org/hour
 - **Active Tables**: An Active table rejects a structural change. `deactivate_changed_decision_tables` (in `prepare_core`) deactivates exactly the tables that need it and deploys them at once, which reactivates them.
 - **Refresh Timing**: Refresh operations are asynchronous. Check the later of `LastSyncDate` and `LastIncrementalSyncDate` to verify completion.
-- **Incremental vs Full**:
-  - Use **full refresh** for initial setup or when you need complete data refresh
-  - In Release 264 a full request can run as incremental (see the caveat at the top), so
-    check the later of `LastSyncDate` and `LastIncrementalSyncDate`
+- **Incremental or not**:
+  - `is_incremental: true` requests an incremental refresh
+  - `is_incremental: false` (the default) requests no incremental, which is not a request for
+    a full refresh: in Release 264 the platform chooses the type and can run it as incremental
+    (see the caveat at the top). Either way, check the later of `LastSyncDate` and
+    `LastIncrementalSyncDate`
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name

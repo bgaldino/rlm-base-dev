@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 201
+EXPECTED_CHECKS = 204
 
 
 def check(label, condition, detail=""):
@@ -1831,6 +1831,15 @@ _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists",
 check("blank strict is False: the same missing table only reports",
       bool(_fake.queries) and _err is None and any("NOT_IN_ORG" in line for line in _fake.logger.infos),
       repr((_err, _fake.queries, _fake.logger.infos[-6:])))
+
+# todo 488: false requests no incremental; it is not a full refresh, and the log must not say so.
+for _inc, _want in (("false", "(no incremental requested; the platform chooses the type)"),
+                    ("  ", "(no incremental requested; the platform chooses the type)"),
+                    (" true ", "(incremental requested)")):
+    _err, _fake = opt_run({"developer_names": "A", "is_incremental": _inc}, "refresh")
+    _lines = [line for line in _fake.logger.infos if line.startswith("Refreshing ")]
+    check(f"refresh log for is_incremental {_inc!r} says {_want}, not 'full'",
+          len(_lines) == 1 and _want in _lines[0] and "full" not in _lines[0], repr((_err, _lines)))
 
 print("\n[opt-refresh] RefreshDecisionTable options use the shared helpers")
 
