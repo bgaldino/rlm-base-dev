@@ -43,14 +43,20 @@ Working rule, created through the Tooling API (`POST /services/data/v68.0/toolin
               "description": "Contracts-East users see only East contracts"}}
 ```
 
-Create it inactive, then set `active` to true. Refusals reproduced on this build: a picklist filter (`Status = 'Draft'`) failed with
+Create it inactive, then activate it in the UI (the API activation failed, below). Refusals reproduced on this build: a picklist filter (`Status = 'Draft'`) failed with
 "Field Status is a picklist field. Picklist fields are only supported in certain functions." and `Username = '...'` as user criteria
 failed with "You can't create restriction rules with this user criterion" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 A matching user saw the one contract of two whose type matched; a user outside the department saw both.
 [Help: `ind.sf_contracts_known_limitation_for_salesforce_contracts` says picklist values can be selected in Restriction and
 Scoping Rule record criteria, a single value only.] That conflicts with the refused `Status = 'Draft'` filter above. The error
 text points to picklist functions, and a rule with `recordFilter` `ISPICKVAL(Status,'Draft')` was accepted when created inactive
-[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]. [Open: activating that rule and the filtering it gives were not run.]
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
+Activated in the UI and tried as two users on two contracts, one Draft and one Activated
+[Measured: 2026-11-27, 264, QuantumBit scratch org]: the rule used user criteria `$User.Department = 'Contracts-East'`.
+A Sales Representative with that department saw only the Draft contract in All Contracts. A System Administrator with no
+department saw both. The PATCH that sets `active` to true on the Tooling API returned `UNKNOWN_EXCEPTION` with an error id and
+left the rule inactive; activating from the UI worked, so activate there. Find it under Setup, Object Manager, Contract,
+Restriction Rules (it is not a top-level Setup page).
 [Open: the active-rule cap on Performance and Unlimited editions (not testable on an Enterprise org); behavior with
 two rules matching one user.]
 
