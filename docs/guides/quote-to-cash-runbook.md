@@ -140,18 +140,20 @@ or `invoice_posted`), which has two scenarios on one account.
 1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and
    `failure_class` (the text form leaves out `failure_class`).
 2. A transient failure (a timeout, a lock) usually clears on a rerun of the
-   same `cli step`. The invoice and settlement steps are guarded against a
-   second write (at most one credit memo and one payment per run, looked up by
-   tag rather than sent twice). The quote and order steps are not: if a
-   response was lost there, check the org for the record before rerunning, or
-   start a new run.
-3. A deterministic failure names its remedy. Common ones:
-   - capped at `order_draft`: the account has no `BillingAccount`;
+   same `cli step`. Only the credit memo and the payment are guarded against a
+   second write (at most one each per run, looked up by tag rather than sent
+   twice). For any other step whose response was lost, check the record in
+   the org first (the quote, the order, or the invoice's `Status`), or start a
+   new run.
+3. A step capped at `order_draft` reports no error: `cli step` stops there
+   quietly when the account has no `BillingAccount`, and `inspect` shows
+   `reached_stage: order_draft`.
+4. A deterministic failure names its remedy. Common ones:
    - the application level could not be read: rerun the step with
      `--application-level line` (or `header`);
    - posted-invoice tax treatment missing (ingestion only): seed the
      `TaxTreatment` the error names.
-4. Rules for resuming, the write rule and the failure classes are in
+5. Rules for resuming, the write rule and the failure classes are in
    [`contracts-billing-settlement.md`](../../scripts/txn_data_harness/docs/contracts-billing-settlement.md).
 
 ## Cleanup limits
