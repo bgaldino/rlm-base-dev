@@ -66,7 +66,7 @@ public without sharing class RLM_AccountUtilities {
     // (a ratable summary can be held by a usage summary and vice versa), so the
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
-    // spin. In practice QUERY_RESERVE ends a run first, after four rounds (before the loop,
+    // spin. In practice QUERY_RESERVE ends a run first, after five rounds (before the loop,
     // the admins-only permission check takes 1 of the 100 queries and phase 1's lookups 3,
     // and a round needs 62 left to start), and the next run carries on. The
     // permission check needs that query: no other read tells whether the user has Modify
@@ -75,30 +75,30 @@ public without sharing class RLM_AccountUtilities {
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
-    // issues nine deletes per round, so the real guard is the remaining-budget
+    // issues eight deletes per round, so the real guard is the remaining-budget
     // clamp inside deleteRows(), which stops the run with a Result instead of
     // a LimitException.
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 46 (counted from the code, with every option on and
+    // fixed queries total at most 47 (counted from the code, with every option on and
     // data in every branch): 29 before the asset step (order data 10, collections 5,
     // schedule groups 1, billing 8, fulfillment 2, contracts 3), the asset step's lookup
-    // of entitlements bound to the assets 1 and its other lookups 9 (the asset rate card
-    // entries and the rate card entries sourced from the assets among them), quotes and
-    // opportunities 5 = 44 on the drained path, plus the journal query and the journals'
-    // record alerts, which only the undrained path runs = 46. 31 is what an account with one
-    // asset and no other such data measures.
-    // QUERY_RESERVE covers the 46 and the usage retries, with seven spare. A round starts
+    // of entitlements bound to the assets 1 and its other lookups 10 (the asset rate card
+    // entries, the rate card entries sourced from the assets and the commitment junctions
+    // among them), quotes and opportunities 5 = 45 on the drained path, plus the journal
+    // query and the journals' record alerts, which only the undrained path runs = 47. 32 is
+    // what an account with one asset and no other such data measures.
+    // QUERY_RESERVE covers the 47 and the usage retries, with seven spare. A round starts
     // only while both are left; otherwise a large usage graph
-    // would spend phase 2's queries and end in a LimitException. A test holds the measured 31
-    // exactly and the reserve against the 46.
-    private static final Integer QUERIES_PER_ROUND = 9;
+    // would spend phase 2's queries and end in a LimitException. A test holds the measured 32
+    // exactly and the reserve against the 47.
+    private static final Integer QUERIES_PER_ROUND = 8;
     @TestVisible
-    private static final Integer QUERY_RESERVE = 53;
+    private static final Integer QUERY_RESERVE = 54;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 46;
+    private static final Integer PHASE_TWO_FIXED_MAX = 47;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
@@ -106,9 +106,9 @@ public without sharing class RLM_AccountUtilities {
     //    its record alerts 1, collections 5, schedule groups 1, billing 8, fulfillment 2,
     //    contracts 3, the asset step with no assets 2, quotes and opportunities 5). 31 keeps
     //    three spare.
-    //  - ASSET_TAIL, for the asset step: at most 14 follow its last guard (other asset
-    //    references 2, resource policies 2, rate card entries 3, assets 2, quotes and
-    //    opportunities 5). 17 keeps three spare.
+    //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
+    //    references 2, resource policies 2, rate card entries 3, commitment junctions 1,
+    //    assets 2, quotes and opportunities 5). 18 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
@@ -116,7 +116,7 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static final Integer RETRY_TAIL = 31;
     @TestVisible
-    private static final Integer ASSET_TAIL = 17;
+    private static final Integer ASSET_TAIL = 18;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -287,7 +287,7 @@ public without sharing class RLM_AccountUtilities {
     private static Exception phaseTwoFailureForTest;
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
-    // always ends the loop first (a round needs 62 queries left, and 100 allow four, after the
+    // always ends the loop first (a round needs 62 queries left, and 100 allow five, after the
     // 4 queries spent before the loop: the admins-only check's 1, and phase 1's 3), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
@@ -558,6 +558,17 @@ public without sharing class RLM_AccountUtilities {
                 // binding object rate card entries"), a contract the run keeps included.
                 if (!accountAssetIds.isEmpty()) {
                     deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
+                    // The commitment junction (UsageCmtAssetRelatedObj), which links a
+                    // commitment asset to its anchor. Here, with the assets, not in phase 1:
+                    // an anchor cannot be deleted while it survives ("associated with the
+                    // following usage commitment asset related objects"), and nothing in
+                    // phase 1 needs it gone (measured live 264: every usage row deletes with
+                    // it in place). So without Delete Assets, or after a rollback, a kept
+                    // asset keeps its commitment link.
+                    deleteQuietly([
+                        SELECT Id FROM UsageCmtAssetRelatedObj
+                        WHERE AssetId IN :accountAssetIds OR RelatedObjectId IN :accountAssetIds
+                    ]);
                 }
 
                 deleteAssets();
@@ -676,7 +687,13 @@ public without sharing class RLM_AccountUtilities {
         UserPermissionAccess access = [
             SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1
         ];
-        return access.PermissionsModifyAllData == true && access.PermissionsViewAllData == true;
+        return isAdmin(access.PermissionsModifyAllData, access.PermissionsViewAllData);
+    }
+
+    /** The gate's decision: an admin has both permissions. Null counts as without. */
+    @TestVisible
+    private static Boolean isAdmin(Boolean modifyAllData, Boolean viewAllData) {
+        return modifyAllData == true && viewAllData == true;
     }
 
     /** The Id when `value` is an Account Id, else null. */
@@ -797,7 +814,7 @@ public without sharing class RLM_AccountUtilities {
      * allOrNone, a refusal throws instead, which rolls back phase 2.
      *
      * The 10,000-row DML limit is per TRANSACTION, not per statement, and the
-     * teardown loop alone issues nine deletes per round. So the list is clamped to
+     * teardown loop alone issues eight deletes per round. So the list is clamped to
      * the remaining budget here -- one clamp covers every call site. Running out
      * deletes what fits and then stops the run with a ResetStoppedException,
      * rather than a LimitException that rolls back all the progress made.
@@ -1540,7 +1557,6 @@ public without sharing class RLM_AccountUtilities {
         //   UsageEntitlementBucket parent <-> child (3 levels)
         //   TransactionUsageEntitlement <- bucket
         //   UsageEntitlementAccount     <- TUE
-        //   UsageCmtAssetRelatedObj     -> Asset   (the commitment junction)
         // Alternate them and stop when a full round makes no progress. Fixed, small
         // SOQL cost per round rather than one that grows with the org's history.
         Boolean queryBudgetSpent = false;
@@ -1577,15 +1593,6 @@ public without sharing class RLM_AccountUtilities {
             progress += drain([
                 SELECT Id FROM UsageEntitlementAccount
                 WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
-            // The commitment junction. Linking a commitment to its anchor is a
-            // post-262 selling step this utility predates, and an anchor asset
-            // cannot be deleted while its junction row survives.
-            if (!assetIds.isEmpty()) {
-                progress += drain([
-                    SELECT Id FROM UsageCmtAssetRelatedObj
-                    WHERE AssetId IN :assetIds OR RelatedObjectId IN :assetIds
-                    LIMIT :TEARDOWN_BATCH]);
-            }
 
             if (progress == 0) {
                 usageDrained = roundFound == 0;
