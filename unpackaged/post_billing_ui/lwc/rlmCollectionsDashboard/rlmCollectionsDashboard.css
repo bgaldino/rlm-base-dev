@@ -674,7 +674,8 @@
     border-color: #cbd5e1;
 }
 
-.worklist-empty {
+.worklist-empty,
+.worklist-loading {
     padding: 1.5rem 1rem;
     text-align: center;
     color: var(--mc-muted);

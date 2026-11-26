@@ -49,6 +49,31 @@ function failedSection(empty) {
     return { ...empty, unavailable: true, unavailableReason: FAILED };
 }
 
+// One state per section, derived in one place (the `sections` getter): loading until that section's
+// answer for the current filters arrives, then ready, or unavailable with its reason. Every figure, count,
+// list and empty message renders from `ready` only; loading shows nothing, unavailable shows the dash
+// and the reason. A filter change puts the sections it affects back to loading.
+const LOADING = Object.freeze({ status: 'loading' });
+const READY = Object.freeze({ status: 'ready' });
+const LOADING_TEXT = 'Loading\u2026';
+
+function unavailableState(reason) {
+    return { status: 'unavailable', reason: reason === REFUSED ? REFUSED : FAILED };
+}
+
+// A wrapper section (promises, progress, tasks, plans): undefined until the server answers.
+function wrapperState(wrapper) {
+    if (wrapper === undefined) return LOADING;
+    if (wrapper === null || wrapper.unavailable) return unavailableState(wrapper?.unavailableReason);
+    return READY;
+}
+
+// The text of a figure: the formatted value when ready, nothing while loading, the dash when unavailable.
+function figureText(state, format) {
+    if (state.status === 'ready') return format();
+    return state.status === 'loading' ? '' : NOT_AVAILABLE;
+}
+
 // A failed worklist call: every tab is not available, next to the error banner.
 const WORKLIST_FAILED = {
     criticalFollowUpInvoices: [],
@@ -70,14 +95,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     selectedCurrency = '';
     orgDefaultCurrency = 'USD';
     isLoadingOptions = true;
-    dashboardData = null;
-    worklistData = null;
+    // undefined = loading, null = the call failed, else the server's answer (see `sections`).
+    dashboardData;
+    worklistData;
     // The task, promise and plan wrappers from the server ({ items | buckets, unavailable, unavailableReason });
     // undefined until the first answer, which is "still loading", not "none".
     cpTasksState;
     paymentPromiseState;
     myCollectionPlansState;
-    collectionsProgressData = null;
+    collectionsProgressData;
     dataError = null;
     worklistError = null;
     selectedWorklistTab = 'critical';
@@ -102,7 +128,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                     this.selectedCurrency = '';
                 }
                 this.dispatchFilterChange();
-                this.loadWorklistImperative();
             })
             .catch(() => {
                 this.currencyOptions = [
@@ -170,20 +195,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         } else if (error) {
             this.worklistData = WORKLIST_FAILED;
             this.worklistError = this.reduceErrors(error);
-            this.loadWorklistImperative();
         }
-    }
-
-    loadWorklistImperative() {
-        getWorklist({ accountId: this.effectiveAccountId, currencyCode: this.effectiveCurrencyCode })
-            .then((data) => {
-                this.worklistData = data;
-                this.worklistError = undefined;
-            })
-            .catch((err) => {
-                this.worklistData = WORKLIST_FAILED;
-                this.worklistError = this.reduceErrors(err);
-            });
     }
 
     get filterContext() {
@@ -209,16 +221,67 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return found ? found.label : this.selectedCurrency;
     }
 
+    // A filter change puts every section that reads it back to loading, so the previous filter's figures
+    // never show under the new "Viewing:" label. Choosing the same value again changes nothing (the wires
+    // would not answer again).
     handleAccountChange(event) {
-        this.selectedAccountId = event.detail.value || '';
+        const value = event.detail.value || '';
+        if (value === this.selectedAccountId) return;
+        this.selectedAccountId = value;
+        this.resetFilteredSections();
+        this.cpTasksState = undefined;
         this.dispatchFilterChange();
-        this.loadWorklistImperative();
     }
 
     handleCurrencyChange(event) {
-        this.selectedCurrency = event.detail.value || '';
+        const value = event.detail.value || '';
+        if (value === this.selectedCurrency) return;
+        this.selectedCurrency = value;
+        this.resetFilteredSections();
         this.dispatchFilterChange();
-        this.loadWorklistImperative();
+    }
+
+    resetFilteredSections() {
+        this.dashboardData = undefined;
+        this.dataError = undefined;
+        this.paymentPromiseState = undefined;
+        this.worklistData = undefined;
+        this.worklistError = undefined;
+    }
+
+    // Every section's state, in one place.
+    get sections() {
+        const data = this.dashboardData;
+        let cards = READY;
+        if (data === undefined) cards = LOADING;
+        else if (data === null) cards = unavailableState(FAILED);
+        const component = (key) => {
+            if (cards !== READY) return cards;
+            return (data.unavailable || []).includes(key) ? unavailableState(data.unavailableReason?.[key]) : READY;
+        };
+        let total = cards;
+        if (cards === READY && data.totalBalance == null) {
+            const keys = Object.keys(EXCLUDED_NAMES);
+            total = unavailableState(keys.every((key) => component(key).reason === REFUSED) ? REFUSED : FAILED);
+        }
+        const worklist = (tab) => {
+            if (this.worklistData === undefined) return LOADING;
+            return (this.worklistData.unavailable || []).includes(tab)
+                ? unavailableState(this.worklistData.unavailableReason?.[tab])
+                : READY;
+        };
+        return {
+            cards,
+            invoices: component('invoices'),
+            payments: component('unappliedPayments'),
+            paymentCount: component('unappliedPaymentCount'),
+            total,
+            promises: wrapperState(this.paymentPromiseState),
+            progress: wrapperState(this.collectionsProgressData),
+            tasks: wrapperState(this.cpTasksState),
+            plans: wrapperState(this.myCollectionPlansState),
+            worklistTab: worklist(this.selectedWorklistTab)
+        };
     }
 
     handleWorklistTab(event) {
@@ -431,17 +494,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get invoicesUnavailable() {
-        return this.unavailableKeys.includes('invoices');
-    }
-
-    // The payment balance (a component of the total) and the payment count are separate: a count that
-    // could not be read shows only the count as not available.
-    get paymentsUnavailable() {
-        return this.unavailableKeys.includes('unappliedPayments');
-    }
-
-    get paymentCountUnavailable() {
-        return this.unavailableKeys.includes('unappliedPaymentCount');
+        return this.sections.invoices.status === 'unavailable';
     }
 
     cardReason(key) {
@@ -449,7 +502,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get invoicesUnavailableText() {
-        return unavailableText(SUBJECTS.invoices, this.cardReason('invoices'));
+        return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason);
     }
 
     // Names the total's components that could not be read, and why: "Excludes debit memos: you don't have
@@ -467,15 +520,17 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get invoiceCountLabel() {
-        return this.invoicesUnavailable ? this.invoicesUnavailableText : `${this.invoiceCount} invoices`;
+        const state = this.sections.invoices;
+        if (state.status === 'loading') return LOADING_TEXT;
+        if (state.status === 'unavailable') return unavailableText(SUBJECTS.invoices, state.reason);
+        return `${this.invoiceCount} invoices`;
     }
 
     get unappliedPaymentMeta() {
-        if (this.paymentsUnavailable) {
-            return unavailableText(SUBJECTS.unappliedPayments, this.cardReason('unappliedPayments'));
-        }
-        const count = this.paymentCountUnavailable ? NOT_AVAILABLE : this.unappliedPaymentCount;
-        return `${count} records · Action required`;
+        const { payments, paymentCount } = this.sections;
+        if (payments.status === 'loading') return LOADING_TEXT;
+        if (payments.status === 'unavailable') return unavailableText(SUBJECTS.unappliedPayments, payments.reason);
+        return `${figureText(paymentCount, () => String(this.unappliedPaymentCount))} records · Action required`;
     }
 
     get totalBalanceValue() {
@@ -483,7 +538,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get totalBalanceBreakdown() {
-        if (!this.dashboardData?.totalBalanceBreakdown) return [];
+        if (this.sections.cards !== READY || !this.dashboardData.totalBalanceBreakdown) return [];
         return this.dashboardData.totalBalanceBreakdown.map((b) => ({
             ...b,
             amount: b.amount != null ? b.amount : 0,
@@ -536,31 +591,27 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     // Pre-formatted KPI values: LWC templates can't call methods in bindings (LWC1060),
     // so currency formatting is done here and bound as plain properties.
     get receivablesOutstandingFormatted() {
-        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.receivablesOutstandingValue);
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.receivablesOutstandingValue));
     }
 
     get currentDueFormatted() {
-        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.currentDueValue);
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.currentDueValue));
     }
 
     get overdueFormatted() {
-        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.overdueValue);
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.overdueValue));
     }
 
     get unappliedPaymentBalanceFormatted() {
-        return this.paymentsUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.unappliedPaymentBalanceValue);
+        return figureText(this.sections.payments, () => this.formatCurrency(this.unappliedPaymentBalanceValue));
     }
 
     get totalBalanceFormatted() {
-        // Every component refused: there is no total to show, only the note saying what was left out.
-        if (this.dashboardData && this.dashboardData.totalBalance == null && this.unavailableKeys.length > 0) {
-            return NOT_AVAILABLE;
-        }
-        return this.formatCurrency(this.totalBalanceValue);
+        return figureText(this.sections.total, () => this.formatCurrency(this.totalBalanceValue));
     }
 
     get agingBuckets() {
-        if (!this.dashboardData?.agingBuckets) return [];
+        if (this.sections.invoices !== READY || !this.dashboardData.agingBuckets) return [];
         const total = this.dashboardData.agingBuckets.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
         const colors = { current: '#2563eb', '1-30': '#3b82f6', '31-60': '#f59e0b', '61-90': '#ef4444', '90+': '#b91c1c' };
         return this.dashboardData.agingBuckets.map((b) => {
@@ -616,35 +667,39 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get paymentPromiseData() {
-        return this.paymentPromiseState?.buckets || [];
+        return this.sections.promises === READY ? this.paymentPromiseState.buckets || [] : [];
     }
 
     get paymentPromisesUnavailable() {
-        return this.paymentPromiseState?.unavailable === true;
+        return this.sections.promises.status === 'unavailable';
     }
 
     get paymentPromisesUnavailableText() {
-        return unavailableText(SUBJECTS.paymentSchedules, this.paymentPromiseState?.unavailableReason);
+        return unavailableText(SUBJECTS.paymentSchedules, this.sections.promises.reason);
     }
 
     // "No payment promises." only once the server answered with none.
     get showNoPaymentPromises() {
-        return this.paymentPromiseState !== undefined && !this.paymentPromisesUnavailable && !this.hasPaymentPromises;
+        return this.sections.promises === READY && !this.hasPaymentPromises;
+    }
+
+    get paymentPromisesLabel() {
+        const state = this.sections.promises;
+        if (state.status === 'loading') return 'Payment Promises';
+        return `Payment Promises (${figureText(state, () => this.paymentPromisesTotal)})`;
     }
 
     get hasPaymentPromises() {
         return this.paymentPromisesBuckets && this.paymentPromisesBuckets.length > 0;
     }
 
-    get paymentPromisesTotalFormatted() {
-        if (this.paymentPromisesUnavailable) return NOT_AVAILABLE;
-        if (!this.paymentPromiseData || this.paymentPromiseData.length === 0) return this.formatCurrency(0);
+    get paymentPromisesTotal() {
         const total = this.paymentPromiseData.reduce((sum, b) => sum + (Number(b.totalRequestedAmount) || 0), 0);
         return this.formatCurrency(total);
     }
 
     get worklistItems() {
-        if (!this.worklistData) return [];
+        if (this.sections.worklistTab !== READY) return [];
         const isCritical = this.selectedWorklistTab === 'critical';
         let list = [];
         if (isCritical) list = this.worklistData.criticalFollowUpInvoices || [];
@@ -694,15 +749,23 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get worklistTabUnavailable() {
-        return (this.worklistData?.unavailable || []).includes(this.selectedWorklistTab);
+        return this.sections.worklistTab.status === 'unavailable';
+    }
+
+    get worklistTabLoading() {
+        return this.sections.worklistTab === LOADING;
     }
 
     get worklistUnavailableText() {
-        return unavailableText(SUBJECTS.worklist, this.worklistData?.unavailableReason?.[this.selectedWorklistTab]);
+        return unavailableText(SUBJECTS.worklist, this.sections.worklistTab.reason);
+    }
+
+    get loadingText() {
+        return LOADING_TEXT;
     }
 
     get noWorklistItems() {
-        return !this.worklistTabUnavailable && (!this.worklistItems || this.worklistItems.length === 0);
+        return this.sections.worklistTab === READY && this.worklistItems.length === 0;
     }
 
     get worklistTabCriticalActive() {
@@ -758,25 +821,23 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get cpTasksData() {
-        return this.cpTasksState?.items || [];
+        return this.sections.tasks === READY ? this.cpTasksState.items || [] : [];
     }
 
     get cpTasksUnavailable() {
-        return this.cpTasksState?.unavailable === true;
+        return this.sections.tasks.status === 'unavailable';
     }
 
     get cpTasksUnavailableText() {
-        return unavailableText(SUBJECTS.planTasks, this.cpTasksState?.unavailableReason);
+        return unavailableText(SUBJECTS.planTasks, this.sections.tasks.reason);
     }
 
     get showNoCpTasks() {
-        return this.cpTasksState !== undefined && !this.cpTasksUnavailable && !this.hasCpTasks;
+        return this.sections.tasks === READY && !this.hasCpTasks;
     }
 
     get cpTasksCount() {
-        if (this.cpTasksState === undefined) return '';
-        if (this.cpTasksUnavailable) return NOT_AVAILABLE;
-        return this.cpTasks ? this.cpTasks.length : 0;
+        return figureText(this.sections.tasks, () => String(this.cpTasks.length));
     }
 
     get hasCpTasks() {
@@ -800,41 +861,39 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get myCollectionPlansData() {
-        return this.myCollectionPlansState?.items || [];
+        return this.sections.plans === READY ? this.myCollectionPlansState.items || [] : [];
     }
 
     get myCollectionPlansUnavailable() {
-        return this.myCollectionPlansState?.unavailable === true;
+        return this.sections.plans.status === 'unavailable';
     }
 
     get myCollectionPlansUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.myCollectionPlansState?.unavailableReason);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.plans.reason);
     }
 
     get showNoMyCollectionPlans() {
-        return this.myCollectionPlansState !== undefined && !this.myCollectionPlansUnavailable && !this.hasMyCollectionPlans;
+        return this.sections.plans === READY && !this.hasMyCollectionPlans;
     }
 
     get myCollectionPlansCount() {
-        if (this.myCollectionPlansState === undefined) return '';
-        if (this.myCollectionPlansUnavailable) return NOT_AVAILABLE;
-        return this.myCollectionPlans ? this.myCollectionPlans.length : 0;
+        return figureText(this.sections.plans, () => String(this.myCollectionPlans.length));
     }
 
     get progressUnavailable() {
-        return this.collectionsProgressData?.unavailable === true;
+        return this.sections.progress.status === 'unavailable';
     }
 
     get progressUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.collectionsProgressData?.unavailableReason);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason);
     }
 
     get showNoProgress() {
-        return !this.progressUnavailable && !this.hasCollectionsProgress;
+        return this.sections.progress === READY && !(this.collectionsProgressData.totalPlans > 0);
     }
 
     get hasCollectionsProgress() {
-        return !this.progressUnavailable && this.collectionsProgressData && this.collectionsProgressData.totalPlans > 0;
+        return this.sections.progress === READY && this.collectionsProgressData.totalPlans > 0;
     }
 
     get progressRecoveredPercent() {
@@ -858,15 +917,11 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressAvgDaysToClose() {
-        if (this.progressUnavailable) return NOT_AVAILABLE;
-        if (!this.collectionsProgressData) return '0';
-        return String(this.collectionsProgressData.avgDaysToClose);
+        return figureText(this.sections.progress, () => String(this.collectionsProgressData.avgDaysToClose ?? 0));
     }
 
     get progressAvgDaysPastDue() {
-        if (this.progressUnavailable) return NOT_AVAILABLE;
-        if (!this.collectionsProgressData) return '0';
-        return String(this.collectionsProgressData.avgDaysPastDue);
+        return figureText(this.sections.progress, () => String(this.collectionsProgressData.avgDaysPastDue ?? 0));
     }
 
     get pieSvgRecoveredPath() {

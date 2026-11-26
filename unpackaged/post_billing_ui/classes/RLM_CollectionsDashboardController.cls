@@ -298,22 +298,23 @@ public with sharing class RLM_CollectionsDashboardController {
 
         try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        if (wl.highValueDelinquents.isEmpty()) {
-            try { buildWorklistLastResort(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        try { buildDisputedFromCases(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        // The fallbacks widen an EMPTY high-value list that was read: they never stand in for a primary
+        // read that was refused or failed (the tab is then unavailable), and when one of them fails and
+        // the list is still empty the tab is unavailable too, not "none". An empty tab carries no
+        // placeholder row: the page says "No items in this view" for a list that was read and is empty.
+        if (!wl.unavailable.contains(WORKLIST_HIGH_VALUE) && wl.highValueDelinquents.isEmpty()) {
+            Exception fallbackFailure = buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency,
+                accountId, currencyCode, today, thirtyDaysAgo);
+            if (wl.highValueDelinquents.isEmpty()) {
+                Exception lastResortFailure = buildWorklistLastResort(wl, invAccountField, filterAccount, filterCurrency,
+                    accountId, currencyCode, today);
+                fallbackFailure = fallbackFailure != null ? fallbackFailure : lastResortFailure;
+            }
+            if (wl.highValueDelinquents.isEmpty() && fallbackFailure != null) {
+                markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, fallbackFailure);
+            }
         }
-        // A section a fallback filled after all is not unavailable: the fallbacks read the same Invoice
-        // fields as the primary query and honour the same account and currency filters, so rows here were
-        // read under the user's access and the page's filters, never unfiltered data covering a refusal.
-        // One still empty after a refused read gets no placeholder row (a "nothing overdue" row there would
-        // read as a real answer).
-        Integer highValueRefused = wl.unavailable.indexOf(WORKLIST_HIGH_VALUE);
-        if (!wl.highValueDelinquents.isEmpty() && highValueRefused >= 0) {
-            wl.unavailable.remove(highValueRefused);
-            wl.unavailableReason.remove(WORKLIST_HIGH_VALUE);
-        }
-        addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
     }
 
@@ -328,25 +329,6 @@ public with sharing class RLM_CollectionsDashboardController {
             wl.unavailable.add(key);
         }
         wl.unavailableReason.put(key, reasonFor(e));
-    }
-
-    private static void addPlaceholderRowsIfEmpty(WorklistData wl, Id filterAccountId) {
-        List<Account> accts = new List<Account>();
-        try {
-            // With an account filter the placeholder borrows that account, never another one.
-            accts = filterAccountId != null
-                ? [SELECT Id, Name FROM Account WHERE Id = :filterAccountId WITH USER_MODE LIMIT 1]
-                : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 1];
-        } catch (Exception e) { sectionSkipped('addPlaceholderRowsIfEmpty', e); return; }
-        if (accts.isEmpty()) return;
-        Id placeholderId = accts[0].Id;
-        String placeholderName = accts[0].Name;
-        if (wl.criticalFollowUpInvoices.isEmpty() && !wl.unavailable.contains(WORKLIST_CRITICAL)) {
-            wl.criticalFollowUpInvoices.add(new CriticalFollowUpInvoiceItem(null, 'No invoices overdue >= 30 days', 0, null, null, '—', null, null));
-        }
-        if (wl.highValueDelinquents.isEmpty() && !wl.unavailable.contains(WORKLIST_HIGH_VALUE)) {
-            wl.highValueDelinquents.add(new WorklistItem(placeholderId, '(No high-value delinquents — check Invoice, DueDate & Balance)', 0, null, 'highValue', 'red', null, null));
-        }
     }
 
     @AuraEnabled(cacheable=true)
@@ -406,14 +388,19 @@ public with sharing class RLM_CollectionsDashboardController {
 
     // Any unpaid invoice, when nothing older than 30 days was found, under the same account and currency
     // filters as the primary high-value query: with an account selected it never lists other accounts.
-    private static void buildWorklistLastResort(WorklistData wl, String invAccountField, Boolean filterAccount,
+    // Returns the exception when the read failed (the caller decides whether the tab is unavailable).
+    private static Exception buildWorklistLastResort(WorklistData wl, String invAccountField, Boolean filterAccount,
             Boolean filterCurrency, Id accountId, String currencyCode, Date today) {
         try {
             Map<String, Object> binds = new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode };
             List<SObject> rows = Database.queryWithBinds(
                 lastResortQuery(invAccountField, filterAccount, filterCurrency), binds, AccessLevel.USER_MODE);
             addLastResortDelinquents(wl, rows, invAccountField, today);
-        } catch (Exception e) { sectionSkipped('buildWorklistLastResort', e); }
+            return null;
+        } catch (Exception e) {
+            sectionSkipped('buildWorklistLastResort', e);
+            return e;
+        }
     }
 
     @TestVisible
@@ -458,8 +445,9 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    private static void buildWorklistUnifiedFallback(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date today, Date thirtyDaysAgo) {
-        if (!wl.highValueDelinquents.isEmpty()) return;
+    // Returns the exception when the read failed (the caller decides whether the tab is unavailable).
+    private static Exception buildWorklistUnifiedFallback(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date today, Date thirtyDaysAgo) {
+        if (!wl.highValueDelinquents.isEmpty()) return null;
         try {
             String invWhere = ' Balance > 0 ';
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
@@ -487,7 +475,11 @@ public with sharing class RLM_CollectionsDashboardController {
             if (wl.highValueDelinquents.isEmpty()) {
                 for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
             }
-        } catch (Exception e) { sectionSkipped('buildWorklistUnifiedFallback', e); }
+            return null;
+        } catch (Exception e) {
+            sectionSkipped('buildWorklistUnifiedFallback', e);
+            return e;
+        }
     }
 
     private static Boolean invoiceHasBillToContactId() {
@@ -671,7 +663,8 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) { probeSkipped('getInvoiceNotFullySettledStatusFilter', e); return ''; }
     }
 
-    private static void buildDisputedFromCases(WorklistData wl, String invAccountField, Boolean filterAccount, Id accountId) {
+    private static void buildDisputedFromCases(WorklistData wl, String invAccountField, Boolean filterAccount,
+            Boolean filterCurrency, Id accountId, String currencyCode) {
         try {
             String caseWhere = ' IsClosed = false AND AccountId != null ';
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
@@ -705,6 +698,8 @@ public with sharing class RLM_CollectionsDashboardController {
             // whole disputed section and marks it unavailable (WORKLIST_DISPUTED): a row without its invoice
             // rollup would carry a zero balance and no days overdue, which reads as a real "nothing owed".
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
+            // The page's currency filter applies to the rollup, as it does to every other invoice read.
+            if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
             List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
@@ -794,11 +789,25 @@ public with sharing class RLM_CollectionsDashboardController {
             return REASON_REFUSED;
         }
         String message = e == null || e.getMessage() == null ? '' : e.getMessage();
-        if (e instanceof QueryException
-                && (message.contains('is not supported') || message.startsWith('No such column '))) {
+        if (!(e instanceof QueryException)) {
+            return REASON_FAILED;
+        }
+        if (message.contains('is not supported')) {
+            return REASON_REFUSED;
+        }
+        // "No such column 'F' on entity 'X'" is a refusal only when X has a field F the user cannot see;
+        // a field the org does not have at all (a single-currency org's CurrencyIsoCode) is a failure.
+        Matcher column = Pattern.compile('^No such column \'(\\w+)\' on entity \'(\\w+)\'').matcher(message);
+        if (column.find() && fieldExists(column.group(2), column.group(1))) {
             return REASON_REFUSED;
         }
         return REASON_FAILED;
+    }
+
+    @TestVisible
+    private static Boolean fieldExists(String objectName, String fieldName) {
+        Schema.SObjectType objectType = Schema.getGlobalDescribe().get(objectName);
+        return objectType != null && objectType.getDescribe().fields.getMap().containsKey(fieldName);
     }
 
     private static void sectionSkipped(String context, Exception e) {
@@ -887,6 +896,14 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) { probeSkipped('paymentScheduleItemHasCurrencyField', e); return false; }
     }
 
+    // Payment.CurrencyIsoCode exists only on a multi-currency org: the payment reads filter on it only then,
+    // as the invoice reads do (an absent field is not a refusal, and must not be shown as one).
+    private static Boolean paymentHasCurrencyField() {
+        try {
+            return Schema.SObjectType.Payment.fields.getMap().containsKey('CurrencyIsoCode');
+        } catch (Exception e) { probeSkipped('paymentHasCurrencyField', e); return false; }
+    }
+
     private static String getPaymentAccountFieldName() {
         try {
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('PaymentAccountId')) return 'PaymentAccountId';
@@ -910,7 +927,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null) {
                 soql += ' AND ' + accFld + ' = :accountId ';
             }
-            if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
+            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); markUnavailable(data, UNAVAILABLE_CREDITS, e); return null; }
@@ -929,7 +946,10 @@ public with sharing class RLM_CollectionsDashboardController {
             // a posted invoice's balance already counts its lines. A draft invoice is in no
             // invoice sum, so a memo on one still counts here.
             String soql = 'SELECT SUM(TotalAmount) sumAmt FROM DebitMemo WHERE TotalAmount != null'
-                + ' AND Status = \'Posted\' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' ';
+                + ' AND Status = \'Posted\' ';
+            if (flds.containsKey('InvoiceGenerationStatus')) {
+                soql += ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' ';
+            }
             if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
@@ -949,7 +969,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null) {
                 soql += ' AND ' + accFld + ' = :accountId ';
             }
-            if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
+            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); markUnavailable(data, UNAVAILABLE_PAYMENTS, e); return null; }
@@ -965,7 +985,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 soql += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
             }
             if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
-            if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
+            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('cnt') != null) cnt = (Integer) ar[0].get('cnt');
         } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); markUnavailable(data, UNAVAILABLE_PAYMENT_COUNT, e); return null; }

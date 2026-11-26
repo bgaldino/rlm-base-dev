@@ -243,6 +243,12 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
             new NoAccessException()), 'A NoAccessException.');
         Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('No such column \'NotAField__x\' on entity \'Payment\'. If you are attempting...')),
+            'A field the org does not have (a single-currency org\'s CurrencyIsoCode) is a failure, not a refusal.');
+        Assert.isTrue(RLM_CollectionsDashboardController.fieldExists('Task', 'ActivityDate'), 'PRECONDITION: the field exists.');
+        Assert.isFalse(RLM_CollectionsDashboardController.fieldExists('Payment', 'NotAField__x'), 'And this one does not.');
+        Assert.isFalse(RLM_CollectionsDashboardController.fieldExists('NotAnObject__x', 'Name'), 'Nor this object.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
             new QueryException('Non-selective query against large object type')), 'Any other query error is a failure.');
         Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
             new LimitException('Too many SOQL queries')), 'A limit is a failure.');
@@ -575,11 +581,10 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // Open cases are the disputed rows: one per account, carrying the newest case and a reason
-    // built from its subject, description (cut at 200 characters) and Reason. With no invoices,
-    // the other two sections hold their placeholder rows.
+    // built from its subject, description (cut at 200 characters) and Reason. With no invoices the
+    // other two tabs were read and are empty: no placeholder rows, and nothing unavailable.
     @isTest
     static void getWorklist_openCasesListTheirAccountsAsDisputed() {
-        // Inserted out of name order, so only the name ordering makes A the placeholder's account.
         Account c = newAccount('RLM CD Worklist C');
         Account a = newAccount('RLM CD Worklist A');
         Account b = newAccount('RLM CD Worklist B');
@@ -624,27 +629,18 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(expectedB, disputed.get(b.Id).disputeReason, 'A description alone is the reason.');
         Assert.areEqual(expectedC, disputed.get(c.Id).disputeReason, 'A case with no text reads as an open case.');
 
-        Assert.areEqual(1, unfiltered.criticalFollowUpInvoices.size(), 'One placeholder critical row.');
-        RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem critical = unfiltered.criticalFollowUpInvoices[0];
-        Assert.isNull(critical.invoiceId, 'The placeholder names no invoice.');
-        Assert.areEqual('No invoices overdue >= 30 days', critical.invoiceNumber, 'The placeholder explains itself.');
-        assertAmount(0, critical.balance, 'The placeholder has no balance.');
-        Assert.areEqual(NO_VALUE, critical.billingAccountName, 'The placeholder has no account.');
-
-        Assert.areEqual(1, unfiltered.highValueDelinquents.size(), 'One placeholder high-value row.');
-        RLM_CollectionsDashboardController.WorklistItem highValue = unfiltered.highValueDelinquents[0];
-        Assert.areEqual(a.Id, highValue.accountId, 'The placeholder uses the first account by name.');
-        Assert.areEqual('highValue', highValue.segment, 'High-value segment.');
-        Assert.areEqual('red', highValue.healthScore, 'High-value rows are red.');
+        // No placeholder row stands in for an empty tab (it linked an unrelated account and offered its
+        // actions); the page says "No items in this view" for a tab that was read and is empty.
+        Assert.isTrue(unfiltered.criticalFollowUpInvoices.isEmpty(), 'No invoices: no critical rows.');
+        Assert.isTrue(unfiltered.highValueDelinquents.isEmpty(), 'No invoices: no high-value rows.');
+        Assert.isTrue(unfiltered.unavailable.isEmpty(), 'Every tab was read: ' + unfiltered.unavailable);
 
         Assert.areEqual(1, onlyB.disputedInvoices.size(), 'The account filter keeps only that account\'s case.');
         Assert.areEqual(b.Id, onlyB.disputedInvoices[0].accountId, 'The filtered row is account B.');
-        Assert.isTrue(onlyB.highValueDelinquents.size() == 1 && onlyB.highValueDelinquents[0].accountId == b.Id,
-            'The filtered worklist\'s placeholder row uses the filtered account. Rows: '
-            + onlyB.highValueDelinquents.size());
+        Assert.isTrue(onlyB.highValueDelinquents.isEmpty(), 'No rows from other accounts under the filter.');
     }
 
-    // The placeholders borrow an account, so with no account at all there are none.
+    // With no records at all every tab is read and empty: no placeholder rows, nothing unavailable.
     @isTest
     static void getWorklist_withNoAccounts_addsNoPlaceholderRows() {
         Test.startTest();
@@ -654,6 +650,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(wl.criticalFollowUpInvoices.isEmpty(), 'No placeholder without an account.');
         Assert.isTrue(wl.highValueDelinquents.isEmpty(), 'No placeholder without an account.');
         Assert.isTrue(wl.disputedInvoices.isEmpty(), 'No cases, no disputed rows.');
+        Assert.isTrue(wl.unavailable.isEmpty(), 'Empty is not unavailable: ' + wl.unavailable);
     }
 
     @isTest
@@ -768,7 +765,7 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.WorklistData adminWorklist =
             RLM_CollectionsDashboardController.getWorklist(null, null);
         Assert.areEqual(1, adminWorklist.disputedInvoices.size(), 'PRECONDITION: the admin sees the open case.');
-        Assert.areEqual(1, adminWorklist.highValueDelinquents.size(), 'PRECONDITION: the admin gets the placeholder.');
+        Assert.isTrue(adminWorklist.unavailable.isEmpty(), 'PRECONDITION: the admin reads every worklist tab.');
         Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionPlanTasks(null).items.size(),
             'PRECONDITION: the admin sees the plan\'s task.');
         Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,

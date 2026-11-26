@@ -81,7 +81,7 @@
 
                     <!-- Payment Promises: Total requested amount on PSIs by status (Ready for Processing, Draft, Failed, In Processing) -->
                     <section class="payment-promises-section" aria-label="Payment Promises by status">
-                        <div class="payment-promises-label">Payment Promises ({paymentPromisesTotalFormatted})</div>
+                        <div class="payment-promises-label">{paymentPromisesLabel}</div>
                         <template if:true={hasPaymentPromises}>
                             <div class="payment-promises-bar" role="img" aria-label="Total requested amount by status">
                                 <template for:each={paymentPromisesBuckets} for:item="bucket">
@@ -231,6 +231,9 @@
                                     </template>
                                 </tbody>
                             </table>
+                            <template if:true={worklistTabLoading}>
+                                <p class="worklist-loading">{loadingText}</p>
+                            </template>
                             <template if:true={worklistTabUnavailable}>
                                 <p class="worklist-empty">{worklistUnavailableText}</p>
                             </template>

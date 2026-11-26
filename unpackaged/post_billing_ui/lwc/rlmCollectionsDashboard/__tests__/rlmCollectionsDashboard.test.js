@@ -68,6 +68,7 @@ jest.mock(
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 const DASH = "—";
+const LOADING = "Loading…";
 
 function row(label, amount, color, unavailable) {
   const r = { label, amount, color };
@@ -106,11 +107,16 @@ function cards(unavailable = [], reasons = {}) {
   };
 }
 
-async function mount(worklist = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [] }) {
+const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
+
+// Mounts with the filter options answered and every data section still waiting for its wire.
+async function mount() {
   getOrgDefaultCurrency.mockResolvedValue("USD");
   getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
-  getAccountOptions.mockResolvedValue([{ value: "", label: "All Accounts" }]);
-  getWorklist.mockResolvedValue(worklist);
+  getAccountOptions.mockResolvedValue([
+    { value: "", label: "All Accounts" },
+    { value: "001000000000001AAA", label: "Acme" }
+  ]);
   const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
   document.body.appendChild(element);
   await flushPromises();
@@ -343,41 +349,79 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     ["refused", "You don't have access to the records this list is built from."],
     ["failed", LOAD_FAILED("The records this list is built from")]
   ])("says a worklist tab is unavailable (%s) instead of 'No items in this view'", async (reason, message) => {
-    const element = await mount({
-      criticalFollowUpInvoices: [],
-      highValueDelinquents: [],
-      disputedInvoices: [],
-      unavailable: ["critical"],
-      unavailableReason: { critical: reason }
-    });
+    const element = await mount();
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["critical"], unavailableReason: { critical: reason } });
     await flushPromises();
 
     expect(text(element, ".worklist-empty")).toEqual([message]);
   });
 
-  it("marks every worklist tab as not loaded when the worklist call fails, next to the error", async () => {
-    getWorklist.mockRejectedValue({ body: { message: "boom" } });
-    const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
-    getOrgDefaultCurrency.mockResolvedValue("USD");
-    getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
-    getAccountOptions.mockResolvedValue([{ value: "", label: "All Accounts" }]);
-    document.body.appendChild(element);
-    await flushPromises();
+  it("marks every worklist tab as not loaded on a worklist wire error, next to the error", async () => {
+    const element = await mount();
+    getWorklist.error({ message: "wire down" });
     await flushPromises();
 
     expect(text(element, ".worklist-empty")).toEqual([LOAD_FAILED("The records this list is built from")]);
-    expect(element.shadowRoot.textContent).toContain("Worklist: boom");
+    expect(element.shadowRoot.textContent).toContain("Worklist:");
     expect(element.shadowRoot.textContent).not.toContain("No items in this view");
   });
 
-  it("marks every worklist tab as not loaded on a worklist wire error", async () => {
+  it("says a read, empty worklist tab has no items", async () => {
     const element = await mount();
-    getWorklist.mockRejectedValue({ body: { message: "still down" } });
-    getWorklist.error({ message: "wire down" });
-    await flushPromises();
+    getWorklist.emit(EMPTY_WORKLIST);
     await flushPromises();
 
-    expect(text(element, ".worklist-empty")).toEqual([LOAD_FAILED("The records this list is built from")]);
-    expect(element.shadowRoot.textContent).not.toContain("No items in this view");
+    expect(text(element, ".worklist-empty")).toEqual(["No items in this view. Change filters or aging selection."]);
+  });
+
+  // Before the data wires answer (the filter options already have), no section shows a figure, a count
+  // or a "none" message: each is loading.
+  it("shows no figures and no 'none' messages while the data is still loading", async () => {
+    const element = await mount();
+
+    for (const label of ["Receivables Outstanding", "Current Due", "Overdue", "Unapplied Payments", "Total Balance"]) {
+      expect(card(element, label).querySelector(".pulse-card-value").textContent).toBe("");
+    }
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(LOADING);
+    expect(element.shadowRoot.querySelectorAll(".pulse-card-breakdown > div")).toHaveLength(0);
+    expect(text(element, ".payment-promises-label")).toEqual(["Payment Promises"]);
+    expect(text(element, ".payment-promises-empty")).toEqual([]);
+    expect(text(element, ".progress-empty")).toEqual([]);
+    expect(text(element, ".progress-avg-value")).toEqual(["", ""]);
+    expect(text(element, ".worklist-empty")).toEqual([]);
+    expect(text(element, ".worklist-loading")).toEqual([LOADING]);
+    expect(element.shadowRoot.textContent).not.toContain("$0.00");
+    expect(element.shadowRoot.textContent).not.toContain("0 invoices");
+  });
+
+  // A filter change puts the filtered sections back to loading: the previous filter's figures never
+  // show under the new "Viewing:" label. Progress and my plans read no filter and stay as they were.
+  it("clears the filtered sections to loading on a filter change, until the new answer arrives", async () => {
+    const element = await mount();
+    getDashboardCards.emit(cards());
+    getPaymentPromiseSummary.emit({ buckets: [], unavailable: false });
+    getWorklist.emit(EMPTY_WORKLIST);
+    getCollectionPlanTasks.emit({ items: [], unavailable: false });
+    getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: false });
+    await flushPromises();
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("$1,455.00");
+
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find(
+      (box) => box.name === "account"
+    );
+    account.dispatchEvent(new CustomEvent("change", { detail: { value: "001000000000001AAA" } }));
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("");
+    expect(text(element, ".payment-promises-label")).toEqual(["Payment Promises"]);
+    expect(text(element, ".payment-promises-empty")).toEqual([]);
+    expect(text(element, ".worklist-loading")).toEqual([LOADING]);
+    expect(text(element, ".cp-tasks-meta")).toEqual([""]);
+    // Not filtered by account: still the answer it had.
+    expect(text(element, ".progress-empty")).toEqual(["No collection plan data available."]);
+
+    getDashboardCards.emit(cards(["debitMemos"]));
+    await flushPromises();
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("$1,455.00");
   });
 });

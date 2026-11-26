@@ -183,10 +183,22 @@ null and listed in the cards' `unavailable` with its `unavailableReason`; the De
 total balance reads "—" and the Total Balance says it excludes debit memos and why, or shows "—"
 itself when nothing could be read. The unapplied payment count is its own key: if only the count
 could not be read, only the count shows "—" and the balance stays in the total. Payment promises,
-plan tasks and the user's plans come back as wrappers with an explicit `unavailable` flag and reason
-(an empty wrapper while loading is "still loading", not "none"); progress carries the same flag; a
-worklist tab that could not be read is listed in `WorklistData.unavailable`, gets no placeholder
-row, and says so instead of "No items in this view".
+plan tasks and the user's plans come back as wrappers with an explicit `unavailable` flag and reason;
+progress carries the same flag; a worklist tab that could not be read is listed in
+`WorklistData.unavailable` and says so instead of "No items in this view".
+
+The page gives every section (each card, the total, payment promises, progress, plan tasks, my plans
+and each worklist tab) one state, derived in one place (`sections` in `rlmCollectionsDashboard.js`):
+loading until that section's answer for the current filters arrives, then ready or unavailable with
+its reason. Figures, counts, rows and "none" messages render from `ready` only, so nothing shows
+$0.00 or "No items" before the data arrives, and an account or currency change puts the sections
+that read it back to loading. The worklist is read through its wire alone (no second, imperative
+call that could land out of order). Worklist tabs carry no placeholder rows: a tab that was read and
+is empty says "No items in this view". The High-Value tab's broader fallbacks (top balances under the
+same account and currency filters) run only after its own read succeeded empty; when that read was
+refused or failed, or a fallback failed and the tab is still empty, the tab is unavailable. The
+payment reads filter on `CurrencyIsoCode` only where Payment has it (a multi-currency org), and a
+"No such column" error counts as a refusal only for a field the org has; an absent field is a failure.
 `RLM_BillingUIAccessTest` runs every controller read as this user, and
 `RLM_CollectionsDashboardControllerTest` loads the dashboard as this user and as the same user
 without the set. The build assigns the set to the running user only.
