@@ -306,10 +306,19 @@ describe('status pill with an unavailable count', () => {
         ['a collection plan', { inCollections: true }, 'In Collections'],
         ['a debit memo balance', { debitMemoBalance: 40, netAccountBalance: 40 }, 'Good Standing'],
         ['a debit memo offset by an unapplied payment', { debitMemoBalance: 50, paymentBalance: 50 }, 'Fully Settled'],
-        ['a credit memo offset by a refund', { creditMemoBalance: 30, refundBalance: 30 }, 'Fully Settled']
+        ['a credit memo offset by a refund', { creditMemoBalance: 30, refundBalance: 30 }, 'Fully Settled'],
+        ['a single credit memo', { creditMemoBalance: 30, netAccountBalance: -30 }, 'Credit Balance']
     ])('does not claim no billing activity for an account with %s', async (_label, change, expected) => {
         expect(await pillFor({ ...NO_INVOICES, ...change })).toBe(expected);
     });
+
+    // Each balance part on its own unread (null) with the rest zero, the net kept at 0 so only the
+    // per-part check stands between the account and "No Billing Activity".
+    it.each(['invoiceBalance', 'debitMemoBalance', 'creditMemoBalance', 'paymentBalance', 'refundBalance'])(
+        'does not claim no billing activity when %s is unavailable', async (part) => {
+            expect(await pillFor({ ...NO_INVOICES, [part]: null })).not.toBe('No Billing Activity');
+        }
+    );
 });
 
 // Pack 452: a segment whose read was refused comes back null and is not drawn; the card says

@@ -300,6 +300,7 @@ public with sharing class RLM_OnAccountBillingController {
      * (and the net balance) as unavailable. An org without the object has none of its records,
      * so that balance is a real zero.
      */
+    @TestVisible
     private static Decimal queryAggregate(
         String objectName, String sumField, String accountField,
         String conditions, Id accountId, String targetCurrency,
@@ -359,8 +360,9 @@ public with sharing class RLM_OnAccountBillingController {
      * corporate-converted figure labelled in the account currency (pinned for payments by
      * RLM_OnAccountBillingControllerTest). Revisit only if a customer reports a mismatch.
      *
-     * Returns null when a rate it needs is missing, never a rate of 1, which would show a foreign
-     * balance unconverted as if it were real. The standard rates include inactive currencies (see
+     * Each currency's dated rate falls back to its standard rate (effectiveRate). Returns null only
+     * when a currency is in neither map, never a rate of 1, which would show a foreign balance
+     * unconverted as if it were real. The standard rates include inactive currencies (see
      * loadStandardRates), so a record in a since-deactivated currency still has its rate.
      */
     @TestVisible
@@ -372,14 +374,22 @@ public with sharing class RLM_OnAccountBillingController {
             return autoConverted;
         }
         Decimal stdFromRate   = standardRates.get(fromCurrency);
-        Decimal datedFromRate = datedRates.get(fromCurrency);
-        Decimal datedToRate   = datedRates.get(toCurrency);
+        Decimal datedFromRate = effectiveRate(fromCurrency, standardRates, datedRates);
+        Decimal datedToRate   = effectiveRate(toCurrency, standardRates, datedRates);
         if (stdFromRate == null || datedFromRate == null || datedToRate == null) {
             return null;
         }
 
         Decimal rawAmount = autoConverted * stdFromRate;
         return rawAmount.divide(datedFromRate, 10, RoundingMode.HALF_UP) * datedToRate;
+    }
+
+    // A currency's dated rate for today, else its standard rate. With advanced currency management
+    // the dated rates need not cover every currency (the corporate currency, or one with no dated
+    // row); the standard rates cover every currency, active or not, with the corporate one at 1.
+    // Null only when the currency is in neither.
+    private static Decimal effectiveRate(String isoCode, Map<String, Decimal> standardRates, Map<String, Decimal> datedRates) {
+        return datedRates.containsKey(isoCode) ? datedRates.get(isoCode) : standardRates.get(isoCode);
     }
 
     @TestVisible

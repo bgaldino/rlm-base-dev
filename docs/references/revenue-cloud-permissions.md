@@ -352,7 +352,7 @@ Assigned in `prepare_tso` step 4.
 
 ### Deploy-Only Permission Sets (Not Explicitly Assigned)
 
-These permission sets are stored as metadata in this repository but are not assigned to the running user via `assign_permission_sets`. Most are deployed by standard `post_*` metadata deploy tasks; some (as noted below) are present only for manual deploy. All are available for manual assignment or assignment via persona PSGs.
+These permission sets are stored as metadata in this repository but are not assigned to the running user via `assign_permission_sets`. Most are deployed by standard `post_*` metadata deploy tasks; some (as noted below) are present only for manual deploy. All are available for manual assignment or assignment via persona PSGs, except `RLM_BillingCollectionsRead`, which is never put in a group (a group with it fails to deploy while any holder lacks `BillingAdvancedPsl`) and is assigned next to the persona group.
 
 | Permission Set | Deployed From | Purpose |
 |---|---|---|

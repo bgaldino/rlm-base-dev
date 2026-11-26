@@ -216,7 +216,7 @@ private class RLM_OnAccountBillingControllerTest {
         System.runAs(u) {
             Map<String, String> probes = new Map<String, String>{
                 'Account' => 'SELECT Id, CurrencyIsoCode FROM Account LIMIT 1',
-                'CurrencyType' => 'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true LIMIT 1',
+                'CurrencyType' => 'SELECT IsoCode, ConversionRate FROM CurrencyType LIMIT 1',
                 'Invoice' => 'SELECT Id, Balance, TotalAmountWithTax, DueDate, Status, BillingAccountId, CurrencyIsoCode FROM Invoice LIMIT 1',
                 'DebitMemo' => 'SELECT Id, TotalChargeAmount, AccountId, Status, InvoiceGenerationStatus, CurrencyIsoCode FROM DebitMemo LIMIT 1',
                 'CreditMemo' => 'SELECT Id, Balance, BillingAccountId, Status, CurrencyIsoCode FROM CreditMemo LIMIT 1',
@@ -327,6 +327,39 @@ private class RLM_OnAccountBillingControllerTest {
             setName + ' is in no permission set group.');
     }
 
+    // With advanced currency management the dated rates need not cover every currency (the corporate
+    // one, for instance): such a currency falls back to its standard rate rather than becoming
+    // unavailable. Only a currency in neither map is unavailable.
+    @isTest
+    static void correctConversion_aCurrencyWithoutADatedRate_usesItsStandardRate() {
+        Map<String, Decimal> standard = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 };
+        Map<String, Decimal> dated = new Map<String, Decimal>{ 'EUR' => 0.6 };
+        Assert.areEqual(60, RLM_OnAccountBillingController.correctConversion(100, 'USD', 'EUR', standard, dated),
+            'USD has no dated rate: 100 * 1 (standard USD) / 1 (standard USD) * 0.6 (dated EUR) = 60.');
+        Decimal back = RLM_OnAccountBillingController.correctConversion(100, 'EUR', 'USD', standard, dated);
+        Assert.isTrue(back != null && Math.abs(back - 83.3333333333) < 0.0001,
+            '100 * 0.5 (standard EUR) / 0.6 (dated EUR) * 1 (standard USD) = 83.33, got ' + back);
+        Assert.isNull(RLM_OnAccountBillingController.correctConversion(100, 'GBP', 'USD', standard, dated),
+            'GBP is in neither map: unavailable, not converted at 1.');
+    }
+
+    // queryAggregate: a balance in a currency with no rate is unavailable (null), not converted at 1.
+    @isTest
+    static void queryAggregate_aBalanceInACurrencyWithNoRate_isUnavailable() {
+        String corporate = corporateCurrency();
+        Account acc = new Account(Name = 'RLM On-Account No Rate');
+        insert acc;
+        newProcessedPayment(acc.Id, 100, corporate);
+        Test.startTest();
+        Decimal withRates = RLM_OnAccountBillingController.queryAggregate('Payment', 'Balance', 'AccountId',
+            'Status = \'Processed\' AND Balance != 0', acc.Id, corporate, activeRates(), activeRates(), true);
+        Decimal noRate = RLM_OnAccountBillingController.queryAggregate('Payment', 'Balance', 'AccountId',
+            'Status = \'Processed\' AND Balance != 0', acc.Id, 'ZZZ', new Map<String, Decimal>(), new Map<String, Decimal>(), true);
+        Test.stopTest();
+        Assert.areEqual(100, withRates, 'PRECONDITION: with the rates read, the payment balance sums.');
+        Assert.isNull(noRate, 'No rate for the payment\'s currency or the target: unavailable, not 100 at rate 1.');
+    }
+
     // A currency with no rate is never converted at 1: the balance is unavailable (null).
     @isTest
     static void correctConversion_withAMissingRate_isUnavailable() {
@@ -411,9 +444,10 @@ private class RLM_OnAccountBillingControllerTest {
         return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
     }
 
+    // Every currency's standard rate, active or not, as the controller reads them.
     private static Map<String, Decimal> activeRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
-        for (CurrencyType ct : [SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true]) {
+        for (CurrencyType ct : [SELECT IsoCode, ConversionRate FROM CurrencyType]) {
             rates.put(ct.IsoCode, ct.ConversionRate);
         }
         return rates;
@@ -443,7 +477,7 @@ private class RLM_OnAccountBillingControllerTest {
         Map<String, Decimal> userStandard = new Map<String, Decimal>();
         System.runAs(u) {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', AccessLevel.USER_MODE
+                'SELECT IsoCode, ConversionRate FROM CurrencyType', AccessLevel.USER_MODE
             )) {
                 userStandard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
@@ -457,23 +491,19 @@ private class RLM_OnAccountBillingControllerTest {
         return userRates;
     }
 
-    // Dated rates for today if there are any, else the standard rates, read at the given level.
+    // Each currency's dated rate for today, else its standard rate (every currency, active or not),
+    // read at the given level: the controller's rule (effectiveRate).
     private static Map<String, Decimal> effectiveRates(AccessLevel level) {
-        Map<String, Decimal> dated = datedRates(level);
-        if (!dated.isEmpty()) {
-            return dated;
-        }
-        Map<String, Decimal> standard = new Map<String, Decimal>();
+        Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
-            for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', level
-            )) {
-                standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
+            for (SObject ct : Database.query('SELECT IsoCode, ConversionRate FROM CurrencyType', level)) {
+                rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
         } catch (QueryException e) {
             System.debug(LoggingLevel.INFO, 'Standard rates unreadable: ' + e.getMessage());
         }
-        return standard;
+        rates.putAll(datedRates(level));
+        return rates;
     }
 
     // Today's dated rates read at the given level; empty without advanced currency management
@@ -523,8 +553,10 @@ private class RLM_OnAccountBillingControllerTest {
         return null;
     }
 
+    // The rate for a currency; a missing rate fails the test rather than reading as 1.
     private static Decimal rateOf(Map<String, Decimal> rates, String isoCode) {
-        return rates.containsKey(isoCode) ? rates.get(isoCode) : 1;
+        Assert.isTrue(rates.containsKey(isoCode), 'PRECONDITION: a rate for ' + isoCode + ' is read.');
+        return rates.get(isoCode);
     }
 
     // A user who cannot read Account gets a fixed sentence, not the platform's query error and not

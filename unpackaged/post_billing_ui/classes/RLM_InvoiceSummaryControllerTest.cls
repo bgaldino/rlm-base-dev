@@ -135,6 +135,48 @@ private class RLM_InvoiceSummaryControllerTest {
         Test.stopTest();
         Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable, not converted at 1.');
         Assert.isNull(data.disputeCount, 'The dispute count is unavailable.');
+        Assert.areEqual(0, data.promiseToPayAmount, 'Only the dispute part is unavailable: promises stay as they were.');
+        Assert.areEqual(0, data.promiseToPayCount, 'Only the dispute part is unavailable.');
+    }
+
+    // A promise to pay in a currency with no rate leaves only the promise-to-pay part unavailable.
+    // Runs as a collections user, who can read the plan chain; the admin creates the records.
+    @isTest
+    static void addPromisesToPay_withAMissingRate_leavesOnlyThemUnavailable() {
+        if (!UserInfo.isMultiCurrencyOrganization()) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: single-currency org, no conversion to miss.');
+            return;
+        }
+        User u = collectionsUser();
+        String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
+        Account acc = new Account(Name = 'RLM Invoice Summary Promise No Rate', OwnerId = u.Id);
+        insert acc;
+        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
+        insert plan;
+        CollectionPlanItem planItem = new CollectionPlanItem(CollectionPlanId = plan.Id);
+        insert planItem;
+        PaymentSchedule promise = new PaymentSchedule(OwnerId = u.Id, Status = 'Draft', TotalRequestedAmount = 75);
+        promise.put('CollectionPlanItemId', planItem.Id);
+        promise.put('CurrencyIsoCode', userCurrency);
+        insert promise;
+        PaymentScheduleItem item = new PaymentScheduleItem(PaymentScheduleId = promise.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 75, TargetPaymentProcessingDate = Date.today().addDays(7), Status = 'Draft');
+        item.put('CurrencyIsoCode', userCurrency);
+        insert item;
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData withRates = zeroedSummary();
+        RLM_InvoiceSummaryController.InvoiceSummaryData noRate = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            RLM_InvoiceSummaryController.addPromisesToPay(withRates, acc.Id, true, userCurrency, new Map<String, Decimal>());
+            RLM_InvoiceSummaryController.addPromisesToPay(noRate, acc.Id, true, 'ZZZ', new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.areEqual(75, withRates.promiseToPayAmount, 'PRECONDITION: in the user\'s own currency the promise sums (no conversion).');
+        Assert.isNull(noRate.promiseToPayAmount, 'No rate for the promise\'s currency: unavailable, not 75 at rate 1.');
+        Assert.isNull(noRate.promiseToPayCount, 'And its count.');
+        Assert.areEqual(0, noRate.disputeAmount, 'Only the promise-to-pay part is unavailable: disputes stay as they were.');
     }
 
     // An org without the fields the dispute query reads has no disputes: a real zero, not

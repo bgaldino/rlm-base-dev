@@ -143,7 +143,7 @@ public with sharing class RLM_InvoiceSummaryController {
 
     // Disputes on the given open cases, summed into the running user's default currency (the
     // summary's target currency). An org without the billing dispute feature (no Dispute object, or
-    // none of the fields this query reads) has no disputes: a real zero. A refused
+    // any of the fields this query reads missing) has no disputes: a real zero. A refused
     // or failed read leaves the amount and count null (shown as unavailable), never a zero that
     // reads as "no disputes" (owner rule, pack 445).
     @TestVisible
@@ -180,9 +180,10 @@ public with sharing class RLM_InvoiceSummaryController {
     }
 
     // Promise to pay: payment schedule items under the account's collection plans. An org without
-    // collections (no CollectionPlan or CollectionPlanItem object, or none of the link fields) has
-    // none: a real zero. A user who cannot read collection plans (the billing roles without the
-    // Billing Advanced license), or whose read fails, gets null (shown as unavailable): the account
+    // collections (no CollectionPlan or CollectionPlanItem object, or either link field missing) has
+    // none: a real zero. A user who cannot read collection plans (a billing role without the
+    // Collections and Recovery Specialist permission, which RLM_BillingCollectionsRead grants with
+    // the Billing Advanced license), or whose read fails, gets null (shown as unavailable): the account
     // may have promises the user cannot see, so zero would read as "no promises".
     @TestVisible
     private static void addPromisesToPay(InvoiceSummaryData data, Id accountId, Boolean isMultiCurrency,

@@ -172,6 +172,94 @@ describe('rlmDisputeDetails stale state', () => {
         expect(invoiceLink(el)).toBeUndefined();
     });
 
+    const header = (el) => el.shadowRoot.querySelector('.header-name-link');
+    const spinner = (el) => el.shadowRoot.querySelector('lightning-spinner');
+    const errorElement = (el) => el.shadowRoot.querySelector('.slds-text-color_error');
+
+    // Line-name replies held until the test releases them, per call, in order.
+    function holdLineNames() {
+        const pending = [];
+        getRelatedNames.mockImplementation(({ invoiceIds }) => {
+            if (invoiceIds.length) return Promise.resolve({ invoiceNames: { [INVOICE_ID]: 'INV-A', [INVOICE_B]: 'INV-B' } });
+            return new Promise((resolve) => { pending.push(resolve); });
+        });
+        return pending;
+    }
+
+    it('clears the previous dispute\'s header and error as soon as the record changes', async () => {
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, false));
+        await flush();
+        expect(header(el)).not.toBeNull();
+        el.recordId = '500000000000002AAA';
+        await flush();
+        expect(header(el)).toBeNull();
+        expect(errorElement(el)).toBeNull();
+        expect(spinner(el)).not.toBeNull();
+    });
+
+    it('clears the previous record\'s error as soon as the record changes', async () => {
+        const el = mountOn(CASE_ID);
+        graphql.emitErrors([{ message: 'Dispute read failed.' }]);
+        await flush();
+        expect(errorElement(el)).not.toBeNull();
+        el.recordId = '500000000000002AAA';
+        await flush();
+        expect(errorElement(el)).toBeNull();
+        expect(header(el)).toBeNull();
+    });
+
+    it('keeps the spinner when the previous dispute\'s line names return before the next dispute loads', async () => {
+        const pending = holdLineNames();
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, true));
+        await flush();
+        el.recordId = '500000000000002AAA';
+        await flush();
+        pending[0]({ lineNames: { [LINE_ID]: 'Line A' }, lineBalances: {} });
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        expect(header(el)).toBeNull();
+        // The next dispute's own line names are still pending: the spinner stays until they land.
+        graphql.emit(payloadFor(DISPUTE_B, INVOICE_B, true));
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        pending[1]({ lineNames: { [LINE_ID]: 'Line B' }, lineBalances: {} });
+        await flush();
+        expect(spinner(el)).toBeNull();
+        expect(lineLink(el)).toBe('Line B');
+    });
+
+    it('keeps the spinner for the next dispute\'s line names after a fully loaded one', async () => {
+        const pending = holdLineNames();
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, true));
+        await flush();
+        pending[0]({ lineNames: { [LINE_ID]: 'Line A' }, lineBalances: {} });
+        await flush();
+        expect(spinner(el)).toBeNull();
+        el.recordId = '500000000000002AAA';
+        graphql.emit(payloadFor(DISPUTE_B, INVOICE_B, true));
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+    });
+
+    it('does not bring back a dispute whose invoice name returns after its read failed', async () => {
+        let resolveName;
+        getRelatedNames.mockImplementation(({ invoiceIds }) => (invoiceIds.length
+            ? new Promise((resolve) => { resolveName = resolve; })
+            : Promise.resolve({ lineNames: {}, lineBalances: {} })));
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, false));
+        await flush();
+        graphql.emitErrors([{ message: 'Dispute read failed.' }]);
+        await flush();
+        resolveName({ invoiceNames: { [INVOICE_ID]: 'INV-A' } });
+        await flush();
+        expect(invoiceLink(el)).toBeUndefined();
+        expect(el.shadowRoot.querySelector('.detail-section')).toBeNull();
+    });
+
     it('ignores a late line-name reply for the previous dispute', async () => {
         let resolveFirstLines;
         let lineCalls = 0;
