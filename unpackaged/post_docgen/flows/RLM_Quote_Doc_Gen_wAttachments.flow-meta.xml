@@ -242,7 +242,7 @@
             <name>Merge_Success</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>docStatus</leftValueReference>
+                <leftValueReference>docMergeStatus</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <stringValue>Success</stringValue>
@@ -312,22 +312,28 @@
         <expression>&apos;Quote_&apos; +  {!forT_TodayDay} + &apos;-&apos; + {!forT_TodayMonth} + &apos;-&apos; +   TEXT(YEAR(TODAY()))</expression>
     </formulas>
     <formulas>
-        <description>What the error screen tells the user to do. A process the status screen stopped waiting for (TimedOut) may still finish, and the platform attaches its files to the quote.</description>
+        <description>What the error screen tells the user to do. A process the status screen stopped waiting for (TimedOut) may still finish, and the platform attaches its output to the quote, a generated document and a merged PDF alike (measured on 264 with requests created outside the flow).</description>
         <name>forT_ErrorAdvice</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!docStatus} = &apos;TimedOut&apos;, &apos;The document can still finish: check the Files list on the quote in a few minutes before you generate it again.&apos;, &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;)</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!forT_ProcessStatus} = &apos;TimedOut&apos;, IF(ISBLANK({!docMergeStatus}), &apos;The document can still finish: check the Files list on the quote in a few minutes before you generate it again.&apos; &amp; IF({!varN_FileCount} &gt; 0, &apos; The files you chose to attach were not added to it.&apos;, &apos;&apos;), &apos;The merged PDF can still finish: check the Files list on the quote in a few minutes. The quote also keeps the separate proposal PDF, which this screen deletes only after it sees the merge finish.&apos;), &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;)</expression>
     </formulas>
     <formulas>
         <description>What the error screen says happened. The fault message is not shown: it can name objects, fields and Apex classes. An administrator sees it by running the flow in debug.</description>
         <name>forT_ErrorDetail</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!$Flow.FaultMessage}), IF({!docStatus} = &apos;TimedOut&apos;, &apos;The document generation process was still running after 5 minutes, so this screen stopped waiting for it.&apos;, &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!docStatus}), &apos;unknown&apos;, {!docStatus}) &amp; &apos;.&apos;), &apos;A step in the document generation could not be completed.&apos;)</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}), IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, IF(ISBLANK({!docMergeStatus}), &apos;The document generation process&apos;, &apos;Merging the attachments into the PDF&apos;) &amp; &apos; was still running after 5 minutes, so this screen stopped waiting for it.&apos;, &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!forT_ProcessStatus}), &apos;unknown&apos;, {!forT_ProcessStatus}) &amp; &apos;.&apos;), &apos;A step in the document generation could not be completed.&apos;)</expression>
     </formulas>
     <formulas>
         <description>The error screen heading. TimedOut is not a failure: the process may still succeed.</description>
         <name>forT_ErrorHeading</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!docStatus} = &apos;TimedOut&apos;, &apos;The document is taking longer than expected.&apos;, &apos;The document could not be generated.&apos;)</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!forT_ProcessStatus} = &apos;TimedOut&apos;, &apos;The document is taking longer than expected.&apos;, &apos;The document could not be generated.&apos;)</expression>
+    </formulas>
+    <formulas>
+        <description>The status of the step the flow last waited on: the attachment merge once it has started, otherwise document generation.</description>
+        <name>forT_ProcessStatus</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!docMergeStatus}), {!docStatus}, {!docMergeStatus})</expression>
     </formulas>
     <formulas>
         <name>forT_TodayDay</name>
@@ -594,7 +600,7 @@
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <outputParameters>
-                <assignToReference>docStatus</assignToReference>
+                <assignToReference>docMergeStatus</assignToReference>
                 <name>status</name>
             </outputParameters>
             <styleProperties>
@@ -1004,6 +1010,14 @@
             <name>varR_ContentVersion</name>
         </outputAssignments>
     </subflows>
+    <variables>
+        <description>Status the attachment-merge screen reports. Blank until a merge starts, so the error screen can tell the merge path from document generation.</description>
+        <name>docMergeStatus</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <name>docStatus</name>
         <dataType>String</dataType>

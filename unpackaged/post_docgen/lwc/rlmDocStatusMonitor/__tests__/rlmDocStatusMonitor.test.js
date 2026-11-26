@@ -4,7 +4,7 @@ import { createElement } from 'lwc';
 import RlmDocStatusMonitor from 'c/rlmDocStatusMonitor';
 import { getRecord, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import { subscribe, unsubscribe } from 'lightning/empApi';
-import { FlowNavigationNextEventName } from 'lightning/flowSupport';
+import { FlowAttributeChangeEventName, FlowNavigationNextEventName } from 'lightning/flowSupport';
 
 const PROCESS_ID = '0nnWt0000007slFIAQ';
 const POLL_INTERVAL_MS = 2000;
@@ -79,6 +79,8 @@ describe('rlmDocStatusMonitor', () => {
         getRecord.emit(statusRecord('Failure'));
         jest.advanceTimersByTime(300);
         expect(next).toHaveBeenCalledTimes(1);
+        // The poll interval was cleared when the status arrived, not left to stop itself.
+        expect(jest.getTimerCount()).toBe(0);
         notifyRecordUpdateAvailable.mockClear();
 
         jest.advanceTimersByTime(POLL_INTERVAL_MS * 5);
@@ -122,7 +124,9 @@ describe('rlmDocStatusMonitor', () => {
     });
 
     it('stops polling when it is removed from the page', async () => {
-        const { el } = mount();
+        const { el, next } = mount();
+        const attributeChange = jest.fn();
+        el.addEventListener(FlowAttributeChangeEventName, attributeChange);
         await flushPromises();
         getRecord.emit(statusRecord('InProgress'));
         jest.advanceTimersByTime(POLL_INTERVAL_MS);
@@ -130,9 +134,14 @@ describe('rlmDocStatusMonitor', () => {
         notifyRecordUpdateAvailable.mockClear();
 
         document.body.removeChild(el);
-        jest.advanceTimersByTime(POLL_INTERVAL_MS * 5);
 
+        // No interval or timer is left behind: a leaked poll would report TimedOut after
+        // MAX_WAIT_MS and navigate a flow screen that is gone.
+        expect(jest.getTimerCount()).toBe(0);
+        jest.advanceTimersByTime(MAX_WAIT_MS + 1000);
         expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
+        expect(attributeChange).not.toHaveBeenCalled();
+        expect(next).not.toHaveBeenCalled();
     });
 
     it('starts polling when processId arrives after it is on the page', async () => {
@@ -176,6 +185,7 @@ describe('rlmDocStatusMonitor', () => {
         getRecord.emit(statusRecord('Success'));
         document.body.removeChild(el);
 
+        expect(jest.getTimerCount()).toBe(0);
         jest.advanceTimersByTime(1000);
 
         expect(next).not.toHaveBeenCalled();

@@ -187,7 +187,8 @@ export default class RlmDocStatusMonitor extends LightningElement {
     }
 
     handleStatusChange(newStatus) {
-        if (this.hasNavigated) return;
+        // Nothing to report once the flow has moved on or the screen is gone.
+        if (this.hasNavigated || this._disconnected) return;
         this._status = newStatus;
         this.dispatchEvent(new FlowAttributeChangeEvent('status', this._status));
         if (this._status !== PENDING_STATUS) {
