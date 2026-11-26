@@ -31,8 +31,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
     }
     set processId(value) {
         this._processId = value;
-        // Subscribe only if not already subscribed (subscription.channel is set on success)
-        if (value && !(this.subscription && this.subscription.channel)) {
+        if (value) {
             this.handleSubscribe();
         }
         if (value && this._connected) {
@@ -53,8 +52,12 @@ export default class RlmDocStatusMonitor extends LightningElement {
     hasNavigated = false;
     subscription = {};
     _connected = false;
+    // Set once the component is removed, so a subscription that resolves afterwards is released.
+    _disconnected = false;
+    _subscribing = false;
     pollTimer;
     pollStartedAt;
+    navigationTimer;
 
     channelName = '/event/DocGenProcStsChgEvent';
 
@@ -65,7 +68,13 @@ export default class RlmDocStatusMonitor extends LightningElement {
     // Reads the status when processId is set and again each time startPolling() tells Lightning
     // Data Service the record may have changed.
     @wire(getRecord, { recordId: '$processId', fields: [STATUS_FIELD] })
-    wiredDgp({ data }) {
+    wiredDgp({ data, error }) {
+        if (error) {
+            // A refused or failed read (for example, no access to the process record): polling keeps
+            // trying and the platform event can still advance the flow, so log it rather than stop.
+            console.error('rlmDocStatusMonitor: status read failed', error);
+            return;
+        }
         if (data) {
             const polledStatus = getFieldValue(data, STATUS_FIELD);
             if (polledStatus && polledStatus !== PENDING_STATUS) {
@@ -76,28 +85,41 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     connectedCallback() {
         this._connected = true;
+        this._disconnected = false;
         if (!empErrorHandlerRegistered) {
             empErrorHandlerRegistered = true;
             onError(error => {
                 console.error('rlmDocStatusMonitor: EMP channel error', error);
             });
         }
-        // processId setter handles subscription when value is already set;
-        // the setter also fires if processId is assigned after connectedCallback.
+        // The processId setter subscribes and polls when the value arrives after this point.
+        // Here: an id that was set before the component was (re)inserted.
         if (this.processId) {
+            this.handleSubscribe();
             this.startPolling();
         }
     }
 
     disconnectedCallback() {
         this._connected = false;
+        this._disconnected = true;
         this.stopPolling();
+        if (this.navigationTimer) {
+            clearTimeout(this.navigationTimer);
+            this.navigationTimer = undefined;
+        }
         if (this.subscription && this.subscription.channel) {
             unsubscribe(this.subscription, () => {});
+            this.subscription = {};
         }
     }
 
     handleSubscribe() {
+        // One subscription per component: none while one is live or still being set up.
+        if (this._subscribing || (this.subscription && this.subscription.channel)) {
+            return;
+        }
+        this._subscribing = true;
         const messageCallback = (response) => {
             const eventId = response.data.payload.DocGenProcessIdentifier;
             const eventStatus = response.data.payload.Status;
@@ -108,11 +130,18 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
         subscribe(this.channelName, -1, messageCallback)
             .then(response => {
+                this._subscribing = false;
+                if (this._disconnected) {
+                    // Removed while subscribing: release the subscription instead of keeping it.
+                    unsubscribe(response, () => {});
+                    return;
+                }
                 this.subscription = response;
                 // An event published before the subscription was live is lost: read the status now.
                 this.refreshStatus();
             })
             .catch(error => {
+                this._subscribing = false;
                 // EMP subscription failed — polling still advances the flow
                 console.error('rlmDocStatusMonitor: EMP subscribe failed', error);
             });
@@ -148,7 +177,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
     }
 
     refreshStatus() {
-        if (!this.processId || this.hasNavigated) {
+        if (!this.processId || this.hasNavigated || this._disconnected) {
             return;
         }
         notifyRecordUpdateAvailable([{ recordId: this.processId }]).catch(error => {
@@ -170,7 +199,8 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     handleNext() {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
-        setTimeout(() => {
+        this.navigationTimer = setTimeout(() => {
+            this.navigationTimer = undefined;
             this.dispatchEvent(new FlowNavigationNextEvent());
         }, 300);
     }

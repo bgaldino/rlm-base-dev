@@ -3,7 +3,7 @@
 import { createElement } from 'lwc';
 import RlmDocStatusMonitor from 'c/rlmDocStatusMonitor';
 import { getRecord, notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
-import { subscribe } from 'lightning/empApi';
+import { subscribe, unsubscribe } from 'lightning/empApi';
 import { FlowNavigationNextEventName } from 'lightning/flowSupport';
 
 const PROCESS_ID = '0nnWt0000007slFIAQ';
@@ -36,13 +36,15 @@ describe('rlmDocStatusMonitor', () => {
     beforeEach(() => {
         jest.useFakeTimers();
         notifyRecordUpdateAvailable.mockClear();
-        subscribe.mockClear();
+        subscribe.mockReset();
         subscribe.mockResolvedValue({});
+        unsubscribe.mockClear();
     });
 
     afterEach(() => {
         while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
         jest.useRealTimers();
+        jest.restoreAllMocks();
     });
 
     it('re-reads the status right after the EMP subscription is live', async () => {
@@ -117,5 +119,88 @@ describe('rlmDocStatusMonitor', () => {
         jest.advanceTimersByTime(300);
         expect(el.status).toBe('Success');
         expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops polling when it is removed from the page', async () => {
+        const { el } = mount();
+        await flushPromises();
+        getRecord.emit(statusRecord('InProgress'));
+        jest.advanceTimersByTime(POLL_INTERVAL_MS);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalled();
+        notifyRecordUpdateAvailable.mockClear();
+
+        document.body.removeChild(el);
+        jest.advanceTimersByTime(POLL_INTERVAL_MS * 5);
+
+        expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
+    });
+
+    it('starts polling when processId arrives after it is on the page', async () => {
+        const el = createElement('c-rlm-doc-status-monitor', { is: RlmDocStatusMonitor });
+        document.body.appendChild(el);
+        jest.advanceTimersByTime(POLL_INTERVAL_MS * 2);
+        expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
+        expect(subscribe).not.toHaveBeenCalled();
+
+        el.processId = PROCESS_ID;
+        await flushPromises();
+        notifyRecordUpdateAvailable.mockClear();
+        jest.advanceTimersByTime(POLL_INTERVAL_MS);
+
+        expect(subscribe).toHaveBeenCalledTimes(1);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledWith([{ recordId: PROCESS_ID }]);
+    });
+
+    it('releases a subscription that resolves after it was removed, without reading the status', async () => {
+        let resolveSubscribe;
+        subscribe.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveSubscribe = resolve;
+                })
+        );
+        const { el } = mount();
+        document.body.removeChild(el);
+
+        const response = { channel: '/event/DocGenProcStsChgEvent' };
+        resolveSubscribe(response);
+        await flushPromises();
+
+        expect(unsubscribe).toHaveBeenCalledWith(response, expect.any(Function));
+        expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
+    });
+
+    it('does not navigate after it is removed during the navigation delay', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        getRecord.emit(statusRecord('Success'));
+        document.body.removeChild(el);
+
+        jest.advanceTimersByTime(1000);
+
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it('subscribes once, even when processId is set before and again after insertion', async () => {
+        const el = createElement('c-rlm-doc-status-monitor', { is: RlmDocStatusMonitor });
+        el.processId = PROCESS_ID;
+        document.body.appendChild(el);
+        el.processId = PROCESS_ID;
+        await flushPromises();
+
+        expect(subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs a failed status read and keeps waiting', async () => {
+        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const { el, next } = mount();
+        await flushPromises();
+
+        getRecord.error({ message: 'refused' });
+        jest.advanceTimersByTime(300);
+
+        expect(consoleError).toHaveBeenCalledWith('rlmDocStatusMonitor: status read failed', expect.anything());
+        expect(el.status).toBe('InProgress');
+        expect(next).not.toHaveBeenCalled();
     });
 });

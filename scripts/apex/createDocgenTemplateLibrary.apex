@@ -10,12 +10,13 @@
 // and add the users to that group.
 //
 // What this script ensures, each step find-or-create so a rerun changes nothing:
-//   1. The library: DeveloperName DocgenDocumentTemplateLibrary. Every DocumentTemplate file
-//      lives here: the RLM_ quote, sales proposal and invoice templates, the billing defaults
-//      and the collections notices, plus any template created later in the designer.
-//   2. A read-only library permission, 'RLM DocGen Template Viewer', with every permission
-//      off: members can open and download the files; a member's new version of a file is
-//      refused (INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY).
+//   1. The library: DeveloperName DocgenDocumentTemplateLibrary. On a fresh 264 build it holds
+//      the files of 12 of the 13 DocumentTemplates: the RLM_ templates from
+//      unpackaged/post_docgen/documentTemplates/, the billing templates and the collections
+//      notices (measured 2026-11-26). The platform's inactive Order_Form has no library.
+//   2. A library permission, 'RLM DocGen Template Viewer', with every permission flag off.
+//      Measured on 264: a member reads the library's files and generates from them, and a
+//      member's new version of a file is refused (INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY).
 //   3. A public group, RLM_DocGen_Template_Users. When the group has no members it gets All
 //      Internal Users. A library takes only users and public groups as members (adding All
 //      Internal Users directly is refused), so the group carries it. Generating any document

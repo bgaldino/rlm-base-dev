@@ -312,10 +312,22 @@
         <expression>&apos;Quote_&apos; +  {!forT_TodayDay} + &apos;-&apos; + {!forT_TodayMonth} + &apos;-&apos; +   TEXT(YEAR(TODAY()))</expression>
     </formulas>
     <formulas>
+        <description>What the error screen tells the user to do. A process the status screen stopped waiting for (TimedOut) may still finish, and the platform attaches its files to the quote.</description>
+        <name>forT_ErrorAdvice</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!docStatus} = &apos;TimedOut&apos;, &apos;The document can still finish: check the Files list on the quote in a few minutes before you generate it again.&apos;, &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;)</expression>
+    </formulas>
+    <formulas>
         <description>What the error screen says happened. The fault message is not shown: it can name objects, fields and Apex classes. An administrator sees it by running the flow in debug.</description>
         <name>forT_ErrorDetail</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!$Flow.FaultMessage}), &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!docStatus}), &apos;unknown&apos;, {!docStatus}) &amp; &apos;.&apos;, &apos;A step in the document generation could not be completed.&apos;)</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}), IF({!docStatus} = &apos;TimedOut&apos;, &apos;The document generation process was still running after 5 minutes, so this screen stopped waiting for it.&apos;, &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!docStatus}), &apos;unknown&apos;, {!docStatus}) &amp; &apos;.&apos;), &apos;A step in the document generation could not be completed.&apos;)</expression>
+    </formulas>
+    <formulas>
+        <description>The error screen heading. TimedOut is not a failure: the process may still succeed.</description>
+        <name>forT_ErrorHeading</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!docStatus} = &apos;TimedOut&apos;, &apos;The document is taking longer than expected.&apos;, &apos;The document could not be generated.&apos;)</expression>
     </formulas>
     <formulas>
         <name>forT_TodayDay</name>
@@ -487,7 +499,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>documentGenerationErrorText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The document could not be generated.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!forT_ErrorDetail}&lt;/p&gt;&lt;p&gt;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!forT_ErrorHeading}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!forT_ErrorDetail}&lt;/p&gt;&lt;p&gt;{!forT_ErrorAdvice}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
