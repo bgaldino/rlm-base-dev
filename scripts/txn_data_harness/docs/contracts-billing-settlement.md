@@ -589,9 +589,10 @@ The probes, in the order they ran (invoice numbers are that org's
   probe 3. The response does not say which
   rule placed each row; probe 5's credit may have been placed by Match Balance
   (49.50 was what the payment left).
-- **Nothing to apply.** (2026-11-26, about 07:04Z) With no payment or credit
-  memo the platform counts as open (the account's only non-zero payment was
-  Canceled): `isSuccess` true, `appliedRules` [], every count 0. With an open
+- **Nothing to apply.** (2026-11-26, about 07:04Z; raw calls from a probe
+  script, not `cli apply-rules`) With no payment or credit
+  memo the platform counts as open (the account's only payment with a non-zero
+  Balance was Canceled): `isSuccess` true, `appliedRules` [], every count 0. With an open
   50.00 payment and `targetDate` 2026-12-31, so no invoice eligible:
   `{"errors": [{"message": "We couldn&#39;t find eligible invoices to apply
   rules-based credits and payments. "}], "isSuccess": false}` with a 2xx

@@ -1947,8 +1947,10 @@ def apply_rules(client: SfRestClient, account_id: str,
 
     Refuses (``SettlementError``) a response that is not the measured shape:
     ``isSuccess`` a boolean, ``appliedRules`` absent, null or a list of
-    strings, ``rulesApplicationSummary`` absent, null or an object, ``errors``
-    absent, null or a list.
+    strings, ``rulesApplicationSummary`` absent, null or an object whose
+    application counts are absent, null or integers (on success: an object with
+    both counts as integers, as every measured success had), ``errors`` absent,
+    null or a list.
     """
     body = {"accountId": account_id}
     if target_date:
@@ -1966,6 +1968,13 @@ def apply_rules(client: SfRestClient, account_id: str,
             or not (rules is None or (isinstance(rules, list)
                                       and all(isinstance(r, str) for r in rules)))
             or not (summary is None or isinstance(summary, dict))
+            or (isinstance(summary, dict) and any(
+                (c := summary.get(k)) is not None and (not isinstance(c, int) or isinstance(c, bool))
+                for k in ("totalPaymentApplications", "totalCreditMemoApplications")))
+            or (result.get("isSuccess") is True and not (
+                isinstance(summary, dict) and all(
+                    isinstance(summary.get(k), int)
+                    for k in ("totalPaymentApplications", "totalCreditMemoApplications"))))
             or not (result.get("errors") is None or isinstance(result.get("errors"), list))):
         raise SettlementError(
             "apply-rules", "rules application answered an unexpected shape "

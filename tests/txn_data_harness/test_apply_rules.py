@@ -148,6 +148,11 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     {"isSuccess": False, "rulesApplicationSummary": [1]},
     dict(OK, errors=5), dict(OK, errors="boom"), dict(OK, errors={"message": "m"}),
     dict(OK, errors={}), dict(OK, errors=""), dict(OK, errors=0),
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": "2"}),
+    dict(OK, rulesApplicationSummary={"totalCreditMemoApplications": 1.0}),
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": True}),
+    {"isSuccess": True}, {k: v for k, v in OK.items() if k != "rulesApplicationSummary"},
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1}),
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
@@ -166,7 +171,7 @@ def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
                             "credits and payments. "}], "isSuccess": False},
     {"isSuccess": False, "appliedRules": None, "rulesApplicationSummary": None,
      "errors": [{"message": "m", "errorCode": None}]},
-    OK, dict(OK, isSuccess=False), {"isSuccess": True}, dict(OK, errors=[]),
+    OK, dict(OK, isSuccess=False), dict(OK, errors=[]),
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
 ])
@@ -312,17 +317,46 @@ def test_an_error_without_a_message_prints_its_code(monkeypatch, capsys):
     assert "INVALID_ID" in capsys.readouterr().out
 
 
+def test_an_error_item_without_message_or_code_prints_its_json(monkeypatch, capsys):
+    Org(monkeypatch, result={"isSuccess": False, "errors": [{"detail": "x"}]})
+    assert _apply_rules() == 1
+    assert '{"detail": "x"}' in capsys.readouterr().out
+
+
+def test_a_failure_without_errors_says_so(monkeypatch, capsys):
+    Org(monkeypatch, result=dict(OK, isSuccess=False))
+    assert _apply_rules() == 1
+    assert "isSuccess False: no error message" in capsys.readouterr().out
+
+
+def test_no_warning_when_the_summary_does_not_say(monkeypatch, capsys):
+    summary = {k: v for k, v in OK["rulesApplicationSummary"].items()
+               if k != "areAllInvoicesConsidered"}
+    Org(monkeypatch, result=dict(OK, rulesApplicationSummary=summary))
+    assert _apply_rules() == 0
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_a_payment_row_without_an_invoice_still_verifies_the_payment(monkeypatch):
+    pay = _row("1AlNOINV", "payment", PAYMENT, None, 5)
+    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
+                                               "totalCreditMemoApplications": 0})
+    org = Org(monkeypatch, after=[OLD, pay], result=result)
+    assert _apply_rules() == 0
+    assert ("fetch", [], [PAYMENT]) in org.calls
+
+
+def test_read_account_applications_keeps_a_null_relationship_as_none():
+    org = QueryOrg({"FROM PaymentLineInvoiceLine": [
+        {"Id": "1Al1", "Amount": 1, "Type": "Applied", "PaymentId": PAYMENT,
+         "InvoiceLine": None}]})
+    assert lifecycle.read_account_applications(org, ACCOUNT)[0]["invoice_id"] is None
+
+
 def test_a_success_with_empty_errors_verifies(monkeypatch):
     org = Org(monkeypatch, result=dict(OK, errors=[]))
     assert _apply_rules() == 0
     assert "fetch" in org.names()
-
-
-def test_non_integer_counts_with_no_new_row_pass_as_nothing_applied(monkeypatch, capsys):
-    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": "2"})
-    Org(monkeypatch, after=[OLD], result=result)
-    assert _apply_rules() == 0
-    assert "nothing applied" in capsys.readouterr().out
 
 
 def test_no_eligible_invoice_with_nothing_applied_fails(monkeypatch, capsys):
