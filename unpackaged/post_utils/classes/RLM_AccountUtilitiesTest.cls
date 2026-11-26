@@ -594,13 +594,104 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assertEquals(null, result.retainedSummary, 'Nothing the reset was asked to delete was kept');
     }
 
+    // ----------------------------------------------------------- object access
+
+    // The objects the reset touches that the sales rep persona cannot read (live 264,
+    // where a query on any of them failed with "sObject type ... is not supported").
+    // A test user cannot be given the usage and core object access the reset also
+    // needs, so these tests mark the objects unreadable through the class's seam.
+    private static final Set<String> SALES_REP_UNREADABLE = new Set<String>{
+        'Invoice', 'BillingScheduleGroup', 'PaymentSchedule', 'Payment', 'CreditMemo',
+        'CreditMemoInvApplication', 'DebitMemo', 'CollectionPlan', 'CollectionPlanItem', 'Dispute',
+        'FulfillmentOrder', 'FulfillmentOrderLineItem', 'FulfillmentPlan', 'FulfillmentStep',
+        'FulfillmentStepSource', 'FulfillmentAsset', 'FulfillmentLineSourceRel',
+        'AssetFulfillmentDecomp', 'OrderSummary', 'WorkOrder', 'Case'
+    };
+
+    // How the Result lists objects the run skipped because the user cannot read them.
+    private static String notChecked(List<String> objectNames) {
+        List<String> labels = new List<String>();
+        for (String objectName : objectNames) {
+            labels.add(Schema.getGlobalDescribe().get(objectName).getDescribe().getLabelPlural());
+        }
+        return String.join(labels, ', ') + ': not checked: the user running the reset has no access to them';
+    }
+
+    @IsTest
+    static void aUserWhoCannotReadBillingRecordsCanResetWithEveryOptionOn() {
+        Account a = newAccount();
+        seedAssetAndOpportunity(a);
+        Payment payment = newProcessedPayment(a.Id);
+        RLM_AccountUtilities.unreadableForTest = SALES_REP_UNREADABLE;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(false, result.cleared, 'Records the reset could not check may remain');
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must be deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset must be deleted');
+        Assert.areEqual(1, [SELECT COUNT() FROM Payment WHERE Id = :payment.Id], 'An unchecked payment is untouched');
+        // In the order the steps meet them: fulfillment, collections, schedule groups,
+        // billing, the fulfillment deletes, then the asset references.
+        Assert.areEqual(
+            notChecked(new List<String>{
+                'FulfillmentOrder', 'FulfillmentPlan', 'FulfillmentAsset', 'FulfillmentOrderLineItem',
+                'FulfillmentLineSourceRel', 'CollectionPlan', 'CollectionPlanItem', 'PaymentSchedule', 'Case',
+                'Dispute', 'BillingScheduleGroup', 'DebitMemo', 'Invoice', 'CreditMemo',
+                'CreditMemoInvApplication', 'Payment', 'FulfillmentStepSource', 'AssetFulfillmentDecomp',
+                'WorkOrder'
+            }),
+            result.retainedSummary,
+            'Each object skipped for want of access must be listed once, and nothing counted for it'
+        );
+    }
+
+    @IsTest
+    static void aRunThatDeletesNoBillingDoesNotReportBillingItCouldNotRead() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Test Opp');
+        RLM_AccountUtilities.unreadableForTest = SALES_REP_UNREADABLE;
+
+        Test.startTest();
+        // Billing, collections and fulfillment off: no invoice is needed, so none is read.
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must be deleted');
+        // Billing schedule groups are deleted on every run, so they alone are reported.
+        Assert.areEqual(notChecked(new List<String>{ 'BillingScheduleGroup' }), result.retainedSummary,
+            'Only what the run would have deleted may be reported as not checked');
+    }
+
+    @IsTest
+    static void canReadFollowsTheRunningUsersObjectAccess() {
+        User u = newMinimalAccessUser();
+        Boolean minimalReadsInvoices;
+        System.runAs(u) {
+            minimalReadsInvoices = RLM_AccountUtilities.canRead('Invoice');
+        }
+        Assert.areEqual(false, minimalReadsInvoices,
+            'A user without billing access cannot read invoices, so the reset must not query them');
+        Assert.areEqual(Account.SObjectType.getDescribe().isAccessible(), RLM_AccountUtilities.canRead('Account'),
+            'canRead must agree with the running user\'s access');
+        Assert.areEqual(false, RLM_AccountUtilities.canRead('RLM_No_Such_Object__c'),
+            'An object the org does not have cannot be read');
+        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Account' };
+        Assert.areEqual(false, RLM_AccountUtilities.canRead('Account'), 'The test seam must mark an object unreadable');
+    }
+
     @IsTest
     static void postedInvoicePermissionIsReadForTheRunningUser() {
         User u = newMinimalAccessUser();
 
         Boolean minimalUser;
+        Boolean minimalDeletesRevenueRecords;
         System.runAs(u) {
             minimalUser = RLM_AccountUtilities.canDeletePostedInvoices();
+            minimalDeletesRevenueRecords = RLM_AccountUtilities.canDeleteRevenueRecords();
         }
         System.assertEquals(
             false,
@@ -608,6 +699,8 @@ private without sharing class RLM_AccountUtilitiesTest {
             'A user without Delete Invoice and Invoice Lines must not be treated as able to '
                 + 'delete posted invoices'
         );
+        Assert.areEqual(false, minimalDeletesRevenueRecords,
+            'A user without Allow Revenue Records Deletion must not be treated as able to delete credit memos');
 
         // The positive case is the running user. A fresh user cannot be given the
         // permission: its user license does not allow BillingInvoiceSuperUser. So the
@@ -627,6 +720,17 @@ private without sharing class RLM_AccountUtilitiesTest {
             RLM_AccountUtilities.canDeletePostedInvoices(),
             'The check must agree with the running user\'s permission set assignments'
         );
+        // Allow Revenue Records Deletion comes from the managed Billing Admin set (in a
+        // billing org, through RLM_RCB). Compared the same way.
+        Boolean deletesRevenueRecords;
+        try {
+            deletesRevenueRecords = Database.countQuery('SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me '
+                + 'AND PermissionSet.PermissionsDeleteRevenueRecords = true') > 0;
+        } catch (QueryException e) {
+            deletesRevenueRecords = false;
+        }
+        Assert.areEqual(deletesRevenueRecords, RLM_AccountUtilities.canDeleteRevenueRecords(),
+            'The credit memo check must agree with the running user\'s permission set assignments');
     }
 
     // A Draft debit memo with one line. Draft is the only status one can be created in.

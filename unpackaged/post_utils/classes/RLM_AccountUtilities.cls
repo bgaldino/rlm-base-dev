@@ -22,6 +22,18 @@
  * queries phase 2 needs are still available (QUERY_RESERVE). Running short ends
  * the run with a Result that asks for another run, which continues from there.
  *
+ * Object access: running without sharing does not reach an object the running
+ * user cannot read. A query on Invoice by the sales rep persona, who has no billing
+ * access, fails with "sObject type 'Invoice' is not supported" even here (live
+ * 264), and so did one on every other object that user cannot read. So the
+ * billing, collections, fulfillment and asset-reference steps read an object only
+ * when the user can (canRead), and the Result lists each object a step skipped for
+ * that reason as not checked. A user without billing access can therefore reset an
+ * account; its billing records stay, and the Result says they were not checked.
+ * The usage teardown and the order, contract, asset, quote and opportunity deletes
+ * are not gated: the reset needs them, and a user who cannot read them gets the
+ * platform's error as the reason.
+ *
  * ⚠ Sharing: `without sharing`, declared deliberately rather than left implicit.
  * The invocable's job is to clear an account's ENTIRE related graph so a demo
  * account can be rebuilt, and that graph routinely contains records owned by
@@ -113,10 +125,13 @@ public without sharing class RLM_AccountUtilities {
     private static final String QUERY_LIMIT = 'The reset reached the Salesforce limit on queries in one run.';
     private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled, and deleting them needs the '
         + 'Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices)';
+    private static final String MEMO_NEEDS_PERMISSION = 'deleting them needs the Allow Revenue Records Deletion '
+        + 'permission (Billing Admin permission set)';
     private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset again once they finish';
     private static final String PAYMENTS_KEPT = 'payments are not deleted: Salesforce does not allow deleting processed payments';
     private static final String MEMO_ON_KEPT_INVOICE = 'applied to an invoice that was kept';
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
+    private static final String NOT_CHECKED = 'not checked: the user running the reset has no access to them';
 
     /**
      * Input variables for the account cleanup process.
@@ -188,6 +203,9 @@ public without sharing class RLM_AccountUtilities {
         public Set<Id> foreignBuckets = new Set<Id>();
         // True when the bucket list after a rollback ran out of queries part way.
         public Boolean incompleteBuckets = false;
+        // Labels of the objects a step skipped because the running user cannot read
+        // them, in the order the steps met them.
+        public List<String> unchecked = new List<String>();
 
         public ResetReport copy() {
             ResetReport c = new ResetReport();
@@ -197,6 +215,7 @@ public without sharing class RLM_AccountUtilities {
             c.refused = refused.clone();
             c.foreignBuckets = foreignBuckets.clone();
             c.incompleteBuckets = incompleteBuckets;
+            c.unchecked = unchecked.clone();
             return c;
         }
     }
@@ -259,18 +278,25 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Integer dmlRowLimitForTest;
 
+    // Lets a test run as a user who cannot read these objects (canRead), since a test
+    // user cannot be given the usage and core object access the reset also needs.
+    @TestVisible
+    private static Set<String> unreadableForTest = new Set<String>();
+
     /**
      * The account's orders, invoices and fulfillment records, queried once at the
-     * start of phase 2 and shared by the steps that delete them. The fulfillment
-     * graph is queried only when it is going to be deleted.
+     * start of phase 2 and shared by the steps that delete them. Invoices are
+     * queried only for a step that uses them, and the fulfillment graph only when it
+     * is going to be deleted; each only as far as the running user can read it.
      */
     private class OrderData {
         public List<Order> orders;
         public Set<Id> orderIds;
         public Set<Id> orderItemIds;
         // Status and PaymentScheduleId are for Delete Billing; the Ids also find the
-        // fulfillment orders raised against an invoice.
-        public List<Invoice> invoices;
+        // fulfillment orders and disputes raised against an invoice. Empty when no
+        // step asked for them or the running user cannot read invoices.
+        public List<Invoice> invoices = new List<Invoice>();
 
         public List<FulfillmentOrder> fulfillmentOrders = new List<FulfillmentOrder>();
         public List<FulfillmentPlan> fulfillmentPlans = new List<FulfillmentPlan>();
@@ -280,14 +306,20 @@ public without sharing class RLM_AccountUtilities {
         public List<FulfillmentOrderLineItem> fulfillmentOrderLineItems = new List<FulfillmentOrderLineItem>();
         public List<FulfillmentLineSourceRel> fulfillmentLineSourceRels = new List<FulfillmentLineSourceRel>();
 
-        public OrderData(Id accountId, Boolean withFulfillment) {
+        public OrderData(Id accountId, Boolean withInvoices, Boolean withFulfillment) {
             this.orders = [SELECT Id FROM Order WHERE AccountId = :accountId];
             this.orderIds = new Map<Id, Order>(this.orders).keySet();
             this.orderItemIds = new Map<Id, OrderItem>(
                 [SELECT Id FROM OrderItem WHERE Order.AccountId = :accountId]).keySet();
-            this.invoices = [
-                SELECT Id, Status, PaymentScheduleId FROM Invoice WHERE BillingAccountId = :accountId
-            ];
+            // Not for a run that deletes neither billing, collections nor fulfillment, and
+            // not for a user who cannot read invoices: that query fails, and with it the
+            // whole reset. Delete Billing reports invoices it could not read; the other
+            // two only look up by invoice, so they look up without them.
+            if (withInvoices && canRead('Invoice')) {
+                this.invoices = [
+                    SELECT Id, Status, PaymentScheduleId FROM Invoice WHERE BillingAccountId = :accountId
+                ];
+            }
             if (withFulfillment) {
                 loadFulfillment(accountId);
             }
@@ -297,7 +329,8 @@ public without sharing class RLM_AccountUtilities {
          * Queried in dependency order: fulfillment orders reference orders,
          * invoices and order summaries; plans reference orders and order items;
          * steps reference plans; line items reference fulfillment orders; source
-         * relations reference order items and line items.
+         * relations reference order items and line items. An object the running
+         * user cannot read is skipped, and reported when the reset deletes it.
          */
         private void loadFulfillment(Id accountId) {
             Set<String> sourceIdentifiers = new Set<String>();
@@ -308,39 +341,57 @@ public without sharing class RLM_AccountUtilities {
                 sourceIdentifiers.add(orderId);
             }
             Set<Id> invoiceIds = new Map<Id, Invoice>(this.invoices).keySet();
-            Set<Id> summaryIds = new Map<Id, OrderSummary>(
-                [SELECT Id FROM OrderSummary WHERE AccountId = :accountId]).keySet();
-
-            this.fulfillmentOrders = [
-                SELECT Id
-                FROM FulfillmentOrder
-                WHERE AccountId = :accountId
-                OR OrderId IN :this.orderIds
-                OR InvoiceId IN :invoiceIds
-                OR OrderSummaryId IN :summaryIds
-            ];
-            this.fulfillmentPlans = [
-                SELECT Id
-                FROM FulfillmentPlan
-                WHERE SourceIdentifier IN :sourceIdentifiers
-                AND (SourceType = 'StandardOrder' OR SourceType = 'OrderItem')
-            ];
-            Set<Id> planIds = new Map<Id, FulfillmentPlan>(this.fulfillmentPlans).keySet();
-            this.fulfillmentStepIds = new Map<Id, FulfillmentStep>(
-                [SELECT Id FROM FulfillmentStep WHERE FulfillmentPlanId IN :planIds]).keySet();
-            this.fulfillmentAssets = [SELECT Id FROM FulfillmentAsset WHERE AccountId = :accountId];
-            this.fulfillmentAssetIds = new Map<Id, FulfillmentAsset>(this.fulfillmentAssets).keySet();
-            Set<Id> fulfillmentOrderIds = new Map<Id, FulfillmentOrder>(this.fulfillmentOrders).keySet();
-            this.fulfillmentOrderLineItems = [
-                SELECT Id FROM FulfillmentOrderLineItem WHERE FulfillmentOrderId IN :fulfillmentOrderIds
-            ];
-            Set<Id> lineItemIds = new Map<Id, FulfillmentOrderLineItem>(this.fulfillmentOrderLineItems).keySet();
-            this.fulfillmentLineSourceRels = [
-                SELECT Id
-                FROM FulfillmentLineSourceRel
-                WHERE SourceLineItemId IN :this.orderItemIds
-                OR FulfilmentOrderLineId IN :lineItemIds
-            ];
+            Set<Id> fulfillmentOrderIds = new Set<Id>();
+            if (readOrNote('FulfillmentOrder')) {
+                // Order summaries only find fulfillment orders; they are not deleted.
+                Set<Id> summaryIds = new Set<Id>();
+                if (canRead('OrderSummary')) {
+                    summaryIds = new Map<Id, OrderSummary>(
+                        [SELECT Id FROM OrderSummary WHERE AccountId = :accountId]).keySet();
+                }
+                this.fulfillmentOrders = [
+                    SELECT Id
+                    FROM FulfillmentOrder
+                    WHERE AccountId = :accountId
+                    OR OrderId IN :this.orderIds
+                    OR InvoiceId IN :invoiceIds
+                    OR OrderSummaryId IN :summaryIds
+                ];
+                fulfillmentOrderIds = new Map<Id, FulfillmentOrder>(this.fulfillmentOrders).keySet();
+            }
+            if (readOrNote('FulfillmentPlan')) {
+                this.fulfillmentPlans = [
+                    SELECT Id
+                    FROM FulfillmentPlan
+                    WHERE SourceIdentifier IN :sourceIdentifiers
+                    AND (SourceType = 'StandardOrder' OR SourceType = 'OrderItem')
+                ];
+                // Steps only find step sources; they go with their plan.
+                if (canRead('FulfillmentStep')) {
+                    Set<Id> planIds = new Map<Id, FulfillmentPlan>(this.fulfillmentPlans).keySet();
+                    this.fulfillmentStepIds = new Map<Id, FulfillmentStep>(
+                        [SELECT Id FROM FulfillmentStep WHERE FulfillmentPlanId IN :planIds]).keySet();
+                }
+            }
+            if (readOrNote('FulfillmentAsset')) {
+                this.fulfillmentAssets = [SELECT Id FROM FulfillmentAsset WHERE AccountId = :accountId];
+                this.fulfillmentAssetIds = new Map<Id, FulfillmentAsset>(this.fulfillmentAssets).keySet();
+            }
+            Set<Id> lineItemIds = new Set<Id>();
+            if (readOrNote('FulfillmentOrderLineItem')) {
+                this.fulfillmentOrderLineItems = [
+                    SELECT Id FROM FulfillmentOrderLineItem WHERE FulfillmentOrderId IN :fulfillmentOrderIds
+                ];
+                lineItemIds = new Map<Id, FulfillmentOrderLineItem>(this.fulfillmentOrderLineItems).keySet();
+            }
+            if (readOrNote('FulfillmentLineSourceRel')) {
+                this.fulfillmentLineSourceRels = [
+                    SELECT Id
+                    FROM FulfillmentLineSourceRel
+                    WHERE SourceLineItemId IN :this.orderItemIds
+                    OR FulfilmentOrderLineId IN :lineItemIds
+                ];
+            }
         }
     }
 
@@ -429,7 +480,8 @@ public without sharing class RLM_AccountUtilities {
         phaseTwoQueriesAtStart = Limits.getQueries();
         ResetReport afterPhaseOne = report.copy();
         try {
-            OrderData orderData = new OrderData(accountId, deleteFulfillment);
+            OrderData orderData = new OrderData(
+                accountId, deleteBilling || deleteCollections || deleteFulfillment, deleteFulfillment);
 
             if (!usageDrained) {
                 // The teardown loop left rows it could not delete. Retry them along
@@ -452,7 +504,7 @@ public without sharing class RLM_AccountUtilities {
             // Delete Billing information
             deleteBillingScheduleGroups(accountId);
             if (deleteBilling) {
-                deleteBillingRecords(accountId, orderData.invoices);
+                deleteBillingRecords(accountId, orderData);
             }
 
             // Handle fulfillment records if needed (before contracts and orders)
@@ -522,6 +574,8 @@ public without sharing class RLM_AccountUtilities {
 
     private static void startRun() {
         report = new ResetReport();
+        describedTypes = null;
+        userPermissions = null;
         accountAssetIds = new Set<Id>();
         accountContractIds = new Set<Id>();
         usageDrained = false;
@@ -573,6 +627,9 @@ public without sharing class RLM_AccountUtilities {
         if (report.incompleteBuckets) {
             kept.add(INCOMPLETE_BUCKETS);
         }
+        if (!report.unchecked.isEmpty()) {
+            kept.add(String.join(report.unchecked, ', ') + ': ' + NOT_CHECKED);
+        }
 
         Result result = new Result();
         result.completed = completed;
@@ -612,6 +669,56 @@ public without sharing class RLM_AccountUtilities {
             }
         }
         report.kept.add(new Kept(label, why, count));
+    }
+
+    // The org's object types, described once per run.
+    private static Map<String, Schema.SObjectType> describedTypes;
+
+    private static Schema.SObjectType typeOf(String objectName) {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes.get(objectName);
+    }
+
+    /**
+     * True when the org has the object and the running user can read it. A query on
+     * an object the user cannot read fails even without sharing (see the class
+     * header). Live 264, as the sales rep persona, isAccessible() was false for
+     * exactly the objects whose queries failed and true for every one that worked.
+     */
+    @TestVisible
+    private static Boolean canRead(String objectName) {
+        if (unreadableForTest.contains(objectName)) {
+            return false;
+        }
+        Schema.SObjectType type = typeOf(objectName);
+        return type != null && type.getDescribe().isAccessible();
+    }
+
+    /**
+     * canRead, and when the org has the object but the user cannot read it, records
+     * it as not checked, so the Result says it was skipped. An object the org does
+     * not have is skipped silently: there is nothing of it to delete.
+     */
+    private static Boolean readOrNote(String objectName) {
+        if (canRead(objectName)) {
+            return true;
+        }
+        Schema.SObjectType type = typeOf(objectName);
+        if (type != null && !report.unchecked.contains(labelOf(type))) {
+            report.unchecked.add(labelOf(type));
+        }
+        return false;
+    }
+
+    /** readOrNote for each object, so every one the user cannot read is reported. */
+    private static Boolean readAllOrNote(List<String> objectNames) {
+        Boolean all = true;
+        for (String objectName : objectNames) {
+            all = readOrNote(objectName) && all;
+        }
+        return all;
     }
 
     // Rows the next DML statement may touch: what is left of the transaction's row
@@ -781,12 +888,14 @@ public without sharing class RLM_AccountUtilities {
      * dispute and payment schedule items go with their parents (live 264).
      *
      * Queried dynamically, so the class still deploys to an org without Collections
-     * or Billing Dispute Management.
+     * or Billing Dispute Management. Plans and disputes are skipped, and reported,
+     * for a user who cannot read them or their cases; disputes raised against the
+     * account's invoices are found only when the user can read invoices.
      */
     private static void deleteCollectionRecords(Id accountId, List<Invoice> invoices) {
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
         Set<Id> caseIds = new Set<Id>();
-        if (types.containsKey('CollectionPlan')) {
+        if (typeOf('CollectionPlan') != null
+            && readAllOrNote(new List<String>{ 'CollectionPlan', 'CollectionPlanItem', 'PaymentSchedule', 'Case' })) {
             List<SObject> plans = Database.query('SELECT Id FROM CollectionPlan WHERE AccountId = :accountId');
             Set<Id> planIds = new Map<Id, SObject>(plans).keySet();
             if (!planIds.isEmpty()) {
@@ -812,7 +921,7 @@ public without sharing class RLM_AccountUtilities {
                 }
             }
         }
-        if (types.containsKey('Dispute')) {
+        if (typeOf('Dispute') != null && readAllOrNote(new List<String>{ 'Dispute', 'Case' })) {
             Set<Id> invoiceIds = new Map<Id, Invoice>(invoices).keySet();
             List<SObject> disputes = Database.query('SELECT Id, CaseId, Case.AccountId FROM Dispute '
                 + 'WHERE AccountId = :accountId OR InvoiceId IN :invoiceIds');
@@ -836,25 +945,54 @@ public without sharing class RLM_AccountUtilities {
      * documents and payment schedules, then its credit memos. Payments, and posted
      * or void debit memos, are left in place.
      *
-     * Posted invoices need the "Delete Invoice and Invoice Lines" permission
-     * (BillingInvoiceSuperUser, from RLM_DeleteInvoices). Without it only Draft
-     * and Canceled invoices go, and the rest are reported as retained. Invoices
-     * that are still processing stay either way.
+     * Permissions, measured live on 264 (todo 397):
+     *  - Posted invoices need "Delete Invoice and Invoice Lines" (BillingInvoiceSuperUser,
+     *    from RLM_DeleteInvoices). Without it only Draft and Canceled invoices go, and
+     *    the rest are reported as retained. Invoices still processing stay either way.
+     *  - Draft and Canceled invoices need that permission or "Allow Revenue Records
+     *    Deletion" (DeleteRevenueRecords, in the managed Billing Admin set); without
+     *    either the platform refuses them, and the refusal is reported.
+     *  - Credit memos need Allow Revenue Records Deletion (deleteCreditMemos).
+     * Allow Revenue Records Deletion does NOT let a Posted invoice be deleted, so it
+     * does not replace Delete Invoice and Invoice Lines.
      *
      * Posted invoices are attempted only for a user who has the permission, and the
      * invoices go in ONE delete call that is never retried. Do not add a retry or a
-     * fallback attempt: an invoice the platform refuses must stay refused.
+     * fallback attempt: an invoice the platform refuses must stay refused. Live 264, a
+     * second delete of a Posted invoice the platform had just refused, in the same
+     * transaction, by a user with only Allow Revenue Records Deletion, succeeded.
      *
      * Deleting an invoice takes its lines, taxes, billing period items, credit
      * memo and payment applications, and billing journals with it. It does not
      * take its payment schedule, files or DocumentGenerationProcess rows, which
      * are deleted here.
+     *
+     * Each kind of record is handled only when the running user can read it; the
+     * rest are reported as not checked. A user who cannot read invoices cannot read
+     * credit memo applications either (that read depends on invoice read), so the
+     * credit memos, which need the kept invoices, are skipped with them.
      */
-    private static void deleteBillingRecords(Id accountId, List<Invoice> invoices) {
+    private static void deleteBillingRecords(Id accountId, OrderData orderData) {
         // First, so that a debit memo line adjusting an invoice line, or a debit
         // memo raised from a credit memo, is gone before either is deleted.
         deleteDebitMemos(accountId);
 
+        Set<Id> keptInvoiceIds = readOrNote('Invoice') ? deleteInvoices(orderData.invoices) : null;
+        if (readAllOrNote(new List<String>{ 'CreditMemo', 'CreditMemoInvApplication' }) && keptInvoiceIds != null) {
+            deleteCreditMemos(accountId, keptInvoiceIds);
+        }
+        if (readOrNote('Payment')) {
+            recordRetained(Payment.SObjectType, [SELECT COUNT() FROM Payment WHERE AccountId = :accountId], PAYMENTS_KEPT);
+        }
+    }
+
+    /**
+     * Deletes the invoices Delete Billing may delete, with their payment schedules,
+     * generated documents and the files nothing else shares.
+     *
+     * @return The ids of the invoices that were kept
+     */
+    private static Set<Id> deleteInvoices(List<Invoice> invoices) {
         List<Invoice> deletable = new List<Invoice>();
         List<Invoice> needPermission = new List<Invoice>();
         Integer processing = 0;
@@ -900,11 +1038,13 @@ public without sharing class RLM_AccountUtilities {
         // A schedule that a kept invoice still uses stays. Deleting one takes its
         // PaymentScheduleItems with it.
         schedules.removeAll(keptSchedules);
-        List<PaymentSchedule> paymentSchedules = new List<PaymentSchedule>();
-        for (Id scheduleId : schedules) {
-            paymentSchedules.add(new PaymentSchedule(Id = scheduleId));
+        if (!schedules.isEmpty() && readOrNote('PaymentSchedule')) {
+            List<PaymentSchedule> paymentSchedules = new List<PaymentSchedule>();
+            for (Id scheduleId : schedules) {
+                paymentSchedules.add(new PaymentSchedule(Id = scheduleId));
+            }
+            deleteQuietly(paymentSchedules);
         }
-        deleteQuietly(paymentSchedules);
 
         deleteGeneratedDocuments(deleted);
         Set<Id> orphanedFiles = new Set<Id>();
@@ -914,27 +1054,64 @@ public without sharing class RLM_AccountUtilities {
             }
         }
         deleteFiles(orphanedFiles);
-
-        deleteCreditMemos(accountId, keptInvoiceIds);
-        recordRetained(Payment.SObjectType, [SELECT COUNT() FROM Payment WHERE AccountId = :accountId], PAYMENTS_KEPT);
+        return keptInvoiceIds;
     }
 
     /**
      * True when the running user has BillingInvoiceSuperUser ("Delete Invoice and
-     * Invoice Lines"), from their profile, a permission set or a group.
-     * UserPermissionAccess holds the user's effective permissions, and any user may
-     * read their own; a non-admin is refused PermissionSetAssignment. Dynamic, so a
-     * release without the field reads as false instead of failing to compile.
+     * Invoice Lines"), from their profile, a permission set or a group. Live 264 it
+     * is the only permission that lets a Posted invoice be deleted, settled or not;
+     * Allow Revenue Records Deletion alone is refused with "You can only delete the
+     * invoice if it is in Draft or Canceled status."
      */
     @TestVisible
     private static Boolean canDeletePostedInvoices() {
-        List<SObject> access;
-        try {
-            access = Database.query('SELECT PermissionsBillingInvoiceSuperUser FROM UserPermissionAccess');
-        } catch (QueryException e) {
-            return false;
+        return hasUserPermission('PermissionsBillingInvoiceSuperUser');
+    }
+
+    /**
+     * True when the running user has DeleteRevenueRecords ("Allow Revenue Records
+     * Deletion", in the managed Billing Admin permission set). Live 264 it is what
+     * lets a Draft or Canceled credit memo be deleted; Delete Invoice and Invoice
+     * Lines does not ("DML operation DELETE not allowed on CreditMemo"). It also
+     * lets Draft and Canceled invoices be deleted, as Delete Invoice and Invoice
+     * Lines does, but not Posted ones.
+     */
+    @TestVisible
+    private static Boolean canDeleteRevenueRecords() {
+        return hasUserPermission('PermissionsDeleteRevenueRecords');
+    }
+
+    // The running user's billing delete permissions, read once per user.
+    private static Map<String, Boolean> userPermissions;
+    private static Id userPermissionsOf;
+
+    /**
+     * Whether the running user has the permission, from their profile, a permission
+     * set or a group. UserPermissionAccess holds the user's effective permissions,
+     * and any user may read their own; a non-admin is refused PermissionSetAssignment.
+     * Both permissions are read in one query, so asking for the second costs none.
+     * Dynamic, so a release without either field reads both as false instead of
+     * failing to compile.
+     */
+    private static Boolean hasUserPermission(String field) {
+        if (userPermissions == null || userPermissionsOf != UserInfo.getUserId()) {
+            userPermissionsOf = UserInfo.getUserId();
+            userPermissions = new Map<String, Boolean>();
+            List<String> fields = new List<String>{
+                'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords'
+            };
+            List<SObject> access = new List<SObject>();
+            try {
+                access = Database.query('SELECT ' + String.join(fields, ', ') + ' FROM UserPermissionAccess');
+            } catch (QueryException e) {
+                access = new List<SObject>();
+            }
+            for (String name : fields) {
+                userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
+            }
         }
-        return !access.isEmpty() && access[0].get('PermissionsBillingInvoiceSuperUser') == true;
+        return userPermissions.get(field) == true;
     }
 
     /**
@@ -942,6 +1119,11 @@ public without sharing class RLM_AccountUtilities {
      * one deleted, which takes its lines and journals with it (live 264). Memos
      * applied to an invoice that was kept are left alone: canceling one would
      * change that invoice's balance.
+     *
+     * Deleting a credit memo, Draft and Canceled included, needs Allow Revenue
+     * Records Deletion (canDeleteRevenueRecords). Without it none is canceled or
+     * deleted: canceling a memo that then cannot be deleted would change it and
+     * still keep it.
      */
     private static void deleteCreditMemos(Id accountId, Set<Id> keptInvoiceIds) {
         Set<Id> onKeptInvoices = new Set<Id>();
@@ -974,6 +1156,10 @@ public without sharing class RLM_AccountUtilities {
             recordRetained(CreditMemo.SObjectType, keptByStatus.get(status),
                 'status ' + status + ' can be neither canceled nor deleted');
         }
+        if ((!deletable.isEmpty() || !posted.isEmpty()) && !canDeleteRevenueRecords()) {
+            recordRetained(CreditMemo.SObjectType, deletable.size() + posted.size(), MEMO_NEEDS_PERMISSION);
+            return;
+        }
         for (Id canceledId : updateRows(posted, 'could not be canceled')) {
             deletable.add(new CreditMemo(Id = canceledId));
         }
@@ -988,8 +1174,8 @@ public without sharing class RLM_AccountUtilities {
      * not depend on DebitMemo to deploy.
      */
     private static void deleteDebitMemos(Id accountId) {
-        Schema.SObjectType memoType = Schema.getGlobalDescribe().get('DebitMemo');
-        if (memoType == null) {
+        Schema.SObjectType memoType = typeOf('DebitMemo');
+        if (!readOrNote('DebitMemo')) {
             return;
         }
         List<SObject> deletable = new List<SObject>();
@@ -1422,6 +1608,9 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose records should be deleted
      */
     private static void deleteBillingScheduleGroups(Id accountId) {
+        if (!readOrNote('BillingScheduleGroup')) {
+            return;
+        }
         deleteQuietly([SELECT Id FROM BillingScheduleGroup WHERE BillingAccountId = :accountId]);
     }
 
@@ -1566,11 +1755,11 @@ public without sharing class RLM_AccountUtilities {
      * without AssetId is skipped. Only the query can tell: live 264, Case.AssetId was
      * missing from the org, yet this class's describe still listed it. ServiceContract
      * has no AssetId -- asset coverage lives on ContractLineItem -- so it is not queried.
+     * One the running user cannot read is skipped and reported.
      */
     private static void deleteOtherAssetReferences(Set<Id> assetIds) {
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
         for (String objectName : new List<String>{ 'WorkOrder', 'Case' }) {
-            if (!types.containsKey(objectName)) {
+            if (!readOrNote(objectName)) {
                 continue;
             }
             requireQueries(1);
@@ -1625,6 +1814,9 @@ public without sharing class RLM_AccountUtilities {
      * @param orderData The OrderData object containing pre-queried information
      */
     private static void deleteFulfillmentStepSource(OrderData orderData) {
+        if (!readOrNote('FulfillmentStepSource')) {
+            return;
+        }
         deleteQuietly([
             SELECT Id
             FROM FulfillmentStepSource
@@ -1704,6 +1896,9 @@ public without sharing class RLM_AccountUtilities {
      * @param orderData The OrderData object containing pre-queried information
      */
     private static void deleteAssetFulfillmentDecomp(OrderData orderData) {
+        if (!readOrNote('AssetFulfillmentDecomp')) {
+            return;
+        }
         deleteQuietly([
             SELECT Id
             FROM AssetFulfillmentDecomp

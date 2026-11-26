@@ -188,7 +188,7 @@
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices); without it they are kept. Payments, and posted or void debit memos, are always kept: Salesforce does not allow deleting them.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices), and credit memos the Allow Revenue Records Deletion permission (Billing Admin permission set); without them they are kept. Billing records you cannot read are left and listed as not checked. Payments, and posted or void debit memos, are always kept: Salesforce does not allow deleting them.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
