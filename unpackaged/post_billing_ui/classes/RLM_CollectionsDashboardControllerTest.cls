@@ -2,10 +2,9 @@
  * Tests for RLM_CollectionsDashboardController.
  *
  * Invoice is createable=false, so no unit test can insert an invoice. The code that works on
- * queried invoices (the card tally, critical follow-ups, high-value delinquents and the
- * last-resort worklist) takes rows, and the tests pass invoices built with JSON.deserialize.
- * The invoice queries themselves, the critical follow-ups' collection-plan lookup, the unified
- * worklist fallback and the disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
+ * queried invoices (the card tally, critical follow-ups and high-value delinquents) takes rows, and the tests pass invoices built with JSON.deserialize.
+ * The invoice queries themselves, the critical follow-ups' collection-plan lookup and the
+ * disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
  * Records are created in admin context. Five tests then run as other users: a collections
@@ -221,6 +220,12 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(-20, paymentsRow.get('amount'), 'The payments row keeps its amount.');
         Assert.isFalse(paymentsRow.containsKey('unavailable'), 'And is not marked unavailable.');
 
+        RLM_CollectionsDashboardController.CollectionsDashboardData noInvoices =
+            new RLM_CollectionsDashboardController.CollectionsDashboardData();
+        RLM_CollectionsDashboardController.totalUp(noInvoices, null, 0, 0, 20, 1);
+        Assert.isNull(noInvoices.totalBalance, 'No total without the unpaid invoices, its main component.');
+        Assert.isNull(noInvoices.totalOutstanding, 'Nor a total outstanding.');
+
         RLM_CollectionsDashboardController.CollectionsDashboardData noBalance =
             new RLM_CollectionsDashboardController.CollectionsDashboardData();
         RLM_CollectionsDashboardController.totalUp(noBalance, 100, 0, 0, null, 3);
@@ -242,6 +247,18 @@ private class RLM_CollectionsDashboardControllerTest {
             'A field the user cannot read.');
         Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
             new NoAccessException()), 'A NoAccessException.');
+        // A dynamic query's error can echo the query before the column message.
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('\nSELECT ActivityDate FROM Task\n       ^\nERROR at Row:1:Column:8\n'
+                + 'No such column \'ActivityDate\' on entity \'Task\'. If you are attempting...')),
+            'The column message is found after an echoed query.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('\nSELECT NotAField__x FROM Payment\n^\nERROR at Row:1:Column:8\n'
+                + 'No such column \'NotAField__x\' on entity \'Payment\'.')),
+            'An absent field after an echoed query is still a failure.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY, RLM_CollectionsDashboardController.reasonFor(
+            new RLM_CollectionsDashboardController.TooManyRowsException('More than 10000 invoices')),
+            'Too many rows to total is its own reason.');
         Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
             new QueryException('No such column \'NotAField__x\' on entity \'Payment\'. If you are attempting...')),
             'A field the org does not have (a single-currency org\'s CurrencyIsoCode) is a failure, not a refusal.');
@@ -1006,93 +1023,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(70, (Decimal) byKey.get('90+'), 'Ninety-one days past due is 90+');
     }
 
-    // The last-resort worklist rolls balances up by account, keeps the five largest, and colours
-    // each by its most overdue invoice: over 30 days red, any days amber, none green.
-    @isTest
-    static void addLastResortDelinquents_keepsTheFiveLargestAccountBalances() {
-        Date today = Date.newInstance(2026, 6, 30);
-        List<Account> accounts = new List<Account>();
-        for (Integer i = 1; i <= 6; i++) {
-            accounts.add(new Account(Name = 'RLM Last Resort ' + i));
-        }
-        insert accounts;
-        List<SObject> rows = new List<SObject>();
-        Decimal[] balances = new Decimal[]{ 10, 600, 300, 400, 500, 200 };
-        Date[] dueDates = new Date[]{ today, today.addDays(-31), today.addDays(-30), today.addDays(5), null, today.addDays(-1) };
-        for (Integer i = 0; i < 6; i++) {
-            rows.add(invoice(new Map<String, Object>{
-                'Balance' => balances[i], 'DueDate' => dueDates[i], 'BillingAccountId' => accounts[i].Id }));
-        }
-        // Two more invoices on the smallest account lift it past three others. Its days past due run
-        // 0, 40, 10: the most overdue (40, red) wins, not the first (green) or the last (amber).
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 300, 'DueDate' => today.addDays(-40), 'BillingAccountId' => accounts[0].Id }));
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 150, 'DueDate' => today.addDays(-10), 'BillingAccountId' => accounts[0].Id }));
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 9999, 'DueDate' => today }));
-        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
-
-        Test.startTest();
-        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, rows, 'BillingAccountId', today);
-        Test.stopTest();
-
-        List<String> names = new List<String>();
-        List<String> health = new List<String>();
-        for (RLM_CollectionsDashboardController.WorklistItem item : wl.highValueDelinquents) {
-            names.add(item.accountName);
-            health.add(item.healthScore);
-        }
-        Assert.areEqual(new List<String>{ 'RLM Last Resort 2', 'RLM Last Resort 5', 'RLM Last Resort 1',
-            'RLM Last Resort 4', 'RLM Last Resort 3' }, names,
-            'The five largest account balances, largest first; an invoice without an account is left out');
-        Assert.areEqual(new List<String>{ 'red', 'green', 'red', 'green', 'amber' }, health,
-            '31 days red, no due date or not yet due green, 30 days amber; an account takes its most overdue invoice');
-        Assert.areEqual(460, wl.highValueDelinquents[2].balance, 'An account\'s invoices add up');
-        Assert.areEqual('critical', wl.highValueDelinquents[0].segment, 'Last-resort rows are critical');
-    }
-
-    // The last-resort query honours the page's account and currency filters, as the primary high-value
-    // query does: with an account selected it never lists other accounts' balances. Invoices cannot be
-    // inserted in a test, so the query is checked as built, and run with the same bind names the
-    // controller passes (a bind it lacks would throw).
-    @isTest
-    static void lastResortQuery_honoursTheAccountAndCurrencyFilters() {
-        Account a = newAccount('RLM CD Last Resort Filter');
-        String unfiltered = RLM_CollectionsDashboardController.lastResortQuery('BillingAccountId', false, false);
-        String filtered = RLM_CollectionsDashboardController.lastResortQuery('BillingAccountId', true, true);
-
-        Assert.isFalse(unfiltered.contains(':accountId'), 'No account filter without a selected account.');
-        Assert.isTrue(filtered.contains('BillingAccountId = :accountId'), 'The selected account filters it: ' + filtered);
-        Assert.isTrue(filtered.contains('CurrencyIsoCode = :currencyCode'), 'The selected currency filters it: ' + filtered);
-        List<SObject> rows = Database.queryWithBinds(filtered,
-            new Map<String, Object>{ 'accountId' => a.Id, 'currencyCode' => corporateCurrency() }, AccessLevel.USER_MODE);
-        Assert.isTrue(rows.isEmpty(), 'The filtered query runs; no invoice exists for a new account.');
-
-        Test.startTest();
-        RLM_CollectionsDashboardController.WorklistData wl =
-            RLM_CollectionsDashboardController.getWorklist(a.Id, corporateCurrency());
-        Test.stopTest();
-        for (RLM_CollectionsDashboardController.WorklistItem item : wl.highValueDelinquents) {
-            Assert.areEqual(a.Id, item.accountId, 'With an account selected only that account is listed.');
-        }
-        Assert.isTrue(wl.unavailable.isEmpty(), 'The admin reads every tab: ' + wl.unavailable);
-    }
-
-    // The last resort only fills an empty list.
-    @isTest
-    static void addLastResortDelinquents_addsNothingOnceTheListHasRows() {
-        Account acc = newAccount('RLM Last Resort Kept');
-        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
-        wl.highValueDelinquents.add(new RLM_CollectionsDashboardController.WorklistItem(acc.Id, 'Already listed', 1, 1, 'highValue'));
-
-        Test.startTest();
-        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, new List<SObject>{
-            invoice(new Map<String, Object>{ 'Balance' => 5000, 'BillingAccountId' => acc.Id }) },
-            'BillingAccountId', Date.today());
-        Test.stopTest();
-
-        Assert.areEqual(1, wl.highValueDelinquents.size(), 'Rows already listed are kept as they are');
-        Assert.areEqual('Already listed', wl.highValueDelinquents[0].accountName, 'The listed row is untouched');
-    }
-
     // High-value delinquents are accounts whose balances add up to 2000 or more, largest first,
     // each with its most overdue days and its collection plan.
     @isTest
@@ -1126,13 +1056,14 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(2000, second.balance, 'The account\'s invoices add up');
         Assert.areEqual(70, second.daysOverdue, 'The most overdue invoice sets the days, not the first or last one');
         Assert.isNull(second.collectionPlanId, 'An account without a plan has none');
+        Assert.isFalse(second.collectionPlanUnavailable, 'Read and empty: "no plan", not unavailable');
         Assert.areEqual('RLM High Value Three', second.accountName, 'The account name is looked up');
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
     // A user who cannot read Account still gets the rows (with a dash for the name) rather than the caller's
-    // catch dropping the whole section; the last-resort and critical follow-up builders share the
-    // lookup.
+    // catch dropping the whole section; the critical follow-up builder shares the lookup. The same user
+    // cannot read CollectionPlan either: the row's plan is marked unavailable, not "no plan".
     @isTest
     static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -1154,32 +1085,34 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
         Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
         Assert.areEqual(NO_VALUE, wl.highValueDelinquents[0].accountName, 'The name shows a dash, not a raw exception.');
+        Assert.isTrue(wl.highValueDelinquents[0].collectionPlanUnavailable,
+            'A refused plan lookup marks the plan unavailable (no Create offered), not "no plan".');
     }
 
     @isTest
-    static void lastResortAndCriticalFollowUps_forAUserWhoCannotReadAccounts_keepRows() {
+    static void criticalFollowUps_forAUserWhoCannotReadAccounts_keepRows() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        Account acc = newAccount('RLM Last Resort Unreadable');
+        Account acc = newAccount('RLM Critical Unreadable');
         Date today = Date.newInstance(2026, 6, 30);
         List<Invoice> invoices = new List<Invoice>{
-            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
+            // An Id, so the plan item lookup runs (and is refused for this user).
+            invoice(new Map<String, Object>{ 'Id' => Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000009'),
+                'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
         };
-        RLM_CollectionsDashboardController.WorklistData lastResort = new RLM_CollectionsDashboardController.WorklistData();
         RLM_CollectionsDashboardController.WorklistData critical = new RLM_CollectionsDashboardController.WorklistData();
 
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            RLM_CollectionsDashboardController.addLastResortDelinquents(lastResort, invoices, 'BillingAccountId', today);
             RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, false, today);
         }
         Test.stopTest();
 
-        Assert.areEqual(1, lastResort.highValueDelinquents.size(), 'The last-resort row is kept.');
-        Assert.areEqual(NO_VALUE, lastResort.highValueDelinquents[0].accountName, 'Its name shows a dash.');
         Assert.areEqual(1, critical.criticalFollowUpInvoices.size(), 'The critical follow-up row is kept.');
         Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'Its name shows a dash.');
+        Assert.isTrue(critical.criticalFollowUpInvoices[0].collectionPlanUnavailable,
+            'A refused plan item lookup marks the plan unavailable, not "no plan".');
     }
 
     // A critical follow-up row per invoice: days overdue from the field when the org has it and it

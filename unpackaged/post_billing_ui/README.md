@@ -178,14 +178,22 @@ may not read it (a USER_MODE read throws "sObject type ... is not supported" or 
 measured on 264), shown as "You don't have access to ...", or `failed` for any other error, shown as
 "... could not be loaded. Refresh the page to try again.", so a fully granted user hitting a
 transient failure is not sent to an administrator. A failed call (a wire or imperative error) is
-always `failed`. Figures: an unread invoice, debit memo, payment or payment schedule amount comes back
+always `failed`. The invoice reads that are totalled or rolled up stop at 10,000 rows
+(`INVOICE_ROW_CAP`, well under the 50,000-row query limit, which no catch can handle); past it the
+section is unavailable as `tooMany`, shown as "Too many records to total here. Choose an account or
+currency to narrow it.", rather than a figure from a cut-off read. Figures: an unread invoice, debit memo, payment or payment schedule amount comes back
 null and listed in the cards' `unavailable` with its `unavailableReason`; the Debit Memos line of the
-total balance reads "—" and the Total Balance says it excludes debit memos and why, or shows "—"
-itself when nothing could be read. The unapplied payment count is its own key: if only the count
+total balance reads "—" and the Total Balance is a partial total that says it excludes debit memos
+and why (likewise for unapplied credits and payments). Unpaid invoices are its main component: when
+they could not be read there is no total at all, and the Total Balance shows "—" with the invoices'
+reason. The unapplied payment count is its own key: if only the count
 could not be read, only the count shows "—" and the balance stays in the total. Payment promises,
 plan tasks and the user's plans come back as wrappers with an explicit `unavailable` flag and reason;
 progress carries the same flag; a worklist tab that could not be read is listed in
-`WorklistData.unavailable` and says so instead of "No items in this view".
+`WorklistData.unavailable` and says so instead of "No items in this view". Inside a tab that was
+read, a row whose collection plan (or, on the Disputed tab, promise-to-pay date) could not be looked
+up shows "Not available" rather than "—", and offers no Create Collection Plan, since a plan may
+exist.
 
 The page gives every section (each card, the total, payment promises, progress, plan tasks, my plans
 and each worklist tab) one state, derived in one place (`sections` in `rlmCollectionsDashboard.js`):
@@ -193,10 +201,11 @@ loading until that section's answer for the current filters arrives, then ready 
 its reason. Figures, counts, rows and "none" messages render from `ready` only, so nothing shows
 $0.00 or "No items" before the data arrives, and an account or currency change puts the sections
 that read it back to loading. The worklist is read through its wire alone (no second, imperative
-call that could land out of order). Worklist tabs carry no placeholder rows: a tab that was read and
-is empty says "No items in this view". The High-Value tab's broader fallbacks (top balances under the
-same account and currency filters) run only after its own read succeeded empty; when that read was
-refused or failed, or a fallback failed and the tab is still empty, the tab is unavailable. The
+call that could land out of order). There is no page-wide error state: a failed card read leaves
+the other sections showing what they read. Each worklist tab shows exactly what its own read
+returns, with no fallback and no placeholder rows: its rows, or "No items in this view" when it was
+read and is empty, or unavailable with its reason. Date-only values (task due dates, promise-to-pay
+dates) are calendar dates and display as such in every time zone. The
 payment reads filter on `CurrencyIsoCode` only where Payment has it (a multi-currency org), and a
 "No such column" error counts as a refusal only for a field the org has; an absent field is a failure.
 `RLM_BillingUIAccessTest` runs every controller read as this user, and

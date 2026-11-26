@@ -17,6 +17,8 @@ import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardCon
 const NOT_AVAILABLE = '\u2014';
 const REFUSED = 'refused';
 const FAILED = 'failed';
+// More rows than the section can total (the controller's INVOICE_ROW_CAP): narrow the filters.
+const TOO_MANY = 'tooMany';
 const SUBJECTS = {
     invoices: 'invoices',
     debitMemos: 'debit memos',
@@ -37,6 +39,7 @@ const WORKLIST_TABS = ['critical', 'highValue', 'disputed'];
 
 function unavailableText(subject, reason) {
     if (reason === REFUSED) return `You don't have access to ${subject}.`;
+    if (reason === TOO_MANY) return 'Too many records to total here. Choose an account or currency to narrow it.';
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
 
@@ -56,9 +59,15 @@ function failedSection(empty) {
 const LOADING = Object.freeze({ status: 'loading' });
 const READY = Object.freeze({ status: 'ready' });
 const LOADING_TEXT = 'Loading\u2026';
+// A row's lookup that was refused or failed: not "none".
+const NOT_AVAILABLE_CELL = 'Not available';
+
+function knownReason(reason) {
+    return reason === REFUSED || reason === TOO_MANY ? reason : FAILED;
+}
 
 function unavailableState(reason) {
-    return { status: 'unavailable', reason: reason === REFUSED ? REFUSED : FAILED };
+    return { status: 'unavailable', reason: knownReason(reason) };
 }
 
 // A wrapper section (promises, progress, tasks, plans): undefined until the server answers.
@@ -259,10 +268,12 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             if (cards !== READY) return cards;
             return (data.unavailable || []).includes(key) ? unavailableState(data.unavailableReason?.[key]) : READY;
         };
+        // No total without the unpaid invoices (the controller returns none): it is unavailable for the
+        // invoices' reason. Without debit memos, credits or payments it is a partial total, labelled.
         let total = cards;
         if (cards === READY && data.totalBalance == null) {
-            const keys = Object.keys(EXCLUDED_NAMES);
-            total = unavailableState(keys.every((key) => component(key).reason === REFUSED) ? REFUSED : FAILED);
+            const invoices = component('invoices');
+            total = invoices === READY ? unavailableState(FAILED) : invoices;
         }
         const worklist = (tab) => {
             if (this.worklistData === undefined) return LOADING;
@@ -472,7 +483,12 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     formatPtpDate(dateVal) {
         if (!dateVal) return '—';
-        const d = typeof dateVal === 'string' ? new Date(dateVal) : dateVal;
+        // A date-only 'YYYY-MM-DD' is a calendar date: read it as local midnight, never as UTC midnight,
+        // which the browser would show as the day before west of UTC (todo 435).
+        let d = dateVal;
+        if (typeof dateVal === 'string') {
+            d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateVal) ? `${dateVal}T00:00:00` : dateVal);
+        }
         if (isNaN(d.getTime())) return '—';
         return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
@@ -498,7 +514,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     cardReason(key) {
-        return this.dashboardData?.unavailableReason?.[key] === REFUSED ? REFUSED : FAILED;
+        return knownReason(this.dashboardData?.unavailableReason?.[key]);
     }
 
     get invoicesUnavailableText() {
@@ -508,10 +524,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     // Names the total's components that could not be read, and why: "Excludes debit memos: you don't have
     // access to them." / "...: they could not be loaded. Refresh the page to try again." / both, when mixed.
     get totalBalanceNote() {
+        const total = this.sections.total;
+        if (total.status === 'loading' || this.sections.cards !== READY) return '';
+        if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason);
         const excluded = this.unavailableKeys.filter((key) => EXCLUDED_NAMES[key]);
         if (excluded.length === 0) return '';
         const refused = excluded.filter((key) => this.cardReason(key) === REFUSED).map((key) => EXCLUDED_NAMES[key]);
         const failed = excluded.filter((key) => this.cardReason(key) !== REFUSED).map((key) => EXCLUDED_NAMES[key]);
+        // (Only the invoices read is capped, so a refusal or a failure are the reasons left here.)
         if (failed.length === 0) return `Excludes ${listNames(refused)}: you don't have access to them.`;
         if (refused.length === 0) {
             return `Excludes ${listNames(failed)}: they could not be loaded. Refresh the page to try again.`;
@@ -725,11 +745,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
                 accountUrl: item.billingAccountId ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
                 contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
-                collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null
+                collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
+                ...this.planCell(item)
             }));
         }
         return list.map((item, idx) => {
-            const ptpDateFormatted = item.ptpDate ? this.formatPtpDate(item.ptpDate) : '—';
+            let ptpDateFormatted = item.ptpDate ? this.formatPtpDate(item.ptpDate) : '—';
+            if (item.ptpUnavailable) ptpDateFormatted = NOT_AVAILABLE_CELL;
             const disputeReason = item.disputeReason || '';
             const disputeReasonShort = disputeReason.length > 60 ? disputeReason.slice(0, 57) + '...' : (disputeReason || '—');
             return {
@@ -743,9 +765,19 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 disputeReasonShort: disputeReasonShort || '—',
                 disputeReason: disputeReason || '',
                 collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
-                caseUrl: item.caseId ? `/lightning/r/Case/${item.caseId}/view` : null
+                caseUrl: item.caseId ? `/lightning/r/Case/${item.caseId}/view` : null,
+                ...this.planCell(item)
             };
         });
+    }
+
+    // The plan column of a worklist row: a plan the lookup could not read is "Not available" and offers no
+    // Create (it may exist); a plan that was read and is absent is "—" with Create.
+    planCell(item) {
+        return {
+            planCellText: item.collectionPlanUnavailable ? NOT_AVAILABLE_CELL : NOT_AVAILABLE,
+            showCreatePlan: !item.collectionPlanUnavailable
+        };
     }
 
     get worklistTabUnavailable() {

@@ -1,3 +1,7 @@
+/**
+ * @jest-environment <rootDir>/tests/jest/browser-time-zone-environment.js
+ */
+/* global setBrowserTimeZone */
 import { createElement } from "lwc";
 import RlmCollectionsDashboard from "c/rlmCollectionsDashboard";
 import getAccountOptions from "@salesforce/apex/RLM_CollectionsDashboardController.getAccountOptions";
@@ -80,12 +84,11 @@ function row(label, amount, color, unavailable) {
 // refused unless `reasons` says otherwise ('failed'). unappliedPaymentCount alone leaves the balance read.
 function cards(unavailable = [], reasons = {}) {
   const has = (key) => unavailable.includes(key);
-  const all = ["invoices", "debitMemos", "unappliedCredits", "unappliedPayments"].every(has);
   const unavailableReason = {};
   for (const key of unavailable) unavailableReason[key] = reasons[key] || "refused";
   return {
-    // The controller's total: what was read, or null when nothing was.
-    totalBalance: all ? null : (has("invoices") ? 0 : 1455) - (has("unappliedPayments") ? 0 : 20),
+    // The controller's total: none without the unpaid invoices, else what was read.
+    totalBalance: has("invoices") ? null : 1455 - (has("unappliedPayments") ? 0 : 20),
     receivablesOutstanding: has("invoices") ? null : 1455,
     invoiceCount: has("invoices") ? null : 3,
     currentDue: has("invoices") ? null : 1000,
@@ -216,8 +219,10 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
       "You don't have access to payments."
     );
     expect(text(element, ".aging-unavailable")).toEqual(["You don't have access to invoices."]);
+    // No total without the unpaid invoices: not a partial "-$20.00".
+    expect(card(element, "Total Balance").querySelector(".pulse-card-value").textContent).toBe(DASH);
     expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
-      "Excludes unpaid invoices, unapplied credits and unapplied payments: you don't have access to them."
+      "You don't have access to invoices."
     );
     expect(breakdown(element, "Debit Memos").text).toBe("$0.00");
   });
@@ -235,14 +240,14 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     expect(card(element, "Total Balance").querySelector(".pulse-card-value").textContent).toBe("$1,435.00");
   });
 
-  it("shows no total at all when every component of it was refused", async () => {
+  it("shows no total when the unpaid invoices were refused, whatever else was read", async () => {
     const element = await mount();
     getDashboardCards.emit(cards(["invoices", "debitMemos", "unappliedCredits", "unappliedPayments"]));
     await flushPromises();
 
     expect(card(element, "Total Balance").querySelector(".pulse-card-value").textContent).toBe(DASH);
     expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
-      "Excludes unpaid invoices, debit memos, unapplied credits and unapplied payments: you don't have access to them."
+      "You don't have access to invoices."
     );
     for (const label of ["Unpaid Invoices", "Debit Memos", "Unapplied Credits", "Unapplied Payments"]) {
       expect(breakdown(element, label).text).toBe(DASH);
@@ -423,5 +428,99 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     getDashboardCards.emit(cards(["debitMemos"]));
     await flushPromises();
     expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("$1,455.00");
+  });
+
+  it("says there are too many invoices to total instead of a cut-off figure", async () => {
+    const element = await mount();
+    getDashboardCards.emit(cards(["invoices"], { invoices: "tooMany" }));
+    await flushPromises();
+
+    const message = "Too many records to total here. Choose an account or currency to narrow it.";
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe(DASH);
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(message);
+    expect(card(element, "Total Balance").querySelector(".pulse-card-value").textContent).toBe(DASH);
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(message);
+  });
+
+  // A failed cards call no longer replaces the page: the other sections still show what they read.
+  it("keeps the other sections visible when the cards call fails", async () => {
+    const element = await mount();
+    getDashboardCards.error({ body: { message: "cards down" } });
+    getPaymentPromiseSummary.emit({ buckets: [], unavailable: false });
+    getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: false });
+    getWorklist.emit(EMPTY_WORKLIST);
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe(DASH);
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(
+      LOAD_FAILED("Invoices")
+    );
+    expect(text(element, ".payment-promises-empty")).toEqual(["No payment promises."]);
+    expect(text(element, ".progress-empty")).toEqual(["No collection plan data available."]);
+    expect(text(element, ".worklist-empty")).toEqual(["No items in this view. Change filters or aging selection."]);
+  });
+
+  // A row's plan or promise lookup that was refused is "Not available" (it may exist), with no Create.
+  it("shows a row's unreadable plan as not available, with no Create Collection Plan", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [
+        { invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", collectionPlanUnavailable: true },
+        { invoiceId: "3tt000000000002AAA", invoiceNumber: "INV-2", balance: 2600, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", collectionPlanUnavailable: false }
+      ]
+    });
+    await flushPromises();
+
+    const rows = Array.from(element.shadowRoot.querySelectorAll(".worklist-table tbody tr"));
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain("Not available");
+    expect(rows[0].textContent).not.toContain("Create Collection Plan");
+    expect(rows[1].textContent).not.toContain("Not available");
+    expect(rows[1].textContent).toContain("Create Collection Plan");
+  });
+
+  it("shows a disputed row's unreadable promise date as not available", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      disputedInvoices: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 10, ptpUnavailable: true }]
+    });
+    await flushPromises();
+    const tab = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
+      (button) => button.dataset.tab === "disputed"
+    );
+    tab.click();
+    await flushPromises();
+
+    const disputedRow = element.shadowRoot.querySelector(".worklist-table tbody tr");
+    expect(disputedRow.textContent).toContain("Not available");
+  });
+
+  // Date-only values are calendar dates: west of UTC they must not show as the day before.
+  it("shows a task's due date as its calendar date in a US time zone", async () => {
+    setBrowserTimeZone("America/Los_Angeles");
+    const element = await mount();
+    getCollectionPlanTasks.emit({
+      items: [{ taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25",
+        collectionPlanId: "0Wn000000000001AAA" }],
+      unavailable: false
+    });
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      disputedInvoices: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 10, ptpDate: "2026-12-01" }]
+    });
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector(".cp-tasks-table tbody").textContent).toContain("Nov 25, 2026");
+    const tab = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
+      (button) => button.dataset.tab === "disputed"
+    );
+    tab.click();
+    await flushPromises();
+    expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Dec 1, 2026");
+    setBrowserTimeZone("UTC");
   });
 });

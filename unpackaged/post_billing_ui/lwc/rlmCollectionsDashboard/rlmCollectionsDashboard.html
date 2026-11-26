@@ -18,7 +18,6 @@
                     <div class="error-banner"><lightning-icon icon-name="utility:error" size="x-small"></lightning-icon> {dataError}</div>
                 </template>
 
-                <template if:false={dataError}>
                     <div class="dashboard-layout">
                     <div class="dashboard-main">
                     <!-- THE PULSE: KPI cards -->
@@ -180,10 +179,12 @@
                                                     <template if:true={row.collectionPlanUrl}>
                                                         <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
                                                     </template>
-                                                    <template if:false={row.collectionPlanUrl}>—</template>
+                                                    <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
                                                 </td>
                                                 <td class="actions-cell">
-                                                    <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                    <template if:true={row.showCreatePlan}>
+                                                        <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                    </template>
                                                     <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleWriteOff}>Write Off</button>
                                                     <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleLogTask}>Log a Task</button>
                                                 </td>
@@ -202,7 +203,7 @@
                                                         <template if:true={row.collectionPlanUrl}>
                                                             <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
                                                         </template>
-                                                        <template if:false={row.collectionPlanUrl}>—</template>
+                                                        <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
                                                     </td>
                                                 </template>
                                                 <template if:false={showActionButtons}>
@@ -218,7 +219,9 @@
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleRaiseDispute}>Raise Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                        <template if:true={row.showCreatePlan}>
+                                                            <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                        </template>
                                                     </template>
                                                     <template if:false={showActionButtons}>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
@@ -377,7 +380,6 @@
                         </section>
                     </aside>
                     </div>
-                </template>
             </template>
         </main>
     </div>

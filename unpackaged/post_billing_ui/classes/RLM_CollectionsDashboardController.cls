@@ -129,7 +129,9 @@ public with sharing class RLM_CollectionsDashboardController {
 
         Decimal sumUnpaidInvoiceBalance = null;
         try {
-            List<Invoice> unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            List<Invoice> unpaidInvoices = (List<Invoice>) cappedInvoiceRows(
+                'SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere,
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode });
             tallyInvoices(data, unpaidInvoices, Date.today());
             sumUnpaidInvoiceBalance = data.receivablesOutstanding;
         } catch (Exception e) {
@@ -165,9 +167,9 @@ public with sharing class RLM_CollectionsDashboardController {
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
 
-        Boolean nothingRead = sumUnpaidInvoiceBalance == null && debitMemoNotInvoiced == null
-            && unappliedCredits == null && unappliedPaymentBalance == null;
-        data.totalBalance = nothingRead ? null : orZero(sumUnpaidInvoiceBalance) + orZero(debitMemoNotInvoiced)
+        // No total without the unpaid invoices, its main component (as total outstanding). Without debit
+        // memos, credits or payments it is a partial total the page labels as excluding them.
+        data.totalBalance = sumUnpaidInvoiceBalance == null ? null : sumUnpaidInvoiceBalance + orZero(debitMemoNotInvoiced)
             - orZero(unappliedCredits) - orZero(unappliedPaymentBalance);
         data.totalOutstanding = sumUnpaidInvoiceBalance == null || unappliedPaymentBalance == null
             ? null : sumUnpaidInvoiceBalance - unappliedPaymentBalance;
@@ -293,28 +295,13 @@ public with sharing class RLM_CollectionsDashboardController {
         String invAccountField = getInvoiceAccountFieldName();
         Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId));
         Boolean filterCurrency = String.isNotBlank(currencyCode);
-        Date today = Date.today();
-        Date thirtyDaysAgo = today.addDays(-30);
+        Date thirtyDaysAgo = Date.today().addDays(-30);
 
         try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         try { buildDisputedFromCases(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        // The fallbacks widen an EMPTY high-value list that was read: they never stand in for a primary
-        // read that was refused or failed (the tab is then unavailable), and when one of them fails and
-        // the list is still empty the tab is unavailable too, not "none". An empty tab carries no
-        // placeholder row: the page says "No items in this view" for a list that was read and is empty.
-        if (!wl.unavailable.contains(WORKLIST_HIGH_VALUE) && wl.highValueDelinquents.isEmpty()) {
-            Exception fallbackFailure = buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency,
-                accountId, currencyCode, today, thirtyDaysAgo);
-            if (wl.highValueDelinquents.isEmpty()) {
-                Exception lastResortFailure = buildWorklistLastResort(wl, invAccountField, filterAccount, filterCurrency,
-                    accountId, currencyCode, today);
-                fallbackFailure = fallbackFailure != null ? fallbackFailure : lastResortFailure;
-            }
-            if (wl.highValueDelinquents.isEmpty() && fallbackFailure != null) {
-                markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, fallbackFailure);
-            }
-        }
+        // Each tab shows exactly what its own read returns: rows, or nothing ("No items in this view"), or
+        // unavailable with its reason. No fallback widens an empty tab and no placeholder row fills one.
         return wl;
     }
 
@@ -388,100 +375,6 @@ public with sharing class RLM_CollectionsDashboardController {
 
     // Any unpaid invoice, when nothing older than 30 days was found, under the same account and currency
     // filters as the primary high-value query: with an account selected it never lists other accounts.
-    // Returns the exception when the read failed (the caller decides whether the tab is unavailable).
-    private static Exception buildWorklistLastResort(WorklistData wl, String invAccountField, Boolean filterAccount,
-            Boolean filterCurrency, Id accountId, String currencyCode, Date today) {
-        try {
-            Map<String, Object> binds = new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode };
-            List<SObject> rows = Database.queryWithBinds(
-                lastResortQuery(invAccountField, filterAccount, filterCurrency), binds, AccessLevel.USER_MODE);
-            addLastResortDelinquents(wl, rows, invAccountField, today);
-            return null;
-        } catch (Exception e) {
-            sectionSkipped('buildWorklistLastResort', e);
-            return e;
-        }
-    }
-
-    @TestVisible
-    private static String lastResortQuery(String invAccountField, Boolean filterAccount, Boolean filterCurrency) {
-        String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0';
-        if (filterAccount) soql += ' AND ' + invAccountField + ' = :accountId';
-        if (filterCurrency && invoiceHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode';
-        return soql + ' LIMIT 500';
-    }
-
-    // Rolls the queried invoices up by account and, when the list is still empty, adds the five
-    // largest balances. Takes rows so a test can pass invoices, which Apex cannot insert.
-    @TestVisible
-    private static void addLastResortDelinquents(WorklistData wl, List<SObject> rows, String invAccountField, Date today) {
-        Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
-        Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
-        for (SObject inv : rows) {
-            Id accId = (Id) inv.get(invAccountField);
-            if (accId == null) continue;
-            Decimal bal = inv.get('Balance') != null ? (Decimal) inv.get('Balance') : 0;
-            accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
-            Object dueObj = inv.get('DueDate');
-            Integer days = 0;
-            if (dueObj instanceof Date) {
-                Date d = (Date) dueObj;
-                if (d < today) days = d.daysBetween(today);
-            }
-            Integer existing = accountMaxDays.get(accId);
-            if (existing == null || days > existing) accountMaxDays.put(accId, days);
-        }
-        if (accountBalance.isEmpty()) return;
-        List<WorklistItem> items = new List<WorklistItem>();
-        Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
-        for (Id accId : accountBalance.keySet()) {
-            Integer days = accountMaxDays.get(accId);
-            String health = (days != null && days > 30) ? 'red' : (days != null && days > 0 ? 'amber' : 'green');
-            items.add(new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), days, 'critical', health, null, null));
-        }
-        sortByBalance(items);
-        if (wl.highValueDelinquents.isEmpty()) {
-            for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
-        }
-    }
-
-    // Returns the exception when the read failed (the caller decides whether the tab is unavailable).
-    private static Exception buildWorklistUnifiedFallback(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date today, Date thirtyDaysAgo) {
-        if (!wl.highValueDelinquents.isEmpty()) return null;
-        try {
-            String invWhere = ' Balance > 0 ';
-            if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
-            if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere + ' LIMIT 1000', AccessLevel.USER_MODE);
-            Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
-            Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
-            for (Invoice inv : invs) {
-                Id accId = (Id) inv.get(invAccountField);
-                if (accId == null) continue;
-                Decimal bal = inv.Balance != null ? inv.Balance : 0;
-                accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
-                Integer days = inv.DueDate != null ? inv.DueDate.daysBetween(today) : 0;
-                Integer existing = accountMaxDays.get(accId);
-                if (existing == null || days > existing) accountMaxDays.put(accId, days);
-            }
-            List<WorklistItem> items = new List<WorklistItem>();
-            Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
-            for (Id accId : accountBalance.keySet()) {
-                Integer days = accountMaxDays.get(accId);
-                String health = (days != null && days > 30) ? 'red' : (days != null && days > 0 ? 'amber' : 'green');
-                items.add(new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), days, 'critical', health, null, null));
-            }
-            sortByBalance(items);
-            if (wl.highValueDelinquents.isEmpty()) {
-                for (Integer i = 0; i < Math.min(5, items.size()); i++) wl.highValueDelinquents.add(items[i]);
-            }
-            return null;
-        } catch (Exception e) {
-            sectionSkipped('buildWorklistUnifiedFallback', e);
-            return e;
-        }
-    }
-
     private static Boolean invoiceHasBillToContactId() {
         try {
             return Schema.SObjectType.Invoice.fields.getMap().containsKey('BillToContactId');
@@ -542,6 +435,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (inv.Id != null) invoiceIds.add(inv.Id);
         }
         Map<Id, Id> invoiceToCollectionPlan = new Map<Id, Id>();
+        Boolean planLookupFailed = false;
         if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
             try {
                 for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null WITH USER_MODE]) {
@@ -549,7 +443,7 @@ public with sharing class RLM_CollectionsDashboardController {
                         invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
                     }
                 }
-            } catch (Exception ex) { sectionSkipped('addCriticalFollowUps', ex); }
+            } catch (Exception ex) { sectionSkipped('addCriticalFollowUps', ex); planLookupFailed = true; }
         }
 
         for (Invoice inv : invs) {
@@ -565,10 +459,13 @@ public with sharing class RLM_CollectionsDashboardController {
             Id billToContactId = hasBillToContact && inv.get('BillToContactId') != null ? (Id) inv.get('BillToContactId') : null;
             Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
 
-            wl.criticalFollowUpInvoices.add(new CriticalFollowUpInvoiceItem(
+            CriticalFollowUpInvoiceItem row = new CriticalFollowUpInvoiceItem(
                 inv.Id, invNum, inv.Balance != null ? inv.Balance : 0,
                 daysOverdue, billingAcctId, billingAcctName, billToContactId, collectionPlanId
-            ));
+            );
+            // A plan lookup that was refused or failed is not "no plan": the page offers no Create.
+            row.collectionPlanUnavailable = planLookupFailed;
+            wl.criticalFollowUpInvoices.add(row);
         }
     }
 
@@ -581,6 +478,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String billingAccountName { get; set; }
         @AuraEnabled public Id billToContactId { get; set; }
         @AuraEnabled public Id collectionPlanId { get; set; }
+        // True when the plan lookup was refused or failed: collectionPlanId null then is not "no plan".
+        @AuraEnabled public Boolean collectionPlanUnavailable { get; set; }
         public CriticalFollowUpInvoiceItem(Id invoiceId, String invoiceNumber, Decimal balance, Integer daysInvoiceOverdue, Id billingAccountId, String billingAccountName, Id billToContactId, Id collectionPlanId) {
             this.invoiceId = invoiceId;
             this.invoiceNumber = invoiceNumber != null ? invoiceNumber : '—';
@@ -600,7 +499,8 @@ public with sharing class RLM_CollectionsDashboardController {
         invWhere += getInvoiceNotFullySettledStatusFilter();
         List<Invoice> invs = new List<Invoice>();
         try {
-            invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            invs = (List<Invoice>) cappedInvoiceRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo });
         } catch (Exception e) {
             sectionSkipped('buildHighValueDelinquents', e);
             markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e);
@@ -637,6 +537,7 @@ public with sharing class RLM_CollectionsDashboardController {
         List<WorklistItem> highValue = new List<WorklistItem>();
         Map<Id, String> accountNames = getAccountNames(qualifiedAccounts);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
+        Boolean planLookupFailed = false;
         if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
             try {
                 Set<Id> accIds = qualifiedAccounts;
@@ -645,11 +546,13 @@ public with sharing class RLM_CollectionsDashboardController {
                         accountToCollectionPlan.put(cp.AccountId, cp.Id);
                     }
                 }
-            } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); }
+            } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); planLookupFailed = true; }
         }
         for (Id accId : qualifiedAccounts) {
             WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
             item.collectionPlanId = accountToCollectionPlan.get(accId);
+            // A plan lookup that was refused or failed is not "no plan": the page offers no Create.
+            item.collectionPlanUnavailable = planLookupFailed;
             highValue.add(item);
         }
         sortByBalance(highValue);
@@ -700,7 +603,8 @@ public with sharing class RLM_CollectionsDashboardController {
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            List<Invoice> disputedInvs = (List<Invoice>) cappedInvoiceRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+                new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode });
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -720,6 +624,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
 
             Map<Id, Date> accountPtpDate = new Map<Id, Date>();
+            Boolean ptpLookupFailed = false;
             if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('PaymentSchedule') && Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) {
                 try {
                     List<Id> invIdList = new List<Id>(invoiceIds);
@@ -739,7 +644,7 @@ public with sharing class RLM_CollectionsDashboardController {
                             if (existing == null || (d != null && d > existing)) accountPtpDate.put(accId, d);
                         }
                     }
-                } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); }
+                } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); ptpLookupFailed = true; }
             }
 
             for (Id accId : disputedAccountIds) {
@@ -749,6 +654,8 @@ public with sharing class RLM_CollectionsDashboardController {
                 WorklistItem item = new WorklistItem(accId, accountNames.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
                 item.caseId = accountCaseId.get(accId);
                 item.caseNumber = accountCaseNumber.get(accId);
+                // A promise lookup that was refused or failed is not "no promise".
+                item.ptpUnavailable = ptpLookupFailed;
                 wl.disputedInvoices.add(item);
             }
         } catch (Exception e) {
@@ -782,11 +689,32 @@ public with sharing class RLM_CollectionsDashboardController {
     // entity 'X'". Any other exception (a timeout, a limit, a platform error) is a failure, not a refusal.
     @TestVisible private static final String REASON_REFUSED = 'refused';
     @TestVisible private static final String REASON_FAILED = 'failed';
+    // More rows than a section can total in one transaction: narrow the filters (todo 435).
+    @TestVisible private static final String REASON_TOO_MANY = 'tooMany';
+
+    // The most invoice rows a section reads to total or roll up. One more than this means the read was
+    // cut off, so the figure would be wrong: the section is unavailable (REASON_TOO_MANY) instead, well
+    // before the 50,000-row query limit, which no catch block can handle.
+    @TestVisible private static Integer INVOICE_ROW_CAP = 10000;
+
+    @TestVisible
+    private class TooManyRowsException extends Exception {}
+
+    private static List<SObject> cappedInvoiceRows(String soql, Map<String, Object> binds) {
+        List<SObject> rows = Database.queryWithBinds(soql + ' LIMIT ' + (INVOICE_ROW_CAP + 1), binds, AccessLevel.USER_MODE);
+        if (rows.size() > INVOICE_ROW_CAP) {
+            throw new TooManyRowsException('More than ' + INVOICE_ROW_CAP + ' invoices to total.');
+        }
+        return rows;
+    }
 
     @TestVisible
     private static String reasonFor(Exception e) {
         if (e instanceof NoAccessException) {
             return REASON_REFUSED;
+        }
+        if (e instanceof TooManyRowsException) {
+            return REASON_TOO_MANY;
         }
         String message = e == null || e.getMessage() == null ? '' : e.getMessage();
         if (!(e instanceof QueryException)) {
@@ -797,7 +725,7 @@ public with sharing class RLM_CollectionsDashboardController {
         }
         // "No such column 'F' on entity 'X'" is a refusal only when X has a field F the user cannot see;
         // a field the org does not have at all (a single-currency org's CurrencyIsoCode) is a failure.
-        Matcher column = Pattern.compile('^No such column \'(\\w+)\' on entity \'(\\w+)\'').matcher(message);
+        Matcher column = Pattern.compile('No such column \'(\\w+)\' on entity \'(\\w+)\'').matcher(message);
         if (column.find() && fieldExists(column.group(2), column.group(1))) {
             return REASON_REFUSED;
         }
@@ -832,6 +760,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id collectionPlanId { get; set; }
         @AuraEnabled public Id caseId { get; set; }
         @AuraEnabled public String caseNumber { get; set; }
+        // True when the plan or promise lookup was refused or failed: a null then is not "none".
+        @AuraEnabled public Boolean collectionPlanUnavailable { get; set; }
+        @AuraEnabled public Boolean ptpUnavailable { get; set; }
         public WorklistItem(Id accId, String name, Decimal bal, Integer days, String seg) {
             accountId = accId; accountName = name != null ? name : '—'; balance = bal; daysOverdue = days; segment = seg; healthScore = 'amber'; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
         }
