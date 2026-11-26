@@ -411,7 +411,8 @@ def expect(label, sent, needle):
 
 print("pack 467: values are escaped by soql_quote (quote, backslash and newline) in every changed query builder")
 
-T = new_task("rlm_apply_procedure_plan_overlay", "ApplyProcedurePlanOverlay", options={"max_wait_seconds": 0})
+# max_wait_seconds is a positive integer (todo 488 refuses 0); grab stubs time.sleep, so 1 does not wait.
+T = new_task("rlm_apply_procedure_plan_overlay", "ApplyProcedurePlanOverlay", options={"max_wait_seconds": 1})
 expect("overlay _get_version", grab(T, T._get_version, NASTY), f"DeveloperName = {LIT} ")
 expect("overlay _wait_for_active_state", grab(T, T._wait_for_active_state, NASTY, True), f"WHERE Id = {LIT}")
 expect("overlay _get_section_records", grab(T, T._get_section_records, NASTY, NASTY),
@@ -464,7 +465,7 @@ for cls, label in (("CreateProcedurePlanDefinition", "plan def"),):
     expect(f"{label} _get_context_definition_id_by_label", grab(T, T._get_context_definition_id_by_label, NASTY),
            f"MasterLabel = {LIT}")
 for cls in ("ActivateProcedurePlanVersion", "DeactivateProcedurePlanVersion"):
-    T = new_task("rlm_create_procedure_plan_def", cls, options={"developerName": NASTY, "max_wait_seconds": 0,
+    T = new_task("rlm_create_procedure_plan_def", cls, options={"developerName": NASTY, "max_wait_seconds": 1,
                                                                  "poll_interval_seconds": 1})
     expect(f"{cls} _run_task", grab(T, T._run_task), f"DeveloperName = {LIT} ")
 
@@ -642,7 +643,8 @@ T = new_task("rlm_repair_pricing_schedules", "EnsurePricingSchedules")
 sent = grab(T, T._get_missing_schedules, [])
 check("repair_pricing_schedules: no schedule names means no query", not sent and T._get_missing_schedules([]) == [], repr(sent))
 # The settings paths are required options (CumulusCI always supplies them); grab stubs the deploys.
-REPAIR_PATHS = {"disable_settings_path": "disable", "enable_settings_path": "enable"}
+# They must exist, checked before any query (todo 488), so they are real (empty) directories.
+REPAIR_PATHS = {"disable_settings_path": tempfile.mkdtemp(), "enable_settings_path": tempfile.mkdtemp()}
 T.options = {"schedule_names": "A,B", "validate_decision_table_lookups": "false", **REPAIR_PATHS}
 sent = grab(T, T._run_task)
 check("repair_pricing_schedules: a comma-separated schedule_names option is read as names",
