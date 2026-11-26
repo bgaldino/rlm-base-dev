@@ -47,7 +47,7 @@ describe('rlmDocStatusMonitor', () => {
         jest.restoreAllMocks();
     });
 
-    it('re-reads the status right after the EMP subscription is live, not before', async () => {
+    it('makes an extra status read once the EMP subscription is live, not while it is still being set up', async () => {
         let resolveSubscribe;
         subscribe.mockImplementation(
             () =>
