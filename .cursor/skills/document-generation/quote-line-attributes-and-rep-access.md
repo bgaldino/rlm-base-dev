@@ -27,7 +27,7 @@ shipped quote proposal extract and run for an admin, a rep (three runs) and a 20
 6. **Names:** ODT names must be alphanumeric (a name with underscores failed the deploy).
 
 Limits: two-level nested SOQL (Quote to line to QLIA) fails because QLIA is treated as an external object, so use the object-query
-hierarchy above, not nested SOQL. A Context Service template can't print attributes until its context has an attribute node and QLIA
+hierarchy above, not nested SOQL [Open: not re-run in the 2026-11-26 session]. A Context Service template can't print attributes until its context has an attribute node and QLIA
 mapping; the shipped `RLM_QuoteDocGenContext` has only Quote and line nodes [Repo: `datasets/context_plans/DocGen/contexts/quote_docgen.json`].
 Copying attributes onto a line field with Apex is possible but any `QuoteLineItem` update outside the line editors invalidates pricing:
 an API update of a line's `Description` set the quote's `ValidationResult` to `TransactionIncomplete` [Measured: same].
@@ -46,7 +46,7 @@ Two separate access layers apply, and the shipped seeded rep lacks both for the 
 | `DocumentTemplate` not visible, or `DocGenRuntimeUser` can't be granted | The separately licensed DocGen set is missing | See Runtime permissions in [SKILL.md](SKILL.md) |
 
 Which library membership a persona should hold is [Open: tracked as a separate persona-access item].
-Child row order can vary between runs of the same quote.
+Child row order can vary between runs of the same quote [Open: seen once, not isolated].
 
 ## Blank paragraphs and locked sections
 

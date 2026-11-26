@@ -18,20 +18,21 @@ inputs, set in Flow Builder under "Set custom logic for auto-approvals" on the 2
 
 An element reference to a Boolean output deploys into this String input, and the work item
 gets `IsEligibleForAutoApproval` true [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
-The background step that computes the Boolean sits in the same stage ("when another step is
-marked Complete" [Help]); one in an earlier stage also worked, because its output is read when
-the step is created [Measured: same].
+The background step that computes the Boolean sat in the same stage as the target step and worked; one in an
+earlier stage also worked, because its output is read when the step is created [Measured: same]. The Help describes
+the background step as one that precedes the target approval step
+[Help: `ind.approvals_define_custom_logic_auto_approvals`].
 
 ## Rules that decide the outcome
 
 1. **Only "true" auto-approves.** The step auto-approves when the override value equals `true`
    ignoring case. "Approve", "Yes" or any other text goes to review, silently
-   [Platform behaviour, traced: core-264-public p4/264-patch `InvocableStepApproval.java`]. A
+   [Platform behaviour, traced]. A
    static override of "Approve" is therefore always false and tests nothing.
 2. **It needs the Smart Approval basis.** Rule-based and Smart Approvals share one basis: an
    earlier Recalled or Rejected submission of the same record and flow version, with a basis
    item for the same step and an active reviewer (`ApprovalSubmission.SmartApprvlBasisSubmissionId`)
-   [Platform behaviour, traced: same file]. So it never fires on a first submission
+   [Platform behaviour, traced]. So it never fires on a first submission
    [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 3. **After a full approval there is no basis.** Flag true still went to review
    [Measured: same].
@@ -42,8 +43,7 @@ the step is created [Measured: same].
    its basis [Measured: same].
 6. **Mutual exclusions.** The editor makes an Auto Approval Evaluation Flow exclusive with Use
    Smart Approval and with the Auto-Approve Step, and with an evaluation flow set the override
-   path is skipped [Platform behaviour, traced: `FlowStageStepValidatorDelegate.java`,
-   `InvocableStepApproval.java`]. When measuring, turn Smart Approval off on the measured steps,
+   path is skipped [Platform behaviour, traced]. When measuring, turn Smart Approval off on the measured steps,
    or you cannot tell which path approved.
 
 ## How to test it
@@ -60,5 +60,5 @@ FROM ApprovalWorkItem WHERE RelatedRecordId = '<quote>' ORDER BY CreatedDate
 
 ## Not covered
 
-[Open: the Auto Approval Evaluation Flow path (gate `interaction.engine.enableAutoApproval`) is
+[Open: the Auto Approval Evaluation Flow path is
 undocumented in the 264 Help; do not build on it as a workaround.]

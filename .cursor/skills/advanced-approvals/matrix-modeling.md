@@ -385,7 +385,8 @@ computes reach the level after it runs (§1, amendments).
     - **The reviewer persona,** in a permission set: Run Flows, and Read on Approval Submission
       and Approval Work Item. The personas table names only Approval Submission
       [Help: `ind.approvals_personas`]; both were granted together, so whether Approval Work
-      Item is also needed isn't established.
+      Item is also needed was settled later: it is needed for the work item page, not for the
+      `reviewApprovalWorkItem` action (see the Reviewer actions paragraph below).
     - **Read on the quote.** Quote access is controlled by its parent opportunity, so share
       the opportunities with the approver groups. In the measured org Opportunity sharing was
       Private and an admin with no role owned every record. An owner-based sharing rule from

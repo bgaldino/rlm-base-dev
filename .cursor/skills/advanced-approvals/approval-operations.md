@@ -27,7 +27,7 @@ from fresh ent-sb0 harness builds on 264; the tag on each fact says which.
   holding, and the second member's approval approved all three [Measured: same].
 - **Automated Process email:** on a fresh build Flow Builder warns that the Automated Process User has
   no valid email address, so the orchestration can't send step emails; set one under Process Automation
-  Settings [Measured: same; candidate build-configuration follow-up].
+  Settings [Measured: same].
 - **Builder saves rewrite XML.** Saving an approval flow in Flow Builder dropped `<conditionType>ExitCondition</conditionType>`
   lines and added `END_ELEMENT_*` connectors in the stored flow; saving a page in App Builder added
   `isAutoAdvanceToNextWorkItem=false` to the Work Guide component. Diff a builder save before committing
@@ -75,7 +75,7 @@ These come from the release's Help; none was run on a build unless tagged.
   filtered work-item related lists on Quote are [Open: not run; read the release's Approval Help and the Quote
   record page in the target org].
 - **Alert templates** render against the recipient and target record, not the work item id; a failed render
-  silently sends the default email; the step screen flow is where to require comments [Open: from field reports;
+  silently sends the default email; the step screen flow is where to require comments [Open: not run;
   verify with a deliberately broken template].
 - **First submissions:** Smart and Rule-Based auto-approval never fire on a first submission. For a policy that
   must skip a step on the first pass, stamp a role or flag on the quote in the submit screen flow (it runs as the

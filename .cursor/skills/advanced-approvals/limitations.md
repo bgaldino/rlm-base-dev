@@ -173,7 +173,7 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - **Concurrent reviews:** when two group members review at once, the first wins and the
   second is rejected.
 
-## Open questions (not settled by the docs or a measured run)
+## Questions settled by a measured run
 
 - Where "First Response" vs "All Must Approve" is configured: settled, a per-step "Require unanimous
   approval" checkbox ([approval-operations.md](approval-operations.md) → Approver and step settings)
@@ -195,6 +195,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Whether `ApprovalDelegation` appears once delegation is turned on: it does
   ([approval-operations.md](approval-operations.md) → Delegation) [Measured: same]. [Open: routing
   of a live work item to the delegate.]
+## Open questions (not settled by the docs or a measured run)
+
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be

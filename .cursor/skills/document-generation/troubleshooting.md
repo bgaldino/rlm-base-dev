@@ -2,7 +2,7 @@
 
 Read when output is blank, wrong, or generation errors. Run the Before generation checks in SKILL.md first. Parent: [document-generation](SKILL.md).
 
-### Common Extract Architecture Pitfalls
+## Common Extract Architecture Pitfalls
 
 | Pitfall | Symptom | Root Cause | Fix |
 |---------|---------|------------|-----|
@@ -15,7 +15,7 @@ Read when output is blank, wrong, or generation errors. Run the Before generatio
 | Mixed-depth leakage | Parent + child count entries (e.g., 7+5=10 instead of 5) | Field mappings for same output array read from different hierarchy depths | All mappings must read from same depth — use redundant join for parent fields |
 | Grantless parents in array | Empty rows for records without children | No subquery filtering; parent-level mapping includes all parents | Use child-first hierarchy with redundant parent join at child level |
 
-### Troubleshooting
+## Symptoms and fixes
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|

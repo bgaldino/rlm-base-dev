@@ -166,7 +166,6 @@ Extract + Transform ODTs with all items.
 6. **Upload** new `.docx` (deactivate template → replace file → reactivate)
 
 ---
----
 
 ## Deployment & Repo Integration
 
