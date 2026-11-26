@@ -952,14 +952,59 @@ for value in ("", "0", " 4 "):
 for options, needle in (({"timeout_seconds": "abc"}, "timeout_seconds must be a positive integer"),
                         ({"poll_seconds": 0}, "poll_seconds must be a positive integer"),
                         ({"retry_delay_seconds": ["5"]}, "retry_delay_seconds must be a single value"),
-                        ({"post_trigger_delay_seconds": "-1"}, "post_trigger_delay_seconds must be a positive integer"),
+                        ({"post_trigger_delay_seconds": "-1"}, "post_trigger_delay_seconds must be a whole number, 0 or more"),
+                        ({"retry_delay_seconds": "abc"}, "retry_delay_seconds must be a whole number, 0 or more"),
                         ({"initial_delay_seconds": "abc"}, "initial_delay_seconds must be a whole number, 0 or more"),
                         ({"retry_count": "-1"}, "retry_count must be a whole number, 0 or more")):
     err, seen = psg_run(options)
     check(f"psg: {options!r} refused by name before any query",
           err is not None and needle in err and not seen["queries"] and not seen["wait"], repr((err, seen)))
 
+# 0 means "no wait" for the two delays, as before.
+for name in ("post_trigger_delay_seconds", "retry_delay_seconds"):
+    err, seen = psg_run({name: "0"})
+    check(f"psg: {name} '0' is accepted (no wait)", err is None and seen["wait"] is not None, repr((err, seen)))
+err, seen = psg_run({"post_trigger_delay_seconds": 0})
+check("psg: post_trigger_delay_seconds int 0 reaches the wait as 0",
+      err is None and seen["wait"]["post_trigger_delay_seconds"] == 0, repr((err, seen)))
+
+
+def psg_retry_run(options):
+    """_run_task where every wait times out; return (error, waits attempted, sleeps)."""
+    attempts, sleeps = [], []
+    task = _psg.RecalculatePermissionSetGroups.__new__(_psg.RecalculatePermissionSetGroups)
+    task.options = {"api_names": "G1", **options}
+    task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+    task._query_groups = lambda names: [{"DeveloperName": n, "Status": "Outdated"} for n in names]
+
+    def time_out(**kw):
+        attempts.append(kw)
+        raise _psg.TaskOptionsError("Timed out")
+    task._wait_until_updated = time_out
+    with mock.patch.object(_psg.time, "sleep", lambda secs: sleeps.append(secs)):
+        try:
+            task._run_task()
+            return None, attempts, sleeps
+        except Exception as exc:
+            return str(exc), attempts, sleeps
+
+
+# Default-value mutants: retry_count 2 (three attempts) and retry_delay_seconds 120.
+err, attempts, sleeps = psg_retry_run({})
+check("psg: unset retry_count and retry_delay_seconds: three attempts, two 120s retry sleeps, then the timeout",
+      err == "Timed out" and len(attempts) == 3 and sleeps == [120, 120], repr((err, len(attempts), sleeps)))
+err, attempts, sleeps = psg_retry_run({"retry_count": "  ", "retry_delay_seconds": "0"})
+check("psg: blank retry_count is 2; retry_delay_seconds 0 retries at once",
+      err == "Timed out" and len(attempts) == 3 and sleeps == [0, 0], repr((err, len(attempts), sleeps)))
+err, attempts, sleeps = psg_retry_run({"retry_count": "0", "initial_delay_seconds": " 5 "})
+check("psg: retry_count 0 makes one attempt; initial_delay_seconds ' 5 ' sleeps 5 first",
+      err == "Timed out" and len(attempts) == 1 and sleeps == [5], repr((err, len(attempts), sleeps)))
+
 _eps = load("rlm_repair_pricing_schedules")
+_eps_dirs = tempfile.mkdtemp()
+EPS_DISABLE, EPS_ENABLE, EPS_META = (os.path.join(_eps_dirs, n) for n in ("disable", "enable", "esd"))
+for _d in (EPS_DISABLE, EPS_ENABLE, EPS_META):
+    os.makedirs(_d)
 
 
 def eps_run(options, still_missing=0):
@@ -969,9 +1014,10 @@ def eps_run(options, still_missing=0):
     calls, sleeps = [], []
     polls = {"n": 0}
     t = _eps.EnsurePricingSchedules.__new__(_eps.EnsurePricingSchedules)
-    t.options = {"disable_settings_path": "d", "enable_settings_path": "e", **options}
+    t.options = {"disable_settings_path": EPS_DISABLE, "enable_settings_path": EPS_ENABLE,
+                 "expression_sets_metadata_path": EPS_META, **options}
     t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
-    t._discover_lookup_decision_tables = lambda: calls.append("discover") or []
+    t._discover_lookup_decision_tables = lambda path=None: calls.append(("discover", path)) or []
 
     def missing(names):
         calls.append(("schedules", list(names)))
@@ -990,12 +1036,13 @@ def eps_run(options, still_missing=0):
 
 err, calls, sleeps = eps_run({})
 check("ensure_pricing_schedules: defaults (blank or unset) poll every 10s, discover lookups, check the three schedules",
-      err is None and "discover" in calls and calls[1] == ("schedules", list(_eps.EnsurePricingSchedules.DEFAULT_SCHEDULE_NAMES))
-      and ("deploy", "d") in calls and sleeps == [10], repr((err, calls, sleeps)))
+      err is None and ("discover", EPS_META) in calls
+      and calls[1] == ("schedules", list(_eps.EnsurePricingSchedules.DEFAULT_SCHEDULE_NAMES))
+      and calls[2:4] == [("deploy", EPS_DISABLE), ("deploy", EPS_ENABLE)] and sleeps == [10], repr((err, calls, sleeps)))
 err, calls, sleeps = eps_run({"poll_attempts": "  ", "poll_interval_seconds": " 3 ",
                               "validate_decision_table_lookups": " off ", "schedule_names": "A, B"})
 check("ensure_pricing_schedules: padded interval, blank attempts, ' off ' skips discovery, a comma string is two names",
-      err is None and "discover" not in calls and calls[0] == ("schedules", ["A", "B"]) and sleeps == [3],
+      err is None and not any(c[0] == "discover" for c in calls) and calls[0] == ("schedules", ["A", "B"]) and sleeps == [3],
       repr((err, calls, sleeps)))
 err, calls, sleeps = eps_run({"poll_attempts": " 2 ", "poll_interval_seconds": 1}, still_missing=5)
 check("ensure_pricing_schedules: poll_attempts ' 2 ' polls twice, then fails naming what is missing",
@@ -1004,11 +1051,38 @@ for options, needle in (({"poll_attempts": "abc"}, "poll_attempts must be a posi
                         ({"poll_attempts": 0}, "poll_attempts must be a positive integer"),
                         ({"poll_interval_seconds": ["5"]}, "poll_interval_seconds must be a single value"),
                         ({"validate_decision_table_lookups": "maybe"}, "validate_decision_table_lookups must be true or false"),
-                        ({"schedule_names": ["A", None]}, "schedule_names items must be names")):
+                        ({"schedule_names": ["A", None]}, "schedule_names items must be names"),
+                        # The two settings paths: a bad enable path used to fail after the disable deploy.
+                        ({"enable_settings_path": "  "}, "enable_settings_path is required"),
+                        ({"enable_settings_path": None}, "enable_settings_path is required"),
+                        ({"enable_settings_path": os.path.join(_eps_dirs, "typo")}, "enable_settings_path must be an existing directory or file"),
+                        ({"disable_settings_path": ""}, "disable_settings_path is required"),
+                        ({"disable_settings_path": [EPS_DISABLE]}, "disable_settings_path must be a single value"),
+                        ({"expression_sets_metadata_path": os.path.join(_eps_dirs, "nope")},
+                         "expression_sets_metadata_path must be a directory")):
     err, calls, sleeps = eps_run(options)
     check(f"ensure_pricing_schedules: {options!r} refused by name before any query or deploy (the polls were read "
           "after the two deploys)", err is not None and needle in err and calls == [] and sleeps == [],
           repr((err, calls, sleeps)))
+
+# Default-value mutants: poll_attempts 6 and poll_interval_seconds 10 when nothing is set.
+err, calls, sleeps = eps_run({}, still_missing=99)
+check("ensure_pricing_schedules: unset poll_attempts polls six times, 10s apart, then fails",
+      err is not None and "PriceAdjustmentSchedule" in err and sleeps == [10] * 6, repr((err, sleeps)))
+# A blank expression_sets_metadata_path is the documented default (it was Path(""), the working
+# directory, which found 0 expression sets); resolved from the working directory, as sf deploy is.
+_cwd = os.getcwd()
+os.chdir(REPO)
+try:
+    err, calls, sleeps = eps_run({"expression_sets_metadata_path": "  "})
+finally:
+    os.chdir(_cwd)
+check("ensure_pricing_schedules: a blank expression_sets_metadata_path is the default directory",
+      err is None and ("discover", "force-app/main/default/expressionSetDefinition") in calls, repr((err, calls)))
+err, calls, sleeps = eps_run({"expression_sets_metadata_path": os.path.join(_eps_dirs, "nope"),
+                              "validate_decision_table_lookups": "false"})
+check("ensure_pricing_schedules: with lookups not validated, the metadata path is not needed",
+      err is None and not any(c[0] == "discover" for c in calls), repr((err, calls)))
 
 _ppd = load("rlm_create_procedure_plan_def")
 

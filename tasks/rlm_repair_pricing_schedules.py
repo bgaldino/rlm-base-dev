@@ -37,16 +37,19 @@ class EnsurePricingSchedules(BaseSalesforceTask):
         },
         "disable_settings_path": {
             "description": "Path to the settings bundle or file that disables pricing; keep it to the Pricing "
-            "settings so the toggle changes nothing else.",
+            "settings so the toggle changes nothing else. Required: blank, a list or a path that does not exist "
+            "is refused before any query or deploy.",
             "required": True,
         },
         "enable_settings_path": {
             "description": "Path to the settings bundle or file that enables pricing; keep it to the Pricing "
-            "settings so the toggle and its restore command change nothing else.",
+            "settings so the toggle and its restore command change nothing else. Required: blank, a list or a "
+            "path that does not exist is refused before any query or deploy (a bad one used to fail after "
+            "pricing had been disabled).",
             "required": True,
         },
         "expression_sets_metadata_path": {
-            "description": "Path to expression set metadata used to discover DecisionTable lookup API names.",
+            "description": "Path to expression set metadata used to discover DecisionTable lookup API names. Default (also when blank) force-app/main/default/expressionSetDefinition; with validate_decision_table_lookups on, a path that is not a directory is refused before any query.",
             "required": False,
         },
         "validate_decision_table_lookups": {
@@ -61,15 +64,43 @@ class EnsurePricingSchedules(BaseSalesforceTask):
         "Standard Bundle Based Adjustment",
     ]
 
+    DEFAULT_EXPRESSION_SETS_METADATA_PATH = "force-app/main/default/expressionSetDefinition"
+
+    def _path_option(self, name: str, default: str = None, directory: bool = False) -> str:
+        """A path option, stripped (the sf deploy resolves it from the working directory).
+
+        None, blank or whitespace is `default`, or refused as required when there is none; a list, or
+        a path that does not exist (or is not a directory, with directory=True), is refused by name
+        before any query or deploy. The settings paths may be a bundle directory or a single settings
+        file; the expression-set metadata path must be a directory.
+        """
+        text = option_text(self.options.get(name), name, TaskOptionsError)
+        if text is None:
+            if default is None:
+                raise TaskOptionsError(f"{name} is required: a settings bundle directory or settings file")
+            text = default
+        path = Path(text)
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        if directory and not path.is_dir():
+            raise TaskOptionsError(f"{name} must be a directory, got {text!r} ({path})")
+        if not path.exists():
+            raise TaskOptionsError(f"{name} must be an existing directory or file, got {text!r} ({path})")
+        return text
+
     def _positive_option(self, name: str, default: int) -> int:
         text = option_text(self.options.get(name), name, TaskOptionsError)
         return default if text is None else positive_int(text, name, TaskOptionsError)
 
     def _run_task(self):
-        # Every option is read before the first query (poll_attempts and poll_interval_seconds were
-        # read after the two settings deploys). None, blank or whitespace is the default; a list for a
-        # scalar, a value outside CumulusCI's boolean vocabulary, a non-positive number, or a schedule
-        # name that is not a string is refused by name.
+        # Every option is read before the first query (poll_attempts, poll_interval_seconds and the two
+        # settings paths were read after the schedule queries, the enable path only after the disable
+        # deploy had run, so a bad enable path left pricing disabled). None, blank or whitespace is the
+        # default (the two settings paths are required); a list for a scalar, a value outside
+        # CumulusCI's boolean vocabulary, a non-positive number, a path that does not exist, or a
+        # schedule name that is not a string is refused by name.
+        disable_settings_path = self._path_option("disable_settings_path")
+        enable_settings_path = self._path_option("enable_settings_path")
         # schedule_names: a list or comma-separated; a string used to be iterated character by character.
         schedule_names = (
             requested_names(self.options.get("schedule_names"), "schedule_names", TaskOptionsError)
@@ -81,13 +112,20 @@ class EnsurePricingSchedules(BaseSalesforceTask):
         )
         attempts = self._positive_option("poll_attempts", 6)
         interval = self._positive_option("poll_interval_seconds", 10)
+        # Blank is the documented default (it was Path(""), the working directory, which silently
+        # found 0 expression sets). Checked as a directory only when lookups are validated.
+        metadata_path = (
+            self._path_option("expression_sets_metadata_path", self.DEFAULT_EXPRESSION_SETS_METADATA_PATH, directory=True)
+            if validate_decision_tables
+            else None
+        )
         decision_table_names = (
-            self._discover_lookup_decision_tables()
+            self._discover_lookup_decision_tables(metadata_path)
             if validate_decision_tables
             else []
         )
 
-        enable_path = self.options["enable_settings_path"]
+        enable_path = enable_settings_path  # parsed and stripped above
 
         pricing_was_off = False
         try:
@@ -132,7 +170,7 @@ class EnsurePricingSchedules(BaseSalesforceTask):
         self._require_username()
         if not pricing_was_off:
             try:
-                self._deploy_settings(self.options["disable_settings_path"])
+                self._deploy_settings(disable_settings_path)
             except TaskOptionsError as error:
                 # A deploy that reports failure can still have landed: say what the org reads as.
                 state = self._probe_pricing(enable_path, "checking Pricing after a failed disable deploy")
@@ -400,11 +438,11 @@ class EnsurePricingSchedules(BaseSalesforceTask):
         ]
         return "; ".join(part for part in parts if part) or both
 
-    def _discover_lookup_decision_tables(self) -> List[str]:
-        metadata_path = self.options.get(
-            "expression_sets_metadata_path",
-            "force-app/main/default/expressionSetDefinition",
-        )
+    def _discover_lookup_decision_tables(self, metadata_path: str = None) -> List[str]:
+        if metadata_path is None:
+            metadata_path = self._path_option(
+                "expression_sets_metadata_path", self.DEFAULT_EXPRESSION_SETS_METADATA_PATH, directory=True
+            )
         metadata_dir = Path(metadata_path)
         if not metadata_dir.is_absolute():
             metadata_dir = Path.cwd() / metadata_dir

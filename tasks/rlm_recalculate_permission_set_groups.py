@@ -61,11 +61,11 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
             "required": False,
         },
         "retry_delay_seconds": {
-            "description": "Seconds to wait before retrying after a timeout. Default 120, also when blank; anything but a positive integer is refused.",
+            "description": "Seconds to wait before retrying after a timeout; 0 retries at once. Default 120, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "post_trigger_delay_seconds": {
-            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating). Default 90, also when blank; anything but a positive integer is refused.",
+            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating). 0 skips the wait. Default 90, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "use_tooling_api": {
@@ -85,8 +85,9 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
     def _run_task(self):
         names = self._parse_names(self.options.get("api_names"))
         # Numbers too, before the first query: None, blank or whitespace is the default; anything
-        # else must be a whole number (positive, or 0 or more for initial_delay_seconds and
-        # retry_count), or it is refused by name. They were raw int(), so blank raised ValueError.
+        # else must be a whole number (positive, or 0 or more for initial_delay_seconds, retry_count,
+        # retry_delay_seconds and post_trigger_delay_seconds), or it is refused by name. They were
+        # raw int(), so blank raised ValueError.
         timeout_seconds = self._int_option("timeout_seconds", 300)
         poll_seconds = self._int_option("poll_seconds", 10)
         # Booleans and names are read before the first query: None, blank or whitespace is the
@@ -95,8 +96,9 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
         trigger_recalc = option_flag(self.options.get("trigger_recalc"), "trigger_recalc", TaskOptionsError, default=True)
         initial_delay_seconds = self._int_option("initial_delay_seconds", 0, allow_zero=True)
         retry_count = self._int_option("retry_count", 2, allow_zero=True)
-        retry_delay_seconds = self._int_option("retry_delay_seconds", 120)
-        post_trigger_delay_seconds = self._int_option("post_trigger_delay_seconds", 90)
+        # 0 means no wait for these two (sleep(0), or the `> 0` guard), so 0 stays allowed.
+        retry_delay_seconds = self._int_option("retry_delay_seconds", 120, allow_zero=True)
+        post_trigger_delay_seconds = self._int_option("post_trigger_delay_seconds", 90, allow_zero=True)
         use_tooling_api = option_flag(self.options.get("use_tooling_api"), "use_tooling_api", TaskOptionsError)
         self._use_tooling_api = use_tooling_api
         force_recalc = option_flag(self.options.get("force_recalc"), "force_recalc", TaskOptionsError)
