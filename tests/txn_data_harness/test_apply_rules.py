@@ -7,6 +7,8 @@ with no ``errors`` key on success; the rows it writes are ordinary Applied rows.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from scripts.txn_data_harness import cli, lifecycle
@@ -67,6 +69,12 @@ def test_resolve_account_id_says_an_id_was_not_found():
     with pytest.raises(lifecycle.SettlementError,
                        match=f"Account {ACCOUNT} was not found or is not readable"):
         lifecycle.resolve_account_id(QueryOrg({"FROM Account": []}), ACCOUNT)
+
+
+def test_resolve_account_id_reads_a_15_character_name_without_the_id_prefix_as_a_name():
+    org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
+    lifecycle.resolve_account_id(org, "ABCDEFGHIJKLMNO")
+    assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = 'ABCDEFGHIJKLMNO'"
 
 
 def test_resolve_account_id_reads_a_16_character_name_as_a_name():
@@ -190,7 +198,8 @@ class Org:
         self.fail: dict[str, Exception] = {}
         self.report = report or {"ok": True, "checked": 2, "skipped": 1, "level": "line",
                                  "level_source": "records", "failed_checks": [],
-                                 "checks": []}
+                                 "checks": [{"check": "invoice_balance", "subject": INVOICE_A,
+                                             "status": "pass", "detail": "0.0 = 495.0"}]}
         m = monkeypatch
         m.setattr(cli.SfRestClient, "from_alias", classmethod(lambda c, *a, **k: self))
         m.setattr(cli.lifecycle, "resolve_account_id", self._step("resolve", ACCOUNT))
@@ -234,6 +243,8 @@ def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     assert f"APPLIED: credit {MEMO} 49.5 -> invoice {INVOICE_A}" in out
     assert "1AlOLD" not in out
     assert "RULES: Match Balance, Prioritize Oldest Invoices;" in out
+    assert '"totalPaymentApplications": 1' in out
+    assert re.search(rf"^PASS +invoice_balance +{INVOICE_A}: 0\.0 = 495\.0$", out, re.M)
     assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made; "
             "2 balance(s) checked, 1 skipped)") in out
 
@@ -283,6 +294,22 @@ def test_a_row_without_an_invoice_is_listed_but_not_sent_to_verify(monkeypatch, 
     assert _apply_rules() == 0
     assert ("fetch", [INVOICE_A], [PAYMENT]) in org.calls
     assert "4sGNOINV" in capsys.readouterr().out
+
+
+def test_credit_rows_without_an_invoice_fail_as_nothing_checked(monkeypatch, capsys):
+    orphan = _row("4sGNOINV", "credit", MEMO, None, 1)
+    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 0,
+                                               "totalCreditMemoApplications": 1})
+    org = Org(monkeypatch, after=[OLD, orphan], result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert "no balance was checked" in capsys.readouterr().out
+
+
+def test_an_error_without_a_message_prints_its_code(monkeypatch, capsys):
+    Org(monkeypatch, result={"isSuccess": False, "errors": [{"errorCode": "INVALID_ID"}]})
+    assert _apply_rules() == 1
+    assert "INVALID_ID" in capsys.readouterr().out
 
 
 def test_a_success_with_empty_errors_verifies(monkeypatch):

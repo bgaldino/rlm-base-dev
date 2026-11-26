@@ -863,7 +863,8 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               "(areAllInvoicesConsidered false)")
     label = f"account {account_id}"
     if result.get("isSuccess") is not True or result.get("errors"):
-        messages = [html.unescape(str(e.get("message"))) if isinstance(e, dict) else str(e)
+        messages = [html.unescape(str(e.get("message") or e.get("errorCode") or json.dumps(e)))
+                    if isinstance(e, dict) else str(e)
                     for e in result.get("errors") or []]
         print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}: "
               f"{'; '.join(messages) or 'no error message'}")
@@ -884,6 +885,10 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         return 0
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
     payment_ids = list(dict.fromkeys(r["source_id"] for r in new if r["kind"] == "payment"))
+    if not invoice_ids and not payment_ids:
+        print(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
+              "readable invoice or payment)")
+        return 1
     try:
         records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
