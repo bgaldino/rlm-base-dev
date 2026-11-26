@@ -1,5 +1,10 @@
 import time
 from abc import abstractmethod
+from typing import List
+
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import option_text, requested_names
 
 # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
 try:
@@ -7,12 +12,13 @@ try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.keychain import BaseProjectKeychain
     from cumulusci.core.utils import process_bool_arg
-    from cumulusci.core.exceptions import CommandException
+    from cumulusci.core.exceptions import CommandException, TaskOptionsError
 except ImportError:  # pragma: no cover - exercised only in the offline test environment
     requests = None
     SFDXBaseTask = object
     BaseProjectKeychain = object
     CommandException = Exception
+    TaskOptionsError = Exception
 
     def process_bool_arg(arg):
         """Offline fallback for cumulusci.core.utils.process_bool_arg.
@@ -61,11 +67,11 @@ class RefreshDecisionTable(SFDXBaseTask):
             "description": "The access token for the org. Defaults to the project default",
         },
         "developerNames": {
-            "description": "Required. API name of an active decision table that you want to refresh.",
+            "description": "Required. DeveloperName of each active decision table to refresh: a comma-separated string or a list. Blank entries are ignored; an empty value is refused.",
             "required": True,
         },
         "isIncremental": {
-            "description": "Specifies whether to trigger an incremental refresh (true) or not (false). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
+            "description": "Specifies whether to trigger an incremental refresh (true) or not (false); blank or unset means false, a list is refused, and an unparseable value such as maybe is refused. If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
             "required": False,
         },
     }
@@ -87,41 +93,38 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Prepare runtime by loading keychain and setting up access token and instance URL from options or defaults
     def _prep_runtime(self):
         self._load_keychain()
-        self.access_token = self.options.get("access_token", self.org_config.access_token)
-        self.instance_url = self.options.get("instance_url", self.org_config.instance_url)
+        # A falsy non-string (YAML false or 0) is unset, not the text "False" or "0".
+        self.access_token = option_text(self.options.get("access_token") or None, "access_token", TaskOptionsError) or self.org_config.access_token
+        self.instance_url = option_text(self.options.get("instance_url") or None, "instance_url", TaskOptionsError) or self.org_config.instance_url
+
+    def _option_text(self, name):
+        return option_text(self.options.get(name), name, TaskOptionsError)
+
+    def _option_flag(self, name) -> bool:
+        text = self._option_text(name)
+        if text is None:
+            return False
+        try:
+            return bool(process_bool_arg(text))
+        except TypeError:
+            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
+
+    def _option_names(self, name) -> List[str]:
+        return requested_names(self.options.get(name), name, TaskOptionsError)
 
     # Execute the task after preparation, where the core functionality will be implemented
     def _run_task(self):
+        # Options are read before any request: a refused option must leave the org untouched.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        developer_names = self._option_names("developerNames")
+        is_incremental = self._option_flag("isIncremental")
+        if not developer_names:
+            raise TaskOptionsError("developerNames is required: name at least one decision table to refresh")
         self._prep_runtime()
         
-        # Debug: Print the type and content of self.options
-        self.logger.info(f"Type of self.options: {type(self.options)}")
-        self.logger.info(f"Content of self.options: {self.options}")
-
-        # Check if self.options is a list (which it shouldn't be)
-        if isinstance(self.options, list):
-            raise TypeError("self.options is a list, but it should be a dictionary. This is likely a configuration issue.")
-
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-        developer_names = self.options.get("developerNames")
-        is_incremental = process_bool_arg(self.options.get("isIncremental") or False)
-
         # Debug: Print the values of developer_names and is_incremental
         self.logger.info(f"developer_names: {developer_names}")
         self.logger.info(f"is_incremental: {is_incremental}")
-
-        # Check if developer_names is None or empty
-        if not developer_names:
-            raise ValueError("developerNames is required but was not provided or is empty")
-
-        # Split a comma-separated CLI string.
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-        if isinstance(developer_names, str):
-            developer_names = [part.strip() for part in developer_names.split(",") if part.strip()]
-            if not developer_names:
-                raise ValueError("developerNames was provided but contained no usable names")
-        elif not isinstance(developer_names, list):
-            raise ValueError(f"developerNames must be a string or a list of strings, but got {type(developer_names)}")
 
         # De-duplicate, then skip missing/inactive tables and fail on any that do not queue.
         # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Missing, inactive and failed tables.

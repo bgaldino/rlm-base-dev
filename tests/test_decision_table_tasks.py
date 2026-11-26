@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 176
+EXPECTED_CHECKS = 201
 
 
 def check(label, condition, detail=""):
@@ -1806,6 +1806,12 @@ opt_query("list developer_names filter", {"developer_names": ["A", "B"]}, "Devel
 opt_query("string developer_names filter", {"developer_names": " A , B "}, "DeveloperName IN ('A', 'B')")
 opt_refused("list operation is refused", {"operation": ["query"]}, "must be a single value", operation=None)
 opt_refused("whitespace developer_names on activate is 'required'", {"developer_names": " "}, "developer_names is required", operation="activate")
+_err, _fake = opt_run({"strict": "maybe"}, "validate_lists")
+check("unparseable strict is a TaskOptionsError naming the option, before any query",
+      _err is not None and "strict must be true or false" in _err and not _fake.queries, repr((_err, _fake.queries)))
+_err, _fake = opt_run({"is_incremental": "maybe"}, "refresh")
+check("unparseable is_incremental on refresh is refused before the query for all active tables",
+      _err is not None and "is_incremental must be true or false" in _err and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
 check("list-typed strict is refused with the helper's error, before any query",
       _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
@@ -1825,6 +1831,65 @@ _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists",
 check("blank strict is False: the same missing table only reports",
       bool(_fake.queries) and _err is None and any("NOT_IN_ORG" in line for line in _fake.logger.infos),
       repr((_err, _fake.queries, _fake.logger.infos[-6:])))
+
+print("\n[opt-refresh] RefreshDecisionTable options use the shared helpers")
+
+
+def ref_run(options):
+    """Drive RefreshDecisionTable._run_task; return (error text or None, refresh calls, http calls).
+
+    Every transport entry point is stubbed to record: a refused option must leave both lists empty."""
+    calls, http = [], []
+    task = object.__new__(RefreshDecisionTable)
+    task.options = options
+    task.logger = _SilentLogger()
+    task._prep_runtime = lambda: http.append("prep")
+    task._query_decision_table_statuses = lambda names: (http.append(("query", list(names))) or {
+        n.lower(): {"DeveloperName": n, "Status": "Active"} for n in names})
+    task._make_request = lambda *a, **k: http.append("request")
+    task._refresh_decision_table = lambda name, inc: calls.append((name, inc)) or True
+    try:
+        RefreshDecisionTable._run_task(task)
+        return None, calls, http
+    except Exception as exc:
+        return str(exc), calls, http
+
+
+def ref_sent(label, options, expected):
+    err, calls, _http = ref_run(options)
+    check(label, err is None and calls == expected, repr((err, calls)))
+
+
+def ref_refused(label, options, needle):
+    err, calls, http = ref_run(options)
+    check(label, err is not None and needle in err and not calls and not http, repr((err, calls, http)))
+
+
+ref_sent("list developerNames (the cumulusci.yml anchor shape) refreshes each", {"developerNames": ["A", "B"]}, [("A", False), ("B", False)])
+ref_sent("padded comma string developerNames", {"developerNames": " A , B ,, "}, [("A", False), ("B", False)])
+ref_sent("isIncremental unset is a full refresh", {"developerNames": "A"}, [("A", False)])
+ref_sent("isIncremental None is a full refresh", {"developerNames": "A", "isIncremental": None}, [("A", False)])
+ref_sent("isIncremental empty string is a full refresh", {"developerNames": "A", "isIncremental": ""}, [("A", False)])
+ref_sent("isIncremental whitespace is a full refresh, not a TypeError", {"developerNames": "A", "isIncremental": " "}, [("A", False)])
+ref_sent("padded isIncremental true", {"developerNames": "A", "isIncremental": " true "}, [("A", True)])
+ref_sent("bool isIncremental True", {"developerNames": "A", "isIncremental": True}, [("A", True)])
+ref_sent("bool isIncremental False", {"developerNames": "A", "isIncremental": False}, [("A", False)])
+ref_sent("int 0 isIncremental is a value: False", {"developerNames": "A", "isIncremental": 0}, [("A", False)])
+ref_sent("int 1 isIncremental is a value: True", {"developerNames": "A", "isIncremental": 1}, [("A", True)])
+ref_sent("developerNames repeated with different case refreshes once", {"developerNames": ["A", "a"]}, [("A", False)])
+ref_refused("list isIncremental is refused, naming the option, before any request", {"developerNames": "A", "isIncremental": [True]}, "isIncremental must be a single value")
+ref_refused("unparseable isIncremental is a TaskOptionsError naming the option", {"developerNames": "A", "isIncremental": "maybe"}, "isIncremental must be true or false")
+ref_refused("missing developerNames is refused, naming the option", {}, "developerNames is required")
+ref_refused("None developerNames is refused", {"developerNames": None}, "developerNames is required")
+ref_refused("empty string developerNames is refused", {"developerNames": ""}, "developerNames is required")
+ref_refused("whitespace developerNames is refused", {"developerNames": "  "}, "developerNames is required")
+ref_refused("empty list developerNames is refused with the same message", {"developerNames": []}, "developerNames is required")
+ref_refused("all-blank list developerNames is refused", {"developerNames": [" ", ""]}, "contains no names")
+ref_refused("int 0 developerNames is refused, naming the option", {"developerNames": 0}, "must be a comma-separated string")
+ref_refused("dict developerNames is refused", {"developerNames": {"a": 1}}, "must be a comma-separated string")
+_err, _calls, _http = ref_run({"developerNames": "A"})
+check("a valid call does reach the request path (the refusals above are not vacuous)",
+      _err is None and _calls == [("A", False)] and ("query", ["A"]) in _http, repr((_err, _calls, _http)))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.

@@ -213,7 +213,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "is_incremental": {
-            "description": "For refresh operation: True for incremental refresh, False for full refresh. Default: False",
+            "description": "For refresh operation: True for incremental refresh, False for full refresh. Blank or unset means False; a list or an unparseable value (e.g. maybe) is refused. Default: False",
             "required": False
         },
         "sort_by": {
@@ -233,7 +233,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "strict": {
-            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Default: False (report only).",
+            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Blank or unset means False; a list or an unparseable value is refused. Default: False (report only).",
             "required": False
         }
     }
@@ -243,9 +243,14 @@ class ManageDecisionTables(BaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name: str) -> bool:
-        """A boolean option; None, blank or whitespace is False; a list is refused."""
+        """A boolean option; None, blank or whitespace is False; a list or an unparseable value is refused."""
         text = self._option_text(name)
-        return False if text is None else bool(process_bool_arg(text))
+        if text is None:
+            return False
+        try:
+            return bool(process_bool_arg(text))
+        except TypeError:
+            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
 
     def _option_names(self, name: str) -> List[str]:
         """A names option as a list; None, blank, whitespace or an empty list means none were asked for."""
@@ -408,6 +413,9 @@ class ManageDecisionTables(BaseTask):
         
         Supports both full and incremental refresh.
         """
+        # Read first so a malformed option is refused before the query for all active tables.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        is_incremental = self._option_flag("is_incremental")
         # Get decision tables to refresh
         developer_names = self._option_names("developer_names")
         
@@ -421,8 +429,6 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
 
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-        is_incremental = self._option_flag("is_incremental")
         # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
         refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         

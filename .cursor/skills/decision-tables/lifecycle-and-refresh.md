@@ -409,6 +409,13 @@ must use `self._sf`.
   Both tasks split on commas. Before 2026-07-27, `manage_decision_tables` operated on one table
   named `A,B` while reporting "1 decision table(s)", and `refresh_dt_*` skipped it as missing,
   passing while the real tables never refreshed.
+- **Every option, one rule:** both tasks read options through `option_text` and `requested_names`
+  in `tasks/soql_utils.py`. Blank or whitespace is not set (a blank `isIncremental` is a full
+  refresh); `0` and `False` are values; a list for a scalar option such as `isIncremental` is
+  refused. `refresh_dt_*` needs at least one name, so `developerNames` that is unset, blank or an
+  empty list is refused with `TaskOptionsError: developerNames is required`, before any data or action request.
+  An unparseable `isIncremental` (e.g. `maybe`) is a `TaskOptionsError` naming the option.
+  `refresh_dt_*` has no snake_case aliases: only `developerNames` and `isIncremental`.
 
 ### Missing, inactive and failed tables (`refresh_dt_*`)
 
@@ -435,7 +442,7 @@ runs without CumulusCI installed. `rlm_refresh_decision_table.py` once lacked th
 suite died on its import before a single check ran. The offline `process_bool_arg` uses the same
 vocabulary and raises the same `TypeError` as CCI's. It is not identical: CCI also emits two
 DeprecationWarnings for `None`, but that path is unreachable: `manage_decision_tables` reads booleans
-through `_option_flag`, which never passes `None`, and `refresh_dt_*` passes `or False`.
+through `_option_flag`, which never passes `None`, and `refresh_dt_*` does the same.
 An earlier fallback returned `bool(arg)` for anything unrecognised, so "maybe" was True offline
 and raised under CCI, and tests using it proved the wrong thing.
 
