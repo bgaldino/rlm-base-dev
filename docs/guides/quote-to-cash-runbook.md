@@ -27,11 +27,11 @@ skill: [`verification.md`](../../.cursor/skills/billing-operations/verification.
 - **Line Level application.** The org's Credit, Payment and Refund Application
   Level is read from Billing Settings at run time. Line Level, the Foundations
   default, is live-verified. Header Level is not measured: the verifier skips
-  its balance checks, so `cli quote-to-cash` fails there with "no balance was
-  checked" even when every stage ran.
+  its balance checks there, so expect `cli quote-to-cash` to exit 1 even when
+  every stage ran.
 - **A scratch or demo org.** Every run adds a new transaction. Posted
-  invoices, billing schedules and the settlement records cannot be deleted
-  (see [Cleanup limits](#cleanup-limits)).
+  invoices and billing schedules cannot be deleted, and no cleanup path was
+  measured for the settlement records (see [Cleanup limits](#cleanup-limits)).
 - **One run at a time per account**: posting an invoice applies the account's
   open payment balance to it, so parallel runs on one account can take each
   other's payment. The commands below use `--concurrency 1`.
@@ -52,7 +52,7 @@ or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
 | Exit | Meaning |
 |------|---------|
 | 0 | Every scenario reached `payment_applied`, at least one balance was checked, none failed. |
-| 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or it created no credit memo or payment of its own, or a balance check failed, or nothing was checked. |
+| 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or it created no credit memo or payment of its own, or a check failed (the `RESULT:` line above names it), or no balance was checked. |
 | 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. Records may already exist if the run had started: its run ids are in the `run base` and per-scenario `[n/N]` lines above. When only the verify failed, the `ERROR:` line names the runs, which passed the stage and own-records checks: check them with `cli verify --org $ORG --manifest <run>` rather than a new run, and count it a pass only when it checked at least one balance. |
 | 3 | Discovery failed before any write: an unknown account or product, or a refused discovery query such as an expired session. |
 | 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |

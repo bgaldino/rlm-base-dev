@@ -13,8 +13,9 @@
 # exactly what is left, applied (payment_applied). The invoice ends at a zero
 # balance.
 #
-# Writes records. Posted invoices, their applications and billing schedules
-# cannot be deleted, so run this on scratch or demo orgs only. Each run adds a
+# Writes records. Posted invoices and billing schedules cannot be deleted,
+# and no cleanup path was measured for the credit memo, payment and their
+# applications, so run this on scratch or demo orgs only. Each run adds a
 # new transaction; nothing is reused.
 #
 # The account must be billing-ready (a BillingAccount): otherwise the harness

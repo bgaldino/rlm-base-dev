@@ -329,7 +329,7 @@ Rules:
   pricebook after filtering by the selected/account currency, the resolver fails fast with the candidate `ProductSellingModel`
   names — set `selling_model:` to disambiguate.
 
-See [`13-multi-year-terms.yaml`](13-multi-year-terms.yaml) for a worked example
+See [`13-multi-year-terms.yaml`](sales_txn_quote/13-multi-year-terms.yaml) for a worked example
 covering the bare-int form, an explicit Annual cadence, PSM-default fallback,
 and a mixed-term quote.
 

@@ -97,7 +97,7 @@ def test_a_run_that_never_started_returns_its_code(harness, capsys):
 def test_a_failed_check_fails(harness, capsys):
     harness["report"] = {"ok": False, "checked": 2, "skipped": 0, "results": []}
     assert cli.main(["quote-to-cash", "--org", "x"]) == 1
-    assert "a balance check failed" in capsys.readouterr().out
+    assert "QUOTE-TO-CASH: fail (a check failed)" in capsys.readouterr().out
 
 
 def test_nothing_checked_is_a_failure(harness, capsys):

@@ -686,7 +686,7 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:
-        print("QUOTE-TO-CASH: fail (a balance check failed)")
+        print("QUOTE-TO-CASH: fail (a check failed)")
         return 1
     if not report["checked"]:
         print("QUOTE-TO-CASH: fail (no balance was checked)")
