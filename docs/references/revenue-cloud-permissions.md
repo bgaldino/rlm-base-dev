@@ -289,8 +289,9 @@ persona user instead. See the persona rows in the flow inventory below.
 > quotes, opportunities and usage graph. Live 264 (todo 397) the persona's reset was still held to
 > its record access: an order another user owns, which the persona can edit but not delete, was
 > kept (the class now checks delete access first and leaves such records unchanged, reporting
-> them), and another user's opportunity under Private sharing was not found and was left without
-> a report.
+> them), and another user's opportunity under Private sharing was not found by its queries. The
+> class now counts such records in system mode after a completed run and reports them as kept
+> ("not visible to the user running the reset").
 > The set itself grants the object access those deletes need and the persona's other sets
 > lack (live 264, todo 397): Asset and Order read, edit and delete, Access Lifecycle-Managed
 > Assets (`CalmSobjectAccessUser`), Edit Activated Orders with the Activate Orders it depends

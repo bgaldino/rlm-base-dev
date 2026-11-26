@@ -52,7 +52,8 @@
  * opportunity under Private sharing was not found at all. So orders, contracts and
  * credit memos are checked against the user's delete access before anything changes
  * them (keepWhatUserCannotDelete), and kept, untouched, when the user cannot delete
- * them. A record the user cannot see is still left without a report.
+ * them. A record the user cannot see is counted in system mode after a completed run
+ * and reported as kept (reportHiddenRecords); only the count is read.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
  * context called it. An omitted keyword is NOT equivalent to `without sharing` in
@@ -142,6 +143,9 @@ public without sharing class RLM_AccountUtilities {
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
     private static final String NO_DELETE_ACCESS = 'the user running the reset cannot delete them: they belong '
         + 'to another user and sharing does not let this user delete them; they were left unchanged';
+    private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
+    private static final String INCOMPLETE_HIDDEN = 'Records not visible to the user running the reset may remain: '
+        + 'the query limit was reached while counting them';
     private static final String NOT_CHECKED = 'not checked: the user running the reset has no access to them';
 
     /**
@@ -217,6 +221,8 @@ public without sharing class RLM_AccountUtilities {
         // Labels of the objects a step skipped because the running user cannot read
         // them, in the order the steps met them.
         public List<String> unchecked = new List<String>();
+        // True when the count of records hidden from the user stopped before it finished.
+        public Boolean incompleteHidden = false;
 
         public ResetReport copy() {
             ResetReport c = new ResetReport();
@@ -227,6 +233,7 @@ public without sharing class RLM_AccountUtilities {
             c.foreignBuckets = foreignBuckets.clone();
             c.incompleteBuckets = incompleteBuckets;
             c.unchecked = unchecked.clone();
+            c.incompleteHidden = incompleteHidden;
             return c;
         }
     }
@@ -293,6 +300,11 @@ public without sharing class RLM_AccountUtilities {
     // user cannot be given the usage and core object access the reset also needs.
     @TestVisible
     private static Set<String> unreadableForTest = new Set<String>();
+
+    // Lets a test set how many records of an object the running user cannot see
+    // (hiddenCount), since a test cannot rely on the org's sharing settings.
+    @TestVisible
+    private static Map<String, Integer> hiddenForTest;
 
     // Lets a test decide which records the running user may delete (deletableByUser),
     // since a test cannot share a record to a user with edit but not delete access.
@@ -585,6 +597,8 @@ public without sharing class RLM_AccountUtilities {
             return finish(false, kept + cause);
         }
         phaseTwoQueriesForTest = Limits.getQueries() - phaseTwoQueriesAtStart;
+        reportHiddenRecords(accountId, new Set<String>(hiddenCheckScope(
+            deleteAssets, deleteFulfillment, deleteBilling, deleteCollections)), preserveContractsWithPrices);
         return finish(true, null);
     }
 
@@ -640,6 +654,9 @@ public without sharing class RLM_AccountUtilities {
             kept.add(k.label + ': ' + k.count + ' (' + k.why + ')');
         }
 
+        if (report.incompleteHidden) {
+            kept.add(INCOMPLETE_HIDDEN);
+        }
         if (report.incompleteBuckets) {
             kept.add(INCOMPLETE_BUCKETS);
         }
@@ -726,6 +743,149 @@ public without sharing class RLM_AccountUtilities {
             report.unchecked.add(labelOf(type));
         }
         return false;
+    }
+
+    /**
+     * The account-scoped objects whose records the reset deletes with these options. A
+     * record reached only through one of these (lines, steps, buckets, entries, files,
+     * generated documents, cases, work orders) is not counted on its own: a child of a
+     * hidden parent stays with it, and the parent's count covers it.
+     */
+    private static List<String> hiddenCheckScope(
+        Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling, Boolean deleteCollections
+    ) {
+        List<String> scope = new List<String>{
+            'TransactionUsageEntitlement', 'UsageEntitlementAccount', 'UsageSummary', 'UsageRatableSummary',
+            'UsageBillingPeriodItem', 'TransactionJournal', 'BindingObjUsageRsrcPlcy', 'BindingObjectRateCardEntry',
+            'BillingScheduleGroup', 'Contract', 'Order', 'Quote', 'Opportunity'
+        };
+        if (deleteAssets) {
+            scope.add('Asset');
+        }
+        if (deleteFulfillment) {
+            scope.addAll(new List<String>{ 'FulfillmentOrder', 'FulfillmentAsset' });
+        }
+        if (deleteBilling) {
+            scope.addAll(new List<String>{ 'Invoice', 'CreditMemo', 'DebitMemo', 'Payment' });
+        }
+        if (deleteCollections) {
+            scope.addAll(new List<String>{ 'CollectionPlan', 'Dispute' });
+        }
+        return scope;
+    }
+
+    // How each object in hiddenCheckScope finds the account's records, as the reset's
+    // own queries do. Ordered as the reset meets them, so the Result lists them in order.
+    private static final List<List<String>> ACCOUNT_FILTERS = new List<List<String>>{
+        new List<String>{ 'TransactionUsageEntitlement', 'AccountId = :accountId' },
+        new List<String>{ 'UsageEntitlementAccount', 'AccountId = :accountId' },
+        new List<String>{ 'UsageSummary', 'AccountId = :accountId' },
+        new List<String>{ 'UsageRatableSummary', 'AccountId = :accountId' },
+        new List<String>{ 'UsageBillingPeriodItem', 'AccountId = :accountId' },
+        new List<String>{ 'TransactionJournal', 'AccountId = :accountId' },
+        new List<String>{ 'BindingObjUsageRsrcPlcy', 'BindingObjectId = :accountId' },
+        new List<String>{ 'BindingObjectRateCardEntry', 'BindingObjectId = :accountId' },
+        new List<String>{ 'CollectionPlan', 'AccountId = :accountId' },
+        new List<String>{ 'Dispute', 'AccountId = :accountId' },
+        new List<String>{ 'BillingScheduleGroup', 'BillingAccountId = :accountId' },
+        new List<String>{ 'DebitMemo', 'AccountId = :accountId' },
+        new List<String>{ 'Invoice', 'BillingAccountId = :accountId' },
+        new List<String>{ 'CreditMemo', 'BillingAccountId = :accountId' },
+        new List<String>{ 'Payment', 'AccountId = :accountId' },
+        new List<String>{ 'FulfillmentOrder', 'AccountId = :accountId' },
+        new List<String>{ 'FulfillmentAsset', 'AccountId = :accountId' },
+        new List<String>{ 'Contract', 'AccountId = :accountId' },
+        new List<String>{ 'Order', 'AccountId = :accountId' },
+        new List<String>{ 'Asset', 'AccountId = :accountId' },
+        new List<String>{ 'Quote', '(QuoteAccountId = :accountId OR AccountId = :accountId)' },
+        new List<String>{ 'Opportunity', 'AccountId = :accountId' }
+    };
+
+    /**
+     * After a completed run: counts, per object, the account's records still there that
+     * the running user cannot see, and reports them as kept. Live 264 the salesrep
+     * persona's reset did not find an admin-owned renewal opportunity under Private
+     * sharing, even though this class runs without sharing, and said nothing about it;
+     * a count WITH SYSTEM_MODE did find it. Only counts are read; no id reaches the user.
+     *
+     * Skipped for a user with View All Data, who sees every record. Otherwise it reads
+     * the objects' sharing models once and counts only the objects whose records sharing
+     * can hide (Private, or Controlled by Parent): two queries each, the system-mode count
+     * and the count this class sees. An object the user cannot read is already reported
+     * as not checked. This runs after phase 2, outside the counted phase-2 budget
+     * (PHASE_TWO_FIXED_MAX), and spends only what is left: when too few queries remain it
+     * stops, and the Result says the count is incomplete.
+     */
+    private static void reportHiddenRecords(Id accountId, Set<String> scope, Boolean preserveContractsWithPrices) {
+        if (hiddenForTest == null && hasUserPermission('PermissionsViewAllData')) {
+            return;
+        }
+        List<List<String>> readable = new List<List<String>>();
+        List<String> readableNames = new List<String>();
+        for (List<String> objectAndFilter : ACCOUNT_FILTERS) {
+            if (scope.contains(objectAndFilter[0]) && canRead(objectAndFilter[0])) {
+                readable.add(objectAndFilter);
+                readableNames.add(objectAndFilter[0]);
+            }
+        }
+        try {
+            Set<String> hideable = hideableObjects(readableNames);
+            for (List<String> objectAndFilter : readable) {
+                String objectName = objectAndFilter[0];
+                if (!hideable.contains(objectName)) {
+                    continue;
+                }
+                String filter = objectAndFilter[1];
+                if (objectName == 'Contract' && preserveContractsWithPrices && typeOf('ContractItemPrice') != null) {
+                    // Contracts that option keeps are not the reset's to report.
+                    filter += ' AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)';
+                }
+                recordRetained(typeOf(objectName), hiddenCount(objectName, filter, accountId), NOT_VISIBLE);
+            }
+        } catch (ResetStoppedException e) {
+            report.incompleteHidden = true;
+        }
+    }
+
+    /**
+     * The objects among `objectNames` whose sharing model can hide a record from a user
+     * who can read the object: Private and Controlled by Parent. One query.
+     */
+    private static Set<String> hideableObjects(List<String> objectNames) {
+        Set<String> hideable = new Set<String>();
+        if (objectNames.isEmpty()) {
+            return hideable;
+        }
+        if (hiddenForTest != null) {
+            hideable.addAll(hiddenForTest.keySet());
+            return hideable;
+        }
+        requireQueries(1);
+        for (EntityDefinition entity : [
+            SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName IN :objectNames
+        ]) {
+            if (entity.InternalSharingModel == 'Private' || entity.InternalSharingModel == 'ControlledByParent') {
+                hideable.add(entity.QualifiedApiName);
+            }
+        }
+        return hideable;
+    }
+
+    /**
+     * How many of the account's `objectName` records the running user cannot see: the
+     * system-mode count less the count this class sees, which is what its deletes saw.
+     * Stops the count, not the run, when its two queries are not left.
+     */
+    @TestVisible
+    private static Integer hiddenCount(String objectName, String filter, Id accountId) {
+        if (hiddenForTest != null) {
+            return hiddenForTest.containsKey(objectName) ? hiddenForTest.get(objectName) : 0;
+        }
+        requireQueries(2);
+        String soql = 'SELECT COUNT() FROM ' + objectName + ' WHERE ' + filter;
+        Integer total = Database.countQuery(soql, AccessLevel.SYSTEM_MODE);
+        Integer seen = Database.countQuery(soql);
+        return Math.max(0, total - seen);
     }
 
     /**
@@ -1179,7 +1339,8 @@ public without sharing class RLM_AccountUtilities {
             userPermissionsOf = UserInfo.getUserId();
             userPermissions = new Map<String, Boolean>();
             List<String> fields = new List<String>{
-                'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords', 'PermissionsModifyAllData'
+                'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords', 'PermissionsModifyAllData',
+                'PermissionsViewAllData'
             };
             List<SObject> access = new List<SObject>();
             try {

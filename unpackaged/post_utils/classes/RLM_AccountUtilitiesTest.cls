@@ -1953,6 +1953,72 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.isTrue(RLM_AccountUtilities.deletableByUser(new Set<Id>()).isEmpty(), 'No ids, no access');
     }
 
+    // ------------------------------------------------------- records not visible
+
+    private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
+
+    @IsTest
+    static void aRecordTheUserCannotSeeIsCountedAndReportedAsKept() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Visible Opp');
+        // Live 264 the salesrep persona's reset did not find an admin-owned opportunity
+        // under Private sharing, and said nothing. A test cannot rely on the org's
+        // sharing settings, so the hidden count is set through the seam.
+        RLM_AccountUtilities.hiddenForTest = new Map<String, Integer>{ 'Opportunity' => 1 };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'Hidden records do not stop the reset. Reason: ' + result.reason);
+        Assert.areEqual(false, result.cleared, 'An account with records the user could not see is not cleared');
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'The visible opportunity is still deleted');
+        Assert.areEqual(entry(Opportunity.SObjectType, 1), result.removedSummary, 'The visible opportunity is reported removed');
+        Assert.areEqual(entry(Opportunity.SObjectType, 1) + ' (' + NOT_VISIBLE + ')', result.retainedSummary,
+            'The hidden opportunity must be reported as kept, with the reason');
+    }
+
+    @IsTest
+    static void hiddenRecordsAreCountedOnlyForObjectsTheOptionsDelete() {
+        Account a = newAccount();
+        // Assets are counted only when Delete Assets is on.
+        RLM_AccountUtilities.hiddenForTest = new Map<String, Integer>{ 'Asset' => 2 };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.cleared, 'Assets were not to be deleted, so hidden ones are not news. Retained: '
+            + result.retainedSummary);
+    }
+
+    @IsTest
+    static void hiddenCountIsWhatSystemModeSeesBeyondTheUser() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Owned By The Test User');
+        Assert.areEqual(0, RLM_AccountUtilities.hiddenCount('Opportunity', 'AccountId = :accountId', a.Id),
+            'The owner sees their own opportunity, so nothing is hidden from them');
+
+        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User other = new User(
+            ProfileId = standard.Id, LastName = 'Reset Other', Email = 'rlm.reset.other@example.com',
+            Username = 'rlm.reset.other.' + Datetime.now().getTime() + '@example.com', Alias = 'rlmoth',
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert other;
+        Integer hidden;
+        System.runAs(other) {
+            hidden = RLM_AccountUtilities.hiddenCount('Opportunity', 'AccountId = :accountId', a.Id);
+        }
+        // Whether another user sees the opportunity depends on the org's sharing.
+        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
+            .InternalSharingModel;
+        Assert.areEqual(model == 'Private' ? 1 : 0, hidden,
+            'A user who cannot see the opportunity must have it counted as hidden (sharing model ' + model + ')');
+    }
+
     // ------------------------------------------------------------ scope guard
 
     @IsTest
