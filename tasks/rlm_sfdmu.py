@@ -23,7 +23,7 @@ ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, require_identifier, soql_quote
 
 # Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development.
 try:
@@ -65,8 +65,7 @@ def target_org_user_name(username) -> str:
         )
     # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
     org_for_cli = str(username)
-    escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
-    query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
+    query = "SELECT Name FROM User WHERE Username = " + soql_quote(org_for_cli)
     result = subprocess.run(
         ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
         capture_output=True,
@@ -901,6 +900,9 @@ class DeleteSFDMUData(BaseSalesforceTask):
 
         # Reverse = children first, matching SFDMU's deleteOldData sequence.
         deletion_order = list(reversed(insert_sobjects))
+        # Validate every name before the first delete, so a bad one cannot stop the run halfway.
+        for sobject_name in deletion_order:
+            require_identifier(sobject_name, "sobject", CommandException)
         self.logger.info(
             f"Deleting {len(deletion_order)} "
             f"{'named' if named_set is not None else 'Insert-operation'} object type(s) "
@@ -925,7 +927,9 @@ class DeleteSFDMUData(BaseSalesforceTask):
         query_url = f"{self._instance_url}/services/data/v{self._api_version}/query"
         records: List[dict] = []
         url = query_url
-        params: Optional[Dict] = {"q": f"SELECT Id FROM {sobject_name}"}
+        params: Optional[Dict] = {
+            "q": f"SELECT Id FROM {require_identifier(sobject_name, 'sobject', CommandException)}"
+        }
 
         while True:
             resp = requests.get(url, headers=self._auth_headers, params=params)
@@ -1086,6 +1090,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         org_alias = self._get_org_for_cli()
         counts = {}
         for sobject in sobjects:
+            require_identifier(sobject, "sobject", CommandException)
             try:
                 result = subprocess.run(
                     ["sf", "data", "query", "-q", f"SELECT COUNT(Id) cnt FROM {sobject}", "-o", org_alias, "--json"],
@@ -1703,6 +1708,12 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                     seen.add(key)
                     if not self._extracted_column_all_blank(output_dir, objname, comp):
                         continue  # SFDMU resolved it (or target is a plan object)
+                    try:
+                        for ident in (objname, rel, field):
+                            require_identifier(ident, "relationship lookup", CommandException)
+                    except CommandException as exc:
+                        self.logger.warning(f"Skipping code backfill for {objname}.{comp}: {exc}")
+                        continue
                     recs = self._sf_query_records(
                         f"SELECT {rel}.Name, {rel}.{field} FROM {objname} WHERE {rel}.{field} != null"
                     )

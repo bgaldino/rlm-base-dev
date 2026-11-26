@@ -13,7 +13,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -92,8 +92,7 @@ class PatchNetworkEmailForDeploy(BaseTask):
             "Content-Type": "application/json",
         }
         query_url = f"{instance_url}/services/data/v{api_version}/query"
-        network_name_escaped = network_name.replace("'", "''")
-        soql = f"SELECT EmailSenderAddress FROM Network WHERE Name = '{network_name_escaped}' LIMIT 1"
+        soql = f"SELECT EmailSenderAddress FROM Network WHERE Name = {soql_quote(network_name)} LIMIT 1"
         response = requests.get(query_url, headers=headers, params={"q": soql})
         response.raise_for_status()
         result = response.json()

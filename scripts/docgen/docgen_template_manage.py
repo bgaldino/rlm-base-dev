@@ -26,7 +26,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _soql import soql_escape
+from _soql import soql_escape, soql_like_prefix
 
 # sf redacts the token in `sf org display` unless SF_TEMP_SHOW_SECRETS is set;
 # the shared helper falls back to `sf org auth show-access-token`.
@@ -168,7 +168,7 @@ def _find_content_doc(template_name, library_id, org, content_doc_id_override=No
         f"SELECT Id FROM ContentDocument "
         f"WHERE Title = '{safe_name}' "
         f"AND Id IN (SELECT ContentDocumentId FROM ContentWorkspaceDoc "
-        f"WHERE ContentWorkspaceId = '{library_id}') "
+        f"WHERE ContentWorkspaceId = '{soql_escape(library_id)}') "
         f"ORDER BY CreatedDate DESC LIMIT 1", org
     )
     if records:
@@ -176,9 +176,9 @@ def _find_content_doc(template_name, library_id, org, content_doc_id_override=No
 
     records = _sf_query(
         f"SELECT Id, Title FROM ContentDocument "
-        f"WHERE Title LIKE '{safe_name}%' "
+        f"WHERE Title LIKE {soql_like_prefix(template_name)} "
         f"AND Id IN (SELECT ContentDocumentId FROM ContentWorkspaceDoc "
-        f"WHERE ContentWorkspaceId = '{library_id}') "
+        f"WHERE ContentWorkspaceId = '{soql_escape(library_id)}') "
         f"ORDER BY CreatedDate DESC LIMIT 3", org
     )
     if records:
@@ -267,7 +267,7 @@ def cmd_status(args):
         doc_id = _find_content_doc(template["Name"], library_id, args.org)
         cv_records = _sf_query(
             f"SELECT Id, VersionNumber, ContentSize, CreatedDate FROM ContentVersion "
-            f"WHERE ContentDocumentId = '{doc_id}' ORDER BY VersionNumber DESC LIMIT 3",
+            f"WHERE ContentDocumentId = '{soql_escape(doc_id)}' ORDER BY VersionNumber DESC LIMIT 3",
             args.org
         )
         if cv_records:
@@ -351,7 +351,7 @@ def cmd_create(args):
     library_id = _find_library(args.org)
 
     existing = _sf_query(
-        f"SELECT Id, Name FROM DocumentTemplate WHERE Name = '{args.name.replace(chr(39), chr(92)+chr(39))}'",
+        f"SELECT Id, Name FROM DocumentTemplate WHERE Name = '{soql_escape(args.name)}'",
         args.org
     )
     if existing:
@@ -527,7 +527,8 @@ def cmd_download(args):
 
     if args.version_id:
         cv_id = args.version_id
-        if not cv_id.startswith("068"):
+        # An Id shape check: the value goes into the SOQL below and the VersionData URL path.
+        if not re.fullmatch(r"068[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?", cv_id):
             print(f"ERROR: --version-id must be a ContentVersion ID (068 prefix), "
                   f"got: {cv_id}", file=sys.stderr)
             sys.exit(1)
@@ -544,7 +545,7 @@ def cmd_download(args):
         doc_id = _find_content_doc(template["Name"], library_id, args.org)
         cv_records = _sf_query(
             f"SELECT Id FROM ContentVersion "
-            f"WHERE ContentDocumentId = '{doc_id}' "
+            f"WHERE ContentDocumentId = '{soql_escape(doc_id)}' "
             f"ORDER BY VersionNumber DESC LIMIT 1", args.org
         )
         if not cv_records:

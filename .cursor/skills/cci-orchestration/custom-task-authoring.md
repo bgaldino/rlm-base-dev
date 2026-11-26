@@ -476,7 +476,7 @@ tasks:
 | `rlm_mcp.py` | `ConfigureMcpServers` | Activate hosted MCP servers and build the custom sales-transactions server |
 | `rlm_sharing.py` | `SetOrgWideDefaultsSharingOnly`, `AssertSObjectOWDs` | Set the sharing-only org-wide defaults, and assert sObject OWDs |
 | `rlm_validate_keys.py` | `ValidateSourceDataKeys` | Pre-extraction check of a plan's externalId key fields |
-| `soql_utils.py` | (utilities) | `soql_quote`, `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
+| `soql_utils.py` | (utilities) | `soql_quote`, `soql_like_prefix` (LIKE prefixes), `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
 ---

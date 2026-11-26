@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -827,7 +827,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
             # Query existing ContextAttributeMapping records for this attribute.
             soql = (
                 f"SELECT Id,CreatedDate FROM ContextAttributeMapping "
-                f"WHERE ContextInputAttributeName='{attr_name}' ORDER BY CreatedDate DESC"
+                f"WHERE ContextInputAttributeName={soql_quote(attr_name)} ORDER BY CreatedDate DESC"
             )
             q_url, headers = self._build_url_and_headers("query")
             resp = self._make_request("get", q_url, headers=headers, params={"q": soql}, dry_run=False)
@@ -867,7 +867,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
             # is created, so check even for newly created mappings.
             hd_soql = (
                 f"SELECT Id FROM ContextAttrHydrationDetail "
-                f"WHERE ContextAttributeMappingId='{keeper_id}'"
+                f"WHERE ContextAttributeMappingId={soql_quote(keeper_id)}"
             )
             hd_resp = self._make_request("get", q_url, headers=headers, params={"q": hd_soql}, dry_run=False)
             if (hd_resp or {}).get("records"):

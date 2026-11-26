@@ -20,7 +20,7 @@ import uuid
 from pathlib import Path
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_like_prefix, soql_quote
 
 try:
     import requests
@@ -307,8 +307,8 @@ class CreatePersonaUser(BaseSalesforceTask):
 
     def _resolve_profile_id(self, profile_name):
         """Resolve a Profile Id by Name via the sf CLI. Raises if not found."""
-        escaped = self._soql_escape(profile_name)
-        soql = f"SELECT Id FROM Profile WHERE Name = '{escaped}' LIMIT 1"
+        escaped = soql_quote(profile_name)
+        soql = f"SELECT Id FROM Profile WHERE Name = {escaped} LIMIT 1"
         cmd = [
             "sf", "data", "query",
             "--query", soql,
@@ -435,17 +435,17 @@ class CreatePersonaUser(BaseSalesforceTask):
 
         username = user_def.get("Username")
         if username:
-            escaped_username = self._soql_escape(username)
-            where_clauses.append(f"Username = '{escaped_username}'")
-            where_clauses.append(f"Username LIKE '{escaped_username}.%'")
+            escaped_username = soql_quote(username)
+            where_clauses.append(f"Username = {escaped_username}")
+            where_clauses.append(f"Username LIKE {soql_like_prefix(username + '.')}")
 
         email = user_def.get("Email")
         user_alias = user_def.get("Alias")
         if email and user_alias:
-            escaped_email = self._soql_escape(email)
-            escaped_alias = self._soql_escape(user_alias)
+            escaped_email = soql_quote(email)
+            escaped_alias = soql_quote(user_alias)
             where_clauses.append(
-                f"(Email = '{escaped_email}' AND Alias = '{escaped_alias}')"
+                f"(Email = {escaped_email} AND Alias = {escaped_alias})"
             )
 
         soql = (
@@ -481,7 +481,3 @@ class CreatePersonaUser(BaseSalesforceTask):
 
         return records[0] if records else None
 
-    @staticmethod
-    def _soql_escape(value):
-        """Escape single quotes for safe SOQL string literals."""
-        return value.replace("\\", "\\\\").replace("'", "\\'")

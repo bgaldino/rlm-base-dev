@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any, Dict
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, require_identifier, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -145,7 +145,8 @@ class CreateSequencePolicies(BaseSalesforceApiTask):
 
         cache = {}
         for object_type, names in by_object.items():
-            names_soql = ", ".join(f"'{n}'" for n in names)
+            require_identifier(object_type, "filterField", TaskOptionsError)
+            names_soql = ", ".join(soql_quote(n) for n in names)
             soql = f"SELECT Id, Name FROM {object_type} WHERE Name IN ({names_soql})"
             try:
                 for r in self.sf.query(soql).get("records", []):

@@ -14,7 +14,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -143,10 +143,6 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
             "Content-Type": "application/json",
         }
 
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        return value.replace("\\", "\\\\").replace("'", "\\'")
-
     def _query_tooling(
         self,
         access_token: str,
@@ -234,7 +230,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         mappings: List[Dict[str, str]],
     ) -> Dict[str, str]:
         names = sorted({row["pricingRecipeDeveloperName"] for row in mappings})
-        escaped = [f"'{self._soql_escape(name)}'" for name in names]
+        escaped = [soql_quote(name) for name in names]
         soql = (
             "SELECT Id, DeveloperName FROM PricingRecipe "
             f"WHERE DeveloperName IN ({', '.join(escaped)})"
@@ -257,7 +253,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         mappings: List[Dict[str, str]],
     ) -> Dict[str, str]:
         names = sorted({row["decisionTableDeveloperName"] for row in mappings})
-        escaped = [f"'{self._soql_escape(name)}'" for name in names]
+        escaped = [soql_quote(name) for name in names]
         soql = (
             "SELECT Id, DeveloperName FROM DecisionTable "
             f"WHERE DeveloperName IN ({', '.join(escaped)})"
@@ -272,7 +268,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         api_version: str,
         recipe_ids: List[str],
     ) -> Dict[Tuple[str, str], Dict[str, Any]]:
-        escaped = [f"'{self._soql_escape(recipe_id)}'" for recipe_id in recipe_ids]
+        escaped = [soql_quote(recipe_id) for recipe_id in recipe_ids]
         soql = (
             "SELECT Id, PricingRecipeId, LookupTableId, PricingComponentType "
             f"FROM {OBJECT_NAME} WHERE PricingRecipeId IN ({', '.join(escaped)})"

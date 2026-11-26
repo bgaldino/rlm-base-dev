@@ -29,6 +29,14 @@ from typing import Any, Dict, List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
 import sfdmu_export  # noqa: E402  (after the path bootstrap above)
 
+# The repo root, so `tasks.soql_utils` resolves when this module is imported as a top-level `rlm_validate_keys`.
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.append(_REPO_ROOT)
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import require_identifier
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -182,6 +190,9 @@ class ValidateSourceDataKeys(BaseSalesforceApiTask):
         # while the requested key stayed null. Only honor the config for the
         # declaration whose key IS the config's field; otherwise fall back to the
         # default (populate the requested key itself from Name).
+        require_identifier(obj, "object", TaskOptionsError)
+        for keyfield in keyfields:
+            require_identifier(keyfield, "externalId field", TaskOptionsError)
         cfg = POPULATE_CONFIG.get(obj)
         if cfg and cfg.get("field") not in keyfields:
             cfg = None

@@ -17,7 +17,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_like_prefix, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -163,13 +163,6 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         )
         return None
 
-    # -- SOQL escape helper --------------------------------------------
-
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        """Escape a string for use in a SOQL literal (single-quoted value)."""
-        return value.replace("\\", "\\\\").replace("'", "\\'")
-
     # -- Main task logic -----------------------------------------------
 
     def _run_task(self):
@@ -273,11 +266,11 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         """
         candidates = [f"{es_name}_V1", f"{es_name}V1"]
         for candidate in candidates:
-            safe = self._soql_escape(candidate)
+            safe = soql_quote(candidate)
             records = self._soql_query(
                 f"SELECT Id, IsActive, Rank, StartDateTime "
                 f"FROM ExpressionSetVersion "
-                f"WHERE ApiName = '{safe}'"
+                f"WHERE ApiName = {safe}"
             )
             if records:
                 self.logger.info(
@@ -286,11 +279,11 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
                 return records[0]
 
         # Fallback: LIKE query (deterministic via ORDER BY / LIMIT 1)
-        safe = self._soql_escape(es_name)
+        safe = soql_like_prefix(es_name)
         records = self._soql_query(
             f"SELECT Id, IsActive, Rank, StartDateTime, ApiName "
             f"FROM ExpressionSetVersion "
-            f"WHERE ApiName LIKE '{safe}%' "
+            f"WHERE ApiName LIKE {safe} "
             f"ORDER BY IsActive DESC, CreatedDate DESC "
             f"LIMIT 1"
         )
@@ -313,7 +306,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         # Resolve ExpressionSetDefinition Id
         esd_records = self._soql_query(
             f"SELECT Id FROM ExpressionSetDefinition "
-            f"WHERE DeveloperName = '{self._soql_escape(es_name)}'"
+            f"WHERE DeveloperName = {soql_quote(es_name)}"
         )
         if not esd_records:
             raise TaskOptionsError(
@@ -323,7 +316,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
 
         # Resolve target ContextDefinition Id
         cd_records = self._soql_query(
-            f"SELECT Id FROM ContextDefinition WHERE DeveloperName = '{self._soql_escape(cd_name)}'"
+            f"SELECT Id FROM ContextDefinition WHERE DeveloperName = {soql_quote(cd_name)}"
         )
         if not cd_records:
             raise TaskOptionsError(
@@ -335,7 +328,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
         esdcd_records = self._soql_query(
             f"SELECT Id, ContextDefinitionId "
             f"FROM ExpressionSetDefinitionContextDefinition "
-            f"WHERE ExpressionSetDefinitionId = '{esd_id}'"
+            f"WHERE ExpressionSetDefinitionId = {soql_quote(esd_id)}"
         )
 
         if esdcd_records:

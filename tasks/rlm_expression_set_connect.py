@@ -62,7 +62,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -224,10 +224,6 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     # -- SOQL helpers --------------------------------------------------
 
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        return value.replace("\\", "\\\\").replace("'", "\\'")
-
     def _soql_query(self, soql: str) -> List[dict]:
         # Raise on HTTP failure rather than returning []. Callers like
         # ImportExpressionSet use an empty result to decide whether to
@@ -292,9 +288,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     # -- BRE Connect API helpers ---------------------------------------
 
     def _get_expression_set_definition_id(self, api_name: str) -> str:
-        safe = self._soql_escape(api_name)
+        safe = soql_quote(api_name)
         records = self._soql_query(
-            f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = '{safe}'"
+            f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = {safe}"
         )
         if not records:
             raise TaskOptionsError(
@@ -304,10 +300,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     def _get_expression_set_id(self, api_name: str) -> str:
         """Get the ExpressionSet runtime record ID (used by the Connect API)."""
-        safe = self._soql_escape(api_name)
+        safe = soql_quote(api_name)
         records = self._soql_query(
             "SELECT Id FROM ExpressionSet "
-            f"WHERE ExpressionSetDefinition.DeveloperName = '{safe}'"
+            f"WHERE ExpressionSetDefinition.DeveloperName = {safe}"
         )
         if not records:
             raise TaskOptionsError(
@@ -330,10 +326,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         is live would target the wrong record. Absent an executing version, the
         active (then highest-numbered) version comes first.
         """
-        safe = self._soql_escape(es_id)
+        safe = soql_quote(es_id)
         records = self._soql_query(
             f"SELECT {VERSION_FIELDS} "
-            f"FROM ExpressionSetVersion WHERE ExpressionSetId = '{safe}' "
+            f"FROM ExpressionSetVersion WHERE ExpressionSetId = {safe} "
             "ORDER BY IsActive DESC, VersionNumber DESC"
         )
         if not records:
@@ -364,7 +360,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         try:
             rows = self._soql_query(
                 "SELECT DeveloperName FROM ExpressionSetDefinition "
-                f"WHERE Id = '{self._soql_escape(es_def_id)}'")
+                f"WHERE Id = {soql_quote(es_def_id)}")
         except Exception:  # noqa: BLE001 -- only fills a message
             return None
         return (rows[0].get("DeveloperName") if rows else None) or None
@@ -374,7 +370,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         the fields the shared executing-version resolver reads (Rank, date window)."""
         return self._soql_query(
             f"SELECT {VERSION_FIELDS} FROM ExpressionSetVersion "
-            f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
+            f"WHERE ExpressionSetId = {soql_quote(es_id)} "
             "ORDER BY VersionNumber"
         )
 
@@ -717,7 +713,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         # Resolve by definition Id + VersionNumber, never by DeveloperName: a
         # Connect PATCH rewrites the ESDV DeveloperName in place, so a lookup
         # by the version ApiName right after one can miss.
-        where = f"ExpressionSetDefinitionId = '{self._soql_escape(es_def_id)}'"
+        where = f"ExpressionSetDefinitionId = {soql_quote(es_def_id)}"
         if version_number is not None:
             where += f" AND VersionNumber = {int(version_number)}"
         soql = (
@@ -1808,9 +1804,9 @@ class ImportExpressionSet(ExpressionSetConnectBase):
         )
 
         # Check if expression set already exists
-        safe = self._soql_escape(api_name)
+        safe = soql_quote(api_name)
         existing = self._soql_query(
-            f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = '{safe}'"
+            f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = {safe}"
         )
 
         if existing:
