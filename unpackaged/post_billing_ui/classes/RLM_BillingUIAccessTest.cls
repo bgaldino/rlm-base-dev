@@ -214,8 +214,9 @@ private class RLM_BillingUIAccessTest {
         Assert.areEqual(3, failures.size(), 'Each read comes from RLM_CollectionsDashboard: ' + failures);
     }
 
-    // Debit memos need the Manage Debit Memos user permission; the dashboard's Debit Memos amount is
-    // zero for a collections user without it. Pinned so a platform change that opens the read shows here.
+    // Debit memos need the Manage Debit Memos user permission, which a read-only collections role is not
+    // given (owner decision): the dashboard shows the Debit Memos line as not available and the total
+    // balance as excluding it. Pinned so a platform change that opens the read shows here.
     @IsTest
     static void collectionsUserCannotReadDebitMemos() {
         User u = RLM_BillingUITestUsers.create(COLLECTIONS_USER_SETS, COLLECTIONS_LICENSES);

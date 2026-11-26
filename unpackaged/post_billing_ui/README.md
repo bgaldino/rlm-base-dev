@@ -112,7 +112,9 @@ exists. The modal's currency list is hardcoded (USD, EUR, GBP, CAD, AUD, JPY, CH
 billing day and month are taken from that same `YYYY-MM-DD` value, and End Date is
 calendar math on it (`billingDates.js`), so no date passes through a local or UTC `Date`.
 A day the end month lacks is clamped to its last day before a day is taken off, as
-Salesforce Pricing anchors its periods (Jan 31 + 1 Month ends Feb 27; Feb 29 2028 +
+Salesforce Pricing anchors its periods, and a whole-year term from the last day of a month
+ends the day before that month's last day, as the 264 Help states (Jan 31 + 1 Month ends
+Feb 27; Feb 28 2027 + 1 Year ends Feb 28 2028; Feb 29 2028 +
 1 Year ends Feb 27 2029). The Jest suite `rlmBillingScheduleGroupModal.dates.test.js`
 pins the browser zone through `tests/jest/browser-time-zone-environment.js`.
 
@@ -143,9 +145,16 @@ reads the dashboard makes that the specialist set lacks (measured on 264, todo 4
 Case and Payment, Case AccountId/Subject/Description/Reason, CollectionPlanItem.InvoiceId and
 Task ActivityDate/WhatId (the platform adds Event.WhatId with Task.WhatId, so the file lists it).
 Without them the controller swallows the refused reads and the cards, disputed worklist and
-plan tasks come back empty, which reads as nothing owed. Debit memos stay unread: `DebitMemo`
-needs the Manage Debit Memos user permission, which a read-only collections role is not given, so
-the Debit Memos amount on the total balance is zero for such a user. `RLM_BillingUIAccessTest`
+plan tasks come back empty, which reads as nothing owed.
+
+Debit memos stay unread, by owner decision: reading `DebitMemo` needs the Manage Debit Memos user
+permission (measured on 264), a manage permission too broad for a read-only collections role, so
+the set does not grant it. The dashboard shows what such a user cannot read as not available
+instead of a zero: the Debit Memos line of the total balance reads "—" with "You don't have
+access to debit memos.", and the Total Balance says it excludes debit memos. The same rule covers
+every figure the dashboard shows (todo 435): a refused invoice, payment, payment schedule or
+collection plan read is returned as unavailable (null, or the cards' `unavailable` list, or the
+progress `unavailable` flag), never as $0.00. `RLM_BillingUIAccessTest`
 runs every controller read as this user, and `RLM_CollectionsDashboardControllerTest` loads the
 dashboard as this user and as the same user without the set. The build assigns the set to the
 running user only.

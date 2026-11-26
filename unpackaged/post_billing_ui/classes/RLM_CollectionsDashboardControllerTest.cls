@@ -84,11 +84,15 @@ private class RLM_CollectionsDashboardControllerTest {
     // Advanced licenses, the managed Billing Collections and Recovery Specialist set, RLM_CollectionsUI
     // and RLM_CollectionsDashboard. Every section that reads a record the test can create returns it
     // (invoices cannot be inserted; RLM_BillingUIAccessTest.collectionsUserWithoutBillingUiCanRunTheDashboardReads
-    // runs every read the controller makes as this user). The same records, read by the same user without
-    // RLM_CollectionsDashboard, leave the case, task and payment sections empty: those reads come
-    // from this set, and the controller swallows a refused read, so only data proves them.
-    // Records are owned by the user, so the result does not depend on the org's sharing defaults
+    // runs every read the controller makes as this user). Debit memos are the one component this user
+    // cannot read (no Manage Debit Memos): the cards say so instead of counting them as zero.
+    // The records are owned by this user, so what it sees does not depend on the org's sharing defaults
     // (Payment has no owner; it follows the org-wide default, Read/Write on a fresh 264 org).
+    //
+    // The control is the same user without RLM_CollectionsDashboard. Its refusals are checked at the
+    // reads themselves, not through empty sections, which sharing alone could also empty: the case
+    // subject and task date selects are refused, and the cards mark payments unavailable (a refusal,
+    // distinct from "none").
     @isTest
     static void collectionsUser_withoutBillingUi_getsEverySectionsData() {
         User withSet = RLM_BillingUITestUsers.create(new List<String>{
@@ -105,21 +109,33 @@ private class RLM_CollectionsDashboardControllerTest {
         insert new Task(WhatId = plan.Id, Subject = 'RLM CD collections call', ActivityDate = Date.today(),
             OwnerId = withSet.Id);
         insert new Case(AccountId = a.Id, Subject = 'RLM CD collections dispute', OwnerId = withSet.Id);
-        insert new CaseShare(CaseId = [SELECT Id FROM Case WHERE AccountId = :a.Id].Id,
-            UserOrGroupId = withoutSet.Id, CaseAccessLevel = 'Read');
         insert payment(a.Id, 250, 'Processed', corporateCurrency());
+        List<String> dashboardReads = new List<String>{
+            'SELECT Subject, Reason FROM Case LIMIT 1',
+            'SELECT ActivityDate, WhatId FROM Task LIMIT 1',
+            'SELECT Balance FROM Payment LIMIT 1'
+        };
 
         Map<String, Object> granted;
         Map<String, Object> control;
+        List<String> refusedWithSet = new List<String>();
+        List<String> refusedWithoutSet = new List<String>();
         Test.startTest();
         System.runAs(withSet) {
+            for (String soql : dashboardReads) {
+                if (userModeQueryFails(soql)) refusedWithSet.add(soql);
+            }
             granted = dashboardFor(a.Id);
         }
         System.runAs(withoutSet) {
+            for (String soql : dashboardReads) {
+                if (userModeQueryFails(soql)) refusedWithoutSet.add(soql);
+            }
             control = dashboardFor(a.Id);
         }
         Test.stopTest();
 
+        Assert.areEqual(new List<String>(), refusedWithSet, 'With the set every one of these reads runs.');
         Assert.isTrue(((List<Map<String, String>>) granted.get('accounts')).size() > 1, 'Accounts are listed.');
         Assert.isTrue(((List<Map<String, String>>) granted.get('currencies')).size() > 1, 'Currencies are listed.');
         Assert.areEqual(1, granted.get('payments'), 'The unapplied payment is counted.');
@@ -127,10 +143,19 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(Date.today(), granted.get('taskDate'), 'The plan task is listed with its due date.');
         Assert.areEqual(1, granted.get('myPlans'), 'The user\'s plan is listed.');
         Assert.areEqual(1, granted.get('plans'), 'Progress counts the plan.');
+        Assert.isFalse((Boolean) granted.get('progressUnavailable'), 'Progress is a measurement.');
+        Assert.isNotNull(granted.get('promises'), 'Payment promises were read (an empty list, not unavailable).');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS },
+            granted.get('unavailable'), 'Only debit memos are unavailable to this user.');
+        Map<String, Object> debitRow = (Map<String, Object>) granted.get('debitRow');
+        Assert.areEqual('Debit Memos', debitRow.get('label'));
+        Assert.isNull(debitRow.get('amount'), 'Not a zero: the debit memo read was refused.');
+        Assert.areEqual(RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS, debitRow.get('unavailable'));
 
-        Assert.areEqual(0, control.get('payments'), 'Without the set the payment read is refused.');
-        Assert.areEqual(0, control.get('disputed'), 'Without the set the case read is refused.');
-        Assert.isNull(control.get('taskDate'), 'Without the set the task read is refused.');
+        Assert.areEqual(dashboardReads, refusedWithoutSet, 'Without the set each of these reads is refused.');
+        Assert.isNull(control.get('payments'), 'The refused payment read is unavailable, not zero.');
+        Assert.isTrue(((List<String>) control.get('unavailable')).contains(
+            RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS), 'And listed as unavailable.');
     }
 
     // Calls every section the dashboard loads, as the running user, and keeps what the test checks.
@@ -142,14 +167,19 @@ private class RLM_CollectionsDashboardControllerTest {
         List<RLM_CollectionsDashboardController.CpTaskItem> tasks =
             RLM_CollectionsDashboardController.getCollectionPlanTasks(accountId);
         RLM_CollectionsDashboardController.WorklistItem disputedRow = byAccount(worklist.disputedInvoices).get(accountId);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress =
+            RLM_CollectionsDashboardController.getCollectionsProgress();
         return new Map<String, Object>{
             'accounts' => RLM_CollectionsDashboardController.getAccountOptions(),
             'currencies' => RLM_CollectionsDashboardController.getCurrencyOptions(),
             'payments' => cards.unappliedPaymentCount,
+            'unavailable' => cards.unavailable,
+            'debitRow' => cards.totalBalanceBreakdown[1],
             'disputed' => disputedRow == null ? 0 : 1,
             'taskDate' => tasks.isEmpty() ? null : tasks[0].activityDate,
             'myPlans' => RLM_CollectionsDashboardController.getMyCollectionPlans().size(),
-            'plans' => RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
+            'plans' => progress.totalPlans,
+            'progressUnavailable' => progress.unavailable,
             'promises' => RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null)
         };
     }
@@ -347,6 +377,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
+        Assert.isTrue(unfiltered.unavailable.isEmpty(), 'The admin reads every component: ' + unfiltered.unavailable);
+        for (Map<String, Object> row : unfiltered.totalBalanceBreakdown) {
+            Assert.isNotNull(row.get('amount'), 'A readable component has an amount, zero or not: ' + row.get('label'));
+            Assert.isFalse(row.containsKey('unavailable'), 'And is not marked unavailable: ' + row.get('label'));
+        }
 
         List<String> labels = new List<String>{ 'Unpaid Invoices', 'Debit Memos', 'Unapplied Credits', 'Unapplied Payments' };
         Assert.areEqual(labels.size(), unfiltered.totalBalanceBreakdown.size(), 'One breakdown row per balance component.');
@@ -702,15 +737,32 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
         Assert.isTrue(myPlans.isEmpty(), 'No plan is listed: the user owns none.');
-        Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
-            'An unreadable Invoice returns the cards before any breakdown is built.');
-        Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
+        // Every card component is unavailable, not zero: the page says so instead of showing $0.00.
+        Assert.areEqual(new List<String>{
+            RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES,
+            RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS,
+            RLM_CollectionsDashboardController.UNAVAILABLE_CREDITS,
+            RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS
+        }, cards.unavailable, 'Each refused component is listed.');
+        Assert.isNull(cards.receivablesOutstanding, 'Receivables are not a zero.');
+        Assert.isNull(cards.invoiceCount, 'Nor the invoice count.');
+        Assert.isNull(cards.currentDue, 'Nor current due.');
+        Assert.isNull(cards.overdue, 'Nor overdue.');
+        Assert.isNull(cards.unappliedPaymentBalance, 'Nor the unapplied payments.');
+        Assert.isNull(cards.unappliedPaymentCount, 'Nor their count.');
+        Assert.isNull(cards.totalOutstanding, 'Nor the total outstanding.');
+        Assert.areEqual(4, cards.totalBalanceBreakdown.size(), 'The breakdown names every component.');
+        for (Map<String, Object> row : cards.totalBalanceBreakdown) {
+            Assert.isNull(row.get('amount'), 'No amount for ' + row.get('label'));
+            Assert.isNotNull(row.get('unavailable'), 'Marked unavailable: ' + row.get('label'));
+        }
+        Assert.isTrue(cards.agingBuckets.isEmpty(), 'No aging bucket.');
         Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is not listed (access or sharing).');
         Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder row (access or sharing).');
         Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder row (access or sharing).');
-        Assert.isTrue(promises.isEmpty(), 'An unreadable schedule item returns no buckets.');
+        Assert.isNull(promises, 'An unreadable schedule item is unavailable, not "no promises".');
         Assert.isTrue(tasks.isEmpty(), 'The plan\'s task is not listed (access or sharing).');
-        Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');
+        Assert.isTrue(progress.unavailable, 'Unreadable plans are unavailable, not "no plans".');
     }
 
     // A user who cannot read Account gets only the "All Accounts" sentinel, like the other

@@ -10,6 +10,25 @@ import getPaymentPromiseSummary from '@salesforce/apex/RLM_CollectionsDashboardC
 import getMyCollectionPlans from '@salesforce/apex/RLM_CollectionsDashboardController.getMyCollectionPlans';
 import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardController.getCollectionsProgress';
 
+// Figures the user may not be allowed to read (todo 435). The controller returns a refused read as
+// unavailable (null, or listed in the cards' `unavailable`), and the page shows it as not available
+// with the reason, never as a zero that reads as a real amount.
+const NOT_AVAILABLE = '—';
+const NO_ACCESS = {
+    invoices: "You don't have access to invoices.",
+    debitMemos: "You don't have access to debit memos.",
+    unappliedCredits: "You don't have access to payments.",
+    unappliedPayments: "You don't have access to payments."
+};
+const EXCLUDED_NAMES = {
+    invoices: 'unpaid invoices',
+    debitMemos: 'debit memos',
+    unappliedCredits: 'unapplied credits',
+    unappliedPayments: 'unapplied payments'
+};
+const NO_ACCESS_PAYMENT_SCHEDULES = "You don't have access to payment schedules.";
+const NO_ACCESS_COLLECTION_PLANS = "You don't have access to collection plans.";
+
 /**
  * AR Recovery Agent Mission Control – premium dashboard with Pulse (KPIs), Aging chart, and Action worklist.
  */
@@ -95,8 +114,12 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     @wire(getPaymentPromiseSummary, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
     wiredPaymentPromises({ error, data }) {
-        if (data) this.paymentPromiseData = Array.isArray(data) ? data : [];
-        else if (error) this.paymentPromiseData = [];
+        if (error) {
+            this.paymentPromiseData = [];
+        } else if (data !== undefined) {
+            // null from the server: the schedule items could not be read (not "no promises").
+            this.paymentPromiseData = Array.isArray(data) ? data : null;
+        }
     }
 
     @wire(getMyCollectionPlans)
@@ -375,6 +398,38 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return 'Unknown error';
     }
 
+    get unavailableKeys() {
+        return this.dashboardData?.unavailable || [];
+    }
+
+    get invoicesUnavailable() {
+        return this.unavailableKeys.includes('invoices');
+    }
+
+    get paymentsUnavailable() {
+        return this.unavailableKeys.includes('unappliedPayments');
+    }
+
+    get invoicesUnavailableText() {
+        return NO_ACCESS.invoices;
+    }
+
+    // "Excludes debit memos: you don't have access to them." when any component of the total was refused.
+    get totalBalanceNote() {
+        const names = this.unavailableKeys.map((key) => EXCLUDED_NAMES[key]).filter((name) => name);
+        if (names.length === 0) return '';
+        const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+        return `Excludes ${list}: you don't have access to them.`;
+    }
+
+    get invoiceCountLabel() {
+        return this.invoicesUnavailable ? NO_ACCESS.invoices : `${this.invoiceCount} invoices`;
+    }
+
+    get unappliedPaymentMeta() {
+        return this.paymentsUnavailable ? NO_ACCESS.unappliedPayments : `${this.unappliedPaymentCount} records · Action required`;
+    }
+
     get totalBalanceValue() {
         return this.dashboardData?.totalBalance != null ? this.dashboardData.totalBalance : 0;
     }
@@ -384,7 +439,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData.totalBalanceBreakdown.map((b) => ({
             ...b,
             amount: b.amount != null ? b.amount : 0,
-            formatted: this.formatCurrency(b.amount != null ? b.amount : 0),
+            formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0),
+            title: b.unavailable ? NO_ACCESS[b.unavailable] || '' : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
     }
@@ -432,19 +488,19 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     // Pre-formatted KPI values: LWC templates can't call methods in bindings (LWC1060),
     // so currency formatting is done here and bound as plain properties.
     get receivablesOutstandingFormatted() {
-        return this.formatCurrency(this.receivablesOutstandingValue);
+        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.receivablesOutstandingValue);
     }
 
     get currentDueFormatted() {
-        return this.formatCurrency(this.currentDueValue);
+        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.currentDueValue);
     }
 
     get overdueFormatted() {
-        return this.formatCurrency(this.overdueValue);
+        return this.invoicesUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.overdueValue);
     }
 
     get unappliedPaymentBalanceFormatted() {
-        return this.formatCurrency(this.unappliedPaymentBalanceValue);
+        return this.paymentsUnavailable ? NOT_AVAILABLE : this.formatCurrency(this.unappliedPaymentBalanceValue);
     }
 
     get totalBalanceFormatted() {
@@ -507,11 +563,24 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             });
     }
 
+    get paymentPromisesUnavailable() {
+        return this.paymentPromiseData === null;
+    }
+
+    get paymentPromisesUnavailableText() {
+        return NO_ACCESS_PAYMENT_SCHEDULES;
+    }
+
+    get showNoPaymentPromises() {
+        return !this.paymentPromisesUnavailable && !this.hasPaymentPromises;
+    }
+
     get hasPaymentPromises() {
         return this.paymentPromisesBuckets && this.paymentPromisesBuckets.length > 0;
     }
 
     get paymentPromisesTotalFormatted() {
+        if (this.paymentPromisesUnavailable) return NOT_AVAILABLE;
         if (!this.paymentPromiseData || this.paymentPromiseData.length === 0) return this.formatCurrency(0);
         const total = this.paymentPromiseData.reduce((sum, b) => sum + (Number(b.totalRequestedAmount) || 0), 0);
         return this.formatCurrency(total);
@@ -651,8 +720,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.myCollectionPlans ? this.myCollectionPlans.length : 0;
     }
 
+    get progressUnavailable() {
+        return this.collectionsProgressData?.unavailable === true;
+    }
+
+    get progressUnavailableText() {
+        return NO_ACCESS_COLLECTION_PLANS;
+    }
+
+    get showNoProgress() {
+        return !this.progressUnavailable && !this.hasCollectionsProgress;
+    }
+
     get hasCollectionsProgress() {
-        return this.collectionsProgressData && this.collectionsProgressData.totalPlans > 0;
+        return !this.progressUnavailable && this.collectionsProgressData && this.collectionsProgressData.totalPlans > 0;
     }
 
     get progressRecoveredPercent() {
@@ -676,11 +757,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressAvgDaysToClose() {
+        if (this.progressUnavailable) return NOT_AVAILABLE;
         if (!this.collectionsProgressData) return '0';
         return String(this.collectionsProgressData.avgDaysToClose);
     }
 
     get progressAvgDaysPastDue() {
+        if (this.progressUnavailable) return NOT_AVAILABLE;
         if (!this.collectionsProgressData) return '0';
         return String(this.collectionsProgressData.avgDaysPastDue);
     }
@@ -724,7 +807,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         try {
             const d = new Date(dateVal + 'T00:00:00');
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        } catch (e) {
+        } catch {
             return String(dateVal);
         }
     }

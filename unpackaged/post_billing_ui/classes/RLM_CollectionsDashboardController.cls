@@ -59,7 +59,11 @@ public with sharing class RLM_CollectionsDashboardController {
                 Integer cnt = countByStatus.get(status) != null ? countByStatus.get(status) : 0;
                 buckets.add(new PaymentPromiseBucket(status, amt, cnt));
             }
-        } catch (Exception e) { sectionSkipped('getPaymentPromiseSummary', e); }
+        } catch (Exception e) {
+            // Not "no promises": the page says the schedule items could not be read.
+            sectionSkipped('getPaymentPromiseSummary', e);
+            return null;
+        }
         return buckets;
     }
 
@@ -108,37 +112,83 @@ public with sharing class RLM_CollectionsDashboardController {
             invWhere += ' AND CurrencyIsoCode = :currencyCode ';
         }
 
-        List<Invoice> unpaidInvoices = new List<Invoice>();
+        Decimal sumUnpaidInvoiceBalance = null;
         try {
-            unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            List<Invoice> unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+            tallyInvoices(data, unpaidInvoices, Date.today());
+            sumUnpaidInvoiceBalance = data.receivablesOutstanding;
         } catch (Exception e) {
-            // Section isolation: a refused or failed Invoice read leaves the cards empty (logged), not an exception.
+            // A refused or failed Invoice read is not "nothing owed": the invoice figures are
+            // marked unavailable (null) and the other components still load.
             sectionSkipped('getDashboardCards', e);
-            return data;
+            markInvoicesUnavailable(data);
         }
 
-        tallyInvoices(data, unpaidInvoices, Date.today());
-        Decimal sumUnpaidInvoiceBalance = data.receivablesOutstanding;
-
+        // Each component is null when its read was refused (see sumOrNull), and is then listed in
+        // data.unavailable; the total balance adds only what was read and names what it leaves out.
         Decimal unappliedCredits = getUnappliedCreditsSum(accountId, currencyCode);
         Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(accountId, currencyCode);
         Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(accountId, currencyCode);
         Integer unappliedPaymentCount = getUnappliedPaymentCount(accountId, currencyCode);
+        if (debitMemoNotInvoiced == null) data.unavailable.add(UNAVAILABLE_DEBIT_MEMOS);
+        if (unappliedCredits == null) data.unavailable.add(UNAVAILABLE_CREDITS);
+        if (unappliedPaymentBalance == null || unappliedPaymentCount == null) data.unavailable.add(UNAVAILABLE_PAYMENTS);
 
         data.unappliedCredits = unappliedCredits;
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
 
-        data.totalBalance = sumUnpaidInvoiceBalance + debitMemoNotInvoiced - unappliedCredits - unappliedPaymentBalance;
-        data.totalOutstanding = sumUnpaidInvoiceBalance - unappliedPaymentBalance;
+        data.totalBalance = orZero(sumUnpaidInvoiceBalance) + orZero(debitMemoNotInvoiced)
+            - orZero(unappliedCredits) - orZero(unappliedPaymentBalance);
+        data.totalOutstanding = sumUnpaidInvoiceBalance == null || unappliedPaymentBalance == null
+            ? null : sumUnpaidInvoiceBalance - unappliedPaymentBalance;
 
         data.totalBalanceBreakdown = new List<Map<String, Object>>();
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unpaid Invoices', 'amount' => sumUnpaidInvoiceBalance, 'color' => 'blue' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memos', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => -unappliedCredits, 'color' => 'green' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Payments', 'amount' => -unappliedPaymentBalance, 'color' => 'red' });
+        data.totalBalanceBreakdown.add(breakdownRow('Unpaid Invoices', sumUnpaidInvoiceBalance, 'blue', UNAVAILABLE_INVOICES));
+        data.totalBalanceBreakdown.add(breakdownRow('Debit Memos', debitMemoNotInvoiced, 'orange', UNAVAILABLE_DEBIT_MEMOS));
+        data.totalBalanceBreakdown.add(breakdownRow('Unapplied Credits', negate(unappliedCredits), 'green', UNAVAILABLE_CREDITS));
+        data.totalBalanceBreakdown.add(breakdownRow('Unapplied Payments', negate(unappliedPaymentBalance), 'red', UNAVAILABLE_PAYMENTS));
 
         return data;
+    }
+
+    // Keys of CollectionsDashboardData.unavailable: the card components whose read was refused or
+    // failed. The page shows those as not available instead of a zero, and the total balance as
+    // excluding them.
+    @TestVisible private static final String UNAVAILABLE_INVOICES = 'invoices';
+    @TestVisible private static final String UNAVAILABLE_DEBIT_MEMOS = 'debitMemos';
+    @TestVisible private static final String UNAVAILABLE_CREDITS = 'unappliedCredits';
+    @TestVisible private static final String UNAVAILABLE_PAYMENTS = 'unappliedPayments';
+
+    private static void markInvoicesUnavailable(CollectionsDashboardData data) {
+        data.unavailable.add(UNAVAILABLE_INVOICES);
+        data.receivablesOutstanding = null;
+        data.invoiceCount = null;
+        data.partiallySettledCount = null;
+        data.partiallySettledSum = null;
+        data.notSettledCount = null;
+        data.notSettledSum = null;
+        data.currentDue = null;
+        data.overdue = null;
+        data.agingBuckets = new List<Map<String, Object>>();
+    }
+
+    // One row of the total balance breakdown; a component that could not be read has a null amount and
+    // carries the key the page uses to say so.
+    private static Map<String, Object> breakdownRow(String label, Decimal amount, String color, String unavailableKey) {
+        Map<String, Object> row = new Map<String, Object>{ 'label' => label, 'amount' => amount, 'color' => color };
+        if (amount == null) {
+            row.put('unavailable', unavailableKey);
+        }
+        return row;
+    }
+
+    private static Decimal orZero(Decimal value) {
+        return value == null ? 0 : value;
+    }
+
+    private static Decimal negate(Decimal value) {
+        return value == null ? null : -value;
     }
 
     // The invoice totals, settlement counts and aging buckets on the dashboard cards, from the
@@ -619,6 +669,9 @@ public with sharing class RLM_CollectionsDashboardController {
     //    existence was checked first (CollectionPlan, CollectionPlanItem, PaymentSchedule,
     //    CurrencyType). A refused or failed read leaves that section empty while the others still
     //    load, and is logged at WARN; it is a permission or data problem, not an absent schema.
+    //    Where the section is a figure (the cards and total balance, payment promises, progress), it is
+    //    returned as unavailable (null, or the wrapper's unavailable flag or list), never as a zero the
+    //    page would show as a real amount (todo 435). The lists (worklist, tasks, plans) stay empty.
     // Neither throws and neither puts platform exception text in a response.
     private static void probeSkipped(String context, Exception e) {
         System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (field or object not present): ' + e.getMessage());
@@ -732,13 +785,14 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); }
+        } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); return null; }
         return sum;
     }
 
     private static Decimal getDebitMemoNotInvoicedSum(Id accountId, String currencyCode) {
         Decimal sum = 0;
         try {
+            // No DebitMemo object in this org: nothing can be owed on one, so zero is the real figure.
             if (!Schema.getGlobalDescribe().containsKey('DebitMemo')) return 0;
             Schema.DescribeSObjectResult dmDesc = Schema.getGlobalDescribe().get('DebitMemo').getDescribe();
             Map<String, Schema.SObjectField> flds = dmDesc.fields.getMap();
@@ -752,7 +806,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumAmt') != null) sum = (Decimal) ar[0].get('sumAmt');
-        } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); }
+        } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); return null; }
         return sum;
     }
 
@@ -770,7 +824,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); return null; }
         return sum;
     }
 
@@ -786,7 +840,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('cnt') != null) cnt = (Integer) ar[0].get('cnt');
-        } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); return null; }
         return cnt;
     }
 
@@ -806,8 +860,11 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Decimal unappliedCredits { get; set; }
         @AuraEnabled public Decimal totalOutstanding { get; set; }
         @AuraEnabled public List<Map<String, Object>> agingBuckets { get; set; }
+        // Components whose read was refused or failed (UNAVAILABLE_*); their figures are null.
+        @AuraEnabled public List<String> unavailable { get; set; }
 
         public CollectionsDashboardData() {
+            unavailable = new List<String>();
             totalBalance = 0;
             totalBalanceBreakdown = new List<Map<String, Object>>();
             receivablesOutstanding = 0;
@@ -907,7 +964,13 @@ public with sharing class RLM_CollectionsDashboardController {
             result.notRecoveredPercent = totalCount > 0 ? (Decimal) (totalCount - recoveredCount) * 100 / totalCount : 0;
             result.avgDaysToClose = closedWithDatesCount > 0 ? (totalDaysToClose / closedWithDatesCount).setScale(1) : 0;
             result.avgDaysPastDue = daysPastDueCount > 0 ? (totalDaysPastDue / daysPastDueCount).setScale(1) : 0;
-        } catch (Exception e) { sectionSkipped('getCollectionsProgress', e); }
+        } catch (Exception e) {
+            // Not "no plans": the page says the collection plans could not be read.
+            sectionSkipped('getCollectionsProgress', e);
+            CollectionsProgressData unreadable = new CollectionsProgressData();
+            unreadable.unavailable = true;
+            return unreadable;
+        }
         return result;
     }
 
@@ -921,7 +984,10 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Decimal notRecoveredPercent { get; set; }
         @AuraEnabled public Decimal avgDaysToClose { get; set; }
         @AuraEnabled public Decimal avgDaysPastDue { get; set; }
+        // True when the collection plans could not be read: the figures above are not measurements.
+        @AuraEnabled public Boolean unavailable { get; set; }
         public CollectionsProgressData() {
+            unavailable = false;
             totalPlans = 0; recoveredCount = 0; notRecoveredCount = 0;
             recoveredAmount = 0; notRecoveredAmount = 0;
             recoveredPercent = 0; notRecoveredPercent = 0;

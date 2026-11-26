@@ -27,7 +27,7 @@
                             <div class="pulse-card card-receivables">
                                 <div class="pulse-card-label">Receivables Outstanding</div>
                                 <div class="pulse-card-value">{receivablesOutstandingFormatted}</div>
-                                <div class="pulse-card-meta">{invoiceCount} invoices</div>
+                                <div class="pulse-card-meta">{invoiceCountLabel}</div>
                             </div>
                             <div class="pulse-card card-current">
                                 <div class="pulse-card-label">Current Due</div>
@@ -40,14 +40,17 @@
                             <div class="pulse-card card-unapplied pulse-action">
                                 <div class="pulse-card-label">Unapplied Payments</div>
                                 <div class="pulse-card-value pulse-value-action">{unappliedPaymentBalanceFormatted}</div>
-                                <div class="pulse-card-meta">{unappliedPaymentCount} records · Action required</div>
+                                <div class="pulse-card-meta">{unappliedPaymentMeta}</div>
                             </div>
                             <div class="pulse-card card-total-balance">
                                 <div class="pulse-card-label">Total Balance</div>
                                 <div class="pulse-card-value">{totalBalanceFormatted}</div>
+                                <template if:true={totalBalanceNote}>
+                                    <div class="pulse-card-meta total-balance-note" role="note">{totalBalanceNote}</div>
+                                </template>
                                 <div class="pulse-card-breakdown">
                                     <template for:each={totalBalanceBreakdown} for:item="row">
-                                        <div key={row.label} class={row.lineClass}><span>{row.label}</span><span>{row.formatted}</span></div>
+                                        <div key={row.label} class={row.lineClass}><span>{row.label}</span><span title={row.title}>{row.formatted}</span></div>
                                     </template>
                                 </div>
                             </div>
@@ -57,6 +60,9 @@
                     <!-- AGING RAINBOW -->
                     <section class="aging-section">
                         <div class="aging-label">Aging</div>
+                        <template if:true={invoicesUnavailable}>
+                            <p class="aging-unavailable">{invoicesUnavailableText}</p>
+                        </template>
                         <div class="aging-bar" role="list">
                             <template for:each={agingBuckets} for:item="bucket">
                                 <div key={bucket.key} class={bucket.segmentClass} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} onkeydown={handleAgingBucketKeydown} role="button" tabindex="0" aria-label={bucket.label} title={bucket.label}></div>
@@ -92,7 +98,10 @@
                                 </template>
                             </div>
                         </template>
-                        <template if:false={hasPaymentPromises}>
+                        <template if:true={paymentPromisesUnavailable}>
+                            <p class="payment-promises-empty">{paymentPromisesUnavailableText}</p>
+                        </template>
+                        <template if:true={showNoPaymentPromises}>
                             <p class="payment-promises-empty">No payment promises.</p>
                         </template>
                     </section>
@@ -271,7 +280,10 @@
                                     </div>
                                 </div>
                             </template>
-                            <template if:false={hasCollectionsProgress}>
+                            <template if:true={progressUnavailable}>
+                                <p class="progress-empty">{progressUnavailableText}</p>
+                            </template>
+                            <template if:true={showNoProgress}>
                                 <p class="progress-empty">No collection plan data available.</p>
                             </template>
                         </section>
