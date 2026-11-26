@@ -73,9 +73,15 @@ public without sharing class RLM_AccountUtilities {
     // pathological graph cannot spin. A round runs no queries.
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
     // Rows the plan reads per usage object in one run. More than this and the run
-    // deletes what it planned and asks for another run, which plans the rest.
-    @TestVisible
+    // deletes what it planned and asks for another run, which plans the rest. For a user
+    // without Modify All Data and View All Data the batch is smaller, so the per-record
+    // access reads (200 ids a query) for eleven usage objects fit in the queries left:
+    // eleven batches of 400 take 22 reads.
     private static final Integer TEARDOWN_BATCH = 2000;
+    private static final Integer CHECKED_TEARDOWN_BATCH = 400;
+    // Lets a test shrink the usage batch, to prove a run that reads only part of the usage converges.
+    @TestVisible
+    private static Integer usageBatchForTest;
     // Ids per UserRecordAccess read: the most it accepts.
     private static final Integer ACCESS_BATCH = 200;
     // Names listed per object and reason in a refusal; the rest are counted.
@@ -89,16 +95,26 @@ public without sharing class RLM_AccountUtilities {
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
 
     // Refusal. Plain wording: the reset was not run.
+    @TestVisible
     private static final String REFUSED = 'The reset was not run, and nothing was changed: the user running it '
         + 'cannot delete everything it would delete.';
+    @TestVisible
     private static final String REFUSED_ADVICE = 'Ask a user who has the permission or access named above to run '
         + 'it (Modify All Data covers record access, not the named permissions), or have the records reassigned to '
         + 'the user running the reset.';
     private static final String PLAN_TOO_LARGE = 'The reset was not run, and nothing was changed: the account has '
-        + 'too many records to check in one run. Running it again stops at the same point; an admin can delete some '
-        + 'of the account\'s records first.';
+        + 'too many records to check in one run. Running it again as the same user stops at the same point; a user '
+        + 'with Modify All Data and View All Data needs far fewer queries for the check.';
+    @TestVisible
+    private static final String NOT_YET = 'The reset was not run, and nothing was changed: some of the records it '
+        + 'would delete cannot be deleted yet.';
+    @TestVisible
+    private static final String NOT_YET_ADVICE = 'Run the reset again once the invoices finish processing.';
+    @TestVisible
     private static final String NO_PERMISSION = 'no permission to delete this kind of record';
+    @TestVisible
     private static final String NO_ACCESS = 'no delete access to these records';
+    @TestVisible
     private static final String NOT_VISIBLE = 'not visible to the user running the reset';
     private static final String CANNOT_READ = 'the user running the reset cannot read this kind of record';
     private static final String NEEDS_EDIT_ACTIVATED = 'activated; setting them back to Draft needs the Edit '
@@ -107,8 +123,10 @@ public without sharing class RLM_AccountUtilities {
         + 'Lifecycle-Managed Assets permission';
     private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled; deleting them needs the '
         + 'Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices)';
+    @TestVisible
     private static final String MEMO_NEEDS_PERMISSION = 'deleting credit memos needs the Allow Revenue Records '
         + 'Deletion permission (Billing Admin permission set)';
+    @TestVisible
     private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset once they finish';
 
     /**
@@ -316,7 +334,7 @@ public without sharing class RLM_AccountUtilities {
             return refuse(PLAN_TOO_LARGE);
         }
         if (!plan.blockers.isEmpty()) {
-            return refuse(REFUSED + ' ' + plan.describeBlockers() + '. ' + REFUSED_ADVICE);
+            return refuse(refusal(plan.blockers, plan.describeBlockers()));
         }
         // Not deleted by design: another account's data, and what Salesforce never deletes.
         recordRetained(UsageEntitlementBucket.SObjectType, plan.foreignBuckets, FOREIGN_BUCKET);
@@ -343,6 +361,10 @@ public without sharing class RLM_AccountUtilities {
                 G_COMMITMENT_JUNCTIONS
             });
             if (plan.usageTruncated) {
+                // The plan read only part of the usage. Whatever it read goes now, the
+                // entitlements bound to the assets included (normally phase 2's): an asset
+                // cannot go while unread ones remain, so each run must make progress here.
+                teardown(new List<String>{ G_ASSET_ENTRIES, G_ASSET_BUCKETS, G_ASSET_ENTITLEMENTS });
                 throw new ResetStoppedException(USAGE_TOO_LARGE);
             }
         } catch (ResetStoppedException e) {
@@ -673,8 +695,12 @@ public without sharing class RLM_AccountUtilities {
     private static final Set<String> CORE_PERMISSIONS = new Set<String>{
         'PermissionsModifyAllData', 'PermissionsViewAllData', 'PermissionsEditActivatedOrders'
     };
+    // Every permission the plan uses, read at its start, under its query guard.
+    private static final List<String> PLAN_PERMISSIONS = new List<String>{
+        'PermissionsModifyAllData', 'PermissionsBillingInvoiceSuperUser', 'PermissionsCalmSobjectAccessUser'
+    };
     private static final List<String> OTHER_PERMISSIONS = new List<String>{
-        'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords', 'PermissionsCalmSobjectAccessUser'
+        'PermissionsBillingInvoiceSuperUser', 'PermissionsCalmSobjectAccessUser'
     };
 
     /**
@@ -682,6 +708,7 @@ public without sharing class RLM_AccountUtilities {
      * a group. UserPermissionAccess holds the user's effective permissions, and any user may
      * read their own; a non-admin is refused PermissionSetAssignment.
      */
+    @TestVisible
     private static Boolean hasUserPermission(String field) {
         if (withoutPermissionForTest.contains(field)) {
             return false;
@@ -700,15 +727,16 @@ public without sharing class RLM_AccountUtilities {
                 userPermissions.put('PermissionsViewAllData', core.PermissionsViewAllData == true);
                 userPermissions.put('PermissionsEditActivatedOrders', core.PermissionsEditActivatedOrders == true);
             } else {
+                // One field per query: a release or org without this field (a Revenue Cloud
+                // org without Billing has no BillingInvoiceSuperUser) reads it as false and
+                // nothing else.
                 List<SObject> access = new List<SObject>();
                 try {
-                    access = Database.query('SELECT ' + String.join(OTHER_PERMISSIONS, ', ') + ' FROM UserPermissionAccess');
+                    access = Database.query('SELECT ' + field + ' FROM UserPermissionAccess LIMIT 1');
                 } catch (QueryException e) {
                     access = new List<SObject>();
                 }
-                for (String name : OTHER_PERMISSIONS) {
-                    userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
-                }
+                userPermissions.put(field, !access.isEmpty() && access[0].get(field) == true);
             }
         }
         return userPermissions.get(field) == true;
@@ -723,16 +751,6 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Boolean canDeletePostedInvoices() {
         return hasUserPermission('PermissionsBillingInvoiceSuperUser');
-    }
-
-    /**
-     * True when the running user has DeleteRevenueRecords ("Allow Revenue Records
-     * Deletion", managed Billing Admin set). Live 264 it is what lets a Draft or Canceled
-     * credit memo be deleted; Delete Invoice and Invoice Lines does not.
-     */
-    @TestVisible
-    private static Boolean canDeleteRevenueRecords() {
-        return hasUserPermission('PermissionsDeleteRevenueRecords');
     }
 
     /**
@@ -766,6 +784,29 @@ public without sharing class RLM_AccountUtilities {
     private static String assetBlocker(Object hasLifecycleManagement) {
         return hasLifecycleManagement == true && !hasUserPermission('PermissionsCalmSobjectAccessUser')
             ? NEEDS_LIFECYCLE : null;
+    }
+
+    /**
+     * Why a planned record blocks the reset, or null when it does not. One reason per
+     * record, in this order: a record the user cannot see is counted as not visible,
+     * whatever else applies, so it is never named; then the object's delete permission
+     * (for credit memos, Allow Revenue Records Deletion); then a permission the run needs
+     * on the record (`special`); then the user's delete access to it.
+     */
+    @TestVisible
+    private static String blockerReason(
+        String objectName, Boolean visible, Boolean objectDeletable, String special, Boolean deletable
+    ) {
+        if (!visible) {
+            return NOT_VISIBLE;
+        }
+        if (!objectDeletable) {
+            return objectName == 'CreditMemo' ? MEMO_NEEDS_PERMISSION : NO_PERMISSION;
+        }
+        if (special != null) {
+            return special;
+        }
+        return deletable ? null : NO_ACCESS;
     }
 
     // Rows the next DML statement may touch: what is left of the transaction's row
@@ -864,12 +905,15 @@ public without sharing class RLM_AccountUtilities {
         if (parentIds.isEmpty()) {
             return parentsByFile;
         }
+        // Bounded like the plan's other reads: reaching the bound ends the plan.
+        Integer rowCap = readCap();
         // In system mode, so a link to a record the user cannot see still counts: a file
         // shared with such a record is not exclusive.
         for (ContentDocumentLink cdl : [
             SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId IN :parentIds
-            WITH SYSTEM_MODE
+            WITH SYSTEM_MODE LIMIT :rowCap
         ]) {
+            rowCap--;
             if (!parentsByFile.containsKey(cdl.ContentDocumentId)) {
                 parentsByFile.put(cdl.ContentDocumentId, new Set<Id>());
             }
@@ -879,12 +923,17 @@ public without sharing class RLM_AccountUtilities {
             return parentsByFile;
         }
 
+        if (rowCap <= 0) {
+            throw new PlanTooLargeException(PLAN_TOO_LARGE);
+        }
         Set<Id> fileIds = new Set<Id>(parentsByFile.keySet());
+        rowCap = readCap();
         for (ContentDocumentLink cdl : [
             SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
             WHERE ContentDocumentId IN :fileIds
-            WITH SYSTEM_MODE
+            WITH SYSTEM_MODE LIMIT :rowCap
         ]) {
+            rowCap--;
             // Skip: linked to one of our records (expected), or a personal-library
             // link (ShareType='I') auto-created by the platform for the file owner --
             // every document has one, so counting it would skip them all.
@@ -896,10 +945,46 @@ public without sharing class RLM_AccountUtilities {
             }
             parentsByFile.remove(cdl.ContentDocumentId);
         }
+        if (rowCap <= 0) {
+            throw new PlanTooLargeException(PLAN_TOO_LARGE);
+        }
         return parentsByFile;
     }
 
+    /**
+     * The rows the next read may return: the query rows left, and what the heap left can
+     * hold (about 500 bytes a row, as read), so the read can neither throw the
+     * uncatchable row limit nor fill the heap. A read that returns this many rows ends the
+     * plan (or, for a usage batch, marks it truncated).
+     */
+    private static Integer readCap() {
+        Integer rowsLeft = Limits.getLimitQueryRows() - Limits.getQueryRows();
+        Integer heapRows = (Limits.getLimitHeapSize() - Limits.getHeapSize()) / 500;
+        return Math.max(0, Math.min(rowsLeft, heapRows));
+    }
+
     /** The record that blocks the reset for one reason, of one object. */
+    /**
+     * The refusal, from the blockers and their description. An invoice still processing is
+     * not about who runs the reset: nobody can delete it until it finishes, so a refusal
+     * for that alone gets its own wording and advice.
+     */
+    @TestVisible
+    private static String refusal(List<Blocker> blockers, String described) {
+        Boolean waiting = false;
+        Boolean waitingOnly = !blockers.isEmpty();
+        for (Blocker b : blockers) {
+            if (b.reason == INVOICE_IN_PROGRESS) {
+                waiting = true;
+            } else {
+                waitingOnly = false;
+            }
+        }
+        return (waitingOnly ? NOT_YET : REFUSED) + ' ' + described + '. '
+            + (waitingOnly ? NOT_YET_ADVICE : REFUSED_ADVICE + (waiting ? ' ' + NOT_YET_ADVICE : ''));
+    }
+
+    @TestVisible
     private class Blocker {
         public String label;
         public String reason;
@@ -947,6 +1032,8 @@ public without sharing class RLM_AccountUtilities {
         public Map<Id, Id> caseParent = new Map<Id, Id>();
         // True when a usage object had more rows than one run plans.
         public Boolean usageTruncated = false;
+        // Rows per usage object this run reads (TEARDOWN_BATCH or CHECKED_TEARDOWN_BATCH).
+        private Integer batch;
 
         private Map<String, List<SObject>> rows = new Map<String, List<SObject>>();
         private Map<String, String> objectOfGroup = new Map<String, String>();
@@ -961,7 +1048,14 @@ public without sharing class RLM_AccountUtilities {
             Boolean deleteCollections, Boolean preserveContractsWithPrices
         ) {
             this.accountId = accountId;
+            // Every permission first, under the query guard: one query for the core ones
+            // and one per other permission.
+            requireQuery(1 + PLAN_PERMISSIONS.size());
+            for (String permission : PLAN_PERMISSIONS) {
+                hasUserPermission(permission);
+            }
             privileged = hasUserPermission('PermissionsModifyAllData') && hasUserPermission('PermissionsViewAllData');
+            batch = usageBatchForTest != null ? usageBatchForTest : privileged ? TEARDOWN_BATCH : CHECKED_TEARDOWN_BATCH;
             binds.put('accountId', accountId);
 
             // ---------------------------------------------------- assets and contracts
@@ -990,8 +1084,12 @@ public without sharing class RLM_AccountUtilities {
             binds.put('deletedContractIds', ids(contracts));
 
             // ---------------------------------------------------- usage (phase 1)
-            Set<Id> bindingIds = new Set<Id>(assetIds);
-            bindingIds.addAll(contractIds);
+            // Binding policies of the account, of the contracts the run deletes and, with
+            // Delete Assets, of the assets: a kept contract or asset keeps its policies.
+            Set<Id> bindingIds = new Set<Id>(ids(contracts));
+            if (deleteAssets) {
+                bindingIds.addAll(assetIds);
+            }
             bindingIds.add(accountId);
             binds.put('bindingIds', bindingIds);
             put(G_POLICIES, 'BindingObjUsageRsrcPlcy',
@@ -1012,34 +1110,34 @@ public without sharing class RLM_AccountUtilities {
             put(G_CONTRACT_RATE_CARD_ENTRIES, 'BindingObjectRateCardEntry', contractEntries);
             String byAccountOrAsset = 'AccountId = :accountId OR AssetId IN :assetIds';
             put(G_BILLING_PERIOD_ITEMS, 'UsageBillingPeriodItem',
-                read('UsageBillingPeriodItem', '', byAccountOrAsset, TEARDOWN_BATCH));
-            put(G_SUMMARIES, 'UsageSummary', read('UsageSummary', '', byAccountOrAsset, TEARDOWN_BATCH));
-            put(G_RATABLE_SUMMARIES, 'UsageRatableSummary', read('UsageRatableSummary', '', byAccountOrAsset, TEARDOWN_BATCH));
-            put(G_JOURNALS, 'TransactionJournal', read('TransactionJournal', '', 'AccountId = :accountId', TEARDOWN_BATCH));
-            List<SObject> ownEntitlements = read('TransactionUsageEntitlement', '', 'AccountId = :accountId', TEARDOWN_BATCH);
+                read('UsageBillingPeriodItem', '', byAccountOrAsset, batch));
+            put(G_SUMMARIES, 'UsageSummary', read('UsageSummary', '', byAccountOrAsset, batch));
+            put(G_RATABLE_SUMMARIES, 'UsageRatableSummary', read('UsageRatableSummary', '', byAccountOrAsset, batch));
+            put(G_JOURNALS, 'TransactionJournal', read('TransactionJournal', '', 'AccountId = :accountId', batch));
+            List<SObject> ownEntitlements = read('TransactionUsageEntitlement', '', 'AccountId = :accountId', batch);
             put(G_ENTITLEMENTS, 'TransactionUsageEntitlement', ownEntitlements);
             // Another account's entitlement bound to an asset this reset deletes goes with
             // the asset, in phase 2.
             List<SObject> assetEntitlements = new List<SObject>();
             if (deleteAssets && !assetIds.isEmpty()) {
                 assetEntitlements = read('TransactionUsageEntitlement', '', '(AssetId IN :assetIds '
-                    + 'OR GrantBindingTargetId IN :assetIds) AND AccountId != :accountId', TEARDOWN_BATCH);
+                    + 'OR GrantBindingTargetId IN :assetIds) AND AccountId != :accountId', batch);
             }
             put(G_ASSET_ENTITLEMENTS, 'TransactionUsageEntitlement', assetEntitlements);
             Set<Id> ownTueIds = ids(ownEntitlements);
             Set<Id> assetTueIds = ids(assetEntitlements);
-            List<SObject> entitlementAccounts = read('UsageEntitlementAccount', '', 'AccountId = :accountId', TEARDOWN_BATCH);
+            List<SObject> entitlementAccounts = read('UsageEntitlementAccount', '', 'AccountId = :accountId', batch);
             put(G_ENTITLEMENT_ACCOUNTS, 'UsageEntitlementAccount', entitlementAccounts);
             Set<Id> allTueIds = new Set<Id>(ownTueIds);
             allTueIds.addAll(assetTueIds);
             binds.put('tueIds', allTueIds);
             List<SObject> entries = allTueIds.isEmpty() ? new List<SObject>() : read('UsageEntitlementEntry',
-                ', TransactionUsageEntitlementId', 'TransactionUsageEntitlementId IN :tueIds', TEARDOWN_BATCH);
+                ', TransactionUsageEntitlementId', 'TransactionUsageEntitlementId IN :tueIds', batch);
             put(G_ENTRIES, 'UsageEntitlementEntry', byEntitlement(entries, ownTueIds, true));
             put(G_ASSET_ENTRIES, 'UsageEntitlementEntry', byEntitlement(entries, ownTueIds, false));
-            planBuckets(ids(entitlementAccounts), ownTueIds, assetTueIds);
+            planBuckets(ids(entitlementAccounts), ownTueIds, assetTueIds, deleteAssets ? assetIds : new Set<Id>());
             put(G_COMMITMENT_JUNCTIONS, 'UsageCmtAssetRelatedObj', assetIds.isEmpty() ? new List<SObject>()
-                : read('UsageCmtAssetRelatedObj', '', 'AssetId IN :assetIds OR RelatedObjectId IN :assetIds', TEARDOWN_BATCH));
+                : read('UsageCmtAssetRelatedObj', '', 'AssetId IN :assetIds OR RelatedObjectId IN :assetIds', batch));
 
             // ---------------------------------------------------- assets (phase 2)
             if (deleteAssets) {
@@ -1240,7 +1338,7 @@ public without sharing class RLM_AccountUtilities {
                 Set<Id> fileIds = exclusiveFiles(documentParents).keySet();
                 binds.put('fileIds', fileIds);
                 if (!fileIds.isEmpty()) {
-                    files = read('ContentDocument', '', 'Id IN :fileIds', null);
+                    files = read('ContentDocument', ', OwnerId', 'Id IN :fileIds', null);
                 }
             }
             put(G_FILES, 'ContentDocument', files);
@@ -1256,7 +1354,7 @@ public without sharing class RLM_AccountUtilities {
          * another account's data. Those are counted (foreignBuckets) and left out.
          * Buckets holding an entitlement bound to an asset go in phase 2, with the asset.
          */
-        private void planBuckets(Set<Id> entitlementAccountIds, Set<Id> ownTueIds, Set<Id> assetTueIds) {
+        private void planBuckets(Set<Id> entitlementAccountIds, Set<Id> ownTueIds, Set<Id> assetTueIds, Set<Id> assetIds) {
             Set<Id> roots = new Set<Id>(entitlementAccountIds);
             Set<Id> heldBy = new Set<Id>(ownTueIds);
             heldBy.addAll(assetTueIds);
@@ -1265,31 +1363,61 @@ public without sharing class RLM_AccountUtilities {
                 binds.put('bucketParents', roots);
                 binds.put('heldBy', heldBy);
                 buckets.putAll(read('UsageEntitlementBucket', ', ParentId, TransactionUsageEntitlementId',
-                    'ParentId IN :bucketParents OR TransactionUsageEntitlementId IN :heldBy', TEARDOWN_BATCH));
+                    'ParentId IN :bucketParents OR TransactionUsageEntitlementId IN :heldBy', batch));
                 Set<Id> frontier = new Set<Id>(buckets.keySet());
                 while (!frontier.isEmpty() && !usageTruncated) {
                     binds.put('bucketParents', frontier);
                     binds.put('knownBuckets', new Set<Id>(buckets.keySet()));
                     frontier = new Set<Id>();
                     for (SObject child : read('UsageEntitlementBucket', ', ParentId, TransactionUsageEntitlementId',
-                        'ParentId IN :bucketParents AND Id NOT IN :knownBuckets', TEARDOWN_BATCH)) {
+                        'ParentId IN :bucketParents AND Id NOT IN :knownBuckets', batch)) {
                         buckets.put(child.Id, child);
                         frontier.add(child.Id);
                     }
                 }
             }
+            // An entitlement held by a bucket but not in the plan's lists is another
+            // account's, unless the lists were cut at their batch: then it may be one of the
+            // account's own not read this run. Read whose each one is, so a bucket is reported
+            // as another account's only when it is; one of the account's own waits for the
+            // next run.
+            Set<Id> unknown = new Set<Id>();
+            for (SObject bucket : buckets.values()) {
+                Id held = (Id) bucket.get('TransactionUsageEntitlementId');
+                if (held != null && !heldBy.contains(held)) {
+                    unknown.add(held);
+                }
+            }
+            Set<Id> othersEntitlements = new Set<Id>(unknown);
+            if (!unknown.isEmpty() && usageTruncated) {
+                binds.put('unknownEntitlements', unknown);
+                binds.put('assetIds', assetIds);
+                for (SObject entitlement : query('TransactionUsageEntitlement', 'Id, AccountId, AssetId, GrantBindingTargetId',
+                    'Id IN :unknownEntitlements', null)) {
+                    Boolean ours = entitlement.get('AccountId') == accountId
+                        || assetIds.contains((Id) entitlement.get('AssetId'))
+                        || assetIds.contains((Id) entitlement.get('GrantBindingTargetId'));
+                    if (ours) {
+                        othersEntitlements.remove(entitlement.Id);
+                    }
+                }
+            }
             Set<Id> foreign = new Set<Id>();
+            Set<Id> notThisRun = new Set<Id>();
             for (SObject bucket : buckets.values()) {
                 Id held = (Id) bucket.get('TransactionUsageEntitlementId');
                 if (held == null || heldBy.contains(held)) {
                     continue;
                 }
+                Set<Id> chain = othersEntitlements.contains(held) ? foreign : notThisRun;
                 SObject up = bucket;
-                while (up != null && foreign.add(up.Id)) {
+                while (up != null && chain.add(up.Id)) {
                     up = buckets.get((Id) up.get('ParentId'));
                 }
             }
-            foreignBuckets = foreign.size();
+            notThisRun.removeAll(foreign);
+            foreign.addAll(notThisRun);
+            foreignBuckets = foreign.size() - notThisRun.size();
             List<SObject> own = new List<SObject>();
             List<SObject> withAssets = new List<SObject>();
             for (SObject bucket : buckets.values()) {
@@ -1354,7 +1482,7 @@ public without sharing class RLM_AccountUtilities {
                 return new List<SObject>();
             }
             requireQuery(1);
-            Integer rowsLeft = Limits.getLimitQueryRows() - Limits.getQueryRows();
+            Integer rowsLeft = readCap();
             Integer cap = batch != null ? Math.min(batch + 1, rowsLeft) : rowsLeft;
             if (cap <= 0) {
                 throw new PlanTooLargeException(PLAN_TOO_LARGE);
@@ -1433,7 +1561,7 @@ public without sharing class RLM_AccountUtilities {
                 deletable.addAll(objectOf.keySet());
             } else {
                 List<Id> recordIds = new List<Id>(objectOf.keySet());
-                Id userId = UserInfo.getUserId();
+                Id reader = UserInfo.getUserId();
                 for (Integer start = 0; start < recordIds.size(); start += ACCESS_BATCH) {
                     requireQuery(1);
                     List<Id> chunk = new List<Id>();
@@ -1442,7 +1570,7 @@ public without sharing class RLM_AccountUtilities {
                     }
                     for (UserRecordAccess access : [
                         SELECT RecordId, HasReadAccess, HasDeleteAccess FROM UserRecordAccess
-                        WHERE UserId = :userId AND RecordId IN :chunk
+                        WHERE UserId = :reader AND RecordId IN :chunk
                     ]) {
                         if (access.HasReadAccess) {
                             visible.add(access.RecordId);
@@ -1453,22 +1581,31 @@ public without sharing class RLM_AccountUtilities {
                     }
                 }
             }
-            // One reason per record, in this order; a record with no UserRecordAccess row
+            // A file: live 264 (runAs the salesrep persona), UserRecordAccess.HasDeleteAccess
+            // was false for a file the persona owned, and deleting it succeeded; deleting
+            // another user's file was refused. So a file's delete follows its owner.
+            Id userId = UserInfo.getUserId();
+            for (SObject file : rowsOf(G_FILES)) {
+                if (privileged || file.get('OwnerId') == userId) {
+                    deletable.add(file.Id);
+                } else {
+                    deletable.remove(file.Id);
+                }
+            }
+            // One reason per record (blockerReason); a record with no UserRecordAccess row
             // counts as not visible.
             for (Id recordId : objectOf.keySet()) {
                 String objectName = objectOf.get(recordId);
-                if (!visible.contains(recordId)) {
+                String reason = blockerReason(objectName, visible.contains(recordId), objectDeletable(objectName),
+                    specialReason.get(recordId), deletable.contains(recordId));
+                if (reason == NOT_VISIBLE) {
                     blocker(objectName, NOT_VISIBLE).count++;
-                } else if (!objectDeletable(objectName)) {
-                    name(objectName, objectName == 'CreditMemo' ? MEMO_NEEDS_PERMISSION : NO_PERMISSION,
-                        nameOf.get(recordId));
-                } else if (specialReason.containsKey(recordId)) {
-                    name(objectName, specialReason.get(recordId), nameOf.get(recordId));
-                } else if (!deletable.contains(recordId)) {
-                    name(objectName, NO_ACCESS, nameOf.get(recordId));
+                } else if (reason != null) {
+                    name(objectName, reason, nameOf.get(recordId));
                 }
             }
         }
+
 
         private void name(String objectName, String reason, String recordName) {
             Blocker b = blocker(objectName, reason);
