@@ -114,9 +114,13 @@ edition and skip. Confirm what a given org actually provisioned with
 
 Only an absent base with `allow_skip_if_unavailable` is a skip. Once the definition
 exists, the task **fails** (it does not log and pass) when it cannot read the
-definition, finds no version, finds no mapping named `defaultMapping`, or cannot
-load `plan_file`; each message says what was not found. A rerun on an already
-extended definition (`DUPLICATE_VALUE`, mapping already default) still succeeds.
+definition, finds no version, finds no mapping named `defaultMapping`, cannot load
+`plan_file` (checked before any request), or a write fails: the default-mapping
+PATCH, the activation PATCH, a plan node, mapping or tag post, or a plan tag name that
+does not resolve. Each message says what was not found; a failed write leaves the
+definition partly extended, so re-run once the cause is fixed. A rerun on an already
+extended definition (`DUPLICATE_VALUE`, mapping already default) still succeeds,
+measured on a completed org.
 
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most
 `extend_context_*` tasks set `allow_skip_if_unavailable: true` so they no-op

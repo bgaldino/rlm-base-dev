@@ -96,6 +96,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 + ". The extend_context_* tasks supply them; set them with -o when running this one directly."
             )
         self._activate_requested()
+        self._load_plan()  # a bad plan_file must fail before the definition is touched
 
     # Load keychain with either the current keychain or generate a new one based on environment configuration
     def _load_keychain(self):
@@ -361,9 +362,9 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         if response is None:
             raise CumulusCIException(
                 f"Could not read context definition {self.context_id} to find its versions "
-                f"(HTTP {self._last_response_status}). Nothing was extended: no default mapping, "
-                "plan_file or activation was applied. Check that the running user can read "
-                "context definitions, then re-run."
+                f"({self._status_text()}). Nothing was extended: no default mapping, "
+                "plan_file or activation was applied. Re-run; if it keeps failing, check that the "
+                "running user can read context definitions."
             )
         version_list = response.get("contextDefinitionVersionList", [])
         self.logger.info(f"      Found {len(version_list)} version(s)")
@@ -371,8 +372,9 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             raise CumulusCIException(
                 f"Context definition '{self.options.get('developerName')}' ({self.context_id}) has no "
                 "versions, so there is nothing to extend: no default mapping, plan_file or activation "
-                "was applied. Check that baseReference "
-                f"'{self.options.get('baseReference')}' names a definition that has a version in this org."
+                "was applied. It may still be committing after a timed-out create: re-run. If it "
+                f"stays empty, check that baseReference '{self.options.get('baseReference')}' names a "
+                "definition that has a version in this org."
             )
         self._process_version_list(version_list)
 
@@ -391,7 +393,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 break
         else:
             available = ", ".join(sorted(str(m.get("name")) for m in context_mappings)) or "none"
-            raise TaskOptionsError(
+            raise CumulusCIException(
                 f"No mapping named '{default_mapping}' in the first version of context definition "
                 f"'{self.options.get('developerName')}' (mappings found: {available}). Nothing was extended: "
                 "no default mapping, plan_file or activation was applied. Check the defaultMapping option."
@@ -412,7 +414,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 }
             ]
         }
-        self._make_request("patch", url, headers=headers, json=payload)
+        self._write("patch", url, headers, payload, "set the default context mapping")
         self._apply_plan_if_present()
         if self._activate_requested():
             self._activate_context_id()
@@ -439,16 +441,37 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             return value
         raise TaskOptionsError(f"activate must be true or false, got {value!r}")
 
-    def _apply_plan_if_present(self):
+    def _status_text(self):
+        status = self._last_response_status
+        return f"HTTP {status}" if status is not None else "no response from the server"
+
+    def _write(self, method, url, headers, payload, what):
+        """Send a write; a failed one raises, so the build does not pass on a half-applied definition."""
+        if self._make_request(method, url, headers=headers, json=payload) is None:
+            raise CumulusCIException(
+                f"Could not {what} on context definition {self.context_id} ({self._status_text()}). "
+                "The definition is left partly extended. Re-run once the cause above is fixed."
+            )
+
+    def _load_plan(self):
+        """The parsed plan_file, or None when the option is unset; raises on a plan that cannot be read."""
         plan_file = self.options.get("plan_file")
         if not plan_file:
-            return
-        self.logger.info(f"      Applying plan file: {plan_file}")
+            return None
         try:
             with open(plan_file, "r", encoding="utf-8") as handle:
                 plan = json.load(handle)
         except Exception as exc:
             raise TaskOptionsError(f"Could not load plan_file {plan_file}: {exc}") from exc
+        if not isinstance(plan, dict):
+            raise TaskOptionsError(f"plan_file {plan_file} must hold a JSON object, got {type(plan).__name__}")
+        return plan
+
+    def _apply_plan_if_present(self):
+        plan = self._load_plan()
+        if plan is None:
+            return
+        self.logger.info(f"      Applying plan file: {self.options.get('plan_file')}")
 
         if plan.get("contextNodes"):
             self.logger.info(f"      → Posting {len(plan['contextNodes'])} context node(s)...")
@@ -473,38 +496,43 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}/context-nodes"
         )
-        self._make_request("post", url, headers=headers, json=payload)
+        self._write("post", url, headers, payload, "post the plan's context nodes")
 
     def _post_context_mappings(self, payload):
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}/context-mappings"
         )
-        self._make_request("post", url, headers=headers, json=payload)
+        self._write("post", url, headers, payload, "post the plan's context mappings")
 
     def _patch_context_mappings(self, payload):
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}/context-mappings"
         )
-        self._make_request("patch", url, headers=headers, json=payload)
+        self._write("patch", url, headers, payload, "patch the plan's context mappings")
 
     def _post_context_tags(self, payload):
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}/context-tags"
         )
-        self._make_request("post", url, headers=headers, json=payload)
+        self._write("post", url, headers, payload, "post the plan's context tags")
 
     def _resolve_tags_by_name(self, tag_specs):
         if not isinstance(tag_specs, list):
-            return []
+            raise TaskOptionsError("plan_file contextTagsByName must be a list of {name, nodeName[, attributeName]}")
         url, headers = self._build_url_and_headers(
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
         if response is None:
-            return []
+            raise CumulusCIException(
+                f"Could not read context definition {self.context_id} to resolve the plan's tags by name "
+                f"({self._status_text()}). The definition is left partly extended. Re-run."
+            )
         versions = response.get("contextDefinitionVersionList", [])
         if not versions:
-            return []
+            raise CumulusCIException(
+                f"Context definition {self.context_id} has no versions to resolve the plan's tags against."
+            )
         nodes = versions[0].get("contextNodes", [])
 
         node_index = {}
@@ -528,24 +556,31 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         walk(nodes)
 
         resolved = []
+        unresolved = []
         for spec in tag_specs:
-            if not isinstance(spec, dict):
-                continue
-            tag_name = spec.get("name")
-            node_name = spec.get("nodeName")
-            attr_name = spec.get("attributeName")
+            tag_name = spec.get("name") if isinstance(spec, dict) else None
+            node_name = spec.get("nodeName") if isinstance(spec, dict) else None
+            attr_name = spec.get("attributeName") if isinstance(spec, dict) else None
             if not tag_name or not node_name:
-                continue
-            if attr_name:
+                unresolved.append(repr(spec))
+            elif attr_name:
                 attr_id = attr_index.get((node_name, attr_name))
-                if not attr_id:
-                    continue
-                resolved.append({"contextAttributeId": attr_id, "name": tag_name})
+                if attr_id:
+                    resolved.append({"contextAttributeId": attr_id, "name": tag_name})
+                else:
+                    unresolved.append(f"{tag_name} ({node_name}.{attr_name})")
             else:
                 node_id = node_index.get(node_name)
-                if not node_id:
-                    continue
-                resolved.append({"contextNodeId": node_id, "name": tag_name})
+                if node_id:
+                    resolved.append({"contextNodeId": node_id, "name": tag_name})
+                else:
+                    unresolved.append(f"{tag_name} ({node_name})")
+        if unresolved:
+            raise CumulusCIException(
+                "plan_file contextTagsByName names a node, attribute or tag that does not resolve in "
+                f"context definition {self.context_id}: " + "; ".join(unresolved)
+                + ". No tag from this list was posted."
+            )
         return resolved
 
     # Activate the context ID once all changes and updates have been made
@@ -554,7 +589,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             f"connect/context-definitions/{self.context_id}"
         )
         payload = {"isActive": "true"}
-        self._make_request("patch", url, headers=headers, json=payload)
+        self._write("patch", url, headers, payload, "activate the context definition")
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
