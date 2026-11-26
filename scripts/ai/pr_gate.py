@@ -808,6 +808,10 @@ CHECKS = [
                   "tasks/rlm_sharing.py",
                   "tasks/rlm_validate_keys.py",
                   "scripts/sfdmu_conditional_steps.py", "scripts/sync_appmenu_from_user.py",
+                  # todo 488: its option-reading cases cover these too, and it checks option_flag
+                  # against scripts/ux/_flags.to_bool.
+                  "scripts/ux/_flags.py", "tasks/rlm_currency.py", "tasks/rlm_test_agents.py",
+                  "tasks/rlm_validate_setup.py",
                   "tasks/rlm_extend_stdctx.py", "tasks/rlm_manage_decision_tables.py",
                   "tasks/rlm_manage_transaction_processing_types.py",
                   "tasks/rlm_manage_fulfillment_scope_cnfg.py",
