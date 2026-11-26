@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 172
+EXPECTED_CHECKS = 175
 
 
 def check(label, condition, detail=""):
@@ -392,7 +392,7 @@ except Exception as exc:
 # ---------------------------------------------------------------------------
 # 2. Name normalisation. A comma-separated CLI string used to become ONE name.
 # ---------------------------------------------------------------------------
-print("\n[2] requested_names (the task's developer_names reader) splits, trims and rejects blanks")
+print("\n[2] requested_names (the shared helper behind the task's _option_names) splits, trims and rejects an all-blank list or the wrong type")
 
 try:  # GUARDED — see the note in section 1
     check('"A,B,C" splits into three', requested_names("A,B,C", "x", ValueError) == ["A", "B", "C"])
@@ -407,7 +407,7 @@ for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5,
     try:
         requested_names(bad, "x", ValueError)
         check(f"{why} raises", False, "no exception")
-    except Exception:
+    except ValueError:
         check(f"{why} raises", True)
 
 # ---------------------------------------------------------------------------
@@ -1741,14 +1741,16 @@ class _QueryFake:
         return {"records": [{"Id": "x", "DeveloperName": "T1", "Status": "Active"}]}
 
 
-def opt_run(options, operation="query"):
-    """Run an operation with a fake client; return (error text or None, fake)."""
+def opt_run(options, operation="query", custom=None):
+    """Run an operation with a fake client; return (error text or None, fake). custom: project.custom config."""
     fake = _QueryFake()
     task = object.__new__(ManageDecisionTables)
     task.options = dict(options, operation=operation) if operation else dict(options)
     task.logger = _CapturingLogger()
     task.org_config = object()
     task._sf_client = fake
+    if custom is not None:
+        task.project_config = type("_P", (), {"config": {"project": {"custom": custom}}})()
     try:
         ManageDecisionTables._run_task(task)
         return None, fake
@@ -1804,9 +1806,16 @@ opt_refused("whitespace developer_names on activate is 'required'", {"developer_
 _err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
 check("list-typed strict is refused with the helper's error, before any query",
       _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
+for _label, _opts in (("int list_anchors", {"list_anchors": 5}), ("all-blank list list_anchors", {"list_anchors": [" ", ""]})):
+    _err, _fake = opt_run(_opts, "validate_lists")
+    check(f"{_label} is refused before any query", _err is not None and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists")
-check("blank strict and list_anchors fall back to defaults; a query was sent",
+check("blank strict and list_anchors run to the end with no error; a query was sent",
       bool(_fake.queries) and _err is None, repr((_err, _fake.queries)))
+_err, _fake = opt_run({"strict": "true", "list_anchors": "  "}, "validate_lists",
+                      custom={"dt_x_decision_tables": ["T1", "NOT_IN_ORG"]})
+check("blank list_anchors falls back to the config anchors (strict names the missing table)",
+      bool(_fake.queries) and _err is not None and "NOT_IN_ORG" in _err, repr((_err, _fake.queries)))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.
