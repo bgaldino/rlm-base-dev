@@ -610,8 +610,8 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Notes the rows phase 2 tries to delete, by object, each once: the usage retries and
-     * the bucket walks try the same rows again, which would inflate the counts.
+     * Notes the rows phase 2 tries to delete or update, by object, each once: the usage
+     * retries and the bucket walks try the same rows again, which would inflate the counts.
      */
     @TestVisible
     private static void notePhaseTwoRows(List<SObject> records) {
@@ -833,6 +833,8 @@ public without sharing class RLM_AccountUtilities {
         if (records.isEmpty()) {
             return updated;
         }
+        // In the stop message's tally too: an update that does not fit names its group.
+        notePhaseTwoRows(records);
         if (records.size() > dmlRowsLeft()) {
             throw new ResetStoppedException(DML_LIMIT);
         }

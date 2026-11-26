@@ -1454,6 +1454,100 @@ private without sharing class RLM_AccountResetPlanTest {
             'The entitlement bound to the asset is deleted');
     }
 
+    // A record alert on a journal blocks the journal's delete (measured live 264), so the
+    // plan deletes the journal's alerts first.
+    @IsTest
+    static void aRecordAlertOnAJournalGoesBeforeTheJournal() {
+        if (Schema.getGlobalDescribe().get('RecordAlert') == null) return;
+        Account a = newAccount();
+        TransactionJournal journal = new TransactionJournal(AccountId = a.Id, ActivityDate = Date.today());
+        insert journal;
+        SObject alert = Schema.getGlobalDescribe().get('RecordAlert').newSObject();
+        alert.put('WhatId', journal.Id);
+        alert.put('EffectiveDate', Datetime.now());
+        alert.put('ValidUntilDate', Datetime.now().addDays(5));
+        insert alert;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionJournal WHERE Id = :journal.Id], 'The journal is deleted');
+        Assert.areEqual(0, Database.countQuery('SELECT COUNT() FROM RecordAlert WHERE Id = \'' + alert.Id + '\''),
+            'Its alert is deleted first');
+    }
+
+    @IsTest
+    static void aFailedUpdateIsDescribedAsAnUpdate() {
+        Assert.areEqual('a validation rule blocks the change',
+            RLM_AccountResetPlan.describeUpdateRefusal('FIELD_CUSTOM_VALIDATION_EXCEPTION'));
+        Assert.areEqual('the platform refused the change', RLM_AccountResetPlan.describeUpdateRefusal('ANYTHING_ELSE'));
+        Account a = newAccount();
+        String message = RLM_AccountResetPlan.updateRefusalOf(a.Id, 'FIELD_CUSTOM_VALIDATION_EXCEPTION');
+        Assert.isTrue(message.startsWith('Salesforce refused to change Account')
+            && message.endsWith(': a validation rule blocks the change (FIELD_CUSTOM_VALIDATION_EXCEPTION).')
+            && !message.contains('delete'),
+            'An update is described as an update. Got: ' + message);
+    }
+
+    // The priced contracts are read as contracts, one row each, so the plan's cost does not
+    // grow with the number of contracted prices.
+    @IsTest
+    static void pricedContractsCostTheSameHoweverManyPricesTheyHave() {
+        if (!contractItemPriceAvailable()) return;
+        Id onePrice = seedAccountWithContracts();
+        Id threePrices = seedAccountWithContracts();
+        Contract priced = [SELECT Id FROM Contract WHERE AccountId = :threePrices
+            AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
+        for (Integer i = 0; i < 2; i++) {
+            Product2 product = new Product2(Name = 'RLM Reset Extra Price ' + i, IsActive = true);
+            insert product;
+            SObject cip = Schema.getGlobalDescribe().get('ContractItemPrice').newSObject();
+            cip.put('ContractId', priced.Id);
+            cip.put('ItemId', product.Id);
+            cip.put('StartDate', System.now());
+            cip.put('Price', 100.0);
+            insert cip;
+        }
+        RLM_AccountUtilities.InputVariables first = request(onePrice, false, false, false);
+        first.PreserveContractsWithContractedPrices = true;
+        RLM_AccountUtilities.InputVariables second = request(threePrices, false, false, false);
+        second.PreserveContractsWithContractedPrices = true;
+
+        Integer before = Limits.getQueryRows();
+        RLM_AccountUtilities.Result one = run(first);
+        Integer rowsForOne = Limits.getQueryRows() - before;
+        Test.startTest();
+        before = Limits.getQueryRows();
+        RLM_AccountUtilities.Result three = run(second);
+        Integer rowsForThree = Limits.getQueryRows() - before;
+        Test.stopTest();
+
+        Assert.areEqual(true, one.completed, 'The first reset must complete. Reason: ' + one.reason);
+        Assert.areEqual(true, three.completed, 'The second reset must complete. Reason: ' + three.reason);
+        Assert.areEqual(rowsForOne, rowsForThree, 'Two more contracted prices must not cost the plan more rows');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'The priced contract is kept');
+    }
+
+    // After a rollback nothing is listed as not deleted: a payment, which a completed run
+    // would keep, would read as the only record left.
+    @IsTest
+    static void aRolledBackRunListsNothingAsKept() {
+        Account a = newAccount();
+        newProcessedPayment(a.Id);
+        newOpportunity(a.Id, 'RLM Utilities Rolled Back Opp');
+        RLM_AccountResetPlan.failureForTest = new DmlException('Forced failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.isTrue(result.reason.startsWith(RLM_AccountResetPlan.ROLLED_BACK), 'Rolled back. Got: ' + result.reason);
+        Assert.isNull(result.retainedSummary, 'Nothing is listed after a rollback. Got: ' + result.retainedSummary);
+        Assert.isNull(result.removedSummary, 'Nothing was removed');
+    }
+
     @IsTest
     static void theRollbackAlwaysHasADmlStatementLeft() {
         Account a = newAccount();

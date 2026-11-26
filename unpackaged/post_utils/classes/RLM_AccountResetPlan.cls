@@ -37,10 +37,11 @@
  * Modify All Data and View All Data can run it (they take RLM_AccountUtilities' engine,
  * which converges over several runs). So does a plan whose rows exceed the DML rows
  * left. The deletes then run inside one savepoint, all or nothing: every planned usage
- * row first, the asset-bound ones included (its constraints are circular, so they are
- * retried round after round until a round removes nothing), so no entitlement is left to
- * block an order or asset; then collections, billing, fulfillment, contracts with their
- * rate card entries, orders, assets with theirs, quotes and opportunities.
+ * row first, the asset-bound ones included, with the record alerts on the journals (its
+ * constraints are circular, so they are retried round after round until a round removes
+ * nothing), so no entitlement is left to block an order or asset; then collections,
+ * billing, fulfillment, contracts with their rate card entries, orders, assets with
+ * theirs, quotes and opportunities.
  * Every delete is all or nothing (a row a parent's delete already took counts as
  * deleted). If the platform refuses any planned row, a usage row is still there when
  * the usage teardown can do no more, anything fails, or a limit is reached part way,
@@ -157,7 +158,7 @@ public without sharing class RLM_AccountResetPlan {
     /** Ends the planning, before anything changes, when the account is too large to plan in one run. */
     private class PlanTooLargeException extends Exception {}
 
-    /** What the current run removed and did not remove. Copied before the deletes, so a rollback can restore it. */
+    /** What the current run removed and did not remove. A rollback starts it over: nothing is listed. */
     private class ResetReport {
         public List<String> removedLabels = new List<String>();
         public Map<String, Integer> removed = new Map<String, Integer>();
@@ -166,16 +167,6 @@ public without sharing class RLM_AccountResetPlan {
         // removes the row takes it back out.
         public Map<Id, String> refused = new Map<Id, String>();
         public Map<Id, String> refusedCode = new Map<Id, String>();
-
-        public ResetReport copy() {
-            ResetReport c = new ResetReport();
-            c.removedLabels = removedLabels.clone();
-            c.removed = removed.clone();
-            c.kept = kept.clone();
-            c.refused = refused.clone();
-            c.refusedCode = refusedCode.clone();
-            return c;
-        }
     }
 
     /** Rows of one object not deleted for one reason. Replaced, never changed, so a shallow copy is safe. */
@@ -199,6 +190,7 @@ public without sharing class RLM_AccountResetPlan {
     private static final String G_SUMMARIES = 'summaries';
     private static final String G_RATABLE_SUMMARIES = 'ratableSummaries';
     private static final String G_JOURNALS = 'journals';
+    private static final String G_JOURNAL_ALERTS = 'journalAlerts';
     private static final String G_BUCKETS = 'buckets';
     private static final String G_ENTITLEMENTS = 'entitlements';
     private static final String G_ENTITLEMENT_ACCOUNTS = 'entitlementAccounts';
@@ -325,7 +317,6 @@ public without sharing class RLM_AccountResetPlan {
         // ------------------------------------------------------------------
         // The deletes, inside one savepoint: all of it is kept, or none of it.
         Savepoint sp = Database.setSavepoint();
-        ResetReport beforeDeletes = report.copy();
         try {
             // The usage graph first, all of it: policies, the account's own rate card
             // entries, summaries, entitlements and their buckets (those bound to the assets
@@ -373,7 +364,10 @@ public without sharing class RLM_AccountResetPlan {
             }
         } catch (Exception e) {
             Database.rollback(sp);
-            report = beforeDeletes;
+            // Nothing was changed, so nothing is listed: the rows a completed run would have
+            // kept by design (payments, another account's buckets) would read as the only
+            // ones left.
+            report = new ResetReport();
             // A limit reached part way (DML rows or statements, or the teardown's round cap):
             // the account is too large for this path. A refusal or failure: the platform's
             // message, with the record. Either way nothing is kept.
@@ -391,11 +385,31 @@ public without sharing class RLM_AccountResetPlan {
      */
     private static String dmlFailure(DmlException e) {
         Id rowId = e.getDmlId(0);
+        return updateRefusalOf(rowId, String.valueOf(e.getDmlType(0)));
+    }
+
+    /** "Salesforce refused to change Order 00000123: a validation rule blocks the change (FIELD_CUSTOM_VALIDATION_EXCEPTION)." */
+    @TestVisible
+    private static String updateRefusalOf(Id rowId, String code) {
         String label = rowId == null ? 'a record' : rowId.getSObjectType().getDescribe().getLabel();
         String name = rowId != null && plan != null && plan.visibleNames.containsKey(rowId)
             ? ' ' + plan.visibleNames.get(rowId) : '';
-        String code = String.valueOf(e.getDmlType(0));
-        return 'Salesforce refused to change ' + label + name + ': ' + describeRefusal(code) + ' (' + code + ').';
+        return 'Salesforce refused to change ' + label + name + ': ' + describeUpdateRefusal(code) + ' (' + code + ').';
+    }
+
+    /** Our description of an update's refusal: an order set back to Draft, a credit memo canceled. */
+    @TestVisible
+    private static String describeUpdateRefusal(String code) {
+        if (code == 'FIELD_CUSTOM_VALIDATION_EXCEPTION') {
+            return 'a validation rule blocks the change';
+        }
+        if (code == 'INSUFFICIENT_ACCESS_OR_READONLY' || code == 'INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY') {
+            return 'the user running the reset does not have the access it needs';
+        }
+        if (code == 'ENTITY_IS_LOCKED') {
+            return 'it is locked, for example by an approval';
+        }
+        return 'the platform refused the change';
     }
 
     /**
@@ -416,13 +430,19 @@ public without sharing class RLM_AccountResetPlan {
 
     // Every planned usage row, the asset-bound ones included (with Delete Assets), deleted
     // first in one retried teardown, before any order or asset: an entitlement can refer to
-    // an order line (OrderItemId) or an asset, and blocks its delete while it is there. No
-    // usage row depends on a record deleted later: they refer to orders and assets, not the
-    // reverse.
+    // an order line (OrderItemId) or an asset, and blocks its delete while it is there.
+    // Records outside the usage graph that point at usage rows, swept from the org's
+    // describe (live 264) and measured where they can be created: a record alert blocks its
+    // transaction journal's delete (restricted lookup; measured), so the journals' alerts
+    // are planned and go first. A commitment-rate row cascades with its ratable summary
+    // (measured), and a billing period item's lookup to a usage billing period item is not
+    // restricted (describe; billing period items cannot be created to measure, and the
+    // restricted flag matched each of the four blocks measured). Approval, orchestration,
+    // email and network records' lookups are not restricted either.
     private static final List<String> USAGE_TEARDOWN = new List<String>{
         G_POLICIES, G_ACCOUNT_RATE_CARD_ENTRIES, G_ENTRIES, G_ASSET_ENTRIES, G_BILLING_PERIOD_ITEMS, G_SUMMARIES,
-        G_RATABLE_SUMMARIES, G_JOURNALS, G_BUCKETS, G_ASSET_BUCKETS, G_ENTITLEMENTS, G_ASSET_ENTITLEMENTS,
-        G_ENTITLEMENT_ACCOUNTS, G_COMMITMENT_JUNCTIONS
+        G_RATABLE_SUMMARIES, G_JOURNAL_ALERTS, G_JOURNALS, G_BUCKETS, G_ASSET_BUCKETS, G_ENTITLEMENTS,
+        G_ASSET_ENTITLEMENTS, G_ENTITLEMENT_ACCOUNTS, G_COMMITMENT_JUNCTIONS
     };
 
     /**
@@ -1108,10 +1128,10 @@ public without sharing class RLM_AccountResetPlan {
             Set<Id> contractIds = ids(contracts);
             binds.put('contractIds', contractIds);
             if (preserveContractsWithPrices && typeOf('ContractItemPrice') != null && !contracts.isEmpty()) {
-                Set<Id> priced = new Set<Id>();
-                for (SObject price : query('ContractItemPrice', 'ContractId', 'ContractId IN :contractIds')) {
-                    priced.add((Id) price.get('ContractId'));
-                }
+                // The priced contracts by a semi-join, as the engine reads them: one row a
+                // contract, however many contracted prices it has.
+                Set<Id> priced = ids(query('Contract', 'Id',
+                    'Id IN :contractIds AND Id IN (SELECT ContractId FROM ContractItemPrice)'));
                 List<SObject> deleted = new List<SObject>();
                 for (SObject contract : contracts) {
                     if (!priced.contains(contract.Id)) {
@@ -1158,7 +1178,16 @@ public without sharing class RLM_AccountResetPlan {
                 read('UsageBillingPeriodItem', '', byAccountOrAsset));
             put(G_SUMMARIES, 'UsageSummary', read('UsageSummary', '', byAccountOrAsset));
             put(G_RATABLE_SUMMARIES, 'UsageRatableSummary', read('UsageRatableSummary', '', byAccountOrAsset));
-            put(G_JOURNALS, 'TransactionJournal', read('TransactionJournal', '', 'AccountId = :accountId'));
+            List<SObject> journals = read('TransactionJournal', '', 'AccountId = :accountId');
+            put(G_JOURNALS, 'TransactionJournal', journals);
+            // A record alert on a journal blocks the journal's delete (measured live 264:
+            // "associated with the following record alerts"), so it goes first.
+            List<SObject> journalAlerts = new List<SObject>();
+            if (!journals.isEmpty() && typeOf('RecordAlert') != null) {
+                binds.put('journalIds', ids(journals));
+                journalAlerts = read('RecordAlert', '', 'WhatId IN :journalIds OR ParentId IN :journalIds');
+            }
+            put(G_JOURNAL_ALERTS, 'RecordAlert', journalAlerts);
             List<SObject> ownEntitlements = read('TransactionUsageEntitlement', ', AssetId, GrantBindingTargetId',
                 'AccountId = :accountId');
             put(G_ENTITLEMENTS, 'TransactionUsageEntitlement', ownEntitlements);

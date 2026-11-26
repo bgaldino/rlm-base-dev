@@ -978,6 +978,36 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id], 'Nothing was deleted');
     }
 
+    // Orders that do not fit when they are set back to Draft are named in the stop message.
+    @IsTest
+    static void anUpdateThatDoesNotFitNamesItsGroup() {
+        Account a = newAccount();
+        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
+        List<Order> orders = new List<Order>();
+        for (Integer i = 0; i < 2; i++) {
+            orders.add(new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId()));
+        }
+        insert orders;
+        List<OrderItem> lines = new List<OrderItem>();
+        for (Order o : orders) {
+            lines.add(new OrderItem(OrderId = o.Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1));
+            o.Status = 'Activated';
+        }
+        insert lines;
+        update orders;
+        // Room for one row: the two orders going back to Draft do not fit.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The run stops');
+        Assert.isTrue(result.reason.contains('The largest groups it reached: ' + entry(Order.SObjectType, 2)),
+            'The orders that did not fit are named. Got: ' + result.reason);
+    }
+
     @IsTest
     static void aPhaseTwoStopNamesTheLargestGroupsLargestFirst() {
         List<Account> accounts = new List<Account>();
