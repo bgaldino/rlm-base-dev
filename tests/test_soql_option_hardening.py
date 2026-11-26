@@ -1019,6 +1019,7 @@ def eps_run(options, still_missing=0):
     t.options = {"disable_settings_path": EPS_DISABLE, "enable_settings_path": EPS_ENABLE,
                  "expression_sets_metadata_path": EPS_META, **options}
     t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+    t.org_config = types.SimpleNamespace(username="u@x.org")  # pack 503's deploys need a target username
     t._discover_lookup_decision_tables = lambda path=None: calls.append(("discover", path)) or []
 
     def missing(names):
@@ -1072,6 +1073,25 @@ for options, needle in (({"poll_attempts": "abc"}, "poll_attempts must be a posi
 err, calls, sleeps = eps_run({"disable_settings_path": f" {EPS_DISABLE} ", "enable_settings_path": f" {EPS_ENABLE} "})
 check("ensure_pricing_schedules: padded settings paths are deployed stripped",
       err is None and calls[2:4] == [("deploy", EPS_DISABLE), ("deploy", EPS_ENABLE)], repr((err, calls)))
+# A settings path may be a single settings file (pack 503 configures
+# unpackaged/pre/2_settings/IndustriesPricing.settings-meta.xml), not only a bundle directory.
+_eps_file = os.path.join(_eps_dirs, "IndustriesPricing.settings-meta.xml")
+Path(_eps_file).write_text("<x/>")
+err, calls, sleeps = eps_run({"enable_settings_path": f" {_eps_file} "})
+check("ensure_pricing_schedules: a settings file is accepted and deployed stripped",
+      err is None and ("deploy", _eps_file) in calls, repr((err, calls)))
+import yaml  # noqa: E402  (PyYAML: a declared dependency of this check since pack 503)
+
+_cwd = os.getcwd()
+os.chdir(REPO)
+try:
+    _cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())["tasks"]["ensure_pricing_schedules"]["options"]
+    err, calls, sleeps = eps_run({k: _cfg[k] for k in ("disable_settings_path", "enable_settings_path")})
+finally:
+    os.chdir(_cwd)
+check("ensure_pricing_schedules: the paths cumulusci.yml configures pass the up-front check",
+      err is None and [c for c in calls if c[0] == "deploy"]
+      == [("deploy", _cfg["disable_settings_path"]), ("deploy", _cfg["enable_settings_path"])], repr((err, calls)))
 # Default-value mutants: poll_attempts 6 and poll_interval_seconds 10 when nothing is set.
 err, calls, sleeps = eps_run({}, still_missing=99)
 check("ensure_pricing_schedules: unset poll_attempts polls six times, 10s apart, then fails",

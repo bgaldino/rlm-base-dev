@@ -97,9 +97,21 @@ def run_case(results, state="off", interrupt=None, polls=None, username=USER, op
             raise KeyboardInterrupt
 
     task._get_missing_schedules = missing
+    # The settings paths are checked to exist before any query (todo 488). DISABLE and ENABLE are
+    # placeholders (the deploys are stubbed), so that one check is stubbed too; the rest of the
+    # option reading (required, stripped, a list refused) still runs.
+    real_path_option = task._path_option
+
+    def path_option(name, default=None, directory=False):
+        if name in ("disable_settings_path", "enable_settings_path"):
+            with mock.patch.object(mod.Path, "exists", lambda self: True):
+                return real_path_option(name, default, directory)
+        return real_path_option(name, default, directory)
+
+    task._path_option = path_option
     if early_dt_error:
         task.options["validate_decision_table_lookups"] = "true"
-        task._discover_lookup_decision_tables = lambda: ["T"]
+        task._discover_lookup_decision_tables = lambda *a: ["T"]
 
         def missing_tables(names):
             if not out.calls:
