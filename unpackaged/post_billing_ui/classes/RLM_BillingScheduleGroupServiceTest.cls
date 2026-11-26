@@ -23,7 +23,9 @@
  * query is replaced by mockTreatmentCandidates in most tests; findBillingTreatmentId_* reads real
  * records, and lastTransactionDetails exposes the payload handed to the action. Still not sent: bill-to
  * contact, payment term (the action reads them from the records through the context mapping, as
- * measured earlier on a 264 org) and ParentTransactionId__std (Required for TermDefined only).
+ * measured earlier on a 264 org) and ParentTransactionId__std (Required for TermDefined only). The
+ * action refuses a billing account with no bill-to contact, so create refuses it first (billToContact_*)
+ * and every billing account that reaches the action in these tests carries one (billToContact()).
  * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact key set.
  *
  * Fixed: a one-time charge from the Create Billing Schedule Group modal (billing term unit
@@ -129,7 +131,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_happyPath_returnsRequestId() {
         Account a = new Account(Name = 'BSG ViaApi Acct');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = 'BSG ViaApi BA', AccountId = a.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG ViaApi BA', AccountId = a.Id, BillToContactId = billToContact(a.Id));
         insert ba;
 
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
@@ -764,7 +766,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_billingAccountLinkedThroughJunction_isAccepted() {
         Account a = new Account(Name = 'BSG Junction Create Acct');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = 'BSG Junction Create BA');
+        BillingAccount ba = new BillingAccount(Name = 'BSG Junction Create BA', BillToContactId = billToContact(a.Id));
         insert ba;
         insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
         Assert.isNull([SELECT AccountId FROM BillingAccount WHERE Id = :ba.Id].AccountId,
@@ -813,6 +815,109 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('REQ-CONTROL', control.requestId,
             'PRECONDITION: the same defaults with a billing account that has an Account are accepted.');
         Assert.isTrue(threw, 'A billing account with no resolvable account must be rejected.');
+    }
+
+    // ---- bill-to contact ----
+
+    // The create action refuses a billing account with no bill-to contact (REQUIRED_FIELD_MISSING
+    // billToContact, measured on a 264 org), and the user then got only the generic failure sentence.
+    // getAccountBillingInfo flags it so the modal blocks Create, and create refuses it with the same
+    // sentence before the action is called. The control call with a contact set passes, so the refusal
+    // is the missing contact alone.
+    @isTest
+    static void billToContact_missing_isFlaggedAndRefusedBeforeTheAction() {
+        Account a = new Account(Name = 'BSG No Bill To Acct', BillingCity = 'Austin');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG No Bill To BA', AccountId = a.Id);
+        insert ba;
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-BT' };
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo before = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        AuraHandledException refused;
+        try {
+            new CreateArgs(ba.Id).call();
+        } catch (AuraHandledException e) {
+            refused = e;
+        }
+        String detailsWithoutContact = RLM_BillingScheduleGroupService.lastTransactionDetails;
+        ba.BillToContactId = billToContact(a.Id);
+        update ba;
+        RLM_BillingScheduleGroupService.AccountInfo after = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        RLM_BillingScheduleGroupService.CreateResult control = new CreateArgs(ba.Id).call();
+        Test.stopTest();
+
+        Assert.areEqual(ba.Id, before.billingAccountId, 'PRECONDITION: the billing account is found.');
+        Assert.isTrue(before.billToContactMissing, 'A billing account with no bill-to contact is flagged.');
+        Assert.isNotNull(refused, 'Create refuses a billing account with no bill-to contact.');
+        Assert.areEqual(RLM_BillingScheduleGroupService.BILL_TO_CONTACT_MISSING_MESSAGE, refused.getMessage(),
+            'The refusal says what is missing and where to add it.');
+        Assert.areEqual(
+            'The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.',
+            refused.getMessage(), 'The sentence the modal shows too.');
+        Assert.isNull(detailsWithoutContact, 'Nothing reached the action.');
+        Assert.isFalse(after.billToContactMissing, 'A billing account with a bill-to contact is not flagged.');
+        Assert.areEqual('REQ-BT', control.requestId, 'With a bill-to contact the same call reaches the action.');
+    }
+
+    // No billing account: nothing to flag.
+    @isTest
+    static void billToContact_noBillingAccount_isNotFlagged() {
+        Account a = new Account(Name = 'BSG No BA Bill To Acct');
+        insert a;
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        Test.stopTest();
+        Assert.isNull(info.billingAccountId, 'PRECONDITION: no billing account.');
+        Assert.isFalse(info.billToContactMissing, 'With no billing account the bill-to contact is not flagged.');
+    }
+
+    // BillToContactId is permissionable: a user who reads the billing account but not that field gets a
+    // sentence naming the bill-to contact, not the generic failure and not a raw QueryException. The
+    // second user holds the field read RLM_BillingUI grants, and the same call returns the flag.
+    // Measured on a 264 org: the field read alone is not enough, it also needs Contact read (which
+    // RLM_BillingUI grants); without it the select is refused as if the field were not granted.
+    @isTest
+    static void billToContact_fieldReadRefused_namesTheBillToContact() {
+        Account a = new Account(Name = 'BSG Bill To FLS Acct', BillingCity = 'Austin');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Bill To FLS BA', AccountId = a.Id);
+        insert ba;
+        List<String> psl = new List<String>{ RLM_BillingUITestUsers.BILLING_PSL };
+        User noFieldRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Contact' },
+            new List<String>{ 'BillingAccount', 'Account' }, new List<String>{ 'Account.BillingAddress' });
+        User fieldRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Contact' },
+            new List<String>{ 'BillingAccount', 'Account' },
+            new List<String>{ 'Account.BillingAddress', 'BillingAccount.BillToContactId' });
+
+        AuraHandledException refused;
+        RLM_BillingScheduleGroupService.AccountInfo granted;
+        Test.startTest();
+        System.runAs(noFieldRead) {
+            Assert.isFalse(userModeQueryFails('SELECT Id FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: the user reads BillingAccount.');
+            Assert.isTrue(userModeQueryFails('SELECT BillToContactId FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: the user cannot read BillingAccount.BillToContactId.');
+            try {
+                RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+            } catch (AuraHandledException e) {
+                refused = e;
+            }
+        }
+        System.runAs(fieldRead) {
+            Assert.isFalse(userModeQueryFails('SELECT BillToContactId FROM BillingAccount LIMIT 1'),
+                'PRECONDITION: with the field grant and Contact read the user reads BillToContactId.');
+            granted = RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(refused, 'A refused bill-to contact read is reported.');
+        Assert.areEqual(
+            'You do not have access to read the bill-to contact of the billing account this screen needs. Contact your administrator.',
+            refused.getMessage(), 'It names the field that could not be read.');
+        Assert.isInstanceOfType(refused.getCause(), QueryException.class, 'The query error is kept as the cause');
+        Assert.areEqual(ba.Id, granted.billingAccountId, 'With the field read the billing account is returned.');
+        Assert.isTrue(granted.billToContactMissing, 'And its missing bill-to contact is flagged.');
     }
 
     // ---- payload builder ----
@@ -971,7 +1076,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_sendsEntityTermTreatmentAndShippingCity() {
         Account a = new Account(Name = 'BSG Payload Acct', ShippingCity = 'Austin', BillingCity = 'Denver');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = 'BSG Payload BA', AccountId = a.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG Payload BA', AccountId = a.Id, BillToContactId = billToContact(a.Id));
         insert ba;
         Id leId = activeLegalEntityId();
         Id trId = fakeId(BillingTreatment.SObjectType);
@@ -1301,7 +1406,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Account linked = new Account(Name = 'BSG Page Linked', ShippingCity = 'Linked City');
         Account unrelated = new Account(Name = 'BSG Page Unrelated', ShippingCity = 'Other City');
         insert new List<Account>{ own, linked, unrelated };
-        BillingAccount ba = new BillingAccount(Name = 'BSG Page BA', AccountId = own.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG Page BA', AccountId = own.Id, BillToContactId = billToContact(own.Id));
         insert ba;
         insert new AccountBillingAccount(AccountId = linked.Id, BillingAccountId = ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-PG' };
@@ -1342,7 +1447,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Account owner = new Account(Name = 'BSG Owner', BillingCity = 'Owner City', ShippingCity = 'Owner Ship');
         Account page = new Account(Name = 'BSG Page', BillingCity = 'Page City', ShippingCity = 'Page Ship');
         insert new List<Account>{ owner, page };
-        BillingAccount ba = new BillingAccount(Name = 'BSG Owned BA', AccountId = owner.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG Owned BA', AccountId = owner.Id, BillToContactId = billToContact(owner.Id));
         insert ba;
         insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LC' };
@@ -1566,7 +1671,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_legalEntityRead_refusedHiddenOrVisible() {
         Account a = new Account(Name = 'BSG LE Read Acct');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = 'BSG LE Read BA', AccountId = a.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG LE Read BA', AccountId = a.Id, BillToContactId = billToContact(a.Id));
         insert ba;
         User noRead = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
@@ -1575,16 +1680,16 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress' });
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>{ 'LegalEntity', 'Product2' },
+            new List<String>{ 'LegalEntity', 'Product2', 'Contact' },
             new List<String>{ 'BillingAccount', 'Account', 'TaxTreatment' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-                'Product2.Family' });
+                'Product2.Family', 'BillingAccount.BillToContactId' });
         User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>{ 'Product2' },
+            new List<String>{ 'Product2', 'Contact' },
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-                'Product2.Family' });
+                'Product2.Family', 'BillingAccount.BillToContactId' });
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
 
@@ -1740,20 +1845,20 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_taxTreatmentAndProductRead_refusedHiddenOrVisible() {
         Account a = new Account(Name = 'BSG Picker Read Acct');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = 'BSG Picker Read BA', AccountId = a.Id);
+        BillingAccount ba = new BillingAccount(Name = 'BSG Picker Read BA', AccountId = a.Id, BillToContactId = billToContact(a.Id));
         insert ba;
         List<String> fields = new List<String>{
             'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-            'Product2.Family' };
+            'Product2.Family', 'BillingAccount.BillToContactId' };
         List<String> psl = new List<String>{ RLM_BillingUITestUsers.BILLING_PSL };
         User noTaxTreatmentRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Product2' },
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' }, fields);
         User noProductRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' }, fields);
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(psl,
-            new List<String>{ 'TaxTreatment', 'Product2' },
+            new List<String>{ 'TaxTreatment', 'Product2', 'Contact' },
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' }, fields);
-        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Product2' },
+        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Product2', 'Contact' },
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' }, fields);
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-PK' };
@@ -2151,7 +2256,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Account oldest = new Account(Name = 'BSG Oldest Link');
         Account page = new Account(Name = 'BSG Page Link');
         insert new List<Account>{ oldest, page };
-        BillingAccount ba = new BillingAccount(Name = 'BSG Two Links BA');
+        BillingAccount ba = new BillingAccount(Name = 'BSG Two Links BA', BillToContactId = billToContact(page.Id));
         insert ba;
         insert new AccountBillingAccount(AccountId = oldest.Id, BillingAccountId = ba.Id);
         insert new AccountBillingAccount(AccountId = page.Id, BillingAccountId = ba.Id);
@@ -2451,9 +2556,17 @@ private class RLM_BillingScheduleGroupServiceTest {
     private static Id insertBillingAccount(String name) {
         Account a = new Account(Name = name + ' Acct');
         insert a;
-        BillingAccount ba = new BillingAccount(Name = name + ' BA', AccountId = a.Id);
+        BillingAccount ba = new BillingAccount(Name = name + ' BA', AccountId = a.Id, BillToContactId = billToContact(a.Id));
         insert ba;
         return ba.Id;
+    }
+
+    // A contact to set as a billing account's bill-to contact: the create action refuses a billing
+    // account without one (REQUIRED_FIELD_MISSING billToContact), and so does the service before it.
+    private static Id billToContact(Id accountId) {
+        Contact c = new Contact(LastName = 'BSG Bill To', AccountId = accountId);
+        insert c;
+        return c.Id;
     }
 
     private static Map<String, Object> onlyTransaction(String payload) {

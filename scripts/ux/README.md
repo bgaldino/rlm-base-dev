@@ -141,7 +141,7 @@ the Channel Program pages and the PRM pricing patches even though
 |--------|----------|
 | `ux_tool.py` | argparse CLI (`main(argv)` is importable for tests) |
 | `_context.py` | `UxContext`, `UxError`, `UxOptionError` |
-| `_flags.py` | Known flags, tier gates (`gate_enabled`), `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `APP_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
+| `_flags.py` | Known flags, tier gates (`gate_enabled`), `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `APP_PATCH_ORDER`, `CONDITIONAL_APP_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
 | `_xml.py` | Salesforce metadata XML helpers: namespace, `write_xml`, element and valueList lookups |
 | `_patch_ops.py` | One entry per flexipage patch type (apply, reverse, describe, refresh); add a patch type here |
 | `_assemble.py` | `UxAssembler` (`run`, `assemble_flexipages`), selection validation, profile/app/object patches |

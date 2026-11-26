@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- billing_ui: the Collections Dashboard tab (unpackaged/post_billing_ui/tabs) in the
+     Billing - Collections console. Applied only when collections assembles this app and
+     billing_ui is on (scripts/ux/_flags.CONDITIONAL_APP_PATCH_ORDER). -->
+<tabs>RLM_Collections_Dashboard</tabs>
+<mappings>
+    <tab>RLM_Collections_Dashboard</tab>
+</mappings>

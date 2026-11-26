@@ -40,7 +40,9 @@
  * RLM_BillingUI holds), not after a billing account is resolved: one read, one
  * refusal message. Create also refuses a tax treatment or product the modal's pickers would not
  * offer (getTaxTreatments: active and of the chosen legal entity; getProducts: active, Software
- * family), each read in USER_MODE, before the action is called. No billing treatment read can be hidden by sharing:
+ * family), each read in USER_MODE, before the action is called, and refuses a billing account with no bill-to
+ * contact (BillingAccount.BillToContactId), which the action would reject with REQUIRED_FIELD_MISSING; getAccountBillingInfo
+ * flags the same case (billToContactMissing) so the modal blocks Create first. No billing treatment read can be hidden by sharing:
  * BillingTreatment's organization-wide default is public (measured on a 264
  * org; BillingTreatmentItem is controlled by its parent), so "no treatment"
  * means none exists, not that sharing hid one.
@@ -173,6 +175,10 @@ public with sharing class RLM_BillingScheduleGroupService {
         // or a linked one) is hidden by sharing. Whether one exists is then unknown to the user, not
         // "there is none".
         @AuraEnabled public Boolean billingLinkUnreadable = false;
+        // True when the billing account returned has no bill-to contact (BillingAccount.BillToContactId):
+        // the create action refuses it (REQUIRED_FIELD_MISSING billToContact), so the modal blocks Create
+        // and says what to add. False when no billing account is returned.
+        @AuraEnabled public Boolean billToContactMissing = false;
 
         public AccountInfo(String accountName, Id billingAccountId, String billingAccountName, String billingCity) {
             this.accountName = accountName;
@@ -196,6 +202,14 @@ public with sharing class RLM_BillingScheduleGroupService {
     private static final String CREATE_FAILED_MESSAGE =
         'The billing schedule could not be created. Check the values entered, then try again; '
         + 'if it continues, contact your administrator.';
+
+    // The create action takes the bill-to contact from the billing account (BillingAccount.BillToContactId;
+    // the payload sends no BillToContactId__std) and fails with REQUIRED_FIELD_MISSING billToContact when
+    // it is empty (measured on a 264 org: the action failed for a billing account with no bill-to contact,
+    // and the group created after one was set carried that contact). The modal shows the same sentence.
+    @TestVisible
+    private static final String BILL_TO_CONTACT_MISSING_MESSAGE =
+        'The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.';
 
     // A refused USER_MODE read names the object and field, so the user gets a sentence naming what
     // could not be read; the query error goes to the debug log and stays on the cause.
@@ -334,7 +348,24 @@ public with sharing class RLM_BillingScheduleGroupService {
         // The city is the requested account's: create sends the page account when it is linked, and a
         // billing account's own account when the page is that account, so both match this read.
         String city = acc.BillingCity;
-        return new AccountInfo(acc.Name, ba.Id, ba.Name, city);
+        AccountInfo info = new AccountInfo(acc.Name, ba.Id, ba.Name, city);
+        info.billToContactMissing = !hasBillToContact(ba.Id);
+        return info;
+    }
+
+    // Whether the billing account has a bill-to contact, read in USER_MODE: BillToContactId is
+    // permissionable, so RLM_BillingUI grants read on it. A refused read names the field, not "the
+    // billing account", so the missing grant is the one reported. Only the lookup's value is read, so
+    // the contact's own sharing does not matter. The billing account was just read in USER_MODE, so a
+    // missing row is not expected; it counts as no bill-to contact.
+    private static Boolean hasBillToContact(Id billingAccountId) {
+        List<BillingAccount> rows;
+        try {
+            rows = [SELECT BillToContactId FROM BillingAccount WHERE Id = :billingAccountId WITH USER_MODE LIMIT 1];
+        } catch (QueryException qe) {
+            throw readRefused('the bill-to contact of the billing account', qe);
+        }
+        return !rows.isEmpty() && rows[0].BillToContactId != null;
     }
 
     @AuraEnabled(cacheable=true)
@@ -601,6 +632,11 @@ public with sharing class RLM_BillingScheduleGroupService {
         Id billingTreatmentId = findBillingTreatmentId(
             legalEntityId, legalEntityName, isOneTime, timing, currencyIsoCode);
         String shippingCity = readShippingCity(accountId, billingCity);
+        // Last check before the action: without a bill-to contact the action fails, and the user would
+        // only get CREATE_FAILED_MESSAGE.
+        if (!hasBillToContact(billingAccountId)) {
+            throw RLM_AuraErrors.handled(BILL_TO_CONTACT_MISSING_MESSAGE);
+        }
 
         String transactionDetailsJson = buildTransactionDetailsJson(
             accountId, billingAccountId, billingTermUnitPicklist, quantity, legalEntityId,

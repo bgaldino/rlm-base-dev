@@ -47,6 +47,17 @@
     margin-right: 0.25rem;
 }
 
+/* The account filter when it does not list every account: a search, and what is listed (todo 435). */
+.filter-search {
+    max-width: 24rem;
+}
+
+.filter-notice {
+    font-size: 0.75rem;
+    color: var(--mc-muted);
+    margin: 0;
+}
+
 /* ----- Dashboard body ----- */
 .dashboard-body {
     padding: 1rem;
@@ -328,6 +339,14 @@
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
+}
+
+/* A figure the user cannot read (todo 435): said, not shown as zero. */
+.aging-unavailable {
+    padding: 0.25rem 0;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--mc-muted);
 }
 
 .payment-promises-empty {
@@ -666,7 +685,8 @@
     border-color: #cbd5e1;
 }
 
-.worklist-empty {
+.worklist-empty,
+.worklist-loading {
     padding: 1.5rem 1rem;
     text-align: center;
     color: var(--mc-muted);
@@ -762,5 +782,13 @@
     text-align: center;
     color: var(--mc-muted);
     font-size: 0.6875rem;
+    margin: 0;
+}
+/* A short list with more rows than it shows: says so under the rows (todo 435). */
+.list-more {
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+    color: var(--mc-muted);
+    font-size: 0.75rem;
     margin: 0;
 }

@@ -1763,3 +1763,112 @@ def test_the_bare_name_hint_follows_the_requested_type():
     with pytest.raises(UxOptionError) as err:  # "all" spans seven suffixes: no single guess
         validate_selection("all", "Thing")
     assert "Use the full file name" not in str(err.value)
+
+
+# ── conditional app navigation patches (todo 435) ──────────────────────────
+
+COLLECTION_CONSOLE = "standard__CollectionConsole.app-meta.xml"
+DASHBOARD_TAB = "RLM_Collections_Dashboard"
+
+
+def _app_tabs_and_mappings(path):
+    root = ET.parse(path).getroot()
+    tabs = [t.text for t in root.findall(f"{{{NS}}}tabs")]
+    mappings = [m.findtext(f"{{{NS}}}tab") for m in root.findall(f"{{{NS}}}workspaceConfig/{{{NS}}}mappings")]
+    return tabs, mappings
+
+
+def test_default_assembly_puts_the_dashboard_tab_in_the_collections_console(assembled):
+    tabs, mappings = _app_tabs_and_mappings(assembled / "applications" / COLLECTION_CONSOLE)
+    assert tabs.count(DASHBOARD_TAB) == 1
+    assert mappings.count(DASHBOARD_TAB) == 1
+    # The template's own entries are kept, and the mapping sits in the platform's order.
+    assert "standard-CollectionPlan" in tabs
+    assert mappings == sorted(mappings)
+
+
+def test_dashboard_tab_needs_billing_ui(tmp_path):
+    """The tab ships in post_billing_ui: a collections build without billing_ui must not name it."""
+    out = _assemble_with(tmp_path, "billing_ui=false")
+    tabs, mappings = _app_tabs_and_mappings(out / "applications" / COLLECTION_CONSOLE)
+    assert DASHBOARD_TAB not in tabs + mappings
+
+
+def test_dashboard_tab_patch_is_not_applied_without_the_collections_console(tmp_path):
+    out = _assemble_with(tmp_path, "collections=false")
+    assert not (out / "applications" / COLLECTION_CONSOLE).exists()
+    for app in (out / "applications").iterdir():
+        assert DASHBOARD_TAB not in app.read_text(encoding="utf-8")
+
+
+def _nav_patch(tmp_path, body):
+    patch = tmp_path / "App.patch.xml"
+    patch.write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<!-- a - comment -->\n{body}\n', encoding="utf-8")
+    return patch
+
+
+def _console_app(tmp_path):
+    app = tmp_path / "App.app-meta.xml"
+    app.write_text(
+        f'<?xml version="1.0" encoding="UTF-8"?>\n<CustomApplication xmlns="{NS}">'
+        "<label>App</label><tabs>standard-Account</tabs><tabs>standard-home</tabs><uiType>Lightning</uiType>"
+        "<workspaceConfig><mappings><tab>standard-Account</tab></mappings>"
+        "<mappings><tab>standard-home</tab></mappings></workspaceConfig></CustomApplication>",
+        encoding="utf-8",
+    )
+    return app
+
+
+def test_nav_patch_adds_once_in_order_and_is_idempotent(tmp_path):
+    from scripts.ux._assemble import UxAssembler
+
+    app = _console_app(tmp_path)
+    patch = _nav_patch(tmp_path, "<tabs>RLM_X</tabs><mappings><tab>RLM_X</tab></mappings>"
+                                 "<mappings><tab>standard-Case</tab></mappings>")
+    assembler = UxAssembler(_ctx())
+    assert assembler._apply_app_nav_patch(app, patch) == ["RLM_X"]
+    first = app.read_text(encoding="utf-8")
+    assert assembler._apply_app_nav_patch(app, patch) == []
+    assert app.read_text(encoding="utf-8") == first
+
+    tabs, mappings = _app_tabs_and_mappings(app)
+    assert tabs == ["standard-Account", "standard-home", "RLM_X"]
+    # Case-sensitive tab-name order, as the platform retrieves it.
+    assert mappings == ["RLM_X", "standard-Account", "standard-Case", "standard-home"]
+    root = ET.parse(app).getroot()
+    assert [child.tag.rsplit("}", 1)[-1] for child in root][:5] == ["label", "tabs", "tabs", "tabs", "uiType"]
+
+
+@pytest.mark.parametrize("body", [
+    "<actionOverrides><actionName>View</actionName></actionOverrides>",
+    "<label>Other</label>",
+])
+def test_nav_patch_refuses_other_elements(tmp_path, body):
+    from scripts.ux._assemble import UxAssembler
+
+    app = _console_app(tmp_path)
+    before = app.read_text(encoding="utf-8")
+    with pytest.raises(UxError):
+        UxAssembler(_ctx())._apply_app_nav_patch(app, _nav_patch(tmp_path, body))
+    assert app.read_text(encoding="utf-8") == before
+
+
+def test_nav_patch_mapping_needs_a_console_app(tmp_path):
+    from scripts.ux._assemble import UxAssembler
+
+    app = tmp_path / "Std.app-meta.xml"
+    app.write_text(f'<CustomApplication xmlns="{NS}"><tabs>standard-Account</tabs></CustomApplication>', encoding="utf-8")
+    with pytest.raises(UxError):
+        UxAssembler(_ctx())._apply_app_nav_patch(app, _nav_patch(tmp_path, "<mappings><tab>RLM_X</tab></mappings>"))
+
+
+def test_no_flexipage_ships_from_both_a_bundle_and_templates():
+    """A page deployed by a feature bundle (the Collections Dashboard in post_billing_ui, with its
+    tab) must not also be assembled into post_ux: two sources would fight over one page."""
+    bundled = {
+        p.name for p in (REPO_ROOT / "unpackaged").rglob("*.flexipage-meta.xml")
+        if "post_ux" not in p.parts
+    }
+    templated = {p.name for p in (REPO_ROOT / "templates" / "flexipages").rglob("*.flexipage-meta.xml")}
+    assert "RLM_Collections_Dashboard.flexipage-meta.xml" in bundled
+    assert not bundled & templated

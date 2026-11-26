@@ -1,6 +1,9 @@
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CloseActionScreenEvent } from 'lightning/actions';
+import { refreshApex } from '@salesforce/apex';
+import USER_TIME_ZONE from '@salesforce/i18n/timeZone';
+import { parseYmd, termEndDate, todayInTimeZone } from './billingDates';
 
 import getAccountBillingInfo from '@salesforce/apex/RLM_BillingScheduleGroupService.getAccountBillingInfo';
 import getLegalEntities from '@salesforce/apex/RLM_BillingScheduleGroupService.getLegalEntities';
@@ -16,6 +19,9 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     billingAccountName;
     billingCity;
     billingLinkUnreadable = false; // a billing account may exist but the user cannot read it
+    billToContactMissing = false; // the billing account has no bill-to contact, which the create action requires
+    accountInfoRefreshed = false; // the cacheable account info has been asked of the server once this opening
+    accountNoticeShown; // the account warning or error last toasted, so a refresh with the same answer is quiet
 
     isLoading = true; // Start as loading while we fetch account data
     legalEntityOptions = [];
@@ -33,9 +39,9 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     totalPrice = 0; // TotalPrice__std - defaults to 0
     productId; // Product2 Id
     productName; // ProductName__std
-    startDate; // StartDate__std (defaults to today)
-    billingDayOfMonth; // BillingDayOfMonth__std (defaults to today's day)
-    billingStartMonth; // BillingStartMonth__std (defaults to current month)
+    startDate; // StartDate__std, 'YYYY-MM-DD' (defaults to today in the user's Salesforce time zone)
+    billingDayOfMonth; // BillingDayOfMonth__std (the start date's day)
+    billingStartMonth; // BillingStartMonth__std (the start date's month)
     chargeType; // "One Time" or "Recurring"
     termSetting = 'Evergreen'; // "Evergreen" or "Termed" - defaults to Evergreen
     termDuration = 1; // Number of periods for termed contracts - defaults to 1
@@ -125,40 +131,64 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     connectedCallback() {
-        // Set default values for date fields
-        const today = new Date();
-        this.startDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-        this.billingDayOfMonth = today.getDate();
-        this.billingStartMonth = today.getMonth() + 1; // JavaScript months are 0-indexed
-        // Calculate initial end date with defaults
+        // Today in the user's Salesforce time zone, not the browser's and not UTC: the date the user
+        // sees is the date that is sent, and the billing day and month are taken from that same date.
+        this.startDate = todayInTimeZone(USER_TIME_ZONE);
+        this.setBillingAnchor(this.startDate);
         this.calculateEndDate();
     }
 
+    // Billing day of month and start month from a 'YYYY-MM-DD' start date, read from the string
+    // itself so no time zone can move them. An empty or invalid date leaves them as they were.
+    setBillingAnchor(startDate) {
+        const start = parseYmd(startDate);
+        if (start) {
+            this.billingDayOfMonth = start.day;
+            this.billingStartMonth = start.month;
+        }
+    }
+
     @wire(getAccountBillingInfo, { accountId: '$recordId' })
-    wiredAccountInfo({ error, data }) {
+    wiredAccountInfo(result) {
+        const { error, data } = result;
+        // getAccountBillingInfo is cacheable, so the first value can be a cached one from before an
+        // edit made since (a bill-to contact or Billing City added to clear a blocker). The wire does not
+        // say whether a value came from the cache, so it is shown at once and the server is asked once per
+        // opening (one extra call when it was fresh); a different answer re-provisions this wire. A
+        // warning or error is toasted once per distinct answer (showAccountNotice), so a refresh that
+        // returns the same answer does not repeat it.
+        if (!this.accountInfoRefreshed && (data || error)) {
+            this.accountInfoRefreshed = true;
+            // refreshApex can throw at once or return no promise (an errored wire value): either way the value
+            // shown stays, and the service refuses a create the records no longer allow.
+            try {
+                Promise.resolve(refreshApex(result)).catch(() => {});
+            } catch {
+                // As above: the value shown stays.
+            }
+        }
         if (data) {
             this.accountName = data.accountName;
             this.billingAccountId = data.billingAccountId;
             this.billingAccountName = data.billingAccountName;
             this.billingCity = data.billingCity;
             this.billingLinkUnreadable = data.billingLinkUnreadable === true;
+            this.billToContactMissing = data.billToContactMissing === true;
 
             if (this.billingLinkUnreadable) {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Billing Account Unavailable',
-                        message: 'The billing account for this Account could not be read. Ask your administrator for access.',
-                        variant: 'warning'
-                    })
+                this.showAccountNotice(
+                    'Billing Account Unavailable',
+                    'The billing account for this Account could not be read. Ask your administrator for access.',
+                    'warning'
                 );
             } else if (!this.billingAccountId) {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'No Billing Account',
-                        message: 'This Account does not have an associated Billing Account.',
-                        variant: 'warning'
-                    })
+                this.showAccountNotice(
+                    'No Billing Account',
+                    'This Account does not have an associated Billing Account.',
+                    'warning'
                 );
+            } else {
+                this.accountNoticeShown = undefined;
             }
             this.isLoading = false;
         } else if (error) {
@@ -169,15 +199,20 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billingAccountName = undefined;
             this.billingCity = undefined;
             this.billingLinkUnreadable = false;
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error loading Account',
-                    message: this.reduceError(error),
-                    variant: 'error'
-                })
-            );
+            this.billToContactMissing = false;
+            this.showAccountNotice('Error loading Account', this.reduceError(error), 'error');
             this.isLoading = false;
         }
+    }
+
+    // Toasts an account warning or error unless the same one was the last shown.
+    showAccountNotice(title, message, variant) {
+        const key = `${variant}|${title}|${message}`;
+        if (this.accountNoticeShown === key) {
+            return;
+        }
+        this.accountNoticeShown = key;
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
     @wire(getLegalEntities)
@@ -276,11 +311,16 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         if (this.billingAccountId && !this.billingCity) {
             return 'The Account has no Billing City. Add one to the Account before creating a billing schedule group.';
         }
+        // The create action takes the bill-to contact from the billing account and fails without one;
+        // the service refuses it with this same sentence.
+        if (this.billingAccountId && this.billToContactMissing) {
+            return 'The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.';
+        }
         if (!Number.isFinite(this.totalPrice)) {
             return 'Total Price is required.';
         }
         if (this.isTermed && !this.endDate) {
-            return 'Start Date and Term Duration are required to calculate the End Date of a termed charge.';
+            return 'A Start Date and a whole-number Term Duration of at least 1 are required to calculate the End Date of a termed charge.';
         }
         return '';
     }
@@ -367,14 +407,19 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         this.calculateEndDate();
     }
 
+    // A term duration is a whole number of periods, 1 or more, as the Term Duration input and the
+    // submit blocker say: 0.5 Year or 1.5 Year has no end date and blocks Create.
+    get hasValidTermDuration() {
+        return Number.isInteger(this.termDuration) && this.termDuration >= 1;
+    }
+
     calculateEndDate() {
-        if (!this.startDate || !this.termDuration || !this.termDurationUnit || !this.isTermed) {
+        if (!this.startDate || !this.hasValidTermDuration || !this.termDurationUnit || !this.isTermed) {
             this.endDate = null;
             this.numberOfBillingPeriods = 0;
             return;
         }
 
-        const start = new Date(this.startDate + 'T00:00:00');
         let monthsToAdd = 0;
 
         switch (this.termDurationUnit) {
@@ -394,12 +439,13 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
                 monthsToAdd = 0;
         }
 
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + monthsToAdd);
-        // Subtract one day to get the last day of the term
-        end.setDate(end.getDate() - 1);
-
-        this.endDate = end.toISOString().split('T')[0];
+        // Calendar math on the 'YYYY-MM-DD' value (the day before the start date monthsToAdd months
+        // later). termEndDate also refuses a month count that is not a positive whole number.
+        this.endDate = termEndDate(this.startDate, monthsToAdd);
+        if (!this.endDate) {
+            this.numberOfBillingPeriods = 0;
+            return;
+        }
 
         // Calculate number of billing periods
         this.calculateNumberOfBillingPeriods(monthsToAdd);
@@ -522,12 +568,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
 
     handleStartDateChange(event) {
         this.startDate = event.detail.value;
-        // Update billing day and month based on start date
-        if (this.startDate) {
-            const selectedDate = new Date(this.startDate + 'T00:00:00');
-            this.billingDayOfMonth = selectedDate.getDate();
-            this.billingStartMonth = selectedDate.getMonth() + 1; // JavaScript months are 0-indexed
-        }
+        this.setBillingAnchor(this.startDate);
         // Recalculate end date when start date changes
         this.calculateEndDate();
     }

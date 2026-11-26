@@ -17,7 +17,8 @@ isolation — see tests/test_build_billing_ui_module.py.
 Overrides (env var or CLI arg), used by the tests so a run never touches the repo tree:
   RLM_BILLING_LWC_SRC / argv[1] — source bundle root (default extracted/maaron-billinglwc)
   RLM_BILLING_UI_DEST           — module output dir (default unpackaged/post_billing_ui)
-  RLM_BILLING_UI_FLEXIPAGE_DEST — flexipage output dir (default templates/.../billing_ui)
+  RLM_BILLING_UI_FLEXIPAGE_DEST — flexipage output dir (default templates/.../billing_ui); the
+                                  BUNDLE_FLEXIPAGES go to the module's flexipages/ instead
 """
 import os
 import re
@@ -80,6 +81,11 @@ FLEXIPAGE_MAP = {
     "RLM_Billing_Invoice_Record_Page":   "RLM_Billing_Invoice_Record_Page",
     "RLM_Order_Record_Page":             "RLM_Order_Record_Page",
 }
+
+# Pages that ship in the module itself (its flexipages/), not in templates/: the Collections Dashboard
+# deploys with its tab and the RLM_CollectionsDashboard permission set in post_billing_ui (todo 435), so
+# the tab can name it at step 13. Writing it to templates/ as well would put one page in two sources.
+BUNDLE_FLEXIPAGES = {"RLM_Collections_Dashboard"}
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -296,7 +302,9 @@ def main(argv=None):
 
     for old_name, new_name in FLEXIPAGE_MAP.items():
         src_file = fp_src / f"{old_name}.flexipage-meta.xml"
-        dst_file = DEST_FLEXIPAGES / f"{new_name}.flexipage-meta.xml"
+        dst_dir = DEST_MODULE / "flexipages" if new_name in BUNDLE_FLEXIPAGES else DEST_FLEXIPAGES
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        dst_file = dst_dir / f"{new_name}.flexipage-meta.xml"
         print(f"\n  [{old_name}] → [{new_name}]")
         read_write(src_file, dst_file, transform=make_fp_transform(old_name, new_name))
 
@@ -320,7 +328,11 @@ def main(argv=None):
     sr_present = [n for n in sr_names if (DEST_MODULE / "staticresources" / n).exists()]
     print(f"\nStatic resources:    {len(sr_present)} / {len(sr_names)} generator-owned present")
 
-    fp_present = [n for n in FLEXIPAGE_MAP.values() if (DEST_FLEXIPAGES / f"{n}.flexipage-meta.xml").exists()]
+    fp_present = [
+        n for n in FLEXIPAGE_MAP.values()
+        if ((DEST_MODULE / "flexipages") if n in BUNDLE_FLEXIPAGES else DEST_FLEXIPAGES).joinpath(
+            f"{n}.flexipage-meta.xml").exists()
+    ]
     print(f"\nFlexipages:          {len(fp_present)} / {len(FLEXIPAGE_MAP)} generator-owned present")
 
     print("\nDone.")

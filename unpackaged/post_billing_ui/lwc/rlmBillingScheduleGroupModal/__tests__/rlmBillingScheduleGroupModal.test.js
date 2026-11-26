@@ -5,7 +5,13 @@ import getAccountBillingInfo from "@salesforce/apex/RLM_BillingScheduleGroupServ
 import getLegalEntities from "@salesforce/apex/RLM_BillingScheduleGroupService.getLegalEntities";
 import getTaxTreatments from "@salesforce/apex/RLM_BillingScheduleGroupService.getTaxTreatments";
 import getProducts from "@salesforce/apex/RLM_BillingScheduleGroupService.getProducts";
+import { refreshApex } from "@salesforce/apex";
 
+// refreshApex asks the server again; the test plays the server's answer by emitting on the wire,
+// which is how a refreshed cacheable wire re-provisions.
+jest.mock("@salesforce/apex", () => ({ refreshApex: jest.fn(() => Promise.resolve()) }), {
+  virtual: true
+});
 // The sfdx-lwc-jest stubs have no lightning/actions module.
 jest.mock(
   "lightning/actions",
@@ -315,6 +321,67 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     ]);
   });
 
+  it("asks the server once and does not repeat a warning when the refresh brings the same answer", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    // The first value (from the cache or the server: the wire does not say), then the refresh's answer.
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    expect(toasts.map((toast) => toast.title)).toEqual(["No Billing Account"]);
+
+    // A different answer is news, and is shown.
+    getAccountBillingInfo.emit({ accountName: "Acme", billingLinkUnreadable: true });
+    await flushPromises();
+    expect(toasts.map((toast) => toast.title)).toEqual([
+      "No Billing Account",
+      "Billing Account Unavailable"
+    ]);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+  });
+
+  // refreshApex can throw at once, or return no promise for an errored wire value: the value shown stays.
+  it.each([
+    ["throws", () => { throw new Error("refresh refused"); }],
+    ["returns no promise", () => undefined]
+  ])("keeps the account value shown when refreshApex %s", async (label, behaviour) => {
+    refreshApex.mockImplementationOnce(behaviour);
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    expect(toasts.map((toast) => toast.title)).toEqual(["No Billing Account"]);
+  });
+
+  it("does not repeat an account error when the refresh fails the same way", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.error();
+    await flushPromises();
+    getAccountBillingInfo.error();
+    await flushPromises();
+
+    expect(toasts.map((toast) => [toast.title, toast.variant])).toEqual([["Error loading Account", "error"]]);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+  });
+
   it("says the billing account could not be read, not that there is none, when the link read is refused", async () => {
     const element = createElement("c-rlm-billing-schedule-group-modal", {
       is: RlmBillingScheduleGroupModal
@@ -404,6 +471,78 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(createBillingScheduleGroupAndScheduleViaAPI).not.toHaveBeenCalled();
     expect(toasts).toHaveLength(1);
     expect(toasts[0].message).toContain("Billing City");
+  });
+
+  it("blocks Create and explains why when the billing account has no bill-to contact", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: true
+    });
+    getLegalEntities.emit([{ id: "0le000000000001AAA", name: "LE" }]);
+    getTaxTreatments.emit([{ id: "0tt000000000001AAA", name: "TT" }]);
+    getProducts.emit([{ id: "01t000000000001AAA", name: "Product" }]);
+    await flushPromises();
+    await fillRecurring(element, "Evergreen");
+
+    const sentence =
+      "The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.";
+    expect(createButton(element).disabled).toBe(true);
+    expect(
+      element.shadowRoot.querySelector('[role="alert"]').textContent
+    ).toBe(sentence);
+    const toasts = recordToasts(element);
+    createButton(element).dispatchEvent(new CustomEvent("click"));
+    await flushPromises();
+
+    expect(createBillingScheduleGroupAndScheduleViaAPI).not.toHaveBeenCalled();
+    expect(toasts.map((toast) => [toast.message, toast.variant])).toEqual([
+      [sentence, "error"]
+    ]);
+
+    // The cached answer was shown, and the server was asked again once for this opening.
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    // The contact was added since that answer was cached: the server's answer re-provisions the
+    // wire, and Create opens without reopening the modal.
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: false
+    });
+    await flushPromises();
+    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(createButton(element).disabled).toBe(false);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+  });
+
+  it("forgets a missing bill-to contact when the account info turns into an error", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: true
+    });
+    await flushPromises();
+    getAccountBillingInfo.error();
+    await flushPromises();
+
+    // No billing account is known now, so no bill-to sentence: only the account error.
+    expect(element.shadowRoot.textContent).not.toContain("Bill To Contact");
   });
 
   it("drops the tax treatment when the legal entity changes", async () => {

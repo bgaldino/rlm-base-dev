@@ -759,6 +759,8 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   # tests/test_collection_plan_page_fields.py reads this page template.
                   "templates/flexipages/standalone/collections/",
+                  # tests/test_collections_dashboard_access.py reads this app patch.
+                  "templates/applications/patches/billing_ui/",
                   # tests/test_deploy_expression_sets.py reads it: what it excludes
                   # is never deployed, so the read-back must not expect it.
                   ".forceignore",
@@ -1074,7 +1076,9 @@ CHECKS = [
         # directories) or installs.
         segments=["lwc"],
         triggers=["jest.config.js", "package.json", "package-lock.json", "sfdx-project.json",
-                  ".nvmrc", "scripts/ai/run_lwc_jest.py"],
+                  ".nvmrc", "scripts/ai/run_lwc_jest.py",
+                  # Test environments a suite names in its docblock (browser time zone, todo 435).
+                  "tests/jest/"],
         deps=[], node_deps=["node_modules/.bin/sfdx-lwc-jest"], gating=True,
     ),
 ]
@@ -1089,9 +1093,11 @@ STDLIB_SUITES = [
     "tests/test_agents_common.py",
     "tests/test_analytics_setup_helper.py",
     "tests/test_billing_flow_copies.py",
+    "tests/test_bsg_modal_dates_source.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_build_quote_ramp_args.py",
     "tests/test_collection_plan_page_fields.py",
+    "tests/test_collections_dashboard_access.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_private_refs.py",

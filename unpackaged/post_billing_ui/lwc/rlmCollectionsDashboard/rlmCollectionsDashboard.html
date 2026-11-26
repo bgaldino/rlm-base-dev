@@ -5,7 +5,18 @@
                 <lightning-combobox name="account" label="Account" value={selectedAccountId} options={accountOptions} onchange={handleAccountChange} placeholder="All Accounts" class="filter-input"></lightning-combobox>
                 <lightning-combobox name="currency" label="Currency" value={selectedCurrency} options={currencyOptions} onchange={handleCurrencyChange} placeholder="Currency" class="filter-input"></lightning-combobox>
             </div>
+            <template if:true={showAccountSearch}>
+                <div class="filter-search">
+                    <lightning-input type="search" name="accountSearch" label="Search accounts" placeholder="Type part of an account name, then press Enter" oncommit={handleAccountSearch} class="filter-input"></lightning-input>
+                </div>
+            </template>
+            <template if:true={accountFilterNotice}>
+                <p class="filter-notice">{accountFilterNotice}</p>
+            </template>
             <div class="filter-context"><span class="context-label">Viewing:</span> {selectedAccountLabel} · {selectedCurrencyLabel}</div>
+            <template if:true={currencyNote}>
+                <p class="currency-note filter-notice">{currencyNote}</p>
+            </template>
         </header>
 
         <main class="dashboard-body">
@@ -18,7 +29,6 @@
                     <div class="error-banner"><lightning-icon icon-name="utility:error" size="x-small"></lightning-icon> {dataError}</div>
                 </template>
 
-                <template if:false={dataError}>
                     <div class="dashboard-layout">
                     <div class="dashboard-main">
                     <!-- THE PULSE: KPI cards -->
@@ -27,7 +37,7 @@
                             <div class="pulse-card card-receivables">
                                 <div class="pulse-card-label">Receivables Outstanding</div>
                                 <div class="pulse-card-value">{receivablesOutstandingFormatted}</div>
-                                <div class="pulse-card-meta">{invoiceCount} invoices</div>
+                                <div class="pulse-card-meta">{invoiceCountLabel}</div>
                             </div>
                             <div class="pulse-card card-current">
                                 <div class="pulse-card-label">Current Due</div>
@@ -40,14 +50,17 @@
                             <div class="pulse-card card-unapplied pulse-action">
                                 <div class="pulse-card-label">Unapplied Payments</div>
                                 <div class="pulse-card-value pulse-value-action">{unappliedPaymentBalanceFormatted}</div>
-                                <div class="pulse-card-meta">{unappliedPaymentCount} records · Action required</div>
+                                <div class="pulse-card-meta">{unappliedPaymentMeta}</div>
                             </div>
                             <div class="pulse-card card-total-balance">
                                 <div class="pulse-card-label">Total Balance</div>
                                 <div class="pulse-card-value">{totalBalanceFormatted}</div>
+                                <template if:true={totalBalanceNote}>
+                                    <div class="pulse-card-meta total-balance-note" role="note">{totalBalanceNote}</div>
+                                </template>
                                 <div class="pulse-card-breakdown">
                                     <template for:each={totalBalanceBreakdown} for:item="row">
-                                        <div key={row.label} class={row.lineClass}><span>{row.label}</span><span>{row.formatted}</span></div>
+                                        <div key={row.label} class={row.lineClass}><span>{row.label}</span><span title={row.title}>{row.formatted}</span></div>
                                     </template>
                                 </div>
                             </div>
@@ -57,6 +70,9 @@
                     <!-- AGING RAINBOW -->
                     <section class="aging-section">
                         <div class="aging-label">Aging</div>
+                        <template if:true={invoicesUnavailable}>
+                            <p class="aging-unavailable">{invoicesUnavailableText}</p>
+                        </template>
                         <div class="aging-bar" role="list">
                             <template for:each={agingBuckets} for:item="bucket">
                                 <div key={bucket.key} class={bucket.segmentClass} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} onkeydown={handleAgingBucketKeydown} role="button" tabindex="0" aria-label={bucket.label} title={bucket.label}></div>
@@ -75,7 +91,7 @@
 
                     <!-- Payment Promises: Total requested amount on PSIs by status (Ready for Processing, Draft, Failed, In Processing) -->
                     <section class="payment-promises-section" aria-label="Payment Promises by status">
-                        <div class="payment-promises-label">Payment Promises ({paymentPromisesTotalFormatted})</div>
+                        <div class="payment-promises-label">{paymentPromisesLabel}</div>
                         <template if:true={hasPaymentPromises}>
                             <div class="payment-promises-bar" role="img" aria-label="Total requested amount by status">
                                 <template for:each={paymentPromisesBuckets} for:item="bucket">
@@ -92,7 +108,10 @@
                                 </template>
                             </div>
                         </template>
-                        <template if:false={hasPaymentPromises}>
+                        <template if:true={paymentPromisesUnavailable}>
+                            <p class="payment-promises-empty">{paymentPromisesUnavailableText}</p>
+                        </template>
+                        <template if:true={showNoPaymentPromises}>
                             <p class="payment-promises-empty">No payment promises.</p>
                         </template>
                     </section>
@@ -117,7 +136,7 @@
                                             <th scope="col">Balance</th>
                                             <th scope="col">Days Invoice Overdue</th>
                                             <th scope="col">Bill To Contact</th>
-                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Collection Plan</th>
                                             <th scope="col">Actions</th>
                                         </template>
                                         <template if:false={worklistTabCriticalActive}>
@@ -127,7 +146,7 @@
                                             <th scope="col">PTP Date</th>
                                             <th scope="col">Dispute Reason</th>
                                             <template if:true={showActionButtons}>
-                                                <th scope="col">Collection Plan ID</th>
+                                                <th scope="col">Collection Plan</th>
                                             </template>
                                             <template if:false={showActionButtons}>
                                                 <th scope="col">Case Number</th>
@@ -141,11 +160,11 @@
                                         <tr key={row.uniqueKey}>
                                             <template if:true={worklistTabCriticalActive}>
                                                 <td>
-                                                    <template if:true={row.accountUrl}>
-                                                        <a href={row.accountUrl} class="customer-name">{row.billingAccountName}</a>
+                                                    <template if:true={row.account.url}>
+                                                        <a href={row.account.url} class="customer-name">{row.account.label}</a>
                                                     </template>
-                                                    <template if:false={row.accountUrl}>
-                                                        <span>{row.billingAccountName}</span>
+                                                    <template if:false={row.account.url}>
+                                                        <span>{row.account.label}</span>
                                                     </template>
                                                 </td>
                                                 <td class="num">
@@ -159,22 +178,21 @@
                                                 <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
                                                 <td>
-                                                    <template if:true={row.contactUrl}>
-                                                        <a href={row.contactUrl} class="customer-name">{row.billToContactId}</a>
+                                                    <template if:true={row.contact.url}>
+                                                        <a href={row.contact.url} class="customer-name">{row.contact.label}</a>
                                                     </template>
-                                                    <template if:false={row.contactUrl}>
-                                                        <template if:true={row.billToContactId}>{row.billToContactId}</template>
-                                                        <template if:false={row.billToContactId}>—</template>
-                                                    </template>
+                                                    <template if:false={row.contact.url}>{row.contact.label}</template>
                                                 </td>
                                                 <td class="num">
-                                                    <template if:true={row.collectionPlanUrl}>
-                                                        <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                    <template if:true={row.plan.url}>
+                                                        <a href={row.plan.url} class="customer-name">{row.plan.label}</a>
                                                     </template>
-                                                    <template if:false={row.collectionPlanUrl}>—</template>
+                                                    <template if:false={row.plan.url}>{row.plan.label}</template>
                                                 </td>
                                                 <td class="actions-cell">
-                                                    <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                    <template if:true={row.showCreatePlan}>
+                                                        <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                    </template>
                                                     <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleWriteOff}>Write Off</button>
                                                     <button type="button" class="btn-action" data-account-id={row.billingAccountId} onclick={handleLogTask}>Log a Task</button>
                                                 </td>
@@ -182,7 +200,12 @@
                                             <template if:false={worklistTabCriticalActive}>
                                                 <td>
                                                     <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
-                                                    <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
+                                                    <template if:true={row.account.url}>
+                                                        <a href={row.account.url} class="customer-name">{row.account.label}</a>
+                                                    </template>
+                                                    <template if:false={row.account.url}>
+                                                        <span>{row.account.label}</span>
+                                                    </template>
                                                 </td>
                                                 <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysOverdue}>{row.daysOverdue}</template><template if:false={row.daysOverdue}>—</template></td>
@@ -190,10 +213,10 @@
                                                 <td class="dispute-cell" title={row.disputeReason}>{row.disputeReasonShort}</td>
                                                 <template if:true={showActionButtons}>
                                                     <td class="num">
-                                                        <template if:true={row.collectionPlanUrl}>
-                                                            <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                        <template if:true={row.plan.url}>
+                                                            <a href={row.plan.url} class="customer-name">{row.plan.label}</a>
                                                         </template>
-                                                        <template if:false={row.collectionPlanUrl}>—</template>
+                                                        <template if:false={row.plan.url}>{row.plan.label}</template>
                                                     </td>
                                                 </template>
                                                 <template if:false={showActionButtons}>
@@ -206,13 +229,13 @@
                                                 </template>
                                                 <td class="actions-cell">
                                                     <template if:true={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleRaiseDispute}>Raise Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                        <template if:true={row.showCreatePlan}>
+                                                            <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
+                                                        </template>
                                                     </template>
                                                     <template if:false={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
                                                         <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
                                                     </template>
@@ -222,6 +245,15 @@
                                     </template>
                                 </tbody>
                             </table>
+                            <template if:true={worklistTabLoading}>
+                                <p class="worklist-loading">{loadingText}</p>
+                            </template>
+                            <template if:true={worklistTabUnavailable}>
+                                <p class="worklist-empty">{worklistUnavailableText}</p>
+                            </template>
+                            <template if:true={worklistTabHasMore}>
+                                <p class="worklist-more list-more">{worklistMoreText}</p>
+                            </template>
                             <template if:true={noWorklistItems}>
                                 <p class="worklist-empty">No items in this view. Change filters or aging selection.</p>
                             </template>
@@ -271,8 +303,11 @@
                                     </div>
                                 </div>
                             </template>
-                            <template if:false={hasCollectionsProgress}>
-                                <p class="progress-empty">No collection plan data available.</p>
+                            <template if:true={progressUnavailable}>
+                                <p class="progress-empty">{progressUnavailableText}</p>
+                            </template>
+                            <template if:true={showNoProgress}>
+                                <p class="progress-empty">{noProgressText}</p>
                             </template>
                         </section>
 
@@ -289,7 +324,7 @@
                                             <th scope="col">Subject</th>
                                             <th scope="col">Status</th>
                                             <th scope="col">Due</th>
-                                            <th scope="col">CP ID</th>
+                                            <th scope="col">Collection Plan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -298,12 +333,23 @@
                                                 <td><a href={task.taskUrl} class="cp-task-subject" title={task.subject}>{task.subjectShort}</a></td>
                                                 <td>{task.status}</td>
                                                 <td class="num">{task.activityDateFormatted}</td>
-                                                <td><a href={task.cpUrl} class="cp-task-cpid" title={task.collectionPlanId}>{task.cpIdShort}</a></td>
+                                                <td>
+                                                    <template if:true={task.plan.url}>
+                                                        <a href={task.plan.url} class="cp-task-cpid">{task.plan.label}</a>
+                                                    </template>
+                                                    <template if:false={task.plan.url}>{task.plan.label}</template>
+                                                </td>
                                             </tr>
                                         </template>
                                     </tbody>
                                 </table>
-                                <template if:false={hasCpTasks}>
+                                <template if:true={cpTasksUnavailable}>
+                                    <p class="cp-tasks-empty">{cpTasksUnavailableText}</p>
+                                </template>
+                                <template if:true={cpTasksHaveMore}>
+                                    <p class="cp-tasks-more list-more">{cpTasksMoreText}</p>
+                                </template>
+                                <template if:true={showNoCpTasks}>
                                     <p class="cp-tasks-empty">No tasks linked to Collection Plans.</p>
                                 </template>
                             </div>
@@ -322,7 +368,7 @@
                                 <table class="my-cp-table" role="grid">
                                     <thead>
                                         <tr>
-                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Collection Plan</th>
                                             <th scope="col">Due Date</th>
                                             <th scope="col">Account</th>
                                             <th scope="col">To Recover</th>
@@ -331,14 +377,19 @@
                                     <tbody>
                                         <template for:each={myCollectionPlans} for:item="plan">
                                             <tr key={plan.uniqueKey}>
-                                                <td><a href={plan.cpUrl} class="customer-name" title={plan.name}>{plan.name}</a></td>
+                                                <td>
+                                                    <template if:true={plan.plan.url}>
+                                                        <a href={plan.plan.url} class="customer-name">{plan.plan.label}</a>
+                                                    </template>
+                                                    <template if:false={plan.plan.url}>{plan.plan.label}</template>
+                                                </td>
                                                 <td class="num">{plan.dueDateFormatted}</td>
                                                 <td>
-                                                    <template if:true={plan.accountUrl}>
-                                                        <a href={plan.accountUrl} class="customer-name">{plan.accountName}</a>
+                                                    <template if:true={plan.account.url}>
+                                                        <a href={plan.account.url} class="customer-name">{plan.account.label}</a>
                                                     </template>
-                                                    <template if:false={plan.accountUrl}>
-                                                        <span>{plan.accountName}</span>
+                                                    <template if:false={plan.account.url}>
+                                                        <span>{plan.account.label}</span>
                                                     </template>
                                                 </td>
                                                 <td class="num">{plan.toRecoverFormatted}</td>
@@ -346,14 +397,19 @@
                                         </template>
                                     </tbody>
                                 </table>
-                                <template if:false={hasMyCollectionPlans}>
+                                <template if:true={myCollectionPlansUnavailable}>
+                                    <p class="my-cp-empty">{myCollectionPlansUnavailableText}</p>
+                                </template>
+                                <template if:true={myCollectionPlansHaveMore}>
+                                    <p class="my-cp-more list-more">{myCollectionPlansMoreText}</p>
+                                </template>
+                                <template if:true={showNoMyCollectionPlans}>
                                     <p class="my-cp-empty">No collection plans assigned to you.</p>
                                 </template>
                             </div>
                         </section>
                     </aside>
                     </div>
-                </template>
             </template>
         </main>
     </div>

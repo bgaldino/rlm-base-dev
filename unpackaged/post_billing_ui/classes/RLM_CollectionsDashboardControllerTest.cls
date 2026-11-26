@@ -2,20 +2,18 @@
  * Tests for RLM_CollectionsDashboardController.
  *
  * Invoice is createable=false, so no unit test can insert an invoice. The code that works on
- * queried invoices (the card tally, critical follow-ups, high-value delinquents and the
- * last-resort worklist) takes rows, and the tests pass invoices built with JSON.deserialize.
- * The invoice queries themselves, the critical follow-ups' collection-plan lookup, the unified
- * worklist fallback and the disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
+ * queried invoices (the card tally, critical follow-ups and high-value delinquents) takes rows, and the tests pass invoices built with JSON.deserialize.
+ * The invoice queries themselves, the critical follow-ups' collection-plan lookup and the
+ * disputed-accounts invoice rollup can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
- * Records are created in admin context. Five tests then run as other users: a collections
- * specialist, who reads their own plan; a user with no access, who gets empty sections; and the
- * same kind of no-access user, for whom getAccountOptions returns only the sentinel and the
- * worklist builders keep their rows without account names. The specialist
- * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
- * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
- * list cannot show a refusal. getMyCollectionPlans keeping plans with a dash for the name when Account is
- * refused needs a user who owns a plan but cannot read Account, so it is verified live only.
+ * Records are created in admin context. Other tests run as other users: a collections specialist,
+ * who reads their own plan; a user with no access, for whom every section is unavailable as refused;
+ * and the same kind of no-access user, for whom getAccountOptions returns only the sentinel and the
+ * worklist builders keep their rows without account names. The specialist holds the Billing and
+ * Billing Advanced permission set licenses; the no-access users hold none. getMyCollectionPlans
+ * keeping plans with a dash for the name when Account is refused needs a user who owns a plan but
+ * cannot read Account, so it is verified live only.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
  * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
@@ -30,6 +28,1099 @@ private class RLM_CollectionsDashboardControllerTest {
     private static final String NO_VALUE = '—';
     private static final String SUBJECT_SEPARATOR = ' – ';
 
+    // ---- bounded reads (todo 435) ----
+
+    @isTest
+    static void requireWithin_allowsExactlyTheAllowanceAndNoMore() {
+        RLM_CollectionsDashboardController.requireWithin(10, 10, 'rows');
+        RLM_CollectionsDashboardController.requireWithin(0, 0, 'rows');
+        for (List<Integer> over : new List<List<Integer>>{ new List<Integer>{ 11, 10 }, new List<Integer>{ 1, 0 } }) {
+            try {
+                RLM_CollectionsDashboardController.requireWithin(over[0], over[1], 'rows');
+                Assert.fail(over[0] + ' rows against an allowance of ' + over[1] + ' must be too many');
+            } catch (RLM_CollectionsDashboardController.TooManyRowsException e) {
+                Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+                    RLM_CollectionsDashboardController.reasonFor(e), 'Its reason is tooMany');
+            }
+        }
+    }
+
+    @isTest
+    static void rowAllowance_isTheCapOrWhatTheTransactionHasLeftLessTheHeadroom() {
+        Integer headroom = RLM_CollectionsDashboardController.ROW_HEADROOM;
+        Assert.areEqual(10000, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 0), 'The cap, with rows to spare');
+        Assert.areEqual(5, RLM_CollectionsDashboardController.rowAllowance(5, 50000, 0), 'A smaller cap');
+        Assert.areEqual(50000 - 45000 - headroom, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 45000),
+            'What the transaction has left, less the headroom');
+        Assert.areEqual(0, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 50000 - headroom),
+            'Nothing once only the headroom is left');
+        Assert.areEqual(0, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 49999), 'Never below zero');
+    }
+
+    // Every read a figure or a list is built from goes through the bound. Invoices cannot be inserted, so a
+    // row cap cannot be shown to cut an invoice read: the reads each call made are checked by label instead.
+    @isTest
+    static void everySummedOrListedRead_isBounded() {
+        Account a = newAccount('RLM CD Bounded');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD bounded dispute');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Id' => Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000008'),
+                'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => a.Id })
+        };
+        Set<String> cardReads = new Set<String>{ 'unpaid invoices', 'unapplied credits', 'unapplied payments' };
+        if (Schema.getGlobalDescribe().containsKey('DebitMemo')) {
+            cardReads.add('debit memos');
+        }
+
+        Test.startTest();
+        Map<String, Set<String>> readsByCall = new Map<String, Set<String>>();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        readsByCall.put('cards', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        readsByCall.put('worklist', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.addCriticalFollowUps(new RLM_CollectionsDashboardController.WorklistData(),
+            invoices, false, today);
+        readsByCall.put('critical', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.addHighValueDelinquents(new RLM_CollectionsDashboardController.WorklistData(),
+            invoices, 'BillingAccountId', today);
+        readsByCall.put('highValue', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        readsByCall.put('promises', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        readsByCall.put('progress', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        readsByCall.put('tasks', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        Test.stopTest();
+
+        Assert.areEqual(cardReads, readsByCall.get('cards'), 'Every card read is bounded');
+        Assert.areEqual(new Set<String>{ 'high-value invoices', 'open cases', 'disputed invoices' }, readsByCall.get('worklist'),
+            'The worklist\'s invoice and case reads are bounded');
+        Assert.areEqual(new Set<String>{ 'collection plan items' }, readsByCall.get('critical'), 'The plan item lookup is bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('highValue'), 'The plan lookup is bounded');
+        Assert.areEqual(new Set<String>{ 'payment schedule items' }, readsByCall.get('promises'), 'The promise sums are bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('progress'), 'The progress read is bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('tasks'), 'The task plans read is bounded');
+    }
+
+    // Two records of each kind against a cap of one: each section built from them is unavailable as tooMany,
+    // not a figure or list from the first row alone. The next test reads exactly the cap normally.
+    @isTest
+    static void sectionsWithMoreRowsThanTheCap_sayTooMany() {
+        seedTwoOfEach();
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        Test.stopTest();
+
+        String tooMany = RLM_CollectionsDashboardController.REASON_TOO_MANY;
+        Assert.areEqual(tooMany, cards.unavailableReason.get(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS),
+            'Two unapplied payments against a cap of one: too many to total');
+        Assert.isNull(cards.unappliedPaymentBalance, 'No payment balance from one of the two');
+        Assert.isFalse(cards.unavailable.contains(RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES),
+            'No invoice rows: within the cap');
+        Assert.areEqual(tooMany, wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Two open cases against a cap of one: the disputed tab is too many');
+        Assert.isTrue(wl.disputedInvoices.isEmpty(), 'No rows from the first case alone');
+        Assert.isTrue(promises.unavailable, 'Two schedule items against a cap of one');
+        Assert.areEqual(tooMany, promises.unavailableReason, 'The promise sums are too many');
+        Assert.isTrue(progress.unavailable, 'Two plans against a cap of one');
+        Assert.areEqual(tooMany, progress.unavailableReason, 'Progress is too many');
+        Assert.isTrue(tasks.unavailable, 'Two plans against a cap of one');
+        Assert.areEqual(tooMany, tasks.unavailableReason, 'The task plans are too many');
+    }
+
+    @isTest
+    static void sectionsWithExactlyTheCap_readNormally() {
+        seedTwoOfEach();
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        Test.stopTest();
+
+        Assert.isFalse(cards.unavailable.contains(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS),
+            'Two payments against a cap of two are read: ' + cards.unavailableReason);
+        Assert.areEqual(2, cards.unappliedPaymentCount, 'Both payments are counted');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Two cases against a cap of two are read: ' + wl.unavailableReason);
+        Assert.areEqual(2, wl.disputedInvoices.size(), 'Both disputed accounts are listed');
+        Assert.isFalse(promises.unavailable, 'Two schedule items against a cap of two are read');
+        Assert.isFalse(progress.unavailable, 'Two plans against a cap of two are read');
+        Assert.areEqual(2, progress.totalPlans, 'Both plans are counted');
+        Assert.isFalse(tasks.unavailable, 'Two plans against a cap of two are read');
+    }
+
+    // Two accounts, each with an open case, a Processed (unapplied) payment, a collection plan and a Draft
+    // payment schedule item.
+    private static void seedTwoOfEach() {
+        Account a = newAccount('RLM CD Bound A');
+        Account b = newAccount('RLM CD Bound B');
+        insert new List<Case>{ new Case(AccountId = a.Id, Subject = 'RLM CD bound dispute A'),
+            new Case(AccountId = b.Id, Subject = 'RLM CD bound dispute B') };
+        // The user's currency: the one shown with none chosen.
+        String shown = UserInfo.getDefaultCurrency();
+        insert new List<Payment>{ payment(a.Id, 10, 'Processed', shown), payment(b.Id, 20, 'Processed', shown) };
+        insert new List<CollectionPlan>{ newPlan(a.Id, Date.today().addDays(10)), newPlan(b.Id, Date.today().addDays(20)) };
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 30, CurrencyIsoCode = shown);
+        insert ps;
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = a.Id, CurrencyIsoCode = shown,
+                RequestedAmount = 10, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = b.Id, CurrencyIsoCode = shown,
+                RequestedAmount = 20, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+        };
+    }
+
+    // A spent allowance runs no query: the section is too many at once, so later reads cannot each cost a row.
+    @isTest
+    static void aReadWithNoAllowanceLeft_runsNoQueryAndSaysTooMany() {
+        RLM_CollectionsDashboardController.ROW_CAP = 0;
+
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        Integer rowsBefore = Limits.getQueryRows();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        Integer queriesRun = Limits.getQueries() - queriesBefore;
+        Integer rowsRead = Limits.getQueryRows() - rowsBefore;
+        Test.stopTest();
+
+        Assert.areEqual(0, queriesRun, 'No query with no allowance');
+        Assert.areEqual(0, rowsRead, 'No query rows with no allowance');
+        Assert.isTrue(progress.unavailable, 'Unavailable, not "no plans"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY, progress.unavailableReason, 'Too many');
+    }
+
+    // The Disputed tab lists the DISPUTED_ROWS accounts with the newest open cases and says when there are more.
+    @isTest
+    static void disputedTab_withMoreAccountsThanItLists_saysItHasMore() {
+        Account a = newAccount('RLM CD Disputed Bound A');
+        Account b = newAccount('RLM CD Disputed Bound B');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD bound A');
+        Case newer = new Case(AccountId = b.Id, Subject = 'RLM CD bound B');
+        insert newer;
+        Test.setCreatedDate(newer.Id, Datetime.now().addMinutes(5));
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 1;
+        RLM_CollectionsDashboardController.WorklistData over = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 2;
+        RLM_CollectionsDashboardController.WorklistData exact = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.isFalse(over.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Listed, not unavailable');
+        Assert.areEqual(1, over.disputedInvoices.size(), 'One account listed');
+        Assert.areEqual(b.Id, over.disputedInvoices[0].accountId, 'The newest open case first');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
+            over.hasMore.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Two disputed accounts, one listed: more, and only the account narrows which accounts have open cases');
+        Assert.isFalse(exact.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Two of two are listed');
+        Assert.isFalse(exact.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'No more');
+        Assert.areEqual(2, exact.disputedInvoices.size(), 'Both accounts are listed');
+    }
+
+    // Case text is read DESCRIPTION_BATCH cases per query, each account's reason from its own case.
+    @isTest
+    static void readDisputeReasons_readsTheShownCasesInBatches() {
+        List<Account> accounts = new List<Account>{ new Account(Name = 'RLM CD Batch 1'), new Account(Name = 'RLM CD Batch 2'),
+            new Account(Name = 'RLM CD Batch 3') };
+        insert accounts;
+        List<Case> shown = new List<Case>();
+        for (Integer i = 0; i < accounts.size(); i++) {
+            shown.add(new Case(AccountId = accounts[i].Id, Subject = 'RLM CD batch subject ' + i, Description = 'Note ' + i));
+        }
+        insert shown;
+        RLM_CollectionsDashboardController.DESCRIPTION_BATCH = 2;
+
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        Map<Id, String> reasons = RLM_CollectionsDashboardController.readDisputeReasons(shown);
+        Integer queriesRun = Limits.getQueries() - queriesBefore;
+        Test.stopTest();
+
+        Assert.areEqual(2, queriesRun, 'Three cases, two per query: two queries');
+        for (Integer i = 0; i < accounts.size(); i++) {
+            Assert.isTrue(reasons.get(accounts[i].Id).startsWith('RLM CD batch subject ' + i + SUBJECT_SEPARATOR + 'Note ' + i),
+                'Each account\'s reason comes from its own case: ' + reasons.get(accounts[i].Id));
+        }
+    }
+
+    // A failure after the High-Value read (its roll-up, names or plan lookup) marks the tab, not an empty list.
+    @isTest
+    static void worklist_aFailureInTheHighValueRows_marksTheTabUnavailable() {
+        RLM_CollectionsDashboardController.forcedFailures.add('highValueRows');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED,
+            wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE), 'The High-Value tab failed, not empty');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_CRITICAL), 'Critical is unaffected');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Disputed is unaffected');
+    }
+
+    // Anything escaping a tab's builder marks that tab in getWorklist's own catch; the other tabs still build.
+    @isTest
+    static void worklist_aFailureEscapingABuilder_marksItsTabAndBuildsTheOthers() {
+        Account a = newAccount('RLM CD Escaping Failure');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD escaping failure');
+        RLM_CollectionsDashboardController.forcedFailures.addAll(new Set<String>{
+            RLM_CollectionsDashboardController.WORKLIST_CRITICAL, RLM_CollectionsDashboardController.WORKLIST_DISPUTED });
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        for (String tab : new List<String>{ RLM_CollectionsDashboardController.WORKLIST_CRITICAL, RLM_CollectionsDashboardController.WORKLIST_DISPUTED }) {
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, wl.unavailableReason.get(tab), tab + ' failed, not empty');
+        }
+        Assert.isTrue(wl.disputedInvoices.isEmpty(), 'An unavailable tab carries no rows');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE), 'High-Value is still built');
+    }
+
+    // The Disputed tab's promise-to-pay reads, run without invoices (Apex cannot insert them): each is bounded.
+    @isTest
+    static void schedulesForInvoices_isABoundedRead() {
+        Id someInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000007');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        Map<Id, Id> schedules = RLM_CollectionsDashboardController.schedulesForInvoices(new Set<Id>{ someInvoice });
+        Set<String> reads = new Set<String>(RLM_CollectionsDashboardController.boundedReads);
+        Test.stopTest();
+
+        Assert.isTrue(schedules.isEmpty(), 'No schedule refers to that invoice');
+        Assert.areEqual(new Set<String>{ 'payment schedules' }, reads, 'The schedule read is bounded');
+    }
+
+    @isTest
+    static void latestPromiseDates_takesEachAccountsLatestItemDate_andIsBounded() {
+        Account acc = newAccount('RLM CD Promise Dates');
+        String corporate = corporateCurrency();
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 30, CurrencyIsoCode = corporate);
+        insert ps;
+        Date sooner = Date.today().addDays(3);
+        Date later = Date.today().addDays(9);
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 10, TargetPaymentProcessingDate = later, Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 20, TargetPaymentProcessingDate = sooner, Status = 'Draft')
+        };
+        Id someInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000006');
+        Map<Id, Id> scheduleToInvoice = new Map<Id, Id>{ ps.Id => someInvoice };
+        Map<Id, Id> invoiceToAccount = new Map<Id, Id>{ someInvoice => acc.Id };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        Map<Id, Date> dates = RLM_CollectionsDashboardController.latestPromiseDates(scheduleToInvoice, invoiceToAccount);
+        Set<String> reads = new Set<String>(RLM_CollectionsDashboardController.boundedReads);
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+        Boolean tooMany = false;
+        try {
+            RLM_CollectionsDashboardController.latestPromiseDates(scheduleToInvoice, invoiceToAccount);
+        } catch (RLM_CollectionsDashboardController.TooManyRowsException e) {
+            tooMany = true;
+        }
+        Test.stopTest();
+
+        Assert.areEqual(later, dates.get(acc.Id), 'The latest of the account\'s item dates');
+        Assert.areEqual(new Set<String>{ 'payment schedule items' }, reads, 'The schedule item read is bounded');
+        Assert.isTrue(tooMany, 'Two items against a cap of one: too many, not the first date alone');
+    }
+
+    // ---- short lists say when there are more (todo 435) ----
+
+    @isTest
+    static void keepFirst_keepsTheListedRowsAndSaysWhenThereWereMore() {
+        List<Integer> over = new List<Integer>{ 1, 2, 3 };
+        List<Integer> exact = new List<Integer>{ 1, 2 };
+        Assert.isTrue(RLM_CollectionsDashboardController.keepFirst(over, 2), 'Three rows, two listed: more');
+        Assert.areEqual(new List<Integer>{ 1, 2 }, over, 'The first two are kept, in order');
+        Assert.isFalse(RLM_CollectionsDashboardController.keepFirst(exact, 2), 'Two rows, two listed: no more');
+        Assert.areEqual(2, exact.size(), 'Nothing removed');
+    }
+
+    @isTest
+    static void planTasks_withMoreThanTheListShows_sayTheyHaveMore() {
+        Account a = newAccount('RLM CD Task Rows');
+        CollectionPlan plan = newPlan(a.Id, Date.today());
+        insert plan;
+        insert new List<Task>{
+            new Task(WhatId = plan.Id, Subject = 'RLM CD later', ActivityDate = Date.today().addDays(5)),
+            new Task(WhatId = plan.Id, Subject = 'RLM CD sooner', ActivityDate = Date.today())
+        };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.TASK_ROWS = 1;
+        RLM_CollectionsDashboardController.CpTaskList over = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        RLM_CollectionsDashboardController.TASK_ROWS = 2;
+        RLM_CollectionsDashboardController.CpTaskList exact = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        Test.stopTest();
+
+        Assert.areEqual(1, over.items.size(), 'One task listed');
+        Assert.areEqual('RLM CD later', over.items[0].subject, 'The latest due first');
+        Assert.isTrue(over.hasMore, 'Two tasks, one listed: the list says there are more');
+        Assert.areEqual(2, exact.items.size(), 'Both tasks listed');
+        Assert.isFalse(exact.hasMore, 'Two tasks, two listed: no more');
+    }
+
+    @isTest
+    static void myPlans_withMoreThanTheListShows_sayTheyHaveMore() {
+        Account a = newAccount('RLM CD Plan Rows');
+        insert new List<CollectionPlan>{ newPlan(a.Id, Date.today().addDays(20)), newPlan(a.Id, Date.today().addDays(2)) };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.MY_PLAN_ROWS = 1;
+        RLM_CollectionsDashboardController.MyCollectionPlanList over = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.MY_PLAN_ROWS = 2;
+        RLM_CollectionsDashboardController.MyCollectionPlanList exact = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        Test.stopTest();
+
+        Assert.areEqual(1, over.items.size(), 'One plan listed');
+        Assert.areEqual(Date.today().addDays(2), over.items[0].dueDate, 'The soonest due first');
+        Assert.isTrue(over.hasMore, 'Two plans, one listed: the list says there are more');
+        Assert.areEqual(2, exact.items.size(), 'Both plans listed');
+        Assert.isFalse(exact.hasMore, 'Two plans, two listed: no more');
+    }
+
+    @isTest
+    static void highValueTab_withMoreQualifyingAccountsThanItLists_saysItHasMore() {
+        Account big = newAccount('RLM CD HV Big');
+        Account small = newAccount('RLM CD HV Small');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 9000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => big.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 3000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => small.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData over = new RLM_CollectionsDashboardController.WorklistData();
+        RLM_CollectionsDashboardController.WorklistData exact = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.HIGH_VALUE_ROWS = 1;
+        RLM_CollectionsDashboardController.addHighValueDelinquents(over, invoices, 'BillingAccountId', today);
+        RLM_CollectionsDashboardController.HIGH_VALUE_ROWS = 2;
+        RLM_CollectionsDashboardController.addHighValueDelinquents(exact, invoices, 'BillingAccountId', today);
+        Test.stopTest();
+
+        Assert.areEqual(1, over.highValueDelinquents.size(), 'One account listed');
+        Assert.areEqual(big.Id, over.highValueDelinquents[0].accountId, 'The largest balance first');
+        Assert.isTrue(over.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE),
+            'Two qualifying accounts, one listed: the tab says there are more');
+        Assert.isTrue(over.hasMore.get(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE)
+            .contains(RLM_CollectionsDashboardController.FILTER_ACCOUNT), 'The account narrows it');
+        Assert.areEqual(2, exact.highValueDelinquents.size(), 'Both accounts listed');
+        Assert.isTrue(exact.hasMore.isEmpty(), 'Two of two listed: no more');
+    }
+
+    // ---- account options and search (todo 435) ----
+
+    @isTest
+    static void accountOptions_withMoreAccountsThanListed_sayTheyHaveMore() {
+        newAccount('RLM CD Options A');
+        newAccount('RLM CD Options B');
+        Integer accounts = [SELECT COUNT() FROM Account];
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.ACCOUNT_OPTION_ROWS = accounts - 1;
+        RLM_CollectionsDashboardController.AccountOptions over = RLM_CollectionsDashboardController.getAccountOptions();
+        RLM_CollectionsDashboardController.ACCOUNT_OPTION_ROWS = accounts;
+        RLM_CollectionsDashboardController.AccountOptions exact = RLM_CollectionsDashboardController.getAccountOptions();
+        Test.stopTest();
+
+        Assert.areEqual(accounts, over.options.size(), '"All Accounts" and all but one account');
+        Assert.isTrue(over.hasMore, 'One more account than listed: the filter says so');
+        Assert.areEqual(accounts + 1, exact.options.size(), '"All Accounts" and every account');
+        Assert.isFalse(exact.hasMore, 'Every account listed: no more');
+    }
+
+    @isTest
+    static void searchAccounts_matchesTheTypedTextLiterally_andIsBounded() {
+        newAccount('RLM CD Srch 100% Alpha');
+        newAccount('RLM CD Srch 1000 Beta');
+        newAccount('RLM CD Srch Gamma');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.AccountOptions all = RLM_CollectionsDashboardController.searchAccounts(' RLM CD Srch ');
+        RLM_CollectionsDashboardController.AccountOptions percent = RLM_CollectionsDashboardController.searchAccounts('100%');
+        RLM_CollectionsDashboardController.AccountOptions tooShort = RLM_CollectionsDashboardController.searchAccounts('R');
+        RLM_CollectionsDashboardController.ACCOUNT_SEARCH_ROWS = 2;
+        RLM_CollectionsDashboardController.AccountOptions capped = RLM_CollectionsDashboardController.searchAccounts('RLM CD Srch');
+        Test.stopTest();
+
+        Assert.areEqual(4, all.options.size(), '"All Accounts" and the three matches (the text is trimmed)');
+        Assert.areEqual('', all.options[0].get('value'), '"All Accounts" first');
+        Assert.areEqual('RLM CD Srch 100% Alpha', all.options[1].get('label'), 'By name (% sorts before 0)');
+        Assert.isFalse(all.hasMore, 'Three of three');
+        Assert.areEqual(2, percent.options.size(), 'A typed % is matched literally, not as a wildcard: ' + percent.options);
+        Assert.areEqual('RLM CD Srch 100% Alpha', percent.options[1].get('label'), 'Only the account with "100%"');
+        Assert.areEqual(1, tooShort.options.size(), 'Too short a text searches nothing');
+        Assert.areEqual(3, capped.options.size(), '"All Accounts" and the first two');
+        Assert.isTrue(capped.hasMore, 'Three matches, two listed: more');
+    }
+
+    @isTest
+    static void searchAccounts_forAUserWhoCannotReadAccounts_saysItCouldNotSearch() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        newAccount('RLM CD Srch Unreadable');
+        RLM_CollectionsDashboardController.AccountOptions found;
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            found = RLM_CollectionsDashboardController.searchAccounts('RLM CD Srch');
+        }
+        Test.stopTest();
+
+        Assert.isTrue(found.unavailable, 'Unavailable, not "no match"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, found.unavailableReason, 'A refusal');
+        Assert.areEqual(1, found.options.size(), 'Only "All Accounts"');
+    }
+
+    // ---- filters each section applies (todo 435) ----
+
+    @isTest
+    static void everySection_reportsTheFiltersItsReadsApply() {
+        Boolean invoiceCurrency = Schema.SObjectType.Invoice.fields.getMap().containsKey('CurrencyIsoCode');
+        Boolean paymentCurrency = Schema.SObjectType.Payment.fields.getMap().containsKey('CurrencyIsoCode');
+        List<String> invoiceFilters = new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT };
+        if (invoiceCurrency) invoiceFilters.add(RLM_CollectionsDashboardController.FILTER_CURRENCY);
+        List<String> paymentFilters = new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT };
+        if (paymentCurrency) paymentFilters.add(RLM_CollectionsDashboardController.FILTER_CURRENCY);
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Account disputed = newAccount('RLM CD Filters Dispute');
+        insert new Case(AccountId = disputed.Id, Subject = 'RLM CD filters dispute');
+        RLM_CollectionsDashboardController.WorklistData withCase = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        RLM_CollectionsDashboardController.MyCollectionPlanList plans = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(invoiceFilters, cards.filtersByKey.get(RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES), 'Invoices');
+        Assert.areEqual(paymentFilters, cards.filtersByKey.get(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS), 'Payments');
+        Assert.areEqual(paymentFilters, cards.filtersByKey.get(RLM_CollectionsDashboardController.UNAVAILABLE_CREDITS), 'Credits');
+        for (String tab : new List<String>{ RLM_CollectionsDashboardController.WORKLIST_CRITICAL,
+                RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE }) {
+            Assert.areEqual(invoiceFilters, wl.filtersByTab.get(tab), 'The tab reads invoices: ' + tab);
+        }
+        // No open case: the Disputed tab read only cases, which the account alone narrows.
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
+            wl.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Disputed without its rollup: the account');
+        // With an open case it goes on to the invoice rollup, which the currency narrows too.
+        Assert.areEqual(invoiceFilters, withCase.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Disputed with its rollup: the invoice filters');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT }, tasks.filters, 'Tasks: the account');
+        Assert.isTrue(plans.filters.isEmpty(), 'The user\'s plans: none');
+        Boolean planCurrency = Schema.SObjectType.CollectionPlan.fields.getMap().containsKey('CurrencyIsoCode');
+        Assert.areEqual(planCurrency ? new List<String>{ RLM_CollectionsDashboardController.FILTER_CURRENCY } : new List<String>(),
+            progress.filters, 'Progress: the currency where plans have one (it totals amounts), else none');
+        Assert.isTrue(promises.filters.contains(RLM_CollectionsDashboardController.FILTER_ACCOUNT), 'Promises: the account');
+    }
+
+    // Too many open cases: the read that overflowed is narrowed by the account only, so the Disputed tab reports
+    // the account alone, even where the invoice reads would follow the currency too.
+    @isTest
+    static void disputedTab_withTooManyOpenCases_reportsTheAccountFilterOnly() {
+        Account a = newAccount('RLM CD Case Overflow A');
+        Account b = newAccount('RLM CD Case Overflow B');
+        insert new List<Case>{ new Case(AccountId = a.Id, Subject = 'RLM CD overflow A'), new Case(AccountId = b.Id, Subject = 'RLM CD overflow B') };
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+            wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'PRECONDITION: the open-case read overflowed');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
+            wl.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Only the account narrows open cases: the currency is not offered');
+    }
+
+    // The open-case read stops at the first account past the listed ones: many cases on few accounts still list
+    // them and say there are more, and the read is too many only when the allowance runs out first.
+    @isTest
+    static void disputedTab_readsOpenCasesUntilTheAccountAfterTheListedOnes() {
+        Account a = newAccount('RLM CD Stop A');
+        Account b = newAccount('RLM CD Stop B');
+        Account c = newAccount('RLM CD Stop C');
+        // Newest first: A, A, B, A, C.
+        List<Case> cases = new List<Case>{
+            new Case(AccountId = a.Id, Subject = 'A1'), new Case(AccountId = a.Id, Subject = 'A2'),
+            new Case(AccountId = b.Id, Subject = 'B1'), new Case(AccountId = a.Id, Subject = 'A3'),
+            new Case(AccountId = c.Id, Subject = 'C1')
+        };
+        insert cases;
+        for (Integer i = 0; i < cases.size(); i++) {
+            Test.setCreatedDate(cases[i].Id, Datetime.now().addMinutes(-i));
+        }
+
+        Test.startTest();
+        // Two listed, of three accounts: B is the second account, C (fifth row) the one past them.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 2;
+        RLM_CollectionsDashboardController.WorklistData listed = RLM_CollectionsDashboardController.getWorklist(null, null);
+        // One listed, an allowance of two rows: the third row (B) is the account past it, within LIMIT allowance+1.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 1;
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+        RLM_CollectionsDashboardController.WorklistData stopped = RLM_CollectionsDashboardController.getWorklist(null, null);
+        // Two listed, an allowance of two rows: rows A, A, B... the allowance runs out before a third account.
+        RLM_CollectionsDashboardController.DISPUTED_ROWS = 3;
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+        RLM_CollectionsDashboardController.WorklistData spent = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(2, listed.disputedInvoices.size(), 'A and B listed');
+        Assert.areEqual(a.Id, listed.disputedInvoices[0].accountId, 'Newest open case first');
+        Assert.areEqual(b.Id, listed.disputedInvoices[1].accountId, 'Then B');
+        Assert.isTrue(listed.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'C is more');
+
+        Assert.isFalse(stopped.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'The account past the listed one turned up within the allowance: listed, not too many');
+        Assert.areEqual(1, stopped.disputedInvoices.size(), 'A listed');
+        Assert.isTrue(stopped.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'B is more');
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+            spent.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'The allowance ran out before the account past the listed ones: too many');
+    }
+
+    // Every invoice read, the cards and aging, Critical, High-Value and the Disputed rollup, starts from the one
+    // receivable condition (Posted, with a balance), so a Draft, Pending or Canceled invoice is in no figure or
+    // list. Apex cannot insert an invoice (Invoice is not createable), so the condition is checked on the SOQL
+    // each read executed (recorded where it runs) rather than on rows.
+    @isTest
+    static void everyInvoiceRead_countsOnlyPostedInvoicesWithABalance() {
+        Account a = newAccount('RLM CD Receivable');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD receivable dispute');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.executedSoql.clear();
+        RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        Map<String, String> executed = RLM_CollectionsDashboardController.executedSoql.clone();
+        Test.stopTest();
+
+        for (String label : new List<String>{ 'unpaid invoices', 'critical invoices', 'high-value invoices', 'disputed invoices' }) {
+            String soql = executed.get(label);
+            Assert.isNotNull(soql, label + ' ran');
+            Assert.isTrue(soql.contains('FROM Invoice WHERE  ' + RLM_CollectionsDashboardController.RECEIVABLE_INVOICE),
+                label + ' ran with the receivable condition: ' + soql);
+        }
+        Assert.areEqual('Status = \'Posted\' AND Balance > 0', RLM_CollectionsDashboardController.RECEIVABLE_INVOICE,
+            'Posted, with a balance: a non-Posted invoice is excluded');
+    }
+
+    // An account the name read could not see (sharing) is missing from it: its name is not available, as when
+    // the read is refused. Account.Name is required, so a missing account is a hidden one, not a nameless one.
+    // The ids here belong to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void accountNames_missingFromTheRead_areNotAvailable() {
+        Account seen = newAccount('RLM CD Name Seen');
+        Id hidden = Id.valueOf(Account.SObjectType.getDescribe().getKeyPrefix() + '000000000777');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => seen.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 4000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => hidden }),
+            invoice(new Map<String, Object>{ 'Balance' => 3000, 'DueDate' => today.addDays(-40) })
+        };
+        RLM_CollectionsDashboardController.WorklistData critical = new RLM_CollectionsDashboardController.WorklistData();
+        RLM_CollectionsDashboardController.WorklistData highValue = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_AccountNames.Result names = RLM_AccountNames.read(new Set<Id>{ seen.Id, hidden });
+        RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, today);
+        RLM_CollectionsDashboardController.addHighValueDelinquents(highValue, invoices, 'BillingAccountId', today);
+        Test.stopTest();
+
+        Assert.isFalse(names.unreadable, 'The read itself ran');
+        Assert.isFalse(names.unavailable(seen.Id), 'A name that was read is available');
+        Assert.isTrue(names.unavailable(hidden), 'An account missing from the read is not available, not nameless');
+        Assert.isFalse(names.unavailable(null), 'No account: nothing to show as not available');
+
+        Map<Id, Boolean> criticalByAccount = new Map<Id, Boolean>();
+        for (RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem row : critical.criticalFollowUpInvoices) {
+            criticalByAccount.put(row.billingAccountId, row.accountNameUnavailable);
+        }
+        Assert.isFalse(criticalByAccount.get(seen.Id), 'Critical: the seen account\'s name is shown');
+        Assert.isTrue(criticalByAccount.get(hidden), 'Critical: the hidden account\'s name is not available');
+        Assert.isFalse(criticalByAccount.get(null), 'Critical: an invoice with no account shows a dash, not "not available"');
+        Map<Id, Boolean> highValueByAccount = new Map<Id, Boolean>();
+        for (RLM_CollectionsDashboardController.WorklistItem item : highValue.highValueDelinquents) {
+            highValueByAccount.put(item.accountId, item.accountNameUnavailable);
+        }
+        Assert.isFalse(highValueByAccount.get(seen.Id), 'High-Value: the seen account\'s name is shown');
+        Assert.isTrue(highValueByAccount.get(hidden), 'High-Value: the hidden account\'s name is not available');
+    }
+
+    // ---- one currency at a time (todo 435) ----
+
+    // On a multi-currency org every amount read is filtered to the shown currency: the chosen one, else the user's.
+    // A SUM() gives a currency's amounts converted to the corporate one, even filtered (measured: 100 EUR summed
+    // to 114.11 USD), so the cards add rows: the chosen currency's payment counts as it is.
+    @isTest
+    static void cardsShowOneCurrencyAtATime() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String userCurrency = UserInfo.getDefaultCurrency();
+        String other = anotherCurrency(userCurrency);
+        if (other == 'ZZZ') return;
+        Account acc = newAccount('RLM CD One Currency');
+        insert new List<Payment>{ payment(acc.Id, 100, 'Processed', userCurrency), payment(acc.Id, 40, 'Processed', other) };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData shown = RLM_CollectionsDashboardController.getDashboardCards(acc.Id, null);
+        RLM_CollectionsDashboardController.CollectionsDashboardData chosen = RLM_CollectionsDashboardController.getDashboardCards(acc.Id, other);
+        Test.stopTest();
+
+        Assert.areEqual(userCurrency, shown.currencyCode, 'No currency chosen: the user\'s');
+        Assert.isTrue(shown.multiCurrency, 'A multi-currency org says so');
+        Assert.areEqual(1, shown.unappliedPaymentCount, 'Only the payment in the shown currency');
+        assertAmount(100, shown.unappliedPaymentBalance, 'Its amount as it is');
+        Assert.areEqual(other, chosen.currencyCode, 'The chosen currency');
+        assertAmount(40, chosen.unappliedPaymentBalance, 'The chosen currency\'s payment as it is, not converted');
+    }
+
+    @isTest
+    static void promisesShowOneCurrencyAtATime() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String userCurrency = UserInfo.getDefaultCurrency();
+        String other = anotherCurrency(userCurrency);
+        if (other == 'ZZZ') return;
+        Account acc = newAccount('RLM CD Promise One Currency');
+        // A schedule item takes its schedule's currency (the platform refuses another): one schedule per currency.
+        PaymentSchedule inUser = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = userCurrency);
+        PaymentSchedule inOther = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 40, CurrencyIsoCode = other);
+        insert new List<PaymentSchedule>{ inUser, inOther };
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = inUser.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = userCurrency,
+                RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = inOther.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = other,
+                RequestedAmount = 40, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+        };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.PaymentPromiseBucket shown =
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, null)).get('Draft');
+        RLM_CollectionsDashboardController.PaymentPromiseBucket chosen =
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, other)).get('Draft');
+        Test.stopTest();
+
+        Assert.areEqual(1, shown.itemCount, 'Only the item in the shown currency');
+        assertAmount(100, shown.totalRequestedAmount, 'Its amount as it is');
+        Assert.areEqual(1, chosen.itemCount, 'Only the chosen currency\'s item');
+        assertAmount(40, chosen.totalRequestedAmount, 'As it is, not converted');
+    }
+
+    // Progress is a total, so it is filtered to the shown currency and says so; the user's plans are a list, so
+    // every plan is listed, each with its own currency.
+    @isTest
+    static void plansAndProgressShowOneCurrencyAtATime() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String userCurrency = UserInfo.getDefaultCurrency();
+        String other = anotherCurrency(userCurrency);
+        if (other == 'ZZZ') return;
+        Account acc = newAccount('RLM CD Plans One Currency');
+        CollectionPlan inUser = newPlan(acc.Id, Date.today());
+        inUser.put('CurrencyIsoCode', userCurrency);
+        CollectionPlan inOther = newPlan(acc.Id, Date.today().addDays(5));
+        inOther.put('CurrencyIsoCode', other);
+        insert new List<CollectionPlan>{ inUser, inOther };
+
+        Test.startTest();
+        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> plans = RLM_CollectionsDashboardController.getMyCollectionPlans().items;
+        RLM_CollectionsDashboardController.CollectionsProgressData shownProgress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        Integer chosenProgress = RLM_CollectionsDashboardController.getCollectionsProgress(other).totalPlans;
+        Test.stopTest();
+
+        Map<Id, String> currencyByPlan = new Map<Id, String>();
+        for (RLM_CollectionsDashboardController.MyCollectionPlanItem item : plans) currencyByPlan.put(item.collectionPlanId, item.currencyCode);
+        Assert.areEqual(new Map<Id, String>{ inUser.Id => userCurrency, inOther.Id => other }, currencyByPlan,
+            'My Plans: every plan, each in its own currency');
+        Assert.areEqual(1, shownProgress.totalPlans, 'Progress: the plan in the shown currency');
+        Assert.areEqual(userCurrency, shownProgress.currencyCode, 'Progress: the shown currency');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_CURRENCY }, shownProgress.filters,
+            'Progress says it follows the currency');
+        Assert.areEqual(1, chosenProgress, 'Progress: the chosen currency\'s plan');
+    }
+
+    // The Critical read is filtered to the shown currency even with none chosen, with the plain 2000 threshold.
+    @isTest
+    static void criticalRead_isFilteredToTheShownCurrency() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.executedSoql.clear();
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        String critical = RLM_CollectionsDashboardController.executedSoql.get('critical invoices');
+        Test.stopTest();
+
+        Assert.isTrue(critical.contains('CurrencyIsoCode = :currencyCode'), 'Filtered to the shown currency: ' + critical);
+        Assert.isTrue(critical.contains('Balance >= :criticalMinBalance'), 'The plain threshold: ' + critical);
+    }
+
+    // The bill-to contact's name, or not available when it cannot be read or is hidden; no contact, nothing.
+    @isTest
+    static void criticalRows_labelTheBillToContactByName() {
+        if (!Invoice.SObjectType.getDescribe().fields.getMap().containsKey('BillToContactId')) return;
+        Account acc = newAccount('RLM CD Contact');
+        Contact pat = new Contact(LastName = 'Lee', FirstName = 'Pat', AccountId = acc.Id);
+        insert pat;
+        Id hidden = Id.valueOf(Contact.SObjectType.getDescribe().getKeyPrefix() + '000000000777');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id, 'BillToContactId' => pat.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id, 'BillToContactId' => hidden }),
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addCriticalFollowUps(wl, invoices, true, today);
+        Test.stopTest();
+
+        Assert.areEqual('Pat Lee', wl.criticalFollowUpInvoices[0].billToContactName, 'The contact is labelled by name');
+        Assert.isFalse(wl.criticalFollowUpInvoices[0].billToContactNameUnavailable, 'A read name is available');
+        Assert.isTrue(wl.criticalFollowUpInvoices[1].billToContactNameUnavailable, 'A contact missing from the read is not available');
+        Assert.isNull(wl.criticalFollowUpInvoices[2].billToContactName, 'No contact: no name');
+        Assert.isFalse(wl.criticalFollowUpInvoices[2].billToContactNameUnavailable, 'No contact: a dash, not "not available"');
+    }
+
+    // ---- High-Value ranking (todo 435) ----
+
+    @isTest
+    static void largestBalances_picksTheLargestAtOrOverTheMinimum_inOrder() {
+        String prefix = Account.SObjectType.getDescribe().getKeyPrefix();
+        Map<Id, Decimal> balances = new Map<Id, Decimal>();
+        List<Decimal> amounts = new List<Decimal>{ 2500, 1999, 9000, 2000, 7000, 9000 };
+        List<Id> ids = new List<Id>();
+        for (Integer i = 0; i < amounts.size(); i++) {
+            Id accId = Id.valueOf(prefix + String.valueOf(i).leftPad(12, '0'));
+            ids.add(accId);
+            balances.put(accId, amounts[i]);
+        }
+
+        Assert.areEqual(new List<Id>{ ids[2], ids[5], ids[4] }, RLM_CollectionsDashboardController.largestBalances(balances, 2000, 3),
+            'The three largest, ties in the map\'s order');
+        Assert.areEqual(new List<Id>{ ids[2], ids[5], ids[4], ids[0], ids[3] }, RLM_CollectionsDashboardController.largestBalances(balances, 2000, 10),
+            'Every balance of 2000 or more, largest first; 1999 is left out');
+        Assert.isTrue(RLM_CollectionsDashboardController.largestBalances(new Map<Id, Decimal>(), 2000, 10).isEmpty(), 'None');
+    }
+
+    // The roll-up at the read cap: 10,000 invoices on 10,000 accounts, all qualifying. Ranking builds no row per
+    // account, so the call stays within the heap and CPU limits and lists the ten largest.
+    @isTest
+    static void addHighValueDelinquents_atTheReadCap_listsTheTenLargest() {
+        String accountPrefix = Account.SObjectType.getDescribe().getKeyPrefix();
+        String invoicePrefix = Invoice.SObjectType.getDescribe().getKeyPrefix();
+        // The JSON is built as text (Invoice's amounts cannot be set on a record), one row at a time, so the
+        // test itself holds no more than the text and the rows.
+        List<String> rows = new List<String>();
+        for (Integer i = 0; i < 10000; i++) {
+            rows.add('{"attributes":{"type":"Invoice"},"Id":"' + invoicePrefix + String.valueOf(i).leftPad(12, '0')
+                + '","Balance":' + (2000 + i) + ',"DueDate":"2026-05-01","BillingAccountId":"'
+                + accountPrefix + String.valueOf(i).leftPad(12, '0') + '"}');
+        }
+        String body = '[' + String.join(rows, ',') + ']';
+        rows = null;
+        List<Invoice> invoices = (List<Invoice>) JSON.deserialize(body, List<Invoice>.class);
+        body = null;
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addHighValueDelinquents(wl, invoices, 'BillingAccountId', Date.newInstance(2026, 6, 30));
+        Test.stopTest();
+
+        Assert.areEqual(10, wl.highValueDelinquents.size(), 'The ten largest');
+        Assert.areEqual(11999, wl.highValueDelinquents[0].balance, 'Largest first');
+        Assert.isTrue(wl.hasMore.containsKey(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE), 'More qualify');
+    }
+
+    // The name read says when it could not read, so a row can show its name as not available, not "none".
+    @isTest
+    static void accountNamesRead_saysWhenTheNamesCouldNotBeRead() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Account a = newAccount('RLM CD Name Read');
+        insert newPlan(a.Id, Date.today());
+        RLM_AccountNames.Result refused;
+
+        Test.startTest();
+        RLM_AccountNames.Result readable = RLM_AccountNames.read(new Set<Id>{ a.Id });
+        Boolean planNameUnavailable = RLM_CollectionsDashboardController.getMyCollectionPlans().items[0].accountNameUnavailable;
+        System.runAs(noAccess) {
+            refused = RLM_AccountNames.read(new Set<Id>{ a.Id });
+        }
+        Test.stopTest();
+
+        Assert.isFalse(readable.unreadable, 'The admin reads the name');
+        Assert.areEqual('RLM CD Name Read', readable.names.get(a.Id), 'And gets it');
+        Assert.isFalse(planNameUnavailable, 'A read name is available on the plan row');
+        Assert.isTrue(refused.unreadable, 'A refused read says so');
+        Assert.isTrue(refused.names.isEmpty(), 'With no names');
+    }
+
+    // ---- the collections user (todo 435) ----
+
+    private static final List<String> COLLECTIONS_LICENSES = new List<String>{
+        RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL
+    };
+
+    // RLM_CollectionsDashboard opens the dashboard for a collections user who does not hold RLM_BillingUI:
+    // the tab (hidden on every profile when deployed through the Metadata API), this controller, and only
+    // the reads the managed Billing Collections and Recovery Specialist set lacks. Read back from the org,
+    // so a grant the platform drops or adds shows here (Event.WhatId is added with Task.WhatId).
+    @isTest
+    static void collectionsDashboardSet_grantsTheTabTheControllerAndTheSpecialistsMissingReads() {
+        PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_CollectionsDashboard'];
+        List<SetupEntityAccess> access = [
+            SELECT SetupEntityId FROM SetupEntityAccess WHERE ParentId = :ps.Id
+        ];
+        Id controllerId = [SELECT Id FROM ApexClass WHERE Name = 'RLM_CollectionsDashboardController' LIMIT 1].Id;
+        Assert.areEqual(1, access.size(), 'One entity access: the controller. ' + access);
+        Assert.areEqual(controllerId, access[0].SetupEntityId, 'The dashboard controller is granted.');
+
+        List<PermissionSetTabSetting> tabs = [
+            SELECT Name, Visibility FROM PermissionSetTabSetting WHERE ParentId = :ps.Id
+        ];
+        Assert.areEqual(1, tabs.size(), 'One tab setting: the dashboard tab. ' + tabs);
+        Assert.areEqual('RLM_Collections_Dashboard', tabs[0].Name);
+        Assert.areEqual('DefaultOn', tabs[0].Visibility, 'Visible in metadata reads back as DefaultOn.');
+
+        Set<String> objects = new Set<String>();
+        for (ObjectPermissions op : [
+            SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
+                PermissionsViewAllRecords, PermissionsModifyAllRecords
+            FROM ObjectPermissions WHERE ParentId = :ps.Id
+        ]) {
+            objects.add(op.SobjectType);
+            Assert.isTrue(op.PermissionsRead && !op.PermissionsCreate && !op.PermissionsEdit && !op.PermissionsDelete
+                && !op.PermissionsViewAllRecords && !op.PermissionsModifyAllRecords, 'Read only: ' + op);
+        }
+        Assert.areEqual(new Set<String>{ 'Case', 'Payment' }, objects, 'Object reads the specialist set lacks.');
+
+        Set<String> fields = new Set<String>();
+        for (FieldPermissions fp : [SELECT Field, PermissionsEdit FROM FieldPermissions WHERE ParentId = :ps.Id]) {
+            fields.add(fp.Field);
+            Assert.isFalse(fp.PermissionsEdit, 'Read only: ' + fp.Field);
+        }
+        Assert.areEqual(new Set<String>{
+            'Case.AccountId', 'Case.Description', 'Case.Reason', 'Case.Subject', 'CollectionPlan.AccountId',
+            'CollectionPlan.ClosedDate', 'CollectionPlan.DaysPastDue', 'CollectionPlan.Duedate', 'CollectionPlanItem.InvoiceId',
+            'Event.WhatId', 'Task.ActivityDate', 'Task.WhatId'
+        }, fields, 'Field reads the specialist set lacks.');
+    }
+
+    // The dashboard as the collections user it is for, with no RLM_BillingUI: the Billing and Billing
+    // Advanced licenses, the managed Billing Collections and Recovery Specialist set and
+    // RLM_CollectionsDashboard (no RLM_CollectionsUI: it ships with the collections flag, which can be off
+    // while billing_ui is on). Every section that reads a record the test can create returns it
+    // (invoices cannot be inserted; RLM_BillingUIAccessTest.collectionsUserWithoutBillingUiCanRunTheDashboardReads
+    // runs every read the controller makes as this user). Debit memos are the one component this user
+    // cannot read (no Manage Debit Memos): the cards say so instead of counting them as zero.
+    // The records are owned by this user, so what it sees does not depend on the org's sharing defaults
+    // (Payment has no owner; it follows the org-wide default, Read/Write on a fresh 264 org).
+    //
+    // The control is the same user without RLM_CollectionsDashboard. Its refusals are checked at the
+    // reads themselves, not through empty sections, which sharing alone could also empty: the case
+    // subject and task date selects are refused, and the cards mark payments unavailable (a refusal,
+    // distinct from "none").
+    @isTest
+    static void collectionsUser_withoutBillingUi_getsEverySectionsData() {
+        User withSet = RLM_BillingUITestUsers.create(new List<String>{
+            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsDashboard'
+        }, COLLECTIONS_LICENSES);
+        User withoutSet = RLM_BillingUITestUsers.create(new List<String>{
+            'BillingCollectionsAndRecoverySpecialist'
+        }, COLLECTIONS_LICENSES);
+        Account a = new Account(Name = 'RLM CD Collections User', OwnerId = withSet.Id);
+        insert a;
+        CollectionPlan plan = newPlan(a.Id, Date.today().addDays(3));
+        plan.OwnerId = withSet.Id;
+        insert plan;
+        insert new Task(WhatId = plan.Id, Subject = 'RLM CD collections call', ActivityDate = Date.today(),
+            OwnerId = withSet.Id);
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD collections dispute', OwnerId = withSet.Id);
+        insert payment(a.Id, 250, 'Processed', corporateCurrency());
+        List<String> dashboardReads = new List<String>{
+            'SELECT Subject, Reason FROM Case LIMIT 1',
+            'SELECT ActivityDate, WhatId FROM Task LIMIT 1',
+            'SELECT Balance FROM Payment LIMIT 1',
+            'SELECT Duedate, AccountId, ClosedDate, DaysPastDue FROM CollectionPlan LIMIT 1'
+        };
+
+        Map<String, Object> granted;
+        Map<String, Object> control;
+        List<String> refusedWithSet = new List<String>();
+        List<String> refusedWithoutSet = new List<String>();
+        Test.startTest();
+        System.runAs(withSet) {
+            for (String soql : dashboardReads) {
+                if (userModeQueryFails(soql)) refusedWithSet.add(soql);
+            }
+            granted = dashboardFor(a.Id);
+        }
+        System.runAs(withoutSet) {
+            for (String soql : dashboardReads) {
+                if (userModeQueryFails(soql)) refusedWithoutSet.add(soql);
+            }
+            control = dashboardFor(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(new List<String>(), refusedWithSet, 'With the set every one of these reads runs.');
+        Assert.isTrue(((List<Map<String, String>>) granted.get('accounts')).size() > 1, 'Accounts are listed.');
+        Assert.isTrue(((List<Map<String, String>>) granted.get('currencies')).size() > 1, 'Currencies are listed.');
+        Assert.areEqual(1, granted.get('payments'), 'The unapplied payment is counted.');
+        Assert.areEqual(1, granted.get('disputed'), 'The open case lists the account as disputed.');
+        Assert.areEqual(Date.today(), granted.get('taskDate'), 'The plan task is listed with its due date.');
+        Assert.areEqual(1, granted.get('myPlans'), 'The user\'s plan is listed.');
+        Assert.areEqual(1, granted.get('plans'), 'Progress counts the plan.');
+        Assert.isFalse((Boolean) granted.get('progressUnavailable'), 'Progress is a measurement.');
+        Assert.isFalse((Boolean) granted.get('promisesUnavailable'), 'Payment promises were read (empty, not unavailable).');
+        Assert.areEqual(new Map<String, String>{
+            RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS => RLM_CollectionsDashboardController.REASON_REFUSED
+        }, granted.get('unavailableReason'), 'The debit memos are refused (no access), not a failure.');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS },
+            granted.get('unavailable'), 'Only debit memos are unavailable to this user.');
+        Map<String, Object> debitRow = (Map<String, Object>) granted.get('debitRow');
+        Assert.areEqual('Debit Memos', debitRow.get('label'));
+        Assert.isNull(debitRow.get('amount'), 'Not a zero: the debit memo read was refused.');
+        Assert.areEqual(RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS, debitRow.get('unavailable'));
+
+        Assert.areEqual(dashboardReads, refusedWithoutSet, 'Without the set each of these reads is refused.');
+        Assert.isNull(control.get('payments'), 'The refused payment read is unavailable, not zero.');
+        Assert.isTrue((Boolean) control.get('tasksUnavailable'), 'The refused task read is unavailable, not "no tasks".');
+        Assert.isNull(control.get('myPlans'), 'The refused plan field read is unavailable, not "no plans".');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, control.get('tasksReason'), 'A refusal.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, control.get('myPlansReason'), 'A refusal.');
+        Assert.isFalse((Boolean) granted.get('tasksUnavailable'), 'With the set the tasks are read.');
+        Assert.isTrue(((List<String>) granted.get('worklistUnavailable')).isEmpty(),
+            'With the set every worklist tab is read: ' + granted.get('worklistUnavailable'));
+        Assert.isTrue(((List<String>) control.get('unavailable')).contains(
+            RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS), 'And listed as unavailable.');
+    }
+
+    // Calls every section the dashboard loads, as the running user, and keeps what the test checks.
+    private static Map<String, Object> dashboardFor(Id accountId) {
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards =
+            RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData worklist =
+            RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(accountId);
+        RLM_CollectionsDashboardController.MyCollectionPlanList myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        RLM_CollectionsDashboardController.WorklistItem disputedRow = byAccount(worklist.disputedInvoices).get(accountId);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress =
+            RLM_CollectionsDashboardController.getCollectionsProgress(null);
+        return new Map<String, Object>{
+            'accounts' => RLM_CollectionsDashboardController.getAccountOptions().options,
+            'currencies' => RLM_CollectionsDashboardController.getCurrencyOptions(),
+            'payments' => cards.unappliedPaymentCount,
+            'unavailable' => cards.unavailable,
+            'debitRow' => cards.totalBalanceBreakdown[1],
+            'disputed' => disputedRow == null ? 0 : 1,
+            // An unavailable list is a refused read, not an empty one.
+            'taskDate' => tasks.unavailable || tasks.items.isEmpty() ? null : tasks.items[0].activityDate,
+            'tasksUnavailable' => tasks.unavailable,
+            'tasksReason' => tasks.unavailableReason,
+            'myPlans' => myPlans.unavailable ? null : myPlans.items.size(),
+            'myPlansReason' => myPlans.unavailableReason,
+            'unavailableReason' => cards.unavailableReason,
+            'worklistUnavailable' => worklist.unavailable,
+            'plans' => progress.totalPlans,
+            'progressUnavailable' => progress.unavailable,
+            'promisesUnavailable' => promises.unavailable
+        };
+    }
+
+    // A payment count that could not be read leaves the payment balance in the total and the breakdown:
+    // only the count is unavailable, so the page shows the count as "—" and nothing else changes.
+    @isTest
+    static void totalUp_aCountOnlyFailureKeepsThePaymentBalanceInTheTotal() {
+        RLM_CollectionsDashboardController.CollectionsDashboardData data =
+            new RLM_CollectionsDashboardController.CollectionsDashboardData();
+        data.unavailable.add(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENT_COUNT);
+        RLM_CollectionsDashboardController.totalUp(data, 100, 0, 0, 20, null);
+
+        Assert.areEqual(80, data.totalBalance, 'Invoices less the unapplied payment balance, which was read.');
+        Assert.areEqual(80, data.totalOutstanding, 'Total outstanding still uses the balance.');
+        Assert.areEqual(20, data.unappliedPaymentBalance, 'The balance is shown.');
+        Assert.isNull(data.unappliedPaymentCount, 'Only the count is unavailable.');
+        Map<String, Object> paymentsRow = data.totalBalanceBreakdown[3];
+        Assert.areEqual(-20, paymentsRow.get('amount'), 'The payments row keeps its amount.');
+        Assert.isFalse(paymentsRow.containsKey('unavailable'), 'And is not marked unavailable.');
+
+        RLM_CollectionsDashboardController.CollectionsDashboardData noInvoices =
+            new RLM_CollectionsDashboardController.CollectionsDashboardData();
+        RLM_CollectionsDashboardController.totalUp(noInvoices, null, 0, 0, 20, 1);
+        Assert.isNull(noInvoices.totalBalance, 'No total without the unpaid invoices, its main component.');
+        Assert.isNull(noInvoices.totalOutstanding, 'Nor a total outstanding.');
+
+        RLM_CollectionsDashboardController.CollectionsDashboardData noBalance =
+            new RLM_CollectionsDashboardController.CollectionsDashboardData();
+        RLM_CollectionsDashboardController.totalUp(noBalance, 100, 0, 0, null, 3);
+        Assert.areEqual(100, noBalance.totalBalance, 'A refused balance is left out of the total.');
+        Assert.isNull(noBalance.totalOutstanding, 'And there is no total outstanding without it.');
+        Assert.areEqual(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS,
+            noBalance.totalBalanceBreakdown[3].get('unavailable'), 'Its row is marked unavailable.');
+    }
+
+    // A refused read sends the user to an administrator, a failure to a retry: the two must not be
+    // confused. The refusal messages are the ones a USER_MODE read throws (measured on 264).
+    @isTest
+    static void reasonFor_tellsARefusalFromAFailure() {
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('sObject type \'DebitMemo\' is not supported. If you are attempting to use a custom object...')),
+            'An object the user cannot read.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('No such column \'ActivityDate\' on entity \'Task\'. If you are attempting...')),
+            'A field the user cannot read.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
+            new NoAccessException()), 'A NoAccessException.');
+        // A dynamic query's error can echo the query before the column message.
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('\nSELECT ActivityDate FROM Task\n       ^\nERROR at Row:1:Column:8\n'
+                + 'No such column \'ActivityDate\' on entity \'Task\'. If you are attempting...')),
+            'The column message is found after an echoed query.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('\nSELECT NotAField__x FROM Payment\n^\nERROR at Row:1:Column:8\n'
+                + 'No such column \'NotAField__x\' on entity \'Payment\'.')),
+            'An absent field after an echoed query is still a failure.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY, RLM_CollectionsDashboardController.reasonFor(
+            new RLM_CollectionsDashboardController.TooManyRowsException('More than 10000 invoices')),
+            'Too many rows to total is its own reason.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('No such column \'NotAField__x\' on entity \'Payment\'. If you are attempting...')),
+            'A field the org does not have (a single-currency org\'s CurrencyIsoCode) is a failure, not a refusal.');
+        Assert.isTrue(RLM_CollectionsDashboardController.fieldExists('Task', 'ActivityDate'), 'PRECONDITION: the field exists.');
+        Assert.isFalse(RLM_CollectionsDashboardController.fieldExists('Payment', 'NotAField__x'), 'And this one does not.');
+        Assert.isFalse(RLM_CollectionsDashboardController.fieldExists('NotAnObject__x', 'Name'), 'Nor this object.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new QueryException('Non-selective query against large object type')), 'Any other query error is a failure.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new LimitException('Too many SOQL queries')), 'A limit is a failure.');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(
+            new CalloutException('timeout')), 'So is any other exception.');
+    }
+
     // Every dashboard entrypoint is defensive: each catches internally and returns a populated
     // wrapper/list even when the underlying collections objects hold no data or are license-gated.
     // An Account with no billing activity exercises the account-filtered branches.
@@ -42,7 +1133,7 @@ private class RLM_CollectionsDashboardControllerTest {
         System.assert(String.isNotBlank(RLM_CollectionsDashboardController.getOrgDefaultCurrency()),
             'A default currency is always returned.');
 
-        List<Map<String, String>> accountOptions = RLM_CollectionsDashboardController.getAccountOptions();
+        List<Map<String, String>> accountOptions = RLM_CollectionsDashboardController.getAccountOptions().options;
         System.assert(accountOptions.size() >= 1, 'The "All Accounts" sentinel option is present.');
 
         List<Map<String, String>> currencyOptions = RLM_CollectionsDashboardController.getCurrencyOptions();
@@ -76,30 +1167,29 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getMyCollectionPlans(),
             'My collection plans return a non-null list.');
         System.assertNotEquals(null,
-            RLM_CollectionsDashboardController.getCollectionsProgress(),
+            RLM_CollectionsDashboardController.getCollectionsProgress(null),
             'Collections progress returns a non-null wrapper.');
         Test.stopTest();
     }
 
     // PaymentScheduleItem is Apex-createable (unlike Invoice/BillingScheduleGroup), so the
-    // promise-summary aggregation can be exercised with real data. Two Draft items under a Draft
-    // schedule drive the SUM(RequestedAmount)/COUNT(Id) GROUP BY Status path; a third Draft item
-    // on another account shows the account filter leaves it out.
-    // A grouped SUM comes back in the corporate currency, so the items are created in it.
+    // promise-summary grouping can be exercised with real data. Two Draft items under a Draft
+    // schedule are added up and counted by Status; a third Draft item on another account shows the
+    // account filter leaves it out. The items are in the user's currency, the one shown with none chosen.
     @isTest
     static void getPaymentPromiseSummary_withSeededItems_aggregatesByStatus() {
         Account acc = new Account(Name = 'RLM Promise Summary Test');
         Account other = new Account(Name = 'RLM Promise Summary Other');
         insert new List<Account>{ acc, other };
-        String corporate = corporateCurrency();
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 190, CurrencyIsoCode = corporate);
+        String shown = UserInfo.getDefaultCurrency();
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 190, CurrencyIsoCode = shown);
         insert ps;
         insert new List<PaymentScheduleItem>{
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = shown,
                 RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = shown,
                 RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id, CurrencyIsoCode = corporate,
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id, CurrencyIsoCode = shown,
                 RequestedAmount = 40, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
         };
 
@@ -124,8 +1214,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // The currency filter: an item in the corporate currency is summed under that currency and
     // left out under any other; with the account filter too, another account's item in the same
-    // currency is left out. The SUM is grouped by Status, so it comes back in the corporate
-    // currency whoever runs it, and the items are created in it.
+    // currency is left out. The items are in the corporate currency.
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
@@ -174,7 +1263,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Integer activeCurrencies = [SELECT COUNT() FROM CurrencyType WHERE IsActive = true];
 
         Test.startTest();
-        List<Map<String, String>> accounts = RLM_CollectionsDashboardController.getAccountOptions();
+        List<Map<String, String>> accounts = RLM_CollectionsDashboardController.getAccountOptions().options;
         List<Map<String, String>> currencies = RLM_CollectionsDashboardController.getCurrencyOptions();
         Test.stopTest();
 
@@ -185,21 +1274,19 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('RLM CD Alpha', accounts[1].get('label'), 'The label is the account name.');
         Assert.areEqual(String.valueOf(zeta.Id), accounts[2].get('value'), 'Zeta sorts after Alpha.');
 
-        Assert.areEqual(activeCurrencies + 1, currencies.size(), 'The sentinel plus every active currency.');
-        Assert.areEqual('All Currencies', currencies[0].get('label'), 'The sentinel comes first.');
-        Assert.areEqual(corporate, currencies[1].get('value'), 'The corporate currency follows the sentinel.');
+        // One currency at a time on a multi-currency org: every active currency, the corporate one first, and no
+        // "All Currencies".
+        Assert.areEqual(activeCurrencies, currencies.size(), 'Every active currency, no sentinel.');
+        Assert.areEqual(corporate, currencies[0].get('value'), 'The corporate currency comes first.');
     }
 
     // A Sale payment with a balance is an unapplied payment: it is counted and filtered by account
-    // and currency like every card (always checked). The balance checks -- the unapplied balance,
-    // the lower total balance and total outstanding, and the filtered balances -- compare ungrouped
-    // SUMs, so they run only when the running user's currency is the corporate one (see
-    // userCurrencyIsCorporate), and are skipped with a warning otherwise.
+    // and currency like every card. The payment is in the user's currency, the one shown with none chosen.
     @isTest
-    static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_balancesWhenTheUserCurrencyIsCorporate() {
+    static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_inTheUsersCurrency() {
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
-        String paymentCurrency = corporateCurrency();
+        String paymentCurrency = UserInfo.getDefaultCurrency();
         Payment p = new Payment(AccountId = payer.Id, Amount = 250, Status = 'Processed',
             Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = paymentCurrency);
         insert p;
@@ -209,7 +1296,7 @@ private class RLM_CollectionsDashboardControllerTest {
             'PRECONDITION: a new processed payment carries a positive balance. Got ' + expected);
         String otherCurrency = anotherCurrency(paymentCurrency);
         Assert.areEqual(paymentCurrency, [SELECT CurrencyIsoCode FROM Payment WHERE Id = :p.Id].CurrencyIsoCode,
-            'PRECONDITION: the payment is in the corporate currency.');
+            'PRECONDITION: the payment is in the user\'s currency.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData unfiltered =
@@ -223,6 +1310,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
+        Assert.isTrue(unfiltered.unavailable.isEmpty(), 'The admin reads every component: ' + unfiltered.unavailable);
+        for (Map<String, Object> row : unfiltered.totalBalanceBreakdown) {
+            Assert.isNotNull(row.get('amount'), 'A readable component has an amount, zero or not: ' + row.get('label'));
+            Assert.isFalse(row.containsKey('unavailable'), 'And is not marked unavailable: ' + row.get('label'));
+        }
 
         List<String> labels = new List<String>{ 'Unpaid Invoices', 'Debit Memos', 'Unapplied Credits', 'Unapplied Payments' };
         Assert.areEqual(labels.size(), unfiltered.totalBalanceBreakdown.size(), 'One breakdown row per balance component.');
@@ -233,7 +1325,7 @@ private class RLM_CollectionsDashboardControllerTest {
         List<String> agingKeys = new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' };
         // Bucket and invoice amounts are not asserted here: no invoice can exist in a unit test, so
         // they are zero whatever the controller does. They are checked from invoice rows in
-        // tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement.
+        // tallyInvoices_bucketsByDaysPastDue.
         Assert.areEqual(agingKeys.size(), unfiltered.agingBuckets.size(), 'Five aging buckets.');
         for (Integer i = 0; i < agingKeys.size(); i++) {
             Assert.areEqual(agingKeys[i], unfiltered.agingBuckets[i].get('key'), 'Aging bucket order, bucket ' + i);
@@ -247,18 +1339,16 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount,
             'A payment in ' + paymentCurrency + ' is not counted under ' + otherCurrency + '.');
 
-        if (userCurrencyIsCorporate()) {
-            assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
-            assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
-            assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
-            assertAmount(-expected, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
-                'Unapplied payments are shown as a reduction.');
-            assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
-                'The payer\'s own payment balance passes both filters.');
-            assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
-            assertAmount(0, payerElsewhere.unappliedPaymentBalance,
-                'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
-        }
+        assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
+        assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
+        assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
+        assertAmount(-expected, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
+            'Unapplied payments are shown as a reduction.');
+        assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
+            'The payer\'s own payment balance passes both filters, in its own currency.');
+        assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
+        assertAmount(0, payerElsewhere.unappliedPaymentBalance,
+            'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
     }
 
     // Only a Processed payment's balance is unapplied. A Canceled, Draft, Pending or Failed payment
@@ -266,7 +1356,7 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void getDashboardCards_onlyProcessedPaymentsAreUnapplied() {
         Account payer = newAccount('RLM CD Status Payer');
-        String paymentCurrency = corporateCurrency();
+        String paymentCurrency = UserInfo.getDefaultCurrency();
         Payment kept = payment(payer.Id, 250, 'Processed', paymentCurrency);
         Payment canceled = payment(payer.Id, 100, 'Processed', paymentCurrency);
         List<Payment> others = new List<Payment>{
@@ -291,9 +1381,8 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, cards.unappliedPaymentCount, 'Only the Processed payment is counted');
-        if (userCurrencyIsCorporate()) {
-            assertAmount(expected, cards.unappliedPaymentBalance, 'Only the Processed payment\'s balance is unapplied');
-        }
+        assertAmount(expected, cards.unappliedPaymentBalance,
+            'Only the Processed payment\'s balance is unapplied');
     }
 
     private static Payment payment(Id accountId, Decimal amount, String status, String currencyCode) {
@@ -325,10 +1414,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
-        // The controller's own aggregate, in user mode, with Status = 'Draft' in place of
-        // 'Posted': the SUM runs and returns a positive total for the memo, so the controller's
-        // query is not refused and its zero comes from the Status filter, not from a swallowed
-        // error. Only the sign is checked, so the currency the SUM reports in does not matter.
+        // The controller's own filter, in user mode, with Status = 'Draft' in place of 'Posted': the read
+        // returns the memo, so the controller's query is not refused and its zero comes from the Status
+        // filter, not from a swallowed error. Only the sign is checked, so the currency does not matter.
         Id aId = a.Id;
         List<AggregateResult> control = Database.query(
             'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
@@ -350,11 +1438,10 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // Open cases are the disputed rows: one per account, carrying the newest case and a reason
-    // built from its subject, description (cut at 200 characters) and Reason. With no invoices,
-    // the other two sections hold their placeholder rows.
+    // built from its subject, description (cut at 200 characters) and Reason. With no invoices the
+    // other two tabs were read and have no rows, and nothing is unavailable.
     @isTest
     static void getWorklist_openCasesListTheirAccountsAsDisputed() {
-        // Inserted out of name order, so only the name ordering makes A the placeholder's account.
         Account c = newAccount('RLM CD Worklist C');
         Account a = newAccount('RLM CD Worklist A');
         Account b = newAccount('RLM CD Worklist B');
@@ -399,36 +1486,27 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(expectedB, disputed.get(b.Id).disputeReason, 'A description alone is the reason.');
         Assert.areEqual(expectedC, disputed.get(c.Id).disputeReason, 'A case with no text reads as an open case.');
 
-        Assert.areEqual(1, unfiltered.criticalFollowUpInvoices.size(), 'One placeholder critical row.');
-        RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem critical = unfiltered.criticalFollowUpInvoices[0];
-        Assert.isNull(critical.invoiceId, 'The placeholder names no invoice.');
-        Assert.areEqual('No invoices overdue >= 30 days', critical.invoiceNumber, 'The placeholder explains itself.');
-        assertAmount(0, critical.balance, 'The placeholder has no balance.');
-        Assert.areEqual(NO_VALUE, critical.billingAccountName, 'The placeholder has no account.');
-
-        Assert.areEqual(1, unfiltered.highValueDelinquents.size(), 'One placeholder high-value row.');
-        RLM_CollectionsDashboardController.WorklistItem highValue = unfiltered.highValueDelinquents[0];
-        Assert.areEqual(a.Id, highValue.accountId, 'The placeholder uses the first account by name.');
-        Assert.areEqual('highValue', highValue.segment, 'High-value segment.');
-        Assert.areEqual('red', highValue.healthScore, 'High-value rows are red.');
+        // A tab that was read and has no rows stays empty; the page says "No items in this view".
+        Assert.isTrue(unfiltered.criticalFollowUpInvoices.isEmpty(), 'No invoices: no critical rows.');
+        Assert.isTrue(unfiltered.highValueDelinquents.isEmpty(), 'No invoices: no high-value rows.');
+        Assert.isTrue(unfiltered.unavailable.isEmpty(), 'Every tab was read: ' + unfiltered.unavailable);
 
         Assert.areEqual(1, onlyB.disputedInvoices.size(), 'The account filter keeps only that account\'s case.');
         Assert.areEqual(b.Id, onlyB.disputedInvoices[0].accountId, 'The filtered row is account B.');
-        Assert.isTrue(onlyB.highValueDelinquents.size() == 1 && onlyB.highValueDelinquents[0].accountId == b.Id,
-            'The filtered worklist\'s placeholder row uses the filtered account. Rows: '
-            + onlyB.highValueDelinquents.size());
+        Assert.isTrue(onlyB.highValueDelinquents.isEmpty(), 'No rows from other accounts under the filter.');
     }
 
-    // The placeholders borrow an account, so with no account at all there are none.
+    // With no records at all every tab is read and has no rows: none is unavailable.
     @isTest
-    static void getWorklist_withNoAccounts_addsNoPlaceholderRows() {
+    static void getWorklist_withNoRecords_readsEveryTabWithNoRows() {
         Test.startTest();
         RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
         Test.stopTest();
 
-        Assert.isTrue(wl.criticalFollowUpInvoices.isEmpty(), 'No placeholder without an account.');
-        Assert.isTrue(wl.highValueDelinquents.isEmpty(), 'No placeholder without an account.');
+        Assert.isTrue(wl.criticalFollowUpInvoices.isEmpty(), 'No invoices, no critical rows.');
+        Assert.isTrue(wl.highValueDelinquents.isEmpty(), 'No invoices, no high-value rows.');
         Assert.isTrue(wl.disputedInvoices.isEmpty(), 'No cases, no disputed rows.');
+        Assert.isTrue(wl.unavailable.isEmpty(), 'Empty is not unavailable: ' + wl.unavailable);
     }
 
     @isTest
@@ -442,7 +1520,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         List<RLM_CollectionsDashboardController.MyCollectionPlanItem> items =
-            RLM_CollectionsDashboardController.getMyCollectionPlans();
+            RLM_CollectionsDashboardController.getMyCollectionPlans().items;
         Test.stopTest();
 
         Assert.areEqual(2, items.size(), 'Both plans are owned by the running user.');
@@ -473,7 +1551,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsProgressData progress =
-            RLM_CollectionsDashboardController.getCollectionsProgress();
+            RLM_CollectionsDashboardController.getCollectionsProgress(null);
         Test.stopTest();
 
         Assert.areEqual(2, progress.totalPlans, 'Two plans.');
@@ -502,14 +1580,16 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         List<RLM_CollectionsDashboardController.CpTaskItem> forA =
-            RLM_CollectionsDashboardController.getCollectionPlanTasks(a.Id);
+            RLM_CollectionsDashboardController.getCollectionPlanTasks(a.Id).items;
         List<RLM_CollectionsDashboardController.CpTaskItem> forAll =
-            RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+            RLM_CollectionsDashboardController.getCollectionPlanTasks(null).items;
         Test.stopTest();
 
         Assert.areEqual(1, forA.size(), 'Only the task on account A\'s plan.');
         Assert.areEqual(taskA.Id, forA[0].taskId, 'The task id.');
         Assert.areEqual(planA.Id, forA[0].collectionPlanId, 'The task\'s plan.');
+        Assert.areEqual([SELECT Name FROM CollectionPlan WHERE Id = :planA.Id].Name, forA[0].collectionPlanName,
+            'The task\'s plan by name, its label on the page.');
         Assert.areEqual('Call about the plan', forA[0].subject, 'The task subject.');
         Assert.areEqual(Date.today().addDays(1), forA[0].activityDate, 'The task due date.');
         Assert.isTrue(String.isNotBlank(forA[0].status), 'Status defaults on insert.');
@@ -518,13 +1598,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(taskA.Id, forAll[0].taskId, 'The latest activity date comes first.');
     }
 
-    // A user who cannot read the billing objects gets empty sections, not an error: each one
-    // catches its own failure. The same records give the admin a populated dashboard. The empty
-    // cards and promise buckets need the user-mode queries to throw (a readable, empty result
-    // would still build them); the case, task, plan and placeholder empties could also come from
-    // sharing.
+    // A user who cannot read the billing objects gets every section unavailable as refused, not an
+    // error and not an empty "none": each section catches its own refusal. The same records give the
+    // admin a populated dashboard, so the refusals are what the user sees in place of data.
     @isTest
-    static void allSections_forAUserWhoCannotReadThem_degradeToEmpty() {
+    static void allSections_forAUserWhoCannotReadThem_areUnavailableAsRefused() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account a = newAccount('RLM CD Unreadable');
         CollectionPlan plan = newPlan(a.Id, Date.today());
@@ -537,18 +1615,18 @@ private class RLM_CollectionsDashboardControllerTest {
             RequestedAmount = 10, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
 
         // The admin's view of the same data: the cards are built (Invoice is readable), and the
-        // open case, the placeholder, the plan's task, the plan and the schedule item all show.
+        // open case, the plan's task, the plan and the schedule item all show.
         Assert.areEqual(4, RLM_CollectionsDashboardController.getDashboardCards(null, null).totalBalanceBreakdown.size(),
             'PRECONDITION: the admin gets the full breakdown.');
         RLM_CollectionsDashboardController.WorklistData adminWorklist =
             RLM_CollectionsDashboardController.getWorklist(null, null);
         Assert.areEqual(1, adminWorklist.disputedInvoices.size(), 'PRECONDITION: the admin sees the open case.');
-        Assert.areEqual(1, adminWorklist.highValueDelinquents.size(), 'PRECONDITION: the admin gets the placeholder.');
-        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionPlanTasks(null).size(),
+        Assert.isTrue(adminWorklist.unavailable.isEmpty(), 'PRECONDITION: the admin reads every worklist tab.');
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionPlanTasks(null).items.size(),
             'PRECONDITION: the admin sees the plan\'s task.');
-        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress(null).totalPlans,
             'PRECONDITION: the admin measures the plan.');
-        Assert.areEqual(1, RLM_CollectionsDashboardController.getMyCollectionPlans().size(),
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getMyCollectionPlans().items.size(),
             'PRECONDITION: the admin lists the plan they own.');
         Assert.areEqual(1, bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null))
             .get('Draft').itemCount, 'PRECONDITION: the admin sees the schedule item.');
@@ -556,10 +1634,10 @@ private class RLM_CollectionsDashboardControllerTest {
         List<String> readable = new List<String>();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards;
         RLM_CollectionsDashboardController.WorklistData worklist;
-        List<RLM_CollectionsDashboardController.PaymentPromiseBucket> promises;
-        List<RLM_CollectionsDashboardController.CpTaskItem> tasks;
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises;
+        RLM_CollectionsDashboardController.CpTaskList tasks;
         RLM_CollectionsDashboardController.CollectionsProgressData progress;
-        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> myPlans;
+        RLM_CollectionsDashboardController.MyCollectionPlanList myPlans;
         Test.startTest();
         System.runAs(noAccess) {
             for (String objectName : new List<String>{ 'Account', 'Case', 'CollectionPlan', 'Invoice', 'PaymentScheduleItem' }) {
@@ -571,22 +1649,58 @@ private class RLM_CollectionsDashboardControllerTest {
             worklist = RLM_CollectionsDashboardController.getWorklist(null, null);
             promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
             tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
-            progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+            progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
             myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans();
         }
         Test.stopTest();
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
-        Assert.isTrue(myPlans.isEmpty(), 'No plan is listed: the user owns none.');
-        Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
-            'An unreadable Invoice returns the cards before any breakdown is built.');
-        Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
-        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is not listed (access or sharing).');
-        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder row (access or sharing).');
-        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder row (access or sharing).');
-        Assert.isTrue(promises.isEmpty(), 'An unreadable schedule item returns no buckets.');
-        Assert.isTrue(tasks.isEmpty(), 'The plan\'s task is not listed (access or sharing).');
-        Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');
+        Assert.isTrue(myPlans.unavailable, 'An unreadable plan list is unavailable, not "no plans".');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, myPlans.unavailableReason, 'A refusal.');
+        // Every card component is unavailable, not zero: the page says so instead of showing $0.00.
+        Assert.areEqual(new List<String>{
+            RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES,
+            RLM_CollectionsDashboardController.UNAVAILABLE_CREDITS,
+            RLM_CollectionsDashboardController.UNAVAILABLE_DEBIT_MEMOS,
+            RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS,
+            RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENT_COUNT
+        }, cards.unavailable, 'Each refused component is listed, in the order it is read.');
+        Assert.isNull(cards.receivablesOutstanding, 'Receivables are not a zero.');
+        Assert.isNull(cards.invoiceCount, 'Nor the invoice count.');
+        Assert.isNull(cards.currentDue, 'Nor current due.');
+        Assert.isNull(cards.overdue, 'Nor overdue.');
+        Assert.isNull(cards.unappliedPaymentBalance, 'Nor the unapplied payments.');
+        Assert.isNull(cards.unappliedPaymentCount, 'Nor their count.');
+        Assert.isNull(cards.totalOutstanding, 'Nor the total outstanding.');
+        Assert.isNull(cards.totalBalance, 'With nothing read there is no total balance, not a zero.');
+        Assert.areEqual(4, cards.totalBalanceBreakdown.size(), 'The breakdown names every component.');
+        for (Map<String, Object> row : cards.totalBalanceBreakdown) {
+            Assert.isNull(row.get('amount'), 'No amount for ' + row.get('label'));
+            Assert.isNotNull(row.get('unavailable'), 'Marked unavailable: ' + row.get('label'));
+        }
+        Assert.isTrue(cards.agingBuckets.isEmpty(), 'No aging bucket.');
+        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'An unavailable tab carries no rows.');
+        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'An unavailable tab carries no rows.');
+        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'An unavailable tab carries no rows.');
+        Assert.areEqual(new List<String>{
+            RLM_CollectionsDashboardController.WORKLIST_CRITICAL,
+            RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE,
+            RLM_CollectionsDashboardController.WORKLIST_DISPUTED
+        }, worklist.unavailable, 'Each refused tab is unavailable, not "nothing to work on".');
+        Assert.isTrue(promises.unavailable, 'An unreadable schedule item is unavailable, not "no promises".');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, promises.unavailableReason, 'A refusal.');
+        Assert.isTrue(tasks.unavailable, 'An unreadable task list is unavailable, not "no tasks".');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, tasks.unavailableReason, 'A refusal.');
+        Assert.isTrue(progress.unavailable, 'Unreadable plans are unavailable, not "no plans".');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, progress.unavailableReason, 'A refusal.');
+        for (String key : cards.unavailable) {
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, cards.unavailableReason.get(key),
+                'Each refused card component says so: ' + key);
+        }
+        for (String key : worklist.unavailable) {
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, worklist.unavailableReason.get(key),
+                'Each refused worklist tab says so: ' + key);
+        }
     }
 
     // A user who cannot read Account gets only the "All Accounts" sentinel, like the other
@@ -596,24 +1710,29 @@ private class RLM_CollectionsDashboardControllerTest {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         newAccount('RLM CD Account Options Unreadable');
 
-        List<Map<String, String>> options;
+        RLM_CollectionsDashboardController.AccountOptions result;
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            options = RLM_CollectionsDashboardController.getAccountOptions();
+            result = RLM_CollectionsDashboardController.getAccountOptions();
         }
         Test.stopTest();
+        List<Map<String, String>> options = result.options;
+
+        // Not an org with no accounts: the filter says the user may not read them.
+        Assert.isTrue(result.unavailable, 'Unavailable, not "no accounts"');
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_REFUSED, result.unavailableReason, 'A refusal');
+        Assert.isFalse(result.hasMore, 'No search offered');
 
         Assert.areEqual(1, options.size(), 'Only the sentinel is offered; no account is listed.');
         Assert.areEqual('', options[0].get('value'), 'The sentinel has a blank value.');
         Assert.areEqual('All Accounts', options[0].get('label'), 'The sentinel is "All Accounts".');
     }
 
-    // The collections persona reads its own plan through the USER_MODE queries. A permission
-    // gap would show as an empty list or zeroed progress, since both methods swallow their query
-    // errors. The user
-    // holds the Billing and Billing Advanced permission set licenses.
+    // The collections persona reads its own plan through the USER_MODE queries. A permission gap would
+    // show as an unavailable list or progress panel instead of the plan. The user holds the Billing and
+    // Billing Advanced permission set licenses.
     @isTest
     static void collectionsSpecialist_readsTheirPlanInUserMode() {
         User specialist = RLM_BillingUITestUsers.create(
@@ -631,8 +1750,8 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.CollectionsProgressData progress;
         Test.startTest();
         System.runAs(specialist) {
-            mine = RLM_CollectionsDashboardController.getMyCollectionPlans();
-            progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+            mine = RLM_CollectionsDashboardController.getMyCollectionPlans().items;
+            progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         }
         Test.stopTest();
 
@@ -686,7 +1805,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(NO_VALUE, invoiceRow.invoiceNumber, 'A missing invoice number shows a dash.');
         Assert.areEqual(NO_VALUE, invoiceRow.billingAccountName, 'A missing account name shows a dash.');
-        Assert.areEqual(NO_VALUE, planRow.name, 'A missing plan name shows a dash.');
+        Assert.isNull(planRow.name, 'A missing plan name stays empty: the page shows it as not available.');
         Assert.areEqual(NO_VALUE, planRow.accountName, 'A missing account name shows a dash.');
         assertAmount(0, planRow.totalInvoiceBalance, 'A missing balance is zero.');
         assertAmount(0, bucket.totalRequestedAmount, 'A missing amount is zero.');
@@ -701,25 +1820,24 @@ private class RLM_CollectionsDashboardControllerTest {
         return (Invoice) JSON.deserialize(JSON.serialize(fields), Invoice.class);
     }
 
-    private static Map<String, Object> amountsDue(Decimal balance, Decimal total, Date dueDate) {
-        return new Map<String, Object>{ 'Balance' => balance, 'TotalAmount' => total, 'DueDate' => dueDate };
+    private static Map<String, Object> amountsDue(Decimal balance, Date dueDate) {
+        return new Map<String, Object>{ 'Balance' => balance, 'DueDate' => dueDate };
     }
 
     // Each unpaid invoice adds its balance to the total and to one aging bucket by days past due
-    // (30, 60 and 90 close their buckets); one not yet due, or with no due date, is current. One
-    // with a balance below its total is partially settled; the rest count as not settled.
+    // (30, 60 and 90 close their buckets); one not yet due, or with no due date, is current.
     @isTest
-    static void tallyInvoices_bucketsByDaysPastDueAndSplitsBySettlement() {
+    static void tallyInvoices_bucketsByDaysPastDue() {
         Date today = Date.newInstance(2026, 6, 30);
         List<Invoice> invoices = new List<Invoice>{
-            invoice(amountsDue(100, 100, today.addDays(5))),
-            invoice(amountsDue(40, 100, today.addDays(-30))),
-            invoice(amountsDue(50, 50, today.addDays(-60))),
-            invoice(amountsDue(60, 0, today.addDays(-90))),
-            invoice(amountsDue(70, 80, today.addDays(-91))),
-            invoice(amountsDue(25, 25, null)),
-            invoice(amountsDue(null, 100, null)),
-            invoice(amountsDue(15, 15, today))
+            invoice(amountsDue(100, today.addDays(5))),
+            invoice(amountsDue(40, today.addDays(-30))),
+            invoice(amountsDue(50, today.addDays(-60))),
+            invoice(amountsDue(60, today.addDays(-90))),
+            invoice(amountsDue(70, today.addDays(-91))),
+            invoice(amountsDue(25, null)),
+            invoice(amountsDue(null, null)),
+            invoice(amountsDue(15, today))
         };
         RLM_CollectionsDashboardController.CollectionsDashboardData data =
             new RLM_CollectionsDashboardController.CollectionsDashboardData();
@@ -732,11 +1850,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(8, data.invoiceCount, 'Every invoice is counted');
         Assert.areEqual(140, data.currentDue, 'Due today, not yet due, or no due date, is current');
         Assert.areEqual(220, data.overdue, 'Past due balances are overdue');
-        Assert.areEqual(2, data.partiallySettledCount, 'A balance below its total is partially settled');
-        Assert.areEqual(110, data.partiallySettledSum, 'The partially settled balances add up');
-        Assert.areEqual(6, data.notSettledCount,
-            'Full balances, a zero total and a blank balance (even under a set total) are not settled');
-        Assert.areEqual(250, data.notSettledSum, 'The not-settled balances add up');
         Map<String, Object> byKey = new Map<String, Object>();
         for (Map<String, Object> bucket : data.agingBuckets) {
             byKey.put((String) bucket.get('key'), bucket.get('amount'));
@@ -746,66 +1859,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(50, (Decimal) byKey.get('31-60'), 'Sixty days past due is still 31-60');
         Assert.areEqual(60, (Decimal) byKey.get('61-90'), 'Ninety days past due is still 61-90');
         Assert.areEqual(70, (Decimal) byKey.get('90+'), 'Ninety-one days past due is 90+');
-    }
-
-    // The last-resort worklist rolls balances up by account, keeps the five largest, and colours
-    // each by its most overdue invoice: over 30 days red, any days amber, none green.
-    @isTest
-    static void addLastResortDelinquents_keepsTheFiveLargestAccountBalances() {
-        Date today = Date.newInstance(2026, 6, 30);
-        List<Account> accounts = new List<Account>();
-        for (Integer i = 1; i <= 6; i++) {
-            accounts.add(new Account(Name = 'RLM Last Resort ' + i));
-        }
-        insert accounts;
-        List<SObject> rows = new List<SObject>();
-        Decimal[] balances = new Decimal[]{ 10, 600, 300, 400, 500, 200 };
-        Date[] dueDates = new Date[]{ today, today.addDays(-31), today.addDays(-30), today.addDays(5), null, today.addDays(-1) };
-        for (Integer i = 0; i < 6; i++) {
-            rows.add(invoice(new Map<String, Object>{
-                'Balance' => balances[i], 'DueDate' => dueDates[i], 'BillingAccountId' => accounts[i].Id }));
-        }
-        // Two more invoices on the smallest account lift it past three others. Its days past due run
-        // 0, 40, 10: the most overdue (40, red) wins, not the first (green) or the last (amber).
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 300, 'DueDate' => today.addDays(-40), 'BillingAccountId' => accounts[0].Id }));
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 150, 'DueDate' => today.addDays(-10), 'BillingAccountId' => accounts[0].Id }));
-        rows.add(invoice(new Map<String, Object>{ 'Balance' => 9999, 'DueDate' => today }));
-        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
-
-        Test.startTest();
-        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, rows, 'BillingAccountId', today);
-        Test.stopTest();
-
-        List<String> names = new List<String>();
-        List<String> health = new List<String>();
-        for (RLM_CollectionsDashboardController.WorklistItem item : wl.highValueDelinquents) {
-            names.add(item.accountName);
-            health.add(item.healthScore);
-        }
-        Assert.areEqual(new List<String>{ 'RLM Last Resort 2', 'RLM Last Resort 5', 'RLM Last Resort 1',
-            'RLM Last Resort 4', 'RLM Last Resort 3' }, names,
-            'The five largest account balances, largest first; an invoice without an account is left out');
-        Assert.areEqual(new List<String>{ 'red', 'green', 'red', 'green', 'amber' }, health,
-            '31 days red, no due date or not yet due green, 30 days amber; an account takes its most overdue invoice');
-        Assert.areEqual(460, wl.highValueDelinquents[2].balance, 'An account\'s invoices add up');
-        Assert.areEqual('critical', wl.highValueDelinquents[0].segment, 'Last-resort rows are critical');
-    }
-
-    // The last resort only fills an empty list.
-    @isTest
-    static void addLastResortDelinquents_addsNothingOnceTheListHasRows() {
-        Account acc = newAccount('RLM Last Resort Kept');
-        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
-        wl.highValueDelinquents.add(new RLM_CollectionsDashboardController.WorklistItem(acc.Id, 'Already listed', 1, 1, 'highValue'));
-
-        Test.startTest();
-        RLM_CollectionsDashboardController.addLastResortDelinquents(wl, new List<SObject>{
-            invoice(new Map<String, Object>{ 'Balance' => 5000, 'BillingAccountId' => acc.Id }) },
-            'BillingAccountId', Date.today());
-        Test.stopTest();
-
-        Assert.areEqual(1, wl.highValueDelinquents.size(), 'Rows already listed are kept as they are');
-        Assert.areEqual('Already listed', wl.highValueDelinquents[0].accountName, 'The listed row is untouched');
     }
 
     // High-value delinquents are accounts whose balances add up to 2000 or more, largest first,
@@ -841,13 +1894,15 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(2000, second.balance, 'The account\'s invoices add up');
         Assert.areEqual(70, second.daysOverdue, 'The most overdue invoice sets the days, not the first or last one');
         Assert.isNull(second.collectionPlanId, 'An account without a plan has none');
+        Assert.isFalse(second.collectionPlanUnavailable, 'Read and empty: "no plan", not unavailable');
         Assert.areEqual('RLM High Value Three', second.accountName, 'The account name is looked up');
+        Assert.isFalse(second.accountNameUnavailable, 'A read name is available');
         Assert.areEqual('red', second.healthScore, 'High-value rows are red');
     }
 
     // A user who cannot read Account still gets the rows (with a dash for the name) rather than the caller's
-    // catch dropping the whole section; the last-resort and critical follow-up builders share the
-    // lookup.
+    // catch dropping the whole section; the critical follow-up builder shares the lookup. The same user
+    // cannot read CollectionPlan either: the row's plan is marked unavailable, not "no plan".
     @isTest
     static void addHighValueDelinquents_forAUserWhoCannotReadAccounts_keepsRowsWithDashNames() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -868,37 +1923,41 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, wl.highValueDelinquents.size(), 'The row is kept although the name read is refused.');
         Assert.areEqual(acc.Id, wl.highValueDelinquents[0].accountId, 'The row is the account\'s.');
-        Assert.areEqual(NO_VALUE, wl.highValueDelinquents[0].accountName, 'The name shows a dash, not a raw exception.');
+        Assert.areEqual(NO_VALUE, wl.highValueDelinquents[0].accountName, 'No name, not a raw exception.');
+        Assert.isTrue(wl.highValueDelinquents[0].accountNameUnavailable, 'A refused name read is not available, not "no name".');
+        Assert.isTrue(wl.highValueDelinquents[0].collectionPlanUnavailable,
+            'A refused plan lookup marks the plan unavailable (no Create offered), not "no plan".');
     }
 
     @isTest
-    static void lastResortAndCriticalFollowUps_forAUserWhoCannotReadAccounts_keepRows() {
+    static void criticalFollowUps_forAUserWhoCannotReadAccounts_keepRows() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        Account acc = newAccount('RLM Last Resort Unreadable');
+        Account acc = newAccount('RLM Critical Unreadable');
         Date today = Date.newInstance(2026, 6, 30);
         List<Invoice> invoices = new List<Invoice>{
-            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
+            // An Id, so the plan item lookup runs (and is refused for this user).
+            invoice(new Map<String, Object>{ 'Id' => Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000009'),
+                'Balance' => 5000, 'DueDate' => today.addDays(-35), 'BillingAccountId' => acc.Id })
         };
-        RLM_CollectionsDashboardController.WorklistData lastResort = new RLM_CollectionsDashboardController.WorklistData();
         RLM_CollectionsDashboardController.WorklistData critical = new RLM_CollectionsDashboardController.WorklistData();
 
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            RLM_CollectionsDashboardController.addLastResortDelinquents(lastResort, invoices, 'BillingAccountId', today);
-            RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, false, today);
+            RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, today);
         }
         Test.stopTest();
 
-        Assert.areEqual(1, lastResort.highValueDelinquents.size(), 'The last-resort row is kept.');
-        Assert.areEqual(NO_VALUE, lastResort.highValueDelinquents[0].accountName, 'Its name shows a dash.');
         Assert.areEqual(1, critical.criticalFollowUpInvoices.size(), 'The critical follow-up row is kept.');
-        Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'Its name shows a dash.');
+        Assert.areEqual(NO_VALUE, critical.criticalFollowUpInvoices[0].billingAccountName, 'No name.');
+        Assert.isTrue(critical.criticalFollowUpInvoices[0].accountNameUnavailable, 'A refused name read is not available.');
+        Assert.isTrue(critical.criticalFollowUpInvoices[0].collectionPlanUnavailable,
+            'A refused plan item lookup marks the plan unavailable, not "no plan".');
     }
 
-    // A critical follow-up row per invoice: days overdue from the field when the org has it and it
-    // is set, else from the due date; a blank invoice number or account name shows a dash.
+    // A critical follow-up row per invoice: days overdue from the due date (Invoice.DaysInvoiceOverdue is not
+    // read, even when set); a blank invoice number or account name shows a dash.
     @isTest
     static void addCriticalFollowUps_buildsOneRowPerInvoice() {
         Account acc = newAccount('RLM Critical Follow Up');
@@ -921,8 +1980,8 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.WorklistData withoutFields = new RLM_CollectionsDashboardController.WorklistData();
 
         Test.startTest();
-        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, true, hasContactField, today);
-        RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, false, today);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withFields, invoices, hasContactField, today);
+        RLM_CollectionsDashboardController.addCriticalFollowUps(withoutFields, invoices, false, today);
         Test.stopTest();
 
         Assert.areEqual(2, withFields.criticalFollowUpInvoices.size(), 'One row per invoice');
@@ -931,7 +1990,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(invoiceA, full.invoiceId, 'Rows keep the invoice order');
         Assert.areEqual('INV-1', full.invoiceNumber, 'The invoice number is shown');
         Assert.areEqual(2500, full.balance, 'The balance is shown');
-        Assert.areEqual(45, full.daysInvoiceOverdue, 'The overdue-days field wins over the due date');
+        Assert.areEqual(10, full.daysInvoiceOverdue, 'Days come from the due date, not the platform\'s overdue-days field (45)');
         Assert.areEqual(acc.Id, full.billingAccountId, 'The billing account is shown');
         Assert.areEqual('RLM Critical Follow Up', full.billingAccountName, 'The account name is looked up');
         if (hasContactField) {
@@ -939,7 +1998,7 @@ private class RLM_CollectionsDashboardControllerTest {
         }
 
         RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem bare = withFields.criticalFollowUpInvoices[1];
-        Assert.areEqual(33, bare.daysInvoiceOverdue, 'With the field blank, days come from the due date');
+        Assert.areEqual(33, bare.daysInvoiceOverdue, 'Days come from the due date');
         Assert.areEqual(NO_VALUE, bare.invoiceNumber, 'A blank invoice number shows a dash');
         Assert.areEqual(NO_VALUE, bare.billingAccountName, 'No account shows a dash');
         Assert.areEqual(0, bare.balance, 'A blank balance shows zero');
@@ -978,22 +2037,9 @@ private class RLM_CollectionsDashboardControllerTest {
         return record;
     }
 
-    // A grouped SUM of a currency field comes back in the corporate currency, so records whose
-    // amounts are summed are created in it.
+    // The org's corporate currency.
     private static String corporateCurrency() {
         return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
-    }
-
-    // An ungrouped SUM of a currency field is reported in a currency the platform picks (the
-    // running user's or the corporate one); where the two are the same it reads the records'
-    // own amounts. Logs a visible skip otherwise.
-    private static Boolean userCurrencyIsCorporate() {
-        if (UserInfo.getDefaultCurrency() == corporateCurrency()) {
-            return true;
-        }
-        System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
-            + 'user\'s currency matching the corporate currency');
-        return false;
     }
 
     // An active currency other than the given one; a code no record can carry if there is none.
@@ -1047,7 +2093,9 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     private static Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> bucketsByStatus(
-        List<RLM_CollectionsDashboardController.PaymentPromiseBucket> buckets) {
+        RLM_CollectionsDashboardController.PaymentPromiseSummary summary) {
+        Assert.isFalse(summary.unavailable, 'PRECONDITION: the schedule items were read.');
+        List<RLM_CollectionsDashboardController.PaymentPromiseBucket> buckets = summary.buckets;
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> byStatus =
             new Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket>();
         for (RLM_CollectionsDashboardController.PaymentPromiseBucket b : buckets) {
