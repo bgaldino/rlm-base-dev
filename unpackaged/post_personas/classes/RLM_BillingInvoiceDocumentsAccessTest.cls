@@ -1,8 +1,9 @@
 /**
  * What a billing persona (RLM Billing Admin, RLM Billing Operations) needs to generate invoice
  * documents, batch (Generate Invoice Documents on an Invoice Batch Run) and on demand (Generate
- * Invoice Document on an Invoice), checked as that persona (todo 292). Measured on a 264 org as
- * Minimum Access users holding the Billing license and a persona group:
+ * Invoice Document on an Invoice), checked as the persona's group or its content (see "Which tests
+ * check what" below; todo 292). Measured on a 264 org in check-only probes as Minimum Access users
+ * holding the Billing license and a persona group:
  * - Neither group reaches Document Template, Document Generation Process or Document Generation
  *   Batch Process ("Access to entity ... denied"). The DocGen sets need the DocGen Designer
  *   permission set license, so they are assigned next to the group, not put in it: existing holders

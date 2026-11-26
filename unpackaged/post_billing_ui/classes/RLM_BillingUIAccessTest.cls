@@ -13,7 +13,8 @@
  * BillingScheduleGroup, Dispute, CollectionPlan and most other billing objects read as
  * "not supported". The managed sets are used rather than the RLM persona groups because
  * they ship with the Billing license, so the check runs whether or not `personas` is on;
- * each persona group is one of these sets plus RLM_BillingAccountFieldAccess.
+ * each persona group is one of these sets plus RLM_BillingAccountFieldAccess, and the Admin and
+ * Operations groups also include RLM_BillingInvoiceDocuments (todo 292).
  *
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
