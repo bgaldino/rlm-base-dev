@@ -276,12 +276,22 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
+# tests/test_external_credentials.py (yaml_offline_suites) scans every file under force-app/,
+# templates/ and unpackaged/ for a committed 12-digit parameterValue (todo 481). Each probe sits
+# outside the narrower subtrees the check also lists, so trimming one of those three roots fails here.
+for _probe in ("force-app/main/default/namedCredentials/X.namedCredential-meta.xml",
+               "templates/objects/X/X.object-meta.xml",
+               "unpackaged/post_tso/externalCredentials/X.externalCredential-meta.xml"):
+    check(f"a change to {_probe} selects yaml_offline_suites (the committed AWS account id scan)",
+          "yaml_offline_suites" in selected_names([_probe]), selected_names([_probe]))
 # Local Markdown links can target any repository file, a numbered branch or a private-tree
 # citation can appear in any tracked text file, and a file force-added anywhere .dockerignore
 # excludes drops out of a local image. The five cheap whole-repo checks (navigation baseline,
 # release_refs, dockerignore, private_refs, api_version_pins) therefore run for every non-empty change, while
 # unrelated expensive checks stay skipped.
-sel = selected_names(["docker/compose.yaml"])
+# docker/compose.yaml used to be that path; it forwards RLM_AWS_ACCOUNT_ID now, which
+# yaml_offline_suites asserts (todo 481), so a file nothing reads stands in for it.
+sel = selected_names(["docker/motd.sh"])
 check("an otherwise unrelated path selects only the five whole-repo baselines",
       sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs",
               "api_version_pins"}, sel)
@@ -6146,7 +6156,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 872
+EXPECTED = 875
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

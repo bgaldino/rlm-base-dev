@@ -107,6 +107,19 @@ The 37 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **QuantumBit preparation** (Step 7) — This step always runs, but like Payments, if `quantumbit` is off every task inside is simply skipped. When enabled, it deploys QuantumBit-specific metadata (UI themes, utility flows, billing flexipages), sets up approval workflows, assigns the QuantumBit permission set, and enables CALM (Customer Asset Lifecycle Management) delete permissions. Two separate flags control QuantumBit content: `quantumbit` controls this metadata deployment, while the actual product and pricing data loads later in the flow are controlled independently by the `qb` flag.
 
+**AWS account id for Contracts AI** (Step 7, `deploy_quantumbit`) — The bundle includes `SalesforceContractsExtCredentials`, the AWS Signature V4 external credential Help's Contracts AI setup uses, and its AWS Account Id belongs to whoever owns the AWS account. The repo therefore holds the placeholder `aws-account-id-placeholder` there, and `deploy_quantumbit` decides what the org gets when it builds the deploy package. Set it with the `RLM_AWS_ACCOUNT_ID` environment variable. The `aws_account_id` task option also works and takes precedence, but CumulusCI writes the whole command line, `-o` values included, to `~/.cumulusci/logs/cci.log`, so prefer the variable. The value must be 12 digits. With neither set, the credential deploys without an AWS Account Id. That is the default, and the build works the same without an AWS account. The repo file is never modified, so nothing has to be reverted after a failed deploy. Each redeploy replaces whatever was set in Setup, so set the value at deploy time and not only by hand:
+
+```bash
+export RLM_AWS_ACCOUNT_ID=<your-12-digit-account-id>   # e.g. in your shell profile, never in the repo
+cci flow run prepare_rlm_org --org beta
+```
+
+Under Docker, `./docker/rlm` and `docker/compose.yaml` forward `RLM_AWS_ACCOUNT_ID` from your shell when it is set, so export it before starting the container (for `./docker/rlm up`, before `up`; a running container keeps the environment it started with). The dev container reads it from the editor's own environment instead (`remoteEnv` in `.devcontainer/devcontainer.json`). An editor started from the Dock or a launcher does not see variables from your shell profile, so start the editor from a shell where the variable is exported (for example `code .` or `cursor .`), then rebuild or reopen the container.
+
+If you did use `-o aws_account_id`, remember that `cci error gist` uploads `cci.log` to a GitHub gist, and that log starts with the command line, `-o` values included.
+
+Never commit the value. If the file holds anything other than the placeholder (for example after a retrieve from an org), `deploy_quantumbit` fails, and so does the offline gate (`tests/test_external_credentials.py`).
+
 ---
 
 ### Phase 3: Product Catalog and Pricing (Steps 8–9)

@@ -92,6 +92,12 @@ analytics):
 Other build options: `--shape ent|dev` (default `ent`), `--days N` (default
 `30`), `--alias NAME` (default auto-generated).
 
+Using Contracts AI with your own AWS account? Export `RLM_AWS_ACCOUNT_ID` (your
+12-digit AWS account id) before `./docker/rlm build` or `up`; the launcher
+forwards it, and the build sets it on `SalesforceContractsExtCredentials`.
+Without it the credential deploys with no account id. See
+`docs/guides/prepare-rlm-org-build-guide.md` (Step 7).
+
 ### B) Customize an org you already have
 
 ```bash

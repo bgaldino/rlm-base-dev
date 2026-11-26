@@ -37,6 +37,8 @@ services:
     environment:
       # Forwarded only if set in your shell; powers `rlm ask` / `rlm assist`.
       - ANTHROPIC_API_KEY
+      # Forwarded only if set; deploy_quantumbit's AWS account id (todo 481).
+      - RLM_AWS_ACCOUNT_ID
       - RLM_OAUTH_RELAY_PORT=1718
     volumes:
       # One named volume keeps Salesforce + CumulusCI logins between runs.

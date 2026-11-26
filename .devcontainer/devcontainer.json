@@ -44,7 +44,8 @@
 
   "remoteEnv": {
     "RLM_OAUTH_RELAY_PORT": "1718",
-    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "RLM_AWS_ACCOUNT_ID": "${localEnv:RLM_AWS_ACCOUNT_ID}"
   },
 
   "postAttachCommand": "rlm version",

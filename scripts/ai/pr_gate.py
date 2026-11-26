@@ -859,6 +859,7 @@ CHECKS = [
              "tests/test_workflow_policy.py",
              "tests/test_docker_publish.py",
              "tests/test_deploy_with_fragments.py",
+             "tests/test_external_credentials.py",
              "tests/test_rlm_stamp_commit.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
@@ -893,7 +894,14 @@ CHECKS = [
                   # def) may set enableQuoteEstimatedTaxCPQ behind the flag's back.
                   "tests/test_deploy_with_fragments.py", "unpackaged/pre/", "unpackaged/post_prm/",
                   "unpackaged/post_quote_est_tax_settings/", "orgs/", "force-app/main/default/settings/",
-                  "templates/"],
+                  "templates/",
+                  # todo 481: the SalesforceContractsExtCredentials AwsAccountId is a placeholder
+                  # deploy_quantumbit fills in the deploy zip. The suite scans every file, of any
+                  # type, under unpackaged/, force-app/ and templates/ for a committed 12-digit
+                  # parameterValue.
+                  "tests/test_external_credentials.py", "unpackaged/", "force-app/",
+                  # It also asserts the launchers forward RLM_AWS_ACCOUNT_ID by name only.
+                  "docker/rlm", "docker/compose.yaml", ".devcontainer/devcontainer.json"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
