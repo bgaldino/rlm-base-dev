@@ -342,7 +342,9 @@ def test_credit_rows_without_an_invoice_fail_as_nothing_checked(monkeypatch, cap
     org = Org(monkeypatch, after=[OLD, orphan], result=result)
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
-    assert "no balance was checked" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "SKIP: credit 50gMEMO000000001AA (CreditMemoLineInvoiceLine 4sGNOINV)" in out
+    assert "no balance was checked" in out
 
 
 def test_an_error_without_a_message_prints_its_code(monkeypatch, capsys):
@@ -568,10 +570,43 @@ class _ClosedPipe:
         raise ValueError("no descriptor")
 
 
-@pytest.mark.parametrize("result, code", [(OK, 0), (dict(OK, isSuccess=False), 1)])
-def test_a_closed_pipe_keeps_the_exit_code(monkeypatch, result, code):
+_NONE_COUNTED = dict(OK, appliedRules=[], rulesApplicationSummary={
+    "totalPaymentApplications": 0, "totalCreditMemoApplications": 0})
+_CREDIT_ONLY = dict(OK, rulesApplicationSummary={
+    "totalPaymentApplications": 0, "totalCreditMemoApplications": 1})
+_NOT_ALL = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                                 areAllInvoicesConsidered=False))
+_FAILED = {"ok": False, "checked": 2, "skipped": 0, "level": "line",
+           "level_source": "records", "failed_checks": ["invoice_balance"], "checks": []}
+
+
+@pytest.mark.parametrize("kwargs, code", [
+    ({}, 0),                                                         # verified pass
+    ({"result": dict(OK, isSuccess=False)}, 1),                      # platform failure
+    ({"after": [OLD], "result": _NONE_COUNTED}, 0),                  # nothing applied
+    ({"after": [OLD]}, 1),                                           # unseen count
+    ({"after": [OLD, _row("4sGNOINV", "credit", MEMO, None, 1)],
+      "result": _CREDIT_ONLY}, 1),                                   # nothing readable
+    ({"report": _FAILED}, 1),                                        # verify fail
+    ({"after": [OLD, NEW_PAY, NEW_CREDIT,
+                _row("4sGNOINV", "credit", MEMO, None, 1)],
+      "result": _NOT_ALL}, 0),                                       # SKIP + WARNING
+])
+def test_a_closed_pipe_keeps_the_exit_code(monkeypatch, kwargs, code):
     # `apply-rules ... | head -1`: the reader closes the pipe; no traceback, and
-    # the exit code is still the verdict.
-    Org(monkeypatch, result=result)
+    # the exit code is still the verdict, on every output path.
+    Org(monkeypatch, **kwargs)
     monkeypatch.setattr(sys, "stdout", _ClosedPipe())
     assert _apply_rules() == code
+
+
+def test_an_org_that_cannot_be_reached_is_an_error(monkeypatch, capsys):
+    org = Org(monkeypatch)
+
+    def refuse(cls, *args, **kwargs):
+        raise cli.SfCliError("no such org")
+
+    monkeypatch.setattr(cli.SfRestClient, "from_alias", classmethod(refuse))
+    assert _apply_rules() == 2
+    assert "ERROR: apply-rules:" in capsys.readouterr().err
+    assert org.calls == []

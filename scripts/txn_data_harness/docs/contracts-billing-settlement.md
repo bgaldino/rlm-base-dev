@@ -578,7 +578,8 @@ The probes, in the order they ran (invoice numbers are that org's
   zone); probe 3's payment skipped two invoices posted the previous day that
   matched its balance exactly, and passing that date made such an invoice a
   match (probe 4). `PostedDate` is the
-  UTC date (an invoice created at 00:03Z carries the next day's date). So the
+  UTC date (an invoice created at 00:03Z, 16:03 the previous day in the org's
+  time zone, carries the UTC day's date). So the
   default is inferred to be "posted on or after today, UTC" from one evening's
   calls; the dev guide only says `targetDate` selects invoices posted on or
   after it.

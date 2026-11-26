@@ -894,6 +894,13 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
     payment_ids = list(dict.fromkeys(r["source_id"] for r in new
                                      if r["kind"] == "payment" and r["source_id"]))
+    # A row that names neither a readable invoice nor (for a payment) its
+    # payment reaches no check at all.
+    unchecked = [r for r in new if not r["invoice_id"]
+                 and not (r["kind"] == "payment" and r["source_id"])]
+    for r in unchecked:
+        _emit(f"SKIP: {r['kind']} {r['source_id']} ({r['object']} {r['id']}) names no "
+              "readable invoice; not checked")
     if not invoice_ids and not payment_ids:
         _emit(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
               "readable invoice or payment)")
@@ -906,13 +913,6 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               f"{len(new)} row(s), listed above)", file=sys.stderr)
         return 2
     _emit(billing_verify.render_text(report))
-    # A row that names neither a readable invoice nor (for a payment) its
-    # payment reaches no check at all.
-    unchecked = [r for r in new if not r["invoice_id"]
-                 and not (r["kind"] == "payment" and r["source_id"])]
-    for r in unchecked:
-        _emit(f"SKIP: {r['kind']} {r['source_id']} ({r['object']} {r['id']}) names no "
-              "readable invoice; not checked")
     skipped = report["skipped"] + len(unchecked)
     if not report["ok"] or not report["checked"]:
         reason = "a check failed" if not report["ok"] else "no balance was checked"
