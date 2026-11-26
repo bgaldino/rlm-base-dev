@@ -1571,3 +1571,45 @@ def test_a_credit_pair_on_another_memo_line_is_skipped():
     inv3 = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
             and r["check"] in ("invoice_balance", "invoice_line_balance")]
     assert inv3 and all(r["status"] == "skip" for r in inv3), inv3
+
+
+def test_every_pair_reversed_on_one_invoice_checks_with_settlement_level_null():
+    # As measured: everything unapplied, SettlementLevel back to null; the flagged
+    # rows still show the level.
+    def mutate(data):
+        for rid, new_id, amount in (("4sG000000000001EAA", "4sG000000000009EAA", 40),
+                                    ("4sG000000000002EAA", "4sG000000000008EAA", 60)):
+            applied = _row(data, "CreditMemoLineInvoiceLine", rid)
+            applied["UnappliedStatus"] = "Yes"
+            data["CreditMemoLineInvoiceLine"].append({
+                "Id": new_id,
+                "InvoiceLineId": applied["InvoiceLineId"],
+                "CreditMemoLineId": applied["CreditMemoLineId"], "Amount": amount,
+                "Type": "Unapplied", "UnappliedStatus": "NA",
+                "RelatedCrMemoLineInvcLineId": rid})
+        _row(data, "Invoice", "3tt000000000003AAA").update(
+            NetCreditsApplied=0, Balance=250, SettlementLevel=None)
+        _row(data, "InvoiceLine", "5TV000000000031GAA").update(NetCreditsApplied=0, Balance=100)
+    report = _line(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    inv3 = {(r["check"], r["subject"]): r["status"] for r in report["checks"]
+            if r["subject"].startswith("3tt000000000003AAA")}
+    assert inv3[("application_level", "3tt000000000003AAA")] == "pass"
+    assert inv3[("invoice_balance", "3tt000000000003AAA")] == "pass"
+    assert inv3[("invoice_line_balance", "3tt000000000003AAA/5TV000000000031GAA")] == "pass"
+
+
+def test_a_reversed_payment_absorbed_by_another_invoice_nets_both():
+    # As measured: the reversed payment's open amount applied to the account's next
+    # invoice (outside the set); its rows net 1000 - 1000 + 495.
+    data = _load("line_level.json")
+    _unapply_payment_row(data)
+    data["PaymentLineInvoiceLine"].append({
+        "Id": "1Al000000000080CAA", "InvoiceLineId": "5TV000000000021GAA",
+        "PaymentId": "0aQ000000000001EAA", "Amount": 495, "Type": "Applied",
+        "UnappliedStatus": "No", "RelatedPaymentLineInvcLineId": None})
+    _row(data, "Payment", "0aQ000000000001EAA").update(NetApplied=495, Balance=505)
+    report = _verify(data, ["3tt000000000001AAA"], ["0aQ000000000001EAA"])
+    assert report["ok"] is True, report["failed_checks"]
+    result = next(r for r in report["checks"] if r["check"] == "payment_balance")
+    assert result["status"] == "pass" and result["detail"].endswith("505 = 1000 - 495")

@@ -272,7 +272,7 @@ Drive cleanup from manifest ids. Delete what is deletable child → parent:
 assets/orders, then quote, then opportunity. Activated orders must be reverted to
 Draft before deletion. Posted invoices and BillingSchedules are not cleanly
 deletable; settlement payments, credit memos and their application records have
-no probed cleanup path. Tell the user before attempting cleanup.
+no probed delete, void or cancel path (`cli unapply` reverses the applications). Tell the user before attempting cleanup.
 
 For copy-paste cleanup recipes, use `docs/guides/txn-data-harness.md`.
 

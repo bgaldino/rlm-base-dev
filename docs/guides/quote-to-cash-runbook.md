@@ -31,8 +31,9 @@ skill: [`verification.md`](../../.cursor/skills/billing-operations/verification.
   its balance checks there, so expect `cli quote-to-cash` to exit 1 even when
   every stage ran.
 - **A scratch or demo org.** Every run adds a new transaction. Posted
-  invoices and billing schedules cannot be deleted, and no cleanup path was
-  measured for the settlement records (see [Cleanup limits](#cleanup-limits)).
+  invoices and billing schedules cannot be deleted, and no delete, void or
+  cancel path was tried for the settlement records (see
+  [Cleanup limits](#cleanup-limits)).
 - **One run at a time per account**: posting an invoice applies the account's
   open payment balance to it, so parallel runs on one account can take each
   other's payment. The commands below use `--concurrency 1`.

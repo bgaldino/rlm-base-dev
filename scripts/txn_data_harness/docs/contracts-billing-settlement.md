@@ -481,8 +481,11 @@ unapply` (todo 490) is built on it.
   `ImpactAmount` unchanged; `UnappliedStatus` goes No -> Yes and
   `UnappliedDateTime` is set (the payment row's `AppliedImpactAmount` goes to
   0). A new row is added: `Type` Unapplied, a positive `Amount` equal to the
-  original's, `UnappliedStatus` NA, `RelatedPaymentLineInvcLineId` /
+  original's, on the same `InvoiceLineId` and `PaymentId` / `CreditMemoLineId`,
+  `UnappliedStatus` NA, `RelatedPaymentLineInvcLineId` /
   `RelatedCrMemoLineInvcLineId` naming the original, positive `ImpactAmount`.
+  Both Related fields are filterable: a rerun found the existing Unapplied rows
+  by them.
 - **Balances.** After the payment's unapply: invoice and line `Balance` 445.50,
   `NetPaymentsApplied` 0; payment `Balance` 445.50, `NetApplied` 0. After the
   credit's too: invoice `Balance` 495.00, both nets 0, credit memo `Balance`
@@ -521,8 +524,8 @@ the org cannot be read before any unapply. `cli verify` then checks the pair (se
 
 ## Cleanup
 
-Payments, credit memos and their application records were not deleted and no
-cleanup path was probed. A Payment's `Status` picklist includes `Canceled`;
-unapplying is measured ([Unapply](#unapply)), voiding credit memos is
-documented but not exercised here. Treat settlement records like Posted
+Payments, credit memos and their application records were not deleted, and no
+delete, void or cancel path was probed. A Payment's `Status` picklist includes
+`Canceled`; voiding credit memos is documented but not exercised here.
+Unapplying is measured ([Unapply](#unapply)). Treat settlement records like Posted
 invoices: leftovers. Tracked in [`followups.md`](followups.md#billing-settlement).

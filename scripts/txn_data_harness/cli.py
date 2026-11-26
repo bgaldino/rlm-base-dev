@@ -111,7 +111,7 @@ def _format_inspect_text(summary: dict) -> str:
         lines.append(f"Invoice number: {summary.get('invoice_number')}")
     reversed_rows = (summary.get("settlement") or {}).get("unapplied_row_ids") or []
     if reversed_rows:
-        lines.append(f"Unapplied rows added by cli unapply: {len(reversed_rows)}")
+        lines.append(f"Unapplied rows recorded by cli unapply: {len(reversed_rows)}")
     link = summary.get("invoice_order_link") or {}
     if link.get("status") == "failed":
         detail = f": {link.get('error')}" if link.get("error") else ""
@@ -772,7 +772,13 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
                     sent += 1
                 if new_id not in manifest.unapplied_row_ids:
                     manifest.unapplied_row_ids.append(new_id)
-                    write_manifest(manifest)
+                    try:
+                        write_manifest(manifest)
+                    except Exception:
+                        # Not recorded: drop it so a later row's write does not
+                        # save it either; the rerun looks it up.
+                        manifest.unapplied_row_ids.remove(new_id)
+                        raise
             except Exception as exc:  # noqa: BLE001 - report and go on to the next row
                 failures += 1
                 print(f"FAIL: {kind} {row_id}: {_error_message(exc)} (rerun to retry; a "

@@ -145,8 +145,8 @@ python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_
 ```
 
 Reverses the run's own recorded line-level applications (payment, then
-credit) with the unapply actions, and records the new `Type` Unapplied rows in
-the manifest's `unapplied_row_ids`. A row already unapplied is not sent again.
+credit) with the unapply actions, and records the `Type` Unapplied rows (new,
+or found for a row already unapplied) in the manifest's `unapplied_row_ids`. A row already unapplied is not sent again.
 Only a finished settlement is taken (no error; `payment_applied` reached, or a
 block with no payment). Exit 0 when every selected application is unapplied
 and recorded, 1 when one could not be or nothing was recorded to unapply, 2
@@ -187,7 +187,8 @@ through the invoices' application rows, or passed with `--payment-ids`.
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
 inside one allow-list of measured cases (Line Level: Posted invoices, taxed
 ones included, without write-off or other unmeasured totals, separate Tax lines
-or header-captured tax; Charge lines; Applied rows; Processed
+or header-captured tax; Charge lines; Applied rows, and a line-level
+Applied/Unapplied pair from an unapply; Processed
 payments with applications or Canceled ones without; Posted credit memos), and
 an invoice and a payment or credit memo joined by a row are measured only
 together; anything else skips naming its first cause and origin.

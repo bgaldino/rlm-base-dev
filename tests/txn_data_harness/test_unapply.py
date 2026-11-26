@@ -247,6 +247,8 @@ def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, cap
     out = capsys.readouterr().out
     assert f"FAIL: payment {PAY_ROW}:" in out and "rerun to retry" in out
     assert "UNAPPLIED: credit" in out
+    # The failed row is not recorded by the next row's write either.
+    assert _recorded(path) == ["4sGNEW000000000002"]
     # A rerun looks the payment's Unapplied row up instead of sending again.
     org.posts.clear()
     monkeypatch.setattr(cli, "write_manifest", real)
@@ -291,4 +293,4 @@ def test_inspect_shows_the_unapplied_rows_of_a_reversed_run(run, capsys):
     manifest = Manifest.from_dict(json.loads(path.read_text()))
     summary = SCENARIO_HANDLERS[manifest.kind].summarize(manifest)
     assert summary["settlement"]["unapplied_row_ids"] == manifest.unapplied_row_ids
-    assert "Unapplied rows added by cli unapply: 2" in cli._format_inspect_text(summary)
+    assert "Unapplied rows recorded by cli unapply: 2" in cli._format_inspect_text(summary)
