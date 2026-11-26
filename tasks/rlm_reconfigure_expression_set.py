@@ -17,7 +17,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_like_prefix, soql_quote
+from tasks.soql_utils import option_text, positive_int, project_api_version, soql_like_prefix, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -55,7 +55,7 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
             "required": True,
         },
         "rank": {
-            "description": "Rank to set on the ExpressionSetVersion (default: 1)",
+            "description": "Rank to set on the ExpressionSetVersion (default: 1, also when blank). Anything but a positive integer is refused.",
             "required": False,
         },
         "start_date": {
@@ -168,7 +168,10 @@ class ReconfigureExpressionSet(BaseSalesforceTask):
     def _run_task(self):
         es_name = self.options["expression_set_name"]
         cd_name = self.options["context_definition_name"]
-        rank = int(self.options.get("rank") or 1)
+        # Before any request: blank or unset is the default (1); 0, a negative, a non-number or a list is
+        # refused by name (it was int(value or 1), so 0 silently became 1 and "abc" a raw ValueError).
+        rank_text = option_text(self.options.get("rank"), "rank", TaskOptionsError)
+        rank = 1 if rank_text is None else positive_int(rank_text, "rank", TaskOptionsError)
         start_date = self.options.get("start_date") or "2020-01-01T00:00:00.000Z"
 
         self.logger.info(

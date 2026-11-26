@@ -1416,6 +1416,81 @@ check("validate_setup: _run_task refuses a bad boolean before any check runs",
       raises(lambda: _t._run_task(), "fail_on_error must be true or false") and _ran == [])
 
 
+print("todo 488: export_bre retrieve_metadata and reconfigure_expression_set rank through the helpers")
+_bre = load("rlm_bre")
+
+
+def bre_run(options):
+    """ExportBRE._run_task with the exports stubbed; return (error, queries, metadata retrieved?)."""
+    queries, retrieved = [], []
+    t = _bre.ExportBRE.__new__(_bre.ExportBRE)
+    t.options = {"output_dir": tempfile.mkdtemp(), **options}
+    t.logger = MagicMock()
+
+    def export(soql, fields, dest):
+        queries.append(soql)
+        if "FROM RuleLibrary " in soql:
+            return [{"Id": "RL1", "RuleLibraryDefinitionId": "D1", "RuleLibraryDefinition": {"DeveloperName": "Lib"}}]
+        return []
+    t._export_query = export
+    t._export_rulesets = lambda ids, output_dir: None
+    t._retrieve_metadata = lambda names, output_dir: retrieved.append(list(names))
+    try:
+        t._run_task()
+        err = None
+    except Exception as exc:
+        err = str(exc)
+    return err, queries, bool(retrieved)
+
+
+# Today's default is kept: blank or unset retrieves. "no", "off" and "0" now mean false (only
+# "false" did; anything else retrieved anyway).
+for value, want in ((None, True), ("", True), ("  ", True), (" true ", True), ("on", True), ("y", True),
+                    ("false", False), (" no ", False), ("off", False), ("0", False), (0, False)):
+    err, queries, retrieved = bre_run({"retrieve_metadata": value})
+    check(f"export_bre: retrieve_metadata {value!r} retrieves metadata: {want}",
+          err is None and queries and retrieved is want, repr((err, len(queries), retrieved)))
+for value, needle in ((["true"], "retrieve_metadata must be a single value"),
+                      ("maybe", "retrieve_metadata must be true or false")):
+    err, queries, retrieved = bre_run({"retrieve_metadata": value})
+    check(f"export_bre: retrieve_metadata {value!r} refused by name before any query",
+          err is not None and needle in err and queries == [] and not retrieved, repr((err, queries)))
+
+_res = load("rlm_reconfigure_expression_set")
+
+
+def res_run(options):
+    """ReconfigureExpressionSet._run_task up to its first query; return (error, queries, logged rank)."""
+    queries, logged = [], []
+    t = _res.ReconfigureExpressionSet.__new__(_res.ReconfigureExpressionSet)
+    t.options = {"expression_set_name": "ES", "context_definition_name": "CD", **options}
+    t.logger = MagicMock()
+    t.logger.info.side_effect = lambda msg, *a: logged.append(a)
+
+    def first_query(*a, **k):
+        queries.append(a)
+        raise RuntimeError("stop: first query")
+    t._get_expression_set_version = first_query
+    try:
+        t._run_task()
+        return None, queries, logged
+    except RuntimeError as exc:
+        return ("reached" if "stop: first query" in str(exc) else str(exc)), queries, logged
+    except Exception as exc:
+        return str(exc), queries, logged
+
+
+for value, want in ((None, 1), ("", 1), ("  ", 1), (" 3 ", 3), (2, 2), ("1", 1)):
+    err, queries, logged = res_run({"rank": value})
+    check(f"reconfigure_expression_set: rank {value!r} is {want} and the first query is sent",
+          err == "reached" and queries and logged and logged[0][2] == want, repr((err, queries, logged[:1])))
+for value, needle in ((0, "rank must be a positive integer"), ("0", "rank must be a positive integer"),
+                      ("-2", "rank must be a positive integer"), ("abc", "rank must be a positive integer"),
+                      (["1"], "rank must be a single value")):
+    err, queries, logged = res_run({"rank": value})
+    check(f"reconfigure_expression_set: rank {value!r} refused by name before any query (0 became 1, 'abc' a ValueError)",
+          err is not None and needle in err and queries == [], repr((err, queries)))
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")

@@ -35,7 +35,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -83,7 +83,7 @@ class ExportBRE(BaseSalesforceTask):
             "required": False,
         },
         "retrieve_metadata": {
-            "description": "If true (default), also retrieve RuleLibraryDefinition metadata via sf CLI",
+            "description": "If true (default, also when blank), also retrieve RuleLibraryDefinition metadata via sf CLI. A list or an unparseable value is refused.",
             "required": False,
         },
     }
@@ -451,7 +451,12 @@ class ExportBRE(BaseSalesforceTask):
     def _run_task(self):
         api_name = self.options.get("api_name")
         output_dir = self.options["output_dir"]
-        retrieve_metadata = str(self.options.get("retrieve_metadata", "true")).lower() != "false"
+        # Before any request, through soql_utils.option_flag: blank or unset is the default (true), as
+        # before; "false", "no", "off" and "0" are false (only "false" was, so "no" retrieved anyway);
+        # a list or a value outside CumulusCI's vocabulary is refused by name.
+        retrieve_metadata = option_flag(
+            self.options.get("retrieve_metadata"), "retrieve_metadata", TaskOptionsError, default=True
+        )
         os.makedirs(output_dir, exist_ok=True)
 
         if api_name:
