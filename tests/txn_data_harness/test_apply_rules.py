@@ -8,6 +8,7 @@ with no ``errors`` key on success; the rows it writes are ordinary Applied rows.
 from __future__ import annotations
 
 import re
+import sys
 
 import pytest
 
@@ -554,3 +555,23 @@ def test_a_verify_that_cannot_report_is_an_error(monkeypatch, capsys):
     org.fail["fetch"] = SfApiError(500, "[]", "GET", "/query")
     assert _apply_rules() == 2
     assert "(the call applied 2 row(s), listed above)" in capsys.readouterr().err
+
+
+class _ClosedPipe:
+    def write(self, text):
+        raise BrokenPipeError(32, "Broken pipe")
+
+    def flush(self):
+        raise BrokenPipeError(32, "Broken pipe")
+
+    def fileno(self):
+        raise ValueError("no descriptor")
+
+
+@pytest.mark.parametrize("result, code", [(OK, 0), (dict(OK, isSuccess=False), 1)])
+def test_a_closed_pipe_keeps_the_exit_code(monkeypatch, result, code):
+    # `apply-rules ... | head -1`: the reader closes the pipe; no traceback, and
+    # the exit code is still the verdict.
+    Org(monkeypatch, result=result)
+    monkeypatch.setattr(sys, "stdout", _ClosedPipe())
+    assert _apply_rules() == code
