@@ -91,8 +91,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     standalone Evergreen product, one org). The uplifted price keeps full precision, not cents: add a rounding step
     after the ramp uplift if the source rounds. [Open: not measured on a Standard ramp; measure one with several products and a rounded price. The 2026-10-29
     Standard UI run had one Term product and exact prices]
-    [Measured: 2026-11-11/13, 264, scratch orgs; detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
-    [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)].
+    [Measured: 2026-11-11/13, 264, scratch orgs] (detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
+    [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)).
 
 ## DO NOT
 

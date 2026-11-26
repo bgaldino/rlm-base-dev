@@ -42,7 +42,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
       or cancellation line reads the source asset's current state and activation changes it [Platform behaviour,
       traced in part]. A full reprice (`Force`, configuration `Skip`) after activation set a renewal's lines and total
       to 0 [Measured: 2026-11-12, 264, scratch, one org] and an activated cancellation's line and total to 0
-      [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](cancel-swap-and-linking.md)]; an
+      [Measured: 2026-11-26, 264, ent-sb0 harness build] (see [cancel-swap-and-linking.md](cancel-swap-and-linking.md)); an
       amend-add and an Evergreen-reduce amendment quote did not change [Measured: 2026-11-26, 264, ent-sb0 harness
       build]. Other amendment shapes, and any ramped quote, are not measured: keep the caution there. Why the reprice
       returned 0 is not traced. Read quote values before activation. A renewal quote that wasn't repriced still read its total after its order
@@ -74,7 +74,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
    but the **invoice** credits by day (a 2,000 per month line reduced by one unit: -1,000 invoiced against a -2,000 quote credit). Term Defined: quantity x net unit price
    x remaining periods **counted from the asset start** (a Term Defined cancel measured -10,510.03, not the
    calendar-year -10,518.95). State the quote and invoice values separately
-   [Measured: 2026-11-26, 264; [cancel-swap-and-linking.md](cancel-swap-and-linking.md)].
+   [Measured: 2026-11-26, 264, ent-sb0 harness build] (see [cancel-swap-and-linking.md](cancel-swap-and-linking.md)).
 7. **Constraints apply to amendments too.** Test each change sequence with rules on and assert each refusal's
    message. A rule can remove a line silently (a requirement the solver satisfies with count 0), a swap can add a
    required line dated today, and a Force edit can flip untouched lines to Amend: read every line's delta, date and

@@ -24,7 +24,7 @@ That is the form measured below; the dev guide's examples show a line id in `rec
 - The dev guide documents `{ requestId, salesTransactionId, success, errors }`, with
   `success` covering only the synchronous part and `requestId` for the async status
   [Dev guide: `connect-responses-clone-sales-transaction-output`].
-- Measured on two whole-quote clones: the response also carried `trackerId` and
+- On two whole-quote clones [Measured: 2026-11-10, 264, scratch] the response also carried `trackerId` and
   `trackerUrl` (as the `ramped-quotes` skill also records for group clones); `requestId`, `trackerId` and `trackerUrl` were all null;
   `salesTransactionId` was the **new** quote's id. After the first clone, the new quote read
   `CalculationStatus = CompletedWithPricing` on the first query, about 5 seconds later
@@ -76,7 +76,7 @@ search of the clone module; the save through Place Sales Transaction was not tra
 transaction path, which may carry fields differently, and whether a mapped field that is
 non-editable, formula or output-only is dropped.
 
-Measured on one org, from a source quote with one group, two evergreen lines of one
+On one org, from a source quote with one group, two evergreen lines of one
 product (line discounts 20% and 10%), one attribute row on the 20% line, synced to its
 opportunity and with an approval submission in progress [Measured: 2026-11-10, 264]:
 

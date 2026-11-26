@@ -5,9 +5,9 @@
 `<PLACEHOLDER>` values are ids you resolve first (see [Discovering ids](verify-and-discover.md#discovering-ids)).
 Windows are contiguous per-period spans. For **`SegmentType=Yearly`**, send segment 1
 through EditGroup as **exactly 365 days** (`StartDate` + 364 days). Help says "exactly 365
-days for all segments, fixed" (`ind.qocal_ramp_deal_for_groups_create.htm.md`). Measured on
-264 (2026-10-28), though, **clones end each later segment on the calendar anniversary**:
-2027-05-01..2028-04-30 is 366 days and works. So only segment 1 can't contain 29 February. If
+days for all segments, fixed" [Help: ind.qocal_ramp_deal_for_groups_create]. Clones, though,
+**end each later segment on the calendar anniversary**: 2027-05-01..2028-04-30 is 366 days and
+works [Measured: 2026-10-28, 264, scratch]. So only segment 1 can't contain 29 February. If
 it did, it would end a day short of the anniversary and the segments would drift; pick another
 start or use `Custom`. Later leap years are fine. `build_quote_to_asset.py --ramp-kind group`
 refuses such a start. For variable durations use **`SegmentType=Custom`**.
@@ -55,7 +55,7 @@ parents created in the same call.
 Add one `refLineN` per product. A ramp line needs **both** `Product2Id` and
 `PricebookEntryId` (PBE alone fails). For **group** ramps the product needs **no
 per-product ramp flag** — all subscription (term-defined) products that meet the
-requirements are eligible by default (264 Help, *Ramp Deals for Groups Transition*);
+requirements are eligible by default [Help: Ramp Deals for Groups Transition];
 `Product2.CanRamp` gates the *line*-ramp path, not this one. Set
 `CurrencyIsoCode` on the Quote to the **account currency** — this repo enables
 multicurrency (`config/project-scratch-def.json`), so omitting it lets the quote take
@@ -87,7 +87,7 @@ matches the groups to convert by `referenceId`; with a label such as `"g"` nothi
 the call fails with `UNKNOWN_EXCEPTION` *"Index 0 out of bounds for length 0"* (measured on 264,
 2026-10-28; `GroupRampActionHandler.handleEditGroup` indexes the empty match list).
 
-**Multi-schedule mode (repo default): add the parent yourself.** Measured on 264, neither
+**Multi-schedule mode (repo default): add the parent yourself.** Neither
 EditGroup nor clone creates the `RampScheduleGroup`, and an order without one fails activation
 with *"Specify a ramp schedule group for ramp segment"* (todo 159). After the clones, POST a
 `QuoteLineGroup` with `Type: "RampScheduleGroup"` (a Place with the Quote PATCH and that POST),
@@ -150,7 +150,7 @@ line, in one Place graph, then reprice and poll. This step is what actually yiel
 compound result — the three calls above alone do not. Segments
 reparented to the `RampScheduleGroup` by DML priced as Standard until this PATCH sent
 `RampUpliftType` [Measured: 2026-11-16, 264, scratch]. `build_quote_to_asset.py --ramp-kind
-group` sets neither `RampUpliftType` nor `UnitPriceUplift` [Repo], so send this step yourself.
+group` sets neither `RampUpliftType` nor `UnitPriceUplift` [Repo: tasks/build_quote_to_asset.py], so send this step yourself.
 [Open: whether `RampUpliftType` set on the `RampScheduleGroup` POST takes effect; until tested,
 send it in this PATCH] It also needs the fully-configured
 `PriceRevision` engine ([Compound uplift](compound-uplift.md)).

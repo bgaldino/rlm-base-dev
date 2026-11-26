@@ -82,8 +82,8 @@ is under `configurationOptions`). Those PATCHes then ran with
 `configurationMethod` only, so this says nothing about rules-on requests nested as documented
 [Measured: 2026-11-12, 264, scratch].
 
-**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
-procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
+**Line discounts in a Place PATCH.** On scratch orgs whose pricing
+procedures were customised [Measured: 2026-11-12, 264, scratch], with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
 `configurationMethod: Skip`):
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
