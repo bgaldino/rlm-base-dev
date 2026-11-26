@@ -619,7 +619,7 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         argv.append("-" + "v" * args.verbose)
     try:
         specs = load_scenarios(generate.parse_args(argv))
-    except (ConfigError, OSError, ValueError) as exc:
+    except Exception as exc:  # noqa: BLE001 - any config error is a refusal (4), never a verdict
         print(f"ERROR: bad config:\n  {exc}", file=sys.stderr)
         return 4
     off_target = sorted({s.target_stage for s in specs} - {QUOTE_TO_CASH_STAGE})

@@ -168,7 +168,8 @@ Whether any of these has been run end to end for a given stage here: not measure
 quote-to-cash chain (quote through an applied credit and payment, Line Level, 2026-11-26), the
 Line Level application, the automatic payment schedule on posting, the Billing Forecast run and the
 invoice PDF fetch
-(*Measured: Line Level application* and *Billing Settings that change behavior* in
+(the quote-to-cash run in `docs/guides/quote-to-cash-runbook.md`; *Measured: Line Level
+application* and *Billing Settings that change behavior* in
 [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
 *Billing Forecast: generate and read back* in [invoicing.md](invoicing.md)).
 

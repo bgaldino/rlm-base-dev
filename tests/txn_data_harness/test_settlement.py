@@ -3354,6 +3354,21 @@ def test_fixed_sub_unit_payment_is_refused_before_the_credit_post(billable_accou
     assert org.posts == [] and org.memos == []
 
 
+
+def test_sub_unit_payment_is_refused_on_a_run_stopping_at_credit_applied(billable_account) -> None:
+    """The whole block is recorded at credit_applied, so its payment is checked
+    there too: nothing is written for a block the run could never finish."""
+    org = SettleOrg("line", places=0)
+    org.invoice["CurrencyIsoCode"] = "JPY"
+    spec = _pst(target_stage="payment_applied", settlement={
+        "application_level": "line", "credit": {"amount": 50}, "payment": {"amount": 0.4},
+    }).settlement
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "credit_applied"
+    with pytest.raises(lifecycle.SettlementError, match="configured payment rounds to 0 in JPY"):
+        steps.run_credit(ctx, _posted_manifest())
+    assert org.posts == [] and org.memos == []
+
 # -- review round 13 (todo 275): the memo applies its whole total here ----------
 
 

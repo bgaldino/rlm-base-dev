@@ -206,3 +206,38 @@ def test_generate_hands_the_batch_manifests_to_on_batch(monkeypatch, tmp_path) -
     assert generate.main(["--org", "o", "--concurrency", "1"],
                          on_batch=lambda r, ms: seen.append((r, ms))) == 0
     assert seen == [(result, [manifest])]
+
+
+def test_a_malformed_config_value_is_exit_4_not_a_traceback(harness, tmp_path, capsys):
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("defaults: {kind: sales_txn_quote, target_stage: [payment_applied]}\n"
+                   "scenarios:\n  - {account: Infinitech}\n")
+    assert cli.main(["quote-to-cash", "--org", "x", "--config", str(cfg)]) == 4
+    assert harness["argv"] is None
+    assert "bad config" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("returncode", [0, 1, 2])
+def test_task_raises_on_a_nonzero_exit(monkeypatch, returncode):
+    from types import SimpleNamespace
+
+    task_module = _task_module()
+    calls = []
+
+    def fake_run(cmd, cwd):
+        calls.append((cmd, cwd))
+        return SimpleNamespace(returncode=returncode)
+
+    monkeypatch.setattr(task_module.subprocess, "run", fake_run)
+    task = task_module.VerifyQuoteToCash.__new__(task_module.VerifyQuoteToCash)
+    task.org_config = SimpleNamespace(username="u@example.com")
+    task.project_config = SimpleNamespace(repo_root="/repo")
+    task.options = {}
+    task.logger = SimpleNamespace(info=lambda *a, **k: None)
+    if returncode:
+        with pytest.raises(task_module.CommandException, match=f"exit {returncode}"):
+            task._run_task()
+    else:
+        task._run_task()
+    cmd, cwd = calls[0]
+    assert cwd == "/repo" and cmd[-2:] == ["--org", "u@example.com"]

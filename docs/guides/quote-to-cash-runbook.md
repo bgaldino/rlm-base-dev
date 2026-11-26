@@ -100,9 +100,9 @@ python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN   # fro
 
 | Stage | What the step does | What to check |
 |-------|--------------------|---------------|
-| `quote_placed` | Places the quote (Place Sales Transaction). | `inspect` shows `quote_id`. `verify` exits 2 here and at the two order stages: the manifest names no invoice yet. |
-| `order_draft` | Creates the order from the quote. | `inspect` shows `order_id` and `order_number`; the Order is `Draft`. |
-| `order_activated` | Activates the order and waits for billing schedules and assets. | `inspect` shows `billing_schedule_ids` and `asset_ids`; the Order is `Activated`. |
+| `quote_placed` | Places the quote (Place Sales Transaction). | `inspect` shows a `quote:` id. `verify` exits 2 here and at the two order stages: the manifest names no invoice yet. |
+| `order_draft` | Creates the order from the quote. | `inspect` shows an `order:` id; the Order is `Draft`. |
+| `order_activated` | Activates the order and waits for billing schedules and assets. | `inspect` shows `billing_schedules:` and `assets:` ids; the Order is `Activated`. |
 | `invoice_draft` | Generates the invoice (passes through `usage_upload` for a non-usage product). | `verify`: `RESULT: pass (no balances checked; 2 skipped)`; Draft invoices are not checked. |
 | `invoice_posted` | Posts the invoice. | `verify`: `invoice_balance` passes (balance = total); the line check skips, because nothing applied yet shows the level. |
 | `credit_applied` | Creates the credit memo and applies it. Pass `--config $CFG` on this step: the run stopped before the settlement stages, so its manifest has no settlement block yet. | `verify`: invoice and line balances = total − credit (445.50 = 495.00 − 49.50 measured). |
@@ -124,8 +124,8 @@ minted directly, no quote or order), start at `invoice_draft` or
 
 ## When a stage fails
 
-1. `inspect --manifest $RUN` shows `reached_stage`, `error` and
-   `failure_class`.
+1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and
+   `failure_class` (the text form leaves out `failure_class`).
 2. A transient failure (a timeout, a lock) usually clears on a rerun of the
    same `cli step`; the steps are safe to resend (at most one credit memo and
    one payment per run, looked up by tag rather than sent twice).

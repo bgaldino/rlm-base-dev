@@ -341,7 +341,8 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
   currency and its decimal places; fixed amounts are checked before the
   first write of the run (so a sub-unit payment refuses before the credit
-  is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
+  is sent; this holds on a run that stops at `credit_applied` too, because
+  the whole block is recorded), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
   A credit `percent` is taken of that capped amount (a warning says when the
   cap reduced its base). When the invoice owes something but none of the
   chosen lines can take even the smallest credit (tax included) within it,
