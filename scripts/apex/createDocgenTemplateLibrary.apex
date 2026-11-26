@@ -38,17 +38,31 @@ final String PERMISSION_NAME = 'RLM DocGen Template Viewer';
 final String GROUP_API_NAME = 'RLM_DocGen_Template_Users';
 final String GROUP_LABEL = 'RLM DocGen Template Users';
 
-// 1. Library. The lookup also finds a library the running admin is not a member of: measured on
-// 264 (todo 435), a System Administrator outside the library found it with and without sharing,
-// and an insert of the same DeveloperName fails with DUPLICATE_VALUE ("Another library already
-// has this name."), which this script would then report instead of continuing.
+// 1. Library. A library is visible only to its members, directly or through a group, and that
+// holds for a System Administrator too. Measured on 264 (todo 435) in a check-only test run as a
+// new System Administrator: while RLM_DocGen_Template_Users (All Internal Users) is a member, that
+// admin finds the library and the permission, group and membership, so a rerun by any internal
+// admin inserts nothing; with the group taken out of the library, the same admin finds no library,
+// with or without sharing, and inserting the same DeveloperName fails with DUPLICATE_VALUE
+// ("Another library already has this name."). That happens when the running admin is not a member
+// of a library someone else created, so the script stops with what to do instead.
 List<ContentWorkspace> libraries = [
     SELECT Id FROM ContentWorkspace WHERE DeveloperName = :LIBRARY_API_NAME LIMIT 1
 ];
 ContentWorkspace library;
 if (libraries.isEmpty()) {
     library = new ContentWorkspace(Name = LIBRARY_LABEL, DeveloperName = LIBRARY_API_NAME);
-    insert library;
+    Database.SaveResult created = Database.insert(library, false);
+    if (!created.isSuccess()) {
+        Database.Error error = created.getErrors()[0];
+        if (error.getStatusCode() == StatusCode.DUPLICATE_VALUE) {
+            throw new DmlException('A library with the unique name ' + LIBRARY_API_NAME
+                + ' already exists, but ' + UserInfo.getUserName() + ' is not a member, so it cannot see it.'
+                + ' In Salesforce Classic, open Libraries (/sfc/#workspaces) as a member of that library,'
+                + ' add ' + UserInfo.getUserName() + ' as a Library Administrator, and run this step again.');
+        }
+        throw new DmlException('Could not create the library ' + LIBRARY_API_NAME + ': ' + error.getMessage());
+    }
     System.debug('Created library ' + LIBRARY_API_NAME + ' (' + library.Id + ')');
 } else {
     library = libraries[0];

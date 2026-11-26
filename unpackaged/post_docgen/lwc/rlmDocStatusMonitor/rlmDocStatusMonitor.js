@@ -12,7 +12,8 @@ let empErrorHandlerRegistered = false;
 const PENDING_STATUS = 'InProgress';
 // The only statuses that end the wait. The process status and the DocGenProcStsChgEvent status
 // also take Waiting and Blocked (264 picklist and developer guide); those, like InProgress, keep
-// the screen waiting, and MAX_WAIT_MS bounds the wait.
+// the screen waiting, and MAX_WAIT_MS bounds the wait. Whether they are temporary is not measured:
+// Help says requests over the throttling limits are blocked, not whether they run later.
 const FINAL_STATUSES = new Set(['Success', 'Failure']);
 // Reported to the flow when no final status (Success or Failure) has arrived after MAX_WAIT_MS. Any status other
 // than Success takes the flow to its error screen; for TimedOut that screen says the process was
