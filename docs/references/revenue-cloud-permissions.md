@@ -527,18 +527,31 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
-- **as the group itself:** the Invoice Batch Run reads. When the group is not `Updated` (a deploy that changes it
-  leaves it `Updating`) this check is skipped with a WARN debug line, and then proves nothing;
+- **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
+  `Updating` or `Outdated` (a deploy that changes it leaves it `Updating`) is skipped with a "SKIPPED, NOT
+  CHECKED" WARN debug line, and then proves nothing;
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access
-  set): the Invoice Batch Run reads; with both DocGen sets, the batch create, the on-demand create and template
-  read; and the default invoice template's file read;
-- **library membership** through the build's own `RLM_DocGen_Template_Users` membership. The file read is
-  skipped (WARN) when that group is not a library member.
+  set): the Invoice Batch Run reads, and with both DocGen sets the batch create, the on-demand create and
+  template read. The Billing Operations run-read checks are regression checks: the managed Operations set
+  already reads the runs, and the View All the set adds is checked only by the metadata test;
+- **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
+  groups.
 
-It also checks the set's grants and that both groups contain it. Where Salesforce might grant more later (the
-Billing Admin role alone reading the runs, `DocGenUser` alone creating a batch process, a member without Access
-Libraries reading the file), it writes a WARN note instead of failing, so a deploy that runs local tests is not
-blocked by a platform change.
+It does **not** read the template file. That read depends on org data and configuration (the template, its
+library, which members an admin left in `RLM_DocGen_Template_Users`), so it cannot gate a deploy. It was
+proved by check-only probes that recreated the build's group shape inside the test (a read-only library
+permission and a public group holding All Internal Users, as library member): a Minimum Access user with the
+Billing Admin role set and `RLM_BillingInvoiceDocuments` read the `DefaultInvoiceTemplate` file through it,
+and so did a Standard User (0AfWt00000hUTAHKA4; the same check in a copy of the test class,
+0AfWt00000hUSJ4KAO). Minimum Access users without Access Libraries read none of it through the same group
+shape (0AfWt00000hURbVKAW) or as direct members (0AfWt00000hUSFpKAO); with only that permission added, a
+direct member read it (0AfWt00000hUSHRKA4). None of this ran on a build's own group or through the shipped
+class; the live persona run checks it for real.
+
+Where Salesforce might grant more later (the Billing Admin role alone reading the runs, `DocGenUser` alone
+creating a batch process), the class writes a WARN note instead of failing, so a deploy that runs local tests
+is not blocked by a platform change. Before todo 292 the personas bundle had no Apex; a deploy that runs local
+tests runs every local test in the org, this class included.
 
 Not measured, and to check in the first live run as the persona:
 
