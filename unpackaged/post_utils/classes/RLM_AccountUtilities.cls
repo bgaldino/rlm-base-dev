@@ -52,11 +52,19 @@
  * opportunity under Private sharing was not found at all. So orders, contracts, credit
  * memos, assets, quotes and opportunities are checked against the user's delete access
  * before anything changes or deletes them (keepWhatUserCannotDelete), and a record the
- * user cannot delete is kept and reported, the record itself unchanged. Records that
- * depend on it may still go: a kept order's fulfillment records and billing schedule
- * groups, and the usage records and binding policies of a kept asset or contract, are
- * found through the account, not through the kept record. A record the user cannot see is counted in system mode after a completed run
- * and reported as kept (reportHiddenRecords); only the count is read.
+ * user cannot delete is kept and reported, the record itself unchanged. Assets are
+ * decided before phase 1 (decideKeptAssets): a kept asset keeps its rate card entries,
+ * relationships, the assets those link it to, and what the asset step deletes through
+ * assets (entitlements bound to it with their buckets, work orders, cases). A kept quote
+ * keeps its opportunity, files and generated documents; a kept contract its rate card
+ * entries. What the reset finds through the account still goes whatever is kept, as it
+ * does with Delete Assets unchecked: the account's usage records, entitlements and
+ * commitment junctions, the binding policies bound to its assets and contracts, and a
+ * kept order's fulfillment records and billing schedule groups. A delete the platform
+ * refuses for another reason keeps that record with the platform's message, in two
+ * passes (deleteInTwoPasses), except assets, which stay all or nothing. A record the
+ * user cannot see is counted in system mode after a completed run and reported as kept
+ * (reportHiddenRecords); only the count is read.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
  * context called it. An omitted keyword is NOT equivalent to `without sharing` in
@@ -78,7 +86,9 @@ public without sharing class RLM_AccountUtilities {
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
     // spin. In practice QUERY_RESERVE ends a run first, after four or five rounds
-    // (phase 1's lookups before the loop take 4 to 6 of the 100 queries, and a round
+    // (phase 1's lookups before the loop take 4 to 9 of the 100 queries: assets and
+    // contracts 2, with Delete Assets and assets their relationships 1, the permission
+    // read 1 and the access read 1, then policies 1 to 3 and rate card entries 1; a round
     // needs 59 left to start), and the next run carries on.
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
@@ -90,38 +100,42 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 48 (counted from the code, with every option on and
-    // data in every branch): 31 before the asset step (order data 10, collections 5,
-    // schedule groups 1, billing 9, fulfillment 2, contracts 3, orders 1; the delete
-    // access reads are one per 200 records, and a read after the first is guarded), the
-    // asset step's lookup of entitlements bound to the assets 1 and its other lookups 9,
-    // quotes and opportunities 6 = 47 on the drained path, plus the journal query, which
-    // only the undrained path runs = 48. 29 is what an account with no such data measures.
-    // QUERY_RESERVE covers the 48 and the usage retries. A round starts only while both
-    // are left; otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 48.
+    // fixed queries total at most 46 (counted from the code, with every option on and
+    // data in every branch): 32 before the asset step (order data 10, collections 5,
+    // schedule groups 1, billing 9, the Modify All Data read 1 when no earlier step made
+    // it, fulfillment 2, contracts 3, orders 1; the delete access reads are one per 200
+    // records, and a read after the first is guarded), the asset step's lookup of
+    // entitlements bound to the assets 1 and its other lookups 6 (the assets themselves
+    // are decided before phase 1), quotes and opportunities 6 = 45 on the drained path,
+    // plus the journal query, which only the undrained path runs = 46. 29 is what an
+    // account with no such data measures. QUERY_RESERVE covers the 46 and the usage
+    // retries. A round starts only while both are left; otherwise a large usage graph would
+    // spend phase 2's queries and end in a LimitException. A test holds the measured 29 and
+    // the reserve against the 46.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 48;
+    private static final Integer PHASE_TWO_FIXED_MAX = 46;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
-    //  - RETRY_TAIL, for the usage retries: at most 31 follow the journal guard (journal 1,
-    //    collections 5, schedule groups 1, billing 9, fulfillment 2, contracts 3, orders 1,
-    //    the asset step with no assets 3, quotes and opportunities 6). 34 keeps three spare.
-    //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
-    //    references 2, resource policies 3, rate card entries 1, assets 3, quotes and
-    //    opportunities 6). 18 keeps three spare.
+    //  - RETRY_TAIL, for the usage retries: at most 32 follow the journal guard (journal 1,
+    //    collections 5, schedule groups 1, billing 9, the Modify All Data read 1,
+    //    fulfillment 2, contracts 3, orders 1, the asset step with no assets 3, quotes and
+    //    opportunities 6). 35 keeps three spare. Access reads in the middle of phase 2 use
+    //    it too, as an upper bound on what follows them.
+    //  - ASSET_TAIL, for the asset step: at most 12 follow its last guard (other asset
+    //    references 2, resource policies 3, rate card entries 1, quotes and opportunities
+    //    6). 15 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
     // query added after a guard; the tests cannot catch growth in the data-dependent branches.
     @TestVisible
-    private static final Integer RETRY_TAIL = 34;
+    private static final Integer RETRY_TAIL = 35;
     @TestVisible
-    private static final Integer ASSET_TAIL = 18;
+    private static final Integer ASSET_TAIL = 15;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -148,9 +162,9 @@ public without sharing class RLM_AccountUtilities {
         + 'to another user and sharing does not let this user delete them; they were left unchanged';
     private static final String NO_DELETE_PERMISSION = 'the user running the reset does not have permission to '
         + 'delete this kind of record; they were left unchanged';
-    private static final String ACCESS_CHECK_TOO_LARGE = 'The account has too many records for one run to check '
-        + 'which of them the user running the reset may delete, and another run would stop at the same point. '
-        + 'A user with Modify All Data skips that check.';
+    private static final String ACCESS_CHECK_TOO_LARGE = 'This run ran out of queries while checking which of the '
+        + 'account\'s records the user running the reset may delete. A user with Modify All Data skips that check.';
+    private static final String KEPT_WITH_LINK = 'kept because a record linked to them is kept';
     private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
     private static final String INCOMPLETE_HIDDEN = 'Records not visible to the user running the reset may remain: '
         + 'the query limit was reached while counting them';
@@ -217,6 +231,14 @@ public without sharing class RLM_AccountUtilities {
      */
     private class AccessCheckTooLargeException extends Exception {}
 
+    // The most queries that can follow an access read before the next guard, at the call
+    // sites outside the middle of phase 2 (see deletableByUser). Quotes and opportunities:
+    // their files 2 and generated documents 1. Before phase 1: the binding policies 3 and
+    // rate card entries 1, then one teardown round with phase 2's reserve, so a run that
+    // passes the check can still make progress.
+    private static final Integer QUOTE_TAIL = 3;
+    private static final Integer PRE_PHASE_ONE_TAIL = 4 + QUERIES_PER_ROUND + QUERY_RESERVE;
+
     /**
      * What the current run removed and kept. Copied before phase 2, so that a
      * rollback can restore what phase 1 actually did.
@@ -275,6 +297,11 @@ public without sharing class RLM_AccountUtilities {
     // The account's assets and contracts, read at the start of the run by several
     // steps in both phases. The reset never creates either.
     private static Set<Id> accountAssetIds = new Set<Id>();
+    // With Delete Assets: the account's assets the reset may delete, and the asset
+    // relationships it may delete, decided before phase 1 (decideKeptAssets) so that no
+    // step strips an asset the reset then keeps.
+    private static Set<Id> deletableAssetIds = new Set<Id>();
+    private static List<AssetRelationship> deletableRelationships = new List<AssetRelationship>();
     private static Set<Id> accountContractIds = new Set<Id>();
 
     // True when the last teardown round found no usage rows at all. Phase 2 then
@@ -290,7 +317,7 @@ public without sharing class RLM_AccountUtilities {
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
     // always ends the loop first (a round needs 59 queries left, and 100 allow four or five, depending on the
-    // 4 to 6 queries phase 1 spends on assets and contracts before the loop), so
+    // 4 to 9 queries phase 1 spends on assets and contracts before the loop), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
     @TestVisible
@@ -496,6 +523,10 @@ public without sharing class RLM_AccountUtilities {
             accountAssetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE AccountId = :accountId]).keySet();
             accountContractIds = new Map<Id, Contract>(
                 [SELECT Id FROM Contract WHERE AccountId = :accountId]).keySet();
+            // Before anything is deleted: which assets the reset keeps.
+            if (deleteAssets) {
+                decideKeptAssets();
+            }
 
             deleteUsageResourcePolicies(accountId);
             deleteBindingObjRateCardEntries(accountId);
@@ -506,7 +537,8 @@ public without sharing class RLM_AccountUtilities {
             // (the previous order) fails on any account whose usage was ever rated.
             deleteUsageSummaryGraph(accountId);
 
-            // Gated on deleteAssets, like the asset deletion itself further down.
+            // Gated on deleteAssets, like the asset deletion itself further down, and
+            // only for the assets the reset deletes (decideKeptAssets).
             // AssetRateCardEntry rows are generated when the asset is created and are
             // NOT recreated for an existing asset, so removing them while KEEPING the
             // asset leaves a usage asset that can never rate again.
@@ -516,6 +548,9 @@ public without sharing class RLM_AccountUtilities {
         } catch (ResetStoppedException e) {
             return finish(false, e.getMessage()
                 + ' The usage records removed so far stay deleted; nothing else was touched. ' + RUN_AGAIN);
+        } catch (AccessCheckTooLargeException e) {
+            // Thrown by decideKeptAssets, before phase 1 deletes anything.
+            return finish(false, e.getMessage() + ' Nothing was deleted.');
         } catch (Exception e) {
             return finish(false, 'The usage cleanup failed: ' + e.getMessage()
                 + ' The usage records it removed stay deleted; nothing else was touched.');
@@ -593,18 +628,7 @@ public without sharing class RLM_AccountUtilities {
 
             // Finally handle remaining objects. QuoteAccountId is the quote's own
             // account and AccountId its opportunity's; a quote can have either alone.
-            List<Quote> accountQuotes = [
-                SELECT Id FROM Quote WHERE QuoteAccountId = :accountId OR AccountId = :accountId
-            ];
-            List<Opportunity> accountOpportunities = [SELECT Id FROM Opportunity WHERE AccountId = :accountId];
-            // Those the user cannot delete are kept, rather than failing the deletes below.
-            Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ accountQuotes, accountOpportunities }));
-            accountQuotes = (List<Quote>) keepUndeletable(accountQuotes, allowed);
-            accountOpportunities = (List<Opportunity>) keepUndeletable(accountOpportunities, allowed);
-            // Delete quote-linked ContentDocuments before quotes are removed
-            deleteQuoteDocuments(accountQuotes);
-            deleteAll(accountQuotes);
-            deleteAll(accountOpportunities);
+            deleteQuotesAndOpportunities(accountId);
 
             if (phaseTwoFailureForTest != null) {
                 throw phaseTwoFailureForTest;
@@ -632,6 +656,8 @@ public without sharing class RLM_AccountUtilities {
         describedTypes = null;
         userPermissions = null;
         accountAssetIds = new Set<Id>();
+        deletableAssetIds = new Set<Id>();
+        deletableRelationships = new List<AssetRelationship>();
         accountContractIds = new Set<Id>();
         usageDrained = false;
         unseenListQueriesSpentForTest = null;
@@ -907,6 +933,17 @@ public without sharing class RLM_AccountUtilities {
      * How many of the account's `objectName` records the running user cannot see: the
      * system-mode count less the count this class sees, which is what its deletes saw.
      * Stops the count, not the run, when its two queries are not left.
+     *
+     * Why the second count respects sharing although this class is `without sharing` and
+     * the query names no access level: that is what was measured, not what the docs
+     * suggest. Live 264, as the salesrep persona (System.runAs, and in a real Login As
+     * session through the flow), the reset's own queries and a default dynamic count did
+     * not see an admin-owned opportunity under Private sharing, while the same count
+     * WITH SYSTEM_MODE did; the Chrome run reported "Opportunities: 1 (not visible ...)".
+     * Not USER_MODE: that also enforces field-level security on the filter fields, which
+     * the reset's own queries do not. Should the default count ever see everything, it
+     * equals the system-mode one, the count is 0, and the reset's queries see and delete
+     * those records too, so the two stay consistent.
      */
     @TestVisible
     private static Integer hiddenCount(String objectName, String filter, Id accountId) {
@@ -933,7 +970,7 @@ public without sharing class RLM_AccountUtilities {
      */
     @TestVisible
     private static List<SObject> keepWhatUserCannotDelete(List<SObject> records) {
-        return keepUndeletable(records, deletableByUser(idsToCheck(new List<List<SObject>>{ records })));
+        return keepUndeletable(records, deletableByUser(idsToCheck(new List<List<SObject>>{ records }), RETRY_TAIL));
     }
 
     /**
@@ -986,13 +1023,15 @@ public without sharing class RLM_AccountUtilities {
      * The ids the running user may delete, from UserRecordAccess.HasDeleteAccess, which
      * holds what the platform enforces on the delete. A user with Modify All Data may
      * delete them all, so that costs no query beyond the permission read. UserRecordAccess
-     * takes 200 ids a query. Each call site counts its first read in PHASE_TWO_FIXED_MAX;
-     * a later one needs RETRY_TAIL more queries left, and without them the run stops with
-     * AccessCheckTooLargeException. That stop does not say to run again: phase 2 is all or
-     * nothing, so another run would stop at the same point.
+     * takes 200 ids a query. Each call site counts its first read in the budget; a later
+     * one needs `tail` more queries left, the most that can follow that call site before
+     * the next guard (RETRY_TAIL for those in the middle of phase 2, QUOTE_TAIL for the
+     * last, PRE_PHASE_ONE_TAIL before phase 1). Without them the run stops with
+     * AccessCheckTooLargeException, whose reason says only what is known: this run ran
+     * out of queries for the check.
      */
     @TestVisible
-    private static Set<Id> deletableByUser(Set<Id> recordIds) {
+    private static Set<Id> deletableByUser(Set<Id> recordIds, Integer tail) {
         if (deleteAccessForTest != null) {
             Set<Id> allowed = new Set<Id>(recordIds);
             allowed.retainAll(deleteAccessForTest);
@@ -1005,7 +1044,7 @@ public without sharing class RLM_AccountUtilities {
         List<Id> ids = new List<Id>(recordIds);
         Set<Id> allowed = new Set<Id>();
         for (Integer start = 0; start < ids.size(); start += 200) {
-            if (start > 0 && Limits.getLimitQueries() - Limits.getQueries() < 1 + RETRY_TAIL) {
+            if (start > 0 && Limits.getLimitQueries() - Limits.getQueries() < 1 + tail) {
                 throw new AccessCheckTooLargeException(ACCESS_CHECK_TOO_LARGE);
             }
             List<Id> chunk = new List<Id>();
@@ -1124,6 +1163,117 @@ public without sharing class RLM_AccountUtilities {
     /** All-or-nothing delete: any refusal throws and rolls back phase 2. */
     private static void deleteAll(List<SObject> records) {
         deleteRows(records, true);
+    }
+
+    /**
+     * Deletes `records` in at most two passes (todo 397, review round 2), after saving
+     * `toUpdate`, the ones among them carrying a change made only on the way to the delete
+     * (an order back to Draft, a credit memo canceled), and deleting their `dependentsOf`,
+     * rows that must go first:
+     *  1. In a savepoint, with allOrNone=false. If no record refused, that is the result.
+     *  2. Otherwise roll back to the savepoint, report each refused record as kept with
+     *     the platform's message, and do it again for the rest only, all or nothing: a
+     *     refusal there fails the run and rolls phase 2 back. No further pass.
+     * So no record is left changed but kept, and a refusal caused by a record the reset
+     * leaves in place keeps that one record instead of failing every run.
+     *
+     * @return The ids of the records deleted
+     */
+    @TestVisible
+    private static Set<Id> deleteInTwoPasses(
+        List<SObject> records, List<SObject> toUpdate, Map<Id, List<SObject>> dependentsOf
+    ) {
+        Set<Id> deleted = new Set<Id>();
+        if (records.isEmpty()) {
+            return deleted;
+        }
+        List<SObject> dependents = dependentsFor(records, dependentsOf);
+        // Both passes must fit in the DML budget, or the run stops before either.
+        if (2 * (dependents.size() + toUpdate.size() + records.size()) > dmlRowsLeft()) {
+            throw new ResetStoppedException(DML_LIMIT);
+        }
+        Savepoint sp = Database.setSavepoint();
+        Map<Id, String> refused = new Map<Id, String>();
+        Database.DeleteResult[] dependentResults = dependents.isEmpty()
+            ? new Database.DeleteResult[0] : Database.delete(dependents, false);
+        if (!toUpdate.isEmpty()) {
+            Database.SaveResult[] saved = Database.update(toUpdate, false);
+            for (Integer i = 0; i < saved.size(); i++) {
+                if (!saved[i].isSuccess()) {
+                    refused.put(toUpdate[i].Id, saved[i].getErrors()[0].getMessage());
+                }
+            }
+        }
+        List<SObject> toDelete = records.clone();
+        toDelete.clear();
+        for (SObject record : records) {
+            if (!refused.containsKey(record.Id)) {
+                toDelete.add(record);
+            }
+        }
+        Database.DeleteResult[] results = toDelete.isEmpty()
+            ? new Database.DeleteResult[0] : Database.delete(toDelete, false);
+        for (Integer i = 0; i < results.size(); i++) {
+            if (!results[i].isSuccess() && results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
+                refused.put(toDelete[i].Id, results[i].getErrors()[0].getMessage());
+            }
+        }
+
+        if (refused.isEmpty()) {
+            // Pass 1 stands: report it as deleteRows would have.
+            recordPassOne(dependents, dependentResults);
+            recordPassOne(toDelete, results);
+            return new Map<Id, SObject>(toDelete).keySet();
+        }
+
+        Database.rollback(sp);
+        report.refused.putAll(refused);
+        List<SObject> rest = records.clone();
+        rest.clear();
+        for (SObject record : records) {
+            if (!refused.containsKey(record.Id)) {
+                rest.add(record);
+            }
+        }
+        List<SObject> restToUpdate = toUpdate.clone();
+        restToUpdate.clear();
+        for (SObject record : toUpdate) {
+            if (!refused.containsKey(record.Id)) {
+                restToUpdate.add(record);
+            }
+        }
+        deleteQuietly(dependentsFor(rest, dependentsOf));
+        updateAll(restToUpdate);
+        return deleteRows(rest, true);
+    }
+
+    private static List<SObject> dependentsFor(List<SObject> records, Map<Id, List<SObject>> dependentsOf) {
+        List<SObject> dependents = new List<SObject>();
+        if (dependentsOf == null) {
+            return dependents;
+        }
+        for (SObject record : records) {
+            if (dependentsOf.containsKey(record.Id)) {
+                dependents.addAll(dependentsOf.get(record.Id));
+            }
+        }
+        return dependents;
+    }
+
+    /** Records pass 1's deletes in the report: removed, or refused with the platform's message. */
+    private static void recordPassOne(List<SObject> rows, Database.DeleteResult[] results) {
+        Map<Schema.SObjectType, Integer> removed = new Map<Schema.SObjectType, Integer>();
+        for (Integer i = 0; i < results.size(); i++) {
+            Schema.SObjectType type = rows[i].getSObjectType();
+            if (results[i].isSuccess()) {
+                removed.put(type, (removed.containsKey(type) ? removed.get(type) : 0) + 1);
+            } else if (results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
+                report.refused.put(rows[i].Id, results[i].getErrors()[0].getMessage());
+            }
+        }
+        for (Schema.SObjectType type : removed.keySet()) {
+            recordRemoved(type, removed.get(type));
+        }
     }
 
     /**
@@ -1398,34 +1548,44 @@ public without sharing class RLM_AccountUtilities {
         return hasUserPermission('PermissionsDeleteRevenueRecords');
     }
 
-    // The running user's billing delete permissions, read once per user.
+    // The running user's permissions, read once per user: the two core ones and the two
+    // billing ones separately, so a release without a billing field does not lose the others.
     private static Map<String, Boolean> userPermissions;
     private static Id userPermissionsOf;
+    private static final Set<String> CORE_PERMISSIONS = new Set<String>{
+        'PermissionsModifyAllData', 'PermissionsViewAllData'
+    };
 
     /**
      * Whether the running user has the permission, from their profile, a permission
      * set or a group. UserPermissionAccess holds the user's effective permissions,
      * and any user may read their own; a non-admin is refused PermissionSetAssignment.
-     * Both permissions are read in one query, so asking for the second costs none.
-     * Dynamic, so a release without either field reads both as false instead of
-     * failing to compile.
+     * Modify All Data and View All Data are read statically, in one query; the two billing
+     * permissions dynamically, in another, so a release without a billing field reads
+     * those two as false and nothing else. Each query runs the first time one of its
+     * permissions is asked for.
      */
     private static Boolean hasUserPermission(String field) {
         if (userPermissions == null || userPermissionsOf != UserInfo.getUserId()) {
             userPermissionsOf = UserInfo.getUserId();
             userPermissions = new Map<String, Boolean>();
-            List<String> fields = new List<String>{
-                'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords', 'PermissionsModifyAllData',
-                'PermissionsViewAllData'
-            };
-            List<SObject> access = new List<SObject>();
-            try {
-                access = Database.query('SELECT ' + String.join(fields, ', ') + ' FROM UserPermissionAccess');
-            } catch (QueryException e) {
-                access = new List<SObject>();
-            }
-            for (String name : fields) {
-                userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
+        }
+        if (!userPermissions.containsKey(field)) {
+            if (CORE_PERMISSIONS.contains(field)) {
+                UserPermissionAccess core = [SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
+                userPermissions.put('PermissionsModifyAllData', core.PermissionsModifyAllData == true);
+                userPermissions.put('PermissionsViewAllData', core.PermissionsViewAllData == true);
+            } else {
+                List<String> fields = new List<String>{ 'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords' };
+                List<SObject> access = new List<SObject>();
+                try {
+                    access = Database.query('SELECT ' + String.join(fields, ', ') + ' FROM UserPermissionAccess');
+                } catch (QueryException e) {
+                    access = new List<SObject>();
+                }
+                for (String name : fields) {
+                    userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
+                }
             }
         }
         return userPermissions.get(field) == true;
@@ -1483,12 +1643,10 @@ public without sharing class RLM_AccountUtilities {
         Set<Id> allowed = new Map<Id, CreditMemo>((List<CreditMemo>) keepWhatUserCannotDelete(candidates)).keySet();
         deletable = onlyIds(deletable, allowed);
         posted = onlyIds(posted, allowed);
-        // All or nothing, as for orders: no memo is left canceled but not deleted.
-        updateAll(posted);
-        for (CreditMemo canceled : posted) {
-            deletable.add(new CreditMemo(Id = canceled.Id));
-        }
-        deleteAll(deletable);
+        // In two passes, as for orders: no memo is left canceled but not deleted.
+        List<CreditMemo> memos = new List<CreditMemo>(deletable);
+        memos.addAll(posted);
+        deleteInTwoPasses(memos, posted, null);
     }
 
     private static List<CreditMemo> onlyIds(List<CreditMemo> memos, Set<Id> ids) {
@@ -1596,20 +1754,53 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes the files and DocumentGenerationProcess rows of the account's quotes:
-     * DocGen outputs and any manually attached quote files. Must be called BEFORE
-     * the quotes are deleted, because the platform cascades their
-     * ContentDocumentLink rows, making the files impossible to find afterwards.
+     * Deletes the account's quotes, with their files and DocumentGenerationProcess rows,
+     * then its opportunities. QuoteAccountId is the quote's own account and AccountId its
+     * opportunity's; a quote can have either alone.
      *
-     * @param quotes Pre-fetched list of Quote records for the account
+     * A quote or opportunity the user cannot delete is kept (keepUndeletable), and so is
+     * one the platform refuses (deleteInTwoPasses). A kept quote keeps its opportunity:
+     * deleting the opportunity would take the quote with it. Files are found BEFORE the
+     * quotes go, because the platform cascades their ContentDocumentLink rows, and deleted
+     * after, only for quotes that went, as are the generated documents.
      */
-    private static void deleteQuoteDocuments(List<Quote> quotes) {
-        Set<Id> quoteIds = new Map<Id, Quote>(quotes).keySet();
-        if (quoteIds.isEmpty()) {
-            return;
+    private static void deleteQuotesAndOpportunities(Id accountId) {
+        List<Quote> quotes = [
+            SELECT Id, OpportunityId FROM Quote WHERE QuoteAccountId = :accountId OR AccountId = :accountId
+        ];
+        List<Opportunity> opportunities = [SELECT Id FROM Opportunity WHERE AccountId = :accountId];
+        // One access read for both.
+        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ quotes, opportunities }), QUOTE_TAIL);
+        List<Quote> deletableQuotes = (List<Quote>) keepUndeletable(quotes, allowed);
+
+        Map<Id, Set<Id>> files = exclusiveFiles(new Map<Id, Quote>(deletableQuotes).keySet());
+        Set<Id> deletedQuotes = deleteInTwoPasses(deletableQuotes, new List<SObject>(), null);
+        deleteGeneratedDocuments(deletedQuotes);
+        Set<Id> orphanedFiles = new Set<Id>();
+        for (Id fileId : files.keySet()) {
+            if (deletedQuotes.containsAll(files.get(fileId))) {
+                orphanedFiles.add(fileId);
+            }
         }
-        deleteGeneratedDocuments(quoteIds);
-        deleteFiles(exclusiveFiles(quoteIds).keySet());
+        deleteFiles(orphanedFiles);
+
+        Set<Id> heldByKeptQuotes = new Set<Id>();
+        for (Quote accountQuote : quotes) {
+            if (!deletedQuotes.contains(accountQuote.Id) && accountQuote.OpportunityId != null) {
+                heldByKeptQuotes.add(accountQuote.OpportunityId);
+            }
+        }
+        List<Opportunity> deletableOpportunities = new List<Opportunity>();
+        Integer keptForQuote = 0;
+        for (Opportunity accountOpportunity : (List<Opportunity>) keepUndeletable(opportunities, allowed)) {
+            if (heldByKeptQuotes.contains(accountOpportunity.Id)) {
+                keptForQuote++;
+            } else {
+                deletableOpportunities.add(accountOpportunity);
+            }
+        }
+        recordRetained(Opportunity.SObjectType, keptForQuote, KEPT_WITH_LINK);
+        deleteInTwoPasses(deletableOpportunities, new List<SObject>(), null);
     }
 
     /**
@@ -1624,13 +1815,11 @@ public without sharing class RLM_AccountUtilities {
         if (orders.isEmpty()) {
             return;
         }
-        // All or nothing: any refusal now fails the run with the platform's message and
-        // rolls phase 2 back, so no order is left set back to Draft but not deleted.
+        // In two passes: an order is never left set back to Draft but not deleted.
         for (Order o : orders) {
             o.Status = 'Draft';
         }
-        updateAll(orders);
-        deleteAll(orders);
+        deleteInTwoPasses(orders, orders, null);
     }
 
     /**
@@ -1929,10 +2118,10 @@ public without sharing class RLM_AccountUtilities {
      * entry instead of replacing the Active ones.
      */
     private static void deleteAssetRateCardEntries() {
-        if (accountAssetIds.isEmpty()) {
+        if (deletableAssetIds.isEmpty()) {
             return;
         }
-        deleteQuietly([SELECT Id FROM AssetRateCardEntry WHERE AssetId IN :accountAssetIds]);
+        deleteQuietly([SELECT Id FROM AssetRateCardEntry WHERE AssetId IN :deletableAssetIds]);
     }
 
     /**
@@ -1992,10 +2181,20 @@ public without sharing class RLM_AccountUtilities {
             return;
         }
         // BindingObjectId is polymorphic, and a semi-join against it silently
-        // matches nothing (see deleteUsageResourcePolicies), so bind the ids.
+        // matches nothing (see deleteUsageResourcePolicies), so bind the ids. The entries
+        // go first, with their contract, in the same two passes: a contract that refuses
+        // keeps its entries.
         Set<Id> contractIds = new Map<Id, Contract>(contracts).keySet();
-        deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds]);
-        deleteAll(contracts);
+        Map<Id, List<SObject>> entriesOf = new Map<Id, List<SObject>>();
+        for (BindingObjectRateCardEntry entry : [
+            SELECT Id, BindingObjectId FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds
+        ]) {
+            if (!entriesOf.containsKey(entry.BindingObjectId)) {
+                entriesOf.put(entry.BindingObjectId, new List<SObject>());
+            }
+            entriesOf.get(entry.BindingObjectId).add(entry);
+        }
+        deleteInTwoPasses(contracts, new List<SObject>(), entriesOf);
     }
 
     /**
@@ -2006,7 +2205,8 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose asset-referencing records should be deleted
      */
     private static void deleteAllRecordsReferencingAssets(Id accountId) {
-        Set<Id> assetIds = accountAssetIds;
+        // Only the assets the reset deletes: a kept asset keeps what references it.
+        Set<Id> assetIds = deletableAssetIds;
         if (assetIds.isEmpty()) {
             return;
         }
@@ -2119,29 +2319,100 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes the account's assets and their relationships.
+     * Deletes the assets and relationships decideKeptAssets cleared, all or nothing. Not
+     * in two passes like orders: by now the asset step has deleted what referenced these
+     * assets, so keeping a refused asset would keep it stripped. A refusal fails the run
+     * with the platform's message, which names what blocked it, and rolls phase 2 back.
      */
     private static void deleteAssets() {
+        if (deletableAssetIds.isEmpty()) {
+            return;
+        }
+        deleteAll(deletableRelationships);
+        List<Asset> assets = new List<Asset>();
+        for (Id assetId : deletableAssetIds) {
+            assets.add(new Asset(Id = assetId));
+        }
+        deleteAll(assets);
+    }
+
+    /**
+     * Decides, before phase 1 deletes anything, which of the account's assets the reset
+     * keeps (todo 397): those the user cannot delete (keepUndeletable), and those linked
+     * by an asset relationship the reset keeps. A relationship is kept when the user
+     * cannot delete it, when it starts at another account's asset (that account's
+     * record), or when either end is a kept asset; a kept relationship keeps the
+     * account's assets at both ends. That repeats until nothing changes. A kept asset
+     * then keeps its rate card entries and everything the asset step deletes through
+     * assets (entitlements bound to it with their buckets, work orders, cases).
+     */
+    private static void decideKeptAssets() {
+        deletableAssetIds = new Set<Id>(accountAssetIds);
+        deletableRelationships = new List<AssetRelationship>();
         if (accountAssetIds.isEmpty()) {
             return;
         }
         List<AssetRelationship> relationships = [
-            SELECT Id, AssetId FROM AssetRelationship WHERE AssetId IN :accountAssetIds
+            SELECT Id, AssetId, RelatedAssetId FROM AssetRelationship
+            WHERE AssetId IN :accountAssetIds OR RelatedAssetId IN :accountAssetIds
         ];
-        List<Asset> assets = [SELECT Id FROM Asset WHERE Id IN :accountAssetIds];
-        // Those the user cannot delete are kept, rather than failing the deletes below;
-        // a kept asset keeps its relationships. One access read for both.
-        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ relationships, assets }));
-        assets = (List<Asset>) keepUndeletable(assets, allowed);
-        Set<Id> deletableAssets = new Map<Id, Asset>(assets).keySet();
-        List<AssetRelationship> ofDeletableAssets = new List<AssetRelationship>();
+        List<AssetRelationship> ours = new List<AssetRelationship>();
         for (AssetRelationship relationship : relationships) {
-            if (deletableAssets.contains(relationship.AssetId)) {
-                ofDeletableAssets.add(relationship);
+            if (accountAssetIds.contains(relationship.AssetId)) {
+                ours.add(relationship);
             }
         }
-        deleteAll(keepUndeletable(ofDeletableAssets, allowed));
-        deleteAll(assets);
+        List<Asset> assets = new List<Asset>();
+        for (Id assetId : accountAssetIds) {
+            assets.add(new Asset(Id = assetId));
+        }
+        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ ours, assets }), PRE_PHASE_ONE_TAIL);
+        deletableAssetIds = new Set<Id>(new Map<Id, Asset>((List<Asset>) keepUndeletable(assets, allowed)).keySet());
+        Set<Id> deletableIds = new Map<Id, AssetRelationship>(
+            (List<AssetRelationship>) keepUndeletable(ours, allowed)).keySet();
+
+        Set<Id> keptRelationships = new Set<Id>();
+        for (AssetRelationship relationship : relationships) {
+            if (!deletableIds.contains(relationship.Id)) {
+                keptRelationships.add(relationship.Id);
+            }
+        }
+        Integer assetsKeptForLink = 0;
+        Integer relationshipsKeptForLink = 0;
+        Boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (AssetRelationship relationship : relationships) {
+                Boolean kept = keptRelationships.contains(relationship.Id);
+                if (!kept && (isKeptAsset(relationship.AssetId) || isKeptAsset(relationship.RelatedAssetId))) {
+                    keptRelationships.add(relationship.Id);
+                    relationshipsKeptForLink++;
+                    kept = true;
+                    changed = true;
+                }
+                if (!kept) {
+                    continue;
+                }
+                for (Id assetEnd : new List<Id>{ relationship.AssetId, relationship.RelatedAssetId }) {
+                    if (assetEnd != null && deletableAssetIds.remove(assetEnd)) {
+                        assetsKeptForLink++;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        recordRetained(Asset.SObjectType, assetsKeptForLink, KEPT_WITH_LINK);
+        recordRetained(AssetRelationship.SObjectType, relationshipsKeptForLink, KEPT_WITH_LINK);
+        for (AssetRelationship relationship : relationships) {
+            if (!keptRelationships.contains(relationship.Id)) {
+                deletableRelationships.add(relationship);
+            }
+        }
+    }
+
+    /** An asset of this account that the reset keeps. */
+    private static Boolean isKeptAsset(Id assetId) {
+        return accountAssetIds.contains(assetId) && !deletableAssetIds.contains(assetId);
     }
 
     /**

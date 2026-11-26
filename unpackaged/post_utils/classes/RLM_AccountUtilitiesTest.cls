@@ -1784,9 +1784,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 48 is counted from the code with data in every branch (see the constants in
+    // The 46 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 48 and the measurement against both, but it cannot catch
+    // the reserve against the 46 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1810,7 +1810,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reserve kept for phase 2 must cover its counted worst case'
         );
         Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 31 && RLM_AccountUtilities.ASSET_TAIL >= 15,
+            RLM_AccountUtilities.RETRY_TAIL >= 32 && RLM_AccountUtilities.ASSET_TAIL >= 12,
             'The walk guards must cover the queries counted after them'
         );
     }
@@ -1824,8 +1824,9 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 50 kept back (5 are spent before it with an asset: the asset, contract and policy lookups and the rate card entries).
-        spendQueriesDownTo(64, a.Id);
+        // needs its 9 queries plus the 50 kept back (7 are spent before it with an asset: the asset, contract,
+        // asset relationship, Modify All Data and policy lookups and the rate card entries).
+        spendQueriesDownTo(66, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();
@@ -1941,16 +1942,16 @@ private without sharing class RLM_AccountUtilitiesTest {
         User u = newMinimalAccessUser();
         Set<Id> minimalMayDelete;
         System.runAs(u) {
-            minimalMayDelete = RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id });
+            minimalMayDelete = RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }, 0);
         }
         Assert.isTrue(minimalMayDelete.isEmpty(),
             'A user who does not own the record and has no access to it may not delete it');
         Assert.areEqual(
             [SELECT RecordId, HasDeleteAccess FROM UserRecordAccess WHERE UserId = :UserInfo.getUserId() AND RecordId = :a.Id].HasDeleteAccess,
-            RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }).contains(a.Id),
+            RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }, 0).contains(a.Id),
             'The running user may delete what UserRecordAccess says they may'
         );
-        Assert.isTrue(RLM_AccountUtilities.deletableByUser(new Set<Id>()).isEmpty(), 'No ids, no access');
+        Assert.isTrue(RLM_AccountUtilities.deletableByUser(new Set<Id>(), 0).isEmpty(), 'No ids, no access');
     }
 
     // ------------------------------------------------------- records not visible
@@ -2012,7 +2013,11 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.runAs(other) {
             hidden = RLM_AccountUtilities.hiddenCount('Opportunity', 'AccountId = :accountId', a.Id);
         }
-        // Whether another user sees the opportunity depends on the org's sharing.
+        // Whether another user sees the opportunity depends on the org's sharing. Under Private
+        // (tkdef and the repo's scratch builds, which leave the default) this asserts a hidden
+        // count of 1, which the default dynamic count gives only because it respects sharing
+        // (see hiddenCount). It does not fail elsewhere: the repo does not set Opportunity
+        // sharing, and these tests run at deploy time in orgs that may share opportunities.
         String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
             .InternalSharingModel;
         Assert.areEqual(model == 'Private' ? 1 : 0, hidden,
@@ -2139,7 +2144,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             insert own;
             Set<Id> all = new Set<Id>(ids);
             all.add(own.Id);
-            allowed = RLM_AccountUtilities.deletableByUser(all);
+            allowed = RLM_AccountUtilities.deletableByUser(all, RLM_AccountUtilities.RETRY_TAIL);
         }
         // 202 ids take two reads. The user owns one account, so only that one may go.
         Assert.areEqual(new Set<Id>{ own.Id }, allowed,
@@ -2159,15 +2164,115 @@ private without sharing class RLM_AccountUtilitiesTest {
             Test.startTest();
             spendQueriesDownTo(RLM_AccountUtilities.RETRY_TAIL, theirs[0].Id);
             try {
-                RLM_AccountUtilities.deletableByUser(new Map<Id, Account>(theirs).keySet());
+                RLM_AccountUtilities.deletableByUser(new Map<Id, Account>(theirs).keySet(), RLM_AccountUtilities.RETRY_TAIL);
             } catch (Exception e) {
                 message = e.getMessage();
             }
             Test.stopTest();
         }
         Assert.isNotNull(message, 'A second read without the queries after it must stop the run');
-        Assert.isTrue(message.contains('another run would stop at the same point') && !message.contains('Run the reset again'),
-            'The reason must not promise that another run continues. Got: ' + message);
+        Assert.isTrue(message.contains('ran out of queries while checking') && !message.contains('Run the reset again'),
+            'The reason must say what is known, and not promise that another run continues. Got: ' + message);
+    }
+
+    // --------------------------------------------- review round 2 (todo 397)
+
+    private static final String KEPT_WITH_LINK = 'kept because a record linked to them is kept';
+
+    @IsTest
+    static void aKeptAssetKeepsWhatReferencesItAndTheAssetsLinkedToIt() {
+        Account a = newAccount();
+        Asset linked = new Asset(Name = 'RLM Utilities Linked Asset', AccountId = a.Id);
+        Asset kept = new Asset(Name = 'RLM Utilities Kept Asset', AccountId = a.Id);
+        Asset free = new Asset(Name = 'RLM Utilities Free Asset', AccountId = a.Id);
+        insert new List<Asset>{ linked, kept, free };
+        AssetRelationship relationship = new AssetRelationship(AssetId = linked.Id, RelatedAssetId = kept.Id);
+        insert relationship;
+        SObject workOrder;
+        if (available(new List<String>{ 'WorkOrder' })) {
+            workOrder = newRecord('WorkOrder', new Map<String, Object>{ 'AccountId' => a.Id, 'AssetId' => kept.Id });
+        }
+        // The user may delete everything but `kept`. Before, phase 1 and the asset step
+        // stripped an asset (rate card entries, entitlements, work orders) the reset then kept.
+        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ linked.Id, free.Id, relationship.Id };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :free.Id], 'An unlinked deletable asset must go');
+        Assert.areEqual(2, [SELECT COUNT() FROM Asset WHERE Id IN (:kept.Id, :linked.Id)],
+            'The kept asset and the asset linked to it must stay');
+        Assert.areEqual(1, [SELECT COUNT() FROM AssetRelationship WHERE Id = :relationship.Id],
+            'The relationship to a kept asset must stay');
+        if (workOrder != null) {
+            Assert.areEqual(1, countOf('WorkOrder', workOrder.Id), 'A work order on a kept asset must stay');
+        }
+        Assert.areEqual(
+            entry(Schema.Asset.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + '); '
+                + entry(Schema.Asset.SObjectType, 1) + ' (' + KEPT_WITH_LINK + '); '
+                + entry(AssetRelationship.SObjectType, 1) + ' (' + KEPT_WITH_LINK + ')',
+            result.retainedSummary,
+            'Each kept asset and relationship must be reported with its reason'
+        );
+    }
+
+    @IsTest
+    static void aKeptQuoteKeepsItsOpportunity() {
+        Account a = newAccount();
+        Opportunity holder = newOpportunity(a.Id, 'RLM Utilities Quote Holder');
+        Quote keptQuote = new Quote(Name = 'RLM Utilities Kept Quote', OpportunityId = holder.Id);
+        insert keptQuote;
+        // The user may delete the opportunity but not its quote. Deleting the opportunity
+        // would take the quote with it, while the Result said the quote was kept.
+        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ holder.Id };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :keptQuote.Id], 'The quote must stay');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE Id = :holder.Id],
+            'The opportunity of a kept quote must stay');
+        Assert.areEqual(
+            entry(Quote.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + '); '
+                + entry(Opportunity.SObjectType, 1) + ' (' + KEPT_WITH_LINK + ')',
+            result.retainedSummary,
+            'Both must be reported with their reasons'
+        );
+    }
+
+    @IsTest
+    static void aRecordThePlatformRefusesIsRolledBackKeptWithItsReasonAndTheRestGo() {
+        Account a = newAccount();
+        // Deleting an activated order is refused by the platform, whoever asks. Its change
+        // (a description here, standing in for the move back to Draft) must not survive.
+        Order refused = newActivatedOrder(a.Id);
+        Order free = new Order(
+            AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft', Pricebook2Id = Test.getStandardPricebookId()
+        );
+        insert free;
+        refused.Description = 'RLM Utilities changed on the way to the delete';
+
+        Set<Id> deleted;
+        RLM_AccountUtilities.Result result;
+        Test.startTest();
+        RLM_AccountUtilities.startRun();
+        deleted = RLM_AccountUtilities.deleteInTwoPasses(
+            new List<Order>{ refused, free }, new List<Order>{ refused }, null);
+        result = RLM_AccountUtilities.finish(true, null);
+        Test.stopTest();
+
+        Assert.areEqual(new Set<Id>{ free.Id }, deleted, 'Only the order the platform accepts may go');
+        Order after = [SELECT Status, Description FROM Order WHERE Id = :refused.Id];
+        Assert.areEqual('Activated', after.Status, 'The refused order must stay as it was');
+        Assert.isNull(after.Description, 'The change made on the way to the refused delete must be rolled back');
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE Id = :free.Id], 'The other order must go');
+        Assert.isTrue(result.retainedSummary.startsWith(entry(Order.SObjectType, 1) + ' (could not be deleted: '),
+            'The refused order must be reported with the platform\'s message. Got: ' + result.retainedSummary);
+        Assert.areEqual(entry(Order.SObjectType, 1), result.removedSummary, 'The deleted order must be reported');
     }
 
     // ------------------------------------------------------------ scope guard
