@@ -70,10 +70,11 @@ def main(argv=None) -> int:
         return fail_json(args.json, f"Error: {exc}",
                          {"action": "refresh", "developerName": args.developer_name})
 
-    # The REQUESTED mode, kept as "full"/"incremental" for JSON consumers. In
-    # Release 264 a full request can run as incremental, which the log line says.
+    # The REQUESTED mode, kept as "full"/"incremental" for JSON consumers. Without
+    # --incremental no incremental is requested and, in Release 264, the platform
+    # chooses the type, which the log line says.
     mode = "incremental" if args.incremental else "full"
-    shown = mode if args.incremental else "full requested (264 may run incremental)"
+    shown = "incremental requested" if args.incremental else "no incremental requested; the platform chooses the type"
     eprint(f"\nRefresh DecisionTable '{args.developer_name}' ({table_row.get('Id')}), "
            f"mode={shown}, LastSyncDate={table_row.get('LastSyncDate') or 'never'}, "
            f"LastIncrementalSyncDate={table_row.get('LastIncrementalSyncDate') or 'never'}, "

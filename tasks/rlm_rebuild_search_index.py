@@ -19,18 +19,15 @@ answer comes from the build logs and not the index status.
 """
 from datetime import datetime
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import option_flag, option_text, project_api_version
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-    from cumulusci.core.exceptions import CumulusCIException
-    from cumulusci.core.utils import process_bool_arg
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 except ImportError:  # allow import without cumulusci (e.g. offline doc tooling)
     BaseSalesforceApiTask = object
     CumulusCIException = Exception
-
-    def process_bool_arg(val):  # type: ignore[misc]
-        return str(val).strip().lower() in ("true", "1", "yes")
+    TaskOptionsError = ValueError
 
 
 PCM_INDEX_DEPLOY_PATH = "connect/pcm/index/deploy"
@@ -142,18 +139,19 @@ class RebuildSearchIndex(BaseSalesforceApiTask):
 
     task_options = {
         "build_type": {
-            "description": "PCM index build type. Default: FULL.",
+            "description": "PCM index build type. Default (also when blank): FULL. A list is refused.",
             "required": False,
         },
         "activation_type": {
-            "description": "Snapshot activation type. Default: IMMEDIATE.",
+            "description": "Snapshot activation type. Default (also when blank): IMMEDIATE. A list is refused.",
             "required": False,
         },
         "raise_on_failure": {
             "description": (
                 "If True, raise on a non-2xx response instead of warning and "
                 "continuing. Default: False -- the catalog index can be rebuilt "
-                "later via the Build Catalog Index component."
+                "later via the Build Catalog Index component. Blank is unset; a list or "
+                "an unparseable value is refused."
             ),
             "required": False,
         },
@@ -162,11 +160,13 @@ class RebuildSearchIndex(BaseSalesforceApiTask):
     def _run_task(self):
         import requests
 
-        build_type = self.options.get("build_type") or "FULL"
-        activation_type = self.options.get("activation_type") or "IMMEDIATE"
-        raise_on_failure = process_bool_arg(
-            self.options.get("raise_on_failure", False)
+        # Read before the request: None, blank or whitespace is the default; a list, or a
+        # boolean that isn't one, is a TaskOptionsError naming the option.
+        build_type = option_text(self.options.get("build_type"), "build_type", TaskOptionsError) or "FULL"
+        activation_type = (
+            option_text(self.options.get("activation_type"), "activation_type", TaskOptionsError) or "IMMEDIATE"
         )
+        raise_on_failure = option_flag(self.options.get("raise_on_failure"), "raise_on_failure", TaskOptionsError)
 
         try:
             api_version = project_api_version(self.project_config, CumulusCIException)
@@ -240,7 +240,10 @@ class CheckSearchIndexReadiness(BaseSalesforceApiTask):
 
     task_options = {
         "strict": {
-            "description": "If True, fail unless the index is Ready. Default: False (report only).",
+            "description": (
+                "If True, fail unless the index is Ready. Default: False (report only), also when "
+                "blank; a list or an unparseable value is refused."
+            ),
             "required": False,
         },
     }
@@ -248,7 +251,7 @@ class CheckSearchIndexReadiness(BaseSalesforceApiTask):
     def _run_task(self):
         import requests
 
-        strict = process_bool_arg(self.options.get("strict", False))
+        strict = option_flag(self.options.get("strict"), "strict", TaskOptionsError)
         api_version = project_api_version(self.project_config, CumulusCIException)
         base = f"{self.org_config.instance_url}/services/data/v{api_version}"
         headers = {"Authorization": f"Bearer {self.org_config.access_token}"}

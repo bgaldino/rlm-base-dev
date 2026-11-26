@@ -178,12 +178,70 @@ class ClassContract(unittest.TestCase):
             spec.loader.exec_module(fallback)
         self.assertIs(fallback.BaseSalesforceApiTask, object)
         self.assertIs(fallback.CumulusCIException, Exception)
-        for value in (True, "True", "true", " TRUE ", "1", 1, "yes"):
+        # todo 488: raise_on_failure goes through soql_utils.option_flag, so there is no offline
+        # process_bool_arg left to drift from CumulusCI's ("maybe" read as False, "on" as False).
+        self.assertFalse(hasattr(fallback, "process_bool_arg"))
+        self.assertIs(fallback.option_flag(" on ", "raise_on_failure"), True)
+        with self.assertRaisesRegex(ValueError, "raise_on_failure must be true or false"):
+            fallback.option_flag("maybe", "raise_on_failure")
+
+
+class OptionValues(TaskCase):
+    """todo 488: blank is unset, padded is read, and a list or a non-boolean is refused by name
+    before the file or the org is touched, whatever raise_on_failure says."""
+
+    def test_blank_and_whitespace_raise_on_failure_are_the_default_true(self):
+        # Each run expects the GET and the PUT: a run that sends none fails the assertEqual.
+        for value in (None, "", "   "):
             with self.subTest(value=value):
-                self.assertIs(fallback.process_bool_arg(value), True)
-        for value in (False, "False", "false", "0", 0, "no", "", None):
+                rel = self.write_config({"indexConfigurations": [{"name": "Family"}]})
+                req = fake_requests(get=get_ok(), put=FakeResponse(200))
+                self.run_task(req, path=rel, raise_on_failure=value)
+                self.assertEqual([c[0] for c in req.calls], ["GET", "PUT"])
+                # ...and the default is True: a missing file raises instead of warning.
+                with self.assertRaisesRegex(mod.CumulusCIException, "Configuration file not found"):
+                    self.make_task(path="nope.json", raise_on_failure=value)._run_task()
+
+    def test_padded_false_and_int_0_warn_and_continue(self):
+        for value in (" false ", "off", 0, False):
             with self.subTest(value=value):
-                self.assertIs(fallback.process_bool_arg(value), False)
+                with self.assertLogs("test_rlm_configure_search_index", level="WARNING") as logs:
+                    result = self.make_task(path="nope.json", raise_on_failure=value)._run_task()
+                self.assertEqual(result["total_configs"], 0)
+                self.assertIn("Configuration file not found", "\n".join(logs.output))
+
+    def test_padded_and_blank_mode(self):
+        rel = self.write_config({"indexConfigurations": [{"name": "Family"}], "mode": "replace"})
+        for value, expected in ((" additive ", "additive"), ("  ", "replace"), ("", "replace")):
+            with self.subTest(value=value):
+                req = fake_requests(get=get_ok(EXISTING), put=FakeResponse(200))
+                _, _, logs = self.run_task(req, path=rel, mode=value)
+                self.assertIn(f"(mode={expected})", logs)
+                self.assertEqual([c[0] for c in req.calls], ["GET", "PUT"])
+
+    def test_padded_path_is_read(self):
+        rel = self.write_config({"indexConfigurations": [{"name": "Family"}]})
+        req = fake_requests(get=get_ok(), put=FakeResponse(200))
+        self.run_task(req, path=f"  {rel}  ")
+        self.assertEqual([c[0] for c in req.calls], ["GET", "PUT"])
+
+    def test_refused_by_name_before_any_request(self):
+        rel = self.write_config({"indexConfigurations": [{"name": "Family"}]})
+        cases = [
+            ({"raise_on_failure": [True]}, "raise_on_failure must be a single value"),
+            ({"raise_on_failure": "maybe"}, "raise_on_failure must be true or false"),
+            ({"raise_on_failure": "False", "mode": ["replace"]}, "mode must be a single value"),
+            ({"raise_on_failure": "False", "path": [rel]}, "path must be a single value"),
+            ({"raise_on_failure": "False", "path": "   "}, "path is required"),
+        ]
+        for options, needle in cases:
+            with self.subTest(options=options):
+                options = {"path": rel, **options}
+                req = fake_requests(get=get_ok(), put=FakeResponse(200))
+                with mock.patch.dict(sys.modules, {"requests": req}):
+                    with self.assertRaisesRegex(mod.TaskOptionsError, needle):
+                        self.make_task(**options)._run_task()
+                self.assertEqual(req.calls, [])
 
 
 class ConfigLoading(TaskCase):

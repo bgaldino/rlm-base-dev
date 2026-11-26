@@ -19,23 +19,15 @@ uses its allocation, so this task:
 Set ``raise_on_failure`` to make those failures fatal.
 """
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, requested_names
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-    from cumulusci.core.exceptions import CumulusCIException
-    from cumulusci.core.utils import process_bool_arg, process_list_arg
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 except ImportError:  # allow import without cumulusci (e.g. offline doc tooling)
     BaseSalesforceApiTask = object
     CumulusCIException = Exception
-
-    def process_bool_arg(val):  # type: ignore[misc]
-        return str(val).strip().lower() in ("true", "1", "yes")
-
-    def process_list_arg(val):  # type: ignore[misc]
-        if val is None or isinstance(val, list):
-            return val
-        return [v.strip() for v in str(val).split(",") if v.strip()]
+    TaskOptionsError = ValueError
 
 
 CHANNEL = "ChangeEvents"
@@ -61,13 +53,17 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
 
     task_options = {
         "entities": {
-            "description": "sObjects to select for Change Data Capture. Default: Quote, Order.",
+            "description": (
+                "sObjects to select for Change Data Capture, a list or comma-separated. Default "
+                "(also when blank): Quote, Order. A non-string list item is refused."
+            ),
             "required": False,
         },
         "allocation": {
             "description": (
                 "Selected-entity allocation used for the pre-check warning. Default: 5 "
-                "(orgs without the CDC add-on). The platform is the final check."
+                "(orgs without the CDC add-on), also when blank; anything but a positive "
+                "integer is refused. The platform is the final check."
             ),
             "required": False,
         },
@@ -76,7 +72,7 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
                 "If True, raise on any failure (rejected selection, failed query, HTTP or "
                 "network error). Default: False: "
                 "warn and continue, because a missing selection only disables STLE "
-                "auto-refresh."
+                "auto-refresh. Blank is unset; a list or an unparseable value is refused."
             ),
             "required": False,
         },
@@ -87,9 +83,12 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
         self._parse_options()
 
     def _parse_options(self):
-        self.entities = process_list_arg(self.options.get("entities")) or list(DEFAULT_ENTITIES)
-        self.allocation = int(self.options.get("allocation") or DEFAULT_ALLOCATION)
-        self.raise_on_failure = process_bool_arg(self.options.get("raise_on_failure", False))
+        # Read at init, before any request. None, blank or whitespace is unset (the default);
+        # a list for a scalar option, an unparseable boolean or a non-positive allocation is refused by name.
+        self.entities = requested_names(self.options.get("entities"), "entities", TaskOptionsError) or list(DEFAULT_ENTITIES)
+        allocation = option_text(self.options.get("allocation"), "allocation", TaskOptionsError)
+        self.allocation = DEFAULT_ALLOCATION if allocation is None else positive_int(allocation, "allocation", TaskOptionsError)
+        self.raise_on_failure = option_flag(self.options.get("raise_on_failure"), "raise_on_failure", TaskOptionsError)
 
     def _tooling_url(self, path):
         api_version = project_api_version(self.project_config, CumulusCIException)

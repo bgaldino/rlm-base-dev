@@ -32,6 +32,9 @@ import os
 import tempfile
 from pathlib import Path
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import option_flag
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -62,7 +65,8 @@ class FixScratchOrgIdentity(BaseTask):
             "description": (
                 "Raise if no auth file is found or a file cannot be read/written. "
                 "Defaults to False (warn and continue) so a healthy build is never "
-                "broken by this best-effort repair."
+                "broken by this best-effort repair; also when blank. A list or an "
+                "unparseable value is refused (`-o raise_on_failure False` is False)."
             ),
             "required": False,
             "type": bool,
@@ -71,11 +75,18 @@ class FixScratchOrgIdentity(BaseTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        # Read unconditionally, first: a bad value is refused at init, with or without an org,
+        # before anything looks for an auth file.
+        self._raise = self._raise_on_failure()
         # With the flag set and no org, BaseTask.__call__ raises before _run_task
         # reaches its warn-and-continue branch. Drop it for this instance so the
         # task stays non-fatal by default.
-        if not self.org_config and not self.options.get("raise_on_failure"):
+        if not self.org_config and not self._raise:
             self.salesforce_task = False
+
+    def _raise_on_failure(self) -> bool:
+        """raise_on_failure as a bool: the string "False" from `-o` is False, not a truthy string."""
+        return option_flag(self.options.get("raise_on_failure"), "raise_on_failure", TaskOptionsError)
 
     def _run_task(self):
         if not getattr(self, "org_config", None):
@@ -277,7 +288,7 @@ class FixScratchOrgIdentity(BaseTask):
     # ------------------------------------------------------------------
 
     def _fail_or_warn(self, message, cause=None):
-        if self.options.get("raise_on_failure"):
+        if self._raise:
             # Chain the originating exception (when there is one) so the
             # traceback/cause is preserved, per the repo's `raise ... from exc`
             # convention. cause=None at non-exception call sites is harmless.

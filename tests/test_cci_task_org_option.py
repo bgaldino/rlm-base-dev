@@ -76,6 +76,7 @@ def main():
         from cumulusci.cli.runtime import CliRuntime
         from cumulusci.core.tasks import BaseTask
         from cumulusci.core.config import TaskConfig
+        from cumulusci.core.exceptions import TaskOptionsError
         from cumulusci.core.utils import import_global
     except ImportError as exc:
         print(f"FAIL  CumulusCI is required: {exc}")
@@ -112,19 +113,29 @@ def main():
     # A dry run (deploy: false) needs no org, so the instance drops the requirement.
     from tasks.rlm_ux_assembly import AssembleAndDeployUX
 
-    for deploy, expected in (("false", False), ("true", True)):
+    # todo 488: blank or whitespace is the default (deploy), which was a raw TypeError; padded is read.
+    for deploy, expected in (("false", False), ("true", True), ("", True), ("  ", True), (None, True),
+                             (" false ", False), ("off", False), (0, False), (False, False)):
         task = AssembleAndDeployUX(project, TaskConfig({"options": {"deploy": deploy}}))
-        check(f"assemble_and_deploy_ux deploy={deploy}", task.salesforce_task is expected,
+        check(f"assemble_and_deploy_ux deploy={deploy!r}", task.salesforce_task is expected,
               f"salesforce_task={task.salesforce_task}")
+    for deploy, needle in ((["false"], "deploy must be a single value"), ("maybe", "deploy must be true or false")):
+        try:
+            AssembleAndDeployUX(project, TaskConfig({"options": {"deploy": deploy}}))
+            check(f"assemble_and_deploy_ux deploy={deploy!r} is refused, naming the option", False, "accepted")
+        except TaskOptionsError as exc:
+            check(f"assemble_and_deploy_ux deploy={deploy!r} is refused, naming the option", needle in str(exc), str(exc))
 
     # Without an org, the best-effort repair warns and exits 0 instead of failing in __call__.
     from tasks.rlm_fix_scratch_identity import FixScratchOrgIdentity
 
-    for raise_on_failure, expected in ((False, False), (True, True)):
+    # todo 488: `-o raise_on_failure False` is the string "False", which read as truthy.
+    for raise_on_failure, expected in ((False, False), (True, True), ("False", False), ("", False),
+                                       (" true ", True)):
         task = FixScratchOrgIdentity(
             project, TaskConfig({"options": {"raise_on_failure": raise_on_failure}})
         )
-        check(f"fix_scratch_org_identity no org, raise_on_failure={raise_on_failure}",
+        check(f"fix_scratch_org_identity no org, raise_on_failure={raise_on_failure!r}",
               task.salesforce_task is expected, f"salesforce_task={task.salesforce_task}")
 
     failed = [r for r in RESULTS if not r[1]]

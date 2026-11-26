@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 201
+EXPECTED_CHECKS = 204
 
 
 def check(label, condition, detail=""):
@@ -418,24 +418,27 @@ for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5,
 # ---------------------------------------------------------------------------
 print("\n[3] is_incremental coerces string CLI input")
 
-process_bool_arg = _manage.process_bool_arg
+def _flag_of(cls, name, value):
+    """cls._option_flag on a bare task whose only option is name=value (todo 488: soql_utils.option_flag)."""
+    task = object.__new__(cls)
+    task.options = {name: value}
+    return cls._option_flag(task, name)
+
 
 try:  # GUARDED — see the note in section 1
-    check('"false" -> False', process_bool_arg("false") is False)
-    check('"true"  -> True', process_bool_arg("true") is True)
-    check("False   -> False", process_bool_arg(False) is False)
+    check('"false" -> False', _flag_of(ManageDecisionTables, "is_incremental", "false") is False)
+    check('"true"  -> True', _flag_of(ManageDecisionTables, "is_incremental", "true") is True)
+    check("False   -> False", _flag_of(ManageDecisionTables, "is_incremental", False) is False)
 except Exception as exc:
-    check('"false" -> False (and the 2 sibling process_bool_arg checks)', False,
+    check('"false" -> False (and the 2 sibling _option_flag checks)', False,
           f"driver raised {type(exc).__name__}: {exc}")
 
-# The offline fallback must match CumulusCI's real helper, INCLUDING raising on an
-# uninterpretable value. A fallback that disagrees makes every check above prove the
-# wrong thing when CumulusCI is absent.
+# An uninterpretable value is refused, naming the option, as CumulusCI's process_bool_arg refuses it.
 try:
-    process_bool_arg("maybe")
+    _flag_of(ManageDecisionTables, "is_incremental", "maybe")
     check("uninterpretable value raises", False, "returned instead of raising")
-except TypeError:
-    check("uninterpretable value raises", True)
+except Exception as exc:
+    check("uninterpretable value raises", "is_incremental must be true or false" in str(exc), str(exc))
 
 # ⚠ Exercise the TASK CALL SITES, not just the helper. Deleting the process_bool_arg
 # call from either task leaves the three checks above green while "false" once again
@@ -486,20 +489,24 @@ for label, fn in (("ManageDecisionTables", manage_payload_for), ("RefreshDecisio
     except Exception as exc:  # surface rather than silently skip
         check(f"{label} boolean call-site check ran", False, f"{type(exc).__name__}: {exc}")
 
-# The refresh module keeps its OWN offline fallback. Testing only the manage module's copy
-# leaves the other free to drift back to plain truthiness while all checks stay green.
-for mod_label, fn in (("manage", _manage.process_bool_arg), ("refresh", _refresh.process_bool_arg)):
+# Both tasks read booleans through soql_utils.option_flag (todo 488), so neither keeps an offline
+# process_bool_arg to drift, and an int behaves as in CumulusCI (2 and -1 are True) in both.
+for mod_label, cls, opt in (("manage", ManageDecisionTables, "is_incremental"),
+                            ("refresh", RefreshDecisionTable, "isIncremental")):
     try:  # GUARDED — see the note in section 1
-        ok = fn("false") is False and fn("true") is True and fn(0) is False
-        check(f"{mod_label} fallback vocabulary matches CCI", ok)
+        ok = (_flag_of(cls, opt, "false") is False and _flag_of(cls, opt, "true") is True
+              and _flag_of(cls, opt, 0) is False and _flag_of(cls, opt, 2) is True and _flag_of(cls, opt, -1) is True
+              and not hasattr(_manage if mod_label == "manage" else _refresh, "process_bool_arg"))
+        check(f"{mod_label} _option_flag vocabulary matches CCI, ints included, with no fallback left", ok)
     except Exception as exc:
-        check(f"{mod_label} fallback vocabulary matches CCI", False,
+        check(f"{mod_label} _option_flag vocabulary matches CCI, ints included, with no fallback left", False,
               f"raised {type(exc).__name__}: {exc}")
     try:
-        fn("maybe")
-        check(f"{mod_label} fallback raises on an uninterpretable value", False, "returned")
-    except TypeError:
-        check(f"{mod_label} fallback raises on an uninterpretable value", True)
+        _flag_of(cls, opt, "maybe")
+        check(f"{mod_label} _option_flag raises on an uninterpretable value", False, "returned")
+    except Exception as exc:
+        check(f"{mod_label} _option_flag raises on an uninterpretable value", f"{opt} must be true or false" in str(exc),
+              str(exc))
 
 # ---------------------------------------------------------------------------
 # 3b. The status gate. Only an explicit Queued counts as accepted — everything
@@ -1832,6 +1839,15 @@ check("blank strict is False: the same missing table only reports",
       bool(_fake.queries) and _err is None and any("NOT_IN_ORG" in line for line in _fake.logger.infos),
       repr((_err, _fake.queries, _fake.logger.infos[-6:])))
 
+# todo 488: false requests no incremental; it is not a full refresh, and the log must not say so.
+for _inc, _want in (("false", "(no incremental requested; the platform chooses the type)"),
+                    ("  ", "(no incremental requested; the platform chooses the type)"),
+                    (" true ", "(incremental requested)")):
+    _err, _fake = opt_run({"developer_names": "A", "is_incremental": _inc}, "refresh")
+    _lines = [line for line in _fake.logger.infos if line.startswith("Refreshing ")]
+    check(f"refresh log for is_incremental {_inc!r} says {_want}, not 'full'",
+          len(_lines) == 1 and _want in _lines[0] and "full" not in _lines[0], repr((_err, _lines)))
+
 print("\n[opt-refresh] RefreshDecisionTable options use the shared helpers")
 
 
@@ -1867,10 +1883,10 @@ def ref_refused(label, options, needle):
 
 ref_sent("list developerNames (the cumulusci.yml anchor shape) refreshes each", {"developerNames": ["A", "B"]}, [("A", False), ("B", False)])
 ref_sent("padded comma string developerNames", {"developerNames": " A , B ,, "}, [("A", False), ("B", False)])
-ref_sent("isIncremental unset is a full refresh", {"developerNames": "A"}, [("A", False)])
-ref_sent("isIncremental None is a full refresh", {"developerNames": "A", "isIncremental": None}, [("A", False)])
-ref_sent("isIncremental empty string is a full refresh", {"developerNames": "A", "isIncremental": ""}, [("A", False)])
-ref_sent("isIncremental whitespace is a full refresh, not a TypeError", {"developerNames": "A", "isIncremental": " "}, [("A", False)])
+ref_sent("isIncremental unset requests no incremental", {"developerNames": "A"}, [("A", False)])
+ref_sent("isIncremental None requests no incremental", {"developerNames": "A", "isIncremental": None}, [("A", False)])
+ref_sent("isIncremental empty string requests no incremental", {"developerNames": "A", "isIncremental": ""}, [("A", False)])
+ref_sent("isIncremental whitespace requests no incremental, not a TypeError", {"developerNames": "A", "isIncremental": " "}, [("A", False)])
 ref_sent("padded isIncremental true", {"developerNames": "A", "isIncremental": " true "}, [("A", True)])
 ref_sent("bool isIncremental True", {"developerNames": "A", "isIncremental": True}, [("A", True)])
 ref_sent("bool isIncremental False", {"developerNames": "A", "isIncremental": False}, [("A", False)])

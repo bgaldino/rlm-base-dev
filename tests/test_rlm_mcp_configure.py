@@ -470,6 +470,101 @@ def test_custom_server_follows_the_flag_and_the_option_overrides_it():
     assert _run_ensure({"custom_server": "False"}, True) == ["hosted"]
 
 
+def _run_options(options, flag=None):
+    """Run _run_task with every request stubbed to record; return (error text or None, calls, task)."""
+    class Org:
+        access_token, instance_url = "tok", "https://x"
+
+    class Project:
+        project__custom__mcp_custom_server = flag
+        project__package__api_version = "68.0"
+
+    calls = []
+
+    class T(FakeTask):
+        def _preflight(self):
+            calls.append("preflight")
+
+        def _preflight_custom(self):
+            calls.append("preflight_custom")
+
+        def _ensure_hosted(self, wanted):
+            calls.append(("hosted", len(wanted)))
+
+        def _ensure_custom_server(self):
+            calls.append("custom")
+
+        def _list_surface(self, wanted, want_custom):
+            calls.append(("list", len(wanted), want_custom))
+
+        def _report(self):
+            pass
+
+    t = T()
+    t.options, t.org_config, t.project_config = options, Org(), Project()
+    try:
+        t._run_task()
+        return None, calls, t
+    except Exception as exc:  # TaskOptionsError, or Exception offline
+        return str(exc), calls, t
+
+
+CORE = len(rlm_mcp.CORE_HOSTED)
+ALL = CORE + len(rlm_mcp.PLATFORM_HOSTED)
+
+
+def test_options_blank_whitespace_and_padded_values():
+    # Each case expects the hosted request to be made: an empty `calls` fails it.
+    cases = [
+        ({}, False, CORE),
+        ({"dry_run": None, "platform_servers": None}, False, CORE),
+        ({"dry_run": "", "platform_servers": ""}, False, CORE),
+        ({"dry_run": "  ", "platform_servers": "  "}, False, CORE),  # whitespace was a raw TypeError
+        ({"dry_run": " true ", "platform_servers": " TRUE "}, True, ALL),
+        ({"dry_run": "on", "platform_servers": "y"}, True, ALL),  # CumulusCI's vocabulary
+        ({"dry_run": 0, "platform_servers": 0}, False, CORE),  # int 0 is a value: False
+        ({"dry_run": True, "platform_servers": True}, True, ALL),
+    ]
+    for options, dry_run, hosted in cases:
+        err, calls, t = _run_options(dict(options, custom_server="false"))
+        assert err is None, (options, err)
+        assert calls == ["preflight", ("hosted", hosted)], (options, calls)
+        assert t.dry_run is dry_run, (options, t.dry_run)
+
+
+def test_options_refused_by_name_before_any_request():
+    cases = [
+        ({"dry_run": ["true"]}, "dry_run must be a single value"),
+        ({"dry_run": "maybe"}, "dry_run must be true or false"),
+        ({"platform_servers": ["true"]}, "platform_servers must be a single value"),
+        ({"platform_servers": "maybe"}, "platform_servers must be true or false"),
+        ({"custom_server": ["false"]}, "custom_server must be a single value"),
+        ({"custom_server": "maybe"}, "custom_server must be true or false"),
+        ({"operation": ["list"]}, "operation must be a single value"),
+        ({"operation": 0}, "operation must be 'ensure' or 'list'"),
+        ({"api_version": ["68.0"]}, "api_version must be a single value"),
+    ]
+    for options, needle in cases:
+        err, calls, _ = _run_options(options)
+        assert err is not None and needle in err, (options, err)
+        assert calls == [], (options, calls)
+
+
+def test_options_operation_and_custom_server_blank_fall_back():
+    err, calls, _ = _run_options({"operation": "  LIST  "})
+    assert err is None and calls == ["preflight", ("list", CORE, True)], (err, calls)
+    err, calls, _ = _run_options({"operation": "   "})  # blank is the default, ensure
+    assert err is None and calls == ["preflight", "preflight_custom", ("hosted", CORE), "custom"], (err, calls)
+    # A blank custom_server is unset, so the flag decides; it was a raw TypeError.
+    for blank in ("", "  ", None):
+        err, calls, _ = _run_options({"custom_server": blank}, flag=False)
+        assert err is None and calls == ["preflight", ("hosted", CORE)], (blank, err, calls)
+        err, calls, _ = _run_options({"custom_server": blank}, flag=None)
+        assert err is None and "custom" in calls, (blank, err, calls)
+    err, calls, _ = _run_options({}, flag="maybe")
+    assert err is not None and "mcp_custom_server must be true or false" in err and calls == [], (err, calls)
+
+
 def test_list_labels_a_leftover_custom_server_when_custom_is_off():
     class T(FakeTask):
         def _tooling_query(self, soql):

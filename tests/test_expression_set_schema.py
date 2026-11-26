@@ -2910,6 +2910,160 @@ def test_overlay_transform_details_are_debug_only():
           task.logger.debug.call_count == 2 and not task.logger.info.called)
 
 
+def test_bool_options_read_through_option_flag_todo_488():
+    """todo 488: `str(v).lower() in ("true", "1", "yes")` read " true " and "on" as false and a list
+    as false; preserve_labels and normalize_html_entities were read only mid-run."""
+    import logging
+    import tasks.rlm_expression_set_connect as mod
+
+    parse = mod._parse_bool_option
+    check("bool option: padded ' true ' and 'on' are True", parse(" true ", False, "dry_run") is True
+          and parse("on", False, "dry_run") is True)
+    check("bool option: None, blank and whitespace are the default",
+          [parse(v, True, "verify") for v in (None, "", "  ")] == [True] * 3
+          and [parse(v, False, "dry_run") for v in (None, "", "  ")] == [False] * 3)
+    check("bool option: int 0 and 'off' are False", parse(0, True, "verify") is False
+          and parse(" off ", True, "verify") is False)
+    for value, needle in ((["true"], "dry_run must be a single value"), ("maybe", "dry_run must be true or false")):
+        try:
+            parse(value, False, "dry_run")
+            check(f"bool option {value!r} is refused, naming the option", False)
+        except mod.TaskOptionsError as exc:
+            check(f"bool option {value!r} is refused, naming the option", needle in str(exc))
+
+    def delete_run(options):
+        calls = []
+        task = object.__new__(mod.DeleteExpressionSet)
+        task.logger = logging.getLogger("test_delete_bool_options")
+        task.options = {"expression_set_api_name": "C", **options}
+
+        def stop(name):
+            calls.append(name)
+            raise RuntimeError("stop: lookup reached")
+        task._get_expression_set_id = stop
+        try:
+            task._run_task()
+            return "no error", calls
+        except RuntimeError:
+            return "reached", calls
+        except mod.TaskOptionsError as exc:
+            return str(exc), calls
+
+    for value in (" true ", "on", "Y", True):
+        check(f"delete: confirm {value!r} is a confirmation and reaches the lookup",
+              delete_run({"confirm": value}) == ("reached", ["C"]))
+    for value in ("", "  ", None, "false"):
+        err, calls = delete_run({"confirm": value})
+        check(f"delete: confirm {value!r} refuses to delete, before any lookup",
+              "Refusing to delete without confirmation" in err and calls == [])
+    for options, needle in (({"confirm": ["true"]}, "confirm must be a single value"),
+                            ({"dry_run": "maybe", "confirm": "true"}, "dry_run must be true or false")):
+        err, calls = delete_run(options)
+        check(f"delete: {options!r} refused by name before any lookup", needle in err and calls == [])
+
+    def apply_run(options):
+        calls = []
+        task = object.__new__(mod.ApplyExpressionSetOverlay)
+        task.logger = logging.getLogger("test_apply_bool_options")
+        task.options = {"overlay_file": "unused", **options}
+        task._load_overlay = lambda: calls.append("load") or {"expressionSetApiName": "C"}
+        task._preflight_validate_overlay = lambda overlay: None
+
+        def stop(name):
+            calls.append("lookup")
+            raise RuntimeError("stop: lookup reached")
+        task._get_expression_set_id = stop
+        try:
+            task._run_task()
+            return "no error", calls
+        except RuntimeError:
+            return "reached", calls
+        except mod.TaskOptionsError as exc:
+            return str(exc), calls
+
+    check("apply: padded and blank boolean options reach the lookup",
+          apply_run({"dry_run": " true ", "preserve_labels": "  ", "normalize_html_entities": "",
+                     "cascade_deactivate_procedure_plan": "off"}) == ("reached", ["load", "lookup"]))
+    for name in ("preserve_labels", "normalize_html_entities", "skip_validation", "verify",
+                 "activate_after_apply", "cascade_deactivate_procedure_plan", "dry_run"):
+        for value, needle in ((["false"], "must be a single value"), ("maybe", "must be true or false")):
+            err, calls = apply_run({name: value})
+            check(f"apply: {name} {value!r} refused by name before the overlay or any lookup",
+                  f"{name} {needle}" in err and calls == [])
+
+    def import_run(options):
+        """ImportExpressionSet._run_task over a minimal payload; the first _soql_query stops it."""
+        import json as _json
+        import tempfile as _tempfile
+        calls = []
+        with _tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "es.json")
+            with open(path, "w") as fh:
+                _json.dump({"apiName": "C", "versions": []}, fh)
+            task = object.__new__(mod.ImportExpressionSet)
+            task.logger = logging.getLogger("test_import_bool_options")
+            task.options = {"input_file": path, **options}
+            task._preflight_validate_definition = lambda payload: calls.append("preflight")
+
+            def stop(soql):
+                calls.append("query")
+                raise RuntimeError("stop: first query")
+            task._soql_query = stop
+            task._patch_expression_set_via_connect = lambda *a, **k: calls.append("patch")
+            try:
+                task._run_task()
+                return "no error", calls
+            except RuntimeError:
+                return "reached", calls
+            except mod.TaskOptionsError as exc:
+                return str(exc), calls
+
+    check("import: padded and blank options reach the first query",
+          import_run({"preserve_labels": " on ", "normalize_html_entities": "  ", "max_wait_seconds": "",
+                      "poll_interval_seconds": " 2 "}) == ("reached", ["preflight", "query"]))
+    for name in ("preserve_labels", "normalize_html_entities", "activate_after_import", "dry_run"):
+        for value, needle in ((["false"], "must be a single value"), ("maybe", "must be true or false")):
+            err, calls = import_run({name: value})
+            check(f"import: {name} {value!r} refused by name before the file, any query or PATCH",
+                  f"{name} {needle}" in err and calls == [])
+
+    # todo 488: max_wait_seconds / poll_interval_seconds were first read in _wait_for_version_state,
+    # after the deactivation PATCH, and blank was refused there.
+    runners = (("apply", apply_run, ["load", "lookup"]), ("import", import_run, ["preflight", "query"]),
+               ("delete", lambda o: delete_run({"confirm": "true", **o}), ["C"]))
+    for label, run, reached in runners:
+        for name in ("max_wait_seconds", "poll_interval_seconds"):
+            for value, needle in (("abc", "must be a positive integer"), (0, "must be a positive integer"),
+                                  (["5"], "must be a single value")):
+                err, calls = run({name: value})
+                check(f"{label}: {name} {value!r} refused by name before any request",
+                      f"{name} {needle}" in err and calls == [])
+            for value in ("", "  ", None, " 7 "):
+                err, calls = run({name: value})
+                check(f"{label}: {name} {value!r} is accepted (blank is the default) and reaches the first request",
+                      err == "reached" and calls == reached)
+
+    waits = object.__new__(mod.ApplyExpressionSetOverlay)
+    waits.options = {"max_wait_seconds": "", "poll_interval_seconds": "  "}
+    check("_wait_options: blank is the documented default (45, 3)", waits._wait_options() == (45, 3))
+    waits.options = {"max_wait_seconds": " 10 ", "poll_interval_seconds": 1}
+    check("_wait_options: padded text and an int are read", waits._wait_options() == (10, 1))
+    seen = {}
+
+    class _Lifecycle:
+        def poll_version_state(self, version_id, active, max_wait, poll, sleep):
+            seen.update(max_wait=max_wait, poll=poll)
+    waits.options = {"max_wait_seconds": "  ", "poll_interval_seconds": " 2 "}
+    waits._lifecycle = lambda dry_run: _Lifecycle()
+    waits._wait_for_version_state("9QM1", True)
+    check("_wait_for_version_state polls with the parsed values (blank wait is 45)", seen == {"max_wait": 45, "poll": 2})
+    seen.clear()
+    waits.options = {"max_wait_seconds": " 10 ", "poll_interval_seconds": "2"}
+    waits._wait_for_version_state("9QM1", False)
+    check("_wait_for_version_state polls with a non-default wait (10, 2), not a hardcoded 45",
+          seen == {"max_wait": 10, "poll": 2})
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

@@ -15,7 +15,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, soql_quote
 
 try:
     from cumulusci.core.exceptions import TaskOptionsError
@@ -42,7 +42,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
             "required": False,
         },
         "dry_run": {
-            "description": "If true, log intended changes without writing to the org.",
+            "description": "If true, log intended changes without writing to the org. Blank is the default; a list or an unparseable value is refused.",
             "required": False,
         },
         "verify": {
@@ -59,11 +59,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
             "required": False,
         },
         "max_wait_seconds": {
-            "description": "Maximum seconds to wait for activation and verification.",
+            "description": "Maximum seconds to wait for activation and verification. Default 45, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Polling interval in seconds.",
+            "description": "Polling interval in seconds. Default 3, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
     }
@@ -86,12 +86,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         }
 
     @staticmethod
-    def _bool_option(value: Any, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        return str(value).strip().lower() in {"1", "true", "yes", "y"}
+    def _bool_option(value: Any, default: bool, option: str = "option") -> bool:
+        """soql_utils.option_flag: None, blank or whitespace is `default`, padded text is read, and a
+        list or a value outside CumulusCI's vocabulary is refused by name ("on" and "off" read false,
+        and "maybe" read false, under the old `in {"1", "true", "yes", "y"}`)."""
+        return option_flag(value, option, TaskOptionsError, default)
 
     @staticmethod
     def _clean_body(
@@ -207,9 +206,17 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
             active,
         )
 
+    def _wait_options(self):
+        """(max_wait_seconds, poll_interval_seconds): None, blank or whitespace is the default (45, 3);
+        anything but a positive integer ("abc", 0, a list) is refused by name. Read in the up-front
+        block of _run_task too, because both are used only after the deactivation and the writes."""
+        def read(name, default):
+            text = option_text(self.options.get(name), name, TaskOptionsError)
+            return default if text is None else positive_int(text, name, TaskOptionsError)
+        return read("max_wait_seconds", 45), read("poll_interval_seconds", 3)
+
     def _wait_for_active_state(self, version_id: str, active: bool):
-        max_wait = int(self.options.get("max_wait_seconds", 45))
-        interval = max(1, int(self.options.get("poll_interval_seconds", 3)))
+        max_wait, interval = self._wait_options()
         waited = 0
         while waited <= max_wait:
             records = self._query(
@@ -773,8 +780,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         return True
 
     def _verify_overlay(self, version_id: str, overlay: Dict[str, Any]):
-        max_wait = int(self.options.get("max_wait_seconds", 45))
-        interval = max(1, int(self.options.get("poll_interval_seconds", 3)))
+        max_wait, interval = self._wait_options()
         attempts = max(1, (max_wait // interval) + 1)
         for attempt in range(1, attempts + 1):
             if self._all_counts_valid(version_id, overlay):
@@ -784,16 +790,21 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         raise TaskOptionsError("Procedure-plan overlay verification failed.")
 
     def _run_task(self):
+        # Booleans first: a refused one fails before the overlay file or the org is read.
+        for name, default in (("dry_run", False), ("verify", True), ("activate_after_apply", True)):
+            self._bool_option(self.options.get(name), default, name)
+        self._wait_options()
         overlay = self._load_overlay()
         developer_name = self.options.get("developerName") or overlay.get("developerName")
         if not developer_name:
             raise TaskOptionsError("developerName is required in options or overlay_file")
 
-        dry_run = self._bool_option(self.options.get("dry_run"), False)
-        verify = self._bool_option(self.options.get("verify"), True)
+        dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")
+        verify = self._bool_option(self.options.get("verify"), True, "verify")
         activate_after_apply = self._bool_option(
             self.options.get("activate_after_apply"),
             True,
+            "activate_after_apply",
         )
 
         version = self._get_version(str(developer_name))

@@ -59,6 +59,7 @@ def make_task(options=None, org_config=None):
     task.logger = logger
     task.options = options or {}
     task.org_config = org_config
+    task._raise = task._raise_on_failure()  # what _init_options sets
     task._captured = handler.messages
     return task
 
@@ -236,6 +237,56 @@ def test_run_gating_and_failure_modes():
             check("raise_on_failure chains cause", exc.__cause__ is not None)
 
 
+def test_raise_on_failure_values():
+    """todo 488: `-o raise_on_failure False` arrives as the string "False", which read as truthy
+    and raised. Blank is the default (False); a list or an unparseable value is refused by name."""
+
+    def outcome(value):
+        with tempfile.TemporaryDirectory() as d:
+            bad = pathlib.Path(os.path.join(d, "bad.json"))
+            bad.write_text("not json")
+            task = make_task(
+                options={"raise_on_failure": value},
+                org_config=SimpleNamespace(scratch=True, username="u"),
+            )
+            looked = []
+            task._find_auth_files = lambda username: looked.append(username) or [bad]
+            try:
+                task._run_task()
+                result = "warned"
+            except TaskOptionsError as exc:
+                result = "raised" if "bad.json" in str(exc) or exc.__cause__ is not None else str(exc)
+            # Every case reaches the auth-file lookup; one that never looks fails here.
+            return result if looked else f"never looked: {result}"
+
+    for value in ("False", "false", " false ", "off", "", "  ", None, False, 0):
+        check(f"raise_on_failure={value!r} warns and continues", outcome(value) == "warned")
+    for value in ("True", " true ", "on", True, 1):
+        check(f"raise_on_failure={value!r} raises", outcome(value) == "raised")
+    # Refused at init, with an org as well as without one, before any auth file is looked up.
+    from unittest import mock
+    from tasks import rlm_fix_scratch_identity as mod
+
+    if mod.BaseTask is object:
+        print("  (CumulusCI not installed: the _init_options refusal checks are skipped)")
+        return
+    for org in (SimpleNamespace(scratch=True, username="u"), None):
+        for value, needle in ((["true"], "raise_on_failure must be a single value"),
+                              ("maybe", "raise_on_failure must be true or false")):
+            task = FixScratchOrgIdentity.__new__(FixScratchOrgIdentity)
+            task.options = {"raise_on_failure": value}
+            task.org_config = org
+            looked = []
+            task._find_auth_files = lambda username: looked.append(username) or []
+            label = f"raise_on_failure={value!r} (org={'yes' if org else 'none'}) is refused at init, naming the option"
+            try:
+                with mock.patch.object(mod.BaseTask, "_init_options", lambda self, kwargs: None):
+                    task._init_options({})
+                check(label, False)
+            except TaskOptionsError as exc:
+                check(label, needle in str(exc) and looked == [])
+
+
 def test_dedicated_exception_type():
     # The CumulusCI-absent fallback must be a distinct type, not bare Exception,
     # so `except TaskOptionsError` catches only intended failures.
@@ -323,6 +374,7 @@ def main():
     test_find_auth_files_glob_safe()
     test_run_summary_branches()
     test_run_gating_and_failure_modes()
+    test_raise_on_failure_values()
     test_dedicated_exception_type()
     test_atomic_write_cleanup_on_chmod_failure()
     test_atomic_write_without_fchmod()

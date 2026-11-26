@@ -20,19 +20,17 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import option_flag, project_api_version
 
 try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
     from cumulusci.core.keychain import BaseProjectKeychain
-    from cumulusci.core.utils import process_bool_arg
 except ImportError:
     SFDXBaseTask = object
     TaskOptionsError = Exception
     CommandException = Exception
     BaseProjectKeychain = object
-    process_bool_arg = None
 
 # Bootstrap the repo root onto sys.path so the scripts.ux package resolves when
 # CCI imports this task module.
@@ -40,9 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.ux._assemble import UxAssembler, deploy_sources, validate_selection  # noqa: E402
 from scripts.ux._context import DEFAULT_API_VERSION, UxContext, UxError, UxOptionError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
-from scripts.ux._flags import features_from_custom, to_bool  # noqa: E402
-
-process_bool_arg = process_bool_arg or to_bool
+from scripts.ux._flags import features_from_custom  # noqa: E402
 
 
 class AssembleAndDeployUX(SFDXBaseTask):
@@ -84,8 +80,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         },
         "deploy": {
             "description": (
-                "Whether to deploy the assembled output. Defaults to true. "
-                "Set to false to generate output only."
+                "Whether to deploy the assembled output. Defaults to true, also when "
+                "blank. Set to false to generate output only. A list or an unparseable "
+                "value is refused."
             ),
             "required": False,
         },
@@ -97,9 +94,13 @@ class AssembleAndDeployUX(SFDXBaseTask):
         },
     }
 
+    def _deploy_option(self) -> bool:
+        """deploy: None, blank or whitespace is the default (True); a list or an unparseable value is refused."""
+        return option_flag(self.options.get("deploy"), "deploy", TaskOptionsError, default=True)
+
     def _validate_options(self):
         super()._validate_options()
-        if not process_bool_arg(self.options.get("deploy", True)):
+        if not self._deploy_option():
             self.salesforce_task = False
         try:
             validate_selection(
@@ -112,11 +113,15 @@ class AssembleAndDeployUX(SFDXBaseTask):
     def _run_task(self):
         repo_root = Path(self.project_config.repo_root)
         output_path = repo_root / self.options.get("output_path", "unpackaged/post_ux")
-        should_deploy = process_bool_arg(self.options.get("deploy", True))
+        should_deploy = self._deploy_option()
 
+        try:
+            features = features_from_custom(getattr(self.project_config, "project__custom", {}))
+        except UxOptionError as exc:  # a flag that isn't true or false, named
+            raise TaskOptionsError(str(exc)) from exc
         ctx = UxContext(
             repo_root=repo_root,
-            features=features_from_custom(getattr(self.project_config, "project__custom", {})),
+            features=features,
             api_version=project_api_version(self.project_config, default=DEFAULT_API_VERSION),
             logger=self.logger or logging.getLogger("rlm_ux"),
         )

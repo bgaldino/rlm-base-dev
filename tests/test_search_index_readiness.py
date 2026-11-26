@@ -10,6 +10,7 @@ Stdlib only. Run with: python tests/test_search_index_readiness.py
 import importlib.util
 import sys
 import unittest
+import unittest.mock
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -189,6 +190,109 @@ class CheckSearchIndexReadinessTask(unittest.TestCase):
             with self.subTest(message=message):
                 with self.assertRaisesRegex(mod.CumulusCIException, message):
                     self.run_task(snaps, org)
+
+
+class OptionValues(unittest.TestCase):
+    """todo 488: strict, raise_on_failure, build_type and activation_type go through the shared
+    helpers: blank is the default, padded is read, a list or a non-boolean is refused by name
+    before any request."""
+
+    INHERITED = _Response(200, snapshots(log("COMPLETED", "2026-09-01T10:00:00.000Z")))
+
+    def run_check(self, strict):
+        import types
+
+        calls = []
+
+        def get(url, **kw):
+            calls.append(url)
+            return self.INHERITED if url.endswith("/snapshots") else CheckSearchIndexReadinessTask.ORG
+        task = object.__new__(mod.CheckSearchIndexReadiness)
+        task.options = {"strict": strict}
+        task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
+        task.org_config = types.SimpleNamespace(instance_url="https://x", access_token="t")
+        task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+        fake = types.ModuleType("requests")
+        fake.get = get
+        with unittest.mock.patch.dict(sys.modules, {"requests": fake}):
+            try:
+                return mod.CheckSearchIndexReadiness._run_task(task)["verdict"], calls
+            except Exception as exc:
+                return str(exc), calls
+
+    def test_strict_blank_is_false_and_padded_is_read(self):
+        for value in (None, "", "   ", " false ", 0, "off"):
+            with self.subTest(value=value):
+                verdict, calls = self.run_check(value)
+                self.assertEqual(verdict, mod.NOT_BUILT_HERE)
+                self.assertTrue(calls)  # the report needs the requests: none sent fails here
+        for value in (" true ", "on", "Y", 1):
+            with self.subTest(value=value):
+                verdict, calls = self.run_check(value)
+                self.assertIn("not ready", verdict)
+                self.assertTrue(calls)
+
+    def test_strict_refused_by_name_before_any_request(self):
+        for value, needle in ((["true"], "strict must be a single value"), ("maybe", "strict must be true or false")):
+            with self.subTest(value=value):
+                verdict, calls = self.run_check(value)
+                self.assertIn(needle, verdict)
+                self.assertEqual(calls, [])
+
+    def run_rebuild(self, **options):
+        import types
+
+        posts = []
+
+        def post(url, json=None, **kw):
+            posts.append(json)
+            return _Response(500, {}, "boom")
+        task = object.__new__(mod.RebuildSearchIndex)
+        task.options = options
+        task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
+        task.org_config = types.SimpleNamespace(instance_url="https://x", access_token="t")
+        task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+        fake = types.ModuleType("requests")
+        fake.post = post
+        fake.RequestException = OSError
+        with unittest.mock.patch.dict(sys.modules, {"requests": fake}):
+            try:
+                mod.RebuildSearchIndex._run_task(task)
+                return None, posts
+            except Exception as exc:
+                return str(exc), posts
+
+    def test_rebuild_blank_is_the_default_and_padded_is_read(self):
+        # Every case expects the POST: a run that sends none fails the posts assertion.
+        for options, body, raises in (
+            ({}, ("FULL", "IMMEDIATE"), False),
+            ({"build_type": "", "activation_type": "  ", "raise_on_failure": "  "}, ("FULL", "IMMEDIATE"), False),
+            ({"build_type": None, "activation_type": None, "raise_on_failure": None}, ("FULL", "IMMEDIATE"), False),
+            ({"build_type": " INCREMENTAL ", "raise_on_failure": " true "}, ("INCREMENTAL", "IMMEDIATE"), True),
+            ({"raise_on_failure": "on"}, ("FULL", "IMMEDIATE"), True),
+            ({"raise_on_failure": 0}, ("FULL", "IMMEDIATE"), False),
+        ):
+            with self.subTest(options=options):
+                err, posts = self.run_rebuild(**options)
+                self.assertEqual([(p["buildType"], p["snapshot"]["activationType"]) for p in posts], [body])
+                self.assertEqual(err is not None and "could not be started" in err, raises, err)
+
+    def test_rebuild_refused_by_name_before_any_request(self):
+        for options, needle in (
+            ({"raise_on_failure": ["true"]}, "raise_on_failure must be a single value"),
+            ({"raise_on_failure": "maybe"}, "raise_on_failure must be true or false"),
+            ({"build_type": ["FULL"]}, "build_type must be a single value"),
+            ({"activation_type": ["IMMEDIATE"]}, "activation_type must be a single value"),
+        ):
+            with self.subTest(options=options):
+                err, posts = self.run_rebuild(**options)
+                self.assertIn(needle, err or "")
+                self.assertEqual(posts, [])
+
+    def test_no_offline_process_bool_arg_left_to_drift(self):
+        # Every boolean option goes through soql_utils.option_flag; the old offline fallback read
+        # "maybe" as False and "on" as False, where CumulusCI refuses one and accepts the other.
+        self.assertFalse(hasattr(mod, "process_bool_arg"))
 
 
 if __name__ == "__main__":

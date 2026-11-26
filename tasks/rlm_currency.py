@@ -2,7 +2,10 @@ import csv
 import json
 import os
 import urllib.request
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Set, Tuple
+
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import option_flag, option_text, requested_names
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -31,6 +34,18 @@ def _fetch_rates(logger) -> Dict[str, float]:
     return data["rates"]  # {ISO_CODE: units_per_usd}
 
 
+def _read_options(options) -> Tuple[bool, Optional[Set[str]]]:
+    """(dry_run, iso_filter), read before any request.
+
+    None, blank or whitespace is unset (dry_run False, no filter); a padded " true " is a dry run.
+    A list for dry_run, an unparseable dry_run, or an iso_codes item that is not a string is
+    refused with a TaskOptionsError naming the option.
+    """
+    dry_run = option_flag(options.get("dry_run"), "dry_run", TaskOptionsError)
+    codes = requested_names(options.get("iso_codes"), "iso_codes", TaskOptionsError)
+    return dry_run, ({c.upper() for c in codes} if codes else None)
+
+
 class UpdateCurrencyRatesCsv(BaseTask):
     """Fetch live exchange rates and update CurrencyType.csv in the SFDMU plan.
 
@@ -45,27 +60,20 @@ class UpdateCurrencyRatesCsv(BaseTask):
         },
         "iso_codes": {
             "description": (
-                "Optional comma-separated list of ISO codes to update (e.g. 'EUR,GBP'). "
-                "If omitted, all non-corporate currencies in the CSV are updated."
+                "Optional ISO codes to update, a list or comma-separated (e.g. 'EUR,GBP'). "
+                "If omitted, all non-corporate currencies in the CSV are updated. Blank counts as omitted."
             ),
             "required": False,
         },
         "dry_run": {
-            "description": "If True, log the rates that would be applied without writing the CSV.",
+            "description": "If True, log the rates that would be applied without writing the CSV. Default False, also when blank; a list or an unparseable value is refused.",
             "required": False,
         },
     }
 
     def _run_task(self) -> None:
-        dry_run = self.options.get("dry_run", False)
-        if isinstance(dry_run, str):
-            dry_run = dry_run.lower() in ("true", "1", "yes")
-
-        iso_filter = self.options.get("iso_codes")
-        if iso_filter:
-            iso_filter = {c.strip().upper() for c in iso_filter.split(",")}
-
-        csv_path = self.options.get("csv_path", DEFAULT_CURRENCY_CSV)
+        dry_run, iso_filter = _read_options(self.options)
+        csv_path = option_text(self.options.get("csv_path"), "csv_path", TaskOptionsError) or DEFAULT_CURRENCY_CSV
         if not os.path.isfile(csv_path):
             raise TaskOptionsError(f"CurrencyType CSV not found: {csv_path}")
 
@@ -117,25 +125,19 @@ class UpdateCurrencyRates(BaseSalesforceApiTask):
     task_options: Dict[str, Dict[str, Any]] = {
         "iso_codes": {
             "description": (
-                "Optional comma-separated list of ISO codes to update (e.g. 'EUR,GBP'). "
-                "If omitted, all active non-corporate currencies in the org are updated."
+                "Optional ISO codes to update, a list or comma-separated (e.g. 'EUR,GBP'). "
+                "If omitted, all active non-corporate currencies in the org are updated. Blank counts as omitted."
             ),
             "required": False,
         },
         "dry_run": {
-            "description": "If True, log the rates that would be applied without updating the org.",
+            "description": "If True, log the rates that would be applied without updating the org. Default False, also when blank; a list or an unparseable value is refused.",
             "required": False,
         },
     }
 
     def _run_task(self) -> None:
-        dry_run = self.options.get("dry_run", False)
-        if isinstance(dry_run, str):
-            dry_run = dry_run.lower() in ("true", "1", "yes")
-
-        iso_filter = self.options.get("iso_codes")
-        if iso_filter:
-            iso_filter = {c.strip().upper() for c in iso_filter.split(",")}
+        dry_run, iso_filter = _read_options(self.options)
 
         rates = _fetch_rates(self.logger)
 

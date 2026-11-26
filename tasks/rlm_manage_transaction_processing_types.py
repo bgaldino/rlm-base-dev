@@ -10,7 +10,7 @@ import os
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -39,12 +39,13 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             "required": False,
         },
         "dry_run": {
-            "description": "If true, only logs intended changes.",
+            "description": "If true, only logs intended changes. Blank is the default; a list or an unparseable value is refused.",
             "required": False,
         },
     }
 
     def _run_task(self):
+        option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError)  # refuse before any file or request
         operation = self.options.get("operation", "").lower().strip()
         if operation == "list":
             self._list_records()
@@ -117,7 +118,8 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             raise TaskOptionsError("input_file must contain a JSON array of records")
 
         key_field = self.options.get("key_field") or "DeveloperName"
-        dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
+        # option_flag: blank is false, padded text is read, a list or "maybe" is refused by name.
+        dry_run = option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError)
 
         access_token, instance_url, api_version = self._get_api_context()
         describe = self._describe(access_token, instance_url, api_version)

@@ -22,7 +22,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -41,35 +41,35 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
             "required": True,
         },
         "timeout_seconds": {
-            "description": "Max time to wait for all PSGs to become Updated (per attempt).",
+            "description": "Max time to wait for all PSGs to become Updated (per attempt). Default 300, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_seconds": {
-            "description": "Polling interval in seconds.",
+            "description": "Polling interval in seconds. Default 10, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "trigger_recalc": {
-            "description": "Update Description on Outdated PSGs to trigger recalculation.",
+            "description": "Update Description on Outdated PSGs to trigger recalculation. Default true, also when blank; a list or an unparseable value is refused.",
             "required": False,
         },
         "initial_delay_seconds": {
-            "description": "Seconds to wait before starting to poll (gives platform time after PSL assign/deploy).",
+            "description": "Seconds to wait before starting to poll (gives platform time after PSL assign/deploy). Default 0, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "retry_count": {
-            "description": "Number of retries after a timeout (sleep then poll again).",
+            "description": "Number of retries after a timeout (sleep then poll again). Default 2, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "retry_delay_seconds": {
-            "description": "Seconds to wait before retrying after a timeout.",
+            "description": "Seconds to wait before retrying after a timeout; 0 retries at once. Default 120, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "post_trigger_delay_seconds": {
-            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating).",
+            "description": "After triggering recalc on Outdated groups, wait this long before next poll (gives platform time to transition to Updating). 0 skips the wait. Default 90, also when blank; anything but a whole number, 0 or more is refused.",
             "required": False,
         },
         "use_tooling_api": {
-            "description": "Use Tooling API for PSG updates (can be required in some orgs to trigger recalculation).",
+            "description": "Use Tooling API for PSG updates (can be required in some orgs to trigger recalculation). Default false, also when blank; a list or an unparseable value is refused.",
             "required": False,
         },
         "force_recalc": {
@@ -84,18 +84,28 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
 
     def _run_task(self):
         names = self._parse_names(self.options.get("api_names"))
-        timeout_seconds = int(self.options.get("timeout_seconds", 300))
-        poll_seconds = int(self.options.get("poll_seconds", 10))
-        trigger_recalc = str(self.options.get("trigger_recalc", "true")).lower() == "true"
-        initial_delay_seconds = int(self.options.get("initial_delay_seconds", 0))
-        retry_count = int(self.options.get("retry_count", 2))
-        retry_delay_seconds = int(self.options.get("retry_delay_seconds", 120))
-        post_trigger_delay_seconds = int(self.options.get("post_trigger_delay_seconds", 90))
-        use_tooling_api = str(self.options.get("use_tooling_api", "false")).lower() == "true"
+        # Numbers too, before the first query: None, blank or whitespace is the default; anything
+        # else must be a whole number (positive, or 0 or more for initial_delay_seconds, retry_count,
+        # retry_delay_seconds and post_trigger_delay_seconds), or it is refused by name. They were
+        # raw int(), so blank raised ValueError.
+        timeout_seconds = self._int_option("timeout_seconds", 300)
+        poll_seconds = self._int_option("poll_seconds", 10)
+        # Booleans and names are read before the first query: None, blank or whitespace is the
+        # default (trigger_recalc True, the rest False), padded text is read, and a list for a
+        # boolean, an unparseable boolean or a non-string name is refused by name.
+        trigger_recalc = option_flag(self.options.get("trigger_recalc"), "trigger_recalc", TaskOptionsError, default=True)
+        initial_delay_seconds = self._int_option("initial_delay_seconds", 0, allow_zero=True)
+        retry_count = self._int_option("retry_count", 2, allow_zero=True)
+        # 0 means no wait for these two (sleep(0), or the `> 0` guard), so 0 stays allowed.
+        retry_delay_seconds = self._int_option("retry_delay_seconds", 120, allow_zero=True)
+        post_trigger_delay_seconds = self._int_option("post_trigger_delay_seconds", 90, allow_zero=True)
+        use_tooling_api = option_flag(self.options.get("use_tooling_api"), "use_tooling_api", TaskOptionsError)
         self._use_tooling_api = use_tooling_api
+        force_recalc = option_flag(self.options.get("force_recalc"), "force_recalc", TaskOptionsError)
+        verify = self._parse_optional_names(self.options.get("verify_fields"))
 
-        if str(self.options.get("force_recalc", "false")).lower() == "true":
-            self._run_force(names, timeout_seconds, poll_seconds)
+        if force_recalc:
+            self._run_force(names, timeout_seconds, poll_seconds, verify)
             return
 
         # Check once up front: if all PSGs are already Updated, skip delay and wait loop
@@ -222,13 +232,14 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
 
     PROBE_PERMISSION_SET = "RLM_PSG_Recalc_Probe"
 
-    def _run_force(self, names, timeout_seconds, poll_seconds):
+    def _run_force(self, names, timeout_seconds, poll_seconds, verify=None):
         """force_recalc: recompute each group even if it reads Updated, then prove it worked."""
+        if verify is None:
+            verify = self._parse_optional_names(self.options.get("verify_fields"))
         found = {r["DeveloperName"] for r in self._query_groups(names)}
         missing = [n for n in names if n not in found]
         if missing:
             raise TaskOptionsError(f"PermissionSetGroup records not found: {', '.join(missing)}")
-        verify = self._parse_optional_names(self.options.get("verify_fields"))
         targets = names
         if verify:
             # Already complete (e.g. a refresh rebuild): nothing to force.
@@ -250,9 +261,8 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
                                        + "; ".join(f"{n}: {', '.join(f)}" for n, f in short.items()))
 
     def _parse_optional_names(self, value) -> List[str]:
-        if not value:
-            return []
-        return self._parse_names(value)
+        """verify_fields: None, blank, whitespace or [] is none; a non-string item is refused by name."""
+        return requested_names(value, "verify_fields", TaskOptionsError)
 
     def _force_recalc(self, name: str, timeout_seconds: int, poll_seconds: int):
         """Make the platform recompute `name`'s aggregate WITHOUT withdrawing any permission:
@@ -352,14 +362,25 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
                                        + ", ".join(f"{n}:{status.get(n, 'Missing')}" for n in names))
             time.sleep(poll_seconds)
 
-    def _parse_names(self, value) -> List[str]:
-        if isinstance(value, list):
-            names = [str(v).strip() for v in value if str(v).strip()]
-        elif isinstance(value, str):
-            names = [v.strip() for v in value.split(",") if v.strip()]
-        else:
-            raise TaskOptionsError("api_names must be a list or comma-separated string")
+    def _int_option(self, name: str, default: int, allow_zero: bool = False) -> int:
+        """None, blank or whitespace is `default`; otherwise a positive integer (or 0 or more with
+        allow_zero), or a TaskOptionsError naming the option."""
+        text = option_text(self.options.get(name), name, TaskOptionsError)
+        if text is None:
+            return default
+        if allow_zero and text == "0":
+            return 0
+        if allow_zero:
+            try:
+                return positive_int(text, name, TaskOptionsError)
+            except TaskOptionsError:
+                raise TaskOptionsError(f"{name} must be a whole number, 0 or more, got {self.options.get(name)!r}")
+        return positive_int(text, name, TaskOptionsError)
 
+    def _parse_names(self, value) -> List[str]:
+        """api_names: a list or a comma-separated string. A null or other non-string item (a YAML
+        `- ~` used to become the group "None"), an int, or nothing at all is refused by name."""
+        names = requested_names(value, "api_names", TaskOptionsError)
         if not names:
             raise TaskOptionsError("api_names cannot be empty")
         return names

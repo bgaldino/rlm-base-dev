@@ -131,7 +131,7 @@ class _FakeScratch(ScratchOrgConfig):
     instance_url = "https://example.my.salesforce.com"
 
 
-def run_task(options, query, plan_src=None, exit_code=0, org_config=None, sfdmu_output=""):
+def run_task(options, query, plan_src=None, exit_code=0, org_config=None, sfdmu_output="", runs=None):
     """Run _run_task on a fresh copy of `plan_src`; return (before, after, error, temp, logs)."""
     work = pathlib.Path(tempfile.mkdtemp())
     copy = work / "plan"
@@ -150,7 +150,7 @@ def run_task(options, query, plan_src=None, exit_code=0, org_config=None, sfdmu_
     done.returncode = exit_code
     done.stdout = done.stderr = sfdmu_output
     saved = (rs.sf_query_records, rs.subprocess.run)
-    rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: done
+    rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: (runs.append(_a[0] if _a else _k) if runs is not None else None, done)[1]
     error = None
     try:
         t._run_task()
@@ -217,6 +217,102 @@ check("in place, filtered run fails: every object set restored",
 before, after, error, temp, logs = run_task({"dynamic_assigned_to_user": "false"}, org_with_every_pur,
                                             plan_src=PLAIN)
 check('dynamic_assigned_to_user "false": no user query, the run completes', error, None)
+
+
+# todo 488: every boolean option goes through soql_utils.option_flag. `_as_bool` read a list as
+# True, "maybe" as False, and sync_objectset_source_to_source was raw truthiness ("false" was on).
+_RUNS = []
+
+
+def run_task_recording(options, query, **kw):
+    """run_task, with each subprocess.run call (the SFDMU load) recorded in _RUNS."""
+    del _RUNS[:]
+    return run_task(options, query, runs=_RUNS, **kw)
+
+
+synced = []
+_saved_sync = rs.LoadSFDMUData._sync_objectset_source_to_source
+rs.LoadSFDMUData._sync_objectset_source_to_source = lambda self: synced.append(True)
+try:
+    for value, want in (("false", []), ("  ", []), ("", []), (" true ", [True]), ("on", [True])):
+        del synced[:]
+        before, after, error, temp, logs = run_task_recording(
+            {"sync_objectset_source_to_source": value}, org_with_every_pur, plan_src=PLAIN)
+        check(f"sync_objectset_source_to_source {value!r}: synced={bool(want)}, and the load ran",
+              (error, synced, bool(_RUNS)), (None, want, True))
+finally:
+    rs.LoadSFDMUData._sync_objectset_source_to_source = _saved_sync
+for value, flag in ((" true ", True), ("on", True), ("  ", False), ("false", False), (0, False)):
+    before, after, error, temp, logs = run_task_recording({"simulation": value}, org_with_every_pur, plan_src=PLAIN)
+    check(f"simulation {value!r}: --simulation={flag}, and the load ran",
+          (error, bool(_RUNS), any("--simulation" in str(c) for c in _RUNS)), (None, True, flag))
+for name in ("simulation", "sync_objectset_source_to_source", "dynamic_assigned_to_user", "fail_on_row_errors"):
+    for value, needle in ((["true"], "must be a single value"), ("maybe", "must be true or false")):
+        before, after, error, temp, logs = run_task_recording({name: value}, org_with_every_pur, plan_src=PLAIN)
+        check(f"{name} {value!r}: refused by name before the load, plan untouched",
+              (type(error).__name__, f"{name} {needle}" in str(error), _RUNS, after == before),
+              ("TaskOptionsError", True, [], True))
+
+
+
+def prep_runtime_steps(options):
+    """LoadSFDMUData._prep_runtime with each side-effecting step stubbed to record; return (error, steps)."""
+    steps = []
+    t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    t.options = {"pathtoexportjson": str(PLAIN), **options}
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.logger = _Log()
+    for step in ("_load_keychain", "_apply_dynamic_assigned_to_user", "_apply_parent_id_lookups",
+                 "_apply_conditional_steps", "_sync_objectset_source_to_source", "_prepare_export_json_file"):
+        setattr(t, step, lambda step=step: steps.append(step))
+    try:
+        t._prep_runtime()
+        return None, steps
+    except Exception as exc:  # the task's own error is what is asserted
+        return exc, steps
+
+
+# todo 488: the up-front reads in _prep_runtime. Without them, dynamic_assigned_to_user is refused only
+# after _load_keychain, sync_objectset_source_to_source after the lookups, and simulation and
+# fail_on_row_errors not until the export.json is rewritten or the run is over.
+for name in ("dynamic_assigned_to_user", "sync_objectset_source_to_source", "simulation", "fail_on_row_errors"):
+    for value in (["true"], "maybe"):
+        error, steps = prep_runtime_steps({name: value})
+        check(f"_prep_runtime: {name} {value!r} is refused before the keychain, the lookups or the export.json rewrite",
+              (type(error).__name__, name in str(error), steps), ("TaskOptionsError", True, []))
+for value, applied in ((" true ", True), ("on", True), ("y", True), ("", False), (None, False), ("false", False)):
+    error, steps = prep_runtime_steps({"dynamic_assigned_to_user": value})
+    check(f"_prep_runtime: dynamic_assigned_to_user {value!r} applies the user Name: {applied}",
+          (error, "_apply_dynamic_assigned_to_user" in steps), (None, applied))
+error, steps = prep_runtime_steps({"simulation": " true ", "sync_objectset_source_to_source": "on"})
+check("_prep_runtime: valid values run every step (the refusals above are not vacuous)",
+      (error, steps), (None, ["_load_keychain", "_apply_parent_id_lookups", "_apply_conditional_steps",
+                              "_sync_objectset_source_to_source", "_prepare_export_json_file"]))
+
+def row_errors_outcome(fail_on_row_errors):
+    """_check_row_errors over one rejected row: 'failed' or 'warned'."""
+    work = pathlib.Path(tempfile.mkdtemp())
+    (work / "target").mkdir()
+    (work / "target" / "Foo_insert_target.csv").write_text("Name,Errors\nr1,boom\n")
+    t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    t.options = {"pathtoexportjson": str(work), "fail_on_row_errors": fail_on_row_errors}
+    t.pathtoexportjson = str(work)
+    t._row_error_ignores = {}
+    warned = []
+    t.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda _s, m, *_a, **_k: warned.append(m)})()
+    try:
+        t._check_row_errors({})
+        return "warned" if warned else "nothing"
+    except rs.CommandException:
+        return "failed"
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+for value, want in ((None, "failed"), ("", "failed"), ("   ", "failed"), (" true ", "failed"),
+                    ("false", "warned"), (" off ", "warned"), (0, "warned")):
+    check(f"fail_on_row_errors {value!r}: {want} (blank read as false and let rejections through)",
+          row_errors_outcome(value), want)
 
 
 class _FakePersistent(OrgConfig):
@@ -299,6 +395,53 @@ check("extract: the raised error is still logged, redacted",
 check("extract: the command is still logged, redacted",
       any(m.startswith("Executing extraction:") and "<redacted>" in m for m in extract_logs), True)
 shutil.rmtree(ext.options["extractions_base_dir"], ignore_errors=True)
+
+
+def extract_options(options):
+    """ExtractSFDMUData._run_task with `options`; return (error type, SFDMU runs, post-processed?)."""
+    runs, logs = [], []
+    t = rs.ExtractSFDMUData.__new__(rs.ExtractSFDMUData)
+    t.org_config = _FakePersistent({}, "tso")
+    t.options = {"pathtoexportjson": str(PLAIN), "extractions_base_dir": tempfile.mkdtemp(), **options}
+    t.logger = _Log()
+    t.logger.info = t.logger.warning = t.logger.error = lambda msg, *_a, **_k: logs.append(str(msg))
+    t._load_keychain = lambda: None
+    t._resolve_reference_plan_dir = lambda plan_dir: logs.append("resolve-reference") or None
+    saved_run, saved_post = rs.subprocess.run, rs.run_post_process_script
+    rs.subprocess.run = lambda *a, **k: runs.append(a) or _Done()
+    copy_to_plan_seen = []
+    rs.run_post_process_script = lambda *a, **k: logs.append("post-process") or copy_to_plan_seen.append(k.get("copy_to_plan"))
+    t._build_code_backfill_map = lambda plan_dir, output_dir: {}
+    try:
+        t._run_task()
+        err = None
+    except Exception as exc:  # noqa: BLE001 - the type is asserted
+        err = f"{type(exc).__name__}: {exc}"
+    finally:
+        rs.subprocess.run, rs.run_post_process_script = saved_run, saved_post
+        shutil.rmtree(t.options["extractions_base_dir"], ignore_errors=True)
+    extract_options.copy_to_plan_seen = copy_to_plan_seen
+    return err, runs, "post-process" in logs
+
+
+# todo 488: run_post_process read "off", "n" and a list as true; copy_to_plan was read after the extract.
+for value, post in ((" off ", False), ("n", False), (0, False), ("  ", True), (None, True)):
+    err, runs, post_processed = extract_options({"run_post_process": value})
+    check(f"extract: run_post_process {value!r} post-processes={post}, and the extract ran",
+          (err, bool(runs), post_processed), (None, True, post))
+# copy_to_plan's parsed value is what reaches run_post_process_script: the old
+# `in {"1", "true", "yes"}` read "on", "y" and " true " as false and silently skipped the sync.
+for value, want in ((" true ", True), ("on", True), ("y", True), ("", False), (None, False), ("false", False)):
+    err, runs, post_processed = extract_options({"copy_to_plan": value})
+    check(f"extract: copy_to_plan {value!r} reaches run_post_process_script as {want}",
+          (err, post_processed, extract_options.copy_to_plan_seen), (None, True, [want]))
+for options, needle in (({"run_post_process": ["false"]}, "run_post_process must be a single value"),
+                        ({"run_post_process": "maybe"}, "run_post_process must be true or false"),
+                        ({"copy_to_plan": ["true"]}, "copy_to_plan must be a single value"),
+                        ({"copy_to_plan": "maybe"}, "copy_to_plan must be true or false")):
+    err, runs, _ = extract_options(options)
+    check(f"extract: {options!r} refused by name before the extract",
+          (bool(err) and "TaskOptionsError" in err and needle in err, runs), (True, []))
 
 print("ExtractSFDMUData: processed output of a lookup plan is re-import-ready")
 ENT = REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements"
@@ -527,6 +670,102 @@ dro_after = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_
 check("qb-dro plan byte-for-byte unchanged", dro_after == dro_before, True)
 shutil.rmtree(dro_root, ignore_errors=True)
 
+# todo 488: the roundtrip options were read after the first load, and `in {"1", "true", "yes"}`
+# read " true " and "on" as false.
+def idem_options(options):
+    """TestSFDMUIdempotency._run_task up to its first load; return (error, loads, roundtrip read)."""
+    loads = []
+    t = rs.TestSFDMUIdempotency.__new__(rs.TestSFDMUIdempotency)
+    t.options = {"pathtoexportjson": str(PLAIN), **options}
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None,
+                              "error": lambda *_a, **_k: None})()
+    t._load_keychain = lambda: None
+
+    def first_load(*_a, **_k):
+        loads.append("load")
+        raise RuntimeError("stop after the first load")
+    t._run_load_once = first_load
+    try:
+        t._run_task()
+        return "no error", loads
+    except RuntimeError as exc:
+        return ("stopped" if "stop after" in str(exc) else str(exc)), loads
+    except Exception as exc:  # noqa: BLE001 - the text is asserted
+        return f"{type(exc).__name__}: {exc}", loads
+
+
+for value in (" true ", "on", True, "", None, "false"):
+    check(f"idempotency: use_extraction_roundtrip {value!r} is accepted and the first load runs",
+          idem_options({"use_extraction_roundtrip": value, "persist_extraction_output": value}), ("stopped", ["load"]))
+def idem_branch(options):
+    """TestSFDMUIdempotency._run_task past its first load: 'persist', 'temp' (the roundtrip branch, kept
+    or in a temp dir) or 'plain' (a second load from source). Nothing is written: the roundtrip
+    branch stops at its first file copy, the plain branch at its second load."""
+    seen = []
+
+    class _Stop(Exception):
+        pass
+
+    t = rs.TestSFDMUIdempotency.__new__(rs.TestSFDMUIdempotency)
+    t.options = {"pathtoexportjson": str(PLAIN), **options}
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None,
+                              "error": lambda *_a, **_k: None})()
+    t._load_keychain = lambda: None
+    loads = []
+
+    def load(*a, **k):
+        loads.append(a)
+        if len(loads) > 1:
+            seen.append("plain")
+            raise _Stop()
+    t._run_load_once = load
+    t._run_post_load_apex_if_configured = lambda: None
+    t._get_record_counts = lambda sobjects: {}
+
+    def makedirs(path, exist_ok=False):
+        seen.append("persist")
+        raise _Stop()
+
+    def mkdtemp(prefix=""):
+        seen.append("temp")
+        return "/nonexistent/sfdmu_idem_extract_probe"
+
+    def copy2(src, dst):
+        raise _Stop()
+    saved = (rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2)
+    rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2 = makedirs, mkdtemp, copy2
+    try:
+        t._run_task()
+    except _Stop:
+        pass
+    except Exception as exc:  # noqa: BLE001 - reported as the outcome
+        seen.append(f"{type(exc).__name__}: {exc}")
+    finally:
+        rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2 = saved
+    return seen
+
+
+# todo 488: the parsed values must decide the branch. The old `in {"1", "true", "yes"}` read
+# " true ", "on" and "y" as false and silently skipped the roundtrip (and the persisted output).
+for value in (" true ", "on", "y"):
+    check(f"idempotency: use_extraction_roundtrip {value!r} takes the roundtrip branch (temp dir)",
+          idem_branch({"use_extraction_roundtrip": value}), ["temp"])
+    check(f"idempotency: persist_extraction_output {value!r} keeps the roundtrip output",
+          idem_branch({"use_extraction_roundtrip": "true", "persist_extraction_output": value}), ["persist"])
+for value in ("false", "", None):
+    check(f"idempotency: use_extraction_roundtrip {value!r} re-runs from source",
+          idem_branch({"use_extraction_roundtrip": value}), ["plain"])
+    check(f"idempotency: persist_extraction_output {value!r} uses a temp dir",
+          idem_branch({"use_extraction_roundtrip": "true", "persist_extraction_output": value}), ["temp"])
+for options, needle in (({"use_extraction_roundtrip": ["true"]}, "use_extraction_roundtrip must be a single value"),
+                        ({"persist_extraction_output": "maybe"}, "persist_extraction_output must be true or false"),
+                        ({"dynamic_assigned_to_user": ["true"]}, "dynamic_assigned_to_user must be a single value")):
+    err, loads = idem_options(options)
+    check(f"idempotency: {options!r} refused by name before the first load",
+          ("TaskOptionsError" in err and needle in err, loads), (True, []))
+
 print("clear_credentials_under: the idempotency roundtrip's kept dir")
 # Persist mode keeps the roundtrip dir, and the second load ran from processed/export.json; a failed
 # restore there could leave the token behind, so every export.json under the dir is cleared (#666).
@@ -585,6 +824,25 @@ for label, option in (("a Readonly type (Product2) is refused, never deleted org
     except TaskOptionsError:
         got = "TaskOptionsError"
     check(f"named: {label}", got, "TaskOptionsError")
+# todo 488: a value that is not a string or a list of strings is refused by name, before any delete,
+# instead of a raw TypeError (int) or the object name "None" (a YAML `- ~` item).
+for label, option in (("int 0", 0), ("a null list item", ["PricebookEntry", None]),
+                      ("a nested list item", [["PricebookEntry"]]), ("a dict", {"PricebookEntry": 1})):
+    _deleted = []
+    _task = rs.DeleteSFDMUData.__new__(rs.DeleteSFDMUData)
+    _task.options = {"pathtoexportjson": str(PRICING), "sobjects": option}
+    _task.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None})()
+    _task._delete_all_records = lambda name: _deleted.append(name) or 0
+    try:
+        _task._run_task()
+        got = "no error"
+    except TaskOptionsError as exc:
+        got = "refused naming sobjects" if "sobjects must be" in str(exc) else str(exc)
+    except Exception as exc:  # noqa: BLE001 - a raw error is the defect under test
+        got = f"{type(exc).__name__}: {exc}"
+    check(f"named: {label} is refused naming the option, nothing deleted", (got, _deleted), ("refused naming sobjects", []))
+_got = run_delete({"sobjects": ["PricebookEntry"]})
+check("named: the valid control does reach the delete (the refusals above are not vacuous)", _got, ["PricebookEntry"])
 
 print("LoadSFDMUData: conditional DRO steps are dropped in a temp copy (todo 419)")
 src_plan = REPO / "datasets/sfdmu/qb/en-US/qb-dro"

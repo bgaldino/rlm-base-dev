@@ -345,6 +345,47 @@ def test_rerun_on_an_existing_definition_runs_end_to_end():
     check("  the definition is flagged existing", t._existing_definition is True)
 
 
+def _missing_base_run(allow_skip):
+    """_extend_context_definition against a POST the platform rejects with UNKNOWN_EXCEPTION.
+
+    Returns (outcome, requests made): "skipped" or the raised error's text."""
+    t = _new_task()
+    t.options = {"developerName": "Dev", "baseReference": "Base", "name": "N",
+                 "allow_skip_if_unavailable": allow_skip}
+    t.calls = []
+
+    def fake(method, url, **kw):
+        t.calls.append((method, url))
+        t._last_response_status = 500
+        t._last_response_body = '[{"errorCode": "UNKNOWN_EXCEPTION", "message": "x"}]'
+        return None
+
+    t._make_request = fake
+    try:
+        t._extend_context_definition()
+        return "skipped", t.calls
+    except Exception as exc:  # noqa: BLE001 - the text is asserted
+        return str(exc), t.calls
+
+
+def test_allow_skip_if_unavailable_values():
+    # todo 488: it was `str(v).lower() == "true"`, so " true ", "yes", "on" and [True] all read false,
+    # and it was read only after the POST. Every case below must reach the POST.
+    for value in (True, "true", " true ", "TRUE", "yes", "on", "y", 1):
+        outcome, calls = _missing_base_run(value)
+        check(f"allow_skip_if_unavailable={value!r} skips the missing base", outcome == "skipped" and calls)
+    for value in (None, "", "   ", False, "false", " off ", 0):
+        outcome, calls = _missing_base_run(value)
+        check(f"allow_skip_if_unavailable={value!r} fails the missing base",
+              "Base context definition not available" in outcome and calls)
+    from cumulusci.core.exceptions import TaskOptionsError
+    for value, needle in ((["true"], "allow_skip_if_unavailable must be a single value"),
+                          ("maybe", "allow_skip_if_unavailable must be true or false")):
+        t = _extend_task([], name="N", allow_skip_if_unavailable=value)
+        check(f"allow_skip_if_unavailable={value!r} is refused by name at validation, before any request",
+              _raises(t._validate_task_options, TaskOptionsError, needle) and t.calls == [])
+
+
 def main():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]

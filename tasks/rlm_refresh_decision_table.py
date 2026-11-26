@@ -4,14 +4,13 @@ from typing import List
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, project_api_version, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, project_api_version, requested_names, soql_quote
 
-# Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
+# Why: .cursor/skills/cci-orchestration/custom-task-authoring.md → Import Pattern (tasks.* first) and Task Options (no offline process_bool_arg fallback).
 try:
     import requests
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.keychain import BaseProjectKeychain
-    from cumulusci.core.utils import process_bool_arg
     from cumulusci.core.exceptions import CommandException, TaskOptionsError
 except ImportError:  # pragma: no cover - exercised only in the offline test environment
     requests = None
@@ -20,19 +19,6 @@ except ImportError:  # pragma: no cover - exercised only in the offline test env
     CommandException = Exception
     TaskOptionsError = Exception
 
-    def process_bool_arg(arg):
-        """Offline fallback for cumulusci.core.utils.process_bool_arg.
-        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 CONNECTION_ATTEMPTS = 3
 
@@ -41,9 +27,11 @@ def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_manage_decision_tables.py; tests/test_decision_table_tasks.py holds them together."""
     # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
-    requested = "an incremental" if is_incremental else "a full"
+    # False requests no incremental; it is not a request for a full refresh.
+    requested = ("an incremental request does not fix the type that runs" if is_incremental
+                 else "with no incremental requested, the platform chooses the type")
     return (
-        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        f"Completion is asynchronous, and {requested}: "
         "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
         "AFTER the job completes, judge it by the later of the two."
     )
@@ -101,13 +89,9 @@ class RefreshDecisionTable(SFDXBaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name) -> bool:
-        text = self._option_text(name)
-        if text is None:
-            return False
-        try:
-            return bool(process_bool_arg(text))
-        except TypeError:
-            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
+        """soql_utils.option_flag: None, blank or whitespace is False, any int its truth value, and a
+        list or an unparseable value is refused by name."""
+        return option_flag(self.options.get(name), name, TaskOptionsError)
 
     def _option_names(self, name) -> List[str]:
         return requested_names(self.options.get(name), name, TaskOptionsError)
@@ -115,7 +99,7 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Execute the task after preparation, where the core functionality will be implemented
     def _run_task(self):
         # Options are read before any request: a refused option must leave the org untouched.
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        # Why: .cursor/skills/cci-orchestration/custom-task-authoring.md → Task Options (the option helpers).
         developer_names = self._option_names("developerNames")
         is_incremental = self._option_flag("isIncremental")
         if not developer_names:

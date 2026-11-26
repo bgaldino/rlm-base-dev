@@ -18,7 +18,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -640,23 +640,22 @@ class ImportCML(CMLBaseTask):
             "required": True,
         },
         "dataset_dirs": {
-            "description": "Comma-separated additional directories for cross-referencing (e.g. qb-pcm plan dir)",
+            "description": "Additional directories for cross-referencing, a list or comma-separated (e.g. qb-pcm plan dir)",
             "required": False,
         },
         "dry_run": {
-            "description": "Log operations without executing (default: false)",
+            "description": "Log operations without executing (default: false, also when blank; a list or an unparseable value is refused)",
             "required": False,
         },
     }
 
     def _run_task(self):
         data_dir = self.options["data_dir"]
-        dataset_dirs_raw = self.options.get("dataset_dirs", "")
-        if isinstance(dataset_dirs_raw, str):
-            dataset_dirs = [d.strip() for d in dataset_dirs_raw.split(",") if d.strip()] if dataset_dirs_raw else []
-        else:
-            dataset_dirs = list(dataset_dirs_raw) if dataset_dirs_raw else []
-        dry_run = str(self.options.get("dry_run", "false")).lower() in ("true", "1", "yes")
+        # Read before any request. None, blank or whitespace is unset (no extra dirs; not a dry run,
+        # while a padded " true " is one); a list item that is not a string, a list for dry_run or an
+        # unparseable dry_run is a TaskOptionsError naming the option.
+        dataset_dirs = requested_names(self.options.get("dataset_dirs"), "dataset_dirs", TaskOptionsError)
+        dry_run = option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError)
         blob_dir = os.path.join(data_dir, "blobs")
 
         self.logger.info(f"Importing CML data from {data_dir} (dry_run={dry_run})")
@@ -1077,7 +1076,7 @@ class ValidateCML(BaseTask):
         },
         "data_dirs": {
             "description": (
-                "Comma-separated constraints data directories. Each directory's own "
+                "Constraints data directories, a list or comma-separated. Each directory's own "
                 "blobs/*.ffxblob (the model import_cml uploads) is validated against that "
                 "directory's ESC associations. Replaces cml_dir/data_dir when set."
             ),
@@ -1100,7 +1099,9 @@ class ValidateCML(BaseTask):
         uploads nothing. Otherwise an explicit ``cml_dir`` is required and its
         files are checked against the single optional ``data_dir``.
         """
-        data_dirs = _split_list_values(self.options.get("data_dirs") or "")
+        # A task option, so requested_names (a list is read, not stringified; a non-string item is
+        # refused by name); _split_list_values stays for CML source text.
+        data_dirs = requested_names(self.options.get("data_dirs"), "data_dirs", TaskOptionsError)
         if data_dirs:
             targets = []
             problems = []

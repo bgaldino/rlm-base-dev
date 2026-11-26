@@ -5,7 +5,7 @@ import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import option_flag, project_api_version
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -77,7 +77,8 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         "allow_skip_if_unavailable": {
             "description": "If true, skip gracefully when the base context definition "
                            "is not available (UNKNOWN_EXCEPTION). Use for optional contexts "
-                           "whose base may not be provisioned. Defaults to false.",
+                           "whose base may not be provisioned. Defaults to false, also when blank; "
+                           "a list or an unparseable value is refused.",
             "required": False,
         }
     }
@@ -99,6 +100,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 + ". The extend_context_* tasks supply them; set them with -o when running this one directly."
             )
         self._activate_requested()
+        self._allow_skip_if_unavailable()
         self._load_plan()  # a bad plan_file must fail before the definition is touched
 
     # Load keychain with either the current keychain or generate a new one based on environment configuration
@@ -159,7 +161,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         # - Other API errors (401, 403, 400, etc.) = fail loudly.
         # - Network error (no response status) = attempt recovery by querying org.
         if not self.context_id:
-            allow_skip = str(self.options.get("allow_skip_if_unavailable", "false")).lower() == "true"
+            allow_skip = self._allow_skip_if_unavailable()
             if self._last_response_status is not None and self._is_missing_base_context_error():
                 if allow_skip:
                     self.logger.warning(
@@ -433,20 +435,16 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             else:
                 self.logger.info("      activate is false: leaving the new context definition inactive.")
 
+    def _allow_skip_if_unavailable(self) -> bool:
+        """allow_skip_if_unavailable: None, blank or whitespace is False, padded text is read, and a
+        list or an unparseable value is refused by name (validated at init, before the POST)."""
+        return option_flag(self.options.get("allow_skip_if_unavailable"), "allow_skip_if_unavailable", TaskOptionsError)
+
     def _activate_requested(self) -> bool:
-        value = self.options.get("activate")
-        if value is None or (isinstance(value, str) and not value.strip()):
-            return True
-        if isinstance(value, str):
-            text = value.strip().lower()
-            if text in ("true", "yes", "y", "1", "on"):
-                return True
-            if text in ("false", "no", "n", "0", "off"):
-                return False
-            raise TaskOptionsError(f"activate must be true or false, got {value!r}")
-        if isinstance(value, bool):
-            return value
-        raise TaskOptionsError(f"activate must be true or false, got {value!r}")
+        """activate through soql_utils.option_flag, like allow_skip_if_unavailable: None, blank or
+        whitespace is the default (True), any int its truth value, and a list or a value outside
+        CumulusCI's vocabulary is refused by name."""
+        return option_flag(self.options.get("activate"), "activate", TaskOptionsError, default=True)
 
     def _status_text(self):
         status = self._last_response_status

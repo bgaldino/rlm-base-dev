@@ -26,31 +26,17 @@ from datetime import datetime
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, project_api_version, require_identifier, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, require_identifier, requested_names, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
-    from cumulusci.core.utils import process_bool_arg
     from simple_salesforce import Salesforce
 except ImportError:
     BaseTask = object
     TaskOptionsError = Exception
     Salesforce = None
 
-    def process_bool_arg(arg):
-        """Offline fallback for cumulusci.core.utils.process_bool_arg.
-        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 def _anchor_gates(config: Dict, names: List[str]) -> List[Dict]:
@@ -143,9 +129,11 @@ def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
     # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
-    requested = "an incremental" if is_incremental else "a full"
+    # False requests no incremental; it is not a request for a full refresh.
+    requested = ("an incremental request does not fix the type that runs" if is_incremental
+                 else "with no incremental requested, the platform chooses the type")
     return (
-        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        f"Completion is asynchronous, and {requested}: "
         "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
         "AFTER the job completes, judge it by the later of the two."
     )
@@ -213,7 +201,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "is_incremental": {
-            "description": "For refresh operation: True for incremental refresh, False for full refresh. Blank or unset means False; a list or an unparseable value (e.g. maybe) is refused. Default: False",
+            "description": "For refresh operation: True requests an incremental refresh. False (the default, also when blank or unset) requests no incremental, which is not a full refresh: in Release 264 the platform chooses the type. A list or an unparseable value (e.g. maybe) is refused.",
             "required": False
         },
         "sort_by": {
@@ -243,14 +231,9 @@ class ManageDecisionTables(BaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name: str) -> bool:
-        """A boolean option; None, blank or whitespace is False; a list or an unparseable value is refused."""
-        text = self._option_text(name)
-        if text is None:
-            return False
-        try:
-            return bool(process_bool_arg(text))
-        except TypeError:
-            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
+        """A boolean option through soql_utils.option_flag: None, blank or whitespace is False, any int
+        its truth value, and a list or an unparseable value is refused by name."""
+        return option_flag(self.options.get(name), name, TaskOptionsError)
 
     def _option_names(self, name: str) -> List[str]:
         """A names option as a list; None, blank, whitespace or an empty list means none were asked for."""
@@ -414,7 +397,7 @@ class ManageDecisionTables(BaseTask):
         Supports both full and incremental refresh.
         """
         # Read first so a malformed option is refused before the query for all active tables.
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        # Why: .cursor/skills/cci-orchestration/custom-task-authoring.md → Task Options (the option helpers).
         is_incremental = self._option_flag("is_incremental")
         # Get decision tables to refresh
         developer_names = self._option_names("developer_names")
@@ -429,8 +412,8 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
 
-        # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
-        refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
+        # Why false is not "full": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
+        refresh_type = "incremental requested" if is_incremental else "no incremental requested; the platform chooses the type"
         
         self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
         

@@ -196,12 +196,49 @@ try:
     out, log, q, ap = run({"quote_est_tax": True, "tax": False}, "off")
     check("quote_est_tax on with tax off deploys off and warns about tax",
           out == "deployed" and ap == [False] and any(l[0] == "warning" and "tax is off" in l[1] for l in log), (out, log))
+    # todo 488: require_on is read through option_text before the query.
+    for blank in ("", "   ", None):
+        out, log, q, ap = run(both, "on", blank)
+        check(f"a blank require_on ({blank!r}) is unset: no query, deployed spliced",
+              out == "deployed" and not q and ap == [True], (out, q, ap))
+    out, log, q, ap = run(both, "on", "  SELECT COUNT() FROM TaxPolicy  ", count=1)
+    check("a padded require_on is queried stripped", out == "deployed" and q == ["SELECT COUNT() FROM TaxPolicy"], (out, q))
+    out, log, q, ap = run(both, "on", ["SELECT COUNT() FROM TaxPolicy"])
+    check("a list require_on is refused, naming the option, before the query",
+          "require_on must be a single value" in out and not q, (out, q))
 finally:
     if _BASE is not object:
         if _saved is None:
             del _BASE._run_task
         else:
             _BASE._run_task = _saved
+
+print("flag values go through soql_utils.option_flag, with or without CumulusCI (todo 488)")
+import unittest.mock  # noqa: E402
+
+_blocked = {k: None for k in list(sys.modules) if k == "cumulusci" or k.startswith("cumulusci.")}
+_blocked["cumulusci"] = None
+_fspec = importlib.util.spec_from_file_location("_rlm_test_dwf_no_cci", REPO / "tasks" / "rlm_deploy_with_fragments.py")
+offline = importlib.util.module_from_spec(_fspec)
+with unittest.mock.patch.dict(sys.modules, _blocked):
+    _fspec.loader.exec_module(offline)
+check("the module imports without CumulusCI", offline.Deploy is object)
+check("no process_bool_arg is left, online or offline, to drift from CumulusCI's",
+      not hasattr(offline, "process_bool_arg") and not hasattr(mod, "process_bool_arg"))
+_values = {"project__custom__on": "on", "project__custom__y": "Y", "project__custom__padded": " true ",
+           "project__custom__off": "off", "project__custom__blank": "", "project__custom__two": 2,
+           "project__custom__zero": 0, "project__custom__odd": "maybe", "project__custom__list": ["true"]}
+_flags = SimpleNamespace(lookup=lambda key: _values.get(key))
+for module, where in ((offline, "offline"), (mod, "with CumulusCI")):
+    check(f"{where}: on, Y, padded true and int 2 are on; off, blank and 0 are off",
+          module.flag_states(_flags, "on,y,padded,two") == {"on": True, "y": True, "padded": True, "two": True}
+          and module.flag_states(_flags, "off,blank,zero") == {"off": False, "blank": False, "zero": False})
+    for name, needle in (("odd", "flag 'odd' must be true or false"), ("list", "flag 'list' must be a single value")):
+        _err = raises(lambda n=name: module.flag_states(_flags, n))
+        check(f"{where}: a {name} flag value is a TaskOptionsError naming the flag", _err is not None and needle in _err, _err)
+    _err = raises(lambda: module.flag_states(_flags, "nope"))
+    check(f"{where}: an undefined flag is still reported as undefined, first",
+          _err is not None and "isn't a project custom flag" in _err, _err)
 
 print("quote_est_tax wiring")
 cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())
