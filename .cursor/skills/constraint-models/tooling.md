@@ -7,15 +7,15 @@ sf CLI transport of `scripts/expression_sets/_client.py`, and holds no org ids.
 | Command | Does | Writes? |
 |---|---|---|
 | `size` | Byte length of each constraint model version and its share of a limit; exit 1 if any is over | No |
-| `push --api-name <Name> --file <model-file>` | Cycles a version: deactivate if active, write `ConstraintModel`, activate; raises when activation reports `success: false` | Yes, with `--confirm` |
-| `scaffold <spec.json>` | Creates a classification, picklist attributes, products, selling model option, price book entries, an Expression Set with its version and the constraint rows, from a spec | Yes, with `--confirm` |
+| `push --api-name <Name> --file <model-file>` | Cycles the active version (else the latest): saves the current model to `<file>.previous`, deactivates if active, writes `ConstraintModel`, activates, reads the blob back and fails on a mismatch or an inactive version | Yes, with `--confirm` |
+| `scaffold --spec <spec.json> [--out <ids.json>]` | Creates a classification, picklist attributes, products, selling model option, price book entries, an Expression Set with its version and the constraint rows, from a spec | Yes, with `--confirm` |
 
 Mutating commands print a preview unless `--confirm` is given.
 
 ```bash
 python scripts/constraint_models/cml_tool.py size --target-org <sf_alias_or_username>
-python scripts/constraint_models/cml_tool.py scaffold scripts/constraint_models/example-spec.json --target-org <sf_alias_or_username>
-python scripts/constraint_models/cml_tool.py scaffold scripts/constraint_models/example-spec.json --target-org <sf_alias_or_username> --confirm
+python scripts/constraint_models/cml_tool.py scaffold --spec scripts/constraint_models/example-spec.json --target-org <sf_alias_or_username>
+python scripts/constraint_models/cml_tool.py scaffold --spec scripts/constraint_models/example-spec.json --target-org <sf_alias_or_username> --confirm
 ```
 
 ## The spec
@@ -43,16 +43,26 @@ stores escaped text that fails to parse on activation
 `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`. Read the stored blob
 (`ExpressionSetDefinitionVersion.ConstraintModel`) for sizes and read-backs; the tool does,
 and `push` reads the blob back after activation and fails if it differs from the file or
-the version is not active. The shipped models measure 8,774 and 21,541 bytes, the same as
-their repo files.
+the version is not active. `QuantumBitBundle` reads 8,774 bytes and `Server2` 21,541, the same as their repo files.
+
+## When a push fails
+
+A failed activation leaves the new blob stored and the version inactive; the old model is
+no longer the stored one. `push` writes the model it replaced to `<file>.previous` before
+writing anything, so pushing that file restores it
+`[Open: restore from .previous not run against a live org]`. A connection reset during the
+cycle left a model inactive once `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`;
+rerunning the same command works, because `push` skips the deactivate step for an
+inactive version. A model must declare `type LineItem;` before its subtypes, as every shipped
+model does; a test model without it did not activate
+`[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`.
 
 ## Status
 
 The unit test (`tests/test_cml_tool.py`) covers size arithmetic, the push call order
 against a fake transport, a read-back that comes back escaped, and spec validation.
 Run against a full 264 build `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`:
-`size` (read-only) and `scaffold` through the constraint-row step, which created the
-classification, attributes, product and Expression Set with its association. `push` has
-not completed against a live org after the fix `[Open: needs a run on a disposable model]`;
-if a cycle is interrupted (a connection reset left a model inactive once), rerun the same
-command, which skips the deactivate step for an inactive version.
+`size` (read-only); `scaffold`, which created the classification, attributes, product and
+Expression Set with its association; and `push` of a one-product model with `type LineItem;`
+declared, cycled once from inactive and once from active, with the read-back identical and
+the version active.

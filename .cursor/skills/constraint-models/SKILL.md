@@ -345,6 +345,4 @@ Before calling a constraint-model change done:
   clears the mix; a failing rerun layers another partial generation. Staging the writes is
   the real fix.
 - **The builder's `Sync` button is uninvestigated.**
-- **Unmeasured items** are tagged `[Open]` in the sub-files; the scaffold's constraint-row
-  step and `size` against live models need a scratch org with the Constraints Engine
-  setting enabled.
+- **Unmeasured items** are tagged `[Open]` in the sub-files.

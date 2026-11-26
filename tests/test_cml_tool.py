@@ -58,7 +58,7 @@ def main():
     for bad in ({}, {"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
         try:
             cml_tool.validate_spec(bad)
-        except SystemExit:
+        except cml_tool.ExpressionSetClientError:
             continue
         raise AssertionError(f"spec accepted: {bad}")
     print("test_cml_tool: ok")

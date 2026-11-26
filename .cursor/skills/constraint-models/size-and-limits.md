@@ -36,8 +36,8 @@ python scripts/constraint_models/cml_tool.py size --target-org <sf_alias_or_user
 
 It prints each constraint model version's byte length (from the stored blob, not the
 HTML-escaped Connect read; [tooling.md](tooling.md)) and, with `--limit`, its share, and exits
-1 when any is over ([tooling.md](tooling.md)). The shipped models are far below the limit: the repo files are 8,774 and 21,541 bytes, and
-the same two models read from the stored blob in an org at the same sizes
+1 when any is over ([tooling.md](tooling.md)). The shipped models are far below the limit: `QuantumBitBundle` is 8,774 bytes and `Server2`
+is 21,541 bytes, in the repo files and read from the stored blob of an org
 `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`.
 
 ## What counts, and what else is limited

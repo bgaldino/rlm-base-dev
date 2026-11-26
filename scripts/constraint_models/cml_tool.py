@@ -37,8 +37,6 @@ from scripts.expression_sets._client import (  # noqa: E402
     soql_literal,
 )
 
-# The save-size limit is an org value (it follows the Apex code size limit) and cannot be
-# read from the org, so --limit is optional: without it only the byte count is reported.
 DEFAULT_CONTEXT = "RLM_SalesTransactionContext"
 
 
@@ -71,7 +69,7 @@ def esdv_id(t, version):
     rows = t.soql("SELECT Id FROM ExpressionSetDefinitionVersion "
                   f"WHERE DeveloperName = '{soql_literal(version['ApiName'])}'")
     if not rows:
-        raise SystemExit(f"no ExpressionSetDefinitionVersion {version['ApiName']}")
+        raise ExpressionSetClientError(f"no ExpressionSetDefinitionVersion {version['ApiName']}")
     return rows[0]["Id"]
 
 
@@ -100,8 +98,8 @@ def cmd_size(t, args):
         rows.append(rep)
     if args.json:
         print(json.dumps(rows, indent=2))
-    for r in rows:
-        if not args.json:
+    else:
+        for r in rows:
             print(f"{r['model']} v{r['version']} active={r['active']}: {fmt_size(r)}")
     return 1 if any(r["over"] for r in rows) else 0
 
@@ -128,15 +126,21 @@ def push_model(t, version, model_bytes):
 def cmd_push(t, args):
     versions = constraint_versions(t, args.api_name)
     if not versions:
-        raise SystemExit(f"no constraint model named {args.api_name}")
-    version = versions[-1]
+        raise ExpressionSetClientError(f"no constraint model named {args.api_name}")
+    version = next((v for v in versions if v["IsActive"]), versions[-1])
     version["_esdv"] = esdv_id(t, version)
     data = Path(args.file).read_bytes()
     rep = size_report(data.decode("utf-8"), args.limit)
-    eprint(f"{version['ApiName']}: {fmt_size(rep)}")
+    eprint(f"{version['ApiName']} (version {version['VersionNumber']}, "
+           f"{'active' if version['IsActive'] else 'inactive'}): {fmt_size(rep)}")
     if not args.confirm:
         eprint("preview only; add --confirm to deactivate, upload and activate")
         return 0
+    # A failed activation leaves the new blob stored and the version inactive, so keep the
+    # current model next to the file first; pushing it back restores the model.
+    previous = Path(args.file + ".previous")
+    previous.write_text(read_model(t, version))
+    eprint(f"saved the current model to {previous}")
     push_model(t, version, data)
     print("pushed, read back identical, version active")
     return 0
@@ -145,19 +149,19 @@ def cmd_push(t, args):
 def validate_spec(spec):
     for key in ("prefix", "attrs", "products"):
         if not spec.get(key):
-            raise SystemExit(f"spec needs a non-empty '{key}'")
+            raise ExpressionSetClientError(f"spec needs a non-empty '{key}'")
     for a in spec["attrs"]:
         if not a.get("dev") or not a.get("values"):
-            raise SystemExit("each attr needs 'dev' and 'values'")
+            raise ExpressionSetClientError("each attr needs 'dev' and 'values'")
     for p in spec["products"]:
         if not p.get("name") or not p.get("tag"):
-            raise SystemExit("each product needs 'name' and 'tag'")
+            raise ExpressionSetClientError("each product needs 'name' and 'tag'")
 
 
 def _one(t, soql, what):
     rows = t.soql(soql)
     if not rows:
-        raise SystemExit(f"{what} not found")
+        raise ExpressionSetClientError(f"{what} not found")
     return rows[0]["Id"]
 
 
@@ -185,6 +189,17 @@ def cmd_scaffold(t, args):
         t, "ProductSellingModel",
         {"Name": f"{pre} One Time", "SellingModelType": "OneTime", "Status": "Active"})
     ids = {"attrs": {}, "products": {}, "esc": {}}
+    try:
+        _build(t, spec, ids, pb, ctx, psm)
+    finally:  # a failure part-way still leaves the ids created so far
+        if args.out:
+            Path(args.out).write_text(json.dumps(ids, indent=1))
+    print(json.dumps(ids, indent=1))
+    return 0
+
+
+def _build(t, spec, ids, pb, ctx, psm):
+    pre = spec["prefix"]
     cls = ids["classification"] = _create(t, "ProductClassification", {
         "Name": f"{pre} Class", "Code": f"{pre}_Class", "Status": "Active"})
     for a in spec["attrs"]:
@@ -230,10 +245,6 @@ def cmd_scaffold(t, args):
         ids["esc"][p["name"]] = _create(t, "ExpressionSetConstraintObj", {
             "ExpressionSetId": es, "ReferenceObjectId": ids["products"][p["name"]],
             "ConstraintModelTag": p["tag"], "ConstraintModelTagType": "Type"})
-    if args.out:
-        Path(args.out).write_text(json.dumps(ids, indent=1))
-    print(json.dumps(ids, indent=1))
-    return 0
 
 
 def main(argv=None):
@@ -246,8 +257,9 @@ def main(argv=None):
         if name != "scaffold":
             s.add_argument("--api-name", required=(name == "push"), help="ExpressionSet ApiName")
             s.add_argument("--limit", type=int, default=None,
-                           help="org's model size limit in bytes (not readable from the org; "
-                                "without it only bytes are reported)")
+                           help="org's model size limit in bytes; it follows the Apex code "
+                                "size limit and is not readable from the org, so without "
+                                "it only bytes are reported")
         if name == "size":
             s.add_argument("--json", action="store_true")
         if name == "push":
