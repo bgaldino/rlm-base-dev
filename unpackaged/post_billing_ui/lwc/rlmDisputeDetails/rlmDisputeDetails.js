@@ -192,6 +192,9 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         if (invoiceId) {
             getRelatedNames({ invoiceIds: [invoiceId], invoiceLineIds: [] })
                 .then((result) => {
+                    // The record may have changed while the name was being read: apply it only to
+                    // the dispute it was read for.
+                    if (this._disputeId !== id) return;
                     const invoiceNames = result.invoiceNames || {};
                     if (invoiceNames[invoiceId]) {
                         this.disputeData = {
@@ -247,8 +250,10 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         const invoiceLineIds = items.map((i) => i.invoiceLineId).filter(Boolean);
 
         if (needsApex && invoiceLineIds.length > 0) {
+            const disputeId = this._disputeId;
             getRelatedNames({ invoiceIds: [], invoiceLineIds })
                 .then((result) => {
+                    if (this._disputeId !== disputeId) return;
                     const lineNames = result.lineNames || {};
                     const lineBalances = result.lineBalances || {};
                     this.disputeItems = this.disputeItems.map((item) => ({

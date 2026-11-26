@@ -160,8 +160,10 @@ public with sharing class RLM_OnAccountBillingController {
         ];
         info.put('delinquentCount', delinquentCount);
 
-        // The four reads below are optional to the summary: a refused or failed one gives null
-        // (shown as unavailable), never a zero or false that reads as "none" (owner rule, pack 445).
+        // Four reads below are optional to the summary: partially-paid overdue, written-off, disputes
+        // and collections (the open-with-balance count between them is not). A refused or failed one
+        // gives null (shown as unavailable), never a zero or false that reads as "none" (owner rule,
+        // pack 445).
         // An org without the Dispute object, or without the license-gated Dispute fields the count
         // reads, has no disputes, so that count is a real zero.
 
@@ -260,7 +262,7 @@ public with sharing class RLM_OnAccountBillingController {
 
     // True only when the Dispute object exists and has every field in disputeFields.
     private static Boolean disputeFieldsPresent() {
-        Schema.SObjectType dispute = Schema.getGlobalDescribe().get('Dispute');
+        Schema.SObjectType dispute = globalDescribe().get('Dispute');
         if (dispute == null) {
             return false;
         }
@@ -271,6 +273,15 @@ public with sharing class RLM_OnAccountBillingController {
             }
         }
         return true;
+    }
+
+    // Schema.getGlobalDescribe() is costly and the page asks several times: describe once per transaction.
+    private static Map<String, Schema.SObjectType> describedTypes;
+    private static Map<String, Schema.SObjectType> globalDescribe() {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes;
     }
 
     // Logs a refused or failed optional status read; returns null for the caller to report.
@@ -305,7 +316,7 @@ public with sharing class RLM_OnAccountBillingController {
             query += ' GROUP BY CurrencyIsoCode';
         }
 
-        if (!Schema.getGlobalDescribe().containsKey(objectName)) {
+        if (!globalDescribe().containsKey(objectName)) {
             return 0;
         }
         Decimal total = 0;
@@ -357,6 +368,7 @@ public with sharing class RLM_OnAccountBillingController {
         return rawAmount.divide(datedFromRate, 10, RoundingMode.HALF_UP) * datedToRate;
     }
 
+    @TestVisible
     private static Map<String, Decimal> loadStandardRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
@@ -367,10 +379,17 @@ public with sharing class RLM_OnAccountBillingController {
                 rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
         } catch (Exception e) {
-            // Not available
+            // Without the standard rates every foreign-currency balance would be summed at rate 1,
+            // a figure that looks real but is wrong: refuse with a fixed sentence, as currencyOf does.
+            // Not reached by any restricted user measured: a Minimum Access user with no permission
+            // sets still reads CurrencyType (264 org, 2026-11-26).
+            throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_OnAccountBillingController.loadStandardRates', e);
         }
         return rates;
     }
+
+    private static final String RATES_UNREADABLE =
+        'Unable to read the currency conversion rates, so this account\'s balances are not shown. Contact your administrator.';
 
     private static Map<String, Decimal> loadDatedRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();

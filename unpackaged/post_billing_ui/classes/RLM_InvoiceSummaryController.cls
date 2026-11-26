@@ -72,7 +72,7 @@ public with sharing class RLM_InvoiceSummaryController {
 
         // ── 2. Disputes via open Cases ──────────────────────────
         // Query open cases for the account, then get Dispute records
-        // linked to those cases. Sum DisputedAmount converted to account currency.
+        // linked to those cases. Sum DisputedAmount converted to the running user's currency.
         Set<Id> caseIds = new Set<Id>();
         for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false WITH USER_MODE]) {
             caseIds.add(c.Id);
@@ -86,14 +86,23 @@ public with sharing class RLM_InvoiceSummaryController {
         // Not yet on a posted invoice: once it is, that invoice's balance counts it.
         dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\''
             + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\'';
-        for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
-            Decimal amt = (Decimal)dm.get('TotalAmount');
-            if (amt == null || amt <= 0) continue;
-            if (isMultiCurrency) {
-                amt = convertCurrency(amt, (String)dm.get('CurrencyIsoCode'), targetCurrency, convRates);
+        // A refused or failed read leaves the debit memo amount and count, and the total due that
+        // includes them, null (shown as unavailable), not zero and not a failed card.
+        try {
+            for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
+                Decimal amt = (Decimal)dm.get('TotalAmount');
+                if (amt == null || amt <= 0) continue;
+                if (isMultiCurrency) {
+                    amt = convertCurrency(amt, (String)dm.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.debitAmount += amt;
+                data.debitCount++;
             }
-            data.debitAmount += amt;
-            data.debitCount++;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController debit memos unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.debitAmount = null;
+            data.debitCount = null;
         }
 
         // ── 4. Promise to Pay — PSIs via CollectionPlan chain ───
@@ -102,7 +111,7 @@ public with sharing class RLM_InvoiceSummaryController {
         // ── 5. Classify invoices ────────────────────────────────
         classifyInvoices(invoices, data, today, isMultiCurrency, targetCurrency, convRates);
 
-        data.totalDue += data.debitAmount;
+        data.totalDue = data.debitAmount != null ? data.totalDue + data.debitAmount : null;
 
         // ── 6. Paid — invoices fully settled in last 30 days ────
         // Count is # of fully-settled invoices in window.
@@ -126,14 +135,19 @@ public with sharing class RLM_InvoiceSummaryController {
         return data;
     }
 
-    // Disputes on the given open cases, summed into the account currency. An org without the
-    // billing dispute feature (no Dispute object or fields) has no disputes: a real zero. A refused
+    // Disputes on the given open cases, summed into the running user's default currency (the
+    // summary's target currency). An org without the billing dispute feature (no Dispute object, or
+    // none of the fields this query reads) has no disputes: a real zero. A refused
     // or failed read leaves the amount and count null (shown as unavailable), never a zero that
     // reads as "no disputes" (owner rule, pack 445).
     @TestVisible
     private static void addDisputes(InvoiceSummaryData data, Set<Id> caseIds, Boolean isMultiCurrency,
             String targetCurrency, Map<String, Decimal> convRates) {
-        if (caseIds.isEmpty() || !disputeHasFields(new Set<String>{ 'CaseId', 'InvoiceId' })) {
+        Set<String> readFields = new Set<String>{ 'CaseId', 'DisputedAmount' };
+        if (isMultiCurrency) {
+            readFields.add('CurrencyIsoCode');
+        }
+        if (caseIds.isEmpty() || !disputeHasFields(readFields)) {
             return;
         }
         try {
@@ -255,7 +269,7 @@ public with sharing class RLM_InvoiceSummaryController {
     // Whether the org has the collections objects and the two link fields the promise-to-pay
     // query filters on, whatever the running user can read.
     private static Boolean collectionPlansPresent() {
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        Map<String, Schema.SObjectType> types = globalDescribe();
         if (!types.containsKey('CollectionPlan') || !types.containsKey('CollectionPlanItem')) {
             return false;
         }
@@ -270,13 +284,22 @@ public with sharing class RLM_InvoiceSummaryController {
         if (!collectionPlansPresent()) {
             return false;
         }
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        Map<String, Schema.SObjectType> types = globalDescribe();
         for (String name : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
             if (!types.get(name).getDescribe().isAccessible()) {
                 return false;
             }
         }
         return true;
+    }
+
+    // Schema.getGlobalDescribe() is costly and the page asks several times: describe once per transaction.
+    private static Map<String, Schema.SObjectType> describedTypes;
+    private static Map<String, Schema.SObjectType> globalDescribe() {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes;
     }
 
     /**
@@ -286,11 +309,11 @@ public with sharing class RLM_InvoiceSummaryController {
      * on this before referencing those fields.
      */
     private static Boolean disputeHasFields(Set<String> fieldNames) {
-        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+        if (!globalDescribe().containsKey('Dispute')) {
             return false;
         }
         Map<String, Schema.SObjectField> dFields =
-            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+            globalDescribe().get('Dispute').getDescribe().fields.getMap();
         for (String f : fieldNames) {
             if (!dFields.containsKey(f)) {
                 return false;

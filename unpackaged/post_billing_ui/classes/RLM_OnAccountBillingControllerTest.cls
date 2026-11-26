@@ -193,7 +193,8 @@ private class RLM_OnAccountBillingControllerTest {
     // it sums or counts, with the fields it uses); those probes are the evidence that this role
     // can run the summary's reads. Dated rates are left out: that table exists only with
     // advanced currency management, and the controller treats an unreadable one as empty.
-    // Collection plans are the exception: this role cannot read them, so the summary reports
+    // Collection plans are the exception: this role on its own (without the persona group's
+    // collections set, next test) cannot read them, so the summary reports
     // collections as unavailable (null), not "not in collections", and does not fail. Measured on a
     // 264 org (2026-11-26): RLM_BillingUI's CollectionPlan read grant does not make it readable;
     // CollectionPlan also needs the Collections and Recovery Specialist user permission, which the
@@ -252,6 +253,33 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.isNull(result.get('inCollections'),
             'A role that cannot read collection plans gets collections as unavailable, not "not in collections" '
             + '(the account has a plan).');
+    }
+
+    // The Billing Operations persona as the build defines it (owner decision, todo 452) reads
+    // collection plans, so an account with a plan is in collections (its pill reads "In
+    // Collections"), not unavailable. Skipped visibly where the personas bundle is not deployed.
+    @isTest
+    static void getBillingSummary_billingOperationsPersona_readsCollectionPlans() {
+        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
+        if (u == null) {
+            return;
+        }
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Persona Test', null);
+        // No CollectionPlanReason (see above). Owned by the user, so sharing shows it.
+        insert new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
+
+        String collectionPlanError;
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(u) {
+            collectionPlanError = userModeError(COLLECTION_PLAN_READ);
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isNull(collectionPlanError, 'The persona can read collection plans: ' + collectionPlanError);
+        Assert.areEqual(true, (Boolean) result.get('inCollections'), 'The account with a plan is in collections, not unavailable.');
+        Assert.areEqual(0, (Integer) result.get('disputeCount'), 'The persona\'s other status reads still run.');
     }
 
     private static final String COLLECTION_PLAN_READ = 'SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1';

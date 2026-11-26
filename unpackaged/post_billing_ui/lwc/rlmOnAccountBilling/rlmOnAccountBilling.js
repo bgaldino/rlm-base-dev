@@ -139,9 +139,9 @@ export default class RlmOnAccountBilling extends LightningElement {
         };
         const net = d.netAccountBalance == null ? null : Number(d.netAccountBalance);
 
-        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either,
-        // so not when one of them could not be read.
-        if (totalInvoices === 0 && net != null && inCollections != null && writtenOff != null && disputeCount != null) {
+        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either:
+        // only when each of them is known to be none.
+        if (totalInvoices === 0 && net === 0 && inCollections === false && writtenOff === 0 && disputeCount === 0) {
             return {
                 label: 'No Billing Activity',
                 cssClass: 'status-pill status-no-activity',
@@ -179,7 +179,9 @@ export default class RlmOnAccountBilling extends LightningElement {
                 description: `${disputeCount} open dispute(s) on this account's invoices are pending resolution.`
             };
         }
-        if (partiallyPaidOverdue == null) return statusUnavailable;
+        // Partially paid invoices are a subset of the overdue ones: with none overdue the count is a
+        // real zero whether or not it could be read.
+        if (partiallyPaidOverdue == null && overdueCount > 0) return statusUnavailable;
         if (partiallyPaidOverdue > 0) {
             return {
                 label: 'Partially Paid',

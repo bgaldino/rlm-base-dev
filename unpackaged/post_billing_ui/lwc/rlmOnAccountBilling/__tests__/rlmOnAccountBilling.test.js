@@ -53,6 +53,7 @@ describe('rlmOnAccountBilling', () => {
     // show Unavailable; the other box still shows its figure; nothing shows "-Unavailable" or $0.00,
     // and the net is not styled as a credit.
     it.each([
+        ['invoiceBalance', 0, 0],
         ['debitMemoBalance', 1, 0],
         ['paymentBalance', 2, 1],
         ['creditMemoBalance', 3, 1],
@@ -152,11 +153,20 @@ describe('status pill with an unavailable count', () => {
         expect(await pillFor(ALL_READ)).toBe('Good Standing');
     });
 
-    it.each(['inCollections', 'writtenOffCount', 'disputeCount', 'partiallyPaidOverdueCount'])(
+    it.each(['inCollections', 'writtenOffCount', 'disputeCount'])(
         'shows Status Unavailable, not a standing, when %s is unavailable', async (key) => {
             expect(await pillFor({ ...ALL_READ, [key]: null })).toBe('Status Unavailable');
         }
     );
+
+    // Partially paid invoices are a subset of the overdue ones.
+    it('treats an unavailable partially-paid count as a real zero when nothing is overdue', async () => {
+        expect(await pillFor({ ...ALL_READ, partiallyPaidOverdueCount: null })).toBe('Good Standing');
+    });
+
+    it('shows Status Unavailable for an unavailable partially-paid count when invoices are overdue', async () => {
+        expect(await pillFor({ ...ALL_READ, overdueCount: 1, partiallyPaidOverdueCount: null })).toBe('Status Unavailable');
+    });
 
     it('still shows a known earlier status ahead of an unavailable later count', async () => {
         expect(await pillFor({ ...ALL_READ, inCollections: true, disputeCount: null })).toBe('In Collections');
@@ -169,7 +179,19 @@ describe('status pill with an unavailable count', () => {
         }
     );
 
-    it('claims no billing activity only when everything it covers is known', async () => {
-        expect(await pillFor({ ...ALL_READ, totalInvoices: 0 })).toBe('No Billing Activity');
+    const NO_INVOICES = { ...ALL_READ, totalInvoices: 0, openWithBalance: 0, netAccountBalance: 0 };
+
+    it('claims no billing activity only when everything it covers is known to be none', async () => {
+        expect(await pillFor(NO_INVOICES)).toBe('No Billing Activity');
+    });
+
+    it.each([
+        ['only written-off invoices', { writtenOffCount: 1 }, 'Written Off'],
+        ['an unapplied payment', { netAccountBalance: -500 }, 'Credit Balance'],
+        ['an open dispute', { disputeCount: 1 }, 'In Dispute'],
+        ['a collection plan', { inCollections: true }, 'In Collections'],
+        ['a debit memo balance', { netAccountBalance: 40 }, 'Good Standing']
+    ])('does not claim no billing activity for an account with %s', async (_label, change, expected) => {
+        expect(await pillFor({ ...NO_INVOICES, ...change })).toBe(expected);
     });
 });

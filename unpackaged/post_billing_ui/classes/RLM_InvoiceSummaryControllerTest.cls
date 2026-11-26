@@ -294,8 +294,9 @@ private class RLM_InvoiceSummaryControllerTest {
         }
     }
 
-    // A billing role without collections can't read the collection plan link that the
-    // promise-to-pay step filters on. The summary must still load for that user, with the
+    // A billing role without collections (the managed role on its own, without the persona
+    // group's collections set) can't read the collection plan link that the promise-to-pay step
+    // filters on. The summary must still load for that user, with the
     // promise to pay unavailable (null), not zero: the account may have promises the user cannot
     // see (pack 452), and not failing on that one query.
     @isTest
@@ -316,6 +317,36 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.isNull(data.promiseToPayCount, 'No collections access -> the promise-to-pay count is unavailable, not zero.');
         Assert.isNull(data.promiseToPayAmount, 'No collections access -> the promise-to-pay amount is unavailable, not zero.');
         Assert.areEqual(0, data.totalDue, 'The rest of the summary still loads.');
+    }
+
+    // The Billing Operations persona as the build defines it (owner decision, todo 452) reads
+    // collection plans, so its promise to pay is a real figure (zero here), not unavailable.
+    // Skipped visibly where the personas bundle is not deployed.
+    @isTest
+    static void getInvoiceSummary_billingOperationsPersona_runsPromiseToPay() {
+        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
+        if (u == null) {
+            return;
+        }
+        Account acc = new Account(Name = 'RLM Invoice Summary Persona Test', OwnerId = u.Id);
+        insert acc;
+        Boolean seesCollections;
+        String promiseReadError;
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Test.startTest();
+        System.runAs(u) {
+            seesCollections = RLM_InvoiceSummaryController.canReadCollectionPlans();
+            promiseReadError = userModeError('SELECT Id, RequestedAmount, Status, CurrencyIsoCode FROM PaymentScheduleItem '
+                + 'WHERE PaymentSchedule.CollectionPlanItemId != null '
+                + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1');
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isTrue(seesCollections, 'The persona can read collection plans.');
+        Assert.isNull(promiseReadError, 'The persona can run the promise-to-pay read: ' + promiseReadError);
+        Assert.areEqual(0, data.promiseToPayCount, 'The promise-to-pay count is a real zero, not unavailable.');
+        Assert.areEqual(0, data.promiseToPayAmount, 'The promise-to-pay amount is a real zero, not unavailable.');
     }
 
     // The other side of the gate: a collections user still gets the promise-to-pay query.
@@ -435,6 +466,34 @@ private class RLM_InvoiceSummaryControllerTest {
             insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
         }
         return u;
+    }
+
+    // A billing user who reads the account's invoices and cases but not debit memos: the card loads,
+    // with the debit memo amount, its count and the total due unavailable (null), not zero and not
+    // a failed card (pack 452). Measured: a user built this way cannot read DebitMemo at all, which
+    // is the refusal this test needs.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadDebitMemos_leavesThemAndTheTotalDueUnavailable() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(),
+            new List<String>{ 'Account', 'Invoice', 'Case' }, new List<String>{ 'Case.AccountId' });
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Debit Memos', OwnerId = u.Id);
+        insert acc;
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNull(userModeError('SELECT Id, Balance, DueDate, Status, SettlementStatus, CurrencyIsoCode FROM Invoice LIMIT 1'),
+                'PRECONDITION: the user can read Invoice.');
+            Assert.isNotNull(userModeError('SELECT Id, TotalAmount, CurrencyIsoCode FROM DebitMemo LIMIT 1'),
+                'PRECONDITION: the user cannot read DebitMemo.');
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.debitAmount, 'The debit memo amount is unavailable (null), not zero.');
+        Assert.isNull(data.debitCount, 'The debit memo count is unavailable (null), not zero.');
+        Assert.isNull(data.totalDue, 'The total due includes debit memos, so it is unavailable.');
+        Assert.areEqual(0, data.totalInvoices, 'The invoice reads still run.');
     }
 
     private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {

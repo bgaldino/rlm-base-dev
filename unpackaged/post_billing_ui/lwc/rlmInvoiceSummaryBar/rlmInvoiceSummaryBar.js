@@ -103,9 +103,9 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         const statusUnavailable = { label: 'Status Unavailable', cssClass: 'status-pill status-no-activity', description: 'Some billing records on this account could not be read, so its standing is not shown.' };
         const net = b.netAccountBalance == null ? null : Number(b.netAccountBalance);
 
-        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either,
-        // so not when one of them could not be read.
-        if (totalInvoices === 0 && net != null && inCollections != null && writtenOff != null && disputeCount != null) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
+        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either:
+        // only when each of them is known to be none.
+        if (totalInvoices === 0 && net === 0 && inCollections === false && writtenOff === 0 && disputeCount === 0) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
         if (inCollections == null) return statusUnavailable;
         if (inCollections) return { label: 'In Collections', cssClass: 'status-pill status-collections', description: 'This account has been escalated to collections for significantly overdue balances.' };
         if (writtenOff == null) return statusUnavailable;
@@ -113,7 +113,9 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         if (delinquentCount > 0) return { label: 'Delinquent', cssClass: 'status-pill status-delinquent', description: `${delinquentCount} invoice(s) are 60+ days past due.` };
         if (disputeCount == null) return statusUnavailable;
         if (disputeCount > 0) return { label: 'In Dispute', cssClass: 'status-pill status-dispute', description: `${disputeCount} open dispute(s) on this account's invoices.` };
-        if (partiallyPaidOverdue == null) return statusUnavailable;
+        // Partially paid invoices are a subset of the overdue ones: with none overdue the count is a
+        // real zero whether or not it could be read.
+        if (partiallyPaidOverdue == null && overdueCount > 0) return statusUnavailable;
         if (partiallyPaidOverdue > 0) return { label: 'Partially Paid', cssClass: 'status-pill status-partial', description: `${partiallyPaidOverdue} overdue invoice(s) have partial payments.` };
         if (overdueCount > 0) return { label: 'Overdue', cssClass: 'status-pill status-overdue', description: `${overdueCount} invoice(s) are past their due date.` };
         if (net == null) return { label: 'Balance Unavailable', cssClass: 'status-pill status-no-activity', description: 'Some balances on this account could not be read, so its standing is not shown.' };
@@ -187,10 +189,12 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         const d = this.data;
         if (!d) return '';
         const names = [];
+        if (d.debitAmount == null) names.push('debit memos');
         if (d.disputeAmount == null) names.push('disputes');
         if (d.promiseToPayAmount == null) names.push('promises to pay');
         if (!names.length) return '';
-        const text = `${names.join(' and ')} could not be read and are not shown.`;
+        const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+        const text = `${list} could not be read and are not shown.`;
         return text.charAt(0).toUpperCase() + text.slice(1);
     }
 

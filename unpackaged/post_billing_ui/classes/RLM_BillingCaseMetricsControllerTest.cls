@@ -10,9 +10,9 @@
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {
 
-    // With no Cases or Disputes, every metric reads zero for the running admin. The dispute
-    // reads may be refused and swallowed for the admin, so this does not show the dispute
-    // queries ran; getMetrics_asBillingRole_runsTheDisputeQueries does. Dispute and its Status,
+    // With no Cases or Disputes, every metric reads zero for the running admin. A refused read
+    // comes back null (unavailable), not zero, so these zeros show the reads ran;
+    // getMetrics_asBillingRole_runsTheDisputeQueries checks the billing role. Dispute and its Status,
     // DisputedAmount and InvoiceId fields are required by this bundle (RLM_BillingUIAccessTest
     // checks them).
     @isTest
@@ -101,11 +101,8 @@ private class RLM_BillingCaseMetricsControllerTest {
         }
     }
 
-    // A user who cannot query Dispute does not see an open dispute: the dispute seeded here is
-    // counted for the Billing Operations user who owns it. For this user either describe hides
-    // Dispute.Status (so the controller skips the query) or the controller's user-mode query is
-    // refused (it records the error); both are access refusals, so the zero does not come from
-    // sharing.
+    // A user who cannot query Dispute gets the dispute metrics as unavailable (null), not zero:
+    // the dispute seeded here is counted for the Billing Operations user who owns it (pack 452).
     @isTest
     static void getMetrics_userWhoCannotReadDisputes_doesNotCountTheDispute() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -144,15 +141,17 @@ private class RLM_BillingCaseMetricsControllerTest {
         Test.stopTest();
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query Dispute in user mode.');
-        Assert.isTrue(RLM_BillingCaseMetricsController.lastDisputeQueryError != null || !statusVisible,
-            'The controller\'s dispute query was refused or skipped for lack of access, not run and '
-            + 'filtered by sharing.');
-        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The open dispute is not counted.');
+        Assert.isTrue(statusVisible, 'PRECONDITION: describe still lists Dispute.Status for this user, so the '
+            + 'controller runs its query rather than treating Dispute as absent.');
+        Assert.isNotNull(RLM_BillingCaseMetricsController.lastDisputeQueryError, 'The controller\'s dispute query was refused.');
+        for (String key : new List<String>{ 'openDisputes', 'totalDisputedAmount', 'disputedInvoices' }) {
+            Assert.isTrue(result.containsKey(key), key + ' is returned.');
+            Assert.isNull(result.get(key), key + ' is unavailable (null), not zero, when the dispute read is refused.');
+        }
     }
 
-    // A user who cannot query Case does not see the admin's open billing case (through access or
-    // sharing; the controller records no error for the case count), and gets a zero rather than
-    // an error.
+    // A user who cannot query Case gets the open billing case count as unavailable (null), not a
+    // zero that reads as "no open cases", and not an error (pack 452).
     @isTest
     static void getMetrics_userWhoCannotReadCases_doesNotCountABillingCase() {
         if (billingCaseTypeIsBlocked()) {
@@ -178,11 +177,12 @@ private class RLM_BillingCaseMetricsControllerTest {
         Test.stopTest();
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query Case in user mode.');
-        Assert.areEqual(0, (Integer) result.get('openBillingCases'), 'The admin\'s open billing case is not counted.');
+        Assert.isTrue(result.containsKey('openBillingCases'), 'openBillingCases is returned.');
+        Assert.isNull(result.get('openBillingCases'), 'The case count is unavailable (null), not zero.');
     }
 
-    // The dispute aggregates swallow their errors and show zero, so the zero-path test passes
-    // whether or not they run. As a billing role, which can read Dispute, they must run clean.
+    // As a billing role, which can read Dispute, the dispute aggregates must run clean (a refused
+    // one would record its error and return null).
     @isTest
     static void getMetrics_asBillingRole_runsTheDisputeQueries() {
         User u = billingUser();
@@ -229,5 +229,33 @@ private class RLM_BillingCaseMetricsControllerTest {
     private static void assertAmount(Decimal expected, Decimal actual, String message) {
         Assert.isTrue(actual != null && actual == expected,
             message + ' Expected ' + expected + ', got ' + actual + '.');
+    }
+
+    // A billing user who reads cases but not disputes: the case count is a real zero (read, none
+    // open of type Billing for this user) while the dispute metrics are unavailable (pack 452).
+    @isTest
+    static void getMetrics_userWhoReadsCasesButNotDisputes_countsCasesAndLeavesDisputesUnavailable() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Case' },
+            new List<String>{ 'Case.Type' });
+        Map<String, Object> result;
+        Boolean caseReadable = true;
+        Boolean disputeReadable = true;
+        Test.startTest();
+        System.runAs(u) {
+            try { Database.query('SELECT COUNT(Id) cnt FROM Case WHERE IsClosed = false AND Type = \'Billing\'', AccessLevel.USER_MODE); }
+            catch (Exception e) { caseReadable = false; }
+            try { Database.query('SELECT COUNT(Id) cnt FROM Dispute WHERE Status != \'Closed\'', AccessLevel.USER_MODE); }
+            catch (Exception e) { disputeReadable = false; }
+            result = RLM_BillingCaseMetricsController.getMetrics();
+        }
+        Test.stopTest();
+
+        Assert.isTrue(caseReadable, 'PRECONDITION: the user can run the case count.');
+        Assert.isFalse(disputeReadable, 'PRECONDITION: the user cannot run the dispute count.');
+        Assert.isNotNull(result.get('openBillingCases'), 'The readable case count is a number, not unavailable.');
+        Assert.isNull(result.get('openDisputes'), 'The dispute count is unavailable (null), not zero.');
+        Assert.isNull(result.get('totalDisputedAmount'), 'The disputed amount is unavailable (null), not zero.');
+        Assert.isNull(result.get('disputedInvoices'), 'The disputed invoice count is unavailable (null), not zero.');
     }
 }

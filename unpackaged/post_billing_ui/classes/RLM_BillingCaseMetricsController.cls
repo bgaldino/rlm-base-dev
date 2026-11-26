@@ -7,12 +7,14 @@
  * Billing license / Billing Operations User permission set are assigned, but not
  * surfaced to the Apex compiler for static SOQL. Queries therefore use Schema
  * describe to check availability and dynamic SOQL (USER_MODE) to execute, so the
- * class compiles in every org and degrades gracefully where Dispute is absent.
+ * class compiles in every org and degrades gracefully where Dispute is absent (zero disputes).
+ * A refused or failed read (Case or Dispute) returns that metric as null, which the LWC shows as
+ * unavailable, never as a zero that reads as "none".
  */
 public with sharing class RLM_BillingCaseMetricsController {
 
-    // The last dispute query failure, for tests: the metrics swallow it and show zero,
-    // so without this a broken query is indistinguishable from no disputes.
+    // The last dispute query failure, for tests. A refused or failed read is reported as null
+    // (unavailable); an org without the Dispute object or fields reports zero.
     @TestVisible
     private static String lastDisputeQueryError;
 
@@ -41,8 +43,9 @@ public with sharing class RLM_BillingCaseMetricsController {
             ];
             return (Integer) caseAgg[0].get('cnt');
         } catch (Exception e) {
+            // Refused or failed: unavailable (null), not a zero that reads as "no open cases".
             System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController.countOpenBillingCases failed: ' + e.getMessage());
-            return 0;
+            return null;
         }
     }
 
@@ -53,12 +56,12 @@ public with sharing class RLM_BillingCaseMetricsController {
             'disputedInvoices' => 0
         };
 
-        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+        if (!globalDescribe().containsKey('Dispute')) {
             return metrics;
         }
 
         Map<String, Schema.SObjectField> disputeFields =
-            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+            globalDescribe().get('Dispute').getDescribe().fields.getMap();
 
         // Dispute has no IsClosed field. Open means Status is not 'Closed', the rule
         // RLM_OnAccountBillingController uses.
@@ -81,8 +84,11 @@ public with sharing class RLM_BillingCaseMetricsController {
                     metrics.put('totalDisputedAmount', amt != null ? (Decimal) amt : 0);
                 }
             } catch (Exception e) {
-                // Dispute field not accessible (license/extension not enabled) — keep zero defaults.
+                // The object and fields exist (checked above), so this is a refused or failed read:
+                // the counts are unavailable (null), not zero.
                 lastDisputeQueryError = e.getMessage();
+                metrics.put('openDisputes', null);
+                metrics.put('totalDisputedAmount', null);
                 System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage());
             }
 
@@ -94,13 +100,24 @@ public with sharing class RLM_BillingCaseMetricsController {
                     );
                     metrics.put('disputedInvoices', (Integer) invAgg[0].get('cnt'));
                 } catch (Exception e) {
-                    // Dispute.InvoiceId not accessible (license/extension not enabled) — keep zero default.
+                    // Refused or failed (the field exists): unavailable (null), not zero.
                     lastDisputeQueryError = e.getMessage();
+                    metrics.put('disputedInvoices', null);
                     System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController disputed-invoice aggregate failed: ' + e.getMessage());
                 }
             }
         }
 
         return metrics;
+    }
+
+
+    // Schema.getGlobalDescribe() is costly and the page asks several times: describe once per transaction.
+    private static Map<String, Schema.SObjectType> describedTypes;
+    private static Map<String, Schema.SObjectType> globalDescribe() {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes;
     }
 }

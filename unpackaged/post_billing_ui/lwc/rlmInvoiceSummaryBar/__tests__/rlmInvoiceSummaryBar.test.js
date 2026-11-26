@@ -138,6 +138,7 @@ describe('rlmInvoiceSummaryBar unavailable balances', () => {
     // Each part in turn: the totals that include it, the net, its tooltip line and the pill show
     // Unavailable; the other total still shows its figure; nothing shows a number or "-Unavailable".
     it.each([
+        ['invoiceBalance', 'receivables', 'Posted Invoices: Unavailable'],
         ['debitMemoBalance', 'receivables', 'Debit Memo Balance: Unavailable'],
         ['creditMemoBalance', 'payables', 'Credits: Unavailable'],
         ['paymentBalance', 'payables', 'Payments: Unavailable'],
@@ -178,6 +179,24 @@ describe('rlmInvoiceSummaryBar loading', () => {
         getBillingSummary.emit(ALL_READ);
         await flush();
         expect(spinner(el)).toBeNull();
+    });
+
+    it('keeps the spinner when the invoice wire delivers empty and the billing wire delivers data', async () => {
+        const el = mount();
+        await flush();
+        getInvoiceSummary.emit(undefined);
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+    });
+
+    it('keeps the spinner when the billing wire delivers empty and the invoice wire delivers data', async () => {
+        const el = mount();
+        await flush();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit(undefined);
+        await flush();
+        expect(spinner(el)).not.toBeNull();
     });
 
     it('stops the spinner on an error too', async () => {
@@ -247,11 +266,20 @@ describe('status pill with an unavailable count', () => {
         expect(await pillFor(ALL_READ)).toBe('Good Standing');
     });
 
-    it.each(['inCollections', 'writtenOffCount', 'disputeCount', 'partiallyPaidOverdueCount'])(
+    it.each(['inCollections', 'writtenOffCount', 'disputeCount'])(
         'shows Status Unavailable, not a standing, when %s is unavailable', async (key) => {
             expect(await pillFor({ ...ALL_READ, [key]: null })).toBe('Status Unavailable');
         }
     );
+
+    // Partially paid invoices are a subset of the overdue ones.
+    it('treats an unavailable partially-paid count as a real zero when nothing is overdue', async () => {
+        expect(await pillFor({ ...ALL_READ, partiallyPaidOverdueCount: null })).toBe('Good Standing');
+    });
+
+    it('shows Status Unavailable for an unavailable partially-paid count when invoices are overdue', async () => {
+        expect(await pillFor({ ...ALL_READ, overdueCount: 1, partiallyPaidOverdueCount: null })).toBe('Status Unavailable');
+    });
 
     it('still shows a known earlier status ahead of an unavailable later count', async () => {
         expect(await pillFor({ ...ALL_READ, inCollections: true, disputeCount: null })).toBe('In Collections');
@@ -264,8 +292,20 @@ describe('status pill with an unavailable count', () => {
         }
     );
 
-    it('claims no billing activity only when everything it covers is known', async () => {
-        expect(await pillFor({ ...ALL_READ, totalInvoices: 0 })).toBe('No Billing Activity');
+    const NO_INVOICES = { ...ALL_READ, totalInvoices: 0, openWithBalance: 0, netAccountBalance: 0 };
+
+    it('claims no billing activity only when everything it covers is known to be none', async () => {
+        expect(await pillFor(NO_INVOICES)).toBe('No Billing Activity');
+    });
+
+    it.each([
+        ['only written-off invoices', { writtenOffCount: 1 }, 'Written Off'],
+        ['an unapplied payment', { netAccountBalance: -500 }, 'Credit Balance'],
+        ['an open dispute', { disputeCount: 1 }, 'In Dispute'],
+        ['a collection plan', { inCollections: true }, 'In Collections'],
+        ['a debit memo balance', { netAccountBalance: 40 }, 'Good Standing']
+    ])('does not claim no billing activity for an account with %s', async (_label, change, expected) => {
+        expect(await pillFor({ ...NO_INVOICES, ...change })).toBe(expected);
     });
 });
 
@@ -276,8 +316,8 @@ describe('unavailable invoice segments', () => {
         while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
     });
 
-    const READ = { totalInvoices: 2, totalDue: 100, currentAmount: 100, currentCount: 2, disputeAmount: 0, disputeCount: 0,
-        promiseToPayAmount: 0, promiseToPayCount: 0 };
+    const READ = { totalInvoices: 2, totalDue: 100, currentAmount: 100, currentCount: 2, debitAmount: 0, debitCount: 0,
+        disputeAmount: 0, disputeCount: 0, promiseToPayAmount: 0, promiseToPayCount: 0 };
     const noteFor = async (invoice) => {
         const el = mount();
         getInvoiceSummary.emit(invoice);
@@ -298,6 +338,16 @@ describe('unavailable invoice segments', () => {
     it('names refused promises to pay', async () => {
         expect(await noteFor({ ...READ, promiseToPayAmount: null, promiseToPayCount: null }))
             .toBe('Promises to pay could not be read and are not shown.');
+    });
+
+    it('names refused debit memos', async () => {
+        expect(await noteFor({ ...READ, debitAmount: null, debitCount: null, totalDue: null }))
+            .toBe('Debit memos could not be read and are not shown.');
+    });
+
+    it('names all three when all are refused', async () => {
+        expect(await noteFor({ ...READ, debitAmount: null, disputeAmount: null, promiseToPayAmount: null }))
+            .toBe('Debit memos, disputes and promises to pay could not be read and are not shown.');
     });
 
     it('names both when both are refused', async () => {

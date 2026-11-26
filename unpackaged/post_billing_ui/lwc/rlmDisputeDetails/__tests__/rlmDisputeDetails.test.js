@@ -74,3 +74,42 @@ describe('rlmDisputeDetails names', () => {
         expect(lineLink(el)).toBe('—');
     });
 });
+
+// Pack 452: a name read for one dispute must not land on the next one when the record changes
+// before the read returns.
+describe('rlmDisputeDetails record change', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        jest.clearAllMocks();
+    });
+
+    const payload = (disputeId, invoiceId) => ({ uiapi: { query: {
+        Dispute: { edges: [{ node: {
+            Id: disputeId, Name: { value: 'D-' + disputeId.slice(-1) }, InvoiceId: { value: invoiceId },
+            DisputedAmount: { value: 10 }, ReceivedDate: { value: null }
+        } }] },
+        DisputeItem: { edges: [] }
+    } } });
+
+    it('keeps the new dispute\'s invoice name when the previous dispute\'s read returns late', async () => {
+        const INVOICE_B = '3tt000000000002AAA';
+        let resolveFirst;
+        getRelatedNames
+            .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+            .mockImplementation(() => Promise.resolve({ invoiceNames: { [INVOICE_B]: 'INV-B' } }));
+        const el = createElement('c-rlm-dispute-details', { is: RlmDisputeDetails });
+        el.recordId = CASE_ID;
+        document.body.appendChild(el);
+        graphql.emit(payload(DISPUTE_ID, INVOICE_ID));
+        await flush();
+
+        el.recordId = '500000000000002AAA';
+        graphql.emit(payload('0Xd000000000002AAA', INVOICE_B));
+        await flush();
+        expect(invoiceLink(el)).toBe('INV-B');
+
+        resolveFirst({ invoiceNames: { [INVOICE_ID]: 'INV-A' } });
+        await flush();
+        expect(invoiceLink(el)).toBe('INV-B');
+    });
+});

@@ -13,6 +13,27 @@ public class RLM_BillingUITestUsers {
     public static final String BILLING_PSL = 'RevLifecycleMgmtBillingPsl';
     public static final String BILLING_ADVANCED_PSL = 'BillingAdvancedPsl';
 
+    // The RLM Billing Operations persona group's own collections set (unpackaged/post_personas).
+    public static final String PERSONA_COLLECTIONS_SET = 'RLM_BillingOperationsCollections';
+
+    /**
+     * A Billing Operations persona user who reads collection plans, as the build defines the persona:
+     * the managed role set and the group's RLM_BillingOperationsCollections set, with RLM_BillingUI,
+     * the Billing and Billing Advanced licenses (the set's Collections and Recovery Specialist user
+     * permission needs Billing Advanced). Returns null, with a visible skip, where the personas
+     * bundle is not deployed (personas off), so callers skip rather than fail.
+     */
+    public static User billingOperationsPersonaWithCollections() {
+        if ([SELECT COUNT() FROM PermissionSet WHERE Name = :PERSONA_COLLECTIONS_SET] == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + PERSONA_COLLECTIONS_SET
+                + ' is not deployed (personas off), so the persona\'s collections read is not tested.');
+            return null;
+        }
+        return create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', PERSONA_COLLECTIONS_SET },
+            new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
+    }
+
     public static User create(List<String> permissionSets, List<String> licenses) {
         Map<String, Id> setIds = new Map<String, Id>();
         for (PermissionSet ps : [SELECT Id, Name FROM PermissionSet WHERE Name IN :permissionSets]) {
