@@ -16,7 +16,7 @@
            Access profile lacks it; Standard User has it.
          No license: the set is in both persona groups, whose holders already have the Billing license,
          so redeploying a group with it cannot fail for a holder. -->
-    <description>Billing personas' invoice documents: Read and View All on Invoice Batch Runs (with the scheduler and run criteria they require) and Access Libraries, to read the template file. DocGen sets go next to the group.</description>
+    <description>Invoice documents for the RLM Billing Admin and RLM Billing Operations groups: Read and View All on Invoice Batch Runs (with scheduler and run criteria) and Access Libraries for the template file. DocGen sets go next to the group.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Billing Invoice Documents</label>
     <objectPermissions>

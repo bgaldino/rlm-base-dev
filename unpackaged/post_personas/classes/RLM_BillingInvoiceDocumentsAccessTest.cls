@@ -28,7 +28,8 @@
  *   a "SKIPPED, NOT CHECKED" WARN debug line) and then prove nothing. A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads and the DocGen access.
- * - the set's metadata: View All on the run chain, Access Libraries, and membership of both groups.
+ * - the set's metadata: View All on the run chain, Access Libraries, and membership of
+ *   RLM_Billing_Admin and RLM_Billing_Operations.
  * The Billing Operations methods are regression checks for RLM_BillingInvoiceDocuments: the managed
  * Operations set already reads the runs, and the View All the set adds is checked only by the metadata
  * test. In both *WithBothDocGenSets* methods the DocGen assertions check the managed DocGen sets
@@ -53,9 +54,9 @@
  * generation mechanism and with an hourly batch percentage limit (batchDocGnrnPctLimitPerHour) of 0.
  * The measured org has one setting row and Help speaks of "a Document Generation Setting record"; one
  * row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
- * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWithBatchOff are self-tests of
- * that classifier (by setting state and status code, never by message text); they pass regardless of
- * RLM_BillingInvoiceDocuments.
+ * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWhenGenerationDisabled are
+ * self-tests of that classifier (by setting state and status code, never by message text); they pass
+ * regardless of RLM_BillingInvoiceDocuments.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
@@ -111,7 +112,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     @IsTest
-    static void everyBillingPersonaGroupContainsTheInvoiceDocumentsSet() {
+    static void adminAndOperationsGroupsContainTheInvoiceDocumentsSet() {
         Set<String> groupsWithSet = new Set<String>();
         for (PermissionSetGroupComponent c : [
             SELECT PermissionSetGroup.DeveloperName FROM PermissionSetGroupComponent
@@ -120,7 +121,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             groupsWithSet.add(c.PermissionSetGroup.DeveloperName);
         }
         Assert.isTrue(groupsWithSet.containsAll(new Set<String>{ ADMIN_GROUP, OPERATIONS_GROUP }),
-            'Each billing persona group contains ' + INVOICE_DOCS_SET + '; found in: ' + groupsWithSet);
+            'RLM_Billing_Admin and RLM_Billing_Operations each contain ' + INVOICE_DOCS_SET + '; found in: ' + groupsWithSet);
     }
 
     // ---- Invoice Batch Run read --------------------------------------------------------------
@@ -293,7 +294,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     @IsTest
-    static void batchRefusalSkipsOnlyForInvalidInputWithBatchOff() {
+    static void batchRefusalSkipsOnlyForInvalidInputWhenGenerationDisabled() {
         // Measured on a 264 org: state DISABLED (batch off, or server-side off), persona with DocGen Designer.
         Assert.isTrue(skipsBatchRefusal(BatchGeneration.DISABLED, 'INVALID_INPUT'), 'state DISABLED: configuration');
         // Measured on a 264 org: access refusals, state DISABLED or ENABLED.

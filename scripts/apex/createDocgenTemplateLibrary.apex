@@ -19,16 +19,16 @@
 //      Measured on 264: a member reads the library's files and generates from them, and a
 //      member's new version of a file is refused (INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY).
 //   3. A public group, RLM_DocGen_Template_Users. When the group has no members it gets All
-//      Internal Users. A library takes only users and public groups as members (adding All
-//      Internal Users directly is refused), so the group carries it. Generating any document
-//      means reading its template, and templates hold no record data, so every internal
-//      user may read them. Members also need the Access Libraries user permission
-//      (ContentWorkspaces) to read the files: Standard User and the RLM persona profiles have it,
-//      Minimum Access does not (measured on 264, todo 292: a Minimum Access member without it
-//      could not read the DefaultInvoiceTemplate file). The per-user Salesforce CRM Content User permission is not needed for
-//      that: measured on 264, the sales rep (without it) generated, and a Standard User without it
-//      read the template's versions through the group. A rerun leaves a group that has members
-//      alone.
+//      Internal Users. A library takes only users and public groups as members (adding All Internal
+//      Users directly is refused), so the group carries it. Generating any document means reading
+//      its template, and templates hold no record data, so every internal user may read them.
+//      Members also need the Access Libraries user permission (ContentWorkspaces) to read the
+//      files: Standard User and the RLM persona profiles have it, Minimum Access does not (measured
+//      on 264, todo 292: a Minimum Access member without it could not read the
+//      DefaultInvoiceTemplate file). The per-user Salesforce CRM Content User permission is not
+//      needed for that: measured on 264, the sales rep (without it) generated, and a Standard User
+//      without it read the template's versions through the group. A rerun leaves a group that has
+//      members alone.
 //   4. The group's library membership with that permission. An existing membership for the
 //      group is left as it is.
 // A rerun (this task, prepare_docgen or prepare_rlm_org) restores access an admin took away by
