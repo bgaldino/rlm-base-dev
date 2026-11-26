@@ -38,7 +38,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `mcp_custom_server` | `True` | 2 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 15 flow step(s) |
+| `personas` | `True` | 14 flow step(s) |
 | `prm` | `True` | 26 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 16 flow step(s) |
@@ -48,7 +48,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 14 flow step(s) |
 | `qb` | `True` | 39 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 29 flow step(s) |
+| `quantumbit` | `True` | 28 flow step(s) |
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 4 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
@@ -56,7 +56,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 11 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 20 flow step(s) |
+| `tso` | `False` | 19 flow step(s) |
 | `ux` | `True` | 2 flow step(s) |
 
 ---
@@ -276,7 +276,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
-- `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
 - `prepare_personas` step 10 → `assign_permission_sets`
 - `prepare_personas` step 11 → `assign_permission_sets`
@@ -436,7 +435,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals_pricing` step 2 → `apply_approval_flags_overlay`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
-- `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
 - `prepare_personas` step 10 → `assign_permission_sets`
 - `prepare_personas` step 11 → `assign_permission_sets`
@@ -516,7 +514,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `refresh_all_decision_tables` step 7 → `refresh_dt_commerce`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
-- `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
 - `prepare_personas` step 12 → `assign_permission_sets`
 - `prepare_personas` step 13 → `assign_permission_sets`

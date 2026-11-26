@@ -82,7 +82,7 @@
         </value>
     </customProperties>
     <decisions>
-        <description>The pricing decision tables are refreshed only when the reset completed. A reset that stopped rolled back everything but usage records, so the contracts and assets the tables read are unchanged.</description>
+        <description>The pricing decision tables are refreshed only when the reset completed. A reset that did not complete changed none of the contracts and assets the tables read: a refused reset (the reset is for administrators, with Modify All Data and View All Data; anyone else is refused before anything is read or changed) changed nothing, and a stopped reset kept only its usage deletes.</description>
         <name>isResetSuccessful</name>
         <label>isResetSuccessful</label>
         <locationX>0</locationX>
@@ -148,7 +148,7 @@
             </defaultValue>
             <fieldText>Delete Assets</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Deletes the account&apos;s assets with their asset relationships and asset rate card entries, and the work orders and cases linked to the assets. When unchecked, the assets and their rate card entries are kept. Usage summaries, entitlements and transaction journals are deleted either way.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Deletes the account&apos;s assets with their asset relationships, usage resource policies, rate card entries (including those sourced from the assets) and commitment links, and the work orders and cases linked to the assets. A commitment asset&apos;s links go with it, even one anchored on a contract the reset keeps. When unchecked, the assets keep all of these. Usage summaries, entitlements and transaction journals are deleted either way.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -228,7 +228,7 @@
             </defaultValue>
             <fieldText>Preserve Contracts with Contracted Prices</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;When checked, the account&apos;s contracts that have contracted prices are kept, with those prices and the rate card entries bound to them, and its other contracts are still deleted. The usage resource policies bound to the kept contracts are deleted either way. When unchecked, all of the account&apos;s contracts are deleted.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;When checked, the account&apos;s contracts that have contracted prices are kept, with those prices and the rate card entries bound to them, and its other contracts are still deleted. The usage resource policies bound to the kept contracts are kept too. With Delete Assets, a kept contract&apos;s rate card entry sourced from an asset the reset deletes is deleted with the asset, since it would block the asset&apos;s delete. When unchecked, all of the account&apos;s contracts are deleted.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -269,7 +269,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Result_Cleared</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Nothing was kept.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Everything the selected options cover was deleted.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -306,7 +306,7 @@
         </fields>
         <fields>
             <name>Result_Stopped</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The reset stopped before it finished.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ResetReason}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset did not complete.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ResetReason}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>

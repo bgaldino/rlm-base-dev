@@ -1,5 +1,10 @@
 /**
- * Tests for RLM_AccountUtilities.delAccountRelatedObjects.
+ * Tests for RLM_AccountUtilities.delAccountRelatedObjects. The reset is for admins only:
+ * a user without both Modify All Data and View All Data is refused before anything is
+ * read or changed. The gate's decision is a pure function, tested for every
+ * combination; the refusal tests run it end to end, with System.runAs, as users built
+ * from profiles picked by those permissions. Every other test that resets runs as the
+ * running user, and skips, with the reason logged, when the running user lacks either.
  *
  * WHAT IS WORTH TESTING HERE
  * --------------------------
@@ -27,8 +32,9 @@
  * (newEntitlementAccount, newEntitlement and newBucket, over loadUsageFixture).
  * Among the paths these tests do not reach, and why:
  *  - Deletes of the other usage rows (entries, billing period items, summaries,
- *    journals, commitment junction rows), asset rate card entries and the
- *    fulfillment records: no fixtures, so they run against empty sets.
+ *    journals), asset rate card entries and the fulfillment records: no fixtures,
+ *    so they run against empty sets. The commitment junction is tested in
+ *    RLM_AccountUtilitiesCommitmentTest, on the org's own commitment products.
  *  - The entitlement-side bottom-up retry (deleteTransactionUsageEntitlement) is
  *    reached, with another account's entitlement under the account's bucket: it
  *    deletes only the account's own entitlements, and keeps (and reports) a bucket
@@ -36,8 +42,8 @@
  *    entitlement-account retry and the asset step's bucket walk.
  *  - The asset step's entitlement-account delete: in these fixtures phase 2's
  *    entitlement-account retry has already removed them.
- *  - Running out of DML statements or queries partway through phase 2, and an
- *    unexpected exception in phase 1.
+ *  - An unexpected exception in phase 1. (Running out of rows, statements or queries
+ *    in either phase is reached, with the limits lowered or spent down.)
  *
  * Three objects cannot be created in a unit test at all: Invoice and
  * BillingScheduleGroup are createable=false, and a CreditMemo's required
@@ -138,29 +144,6 @@ private without sharing class RLM_AccountUtilitiesTest {
         return [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :version.Id].ContentDocumentId;
     }
 
-    private static User newMinimalAccessUser() {
-        Profile leastPrivileged = [
-            SELECT Id
-            FROM Profile
-            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
-            ORDER BY Name ASC
-            LIMIT 1
-        ];
-        User u = new User(
-            ProfileId = leastPrivileged.Id,
-            LastName = 'Reset',
-            Email = 'rlm.reset.minimal@example.com',
-            Username = 'rlm.reset.minimal.' + Datetime.now().getTime() + '@example.com',
-            Alias = 'rlmrst',
-            TimeZoneSidKey = 'America/Los_Angeles',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
-        );
-        insert u;
-        return u;
-    }
-
     private static RLM_AccountUtilities.InputVariables request(
         Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling
     ) {
@@ -170,6 +153,27 @@ private without sharing class RLM_AccountUtilitiesTest {
         iv.DeleteFulfillment = deleteFulfillment;
         iv.DeleteBilling = deleteBilling;
         return iv;
+    }
+
+    // The reset is for admins only, and the tests run it as the running user, as the
+    // deploying user, who holds the org's Revenue Cloud permission set licenses and sets
+    // that the reset's reads need. A test that resets starts with runnerIsAdmin(): a
+    // runner without Modify All Data and View All Data skips it, with the reason logged,
+    // as a test skips where Collections or Contract Pricing is not enabled. An Apex
+    // deploy user is in practice an org admin, so the tests run.
+    private static Boolean runnerIsAdmin() {
+        UserPermissionAccess access = [
+            SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1
+        ];
+        Boolean admin = access.PermissionsModifyAllData == true && access.PermissionsViewAllData == true;
+        if (!admin) {
+            skipped('the running user lacks Modify All Data or View All Data, and the reset is for admins only');
+        }
+        return admin;
+    }
+
+    private static void skipped(String reason) {
+        System.debug(LoggingLevel.WARN, 'RLM_AccountUtilitiesTest: skipped, ' + reason);
     }
 
     private static RLM_AccountUtilities.Result run(RLM_AccountUtilities.InputVariables iv) {
@@ -324,6 +328,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void malformedIdIsReportedNotThrown() {
+        if (!runnerIsAdmin()) return;
         RLM_AccountUtilities.InputVariables iv = request(null, true, true, true);
         iv.accountId = 'not-an-id';
 
@@ -341,6 +346,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void idOfAnotherObjectIsRejected() {
+        if (!runnerIsAdmin()) return;
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(UserInfo.getUserId(), true, true, true));
         Test.stopTest();
@@ -354,6 +360,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void nullAccountIdIsReportedNotThrown() {
+        if (!runnerIsAdmin()) return;
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(null, true, true, true));
         Test.stopTest();
@@ -370,6 +377,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void accountWithNoRelatedRecordsRunsClean() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
 
         Test.startTest();
@@ -396,6 +404,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void opportunitiesAreAlwaysDeleted() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Test Opp');
 
@@ -426,6 +435,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void assetSurvivesWhenDeleteAssetsIsFalse() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Asset asset = new Asset(Name = 'RLM Utilities Test Asset', AccountId = a.Id);
         insert asset;
@@ -452,6 +462,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void assetIsRemovedWhenDeleteAssetsIsTrue() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Asset asset = new Asset(Name = 'RLM Utilities Test Asset', AccountId = a.Id);
         insert asset;
@@ -485,6 +496,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void preserveOnKeepsPricedContract() {
+        if (!runnerIsAdmin()) return;
         if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         RLM_AccountUtilities.InputVariables iv = request(accountId, true, true, true);
@@ -516,6 +528,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void preserveOffDeletesAllContracts() {
+        if (!runnerIsAdmin()) return;
         if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         RLM_AccountUtilities.InputVariables iv = request(accountId, true, true, true);
@@ -541,6 +554,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void omittedPreserveFlagDeletesAllContracts() {
+        if (!runnerIsAdmin()) return;
         if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
 
@@ -559,6 +573,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void processedPaymentIsKeptAndReported() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Payment payment = newProcessedPayment(a.Id);
 
@@ -582,6 +597,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void paymentsAreNotReportedWithoutDeleteBilling() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newProcessedPayment(a.Id);
 
@@ -596,7 +612,10 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void postedInvoicePermissionIsReadForTheRunningUser() {
-        User u = newMinimalAccessUser();
+        // A user without admin permissions, picked by permission.
+        Profile neither = profileWith(false, false);
+        if (neither == null) return;
+        User u = newUserFrom(neither, 'rlmrst');
 
         Boolean minimalUser;
         System.runAs(u) {
@@ -642,6 +661,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void draftAndCanceledDebitMemosAreDeleted() {
+        if (!runnerIsAdmin()) return;
         if (!available(new List<String>{ 'DebitMemo', 'DebitMemoLine' })) return;
         Account a = newAccount();
         SObject draft = newDebitMemo(a.Id);
@@ -676,6 +696,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void debitMemosStayWithoutDeleteBilling() {
+        if (!runnerIsAdmin()) return;
         if (!available(new List<String>{ 'DebitMemo', 'DebitMemoLine' })) return;
         Account a = newAccount();
         SObject memo = newDebitMemo(a.Id);
@@ -696,6 +717,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void collectionPlansGoWithTheirCasesAndDisputes() {
+        if (!runnerIsAdmin()) return;
         if (!available(COLLECTION_OBJECTS)) return;
         Account a = newAccount();
         Account bystander = new Account(Name = 'RLM Utilities Bystander Account');
@@ -767,6 +789,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void collectionPlansStayUnlessSelected() {
+        if (!runnerIsAdmin()) return;
         if (!available(COLLECTION_OBJECTS)) return;
         Account a = newAccount();
         SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
@@ -793,6 +816,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void quoteFilesAreDeletedUnlessSharedElsewhere() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Opportunity o = newOpportunity(a.Id, 'RLM Utilities Quote Opp');
         update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
@@ -862,6 +886,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void phaseTwoFailureRollsBackAndSaysSo() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Rollback Opp');
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
@@ -889,6 +914,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void runningOutOfDmlRowsStopsCleanly() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Budget Opp 1');
         newOpportunity(a.Id, 'RLM Utilities Budget Opp 2');
@@ -902,9 +928,14 @@ private without sharing class RLM_AccountUtilitiesTest {
         // Reaching this line is part of the assertion: the platform's own limit
         // throws a LimitException, which cannot be caught and fails the flow.
         System.assertEquals(false, result.completed, 'A run that ran out of DML rows did not complete');
+        // Phase 1 deleted nothing, so phase 2's rollback leaves the account as it was, and
+        // a rerun would stop at the same point: the reason must not promise otherwise.
         System.assert(
-            result.reason.contains('limit on record changes') && result.reason.contains('Run the reset again'),
-            'The reason must name the limit and say a rerun continues. Got: ' + result.reason
+            result.reason.contains('limit on record changes')
+                && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS)
+                && result.reason.contains('The largest groups it reached: ' + entry(Opportunity.SObjectType, 2))
+                && !result.reason.contains('continues from where this run stopped'),
+            'The reason must name the limit and say a rerun stops at the same point. Got: ' + result.reason
         );
         System.assertEquals(
             2,
@@ -914,15 +945,263 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
+    static void aPhaseTwoStopAfterUsageDeletesSaysARerunMayGetFurther() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 1');
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 2');
+        // Room for two rows: phase 1 deletes the policy, then the two opportunities do not fit.
+        RLM_AccountUtilities.dmlRowLimitForTest = 2;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run that ran out of DML rows did not complete');
+        Assert.isTrue(
+            result.reason.contains('limit on record changes')
+                && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE),
+            'Phase 1 kept its deletes, so the reason says a rerun may get further. Got: ' + result.reason
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
+            'Phase 1\'s delete stays');
+        Assert.areEqual(2, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Phase 2 rolled back');
+    }
+
+    // Leaves `left` DML statements, without side effects: a savepoint counts as one.
+    private static void spendDmlStatementsDownTo(Integer left) {
+        while (Limits.getLimitDmlStatements() - Limits.getDmlStatements() > left) {
+            Database.setSavepoint();
+        }
+    }
+
+    @IsTest
+    static void phaseOneLeavesTheStatementsPhaseTwosSavepointAndRollbackNeed() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        newOpportunity(a.Id, 'RLM Utilities Statements Opp');
+
+        Test.startTest();
+        // Two statements left: deleting the policy in phase 1 would leave phase 2's
+        // savepoint the last one, and its rollback none. With only one kept, this run ends
+        // in a LimitException.
+        spendDmlStatementsDownTo(2);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: a LimitException cannot be caught.
+        Assert.areEqual(false, result.completed, 'A run out of DML statements did not complete');
+        Assert.isTrue(result.reason.contains(RLM_AccountUtilities.STATEMENT_LIMIT)
+            && result.reason.contains('nothing else was touched'),
+            'Phase 1 stops before its delete. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id], 'Nothing was deleted');
+    }
+
+    // Orders that do not fit when they are set back to Draft are named in the stop message.
+    @IsTest
+    static void anUpdateThatDoesNotFitNamesItsGroup() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
+        List<Order> orders = new List<Order>();
+        for (Integer i = 0; i < 2; i++) {
+            orders.add(new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId()));
+        }
+        insert orders;
+        List<OrderItem> lines = new List<OrderItem>();
+        for (Order o : orders) {
+            lines.add(new OrderItem(OrderId = o.Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1));
+            o.Status = 'Activated';
+        }
+        insert lines;
+        update orders;
+        // Room for one row: the two orders going back to Draft do not fit.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The run stops');
+        Assert.isTrue(result.reason.contains('The largest groups it reached: ' + entry(Order.SObjectType, 2)),
+            'The orders that did not fit are named. Got: ' + result.reason);
+    }
+
+    @IsTest
+    static void aPhaseTwoStopNamesTheLargestGroupsLargestFirst() {
+        List<Account> accounts = new List<Account>();
+        for (Integer i = 0; i < 4; i++) {
+            accounts.add(new Account(Name = 'RLM Utilities Group ' + i));
+        }
+        insert accounts;
+        Account a = accounts[0];
+        List<Opportunity> opportunities = new List<Opportunity>{
+            newOpportunity(a.Id, 'RLM Utilities Group Opp 1'), newOpportunity(a.Id, 'RLM Utilities Group Opp 2'),
+            newOpportunity(a.Id, 'RLM Utilities Group Opp 3')
+        };
+        Contact c = new Contact(LastName = 'RLM Utilities Group', AccountId = a.Id);
+        insert c;
+        RLM_AccountUtilities.phaseTwoRows = new Map<String, Set<Id>>();
+        // Two opportunities tried five times (a retried group) count as two, not ten.
+        List<Opportunity> retried = new List<Opportunity>{ opportunities[0], opportunities[1] };
+        for (Integer round = 0; round < 5; round++) {
+            RLM_AccountUtilities.notePhaseTwoRows(retried);
+        }
+        RLM_AccountUtilities.notePhaseTwoRows(accounts);
+        RLM_AccountUtilities.notePhaseTwoRows(new List<Contact>{ c });
+        Assert.areEqual(' The largest groups it reached: '
+            + entry(Account.SObjectType, 4) + '; ' + entry(Opportunity.SObjectType, 2) + '; '
+            + entry(Contact.SObjectType, 1) + '.',
+            RLM_AccountUtilities.largestGroups(), 'Each row once, the three largest, largest first');
+        RLM_AccountUtilities.phaseTwoRows = null;
+        Assert.areEqual('', RLM_AccountUtilities.largestGroups(), 'Nothing outside phase 2');
+    }
+
+    // Exactly two statements kept: with seven left, the run needs every one but the two.
+    // Phase 1's policy delete, phase 2's savepoint, then the file, the quote and the
+    // opportunity: the last leaves two. Keeping three would stop the run there (the
+    // phase-1 test above fails if only one is kept).
+    // It assumes no automation in the org does DML when a quote, opportunity or file is
+    // deleted: such a trigger or flow would spend statements this count does not include.
+    @IsTest
+    static void aRunWithExactlyTheStatementsItNeedsCompletes() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        insert new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+            EffectiveStartDate = Datetime.now().addDays(-10));
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Quote Opp');
+        Quote q = new Quote(Name = 'RLM Utilities Statements Quote', OpportunityId = o.Id);
+        insert q;
+        newFile('RLM Statements File', q.Id);
+
+        Test.startTest();
+        spendDmlStatementsDownTo(7);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Integer left = Limits.getLimitDmlStatements() - Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The run has the statements it needs. Reason: ' + result.reason);
+        Assert.areEqual(RLM_AccountUtilities.STATEMENTS_KEPT, left, 'It used all but the ones kept');
+        Assert.areEqual(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote is deleted');
+    }
+
+    // Out of statements in phase 2: phase 2's savepoint leaves two, which are kept, so the
+    // first delete stops the run, and the stop says statements ran out, not rows.
+    @IsTest
+    static void aPhaseTwoStopOnStatementsSaysSo() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Stop Opp');
+        Quote q = new Quote(Name = 'RLM Utilities Statements Stop Quote', OpportunityId = o.Id);
+        insert q;
+        newFile('RLM Statements Stop File', q.Id);
+
+        Test.startTest();
+        spendDmlStatementsDownTo(3);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run out of statements did not complete');
+        Assert.isTrue(result.reason.contains(RLM_AccountUtilities.STATEMENT_LIMIT)
+            && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STATEMENTS_NO_PROGRESS)
+            && !result.reason.contains('largest groups'),
+            'The stop names statements and gives their advice. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'Phase 2 rolled back');
+    }
+
+    // Out of rows, with three statements left: the trimmed delete spends one, leaving the
+    // two that are kept. The stop is still for rows, decided before that delete.
+    @IsTest
+    static void aRowsStopThatSpendsTheLastStatementBeforeTheKeptOnesIsStillForRows() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        Datetime start = Datetime.now().addDays(-10);
+        insert new List<BindingObjUsageRsrcPlcy>{
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start, EffectiveEndDate = start.addDays(4)),
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start.addDays(5))
+        };
+        // Room for one of the two policies.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+        Test.startTest();
+        spendDmlStatementsDownTo(3);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.isTrue(result.reason.contains(RLM_AccountUtilities.DML_LIMIT)
+            && !result.reason.contains(RLM_AccountUtilities.STATEMENT_LIMIT),
+            'The stop is for rows. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'One policy went, in the trimmed delete');
+    }
+
+    @IsTest
+    static void aPhaseTwoStopGetsTheAdviceForItsCause() {
+        RLM_AccountUtilities.phaseTwoRows = null;
+        Assert.areEqual(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS,
+            RLM_AccountUtilities.phaseTwoStopAdvice(RLM_AccountUtilities.DML_LIMIT, false), 'Rows: thin the largest groups');
+        Assert.areEqual(RLM_AccountUtilities.PHASE_TWO_QUERIES_NO_PROGRESS,
+            RLM_AccountUtilities.phaseTwoStopAdvice(RLM_AccountUtilities.QUERY_LIMIT, false), 'Queries: the bucket walk');
+        Assert.areEqual(RLM_AccountUtilities.PHASE_TWO_STATEMENTS_NO_PROGRESS,
+            RLM_AccountUtilities.phaseTwoStopAdvice(RLM_AccountUtilities.STATEMENT_LIMIT, false), 'Statements');
+        for (String cause : new List<String>{
+            RLM_AccountUtilities.DML_LIMIT, RLM_AccountUtilities.QUERY_LIMIT, RLM_AccountUtilities.STATEMENT_LIMIT
+        }) {
+            Assert.areEqual(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE,
+                RLM_AccountUtilities.phaseTwoStopAdvice(cause, true), 'After phase 1 deleted something, a rerun may get further');
+        }
+    }
+
+    // A record alert on a journal blocks the journal's delete (measured live 264). Phase 1's
+    // rounds cannot delete the journal, so phase 2 deletes the alert, then the journal.
+    @IsTest
+    static void aJournalWithARecordAlertIsDeleted() {
+        if (!runnerIsAdmin()) return;
+        if (Schema.getGlobalDescribe().get('RecordAlert') == null) return;
+        Account a = newAccount();
+        TransactionJournal journal = new TransactionJournal(AccountId = a.Id, ActivityDate = Date.today());
+        insert journal;
+        SObject alert = Schema.getGlobalDescribe().get('RecordAlert').newSObject();
+        alert.put('WhatId', journal.Id);
+        alert.put('EffectiveDate', Datetime.now());
+        alert.put('ValidUntilDate', Datetime.now().addDays(5));
+        insert alert;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionJournal WHERE Id = :journal.Id],
+            'The journal is deleted. Kept: ' + result.retainedSummary);
+        Assert.areEqual(0, Database.countQuery('SELECT COUNT() FROM RecordAlert WHERE Id = \'' + alert.Id + '\''),
+            'Its alert is deleted first');
+    }
+
+    @IsTest
     static void noQueryBudgetForATeardownRoundStopsBeforePhaseTwo() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
 
         Test.startTest();
-        // A teardown round starts only while its own 9 queries plus the 50 phase 2
-        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
-        // loop, means the first round cannot start: the state a usage graph too
-        // large for one run reaches after several rounds.
+        // A teardown round starts only while its own 8 queries plus the 55 phase 2
+        // keeps back are left. Leaving 55 here, less the 4 spent before the loop (the
+        // admins-only permission check and phase 1's 3 lookups), means the first round
+        // cannot start: the state a usage graph too large for one run reaches after
+        // several rounds.
         Integer spend = Limits.getLimitQueries() - 55;
         for (Integer i = 0; i < spend; i++) {
             countOf('Account', a.Id);
@@ -947,6 +1226,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void phaseOneOutOfRowsKeepsWhatItDeleted() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         // Two consecutive periods: policies for one object and resource may not overlap.
@@ -1053,6 +1333,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1105,6 +1386,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackRestoresPhaseOneRefusals() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1156,6 +1438,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void phaseOneDeletesAnEntitlementAccountItEmptied() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1192,6 +1475,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void entitlementsBoundToTheAssetFromAnotherAccountAreDeletedWithIt() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner');
         insert previousOwner;
@@ -1259,6 +1543,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void phaseTwoKeepsABucketHiddenUnderABucketThatHoldsAnotherAccountsEntitlement() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Other Account');
         insert other;
@@ -1301,6 +1586,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void phaseTwoRetryKeepsAnotherAccountsEntitlementUnderOurBucket() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Other Account 438');
         insert other;
@@ -1340,6 +1626,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void aForeignBucketTheAssetStepDeletesIsNotReportedKept() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438');
         insert previousOwner;
@@ -1369,6 +1656,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackReasonSaysNothingWasDeletedWhenPhaseOneDeletedNothing() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Rollback Wording Opp');
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
@@ -1386,6 +1674,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackReasonPointsToPhaseOnesDeletesWhenThereWereSome() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         Datetime start = Datetime.now().addDays(-10);
@@ -1413,6 +1702,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // the rollback, so only the listing's rows can be observed here.
     @IsTest
     static void aRefusedBucketDeleteInTheAssetStepLeavesOneRowPerBucketAfterTheRollback() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438b');
         insert previousOwner;
@@ -1456,6 +1746,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // asset can go and the run completes. `held` must be reported once, as refused.
     @IsTest
     static void aBucketTheAssetStepIsRefusedIsReportedOnceAsRefusedNotAlsoAsForeign() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438c');
         insert previousOwner;
@@ -1494,6 +1785,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackGivesOneReasonToARefusedBucketAboveAForeignChild() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Rollback Chain 438');
         insert other;
@@ -1521,6 +1813,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackReportsABucketTheLoopNeverSaw() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1545,6 +1838,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackSaysTheBucketListMayBeIncompleteWhenQueriesRunOut() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1567,6 +1861,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackSaysTheBucketListMayBeIncompleteWhenTheWalkRunsOutPartWay() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         seedDeepUndrainedTree(a, f);
@@ -1589,6 +1884,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void rollbackSaysABucketThatHoldsAnotherAccountsEntitlementWouldBeKeptAnyway() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Rollback Other 438');
         insert other;
@@ -1619,6 +1915,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void usageTooLargeStopsTheRunWhenTheRoundCapBindsFirst() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
@@ -1680,13 +1977,82 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 43 is counted from the code with data in every branch (see the constants in
-    // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 43 and the measurement against both, but it cannot catch
+    // The 48 is counted from the code with data in every branch (see the constants in
+    // RLM_AccountUtilities); this test measures only the empty-data path with one asset, held exactly. It holds
+    // the reserve against the 48 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
+    // Phase 2's queries with every option on, an opportunity and no other data, counted from
+    // the code: order data 10, collection plans and disputes 1 each where the org has them,
+    // schedule groups 1, debit memos 1 where the org has them, credit memos 1, payments 1,
+    // fulfillment 2, contracts 1, the asset step without assets 2 (policies, account rate
+    // card entries), quotes 1, opportunities 1. Measured 23 on tkdef (264), which has all three.
+    private static Integer phaseTwoQueriesWithoutAssets() {
+        return 20 + present(new List<String>{ 'CollectionPlan', 'Dispute', 'DebitMemo' });
+    }
+
+    // What the asset step adds for one asset with no usage: entitlements bound to it 1, work
+    // orders and cases 1 each where the class queries them, its policies 1, asset rate card
+    // entries 1, entries sourced from it 1, commitment links 1, relationships 1, assets 1.
+    // Measured 9 on tkdef.
+    private static Integer assetStepQueriesForOneAsset() {
+        return 7 + assetReferenceQueries();
+    }
+
+    // The work order and case queries the asset step spends, on the class's own condition
+    // (deleteOtherAssetReferences): the object is in the org AND a query on its AssetId
+    // works. The describe can list a field the query refuses (live 264, Case.AssetId), and
+    // a refused query spends nothing (measured live 264), so only the query can tell.
+    private static Integer assetReferenceQueries() {
+        Integer n = 0;
+        for (String objectName : new List<String>{ 'WorkOrder', 'Case' }) {
+            if (!Schema.getGlobalDescribe().containsKey(objectName)) {
+                continue;
+            }
+            try {
+                Database.query('SELECT Id FROM ' + objectName + ' WHERE AssetId = null LIMIT 1');
+                n++;
+            } catch (QueryException e) {
+                if (!e.getMessage().contains('No such column')) {
+                    throw e;
+                }
+            }
+        }
+        return n;
+    }
+
+    private static Integer present(List<String> objectNames) {
+        Integer n = 0;
+        for (String objectName : objectNames) {
+            if (Schema.getGlobalDescribe().containsKey(objectName)) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    // Without assets the asset step still reads the account's policies and rate card
+    // entries (2, counted in phaseTwoQueriesWithoutAssets); its asset-specific queries run
+    // only when there are assets.
+    @IsTest
+    static void phaseTwosAssetSpecificQueriesRunOnlyWhenTheAccountHasAssets() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities No Asset Opp');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(phaseTwoQueriesWithoutAssets(), RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'Phase 2\'s queries with no asset changed: the asset step\'s asset-specific queries must stay guarded '
+                + 'on its assets');
+    }
+
     @IsTest
     static void phaseTwosFixedQueriesStayWithinTheReserveKeptForThem() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         seedAssetAndOpportunity(a);
 
@@ -1695,24 +2061,29 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        // Exact, so a query added to this path fails here and its count is revisited.
+        Assert.areEqual(phaseTwoQueriesWithoutAssets() + assetStepQueriesForOneAsset(),
+            RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'Phase 2\'s queries on empty data with every option on changed: recount PHASE_TWO_FIXED_MAX, '
+                + 'RETRY_TAIL and ASSET_TAIL');
         Assert.isTrue(
             RLM_AccountUtilities.phaseTwoQueriesForTest <= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
             'Phase 2 spent ' + RLM_AccountUtilities.phaseTwoQueriesForTest
                 + ' queries on empty data with every option on; the counted worst case is '
                 + RLM_AccountUtilities.PHASE_TWO_FIXED_MAX
         );
-        Assert.isTrue(
-            RLM_AccountUtilities.QUERY_RESERVE >= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
-            'The reserve kept for phase 2 must cover its counted worst case'
-        );
-        Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 13,
-            'The walk guards must cover the queries counted after them'
-        );
+        Assert.areEqual(48 + 7, RLM_AccountUtilities.QUERY_RESERVE,
+            'The reserve covers phase 2\'s counted fixed queries, 48, with seven spare');
+        Assert.areEqual(48, RLM_AccountUtilities.PHASE_TWO_FIXED_MAX, 'Phase 2\'s counted fixed queries');
+        // The counts after each guard (see the constants): 29 after the journal guard, 15
+        // after the asset step's last one, each with three spare.
+        Assert.areEqual(29 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 29 counted plus three spare');
+        Assert.areEqual(15 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus three spare');
     }
 
     @IsTest
     static void aDeepUndrainedTreeAtTheLowestBudgetEndsWithAReasonNotALimitException() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         seedAssetAndOpportunity(a);
@@ -1720,19 +2091,26 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 50 kept back (5 are spent before it with an asset: the asset, contract and policy lookups and the rate card entries).
-        spendQueriesDownTo(64, a.Id);
+        // needs its 8 queries plus the 55 kept back, and 4 are spent before it (the
+        // admins-only permission check; the asset lookup; the account's policies and rate
+        // card entries).
+        spendQueriesDownTo(67, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();
 
         // Reaching this line is part of the assertion: a LimitException cannot be caught.
         Assert.isTrue(queriesLeft >= 0, 'The run must stay within the query limit');
+        Assert.isNotNull(RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'The run must reach phase 2, whose walk guards this test is for. Reason: ' + result.reason);
         Assert.areEqual(false, result.completed, 'The tree cannot be cleared: it holds another account\'s entitlements');
         Assert.isNotNull(result.reason, 'A run that did not complete must say why');
         Assert.isTrue(
-            result.reason.contains('limit on queries') && result.reason.contains('Run the reset again'),
-            'The reason must name the query limit and say a rerun continues. Got: ' + result.reason
+            result.reason.contains('limit on queries')
+                && !result.reason.contains('nothing else was touched')
+                && (result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE)
+                    || result.reason.contains(RLM_AccountUtilities.PHASE_TWO_QUERIES_NO_PROGRESS)),
+            'The reason must be phase 2\'s query-limit stop. Got: ' + result.reason
         );
         Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
             'A stopped phase 2 rolls back as a whole');
@@ -1744,6 +2122,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void activatedOrdersAreDeleted() {
+        if (!runnerIsAdmin()) return;
         Account a = newAccount();
         // The class-wide setup's standard price book entry.
         Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
@@ -1773,10 +2152,353 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
+    @IsTest
+    static void anOrderAlreadyInDraftIsNotUpdated() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
+        List<Order> orders = new List<Order>{
+            new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId()),
+            new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId())
+        };
+        insert orders;
+        insert new OrderItem(OrderId = orders[0].Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        orders[0].Status = 'Activated';
+        update orders[0];
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, RLM_AccountUtilities.ordersSetToDraftForTest,
+            'Only the activated order is set back to Draft');
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE AccountId = :a.Id], 'Both orders must be deleted');
+    }
+
+    @IsTest
+    static void aKeptAssetOrContractKeepsItsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Kept Asset Policy', AccountId = a.Id);
+        insert asset;
+        Datetime start = Datetime.now().addDays(-10);
+        BindingObjUsageRsrcPlcy assetPolicy = new BindingObjUsageRsrcPlcy(BindingObjectId = asset.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = start);
+        BindingObjUsageRsrcPlcy accountPolicy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = start);
+        insert new List<BindingObjUsageRsrcPlcy>{ assetPolicy, accountPolicy };
+
+        Test.startTest();
+        // Delete Assets off: the asset stays, and so does its policy.
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :assetPolicy.Id],
+            'A kept asset keeps its binding policy');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :accountPolicy.Id],
+            'The account\'s own policy goes');
+    }
+
+    // A contract the run deletes and, with Delete Assets, an asset take their binding policies.
+    @IsTest
+    static void aDeletedContractOrAssetTakesItsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        List<BindingObjUsageRsrcPlcy> policies = seedContractAssetAndAccountPolicies(a);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contract WHERE AccountId = :a.Id], 'The contract is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id IN :policies],
+            'The contract\'s, the asset\'s and the account\'s policies go');
+    }
+
+    // Phase 2 deletes a contract's and an asset's policies with them, so its rollback keeps
+    // them; only the account's own, which phase 1 deletes, stay deleted.
+    @IsTest
+    static void aPhaseTwoRollbackKeepsTheContractsAndAssetsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        List<BindingObjUsageRsrcPlcy> policies = seedContractAssetAndAccountPolicies(a);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'Phase 2 was rolled back');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE AccountId = :a.Id], 'The contract stays');
+        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset stays');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[0].Id],
+            'The contract keeps its policy');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[1].Id],
+            'The asset keeps its policy');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[2].Id],
+            'The account\'s own policy went in phase 1, which a rollback does not undo');
+    }
+
+    // A contract, an asset and the account, each with one binding policy: [contract, asset, account].
+    private static List<BindingObjUsageRsrcPlcy> seedContractAssetAndAccountPolicies(Account a) {
+        UsageFixture f = loadUsageFixture();
+        Contract c = new Contract(AccountId = a.Id, StartDate = Date.today().addDays(-7), ContractTerm = 12, Status = 'Draft');
+        insert c;
+        Asset asset = new Asset(Name = 'RLM Utilities Policy Asset', AccountId = a.Id);
+        insert asset;
+        Datetime start = Datetime.now().addDays(-10);
+        List<BindingObjUsageRsrcPlcy> policies = new List<BindingObjUsageRsrcPlcy>();
+        for (Id boundTo : new List<Id>{ c.Id, asset.Id, a.Id }) {
+            policies.add(new BindingObjUsageRsrcPlcy(BindingObjectId = boundTo, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start));
+        }
+        insert policies;
+        Assert.areEqual(3, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id IN :policies],
+            'PRECONDITION: the three policies exist');
+        return policies;
+    }
+
+    @IsTest
+    static void aContractPreservedForItsPricesKeepsItsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        if (!contractItemPriceAvailable()) return;
+        Id accountId = seedAccountWithContracts();
+        UsageFixture f = loadUsageFixture();
+        Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
+            AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = priced.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, false, false);
+        iv.PreserveContractsWithContractedPrices = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'PRECONDITION: the contract is kept');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
+            'A contract kept for its prices keeps its binding policy');
+    }
+
+    // A binding rate card entry, bound to `bindingId`, sourced from `assetId`.
+    private static BindingObjectRateCardEntry newSourcedRateCardEntry(Id bindingId, Id assetId, UsageFixture f) {
+        Datetime start = Datetime.now().addDays(-10);
+        // A rate's unit must be of a Token or Currency class (platform validation, 264).
+        UnitOfMeasureClass currencyClass = new UnitOfMeasureClass(Name = 'RLM Reset Currency',
+            Code = 'RLM_AU_TEST_CUR', Type = 'Currency', Status = 'Draft');
+        insert currencyClass;
+        currencyClass.Status = 'Active';
+        update currencyClass;
+        UnitOfMeasure currencyUnit = new UnitOfMeasure(Name = 'RLM Reset Currency Unit', UnitCode = 'RLMAUCU',
+            Type = 'Currency', UnitOfMeasureClassId = currencyClass.Id, Status = 'Draft');
+        insert currencyUnit;
+        currencyUnit.Status = 'Active';
+        update currencyUnit;
+        RateCard card = new RateCard(Name = 'RLM Utilities Rate Card', Type = 'Base', EffectiveFrom = start);
+        insert card;
+        RateCardEntry cardEntry = new RateCardEntry(RateCardId = card.Id, EffectiveFrom = start,
+            RateUnitOfMeasureId = currencyUnit.Id, UsageResourceId = f.resourceId, Rate = 1);
+        insert cardEntry;
+        // A binding entry needs an active rate card entry, which is created as Draft.
+        update new RateCardEntry(Id = cardEntry.Id, Status = 'Active');
+        BindingObjectRateCardEntry entry = new BindingObjectRateCardEntry(BindingObjectId = bindingId,
+            RateCardEntryId = cardEntry.Id, EffectiveFrom = start, SourceAssetId = assetId);
+        insert entry;
+        return entry;
+    }
+
+    // Live 264, a binding rate card entry sourced from an asset blocked the asset's delete,
+    // whatever it was bound to. One bound to a contract the run keeps goes with the asset.
+    @IsTest
+    static void aRateCardEntrySourcedFromADeletedAssetGoesWithIt() {
+        if (!runnerIsAdmin()) return;
+        if (!contractItemPriceAvailable()) return;
+        Id accountId = seedAccountWithContracts();
+        UsageFixture f = loadUsageFixture();
+        Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
+            AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
+        Asset asset = new Asset(Name = 'RLM Utilities Sourced Asset', AccountId = accountId);
+        insert asset;
+        BindingObjectRateCardEntry sourced = newSourcedRateCardEntry(priced.Id, asset.Id, f);
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, false, false);
+        iv.PreserveContractsWithContractedPrices = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The asset can go. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjectRateCardEntry WHERE Id = :sourced.Id],
+            'The entry sourced from it goes with it');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'The priced contract is kept');
+    }
+
+    // ------------------------------------------------------------ admins only
+
+    // A standard profile with exactly the given Modify All Data and View All Data, picked by
+    // those permissions, never by name: on the running user's license if it has one there,
+    // otherwise on another license; either way one with a free seat, the first by Id. Null,
+    // with the reason logged, when there is none.
+    private static Profile profileWith(Boolean modifyAllData, Boolean viewAllData) {
+        Id runnersLicense = [SELECT UserLicenseId FROM Profile WHERE Id = :UserInfo.getProfileId()].UserLicenseId;
+        Profile elsewhere;
+        for (Profile candidate : [
+            SELECT Id, UserLicenseId, UserLicense.TotalLicenses, UserLicense.UsedLicenses FROM Profile
+            WHERE UserType = 'Standard' AND PermissionsModifyAllData = :modifyAllData
+                AND PermissionsViewAllData = :viewAllData
+            ORDER BY Id
+        ]) {
+            if (candidate.UserLicense.UsedLicenses >= candidate.UserLicense.TotalLicenses) {
+                continue;
+            }
+            if (candidate.UserLicenseId == runnersLicense) {
+                return candidate;
+            }
+            if (elsewhere == null) {
+                elsewhere = candidate;
+            }
+        }
+        if (elsewhere == null) {
+            skipped('no standard profile with Modify All Data ' + modifyAllData + ' and View All Data '
+                + viewAllData + ' has a free seat');
+        }
+        return elsewhere;
+    }
+
+    private static User newUserFrom(Profile profile, String alias) {
+        User u = new User(
+            ProfileId = profile.Id, LastName = 'Reset ' + alias, Email = 'rlm.reset.' + alias + '@example.com',
+            Username = 'rlm.reset.' + alias + '.' + Datetime.now().getTime() + '@example.com', Alias = alias,
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
+    private static void assertRefusedAndUnchanged(User u, Account a) {
+        RLM_AccountUtilities.Result result;
+        Boolean admin;
+        System.runAs(u) {
+            admin = RLM_AccountUtilities.seesAndDeletesEverything();
+            Test.startTest();
+            result = run(request(a.Id, true, true, true));
+            Test.stopTest();
+        }
+        Assert.areEqual(false, admin, 'PRECONDITION: the user lacks Modify All Data or View All Data');
+        Assert.areEqual(false, result.completed, 'The reset must be refused');
+        Assert.areEqual(RLM_AccountUtilities.ADMIN_ONLY, result.reason, 'The refusal says it is for administrators');
+        Assert.isNull(result.removedSummary, 'Nothing was removed');
+        Assert.isNull(result.retainedSummary, 'Nothing about the account is reported');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
+    }
+
+    @IsTest
+    static void anAdminResets() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Admin Opp');
+        Assert.isTrue(RLM_AccountUtilities.seesAndDeletesEverything(),
+            'PRECONDITION: the running user has Modify All Data and View All Data');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity is deleted');
+    }
+
+    // The gate's decision, for every combination: only both permissions pass. Null, as an
+    // unread permission would be, counts as without.
+    @IsTest
+    static void theGateNeedsBothModifyAllDataAndViewAllData() {
+        Assert.isTrue(RLM_AccountUtilities.isAdmin(true, true), 'Both: an admin');
+        Assert.isFalse(RLM_AccountUtilities.isAdmin(true, false), 'Modify All Data alone is refused');
+        Assert.isFalse(RLM_AccountUtilities.isAdmin(false, true), 'View All Data alone is refused');
+        Assert.isFalse(RLM_AccountUtilities.isAdmin(false, false), 'Neither is refused');
+        Assert.isFalse(RLM_AccountUtilities.isAdmin(null, true), 'A null Modify All Data counts as without');
+        Assert.isFalse(RLM_AccountUtilities.isAdmin(true, null), 'A null View All Data counts as without');
+    }
+
+    // End to end: a user with neither, and, where an existing profile has View All Data
+    // alone with a free seat, a user with that. Modify All Data depends on View All Data,
+    // so no user has the first alone.
+    @IsTest
+    static void aUserWithoutModifyAllOrViewAllIsRefused() {
+        Profile neither = profileWith(false, false);
+        if (neither == null) return;
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Refused Opp');
+        assertRefusedAndUnchanged(newUserFrom(neither, 'rlmnone'), a);
+    }
+
+    @IsTest
+    static void aUserWithViewAllDataButNotModifyAllDataIsRefused() {
+        Profile viewAllOnly = profileWith(false, true);
+        if (viewAllOnly == null) return;
+        User u = newUserFrom(viewAllOnly, 'rlmvad');
+        UserPermissionAccess access;
+        System.runAs(u) {
+            access = [SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
+        }
+        Assert.isTrue(access.PermissionsViewAllData == true && access.PermissionsModifyAllData != true,
+            'PRECONDITION: the user has View All Data and not Modify All Data');
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Refused View All Opp');
+        assertRefusedAndUnchanged(u, a);
+    }
+
+    // Live 264: a usage entitlement on an order line blocks the order's delete. The order
+    // is set back to Draft first, so the result must say it was left in Draft.
+    @IsTest
+    static void anOrderSetBackToDraftAndThenRefusedIsReportedLeftInDraft() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Line Holder');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        Order o = new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+            Pricebook2Id = Test.getStandardPricebookId());
+        insert o;
+        OrderItem line = new OrderItem(OrderId = o.Id, PricebookEntryId = f.pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        insert line;
+        o.Status = 'Activated';
+        update o;
+        insert new TransactionUsageEntitlement(
+            AccountId = other.Id, GrantBindingTargetId = other.Id, UsageResourceId = f.resourceId,
+            PricebookEntryId = f.pricebookEntryId, EntitlementUomId = f.uomId,
+            EffectiveStartDateTime = Datetime.now().addDays(-10), TransactionQuantity = 1, EntitlementQuantity = 100,
+            NetQuantity = 100, ValidityPeriodTerm = 1, ActionType = 'New', OrderItemId = line.Id
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual('Draft', [SELECT Status FROM Order WHERE Id = :o.Id].Status, 'PRECONDITION: the order stays, in Draft');
+        Assert.isTrue(result.retainedSummary != null
+            && result.retainedSummary.contains(entry(Order.SObjectType, 1) + ' (' + RLM_AccountUtilities.LEFT_IN_DRAFT),
+            'The order is reported left in Draft. Got: ' + result.retainedSummary);
+        Assert.isFalse(result.retainedSummary.contains('(could not be deleted: '),
+            'It is reported once, as left in Draft. Got: ' + result.retainedSummary);
+    }
+
     // ------------------------------------------------------------ scope guard
 
     @IsTest
     static void otherAccountsAreUntouched() {
+        if (!runnerIsAdmin()) return;
         Account target = newAccount();
         Account bystander = new Account(Name = 'RLM Utilities Bystander Account');
         insert bystander;

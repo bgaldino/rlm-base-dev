@@ -17,6 +17,18 @@
                         </valueListItems>
                         <valueListItems>
                             <value>Account.RLM_Reset_Account</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!$Permission.StandardPermission.ModifyAllData}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>true</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!$Permission.StandardPermission.ViewAllData}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>true</rightValue>
+                                </criteria>
+                            </visibilityRule>
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewTask</value>

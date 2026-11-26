@@ -8,19 +8,29 @@
  * RLM_Account_Utilities screen flow (quick action Account.RLM_Reset_Account),
  * which shows the Result returned here.
  *
+ * Admins only (owner decision, todo 397, 2026-11-26: "only let admins do account
+ * resets. It's just for demos, POCs and testing"). A user without BOTH Modify All Data
+ * and View All Data is refused (ADMIN_ONLY) before anything else is read or changed;
+ * nothing about the account is read for them. An admin sees and can delete every
+ * record, and the reset converges on an account with heavy usage over several runs.
+ *
  * The reset runs in two phases:
- *  1. The usage graph: binding policies, usage summaries, entitlements and their
- *     buckets, rated journals and asset rate card entries. Runs BEFORE the
- *     savepoint, so its progress survives a later failure.
+ *  1. The usage graph: the account's own binding policies and rate card entries,
+ *     usage summaries, entitlements and their buckets, and rated journals. Runs
+ *     BEFORE the savepoint, so its progress survives a later failure.
  *  2. Everything else, inside a savepoint: collections, billing, fulfillment,
- *     contracts, orders, assets, quotes and opportunities. If any of it fails,
- *     all of it rolls back and the Result says why.
+ *     contracts (with their binding policies, commitment links and rate card entries),
+ *     orders, assets (with theirs), quotes and opportunities. If any of it fails, all of
+ *     it rolls back, so a contract or asset that stays keeps its binding policies,
+ *     commitment links and rate card entries, and the Result says why.
  *
  * Neither phase may exceed a governor limit: that throws a LimitException, which
  * cannot be caught and rolls back BOTH phases. So every delete is clamped to the
  * DML budget left (deleteRows), and the usage loop starts a round only while the
- * queries phase 2 needs are still available (QUERY_RESERVE). Running short ends
- * the run with a Result that asks for another run, which continues from there.
+ * queries phase 2 needs are still available (QUERY_RESERVE). Running short in
+ * phase 1 ends the run with a Result that asks for another run, which continues from
+ * there. Running short in phase 2 rolls phase 2 back, so the next run gets further
+ * only when phase 1 deleted something; the Result says which (PHASE_TWO_STOPPED_*).
  *
  * ⚠ Sharing: `without sharing`, declared deliberately rather than left implicit.
  * The invocable's job is to clear an account's ENTIRE related graph so a demo
@@ -28,18 +38,22 @@
  * other users — the integration user, an admin, another persona. Under
  * `with sharing` a non-admin assignee would delete only the records they can
  * see and silently leave the rest, producing a half-reset account that looks
- * successful: worse than refusing. The repo's Apex rules permit `without
+ * successful: worse than refusing. A non-admin never reaches the deletes: the
+ * reset refuses them first. The repo's Apex rules permit `without
  * sharing` for exactly this case provided the reason is documented, which is
- * what this note is. Access is instead controlled at the grant: the class is
- * reachable only through RLM_UtilitiesPermset, which is assigned deliberately
- * and kept separate from the component permission sets for this reason.
+ * what this note is. Access is controlled in the class: the reset refuses, before
+ * it reads anything, a user without both Modify All Data and View All Data
+ * (ADMIN_ONLY), whatever route reached it. Class access comes from the System
+ * Administrator profile or RLM_UtilitiesPermset, which the build assigns only to
+ * the running admin; neither is the gate.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
  * context called it. An omitted keyword is NOT equivalent to `without sharing` in
  * general — from a `with sharing` caller it would have run WITH sharing. It is
  * equivalent for this class's actual callers, which is why pinning it changes
  * nothing today: every production entry is the Flow invocable, and the only Apex
- * caller is RLM_AccountUtilitiesTest, itself `without sharing`. Adding a caller
+ * callers are RLM_AccountUtilitiesTest and RLM_AccountUtilitiesCommitmentTest, both
+ * `without sharing`. Adding a caller
  * that runs with sharing would previously have silently changed the reset's
  * behaviour; now it cannot.
  *
@@ -53,53 +67,99 @@ public without sharing class RLM_AccountUtilities {
     // (a ratable summary can be held by a usage summary and vice versa), so the
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
-    // spin. In practice QUERY_RESERVE ends a run first, after four or five rounds
-    // (phase 1's lookups before the loop take 4 to 6 of the 100 queries, and a round
-    // needs 59 left to start), and the next run carries on.
+    // spin. In practice QUERY_RESERVE ends a run first, after five rounds (before the loop,
+    // the admins-only permission check takes 1 of the 100 queries and phase 1's lookups 3,
+    // and a round needs 63 left to start), and the next run carries on. The
+    // permission check needs that query: no other read tells whether the user has Modify
+    // All Data and View All Data (measured live 264: FeatureManagement.checkPermission
+    // reads only custom permissions).
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
-    // issues nine deletes per round, so the real guard is the remaining-budget
+    // issues eight deletes per round, so the real guard is the remaining-budget
     // clamp inside deleteRows(), which stops the run with a Result instead of
     // a LimitException.
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
     private static final Integer TEARDOWN_BATCH = 2000;
 
-    // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 43 (counted from the code, with every option on and
-    // data in every branch): 28 before the asset step (order data 10, collections 5,
-    // schedule groups 1, billing 8, fulfillment 2, contracts 2), the asset step's lookup
-    // of entitlements bound to the assets 1 and its other lookups 8, quotes and
-    // opportunities 5 = 42 on the drained path, plus the journal query, which only the
-    // undrained path runs = 43. 29 is what an account with no such data measures.
-    // QUERY_RESERVE covers the 43 and the usage retries. A round starts only while both
-    // are left; otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 43.
-    private static final Integer QUERIES_PER_ROUND = 9;
+    // The queries one teardown round issues, and what is kept back for phase 2. Counted from
+    // the code with every option on and data in every branch, phase 2's fixed queries
+    // total 46 on the drained path: 30 before the asset step (order data 10,
+    // collections 5, schedule groups 1, billing 8, fulfillment 2, contracts 4), the asset
+    // step 11 (entitlements bound to the assets 1, other asset references 2, resource
+    // policies 2, rate card entries 3, commitment links 1, assets 2), quotes and
+    // opportunities 5. Not counted: the bucket walks and the entitlement deletes after
+    // them, which grow with the tree and are each guarded (below). PHASE_TWO_FIXED_MAX
+    // adds the journal and its record alerts, the
+    // last of the usage retries, for 48; QUERY_RESERVE keeps seven spare, 55. A teardown
+    // round starts only while its 8 and the 55 are left; otherwise a large usage graph
+    // would spend phase 2's queries and end in a LimitException. 32 is what an account with
+    // one asset and no other such data measures, and a test holds that exactly and the
+    // reserve against the 48.
+    //
+    // The undrained path runs more, every one behind a guard (requireWalkQueries or
+    // requireQueries) that stops the run with QUERY_LIMIT and its advice instead of a
+    // LimitException: the usage retries' 9 fixed queries (entitlement, entitlement
+    // account and journal lookups and deletes, the record alerts) and the asset step's
+    // 5 lookups of what the teardown left, besides the bucket walks, which grow with the
+    // tree. That is 60 before any walk, more than the reserve, so on that path the guards
+    // decide: a Delete Assets run that reaches phase 2 after five teardown rounds, the
+    // fifth removing nothing (56 queries left), typically stops at the asset step's first
+    // guard, and the next run, with less usage left, gets further.
+    private static final Integer QUERIES_PER_ROUND = 8;
     @TestVisible
-    private static final Integer QUERY_RESERVE = 50;
+    private static final Integer QUERY_RESERVE = 55;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 43;
+    private static final Integer PHASE_TWO_FIXED_MAX = 48;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
-    //  - RETRY_TAIL, for the usage retries: at most 27 follow the journal guard (journal 1,
-    //    collections 5, schedule groups 1, billing 8, fulfillment 2, contracts 2, the asset
-    //    step with no assets 3, quotes and opportunities 5). 30 keeps three spare.
-    //  - ASSET_TAIL, for the asset step: at most 13 follow its last guard (other asset
-    //    references 2, resource policies 3, rate card entries 1, assets 2, quotes and
-    //    opportunities 5). 16 keeps three spare.
+    //  - RETRY_TAIL, for the usage retries: at most 29 follow the journal guard (journal 1,
+    //    its record alerts 1, collections 5, schedule groups 1, billing 8, fulfillment 2,
+    //    contracts 4, the asset step with no assets 2, quotes and opportunities 5). 32 keeps
+    //    three spare.
+    //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
+    //    references 2, resource policies 2, rate card entries 3, commitment links 1,
+    //    assets 2, quotes and opportunities 5). 18 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
     // query added after a guard; the tests cannot catch growth in the data-dependent branches.
     @TestVisible
-    private static final Integer RETRY_TAIL = 30;
+    private static final Integer RETRY_TAIL = 32;
     @TestVisible
-    private static final Integer ASSET_TAIL = 16;
+    private static final Integer ASSET_TAIL = 18;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
+    @TestVisible
+    private static final String ADMIN_ONLY = 'Account reset is for administrators: it needs the Modify All Data and '
+        + 'View All Data permissions. Nothing was changed.';
+    // Phase 2 keeps nothing when it stops. Phase 1 deleted something this run, so a rerun
+    // may get further, but not always: phase 2's own work can need more than one run has.
+    @TestVisible
+    private static final String PHASE_TWO_STOPPED_AFTER_USAGE = 'Run the reset again: the usage records this run '
+        + 'deleted stay deleted, so the next run may get further. If it stops at the same point, the account has '
+        + 'more records than one run can clear; delete some of its usage records first.';
+    @TestVisible
+    private static final String PHASE_TWO_STOPPED_NO_PROGRESS = 'Running the reset again stops at the same point, '
+        + 'because nothing this run deleted was kept. Delete some of the records in the largest groups first, then '
+        + 'run it again.';
+    // For a stop on queries: phase 2's fixed queries are kept back, so what runs out is the
+    // walk of the usage bucket tree, a query a level and a retry.
+    @TestVisible
+    private static final String PHASE_TWO_QUERIES_NO_PROGRESS = 'Running the reset again stops at the same point, '
+        + 'because nothing this run deleted was kept. The queries ran out walking the account\'s usage bucket '
+        + 'tree, which takes one a level; delete some of its usage buckets or entitlements first, then run it again.';
+    // For a stop on statements: every delete or update is one, and the bucket walks take one
+    // a level of the tree.
+    @TestVisible
+    private static final String PHASE_TWO_STATEMENTS_NO_PROGRESS = 'Running the reset again stops at the same point, '
+        + 'because nothing this run deleted was kept. Every delete or update is one of the statements a run may '
+        + 'use, and the walk of the account\'s usage bucket tree takes one a level; delete some of its usage buckets '
+        + 'or entitlements first, then run it again.';
+    // How many of the largest groups a phase 2 stop names.
+    private static final Integer GROUPS_NAMED = 3;
     // Reached only when the round cap binds before the query budget does: a caller with
     // more than the synchronous 100 queries (asynchronous gets 200). Tests lower the cap
     // through maxTeardownRoundsForTest.
@@ -109,13 +169,21 @@ public without sharing class RLM_AccountUtilities {
     private static final String FOREIGN_BUCKET = 'kept: holds, or is above, another account\'s entitlement';
     private static final String INCOMPLETE_BUCKETS = 'Usage Entitlement Buckets: the list of buckets the rollback restored may be '
         + 'incomplete, because the query limit was reached while listing them';
+    @TestVisible
     private static final String DML_LIMIT = 'The reset reached the Salesforce limit on record changes in one run.';
+    @TestVisible
     private static final String QUERY_LIMIT = 'The reset reached the Salesforce limit on queries in one run.';
+    @TestVisible
+    private static final String STATEMENT_LIMIT = 'The reset reached the Salesforce limit on delete and update '
+        + 'statements in one run.';
     private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled, and deleting them needs the '
         + 'Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices)';
     private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset again once they finish';
     private static final String PAYMENTS_KEPT = 'payments are not deleted: Salesforce does not allow deleting processed payments';
     private static final String MEMO_ON_KEPT_INVOICE = 'applied to an invoice that was kept';
+    @TestVisible
+    private static final String LEFT_IN_DRAFT = 'left in Draft: set back to Draft to be deleted, then the delete was '
+        + 'refused: ';
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
 
     /**
@@ -216,10 +284,9 @@ public without sharing class RLM_AccountUtilities {
 
     private static ResetReport report = new ResetReport();
 
-    // The account's assets and contracts, read at the start of the run by several
-    // steps in both phases. The reset never creates either.
+    // The account's assets, read at the start of the run by several steps in both phases.
+    // The reset never creates one.
     private static Set<Id> accountAssetIds = new Set<Id>();
-    private static Set<Id> accountContractIds = new Set<Id>();
 
     // True when the last teardown round found no usage rows at all. Phase 2 then
     // skips the passes that only retry rows the teardown could not delete.
@@ -233,8 +300,8 @@ public without sharing class RLM_AccountUtilities {
     private static Exception phaseTwoFailureForTest;
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
-    // always ends the loop first (a round needs 59 queries left, and 100 allow four or five, depending on the
-    // 4 to 6 queries phase 1 spends on assets and contracts before the loop), so
+    // always ends the loop first (a round needs 63 queries left, and 100 allow five, after the
+    // 4 queries spent before the loop: the admins-only check's 1, and phase 1's 3), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
     @TestVisible
@@ -259,6 +326,15 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Integer dmlRowLimitForTest;
 
+    // Rows phase 2 tried to delete, by object, each once, so a stop can name the largest
+    // groups; null outside phase 2.
+    @TestVisible
+    private static Map<String, Set<Id>> phaseTwoRows;
+
+    // Orders the last run set back to Draft.
+    @TestVisible
+    private static Integer ordersSetToDraftForTest;
+
     /**
      * The account's orders, invoices and fulfillment records, queried once at the
      * start of phase 2 and shared by the steps that delete them. The fulfillment
@@ -281,7 +357,7 @@ public without sharing class RLM_AccountUtilities {
         public List<FulfillmentLineSourceRel> fulfillmentLineSourceRels = new List<FulfillmentLineSourceRel>();
 
         public OrderData(Id accountId, Boolean withFulfillment) {
-            this.orders = [SELECT Id FROM Order WHERE AccountId = :accountId];
+            this.orders = [SELECT Id, Status FROM Order WHERE AccountId = :accountId];
             this.orderIds = new Map<Id, Order>(this.orders).keySet();
             this.orderItemIds = new Map<Id, OrderItem>(
                 [SELECT Id FROM OrderItem WHERE Order.AccountId = :accountId]).keySet();
@@ -364,6 +440,11 @@ public without sharing class RLM_AccountUtilities {
 
     private static Result resetAccount(InputVariables input) {
         startRun();
+        // Admins only, decided before anything else is read: a user without both
+        // permissions learns nothing about the account, and nothing is changed.
+        if (!seesAndDeletesEverything()) {
+            return finish(false, ADMIN_ONLY);
+        }
         Id accountId = toAccountId(input.accountId);
         if (accountId == null) {
             return finish(false, 'Not an Account Id: ' + input.accountId);
@@ -396,10 +477,10 @@ public without sharing class RLM_AccountUtilities {
         // transaction, this progress included.
         try {
             accountAssetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE AccountId = :accountId]).keySet();
-            accountContractIds = new Map<Id, Contract>(
-                [SELECT Id FROM Contract WHERE AccountId = :accountId]).keySet();
 
-            deleteUsageResourcePolicies(accountId);
+            // The account's own policies and rate card entries. Those of a contract or
+            // asset go in phase 2 with it, so a rollback keeps them with what stays.
+            deleteUsageResourcePolicies(accountId, new Set<Id>());
             deleteBindingObjRateCardEntries(accountId);
 
             // The summary graph must go FIRST. A UsageEntitlementEntry holds its
@@ -407,14 +488,6 @@ public without sharing class RLM_AccountUtilities {
             // still reference it -- so tearing down buckets before the summaries
             // (the previous order) fails on any account whose usage was ever rated.
             deleteUsageSummaryGraph(accountId);
-
-            // Gated on deleteAssets, like the asset deletion itself further down.
-            // AssetRateCardEntry rows are generated when the asset is created and are
-            // NOT recreated for an existing asset, so removing them while KEEPING the
-            // asset leaves a usage asset that can never rate again.
-            if (deleteAssets) {
-                deleteAssetRateCardEntries();
-            }
         } catch (ResetStoppedException e) {
             return finish(false, e.getMessage()
                 + ' The usage records removed so far stay deleted; nothing else was touched. ' + RUN_AGAIN);
@@ -427,6 +500,7 @@ public without sharing class RLM_AccountUtilities {
         // Phase 2: inside the savepoint. All of it is kept, or none of it.
         Savepoint sp = Database.setSavepoint();
         phaseTwoQueriesAtStart = Limits.getQueries();
+        phaseTwoRows = new Map<String, Set<Id>>();
         ResetReport afterPhaseOne = report.copy();
         try {
             OrderData orderData = new OrderData(accountId, deleteFulfillment);
@@ -478,16 +552,41 @@ public without sharing class RLM_AccountUtilities {
                 // Before deleting assets, clean up ALL records that might reference them
                 deleteAllRecordsReferencingAssets(accountId);
 
-                // Second pass over the binding policies. They are cleared at the top
-                // of this method, but the entitlement teardown in between leaves more
-                // behind, and an asset cannot be deleted while any remain:
+                // The assets' binding policies, here with the assets so a rollback keeps
+                // them together, and the account's again: the entitlement teardown since
+                // phase 1 can leave more. An asset cannot be deleted while any remain:
                 //   "could not be completed because it is associated with the
                 //    following binding object usage resource policies.: BOURP-..."
-                // Clearing them once up front is not enough. A policy that still
-                // refuses is reported as retained, and the asset delete below then
-                // fails with the platform's reason.
-                deleteUsageResourcePolicies(accountId);
+                // A policy that still refuses is reported as retained, and the asset
+                // delete below then fails with the platform's reason.
+                deleteUsageResourcePolicies(accountId, accountAssetIds);
                 deleteBindingObjRateCardEntries(accountId);
+                // Here, with the assets, not in phase 1: AssetRateCardEntry rows are
+                // generated when the asset is created and are NOT recreated for an existing
+                // asset, so a rollback must restore them with their assets, or the kept
+                // asset could never rate again.
+                deleteAssetRateCardEntries();
+                // A binding rate card entry sourced from an asset blocks the asset's delete,
+                // whatever it is bound to (measured live 264: "associated with the following
+                // binding object rate card entries"), a contract the run keeps included.
+                if (!accountAssetIds.isEmpty()) {
+                    deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
+                    // The commitment links (UsageCmtAssetRelatedObj) anchored on the assets.
+                    // Here, with the assets, not in phase 1: an anchor cannot be deleted while
+                    // one survives ("associated with the following usage commitment asset
+                    // related objects"), and nothing in phase 1 needs them gone (measured live
+                    // 264: every usage row deletes with them in place). So without Delete
+                    // Assets, or after a rollback, a kept asset keeps its commitment link. A
+                    // link whose commitment asset (AssetId) is deleted goes with it (measured
+                    // live 264), wherever it is anchored; one anchored on a contract the run
+                    // deletes goes with the contract; one anchored on the account or a custom
+                    // object blocks nothing the reset deletes, so it stays until its
+                    // commitment asset goes.
+                    deleteQuietly([
+                        SELECT Id FROM UsageCmtAssetRelatedObj
+                        WHERE AssetId IN :accountAssetIds OR RelatedObjectId IN :accountAssetIds
+                    ]);
+                }
 
                 deleteAssets();
             }
@@ -510,22 +609,108 @@ public without sharing class RLM_AccountUtilities {
             phaseTwoQueriesForTest = Limits.getQueries() - phaseTwoQueriesAtStart;
             report = afterPhaseOne;
             reportUnseenBuckets(accountId);
-            String cause = e instanceof ResetStoppedException ? e.getMessage() + ' ' + RUN_AGAIN : e.getMessage();
+            // Phase 2 kept nothing; only phase 1's deletes make a rerun get further.
+            String cause = e.getMessage();
+            if (e instanceof ResetStoppedException) {
+                cause += ' ' + phaseTwoStopAdvice(e.getMessage(), !report.removedLabels.isEmpty());
+            }
+            phaseTwoRows = null;
             String kept = report.removedLabels.isEmpty()
                 ? 'Nothing was deleted; the run was rolled back. '
                 : 'Only what the usage cleanup deleted stays deleted (see Removed); everything else was rolled back. ';
             return finish(false, kept + cause);
         }
         phaseTwoQueriesForTest = Limits.getQueries() - phaseTwoQueriesAtStart;
+        phaseTwoRows = null;
         return finish(true, null);
+    }
+
+    /**
+     * The advice for a phase 2 stop, by its cause. After phase 1 deleted something, a rerun
+     * may get further whatever ran out. Otherwise: for rows, the largest groups to thin out;
+     * for queries or statements, the usage bucket tree, whose walk spends them.
+     */
+    @TestVisible
+    private static String phaseTwoStopAdvice(String cause, Boolean phaseOneDeleted) {
+        if (cause == DML_LIMIT) {
+            return (phaseOneDeleted ? PHASE_TWO_STOPPED_AFTER_USAGE : PHASE_TWO_STOPPED_NO_PROGRESS) + largestGroups();
+        }
+        if (phaseOneDeleted) {
+            return PHASE_TWO_STOPPED_AFTER_USAGE;
+        }
+        return cause == STATEMENT_LIMIT ? PHASE_TWO_STATEMENTS_NO_PROGRESS : PHASE_TWO_QUERIES_NO_PROGRESS;
+    }
+
+    /**
+     * " The largest groups it reached: Asset Rate Card Entries: 9500; Opportunities: 300."
+     * The groups phase 2 tried to delete before it stopped, largest first, so the advice to
+     * delete some records first says which.
+     */
+    @TestVisible
+    private static String largestGroups() {
+        if (phaseTwoRows == null || phaseTwoRows.isEmpty()) {
+            return '';
+        }
+        List<String> labels = new List<String>(phaseTwoRows.keySet());
+        List<String> named = new List<String>();
+        while (named.size() < GROUPS_NAMED && !labels.isEmpty()) {
+            Integer largest = 0;
+            for (Integer i = 1; i < labels.size(); i++) {
+                if (phaseTwoRows.get(labels[i]).size() > phaseTwoRows.get(labels[largest]).size()) {
+                    largest = i;
+                }
+            }
+            named.add(labels[largest] + ': ' + phaseTwoRows.get(labels[largest]).size());
+            labels.remove(largest);
+        }
+        return ' The largest groups it reached: ' + String.join(named, '; ') + '.';
+    }
+
+    /**
+     * Notes the rows phase 2 tries to delete or update, by object, each once: the usage
+     * retries and the bucket walks try the same rows again, which would inflate the counts.
+     */
+    @TestVisible
+    private static void notePhaseTwoRows(List<SObject> records) {
+        if (phaseTwoRows == null || records == null || records.isEmpty()) {
+            return;
+        }
+        String label = labelOf(records[0].getSObjectType());
+        if (!phaseTwoRows.containsKey(label)) {
+            phaseTwoRows.put(label, new Set<Id>());
+        }
+        for (SObject record : records) {
+            phaseTwoRows.get(label).add(record.Id);
+        }
     }
 
     private static void startRun() {
         report = new ResetReport();
         accountAssetIds = new Set<Id>();
-        accountContractIds = new Set<Id>();
         usageDrained = false;
         unseenListQueriesSpentForTest = null;
+        ordersSetToDraftForTest = null;
+        phaseTwoRows = null;
+    }
+
+    /**
+     * True when the running user has both Modify All Data and View All Data, which the
+     * reset requires. UserPermissionAccess holds the user's effective permissions, from the
+     * profile, permission sets and groups, and any user may read their own. It is one query
+     * before phase 1, and the budgets count it.
+     */
+    @TestVisible
+    private static Boolean seesAndDeletesEverything() {
+        UserPermissionAccess access = [
+            SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1
+        ];
+        return isAdmin(access.PermissionsModifyAllData, access.PermissionsViewAllData);
+    }
+
+    /** The gate's decision: an admin has both permissions. Null counts as without. */
+    @TestVisible
+    private static Boolean isAdmin(Boolean modifyAllData, Boolean viewAllData) {
+        return modifyAllData == true && viewAllData == true;
     }
 
     /** The Id when `value` is an Account Id, else null. */
@@ -614,10 +799,26 @@ public without sharing class RLM_AccountUtilities {
         report.kept.add(new Kept(label, why, count));
     }
 
+    // DML statements no delete may use, in either phase (one dmlRowsLeft serves both):
+    // phase 2's savepoint and its rollback each count as one (measured live 264). Phase 1
+    // needs both left for phase 2; phase 2 needs only the rollback's, and keeps one spare.
+    @TestVisible
+    private static final Integer STATEMENTS_KEPT = 2;
+
+    /**
+     * Why the next delete or update would not fit: out of statements, or out of rows.
+     * Read BEFORE the statement runs: a trimmed delete that runs out of rows spends a
+     * statement itself, which could otherwise make a rows stop read as a statements one.
+     */
+    @TestVisible
+    private static String dmlStopCause() {
+        return Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT ? STATEMENT_LIMIT : DML_LIMIT;
+    }
+
     // Rows the next DML statement may touch: what is left of the transaction's row
-    // budget, or none once its statement budget is spent.
+    // budget, or none once all but STATEMENTS_KEPT of its statements are spent.
     private static Integer dmlRowsLeft() {
-        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements()) {
+        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT) {
             return 0;
         }
         Integer rowLimit = dmlRowLimitForTest != null ? dmlRowLimitForTest : Limits.getLimitDmlRows();
@@ -630,7 +831,7 @@ public without sharing class RLM_AccountUtilities {
      * allOrNone, a refusal throws instead, which rolls back phase 2.
      *
      * The 10,000-row DML limit is per TRANSACTION, not per statement, and the
-     * teardown loop alone issues nine deletes per round. So the list is clamped to
+     * teardown loop alone issues eight deletes per round. So the list is clamped to
      * the remaining budget here -- one clamp covers every call site. Running out
      * deletes what fits and then stops the run with a ResetStoppedException,
      * rather than a LimitException that rolls back all the progress made.
@@ -642,11 +843,13 @@ public without sharing class RLM_AccountUtilities {
         if (records == null || records.isEmpty()) {
             return gone;
         }
+        notePhaseTwoRows(records);
         Integer room = dmlRowsLeft();
+        String stopCause = dmlStopCause();
         Boolean trimmed = records.size() > room;
         if (trimmed) {
             if (allOrNone || room <= 0) {
-                throw new ResetStoppedException(DML_LIMIT);
+                throw new ResetStoppedException(stopCause);
             }
             List<SObject> fits = new List<SObject>();
             for (Integer i = 0; i < room; i++) {
@@ -672,7 +875,7 @@ public without sharing class RLM_AccountUtilities {
         }
         recordRemoved(records[0].getSObjectType(), removed);
         if (trimmed) {
-            throw new ResetStoppedException(DML_LIMIT);
+            throw new ResetStoppedException(stopCause);
         }
         return gone;
     }
@@ -703,8 +906,10 @@ public without sharing class RLM_AccountUtilities {
         if (records.isEmpty()) {
             return updated;
         }
+        // In the stop message's tally too: an update that does not fit names its group.
+        notePhaseTwoRows(records);
         if (records.size() > dmlRowsLeft()) {
-            throw new ResetStoppedException(DML_LIMIT);
+            throw new ResetStoppedException(dmlStopCause());
         }
         Database.SaveResult[] results = Database.update(records, false);
         for (Integer i = 0; i < results.size(); i++) {
@@ -1092,8 +1297,8 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes the account's orders, after setting them back to Draft: an
-     * activated order cannot be deleted.
+     * Deletes the account's orders, after setting those not in Draft back to Draft: an
+     * activated order cannot be deleted. An order already in Draft is not updated.
      *
      * @param orderData The OrderData object containing pre-queried information
      */
@@ -1101,11 +1306,30 @@ public without sharing class RLM_AccountUtilities {
         if (orderData.orders.isEmpty()) {
             return;
         }
+        List<Order> toDraft = new List<Order>();
         for (Order o : orderData.orders) {
-            o.Status = 'Draft';
+            if (o.Status != 'Draft') {
+                toDraft.add(new Order(Id = o.Id, Status = 'Draft'));
+            }
         }
-        updateRows(orderData.orders, null);
+        ordersSetToDraftForTest = toDraft.size();
+        Set<Id> setToDraft = updateRows(toDraft, null);
         deleteQuietly(orderData.orders);
+        // An order set back to Draft whose delete is then refused (for example, live 264, a
+        // usage entitlement that refers to one of its lines) stays, in Draft: say so, rather
+        // than leave it de-activated without a word.
+        Integer leftInDraft = 0;
+        String firstError;
+        for (Id orderId : setToDraft) {
+            if (report.refused.containsKey(orderId)) {
+                leftInDraft++;
+                if (firstError == null) {
+                    firstError = report.refused.get(orderId);
+                }
+                report.refused.remove(orderId);
+            }
+        }
+        recordRetained(Order.SObjectType, leftInDraft, LEFT_IN_DRAFT + firstError);
     }
 
     /**
@@ -1291,7 +1515,24 @@ public without sharing class RLM_AccountUtilities {
      */
     private static void deleteTransactionJournal(Id accountId) {
         requireWalkQueries(RETRY_TAIL);
-        deleteQuietly([SELECT Id FROM TransactionJournal WHERE AccountId = :accountId]);
+        List<TransactionJournal> journals = [SELECT Id FROM TransactionJournal WHERE AccountId = :accountId];
+        deleteJournalAlerts(new Map<Id, TransactionJournal>(journals).keySet());
+        deleteQuietly(journals);
+    }
+
+    /**
+     * Deletes the record alerts on the journals: an alert blocks its journal's delete
+     * (restricted lookup; measured live 264: "associated with the following record
+     * alerts"), so a journal with one could never go. Phase 1's rounds leave such a journal,
+     * so the run takes the undrained path and this runs before the journal retry; RETRY_TAIL
+     * and PHASE_TWO_FIXED_MAX count its query. WhatId and ParentId are polymorphic, so the
+     * ids are bound rather than semi-joined.
+     */
+    private static void deleteJournalAlerts(Set<Id> journalIds) {
+        if (journalIds.isEmpty() || !Schema.getGlobalDescribe().containsKey('RecordAlert')) {
+            return;
+        }
+        deleteQuietly(Database.query('SELECT Id FROM RecordAlert WHERE WhatId IN :journalIds OR ParentId IN :journalIds'));
     }
 
     /**
@@ -1333,7 +1574,6 @@ public without sharing class RLM_AccountUtilities {
         //   UsageEntitlementBucket parent <-> child (3 levels)
         //   TransactionUsageEntitlement <- bucket
         //   UsageEntitlementAccount     <- TUE
-        //   UsageCmtAssetRelatedObj     -> Asset   (the commitment junction)
         // Alternate them and stop when a full round makes no progress. Fixed, small
         // SOQL cost per round rather than one that grows with the org's history.
         Boolean queryBudgetSpent = false;
@@ -1370,15 +1610,6 @@ public without sharing class RLM_AccountUtilities {
             progress += drain([
                 SELECT Id FROM UsageEntitlementAccount
                 WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
-            // The commitment junction. Linking a commitment to its anchor is a
-            // post-262 selling step this utility predates, and an anchor asset
-            // cannot be deleted while its junction row survives.
-            if (!assetIds.isEmpty()) {
-                progress += drain([
-                    SELECT Id FROM UsageCmtAssetRelatedObj
-                    WHERE AssetId IN :assetIds OR RelatedObjectId IN :assetIds
-                    LIMIT :TEARDOWN_BATCH]);
-            }
 
             if (progress == 0) {
                 usageDrained = roundFound == 0;
@@ -1436,35 +1667,48 @@ public without sharing class RLM_AccountUtilities {
      * ContractItemPrice (contracted price) child are kept. Because
      * ContractItemPrice.ContractId is a master-detail relationship, a surviving
      * Contract retains its contracted prices automatically — no explicit child
-     * handling is required. The rate card entries bound to a contract go with
-     * it, so a kept contract keeps those as well.
+     * handling is required. The binding policies, rate card entries and commitment links
+     * bound to a contract go with it, so a kept contract keeps them, with two exceptions
+     * under Delete Assets: an entry sourced from an asset the run deletes blocks that
+     * asset's delete, so the asset step deletes it; and a commitment link whose
+     * commitment asset is this account's goes with that asset.
      *
      * @param accountId The ID of the account whose records should be deleted
      * @param preserveContractsWithPrices When true, skip contracts that have
      *        ContractItemPrice children; when false, delete all contracts
      */
     private static void deleteContracts(Id accountId, Boolean preserveContractsWithPrices) {
-        List<Contract> contracts;
-        if (preserveContractsWithPrices && Schema.getGlobalDescribe().containsKey('ContractItemPrice')) {
-            // Select only contracts with NO ContractItemPrice children via a
-            // semi-join on the master-detail FK. Dynamic SOQL keeps this class
-            // deployable on editions where Contract Pricing is unavailable.
-            contracts = (List<Contract>) Database.query(
-                'SELECT Id FROM Contract WHERE AccountId = :accountId ' +
-                'AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)');
-        } else {
-            // Without preserve, or without Contract Pricing (where no contract can
-            // have a ContractItemPrice child, so none is priced): every contract.
-            contracts = [SELECT Id FROM Contract WHERE AccountId = :accountId];
-        }
+        List<Contract> contracts = contractsToDelete(accountId, preserveContractsWithPrices);
         if (contracts.isEmpty()) {
             return;
         }
         // BindingObjectId is polymorphic, and a semi-join against it silently
         // matches nothing (see deleteUsageResourcePolicies), so bind the ids.
         Set<Id> contractIds = new Map<Id, Contract>(contracts).keySet();
+        deleteUsageResourcePolicies(null, contractIds);
+        // A commitment link anchored on a contract blocks its delete (measured live 264:
+        // "associated with the following usage commitment asset related objects").
+        deleteQuietly([SELECT Id FROM UsageCmtAssetRelatedObj WHERE RelatedObjectId IN :contractIds]);
         deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds]);
         deleteAll(contracts);
+    }
+
+    /**
+     * The contracts the run deletes: every contract of the account, or, with Preserve
+     * Contracts with Contracted Prices, those with no ContractItemPrice child.
+     */
+    private static List<Contract> contractsToDelete(Id accountId, Boolean preserveContractsWithPrices) {
+        if (preserveContractsWithPrices && Schema.getGlobalDescribe().containsKey('ContractItemPrice')) {
+            // Select only contracts with NO ContractItemPrice children via a
+            // semi-join on the master-detail FK. Dynamic SOQL keeps this class
+            // deployable on editions where Contract Pricing is unavailable.
+            return (List<Contract>) Database.query(
+                'SELECT Id FROM Contract WHERE AccountId = :accountId ' +
+                'AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)');
+        }
+        // Without preserve, or without Contract Pricing (where no contract can
+        // have a ContractItemPrice child, so none is priced): every contract.
+        return [SELECT Id FROM Contract WHERE AccountId = :accountId];
     }
 
     /**
@@ -1713,27 +1957,25 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes BindingObjUsageRsrcPlcy records whose polymorphic BindingObjectId
-     * is tied to the given Account via any of these targets:
-     *  - the Account itself
-     *  - an Asset with Asset.AccountId = accountId
-     *  - a Contract with Contract.AccountId = accountId
+     * Deletes the BindingObjUsageRsrcPlcy records bound to the account (when accountId
+     * is not null) and to the given contracts or assets, in one delete. Phase 1 passes
+     * the account alone; phase 2 passes the contracts it deletes (deleteContracts) and,
+     * with Delete Assets, the assets (the asset step, with the account again). A
+     * contract or asset the run keeps keeps its policies, and so does one a phase 2
+     * rollback restores.
      */
-    private static void deleteUsageResourcePolicies(Id accountId) {
-        // Collect unique policies across multiple constraint-compliant queries.
-        Map<Id, BindingObjUsageRsrcPlcy> policies = new Map<Id, BindingObjUsageRsrcPlcy>(
-            [SELECT Id FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :accountId]);
-
+    private static void deleteUsageResourcePolicies(Id accountId, Set<Id> boundTo) {
+        Map<Id, BindingObjUsageRsrcPlcy> policies = new Map<Id, BindingObjUsageRsrcPlcy>();
+        if (accountId != null) {
+            policies.putAll([SELECT Id FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :accountId]);
+        }
         // BindingObjectId is POLYMORPHIC (Account / Asset / BindingObjectCustomExt /
         // Contract). A semi-join against a polymorphic lookup does not resolve --
         // it silently matches nothing, which is why asset deletion kept failing with
         // "associated with the following binding object usage resource policies"
         // even though this method reported success. Bind the materialised ids.
-        if (!accountAssetIds.isEmpty()) {
-            policies.putAll([SELECT Id FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId IN :accountAssetIds]);
-        }
-        if (!accountContractIds.isEmpty()) {
-            policies.putAll([SELECT Id FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId IN :accountContractIds]);
+        if (!boundTo.isEmpty()) {
+            policies.putAll([SELECT Id FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId IN :boundTo]);
         }
         deleteQuietly(policies.values());
     }
@@ -1741,7 +1983,9 @@ public without sharing class RLM_AccountUtilities {
     /**
      * Deletes the BindingObjectRateCardEntry records bound to the Account itself.
      * Those bound to a contract are deleted with the contract (deleteContracts),
-     * so contracts the reset keeps keep their rate card entries.
+     * so contracts the reset keeps keep their rate card entries, except one sourced from
+     * an asset the reset deletes (Delete Assets): it blocks the asset's delete, so the
+     * asset step deletes it too.
      */
     private static void deleteBindingObjRateCardEntries(Id accountId) {
         deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId = :accountId]);
