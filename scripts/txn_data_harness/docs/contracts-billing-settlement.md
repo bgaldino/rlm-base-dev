@@ -500,7 +500,9 @@ unapply` (todo 490) is built on it.
   new Applied row on the next invoice is 445.50, and `NetApplied` 445.50,
   `Balance` 0.
 - Not measured: header-level unapply (`credit-memo-inv-applications/.../unapply`,
-  payment header rows), reapplying by hand after an unapply, voiding a credit
+  payment header rows), reapplying with the explicit apply action after an
+  unapply (reapplying by the rules is measured: [Rule-based
+  application](#rule-based-application)), voiding a credit
   memo.
 - **Either order.** Unapplying the credit while the payment stays applied
   (`--only credit`, run DEMO-20261126T041707Z) left invoice and line `Balance`
@@ -522,6 +524,115 @@ unapplied and recorded; 1 when one could not be (a failed read or write on one
 row included) or nothing was recorded to unapply; 2 when the manifest cannot be
 read, the settlement is not finished, the run is recorded at Header Level, or
 the org cannot be read before any unapply. `cli verify` then checks the pair (see `verify.py`).
+
+## Rule-based application
+
+Measured live on 2026-11-26 (264 scratch org, Line Level, API 68.0, org and
+API user time zone America/Los_Angeles). BillingSettings carried
+`ruleBasedCrAndPymtAppln` = `{"first":"Payments","rules":["EA","OI","HI"]}`
+(the value the build deploys; the metadata has no separate enable element).
+The account had about 16 open Posted invoices. Probes 1-4 each created one
+External Processed payment (as `payment_applied` does) after the invoices
+posted; probe 5 used a run's payment and credit memo freed by `cli unapply`.
+Each then called:
+
+| Call | Response |
+|---|---|
+| `POST /services/data/v68.0/revenue/billing/transactions/actions/apply`, body `{"accountId": ...}`, optional `"targetDate": "YYYY-MM-DD"` | `{"appliedRules": [...], "isSuccess": true, "rulesApplicationSummary": {"areAllInvoicesConsidered", "fetchedCreditMemosCount", "fetchedPaymentsCount", "totalCreditMemoApplications", "totalPaymentApplications"}}` |
+
+- **Synchronous.** The rows and balances had changed when the call returned.
+  No `errors` key came back on success.
+- **Rows.** Ordinary line-level rows: `PaymentLineInvoiceLine` /
+  `CreditMemoLineInvoiceLine`, `Type` Applied, `UnappliedStatus` No; the
+  invoice's `SettlementLevel` became InvoiceLine. Probe 5 ran through an
+  earlier `cli apply-rules` that read rows by payment and memo Id. The current
+  one, which reads every row on the account, ran end to end at 07:38Z: run
+  DEMO-20261126T073706Z through `quote-to-cash`, `unapply`, then `apply-rules`
+  listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35,
+  posted that day with 495.00 open before the call, as its verify line shows:
+  0.0 = 495.0 - 49.5 - 445.5; not on the run's own DOC-37, also posted that day
+  and still open at 495.00 after); its `RULES:` line was Match Balance,
+  Prioritize Oldest Invoices with every count 1 and every invoice considered;
+  `cli verify` passed on them (3 balances checked, 0 skipped) and it exited 0.
+- **Rule names.** `appliedRules` gives Help names, not the settings codes.
+  Calls that reported Match Balance alone (probes 1 and 4) put the payment on
+  the invoice with that balance. The other name reported was Prioritize Oldest
+  Invoices, always second after Match Balance. That EA is Match Balance, OI
+  Prioritize Oldest Invoices and HI Prioritize Highest Balance Invoices is
+  inferred from the codes and their order (EA, OI, HI in the setting); no
+  probe changed the setting. No call reported a third rule.
+
+The probes, in the order they ran (invoice numbers are that org's
+`DocumentNumber`s; "candidates" are the open invoices posted that UTC day):
+
+| # | Open on the account before the call | `targetDate` | Went to | `appliedRules` |
+|---|---|---|---|---|
+| 1 | payment 990.00 | none | DOC-34, the one candidate with Balance 990.00 | Match Balance |
+| 2 | payment 100.00 (no invoice at 100.00) | none | DOC-23 (495.00, left 395.00), the earliest-created candidate | Match Balance, Prioritize Oldest Invoices |
+| 3 | payment 135.00 (DOC-9 and DOC-11 at 135.00, posted the day before) | none | DOC-25 (495.00, left 360.00); not DOC-23, still open at 395.00 | Match Balance, Prioritize Oldest Invoices |
+| 4 | payment 234.00 (DOC-7 at 234.00, posted the day before) | `2026-11-25` | DOC-7 | Match Balance |
+| 5 | payment 445.50 and credit memo 49.50, freed by `cli unapply` (no candidate at either balance) | none | both to DOC-28 (495.00): the payment 445.50, the credit the 49.50 it left; not DOC-23 (395.00) or DOC-25 (360.00), and not the run's own DOC-36 (495.00, posted that day, still open after) | Match Balance, Prioritize Oldest Invoices |
+
+- **Without `targetDate` only invoices posted that UTC day were candidates.**
+  The calls ran at about 06:10Z (22:10 the previous day in the org's time
+  zone); probe 3's payment skipped two invoices posted the previous day that
+  matched its balance exactly, and passing that date made such an invoice a
+  match (probe 4). `PostedDate` is the
+  UTC date (an invoice created at 00:03Z, 16:03 the previous day in the org's
+  time zone, carries the UTC day's date). So the
+  default is inferred to be "posted on or after today, UTC" from one evening's
+  calls; the dev guide only says `targetDate` selects invoices posted on or
+  after it.
+- **What placed the unmatched payments is not established.** Every candidate
+  in probes 2, 3 and 5 was posted the same UTC day, so "oldest" by posted
+  date could not separate them. Each unmatched payment went to the candidate
+  with the highest balance, the earliest created among equals: probe 2 to
+  DOC-23 (all at 495.00), probe 3 to DOC-25 (495.00, over DOC-23 at 395.00),
+  probe 5 to DOC-28 (495.00, over DOC-23 and DOC-25). That fits highest-balance placement, or an oldest ordering by a date they
+  all share with ties broken by balance; oldest by creation does not fit
+  probe 3. The response does not say which
+  rule placed each row; probe 5's credit may have been placed by Match Balance
+  (49.50 was what the payment left).
+- **Nothing to apply.** (2026-11-26, about 07:04Z; raw calls from a probe
+  script, not `cli apply-rules`) With no payment or credit
+  memo the platform counts as open (the account's only payment with a non-zero
+  Balance was Canceled): `isSuccess` true, `appliedRules` [], every count 0. With an open
+  50.00 payment and `targetDate` 2026-12-31, so no invoice eligible:
+  `{"errors": [{"message": "We couldn&#39;t find eligible invoices to apply
+  rules-based credits and payments. "}], "isSuccess": false}` with a 2xx
+  status (the client raised no HTTP error), no `errorCode`, no summary,
+  nothing applied; the same payment then applied without a
+  `targetDate`.
+- Not measured: ties among eligible invoices on Match Balance, Credits First,
+  Match ID (a payment that names an invoice), a credit memo alone, header
+  level, more than 2,000 invoices (`areAllInvoicesConsidered` false). Help's
+  worked example has the rules run when invoices post; whether the post-time
+  absorption [above](#order-matters-the-platform-applies-open-balances-at-post)
+  follows them was not measured.
+
+`cli apply-rules --org <sf-alias> --account <name or Account Id> [--target-date
+YYYY-MM-DD]` (todo 498) reads every application row (line and header) on the
+account's payments and credit memos, whatever their balance, sends the call
+once (no transport retry), and reads them again: each new row is printed
+(`APPLIED:`), with the rules and summary the response gave (`RULES:`). It then
+runs the `cli verify` checks on every invoice and payment the new rows touch.
+It works on the account, not on a run: the platform considers everything open
+there, a run's freed balances or anyone else's, and a row another process
+writes on the account meanwhile is listed and checked too. Exit 0 when the
+platform reports `isSuccess` true with no errors and either nothing was applied or the checks
+passed with at least one balance checked (the pass line gives the checked and
+skipped counts; a row naming no readable invoice, and for a payment no
+readable payment, is printed as `SKIP:` and counted as skipped); 1 when the platform reports failure or errors (no eligible
+invoice included), a check fails, no balance could be checked, or the response
+counts more applications of a kind than new rows of that kind were found
+(every applied payment or memo writes at least one row of its kind, whether
+the count is per source or per row); 2 when the account
+cannot be resolved (none or several by that name, or an Id not found), the org
+cannot be read, or the call, its response (not the measured shape) or a later
+read fails. Header Level is not refused, unlike `cli unapply`: the call writes, and verify
+then skips the header rows, so the command exits 1 (nothing checked) after
+applying. A failed call may or may not have applied anything: read the
+account's payments and credit memos before calling again.
 
 ## Cleanup
 

@@ -191,6 +191,7 @@ before adding any quote-creation path to either tool.
 | Check invoice, line and payment balances against their applications (read-only) | `python -m scripts.txn_data_harness.cli verify ...` |
 | Prove an org can carry a quote to an applied payment (writes records) | `python -m scripts.txn_data_harness.cli quote-to-cash ...`, or `cci task run verify_quote_to_cash` |
 | Reverse a settled run's payment and credit applications (Line Level; writes records) | `python -m scripts.txn_data_harness.cli unapply ...` |
+| Apply an account's open payments and credits by the Billing Settings rules, then verify (writes records) | `python -m scripts.txn_data_harness.cli apply-rules ...` |
 
 ## Standard Workflow
 

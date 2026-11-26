@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import threading
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -1875,6 +1876,113 @@ def unapply_credit_line(client: SfRestClient, row_id: str) -> str:
             "unapply", f"credit memo line unapply failed: {result}", record_id=row_id
         )
     return new_id
+
+
+# Rule-based application (todo 498): one call applies an account's open
+# payments and credits to its invoices by the rules in Billing Settings.
+# Measured 2026-11-26 (264, Line Level): see contracts-billing-settlement.md
+# -> Rule-based application.
+
+_ACCOUNT_ID_RE = re.compile(r"001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?")
+
+# (kind, object, account filter, source field, invoice field) for each
+# application object; a dotted field is read through its relationship.
+_ACCOUNT_APPLICATIONS = (
+    ("payment", "PaymentLineInvoiceLine", "Payment.AccountId", "PaymentId",
+     "InvoiceLine.InvoiceId"),
+    ("credit", "CreditMemoLineInvoiceLine", "CreditMemoLine.CreditMemo.BillingAccountId",
+     "CreditMemoLine.CreditMemoId", "InvoiceLine.InvoiceId"),
+    ("payment", "PaymentLineInvoice", "Payment.AccountId", "PaymentId", "InvoiceId"),
+    ("credit", "CreditMemoInvApplication", "CreditMemo.BillingAccountId", "CreditMemoId",
+     "InvoiceId"),
+)
+
+
+def _dotted(row: dict, path: str) -> Any:
+    for part in path.split("."):
+        row = row.get(part) if isinstance(row, dict) else None
+    return row
+
+
+def resolve_account_id(client: SfRestClient, account: str) -> str:
+    """The Id of the Account named ``account``, or of the Account Id ``account``."""
+    by_id = bool(_ACCOUNT_ID_RE.fullmatch(account))
+    if by_id:
+        rows = client.query(f"SELECT Id FROM Account WHERE Id = '{account}'")
+    else:
+        escaped = account.replace("\\", "\\\\").replace("'", "\\'")
+        rows = client.query(f"SELECT Id FROM Account WHERE Name = '{escaped}'")
+    if by_id and not rows:
+        raise SettlementError("apply-rules", f"Account {account} was not found or is "
+                              "not readable in this org")
+    if len(rows) != 1:
+        found = "no account" if not rows else f"{len(rows)} accounts"
+        raise SettlementError("apply-rules", f"{found} found for {account!r}; "
+                              "pass the Account Id")
+    return rows[0]["Id"]
+
+
+def read_account_applications(client: SfRestClient, account_id: str) -> list[dict]:
+    """Every application row of the account's payments and credit memos, line and header.
+
+    Read whatever the payment's or memo's balance, so a row written on any of
+    them shows. Each row comes back as ``{"id", "object", "kind", "source_id",
+    "invoice_id", "amount", "type"}``.
+    """
+    out: list[dict] = []
+    for kind, obj, account_field, source, invoice in _ACCOUNT_APPLICATIONS:
+        rows = client.query(f"SELECT Id, Amount, Type, {source}, {invoice} FROM {obj} "
+                            f"WHERE {account_field} = '{account_id}'")
+        for row in rows:
+            out.append({"id": row["Id"], "object": obj, "kind": kind,
+                        "source_id": _dotted(row, source),
+                        "invoice_id": _dotted(row, invoice),
+                        "amount": row.get("Amount"), "type": row.get("Type")})
+    return out
+
+
+def apply_rules(client: SfRestClient, account_id: str,
+                target_date: Optional[str] = None) -> dict:
+    """Call the rule-based application once (no transport retry); return its response.
+
+    Refuses (``SettlementError``) a response that is not the measured shape:
+    ``isSuccess`` a boolean, ``appliedRules`` absent, null or a list of
+    strings, ``rulesApplicationSummary`` absent, null or an object whose
+    application counts are absent, null or integers (on success: an object with
+    both counts as integers, as every measured success had), ``errors`` absent,
+    null or a list.
+    """
+    body = {"accountId": account_id}
+    if target_date:
+        body["targetDate"] = target_date
+    result = client.post(
+        f"/services/data/v{client.api_version}/revenue/billing/transactions/actions/apply",
+        body, retry=False,
+    )
+    if not isinstance(result, dict) or "_raw" in result:
+        raise SettlementError("apply-rules",
+                              f"rules application answered {describe_response(result)}")
+    rules = result.get("appliedRules")
+    summary = result.get("rulesApplicationSummary")
+    if (not isinstance(result.get("isSuccess"), bool)
+            or not (rules is None or (isinstance(rules, list)
+                                      and all(isinstance(r, str) for r in rules)))
+            or not (summary is None or isinstance(summary, dict))
+            or (isinstance(summary, dict) and any(
+                (c := summary.get(k)) is not None and (not isinstance(c, int) or isinstance(c, bool))
+                for k in ("totalPaymentApplications", "totalCreditMemoApplications")))
+            or (result.get("isSuccess") is True and not (
+                isinstance(summary, dict) and all(
+                    isinstance(summary.get(k), int)
+                    for k in ("totalPaymentApplications", "totalCreditMemoApplications"))))
+            or not (result.get("errors") is None or isinstance(result.get("errors"), list))):
+        raise SettlementError(
+            "apply-rules", "rules application answered an unexpected shape "
+            f"(isSuccess {result.get('isSuccess')!r}, appliedRules {type(rules).__name__}, "
+            f"rulesApplicationSummary {type(summary).__name__}; "
+            f"errors {result.get('errors')})")
+    return result
+
 
 def build_payment_record(
     account_id: str,
