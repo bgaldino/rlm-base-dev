@@ -814,6 +814,9 @@ CHECKS = [
                   # against scripts/ux/_flags.to_bool.
                   "scripts/ux/_flags.py", "tasks/rlm_currency.py", "tasks/rlm_test_agents.py",
                   "tasks/rlm_validate_setup.py",
+                  # ensure_pricing_schedules' blank expression_sets_metadata_path resolves to this
+                  # directory, which the suite checks exists.
+                  "force-app/main/default/expressionSetDefinition/",
                   "tasks/rlm_extend_stdctx.py", "tasks/rlm_manage_decision_tables.py",
                   "tasks/rlm_manage_transaction_processing_types.py",
                   "tasks/rlm_manage_fulfillment_scope_cnfg.py",
