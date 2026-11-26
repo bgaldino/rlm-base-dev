@@ -313,8 +313,8 @@ public with sharing class RLM_CollectionsDashboardController {
             failIfForced(WORKLIST_DISPUTED);
             buildDisputedFromCases(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode);
         } catch (Exception e) { sectionSkipped('getWorklist', e); markWorklistUnavailable(wl, WORKLIST_DISPUTED, e); }
-        // Each tab shows exactly what its own read returns: rows, or nothing ("No items in this view"), or
-        // unavailable with its reason. No fallback widens an empty tab and no placeholder row fills one.
+        // Each tab shows exactly what its own reads return: rows, or none ("No items in this view"), or
+        // unavailable with its reason.
         return wl;
     }
 
@@ -333,6 +333,8 @@ public with sharing class RLM_CollectionsDashboardController {
         if (key == WORKLIST_CRITICAL) wl.criticalFollowUpInvoices.clear();
         if (key == WORKLIST_HIGH_VALUE) wl.highValueDelinquents.clear();
         if (key == WORKLIST_DISPUTED) wl.disputedInvoices.clear();
+        Integer moreAt = wl.hasMore.indexOf(key);
+        if (moreAt >= 0) wl.hasMore.remove(moreAt);
     }
 
     // Test seam: a test names the steps that throw, to prove a failure there marks its tab rather than
@@ -365,9 +367,12 @@ public with sharing class RLM_CollectionsDashboardController {
                 cpIds.add((Id) cp.get('Id'));
             }
             if (cpIds.isEmpty()) return taskList;
-            for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
+            // One more than the list shows, so a list with more tasks says so instead of reading as all of them.
+            Integer taskReadLimit = TASK_ROWS + 1;
+            for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT :taskReadLimit]) {
                 results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
             }
+            taskList.hasMore = keepFirst(results, TASK_ROWS);
         } catch (Exception e) {
             // Not "no tasks": the page says the plans or their tasks could not be read.
             sectionSkipped('getCollectionPlanTasks', e);
@@ -384,10 +389,29 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<CpTaskItem> items { get; set; }
         @AuraEnabled public Boolean unavailable { get; set; }
         @AuraEnabled public String unavailableReason { get; set; }
+        // True when there are more tasks than the TASK_ROWS listed (latest due first).
+        @AuraEnabled public Boolean hasMore { get; set; }
         public CpTaskList() {
             items = new List<CpTaskItem>();
             unavailable = false;
+            hasMore = false;
         }
+    }
+
+    // How many rows each short list shows. Each is read one row longer, so a list with more says so
+    // (hasMore) instead of reading as complete.
+    @TestVisible private static Integer TASK_ROWS = 200;
+    @TestVisible private static Integer MY_PLAN_ROWS = 50;
+    @TestVisible private static Integer CRITICAL_ROWS = 200;
+
+    // Keeps the first `count` rows of a list read one row longer; true when there was more.
+    @TestVisible
+    private static Boolean keepFirst(List<Object> rows, Integer count) {
+        if (rows.size() <= count) return false;
+        while (rows.size() > count) {
+            rows.remove(rows.size() - 1);
+        }
+        return true;
     }
 
     public class CpTaskItem {
@@ -440,7 +464,9 @@ public with sharing class RLM_CollectionsDashboardController {
             if (hasBillToContact) invSelect += ', BillToContactId';
 
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
-            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
+            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField
+                + ' LIMIT ' + (CRITICAL_ROWS + 1), AccessLevel.USER_MODE);
+            if (keepFirst(invs, CRITICAL_ROWS)) wl.hasMore.add(WORKLIST_CRITICAL);
             addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildCriticalFollowUpInvoices', e);
@@ -581,6 +607,7 @@ public with sharing class RLM_CollectionsDashboardController {
             listed.add(ranked[i]);
             listedIds.add(ranked[i].accountId);
         }
+        if (ranked.size() > HIGH_VALUE_ROWS) wl.hasMore.add(WORKLIST_HIGH_VALUE);
         Map<Id, String> accountNames = getAccountNames(listedIds);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
         Boolean planLookupFailed = false;
@@ -606,7 +633,7 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     // The High-Value tab lists this many accounts, largest balance first.
-    private static final Integer HIGH_VALUE_ROWS = 10;
+    @TestVisible private static Integer HIGH_VALUE_ROWS = 10;
 
     private static String getInvoiceNotFullySettledStatusFilter() {
         try {
@@ -778,8 +805,8 @@ public with sharing class RLM_CollectionsDashboardController {
     //    is read from the database, so a permission refusal cannot land here.
     //  - sectionSkipped: everything that reads records, including the reads of objects whose
     //    existence was checked first (CollectionPlan, CollectionPlanItem, PaymentSchedule,
-    //    CurrencyType). A refused or failed read leaves that section empty while the others still
-    //    load, and is logged at WARN; it is a permission or data problem, not an absent schema.
+    //    CurrencyType). A refused, failed or too-many read marks that section unavailable while the
+    //    others still load, and is logged at WARN; it is a permission or data problem, not an absent schema.
     //    Where the section is a figure (the cards and total balance, payment promises, progress), it is
     //    returned as unavailable (null, or the wrapper's unavailable flag or list), never as a zero the
     //    page would show as a real amount (todo 435). The lists follow the same rule: the task, plan and
@@ -802,8 +829,9 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String REASON_TOO_MANY = 'tooMany';
 
     // Bounded reads (todo 435). Every record read and every summing aggregate in this class goes through
-    // boundedRows or boundedAggregate, except the reads that carry their own small LIMIT (the 200 critical
-    // follow-up invoices, the 200 tasks, the 50 plans of getMyCollectionPlans, the 500 account options), the
+    // boundedRows or boundedAggregate, except the reads that carry their own small LIMIT (the critical
+    // follow-up invoices, the tasks and getMyCollectionPlans' plans, each read one row past what it lists so
+    // the page can say there are more (CRITICAL_ROWS, TASK_ROWS, MY_PLAN_ROWS); the 500 account options), the
     // active currencies, the payment count (COUNT(Id): one query row) and the account names, which
     // getAccountNames checks against the same allowance. A read that finds more rows
     // than it may take makes its section unavailable as REASON_TOO_MANY, instead of a figure or list built
@@ -816,7 +844,7 @@ public with sharing class RLM_CollectionsDashboardController {
     //    So whatever the data, the bounded reads of one call stop at 50,000 - ROW_HEADROOM + 1 query rows
     //    (a read takes at most its allowance plus one row, after which every later bounded read has none and
     //    is too many without querying), and the only fixed reads after them, the payment count (one row) and
-    //    the 200 plan tasks, keep the call under 49,250.
+    //    the plan tasks (TASK_ROWS + 1 = 201 rows), keep the call under 49,250.
     // Query-row costs measured on the same org: a row read costs one per row returned; SUM costs one per row
     // it adds up, with or without GROUP BY; COUNT() and COUNT(Id) cost one; GROUP BY COUNT(Id) one per group.
     // So boundedAggregate counts the rows first (one query row) and adds them up only within the bound.
@@ -976,7 +1004,10 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<String> unavailable { get; set; }
         // Each unavailable tab's reason: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY.
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
-        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); }
+        // Tabs with more rows than they list (WORKLIST_*): Critical's CRITICAL_ROWS most overdue invoices,
+        // High-Value's HIGH_VALUE_ROWS largest balances. The page says the list is the first of more.
+        @AuraEnabled public List<String> hasMore { get; set; }
+        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); hasMore = new List<String>(); }
     }
 
     // Invoice.BillingAccountId always exists where this module deploys: other classes in it
@@ -1158,8 +1189,10 @@ public with sharing class RLM_CollectionsDashboardController {
                 acctField = 'AccountId';
             }
             String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField;
-            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC LIMIT 50';
+            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC'
+                + ' LIMIT ' + (MY_PLAN_ROWS + 1);
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
+            planList.hasMore = keepFirst(plans, MY_PLAN_ROWS);
             // Names come from getAccountNames, not an Account.Name relationship in the plan query: a
             // refused Account read then leaves the plans listed with a dash for the name instead of dropping them.
             Set<Id> planAccountIds = new Set<Id>();
@@ -1192,9 +1225,12 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<MyCollectionPlanItem> items { get; set; }
         @AuraEnabled public Boolean unavailable { get; set; }
         @AuraEnabled public String unavailableReason { get; set; }
+        // True when the user owns more plans than the MY_PLAN_ROWS listed (soonest due first).
+        @AuraEnabled public Boolean hasMore { get; set; }
         public MyCollectionPlanList() {
             items = new List<MyCollectionPlanItem>();
             unavailable = false;
+            hasMore = false;
         }
     }
 

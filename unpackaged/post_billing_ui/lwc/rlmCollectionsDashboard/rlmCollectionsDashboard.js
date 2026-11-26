@@ -11,9 +11,11 @@ import getMyCollectionPlans from '@salesforce/apex/RLM_CollectionsDashboardContr
 import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardController.getCollectionsProgress';
 
 // Figures and lists the page could not read (todo 435). The controller marks each one unavailable with a
-// reason: 'refused' (the user may not read it: "You don't have access to ...", ask an administrator) or
-// 'failed' (anything else: "... could not be loaded", try again). A failed call (a wire or imperative
-// error) is always 'failed'. Nothing unavailable is shown as a zero or an empty "none".
+// reason: 'refused' (the user may not read it: "You don't have access to ...", ask an administrator),
+// 'tooMany' (more records than a bounded read may take: "Too many records to total/list here.", with the
+// filters still free to narrow it) or 'failed' (anything else: "... could not be loaded", try again). A
+// failed call (a wire or imperative error) is always 'failed'. Nothing unavailable is shown as a zero or an
+// empty "none", and a short list with more rows than it shows says so.
 const NOT_AVAILABLE = '\u2014';
 const REFUSED = 'refused';
 const FAILED = 'failed';
@@ -39,55 +41,86 @@ const EXCLUDED_NAMES = {
 const WORKLIST_TABS = ['critical', 'highValue', 'disputed'];
 
 // What each section is when it has too many records, and which of the page's filters its reads follow:
-// a figure is totalled and a list is listed; `narrowBy` names the filters that narrow it (none for a
-// section the filters do not reach). Every unavailableText call names its section's scope.
-const ACCOUNT_OR_CURRENCY = 'an account or currency';
-const ACCOUNT_ONLY = 'an account';
+// a figure is totalled and a list is listed; `filters` names the filters that narrow it (none for a
+// section the filters do not reach). Every unavailableText call names its section's scope, and the text
+// suggests only the filters not already in use (`active`, from the page's current selection).
+const ACCOUNT = 'account';
+const CURRENCY = 'currency';
 const SCOPES = {
     // The card figures and the total: every component follows both filters.
-    cards: { verb: 'total', narrowBy: ACCOUNT_OR_CURRENCY },
+    cards: { verb: 'total', filters: [ACCOUNT, CURRENCY] },
     // Payment promise sums: the schedule items' account and currency.
-    promises: { verb: 'total', narrowBy: ACCOUNT_OR_CURRENCY },
+    promises: { verb: 'total', filters: [ACCOUNT, CURRENCY] },
     // Progress covers every plan the user can read.
-    progress: { verb: 'total', narrowBy: null },
+    progress: { verb: 'total', filters: [] },
     // Plan tasks follow the account only (the plans carry no currency filter).
-    tasks: { verb: 'list', narrowBy: ACCOUNT_ONLY },
+    tasks: { verb: 'list', filters: [ACCOUNT] },
     // The user's own plans: no filter.
-    plans: { verb: 'list', narrowBy: null },
+    plans: { verb: 'list', filters: [] },
     // The worklist tabs: Critical and High-Value read invoices by account and currency; Disputed starts from
     // open cases and its account cap, which only the account narrows.
-    critical: { verb: 'list', narrowBy: ACCOUNT_OR_CURRENCY },
-    highValue: { verb: 'list', narrowBy: ACCOUNT_OR_CURRENCY },
-    disputed: { verb: 'list', narrowBy: ACCOUNT_ONLY }
+    critical: { verb: 'list', filters: [ACCOUNT, CURRENCY] },
+    highValue: { verb: 'list', filters: [ACCOUNT, CURRENCY] },
+    disputed: { verb: 'list', filters: [ACCOUNT] }
 };
 
-function tooManyText(scope) {
-    const sentence = `Too many records to ${scope.verb} here.`;
-    return scope.narrowBy ? `${sentence} Choose ${scope.narrowBy} to narrow it.` : sentence;
+// "Choose an account or currency to narrow it." for the scope's filters not yet in use; '' when none is left.
+function narrowingText(scope, active) {
+    const left = scope.filters.filter((filter) => !active[filter]);
+    if (left.length === 0) return '';
+    if (left.length === 2) return 'Choose an account or currency to narrow it.';
+    return left[0] === ACCOUNT ? 'Choose an account to narrow it.' : 'Choose a currency to narrow it.';
 }
 
-function unavailableText(subject, reason, scope) {
+// Too many records: what to do about it, or, when every filter that narrows the section is already in use,
+// that it is too many even so.
+function tooManyText(scope, active) {
+    const narrowing = narrowingText(scope, active);
+    if (narrowing) return `Too many records to ${scope.verb} here. ${narrowing}`;
+    if (scope.filters.length > 0) return `Too many records to ${scope.verb} here even for this ${scope.filters.join(' and ')}.`;
+    return `Too many records to ${scope.verb} here.`;
+}
+
+function unavailableText(subject, reason, scope, active) {
     if (reason === REFUSED) return `You don't have access to ${subject}.`;
-    if (reason === TOO_MANY) return tooManyText(scope);
+    if (reason === TOO_MANY) return tooManyText(scope, active);
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
 
+// A short list with more rows than it shows: "Showing the first 200 of more than 200 (latest due first).",
+// then the filters still free to narrow it.
+function moreText(count, order, scope, active) {
+    const narrowing = narrowingText(scope, active);
+    const sentence = `Showing the first ${count} of more than ${count} (${order} first).`;
+    return narrowing ? `${sentence} ${narrowing}` : sentence;
+}
+const LIST_ORDER = {
+    critical: 'most overdue',
+    highValue: 'largest balance',
+    tasks: 'latest due',
+    plans: 'soonest due'
+};
+
 // The total balance note's wording per reason, as the cards and tooltips word it: `alone` when every
 // excluded component has that reason, `short` beside each name when the reasons are mixed, and `action`,
-// said once after a mixed list, for the reasons the user can act on.
-const NOTE_CLAUSES = {
-    [REFUSED]: { alone: "you don't have access to them.", short: "you don't have access" },
-    [TOO_MANY]: {
-        alone: `too many records to total here. Choose ${SCOPES.cards.narrowBy} to narrow it.`,
-        short: 'too many records to total',
-        action: `Choose ${SCOPES.cards.narrowBy} to narrow it.`
-    },
-    [FAILED]: {
-        alone: 'they could not be loaded. Refresh the page to try again.',
-        short: 'could not be loaded',
-        action: 'Refresh the page to try again.'
-    }
-};
+// said once after a mixed list, for the reasons the user can act on. Too many follows the filters in use.
+function noteClauses(active) {
+    const tooMany = tooManyText(SCOPES.cards, active);
+    const narrowing = narrowingText(SCOPES.cards, active);
+    return {
+        [REFUSED]: { alone: "you don't have access to them.", short: "you don't have access" },
+        [TOO_MANY]: {
+            alone: `${tooMany.charAt(0).toLowerCase()}${tooMany.slice(1)}`,
+            short: narrowing ? 'too many records to total' : `too many records to total even for this ${SCOPES.cards.filters.join(' and ')}`,
+            action: narrowing || undefined
+        },
+        [FAILED]: {
+            alone: 'they could not be loaded. Refresh the page to try again.',
+            short: 'could not be loaded',
+            action: 'Refresh the page to try again.'
+        }
+    };
+}
 const NOTE_ORDER = [REFUSED, TOO_MANY, FAILED];
 
 function listNames(names) {
@@ -205,6 +238,11 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     get effectiveCurrencyCode() {
         return this.selectedCurrency && this.selectedCurrency !== '' ? this.selectedCurrency : null;
+    }
+
+    // The filters in use, so a too-many or more-rows note suggests only the ones left.
+    get activeFilters() {
+        return { [ACCOUNT]: Boolean(this.effectiveAccountId), [CURRENCY]: Boolean(this.effectiveCurrencyCode) };
     }
 
     @wire(getDashboardCards, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
@@ -565,7 +603,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get invoicesUnavailableText() {
-        return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason, SCOPES.cards);
+        return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason, SCOPES.cards, this.activeFilters);
     }
 
     // Names the total's components that could not be read, and why, in the cards' words: "Excludes debit
@@ -575,32 +613,33 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     get totalBalanceNote() {
         const total = this.sections.total;
         if (total.status === 'loading' || this.sections.cards !== READY) return '';
-        if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason, SCOPES.cards);
+        if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason, SCOPES.cards, this.activeFilters);
         const excluded = this.unavailableKeys.filter((key) => EXCLUDED_NAMES[key]);
         if (excluded.length === 0) return '';
         const groups = NOTE_ORDER.map((reason) => ({
             reason,
             names: excluded.filter((key) => this.cardReason(key) === reason).map((key) => EXCLUDED_NAMES[key])
         })).filter((group) => group.names.length > 0);
+        const clauses = noteClauses(this.activeFilters);
         if (groups.length === 1) {
-            return `Excludes ${listNames(groups[0].names)}: ${NOTE_CLAUSES[groups[0].reason].alone}`;
+            return `Excludes ${listNames(groups[0].names)}: ${clauses[groups[0].reason].alone}`;
         }
-        const parts = groups.map((group) => `${listNames(group.names)} (${NOTE_CLAUSES[group.reason].short})`);
-        const actions = groups.map((group) => NOTE_CLAUSES[group.reason].action).filter(Boolean);
+        const parts = groups.map((group) => `${listNames(group.names)} (${clauses[group.reason].short})`);
+        const actions = groups.map((group) => clauses[group.reason].action).filter(Boolean);
         return [`Excludes ${listNames(parts)}.`, ...actions].join(' ');
     }
 
     get invoiceCountLabel() {
         const state = this.sections.invoices;
         if (state.status === 'loading') return LOADING_TEXT;
-        if (state.status === 'unavailable') return unavailableText(SUBJECTS.invoices, state.reason, SCOPES.cards);
+        if (state.status === 'unavailable') return unavailableText(SUBJECTS.invoices, state.reason, SCOPES.cards, this.activeFilters);
         return `${this.invoiceCount} invoices`;
     }
 
     get unappliedPaymentMeta() {
         const { payments, paymentCount } = this.sections;
         if (payments.status === 'loading') return LOADING_TEXT;
-        if (payments.status === 'unavailable') return unavailableText(SUBJECTS.unappliedPayments, payments.reason, SCOPES.cards);
+        if (payments.status === 'unavailable') return unavailableText(SUBJECTS.unappliedPayments, payments.reason, SCOPES.cards, this.activeFilters);
         return `${figureText(paymentCount, () => String(this.unappliedPaymentCount))} records · Action required`;
     }
 
@@ -614,7 +653,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             ...b,
             amount: b.amount != null ? b.amount : 0,
             formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0),
-            title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), SCOPES.cards) : '',
+            title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), SCOPES.cards, this.activeFilters) : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
     }
@@ -746,7 +785,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get paymentPromisesUnavailableText() {
-        return unavailableText(SUBJECTS.paymentSchedules, this.sections.promises.reason, SCOPES.promises);
+        return unavailableText(SUBJECTS.paymentSchedules, this.sections.promises.reason, SCOPES.promises, this.activeFilters);
     }
 
     // "No payment promises." only once the server answered with none.
@@ -831,6 +870,18 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         };
     }
 
+    // Critical and High-Value show a fixed number of rows; when there are more, the tab says so.
+    get worklistTabHasMore() {
+        return this.sections.worklistTab === READY && (this.worklistData?.hasMore || []).includes(this.selectedWorklistTab);
+    }
+
+    // Counts the rows the tab read, not those left after the aging selection, which narrows them on the page.
+    get worklistMoreText() {
+        const tab = this.selectedWorklistTab;
+        const rows = tab === 'critical' ? this.worklistData.criticalFollowUpInvoices : this.worklistData.highValueDelinquents;
+        return moreText((rows || []).length, LIST_ORDER[tab], SCOPES[tab], this.activeFilters);
+    }
+
     get worklistTabUnavailable() {
         return this.sections.worklistTab.status === 'unavailable';
     }
@@ -840,7 +891,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get worklistUnavailableText() {
-        return unavailableText(SUBJECTS.worklist, this.sections.worklistTab.reason, SCOPES[this.selectedWorklistTab]);
+        return unavailableText(SUBJECTS.worklist, this.sections.worklistTab.reason, SCOPES[this.selectedWorklistTab], this.activeFilters);
     }
 
     get loadingText() {
@@ -912,7 +963,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get cpTasksUnavailableText() {
-        return unavailableText(SUBJECTS.planTasks, this.sections.tasks.reason, SCOPES.tasks);
+        return unavailableText(SUBJECTS.planTasks, this.sections.tasks.reason, SCOPES.tasks, this.activeFilters);
     }
 
     get showNoCpTasks() {
@@ -920,7 +971,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get cpTasksCount() {
-        return figureText(this.sections.tasks, () => String(this.cpTasks.length));
+        return figureText(this.sections.tasks, () => `${this.cpTasks.length}${this.cpTasksHaveMore ? '+' : ''}`);
+    }
+
+    get cpTasksHaveMore() {
+        return this.sections.tasks === READY && this.cpTasksState.hasMore === true;
+    }
+
+    get cpTasksMoreText() {
+        return moreText(this.cpTasks.length, LIST_ORDER.tasks, SCOPES.tasks, this.activeFilters);
     }
 
     get hasCpTasks() {
@@ -952,7 +1011,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get myCollectionPlansUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.sections.plans.reason, SCOPES.plans);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.plans.reason, SCOPES.plans, this.activeFilters);
     }
 
     get showNoMyCollectionPlans() {
@@ -960,7 +1019,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get myCollectionPlansCount() {
-        return figureText(this.sections.plans, () => String(this.myCollectionPlans.length));
+        return figureText(this.sections.plans, () => `${this.myCollectionPlans.length}${this.myCollectionPlansHaveMore ? '+' : ''}`);
+    }
+
+    get myCollectionPlansHaveMore() {
+        return this.sections.plans === READY && this.myCollectionPlansState.hasMore === true;
+    }
+
+    get myCollectionPlansMoreText() {
+        return moreText(this.myCollectionPlans.length, LIST_ORDER.plans, SCOPES.plans, this.activeFilters);
     }
 
     get progressUnavailable() {
@@ -968,7 +1035,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason, SCOPES.progress);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason, SCOPES.progress, this.activeFilters);
     }
 
     get showNoProgress() {

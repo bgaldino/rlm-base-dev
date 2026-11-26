@@ -773,3 +773,11 @@
     font-size: 0.6875rem;
     margin: 0;
 }
+/* A short list with more rows than it shows: says so under the rows (todo 435). */
+.list-more {
+    padding: 0.5rem 0.75rem;
+    text-align: center;
+    color: var(--mc-muted);
+    font-size: 0.75rem;
+    margin: 0;
+}

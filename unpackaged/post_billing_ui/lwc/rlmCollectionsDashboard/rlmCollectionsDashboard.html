@@ -240,6 +240,9 @@
                             <template if:true={worklistTabUnavailable}>
                                 <p class="worklist-empty">{worklistUnavailableText}</p>
                             </template>
+                            <template if:true={worklistTabHasMore}>
+                                <p class="worklist-more list-more">{worklistMoreText}</p>
+                            </template>
                             <template if:true={noWorklistItems}>
                                 <p class="worklist-empty">No items in this view. Change filters or aging selection.</p>
                             </template>
@@ -327,6 +330,9 @@
                                 <template if:true={cpTasksUnavailable}>
                                     <p class="cp-tasks-empty">{cpTasksUnavailableText}</p>
                                 </template>
+                                <template if:true={cpTasksHaveMore}>
+                                    <p class="cp-tasks-more list-more">{cpTasksMoreText}</p>
+                                </template>
                                 <template if:true={showNoCpTasks}>
                                     <p class="cp-tasks-empty">No tasks linked to Collection Plans.</p>
                                 </template>
@@ -372,6 +378,9 @@
                                 </table>
                                 <template if:true={myCollectionPlansUnavailable}>
                                     <p class="my-cp-empty">{myCollectionPlansUnavailableText}</p>
+                                </template>
+                                <template if:true={myCollectionPlansHaveMore}>
+                                    <p class="my-cp-more list-more">{myCollectionPlansMoreText}</p>
                                 </template>
                                 <template if:true={showNoMyCollectionPlans}>
                                     <p class="my-cp-empty">No collection plans assigned to you.</p>

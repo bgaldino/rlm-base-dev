@@ -196,8 +196,12 @@ zero runs no query and is too many at once. The guarantee is per call, not per r
 data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
 so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
 no allowance and is reported as too many without querying; the only fixed reads after them are the
-payment count (one row) and the plan tasks (at most 200 rows). The reads with their own small
-`LIMIT` (the 200 critical follow-up invoices, the 200 plan tasks, the user's 50 plans, the 500
+payment count (one row) and the plan tasks (at most 201 rows). The short lists show a fixed number
+of rows: the 200 most overdue critical follow-up invoices, the 10 largest High-Value balances, the
+200 latest-due plan tasks and the user's 50 soonest-due plans. Each knows when there are more (its
+read goes one row past what it shows; High-Value ranks every qualifying account), and then says
+"Showing the first N of more than N" with its order, with "N+" as the count where the list shows
+one, instead of reading as complete. The reads with their own small `LIMIT` (those short lists, the 500
 account options), the active currencies and the payment count (`COUNT(Id)`) are not bounded
 further; the account names a tab looks up are checked against the same allowance, and the
 High-Value tab looks up names and plans for its ten listed accounts only.
@@ -248,9 +252,9 @@ its reason. Figures, counts, rows and "none" messages render from `ready` only, 
 $0.00 or "No items" before the data arrives, and an account or currency change puts the sections
 that read it back to loading. The worklist is read through its wire alone (no second, imperative
 call that could land out of order). There is no page-wide error state: a failed card read leaves
-the other sections showing what they read. Each worklist tab shows exactly what its own read
-returns, with no fallback and no placeholder rows: its rows, or "No items in this view" when it was
-read and is empty, or unavailable with its reason. Date-only values (task due dates, promise-to-pay
+the other sections showing what they read. Each worklist tab shows exactly what its own reads
+return: its rows, or "No items in this view" when it was read and has none, or unavailable with its
+reason. Date-only values (task due dates, promise-to-pay
 dates) are calendar dates and display as such in every time zone. The
 payment reads filter on `CurrencyIsoCode` only where Payment has it (a multi-currency org), and a
 "No such column" error counts as a refusal only for a field the org has; an absent field is a failure.

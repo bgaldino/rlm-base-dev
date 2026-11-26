@@ -129,6 +129,21 @@ async function mount() {
   return element;
 }
 
+// Chooses a value in the account or currency filter, as the user does.
+async function selectFilter(element, name, value) {
+  const box = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((node) => node.name === name);
+  box.dispatchEvent(new CustomEvent("change", { detail: { value } }));
+  await flushPromises();
+}
+
+async function openTab(element, tab) {
+  const button = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
+    (candidate) => candidate.dataset.tab === tab
+  );
+  button.click();
+  await flushPromises();
+}
+
 const text = (element, selector) =>
   Array.from(element.shadowRoot.querySelectorAll(selector)).map((node) => node.textContent.trim());
 
@@ -606,5 +621,141 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     await flushPromises();
 
     expect(text(element, ".my-cp-empty")).toEqual(["Too many records to list here."]);
+  });
+
+  // Too many: the text suggests only the filters not already in use, and says when none is left.
+  it.each([
+    [[], "Too many records to total here. Choose an account or currency to narrow it."],
+    [[["account", "001000000000001AAA"]], "Too many records to total here. Choose a currency to narrow it."],
+    [[["currency", "EUR"]], "Too many records to total here. Choose an account to narrow it."],
+    [
+      [["account", "001000000000001AAA"], ["currency", "EUR"]],
+      "Too many records to total here even for this account and currency."
+    ]
+  ])("names only the filters left to narrow a card with too many records (%j)", async (filters, message) => {
+    const element = await mount();
+    // One after another, as the user chooses them.
+    await filters.reduce((chain, [name, value]) => chain.then(() => selectFilter(element, name, value)), Promise.resolve());
+    getDashboardCards.emit(cards(["invoices"], { invoices: "tooMany" }));
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(message);
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(message);
+  });
+
+  it("says a total component is too many even for the filters in use when both are chosen", async () => {
+    const element = await mount();
+    await selectFilter(element, "account", "001000000000001AAA");
+    await selectFilter(element, "currency", "EUR");
+    getDashboardCards.emit(cards(["debitMemos", "unappliedPayments"], { debitMemos: "tooMany", unappliedPayments: "failed" }));
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
+      "Excludes debit memos (too many records to total even for this account and currency) and unapplied payments " +
+        "(could not be loaded). Refresh the page to try again."
+    );
+  });
+
+  it("says the Disputed tab is too many even for the chosen account, whatever the currency", async () => {
+    const element = await mount();
+    await selectFilter(element, "account", "001000000000001AAA");
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["disputed"], unavailableReason: { disputed: "tooMany" } });
+    await flushPromises();
+    await openTab(element, "disputed");
+
+    expect(text(element, ".worklist-empty")).toEqual(["Too many records to list here even for this account."]);
+  });
+
+  it("names no filter for progress, which no filter narrows, even with filters chosen", async () => {
+    const element = await mount();
+    await selectFilter(element, "account", "001000000000001AAA");
+    getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: true, unavailableReason: "tooMany" });
+    await flushPromises();
+
+    expect(text(element, ".progress-empty")).toEqual(["Too many records to total here."]);
+  });
+
+  // A short list with more rows than it shows says so, and its count reads "N+".
+  it("says the plan tasks are the first of more, with the account filter still free", async () => {
+    const element = await mount();
+    getCollectionPlanTasks.emit({
+      items: [
+        { taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25", collectionPlanId: "0Wn000000000001AAA" },
+        { taskId: "00T000000000002AAA", subject: "Email", status: "Open", activityDate: "2026-11-24", collectionPlanId: "0Wn000000000001AAA" }
+      ],
+      unavailable: false,
+      hasMore: true
+    });
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-meta")).toEqual(["2+"]);
+    expect(text(element, ".cp-tasks-more")).toEqual([
+      "Showing the first 2 of more than 2 (latest due first). Choose an account to narrow it."
+    ]);
+  });
+
+  it("does not suggest the account for plan tasks once one is chosen", async () => {
+    const element = await mount();
+    await selectFilter(element, "account", "001000000000001AAA");
+    getCollectionPlanTasks.emit({
+      items: [{ taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25", collectionPlanId: "0Wn000000000001AAA" }],
+      unavailable: false,
+      hasMore: true
+    });
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-more")).toEqual(["Showing the first 1 of more than 1 (latest due first)."]);
+  });
+
+  it("says the user's plans are the first of more, with no filter to suggest", async () => {
+    const element = await mount();
+    getMyCollectionPlans.emit({
+      items: [{ collectionPlanId: "0Wn000000000001AAA", name: "CP-1", dueDate: "2026-12-01", accountId: null, accountName: "—", totalInvoiceBalance: 10 }],
+      unavailable: false,
+      hasMore: true
+    });
+    await flushPromises();
+
+    expect(text(element, ".my-cp-meta")).toEqual(["1+"]);
+    expect(text(element, ".my-cp-more")).toEqual(["Showing the first 1 of more than 1 (soonest due first)."]);
+  });
+
+  it("shows a plain count and no note when a short list has no more", async () => {
+    const element = await mount();
+    getCollectionPlanTasks.emit({
+      items: [{ taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25", collectionPlanId: "0Wn000000000001AAA" }],
+      unavailable: false,
+      hasMore: false
+    });
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [{ invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500,
+        billingAccountId: "001000000000001AAA", billingAccountName: "Acme", collectionPlanUnavailable: false }],
+      hasMore: []
+    });
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-meta")).toEqual(["1"]);
+    expect(text(element, ".cp-tasks-more")).toEqual([]);
+    expect(text(element, ".worklist-more")).toEqual([]);
+  });
+
+  it.each([
+    ["critical", "Showing the first 1 of more than 1 (most overdue first). Choose an account or currency to narrow it."],
+    ["highValue", "Showing the first 1 of more than 1 (largest balance first). Choose an account or currency to narrow it."]
+  ])("says the %s tab is the first of more", async (tab, message) => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [{ invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500,
+        billingAccountId: "001000000000001AAA", billingAccountName: "Acme", collectionPlanUnavailable: false }],
+      highValueDelinquents: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 5000, daysOverdue: 40,
+        collectionPlanUnavailable: false }],
+      hasMore: [tab]
+    });
+    await flushPromises();
+    await openTab(element, tab);
+
+    expect(text(element, ".worklist-more")).toEqual([message]);
   });
 });
