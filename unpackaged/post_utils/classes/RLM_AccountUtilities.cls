@@ -52,7 +52,8 @@
  * general — from a `with sharing` caller it would have run WITH sharing. It is
  * equivalent for this class's actual callers, which is why pinning it changes
  * nothing today: every production entry is the Flow invocable, and the only Apex
- * caller is RLM_AccountUtilitiesTest, itself `without sharing`. Adding a caller
+ * callers are RLM_AccountUtilitiesTest and RLM_AccountUtilitiesCommitmentTest, both
+ * `without sharing`. Adding a caller
  * that runs with sharing would previously have silently changed the reset's
  * behaviour; now it cannot.
  *

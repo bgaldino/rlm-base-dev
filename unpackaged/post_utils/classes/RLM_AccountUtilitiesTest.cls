@@ -945,7 +945,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void aPhaseTwoStopAfterUsageDeletesSaysARerunGetsFurther() {
+    static void aPhaseTwoStopAfterUsageDeletesSaysARerunMayGetFurther() {
         if (!runnerIsAdmin()) return;
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
@@ -965,7 +965,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.isTrue(
             result.reason.contains('limit on record changes')
                 && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE),
-            'Phase 1 kept its deletes, so a rerun gets further, and the reason says why. Got: ' + result.reason
+            'Phase 1 kept its deletes, so the reason says a rerun may get further. Got: ' + result.reason
         );
         Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
             'Phase 1\'s delete stays');
@@ -1160,7 +1160,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             RLM_AccountUtilities.DML_LIMIT, RLM_AccountUtilities.QUERY_LIMIT, RLM_AccountUtilities.STATEMENT_LIMIT
         }) {
             Assert.areEqual(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE,
-                RLM_AccountUtilities.phaseTwoStopAdvice(cause, true), 'After phase 1 deleted something, a rerun helps');
+                RLM_AccountUtilities.phaseTwoStopAdvice(cause, true), 'After phase 1 deleted something, a rerun may get further');
         }
     }
 
@@ -2031,8 +2031,11 @@ private without sharing class RLM_AccountUtilitiesTest {
         return n;
     }
 
+    // Without assets the asset step still reads the account's policies and rate card
+    // entries (2, counted in phaseTwoQueriesWithoutAssets); its asset-specific queries run
+    // only when there are assets.
     @IsTest
-    static void phaseTwosAssetStepQueriesNothingForAnAccountWithoutAssets() {
+    static void phaseTwosAssetSpecificQueriesRunOnlyWhenTheAccountHasAssets() {
         if (!runnerIsAdmin()) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities No Asset Opp');
@@ -2043,7 +2046,8 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
         Assert.areEqual(phaseTwoQueriesWithoutAssets(), RLM_AccountUtilities.phaseTwoQueriesForTest,
-            'Phase 2\'s queries with no asset changed: the asset step\'s queries must stay guarded on its assets');
+            'Phase 2\'s queries with no asset changed: the asset step\'s asset-specific queries must stay guarded '
+                + 'on its assets');
     }
 
     @IsTest
