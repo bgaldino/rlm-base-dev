@@ -93,8 +93,9 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Prepare runtime by loading keychain and setting up access token and instance URL from options or defaults
     def _prep_runtime(self):
         self._load_keychain()
-        self.access_token = self._option_text("access_token") or self.org_config.access_token
-        self.instance_url = self._option_text("instance_url") or self.org_config.instance_url
+        # A falsy non-string (YAML false or 0) is unset, not the text "False" or "0".
+        self.access_token = option_text(self.options.get("access_token") or None, "access_token", TaskOptionsError) or self.org_config.access_token
+        self.instance_url = option_text(self.options.get("instance_url") or None, "instance_url", TaskOptionsError) or self.org_config.instance_url
 
     def _option_text(self, name):
         return option_text(self.options.get(name), name, TaskOptionsError)
