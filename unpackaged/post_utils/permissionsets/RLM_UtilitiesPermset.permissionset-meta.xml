@@ -24,8 +24,11 @@
          Account read depends on in orgs with person accounts (TSO).
       Activate Orders and Edit Activated Orders also let the holder activate
       and change activated orders in the UI. Billing, collections and
-      fulfillment objects are not granted: the reset refuses, changing nothing,
-      an account with records the user cannot read or delete.
+      fulfillment objects are not granted: a user without Modify All Data and
+      View All Data takes the reset's plan path (RLM_AccountResetPlan, called
+      from RLM_AccountUtilities, so it needs no class access of its own), which
+      refuses, changing nothing, an account with records the user cannot read
+      or delete.
     -->
     <classAccesses>
         <apexClass>RLM_AccountUtilities</apexClass>

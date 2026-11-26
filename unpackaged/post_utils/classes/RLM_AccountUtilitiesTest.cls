@@ -1,5 +1,7 @@
 /**
- * Tests for RLM_AccountUtilities.delAccountRelatedObjects.
+ * Tests for RLM_AccountUtilities.delAccountRelatedObjects: which path a user takes,
+ * and the engine a user with Modify All Data and View All Data runs (the test's admin
+ * has both). RLM_AccountResetPlanTest covers the plan path everyone else takes.
  *
  * WHAT IS WORTH TESTING HERE
  * --------------------------
@@ -28,13 +30,16 @@
  * Among the paths these tests do not reach, and why:
  *  - Deletes of the other usage rows (entries, billing period items, summaries,
  *    journals, commitment junction rows), asset rate card entries and the
- *    fulfillment records: no fixtures, so their groups in the plan are empty.
- *  - Invoices, posted credit memos and lifecycle-managed assets cannot be created in
- *    a test, so the plan's rules for them are tested through invoiceBlocker,
- *    assetBlocker and orderBlocker, and the per-record classification through
- *    blockerReason.
- *  - Running out of DML statements partway through phase 2, a plan that reaches the
- *    query row bound, and an unexpected exception in phase 1.
+ *    fulfillment records: no fixtures, so they run against empty sets.
+ *  - The entitlement-side bottom-up retry (deleteTransactionUsageEntitlement) is
+ *    reached, with another account's entitlement under the account's bucket: it
+ *    deletes only the account's own entitlements, and keeps (and reports) a bucket
+ *    that holds another account's, and the buckets above it. The same holds for the
+ *    entitlement-account retry and the asset step's bucket walk.
+ *  - The asset step's entitlement-account delete: in these fixtures phase 2's
+ *    entitlement-account retry has already removed them.
+ *  - Running out of DML statements or queries partway through phase 2, and an
+ *    unexpected exception in phase 1.
  *
  * Three objects cannot be created in a unit test at all: Invoice and
  * BillingScheduleGroup are createable=false, and a CreditMemo's required
@@ -851,7 +856,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assertEquals(
             2,
             queries,
-            'The plan reads files in a fixed number of queries, so the lookup must not take more for a larger account'
+            'Phase 2 keeps back a fixed number of queries, so the file lookup must not take more for a larger account'
         );
     }
 
@@ -899,9 +904,13 @@ private without sharing class RLM_AccountUtilitiesTest {
         // Reaching this line is part of the assertion: the platform's own limit
         // throws a LimitException, which cannot be caught and fails the flow.
         System.assertEquals(false, result.completed, 'A run that ran out of DML rows did not complete');
+        // Phase 1 deleted nothing, so phase 2's rollback leaves the account as it was, and
+        // a rerun would stop at the same point: the reason must not promise otherwise.
         System.assert(
-            result.reason.contains('limit on record changes') && result.reason.contains('Run the reset again'),
-            'The reason must name the limit and say a rerun continues. Got: ' + result.reason
+            result.reason.contains('limit on record changes')
+                && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS)
+                && !result.reason.contains('continues from where this run stopped'),
+            'The reason must name the limit and say a rerun stops at the same point. Got: ' + result.reason
         );
         System.assertEquals(
             2,
@@ -911,29 +920,62 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void tooFewQueriesToPlanChangesNothing() {
+    static void aPhaseTwoStopAfterUsageDeletesSaysARerunGetsFurther() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 1');
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 2');
+        // Room for two rows: phase 1 deletes the policy, then the two opportunities do not fit.
+        RLM_AccountUtilities.dmlRowLimitForTest = 2;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run that ran out of DML rows did not complete');
+        Assert.isTrue(
+            result.reason.contains('limit on record changes')
+                && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE),
+            'Phase 1 kept its deletes, so a rerun gets further, and the reason says why. Got: ' + result.reason
+        );
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
+            'Phase 1\'s delete stays');
+        Assert.areEqual(2, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Phase 2 rolled back');
+    }
+
+    @IsTest
+    static void noQueryBudgetForATeardownRoundStopsBeforePhaseTwo() {
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
 
         Test.startTest();
-        // The plan does all of the run's reading; with too few queries left for it, the
-        // run stops before changing anything.
-        Integer spend = Limits.getLimitQueries() - 3;
+        // A teardown round starts only while its own 9 queries plus the 50 phase 2
+        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
+        // loop, means the first round cannot start: the state a usage graph too
+        // large for one run reaches after several rounds.
+        Integer spend = Limits.getLimitQueries() - 55;
         for (Integer i = 0; i < spend; i++) {
             countOf('Account', a.Id);
         }
         RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
 
-        Assert.areEqual(false, result.completed, 'A run stopped while planning did not complete');
+        Assert.areEqual(false, result.completed, 'A run stopped for its query budget did not complete');
         Assert.isTrue(
-            result.reason.startsWith('The reset was not run, and nothing was changed')
-                && result.reason.contains('Running it again as the same user stops at the same point'),
-            'The reason must be the plan\'s stop and say what a rerun does. Got: ' + result.reason
+            result.reason.contains('limit on queries')
+                && !result.reason.contains('more usage records than one run can remove')
+                && result.reason.contains('nothing else was touched')
+                && result.reason.contains('Run the reset again'),
+            'The reason must be phase 1\'s stop message. Got: ' + result.reason
         );
-        Assert.isNull(result.removedSummary, 'Nothing was removed');
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'The opportunity must survive a run the plan stopped');
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'The opportunity must survive a run that stopped in phase 1'
+        );
     }
 
     @IsTest
@@ -975,10 +1017,11 @@ private without sharing class RLM_AccountUtilitiesTest {
     // A usage entitlement bucket hangs off an entitlement account (ParentId) or
     // another bucket. Under a bucket it must hold a transaction usage entitlement;
     // directly under an entitlement account it may hold none, and must have a zero
-    // balance (platform validation, 264). The plan finds buckets through the
-    // account's entitlements and by walking down from its entitlement accounts, so a
-    // bucket with no entitlement is planned too; phase 1 retries the planned rows
-    // until a round removes nothing, so parents go after their children.
+    // balance (platform validation, 264). The teardown loop finds buckets only
+    // through their entitlement's account, so a bucket with no entitlement is
+    // invisible to it: the entitlement account above it refuses every round, the
+    // loop ends with rows left (usageDrained stays false), and phase 2 retries
+    // the entitlement account's buckets along the hierarchy, leaves first.
 
     // An entitlement's external order line must be unique, and test methods can run
     // in parallel, so each method's entitlements carry their own token.
@@ -1049,8 +1092,8 @@ private without sharing class RLM_AccountUtilitiesTest {
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         TransactionUsageEntitlement childTue = newEntitlement(a.Id, a.Id, null, f);
         // The entitlement account holds two buckets: one with an entitlement and a
-        // child bucket (with its own) below it, and one with no entitlement, which the
-        // plan finds by walking down from the entitlement account.
+        // child bucket (with its own) below it, which the loop finds through those
+        // entitlements, and one with no entitlement, which only phase 2's retry finds.
         UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
         UsageEntitlementBucket child = newBucket(held.Id, childTue.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
@@ -1094,15 +1137,22 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void phaseOneDeletesThePlannedUsageGraphAndItSurvivesARollback() {
+    static void rollbackRestoresPhaseOneRefusals() {
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
-        // The plan walks the buckets down from the entitlement account, so a bucket with
-        // no entitlement is planned with the rest, and phase 1 deletes all of it.
+        // The loop deletes this bucket and its entitlement in phase 1. The bucket
+        // with no entitlement keeps the entitlement account refused, so phase 2's
+        // retry (usageDrained false) deletes them and the rollback restores them;
+        // bucketsAndEntitlementsUnderAnEntitlementAccountAreAllRemoved shows the
+        // retry deleting them.
         TransactionUsageEntitlement tue = newEntitlement(a.Id, a.Id, null, f);
         UsageEntitlementBucket held = newBucket(uea.Id, tue.Id, f);
         UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :loose.Id)],
+            'PRECONDITION: both buckets must exist before the reset runs');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
+            'PRECONDITION: the entitlement must exist before the reset runs');
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
 
         Test.startTest();
@@ -1114,14 +1164,27 @@ private without sharing class RLM_AccountUtilitiesTest {
             result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
             'The run must have reached phase 2 and rolled it back. Got: ' + result.reason
         );
-        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :loose.Id)],
-            'Phase 1\'s deletes of both buckets must survive the rollback');
+        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
+            'Phase 1\'s delete of the bucket must survive the rollback');
         Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :tue.Id],
             'Phase 1\'s delete of the entitlement must survive the rollback');
-        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
-            'Phase 1\'s delete of the entitlement account must survive the rollback');
-        Assert.isTrue(result.removedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)),
-            'Phase 1\'s deletes must be reported removed. Got: ' + result.removedSummary);
+        Assert.areEqual(
+            2,
+            [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id]
+                + [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'Phase 2\'s deletes of the entitlement account and its bucket must be rolled back'
+        );
+        Assert.areEqual(
+            entry(UsageEntitlementBucket.SObjectType, 1) + '; ' + entry(TransactionUsageEntitlement.SObjectType, 1),
+            result.removedSummary,
+            'Only phase 1\'s deletes may be reported removed after the rollback'
+        );
+        String kept = entry(UsageEntitlementAccount.SObjectType, 1) + ' (could not be deleted: ';
+        Assert.isTrue(
+            result.retainedSummary != null && result.retainedSummary.contains(kept),
+            'The entitlement account must be reported kept, with the reason. Got: '
+                + result.retainedSummary
+        );
     }
 
     @IsTest
@@ -1135,7 +1198,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'PRECONDITION: the bucket must exist before the reset runs');
         Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
             'PRECONDITION: the entitlement account must exist before the reset runs');
-        // With every bucket planned, phase 1 deletes the bucket, the entitlement
+        // With every bucket reachable, the loop deletes the bucket, the entitlement
         // and then the entitlement account. Failing phase 2 shows those deletes are
         // phase 1's: a rollback would restore anything phase 2 deleted.
         RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
@@ -1228,14 +1291,15 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void aBucketUnderABucketHoldingAnotherAccountsEntitlementIsKept() {
+    static void phaseTwoKeepsABucketHiddenUnderABucketThatHoldsAnotherAccountsEntitlement() {
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Other Account');
         insert other;
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
         // A bucket under a bucket must hold an entitlement. This one holds another
-        // account's. The plan finds both by walking down from the entitlement
+        // account's, so the loop (which follows the reset account's entitlements)
+        // sees neither bucket, and only phase 2's walk down from the entitlement
         // account finds the child. A reset never touches another account's data: the
         // child stays, and so does the bucket above it.
         TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
@@ -1269,7 +1333,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void anotherAccountsEntitlementUnderOurBucketKeepsTheBucketChain() {
+    static void phaseTwoRetryKeepsAnotherAccountsEntitlementUnderOurBucket() {
         Account a = newAccount();
         Account other = new Account(Name = 'RLM Utilities Other Account 438');
         insert other;
@@ -1278,8 +1342,8 @@ private without sharing class RLM_AccountUtilitiesTest {
         TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
         TransactionUsageEntitlement othersTue = newEntitlement(other.Id, other.Id, null, f);
         // Our entitlement's bucket has a child that holds another account's entitlement.
-        // The plan leaves out a bucket holding another account's entitlement and every
-        // bucket above it: the child and our bucket stay, and so does the
+        // The child keeps the bucket refused in the loop, so phase 2's entitlement-side
+        // retry walks the tree: the child and our bucket stay, and so does the
         // entitlement our bucket holds.
         UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
         UsageEntitlementBucket child = newBucket(held.Id, othersTue.Id, f);
@@ -1292,7 +1356,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
         Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :othersTue.Id],
-            'Another account\'s entitlement must not be deleted');
+            'Another account\'s entitlement must not be deleted by the retry');
         Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
             'The bucket holding another account\'s entitlement, and the one above it, must stay');
         Assert.areEqual(false, result.cleared, 'Something was kept. Reason: ' + result.reason);
@@ -1319,7 +1383,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
         // The previous owner's entitlement is bound to our asset, so the asset step deletes
         // it with the asset. Its bucket sits under a bucket of ours that holds our own
-        // entitlement: the plan counts the moved entitlement as the account's (it is bound
+        // entitlement: the loop refuses that parent, so the retries mark both foreign
         // before the asset step deletes the child.
         TransactionUsageEntitlement movedTue = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
         UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
@@ -1374,7 +1438,51 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
-    // The completed-run path: the plan counts the moved entitlement as the account's (the
+    // The asset step marks a bucket foreign (retries, against the account's own TUEs) and
+    // then sees it as the account's (the TUE is bound to the asset) and tries to delete
+    // it. When that delete is refused, the TUE stays, the asset cannot go, and the run
+    // rolls back: deleteRows drops the foreign mark when a delete is refused, and the
+    // rollback listing then reports the chain once. Phase 2's own report is discarded by
+    // the rollback, so only the listing's rows can be observed here.
+    @IsTest
+    static void aRefusedBucketDeleteInTheAssetStepLeavesOneRowPerBucketAfterTheRollback() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438b');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Moved Asset 438b', AccountId = a.Id);
+        insert asset;
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        TransactionUsageEntitlement movedTue = newEntitlement(previousOwner.Id, asset.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        UsageEntitlementBucket child = newBucket(held.Id, movedTue.Id, f);
+        // A usage summary of the previous owner's holds the child bucket, and no step of
+        // the reset deletes it (the loop and the asset step find summaries through the
+        // reset account or its assets), so the asset step's delete of the bucket is refused.
+        insert new UsageSummary(
+            UsageEntitlementBucketId = child.Id, AccountId = previousOwner.Id, UomId = f.uomId,
+            StartDateTime = Datetime.now().addDays(-5), EndDateTime = Datetime.now().addDays(-1),
+            DebitedUnits = 0, ConsumptionUnits = 0, OverageUnits = 0, Status = 'New'
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The asset cannot go while its entitlement stays');
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
+            'Both buckets must survive the rolled-back run');
+        Assert.isNotNull(result.retainedSummary, 'The kept buckets must be reported');
+        Assert.areEqual(1, result.retainedSummary.split(
+            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': ').size() - 1,
+            'The two buckets must be one row. Got: ' + result.retainedSummary);
+        Assert.isTrue(result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)
+            + ' (not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement)'),
+            'Both buckets get the same reason. Got: ' + result.retainedSummary);
+    }
+
+    // The completed-run path: the retries mark `held` and `child` foreign (against the
     // account's own TUEs), then the asset step sees both as the account's (the TUE is
     // bound to its asset) and deletes `child`. A previous owner's usage summary holds
     // `held`, so that delete is refused; the entitlement under `child` is gone, so the
@@ -1418,15 +1526,139 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
+    static void rollbackGivesOneReasonToARefusedBucketAboveAForeignChild() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Rollback Chain 438');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, null, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        newBucket(held.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)
+                + ' (not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement)'),
+            'The loop-refused bucket and its foreign child are one chain with one reason. Got: ' + result.retainedSummary
+        );
+        Assert.isFalse(result.retainedSummary.contains('could not be deleted: ') && result.retainedSummary.contains(
+            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': 1 (could'),
+            'The refused bucket must not also get the platform error. Got: ' + result.retainedSummary);
+    }
+
+    @IsTest
+    static void rollbackReportsABucketTheLoopNeverSaw() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // No entitlement: the loop never queries this bucket.
+        UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id],
+            'The bucket is still there after the rollback');
+        Assert.isTrue(
+            result.retainedSummary != null
+                && result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 1)
+                    + ' (not deleted: the run was rolled back)'),
+            'The bucket must be reported kept. Got: ' + result.retainedSummary
+        );
+    }
+
+    @IsTest
+    static void rollbackSaysTheBucketListMayBeIncompleteWhenQueriesRunOut() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        newBucket(uea.Id, null, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        // No queries to list the buckets with, as after a phase 2 that spent nearly all.
+        RLM_AccountUtilities.unseenQueriesForTest = 0;
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+        Assert.areEqual(0, RLM_AccountUtilities.unseenListQueriesSpentForTest, 'Stopped before any lookup');
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.retainedSummary != null && result.retainedSummary.contains('may be incomplete'),
+            'A bucket list cut short must say so. Got: ' + result.retainedSummary
+        );
+    }
+
+    @IsTest
+    static void rollbackSaysTheBucketListMayBeIncompleteWhenTheWalkRunsOutPartWay() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        seedDeepUndrainedTree(a, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        // The two lookups and two levels of the tree fit (4 queries); the third level does not.
+        RLM_AccountUtilities.unseenQueriesForTest = 4;
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.areEqual(4, RLM_AccountUtilities.unseenListQueriesSpentForTest,
+            'The listing must have run its lookups and part of the walk, not stopped up front');
+        Assert.isTrue(
+            result.retainedSummary != null && result.retainedSummary.contains('may be incomplete'),
+            'A walk cut short part way must say so. Got: ' + result.retainedSummary
+        );
+    }
+
+    @IsTest
+    static void rollbackSaysABucketThatHoldsAnotherAccountsEntitlementWouldBeKeptAnyway() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Rollback Other 438');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        UsageEntitlementBucket parent = newBucket(uea.Id, null, f);
+        newBucket(parent.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        UsageEntitlementBucket loose = newBucket(uea.Id, null, f);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A rolled-back reset did not complete');
+        Assert.isTrue(
+            result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 2)
+                + ' (not deleted: the run was rolled back; the bucket holds, or is above, another account\'s entitlement)'),
+            'The two buckets a completed run would keep must say so. Got: ' + result.retainedSummary
+        );
+        Assert.isTrue(
+            result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 1)
+                + ' (not deleted: the run was rolled back)'),
+            'The loose bucket a completed run would delete is reported as rolled back. Got: ' + result.retainedSummary
+        );
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :loose.Id], 'Rolled back');
+    }
+
+    @IsTest
     static void usageTooLargeStopsTheRunWhenTheRoundCapBindsFirst() {
         Account a = newAccount();
         UsageFixture f = loadUsageFixture();
         UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
-        // Two levels of buckets: a bucket cannot go while its child is there, so one
-        // round removes the child and the next the rest.
-        UsageEntitlementBucket parent = newBucket(uea.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
-        newBucket(parent.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
+        newBucket(uea.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
         newOpportunity(a.Id, 'RLM Utilities Round Cap Opp');
+        // One round removes the bucket and entitlement, which is progress, so a second
+        // would be needed to confirm nothing is left.
         RLM_AccountUtilities.maxTeardownRoundsForTest = 1;
 
         Test.startTest();
@@ -1436,7 +1668,8 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(false, result.completed, 'A run stopped by the round cap did not complete');
         Assert.isTrue(
             result.reason.contains('more usage records than one run can remove')
-                && result.reason.contains('Run the reset again'),
+                && result.reason.contains('Run the reset again')
+                && !result.reason.contains('limit on queries'),
             'The reason must be the usage-too-large stop. Got: ' + result.reason
         );
         Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
@@ -1454,6 +1687,90 @@ private without sharing class RLM_AccountUtilitiesTest {
     private static void seedAssetAndOpportunity(Account a) {
         insert new Asset(Name = 'RLM Utilities Budget Asset', AccountId = a.Id);
         newOpportunity(a.Id, 'RLM Utilities Budget Opp');
+    }
+
+    // A three-level tree under an entitlement account, none of it reachable by the
+    // teardown loop (every bucket under the first holds another account's entitlement),
+    // and a tree under one of the account's own entitlements: the undrained retries
+    // walk both, a level per query.
+    private static List<UsageEntitlementBucket> seedDeepUndrainedTree(Account a, UsageFixture f) {
+        Account other = new Account(Name = 'RLM Utilities Deep Tree Other');
+        insert other;
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        UsageEntitlementBucket b1 = newBucket(uea.Id, null, f);
+        UsageEntitlementBucket b2 = newBucket(b1.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        UsageEntitlementBucket b3 = newBucket(b2.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
+        UsageEntitlementBucket c1 = newBucket(held.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        UsageEntitlementBucket c2 = newBucket(c1.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+        return new List<UsageEntitlementBucket>{ b1, b2, b3, held, c1, c2 };
+    }
+
+    private static void spendQueriesDownTo(Integer left, Id accountId) {
+        Integer spend = Limits.getLimitQueries() - Limits.getQueries() - left;
+        for (Integer i = 0; i < spend; i++) {
+            countOf('Account', accountId);
+        }
+    }
+
+    // The 43 is counted from the code with data in every branch (see the constants in
+    // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
+    // the reserve against the 43 and the measurement against both, but it cannot catch
+    // growth in the data-dependent branches (collections, posted invoices, files,
+    // generated documents, contracts, quotes): recount those when a query is added.
+    @IsTest
+    static void phaseTwosFixedQueriesStayWithinTheReserveKeptForThem() {
+        Account a = newAccount();
+        seedAssetAndOpportunity(a);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.isTrue(
+            RLM_AccountUtilities.phaseTwoQueriesForTest <= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
+            'Phase 2 spent ' + RLM_AccountUtilities.phaseTwoQueriesForTest
+                + ' queries on empty data with every option on; the counted worst case is '
+                + RLM_AccountUtilities.PHASE_TWO_FIXED_MAX
+        );
+        Assert.isTrue(
+            RLM_AccountUtilities.QUERY_RESERVE >= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
+            'The reserve kept for phase 2 must cover its counted worst case'
+        );
+        Assert.isTrue(
+            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 13,
+            'The walk guards must cover the queries counted after them'
+        );
+    }
+
+    @IsTest
+    static void aDeepUndrainedTreeAtTheLowestBudgetEndsWithAReasonNotALimitException() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        seedAssetAndOpportunity(a);
+        List<UsageEntitlementBucket> tree = seedDeepUndrainedTree(a, f);
+
+        Test.startTest();
+        // The least a run can have and still reach phase 2: the first teardown round
+        // needs its 9 queries plus the 50 kept back (5 are spent before it with an asset: the asset, contract and policy lookups and the rate card entries).
+        spendQueriesDownTo(64, a.Id);
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: a LimitException cannot be caught.
+        Assert.isTrue(queriesLeft >= 0, 'The run must stay within the query limit');
+        Assert.areEqual(false, result.completed, 'The tree cannot be cleared: it holds another account\'s entitlements');
+        Assert.isNotNull(result.reason, 'A run that did not complete must say why');
+        Assert.isTrue(
+            result.reason.contains('limit on queries') && result.reason.contains('Run the reset again'),
+            'The reason must name the query limit and say a rerun continues. Got: ' + result.reason
+        );
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'A stopped phase 2 rolls back as a whole');
+        Assert.areEqual(6, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN :new Map<Id, UsageEntitlementBucket>(tree).keySet()],
+            'No bucket may be deleted by a run that stopped in phase 2');
     }
 
     // ------------------------------------------------------------------ orders
@@ -1489,408 +1806,67 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
-    // --------------------------------------------- preflight (todo 397)
-
-    private static User newStandardUser() {
-        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
-        User u = new User(
-            ProfileId = standard.Id, LastName = 'Reset Standard', Email = 'rlm.reset.standard@example.com',
-            Username = 'rlm.reset.standard.' + Datetime.now().getTime() + '@example.com', Alias = 'rlmstd',
-            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
-        );
-        insert u;
-        return u;
-    }
-
-    // What a refused run must leave: every record of the account, usage included.
-    private class Snapshot {
-        Integer opportunities;
-        Integer assets;
-        Integer entitlementAccounts;
-        Integer buckets;
-        Integer entitlements;
-        Snapshot(Id accountId) {
-            opportunities = [SELECT COUNT() FROM Opportunity WHERE AccountId = :accountId];
-            assets = [SELECT COUNT() FROM Asset WHERE AccountId = :accountId];
-            entitlementAccounts = [SELECT COUNT() FROM UsageEntitlementAccount WHERE AccountId = :accountId];
-            buckets = [SELECT COUNT() FROM UsageEntitlementBucket WHERE TransactionUsageEntitlement.AccountId = :accountId];
-            entitlements = [SELECT COUNT() FROM TransactionUsageEntitlement WHERE AccountId = :accountId];
-        }
-        String describe() {
-            return opportunities + '/' + assets + '/' + entitlementAccounts + '/' + buckets + '/' + entitlements;
-        }
-    }
-
-    // An account with an opportunity, an asset and a usage tree, so a refusal can be shown
-    // to leave usage records alone as well.
-    private static Account seedRefusable() {
+    @IsTest
+    static void anOrderAlreadyInDraftIsNotUpdated() {
         Account a = newAccount();
-        seedAssetAndOpportunity(a);
-        UsageFixture f = loadUsageFixture();
-        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
-        newBucket(uea.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
-        return a;
-    }
-
-    private static void assertRefusedAndUnchanged(RLM_AccountUtilities.Result result, Snapshot before, Id accountId,
-        String expectedEntry) {
-        Assert.areEqual(false, result.completed, 'A refused reset did not complete');
-        Assert.isTrue(result.reason.startsWith('The reset was not run, and nothing was changed'),
-            'The reason must say the reset was not run. Got: ' + result.reason);
-        Assert.isTrue(result.reason.contains(expectedEntry),
-            'The reason must list ' + expectedEntry + '. Got: ' + result.reason);
-        Assert.isNull(result.removedSummary, 'Nothing was removed');
-        Assert.areEqual(before.describe(), new Snapshot(accountId).describe(),
-            'A refused reset must change nothing, usage records included');
-    }
-
-    @IsTest
-    static void aRecordWhoseObjectTheUserMayNotDeleteRefusesTheReset() {
-        Account a = seedRefusable();
-        Snapshot before = new Snapshot(a.Id);
-        // (a) The running admin may delete everything; the seam takes away delete on Opportunity.
-        RLM_AccountUtilities.undeletableForTest = new Set<String>{ 'Opportunity' };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(allOn(a.Id));
-        Test.stopTest();
-
-        assertRefusedAndUnchanged(result, before, a.Id,
-            entry(Opportunity.SObjectType, 1) + ' (no permission to delete this kind of record: RLM Utilities Budget Opp)');
-    }
-
-    @IsTest
-    static void anObjectTheUserCannotReadThatHasRecordsRefusesTheReset() {
-        Account a = seedRefusable();
-        Snapshot before = new Snapshot(a.Id);
-        // (d) Counted, not named: the user cannot read them.
-        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'UsageEntitlementAccount' };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(allOn(a.Id));
-        Test.stopTest();
-
-        assertRefusedAndUnchanged(result, before, a.Id,
-            entry(UsageEntitlementAccount.SObjectType, 1) + ' (the user running the reset cannot read this kind of record)');
-    }
-
-    @IsTest
-    static void anObjectTheUserCannotReadWithoutRecordsDoesNotRefuse() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Test Opp');
-        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Invoice', 'BillingScheduleGroup', 'FulfillmentOrder' };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(allOn(a.Id));
-        Test.stopTest();
-
-        // Live 264 the salesrep persona's reset failed on every run: "sObject type
-        // 'Invoice' is not supported". Nothing of those objects here, so it resets.
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must go');
-    }
-
-    @IsTest
-    static void aRecordTheUserCannotDeleteOrSeeRefusesTheReset() {
-        Account a = seedRefusable();
-        Snapshot before = new Snapshot(a.Id);
-        User other = newStandardUser();
-        // (b) and (c): the records belong to the admin. A Standard User can see a record
-        // under public sharing but not delete it, and cannot see it under private sharing.
-        // Which one the opportunity is depends on the org, so the expected entry is read
-        // from UserRecordAccess for that user, as the preflight reads it.
-        Id opportunityId = [SELECT Id FROM Opportunity WHERE AccountId = :a.Id].Id;
-        UserRecordAccess access = [
-            SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id AND RecordId = :opportunityId
-        ];
-        String expected = access.HasReadAccess
-            ? entry(Opportunity.SObjectType, 1) + ' (no delete access to these records: RLM Utilities Budget Opp)'
-            : entry(Opportunity.SObjectType, 1) + ' (not visible to the user running the reset)';
-        RLM_AccountUtilities.Result result;
-        System.runAs(other) {
-            Test.startTest();
-            result = run(allOn(a.Id));
-            Test.stopTest();
-        }
-        assertRefusedAndUnchanged(result, before, a.Id, expected);
-        if (!access.HasReadAccess) {
-            Assert.isFalse(result.reason.contains('RLM Utilities Budget Opp'),
-                'A record the user cannot see must never be named. Got: ' + result.reason);
-        }
-    }
-
-    @IsTest
-    static void aRecordTheUserCanSeeButNotDeleteIsNamed() {
-        Account a = newAccount();
-        Opportunity theirs = newOpportunity(a.Id, 'RLM Utilities Visible Not Deletable');
-        User other = newStandardUser();
-        // Shared for reading, whatever the org's opportunity sharing: an explicit share row
-        // where sharing is private; under public sharing the record is visible already.
-        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
-            .InternalSharingModel;
-        if (model == 'Private') {
-            insert new OpportunityShare(OpportunityId = theirs.Id, UserOrGroupId = other.Id, OpportunityAccessLevel = 'Read');
-        }
-        Assert.isTrue([SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id
-            AND RecordId = :theirs.Id].HasReadAccess, 'PRECONDITION: the user can see the record');
-        RLM_AccountUtilities.Result result;
-        System.runAs(other) {
-            Test.startTest();
-            result = run(request(a.Id, false, false, false));
-            Test.stopTest();
-        }
-        Assert.areEqual(false, result.completed, 'A record the user cannot delete must refuse the reset');
-        Assert.isTrue(result.reason.contains(entry(Opportunity.SObjectType, 1) + ' (')
-            && result.reason.contains('RLM Utilities Visible Not Deletable'),
-            'A record the user can see must be named, with the reason. Got: ' + result.reason);
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE Id = :theirs.Id], 'Nothing may change');
-    }
-
-    @IsTest
-    static void aRecordIsNamedOnlyWhenTheUserCanSeeIt() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Named Or Not');
-        Id opportunityId = [SELECT Id FROM Opportunity WHERE AccountId = :a.Id].Id;
-        User other = newStandardUser();
-        UserRecordAccess access = [
-            SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id AND RecordId = :opportunityId
-        ];
-        // No delete permission on the object, for every org: the record is named only if
-        // this user can see it, whatever the org's opportunity sharing.
-        RLM_AccountUtilities.undeletableForTest = new Set<String>{ 'Opportunity' };
-        RLM_AccountUtilities.Result result;
-        System.runAs(other) {
-            Test.startTest();
-            result = run(request(a.Id, false, false, false));
-            Test.stopTest();
-        }
-        Assert.areEqual(false, result.completed, 'The reset must be refused');
-        Assert.areEqual(access.HasReadAccess, result.reason.contains('RLM Utilities Named Or Not'),
-            'Named if and only if the user can see it (HasReadAccess ' + access.HasReadAccess + '). Got: '
-                + result.reason);
-    }
-
-    @IsTest
-    static void anActivatedOrderNeedsEditActivatedOrders() {
-        Account a = newAccount();
-        Order o = new Order(
-            AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft', Pricebook2Id = Test.getStandardPricebookId()
-        );
-        insert o;
-        insert new OrderItem(OrderId = o.Id, PricebookEntryId = loadUsageFixture().pricebookEntryId, Quantity = 1,
-            UnitPrice = 1);
-        o.Status = 'Activated';
-        update o;
-        String orderNumber = [SELECT OrderNumber FROM Order WHERE Id = :o.Id].OrderNumber;
-        RLM_AccountUtilities.withoutPermissionForTest = new Set<String>{ 'PermissionsEditActivatedOrders' };
+        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
+        List<Order> orders = new List<Order>{
+            new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId()),
+            new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+                Pricebook2Id = Test.getStandardPricebookId())
+        };
+        insert orders;
+        insert new OrderItem(OrderId = orders[0].Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        orders[0].Status = 'Activated';
+        update orders[0];
 
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
 
-        Assert.areEqual(false, result.completed, 'The reset must be refused');
-        Assert.isTrue(result.reason.contains(entry(Order.SObjectType, 1) + ' (activated; setting them back to Draft '
-            + 'needs the Edit Activated Orders permission: ' + orderNumber + ')'),
-            'The order must be named with the permission it needs. Got: ' + result.reason);
-        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status, 'Nothing may change');
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, RLM_AccountUtilities.ordersSetToDraftForTest,
+            'Only the activated order is set back to Draft');
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE AccountId = :a.Id], 'Both orders must be deleted');
     }
 
     @IsTest
-    static void permissionBlockersFollowTheStatusAndThePermission() {
-        // Invoices cannot be created in a test (createable=false), nor a lifecycle-managed
-        // asset, so the rules the plan applies to them are tested directly.
-        RLM_AccountUtilities.withoutPermissionForTest = new Set<String>{
-            'PermissionsBillingInvoiceSuperUser', 'PermissionsCalmSobjectAccessUser', 'PermissionsEditActivatedOrders'
-        };
-        Assert.isTrue(RLM_AccountUtilities.invoiceBlocker('Posted').contains('Delete Invoice and Invoice Lines'),
-            'A posted invoice needs Delete Invoice and Invoice Lines');
-        Assert.isTrue(RLM_AccountUtilities.invoiceBlocker('In Progress').startsWith('still processing'),
-            'An invoice still processing blocks the reset whoever runs it');
-        Assert.isTrue(RLM_AccountUtilities.invoiceBlocker('Processing').startsWith('still processing'),
-            'An invoice still processing blocks the reset whoever runs it');
-        Assert.isNull(RLM_AccountUtilities.invoiceBlocker('Draft'), 'A Draft invoice needs no extra permission');
-        Assert.isNull(RLM_AccountUtilities.invoiceBlocker('Canceled'), 'A Canceled invoice needs no extra permission');
-        Assert.isTrue(RLM_AccountUtilities.assetBlocker(true).contains('Access Lifecycle-Managed Assets'),
-            'A lifecycle-managed asset needs Access Lifecycle-Managed Assets');
-        Assert.isNull(RLM_AccountUtilities.assetBlocker(false), 'Any other asset needs no extra permission');
-        Assert.isTrue(RLM_AccountUtilities.orderBlocker('Activated').contains('Edit Activated Orders'),
-            'An activated order needs Edit Activated Orders');
-        Assert.isNull(RLM_AccountUtilities.orderBlocker('Draft'), 'A Draft order needs no extra permission');
-
-        RLM_AccountUtilities.withoutPermissionForTest = new Set<String>();
-        RLM_AccountUtilities.startRun();
-        Assert.areEqual(RLM_AccountUtilities.canDeletePostedInvoices(), RLM_AccountUtilities.invoiceBlocker('Posted') == null,
-            'With Delete Invoice and Invoice Lines, a posted invoice is not blocked');
-        Assert.isTrue(RLM_AccountUtilities.invoiceBlocker('In Progress') != null,
-            'Still processing blocks even with the permission');
-    }
-
-    @IsTest
-    static void aHiddenRecordIsCountedNotNamed() {
-        // The classification, on any org: a record the user cannot see is counted as not
-        // visible whatever else applies, so it is never named.
-        for (Boolean objectDeletable : new List<Boolean>{ true, false }) {
-            for (String special : new List<String>{ null, 'a permission it needs' }) {
-                for (Boolean deletable : new List<Boolean>{ true, false }) {
-                    Assert.areEqual(RLM_AccountUtilities.NOT_VISIBLE,
-                        RLM_AccountUtilities.blockerReason('Opportunity', false, objectDeletable, special, deletable),
-                        'A record the user cannot see is counted, never named');
-                }
-            }
-        }
-        Assert.areEqual(RLM_AccountUtilities.NO_PERMISSION,
-            RLM_AccountUtilities.blockerReason('Opportunity', true, false, 'x', true), 'Object permission comes first');
-        Assert.areEqual(RLM_AccountUtilities.MEMO_NEEDS_PERMISSION,
-            RLM_AccountUtilities.blockerReason('CreditMemo', true, false, null, true),
-            'Credit memos name the permission they need');
-        Assert.areEqual('x', RLM_AccountUtilities.blockerReason('Order', true, true, 'x', true),
-            'A permission the run needs comes before record access');
-        Assert.areEqual(RLM_AccountUtilities.NO_ACCESS, RLM_AccountUtilities.blockerReason('Order', true, true, null, false),
-            'Then record access');
-        Assert.isNull(RLM_AccountUtilities.blockerReason('Order', true, true, null, true), 'Nothing blocks');
-
-        // And end to end, where the org's sharing hides another user's opportunity.
+    static void aKeptAssetOrContractKeepsItsBindingPolicies() {
         Account a = newAccount();
-        Opportunity hidden = newOpportunity(a.Id, 'RLM Utilities Hidden Opp');
-        User other = newStandardUser();
-        Boolean visible = [SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id
-            AND RecordId = :hidden.Id].HasReadAccess;
-        RLM_AccountUtilities.Result result;
-        System.runAs(other) {
-            Test.startTest();
-            result = run(request(a.Id, false, false, false));
-            Test.stopTest();
-        }
-        Assert.areEqual(false, result.completed, 'Another user\'s opportunity must refuse the reset');
-        Assert.areEqual(visible, result.reason.contains('RLM Utilities Hidden Opp'),
-            'Named only when visible (visible: ' + visible + '). Got: ' + result.reason);
-        Assert.areEqual(!visible, result.reason.contains(entry(Opportunity.SObjectType, 1)
-            + ' (not visible to the user running the reset)'), 'Counted when hidden. Got: ' + result.reason);
-    }
-
-    @IsTest
-    static void aNonAdminResetsAnAccountTheyOwnWithAnActivatedOrder() {
-        // A user who is not an admin, with what RLM_UtilitiesPermset grants for orders:
-        // Edit Activated Orders and the Activate Orders it depends on. Live 264 the
-        // persona's own activated order read HasDeleteAccess true, so nothing blocks.
-        User rep = newStandardUser();
-        // Activate Orders depends on Read and Edit on Order, so the object grant goes first.
-        PermissionSet orders = new PermissionSet(Name = 'RLM_Utilities_Test_Orders_' + TOKEN,
-            Label = 'RLM Utilities Test Orders');
-        insert orders;
-        insert new ObjectPermissions(ParentId = orders.Id, SobjectType = 'Order', PermissionsRead = true,
-            PermissionsCreate = true, PermissionsEdit = true, PermissionsDelete = true);
-        orders.PermissionsActivateOrder = true;
-        orders.PermissionsEditActivatedOrders = true;
-        update orders;
-        insert new PermissionSetAssignment(AssigneeId = rep.Id, PermissionSetId = orders.Id);
-        Id pricebookEntryId = loadUsageFixture().pricebookEntryId;
-        Account a;
-        Order o;
-        RLM_AccountUtilities.Result result;
-        System.runAs(rep) {
-            a = new Account(Name = 'RLM Utilities Rep Owned');
-            insert a;
-            insert new Opportunity(Name = 'RLM Utilities Rep Opp', AccountId = a.Id, StageName = 'Prospecting',
-                CloseDate = Date.today().addDays(30));
-            o = new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
-                Pricebook2Id = Test.getStandardPricebookId());
-            insert o;
-            insert new OrderItem(OrderId = o.Id, PricebookEntryId = pricebookEntryId, Quantity = 1, UnitPrice = 1);
-            o.Status = 'Activated';
-            update o;
-            Test.startTest();
-            result = run(request(a.Id, false, false, false));
-            Test.stopTest();
-        }
-        Assert.areEqual(true, result.completed, 'The user owns everything, so the reset must run. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE Id = :o.Id], 'The activated order must go');
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must go');
-    }
-
-    @IsTest
-    static void recordAccessIsReadInChunksOf200() {
-        List<Opportunity> opportunities = new List<Opportunity>();
-        Account a = newAccount();
-        for (Integer i = 0; i < 201; i++) {
-            opportunities.add(new Opportunity(Name = 'RLM Utilities Chunk ' + i, AccountId = a.Id,
-                StageName = 'Prospecting', CloseDate = Date.today().addDays(30)));
-        }
-        insert opportunities;
-        User other = newStandardUser();
-        RLM_AccountUtilities.Result result;
-        System.runAs(other) {
-            Test.startTest();
-            result = run(request(a.Id, false, false, false));
-            Test.stopTest();
-        }
-        // 201 records the user cannot delete (or see), read in two chunks: all are counted.
-        Assert.isTrue(result.reason.contains(entry(Opportunity.SObjectType, 201) + ' ('),
-            'Every record across both reads must be counted. Got: ' + result.reason);
-        Assert.isTrue(!result.reason.contains('RLM Utilities Chunk 6,') || result.reason.contains('and 196 more'),
-            'At most five names are listed. Got: ' + result.reason);
-        Assert.areEqual(201, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
-    }
-
-    @IsTest
-    static void canReadFollowsTheRunningUsersObjectAccess() {
-        User u = newMinimalAccessUser();
-        Boolean minimalReadsInvoices;
-        System.runAs(u) {
-            minimalReadsInvoices = RLM_AccountUtilities.canRead('Invoice');
-        }
-        Assert.areEqual(false, minimalReadsInvoices, 'A user without billing access cannot read invoices');
-        Assert.areEqual(Account.SObjectType.getDescribe().isAccessible(), RLM_AccountUtilities.canRead('Account'),
-            'canRead must agree with the running user\'s access');
-        Assert.areEqual(false, RLM_AccountUtilities.canRead('RLM_No_Such_Object__c'),
-            'An object the org does not have cannot be read');
-    }
-
-    @IsTest
-    static void entitlementsBoundToTheAssetConvergeWhenReadInBatches() {
-        Account a = newAccount();
-        Account previousOwner = new Account(Name = 'RLM Utilities Batch Owner');
-        insert previousOwner;
         UsageFixture f = loadUsageFixture();
-        Asset asset = new Asset(Name = 'RLM Utilities Batched Asset', AccountId = a.Id);
+        Asset asset = new Asset(Name = 'RLM Utilities Kept Asset Policy', AccountId = a.Id);
         insert asset;
-        // Two of another account's entitlements bound to the asset, read one a run. The
-        // asset cannot go while either remains, so each run must delete what it read.
-        TransactionUsageEntitlement first = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
-        TransactionUsageEntitlement second = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
-        RLM_AccountUtilities.usageBatchForTest = 1;
+        Datetime start = Datetime.now().addDays(-10);
+        BindingObjUsageRsrcPlcy assetPolicy = new BindingObjUsageRsrcPlcy(BindingObjectId = asset.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = start);
+        BindingObjUsageRsrcPlcy accountPolicy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = start);
+        insert new List<BindingObjUsageRsrcPlcy>{ assetPolicy, accountPolicy };
 
         Test.startTest();
-        RLM_AccountUtilities.Result firstRun = run(request(a.Id, true, false, false));
-        Integer leftAfterFirst = [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:first.Id, :second.Id)];
-        RLM_AccountUtilities.Result secondRun = run(request(a.Id, true, false, false));
+        // Delete Assets off: the asset stays, and so does its policy.
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
 
-        Assert.areEqual(false, firstRun.completed, 'The first run read part of the usage and asks for another');
-        Assert.isTrue(firstRun.reason.contains('Run the reset again'), 'It says so. Got: ' + firstRun.reason);
-        Assert.areEqual(1, leftAfterFirst, 'The first run must delete the entitlement it read');
-        Assert.areEqual(true, secondRun.completed, 'The second run finishes. Reason: ' + secondRun.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset must go');
-        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:first.Id, :second.Id)],
-            'Both entitlements must go');
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :assetPolicy.Id],
+            'A kept asset keeps its binding policy');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :accountPolicy.Id],
+            'The account\'s own policy goes');
     }
 
     @IsTest
-    static void aKeptContractOrAssetKeepsItsBindingPolicies() {
-        if (!contractItemPriceAvailable()) return;
+    static void aContractPreservedForItsPricesKeepsItsBindingPolicies() {
+        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
             AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
-        Asset asset = new Asset(Name = 'RLM Utilities Kept Asset Policy', AccountId = accountId);
-        insert asset;
-        Datetime start = Datetime.now().addDays(-10);
-        insert new List<BindingObjUsageRsrcPlcy>{
-            new BindingObjUsageRsrcPlcy(BindingObjectId = priced.Id, UsageResourceId = f.resourceId, EffectiveStartDate = start),
-            new BindingObjUsageRsrcPlcy(BindingObjectId = asset.Id, UsageResourceId = f.resourceId, EffectiveStartDate = start)
-        };
-        RLM_AccountUtilities.InputVariables iv = request(accountId, false, false, false);
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = priced.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, false, false);
         iv.PreserveContractsWithContractedPrices = true;
 
         Test.startTest();
@@ -1898,123 +1874,58 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(2, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId IN (:priced.Id, :asset.Id)],
-            'The kept contract and the kept asset keep their binding policies');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'PRECONDITION: the contract is kept');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
+            'A contract kept for its prices keeps its binding policy');
+    }
+
+    // ------------------------------------------------------------ which path
+
+    @IsTest
+    static void aUserWithModifyAllAndViewAllRunsTheEngine() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Engine Opp');
+        Assert.isTrue(RLM_AccountUtilities.seesAndDeletesEverything(),
+            'PRECONDITION: the test\'s admin has Modify All Data and View All Data');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual('engine', RLM_AccountUtilities.pathTakenForTest, 'An admin must not take the plan path');
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
     }
 
     @IsTest
-    static void invoicesStillProcessingAreAWaitNotAnAccessProblem() {
-        Assert.isTrue(RLM_AccountUtilities.invoiceBlocker('In Progress').startsWith('still processing'),
-            'PRECONDITION: an invoice still processing blocks');
-        RLM_AccountUtilities.Blocker waiting = new RLM_AccountUtilities.Blocker();
-        waiting.reason = RLM_AccountUtilities.INVOICE_IN_PROGRESS;
-        RLM_AccountUtilities.Blocker access = new RLM_AccountUtilities.Blocker();
-        access.reason = RLM_AccountUtilities.NO_ACCESS;
-
-        String waitOnly = RLM_AccountUtilities.refusal(new List<RLM_AccountUtilities.Blocker>{ waiting }, 'X');
-        Assert.isTrue(waitOnly.startsWith(RLM_AccountUtilities.NOT_YET)
-            && waitOnly.contains(RLM_AccountUtilities.NOT_YET_ADVICE)
-            && !waitOnly.contains(RLM_AccountUtilities.REFUSED_ADVICE),
-            'Invoices still processing alone are a wait, not an access problem. Got: ' + waitOnly);
-
-        String both = RLM_AccountUtilities.refusal(new List<RLM_AccountUtilities.Blocker>{ waiting, access }, 'X');
-        Assert.isTrue(both.startsWith(RLM_AccountUtilities.REFUSED)
-            && both.contains(RLM_AccountUtilities.REFUSED_ADVICE)
-            && both.contains(RLM_AccountUtilities.NOT_YET_ADVICE),
-            'With an access problem as well, both pieces of advice. Got: ' + both);
-
-        String accessOnly = RLM_AccountUtilities.refusal(new List<RLM_AccountUtilities.Blocker>{ access }, 'X');
-        Assert.isTrue(accessOnly.startsWith(RLM_AccountUtilities.REFUSED)
-            && !accessOnly.contains(RLM_AccountUtilities.NOT_YET_ADVICE),
-            'An access problem alone says nothing about waiting. Got: ' + accessOnly);
-    }
-
-    @IsTest
-    static void aPermissionTheOrgDoesNotHaveReadsAsFalseAndNothingElse() {
-        // Each permission outside the core set is read on its own, so a field this org or
-        // release lacks reads as false without hiding the others.
-        Assert.areEqual(false, RLM_AccountUtilities.hasUserPermission('PermissionsRlmResetNoSuchPermission'),
-            'A permission field the org does not have reads as false');
-        Boolean admin = [SELECT PermissionsModifyAllData FROM UserPermissionAccess LIMIT 1].PermissionsModifyAllData == true;
-        Assert.areEqual(admin, RLM_AccountUtilities.hasUserPermission('PermissionsModifyAllData'),
-            'The core permissions still read as they are');
-    }
-
-    @IsTest
-    static void aFileGoesOnlyWhenTheUserRunningTheResetOwnsIt() {
-        // Live 264 (as the salesrep persona): UserRecordAccess said a file the user owned
-        // could not be deleted, yet the delete succeeded; another user's file was refused.
-        User rep = newStandardUser();
-        PermissionSet quotes = new PermissionSet(Name = 'RLM_Utilities_Test_Quotes_' + TOKEN,
-            Label = 'RLM Utilities Test Quotes');
-        insert quotes;
-        insert new ObjectPermissions(ParentId = quotes.Id, SobjectType = 'Quote', PermissionsRead = true,
-            PermissionsCreate = true, PermissionsEdit = true, PermissionsDelete = true);
-        insert new PermissionSetAssignment(AssigneeId = rep.Id, PermissionSetId = quotes.Id);
-        Account a;
-        Quote q;
-        Id repFile;
-        System.runAs(rep) {
-            a = new Account(Name = 'RLM Utilities Rep Files');
-            insert a;
-            Opportunity o = new Opportunity(Name = 'RLM Utilities Rep Files Opp', AccountId = a.Id,
-                StageName = 'Prospecting', CloseDate = Date.today().addDays(30));
-            insert o;
-            q = new Quote(Name = 'RLM Utilities Rep Files Quote', OpportunityId = o.Id);
-            insert q;
-            repFile = newFile('RLM Rep File', q.Id);
-        }
-        Id adminFile = newFile('RLM Admin File', q.Id);
-
-        RLM_AccountUtilities.Result refused;
-        System.runAs(rep) {
-            refused = run(request(a.Id, false, false, false));
-        }
-        Assert.areEqual(false, refused.completed, 'Another user\'s file must refuse the reset');
-        Assert.isTrue(refused.reason.contains(entry(ContentDocument.SObjectType, 1))
-            && !refused.reason.contains('RLM Rep File'),
-            'Only the other user\'s file blocks. Got: ' + refused.reason);
-        Assert.areEqual(2, [SELECT COUNT() FROM ContentDocument WHERE Id IN (:repFile, :adminFile)], 'Nothing may change');
-
-        delete new ContentDocument(Id = adminFile);
+    static void aUserWithoutThemTakesThePlan() {
+        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User rep = new User(
+            ProfileId = standard.Id, LastName = 'Reset Path', Email = 'rlm.reset.path@example.com',
+            Username = 'rlm.reset.path.' + Datetime.now().getTime() + '@example.com', Alias = 'rlmpth',
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert rep;
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Plan Path Opp');
+        Boolean admin;
         RLM_AccountUtilities.Result result;
         System.runAs(rep) {
+            admin = RLM_AccountUtilities.seesAndDeletesEverything();
             Test.startTest();
             result = run(request(a.Id, false, false, false));
             Test.stopTest();
         }
-        Assert.areEqual(true, result.completed, 'The user owns the rest, so the reset runs. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM ContentDocument WHERE Id = :repFile], 'The user\'s own file goes');
-        Assert.areEqual(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote goes');
+
+        Assert.areEqual(false, admin, 'PRECONDITION: a Standard User has neither permission');
+        Assert.areEqual('plan', RLM_AccountUtilities.pathTakenForTest, 'A non-admin must take the plan path');
+        Assert.areEqual(false, result.completed, 'The user cannot delete the admin\'s opportunity, so it is refused');
+        Assert.isTrue(result.reason.startsWith('The reset was not run, and nothing was changed'),
+            'The plan path refuses. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
     }
 
-    @IsTest
-    static void anOwnEntitlementNotReadThisRunIsNotReportedAsAnotherAccounts() {
-        Account a = newAccount();
-        UsageFixture f = loadUsageFixture();
-        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
-        // Two of the account's entitlements, read one a run; a bucket under its entitlement
-        // account holds the second. When the first run reads only the first, the bucket
-        // holds an entitlement the plan has not read: the account's own, not another's.
-        TransactionUsageEntitlement first = newEntitlement(a.Id, a.Id, null, f);
-        TransactionUsageEntitlement second = newEntitlement(a.Id, a.Id, null, f);
-        UsageEntitlementBucket held = newBucket(uea.Id, second.Id, f);
-        RLM_AccountUtilities.usageBatchForTest = 1;
-
-        Test.startTest();
-        RLM_AccountUtilities.Result firstRun = run(request(a.Id, false, false, false));
-        RLM_AccountUtilities.Result secondRun = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(false, firstRun.completed, 'The first run read part of the usage and asks for another');
-        String reported = firstRun.reason + ' ' + firstRun.retainedSummary;
-        Assert.isFalse(reported.contains('another account'),
-            'The account\'s own entitlement must not be reported as another account\'s. Got: ' + reported);
-        Assert.areEqual(true, secondRun.completed, 'The second run finishes. Reason: ' + secondRun.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id], 'The bucket goes');
-        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:first.Id, :second.Id)],
-            'Both entitlements go');
-    }
+    // ------------------------------------------------------------ scope guard
 
     @IsTest
     static void otherAccountsAreUntouched() {
