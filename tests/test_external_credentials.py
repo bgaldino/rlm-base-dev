@@ -76,10 +76,21 @@ text = source.decode("utf-8")
 committed = params(text)
 check("the committed AwsAccountId is the placeholder", committed.get("AwsAccountId") == mod.PLACEHOLDER, committed.get("AwsAccountId"))
 check("the placeholder is not an account id", not re.fullmatch(r"[0-9]{12}", mod.PLACEHOLDER))
-pattern = re.compile(r"<parameterValue>[0-9]{12}</parameterValue>")
-found = [str(p.relative_to(REPO)) for root in ("unpackaged", "force-app", "templates") for p in (REPO / root).rglob("*")
-         if p.is_file() and p.suffix == ".xml" and pattern.search(p.read_text(errors="replace"))]
-check("no 12-digit parameterValue is committed under unpackaged, force-app or templates", not found, found)
+# Every file, not only *.xml: a Metadata API-format file (externalCredentials/X.externalCredential)
+# has no .xml suffix. Read as bytes so binaries (static resources) are scanned without decoding.
+ID_VALUE = re.compile(rb"<parameterValue>\s*[0-9]{12}\s*</parameterValue>")
+
+
+def committed_ids(roots):
+    return [str(f.relative_to(REPO)) for root in roots for f in (REPO / root).rglob("*")
+            if f.is_file() and ID_VALUE.search(f.read_bytes())]
+
+
+found = committed_ids(("unpackaged", "force-app", "templates"))
+check("no 12-digit parameterValue is committed under unpackaged, force-app or templates (any file type)", not found, found)
+check("the id scan matches the Metadata API shape too", ID_VALUE.search(b"<parameterValue> 000000000000 </parameterValue>")
+      and not ID_VALUE.search(b"<parameterValue>0000000000001</parameterValue>")
+      and not ID_VALUE.search(b"<parameterValue>us-west-2</parameterValue>"))
 
 print("resolve_account_id")
 check("the option wins over the environment", mod.resolve_account_id("111111111111", {mod.ENV_VAR: FAKE})[0] == "111111111111")
@@ -227,36 +238,108 @@ else:
           and not any(FAKE in line for line in logged.lines), logged.lines)
 
 print("wiring")
-cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())
+CCI_TEXT = (REPO / "cumulusci.yml").read_text()
+cfg = yaml.safe_load(CCI_TEXT)
 task = cfg["tasks"]["deploy_quantumbit"]
 check("deploy_quantumbit uses DeployWithAwsAccountId",
       task["class_path"] == "tasks.rlm_external_credentials.DeployWithAwsAccountId", task["class_path"])
 check("deploy_quantumbit deploys post_quantumbit", task["options"]["path"] == "unpackaged/post_quantumbit")
-check("no account id is committed in cumulusci.yml", "aws_account_id" not in task.get("options", {}))
 BUNDLE = "unpackaged/post_quantumbit"
+OWNER = "deploy_quantumbit"
 
 
 def in_bundle(path):
-    """Whether a path option names the bundle or anything under it (a subfolder deploy skips the transform too)."""
-    path = str(path or "").strip()
+    """Whether a value names the bundle or anything under it (a subfolder deploy skips the transform too)."""
+    if not isinstance(path, str):
+        return False
+    path = path.strip()
     while path.startswith("./"):
         path = path[2:]
     path = path.rstrip("/")
     return path == BUNDLE or path.startswith(BUNDLE + "/")
 
 
+def strings(value):
+    """Every string in an option value: the value itself, list items, nested dict values."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from strings(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from strings(item)
+
+
+def option_sets(config):
+    """(where, task name, options) for every task definition, task step, and task inside a subflow step.
+
+    A flow step's options are the task's options; a subflow step's are {task_name: {option: value}}.
+    """
+    for name, spec in (config.get("tasks") or {}).items():
+        yield f"task {name}", name, (spec or {}).get("options") or {}
+    for fname, flow in (config.get("flows") or {}).items():
+        for key, step in ((flow or {}).get("steps") or {}).items():
+            opts = (step or {}).get("options") or {}
+            if step.get("task"):
+                yield f"flow {fname}.{key}", step["task"], opts
+            elif step.get("flow"):
+                for tname, topts in opts.items():
+                    yield f"flow {fname}.{key} (subflow {step['flow']}) {tname}", tname, topts if isinstance(topts, dict) else {}
+
+
+def bundle_users(config):
+    """Places other than deploy_quantumbit whose options name the bundle or a subpath, in any option."""
+    return [where for where, tname, opts in option_sets(config)
+            if tname != OWNER and any(in_bundle(s) for s in strings(opts))]
+
+
+def account_id_options(config):
+    """Places that set aws_account_id in cumulusci.yml (it must only ever come from the environment or -o)."""
+    return [where for where, _, opts in option_sets(config) if "aws_account_id" in opts]
+
+
 check("in_bundle matches the bundle and its subpaths only",
       in_bundle(BUNDLE) and in_bundle("./" + BUNDLE + "/") and in_bundle(BUNDLE + "/externalCredentials")
       and not in_bundle(BUNDLE + "_other") and not in_bundle("unpackaged/post_tso") and not in_bundle(None))
-others = [f"task {n}" for n, t in cfg["tasks"].items() if n != "deploy_quantumbit"
-          and in_bundle((t.get("options") or {}).get("path"))]
-others += [f"flow {f}.{k} ({s.get('task') or s.get('flow')})" for f, flow in cfg["flows"].items()
-           for k, s in ((flow or {}).get("steps") or {}).items()
-           if s.get("task") != "deploy_quantumbit" and in_bundle((s.get("options") or {}).get("path"))]
-check("no other task or flow step deploys post_quantumbit (or a subpath) around the substitution", not others, others)
-steps = [s.get("options", {}) for f in cfg["flows"].values() for s in (f.get("steps") or {}).values()
-         if s.get("task") == "deploy_quantumbit"]
-check("no flow step commits an account id", not any("aws_account_id" in o for o in steps), steps)
+synthetic = {
+    "tasks": {OWNER: {"options": {"path": BUNDLE}},
+              "by_base_path": {"options": {"base_path": BUNDLE}},
+              "by_list": {"options": {"paths": ["unpackaged/post_tso", BUNDLE + "/flows"]}},
+              "elsewhere": {"options": {"path": "unpackaged/post_tso"}}},
+    "flows": {"f": {"steps": {
+        1: {"task": OWNER, "options": {"path": BUNDLE + "/externalCredentials", "aws_account_id": "x"}},
+        2: {"task": "deploy_post_tso", "options": {"path": BUNDLE}},
+        3: {"flow": "sub", "options": {OWNER: {"path": BUNDLE}, "deploy_post_tso": {"path": "./" + BUNDLE}}},
+        4: {"flow": "sub", "options": {"other": {"aws_account_id": "x"}}},
+        5: {"task": "noop"}}}},
+}
+check("the scanner finds a task option other than path, a list item, a task step and a subflow step, "
+      "and passes deploy_quantumbit itself",
+      bundle_users(synthetic) == ["task by_base_path", "task by_list", "flow f.2",
+                                  "flow f.3 (subflow sub) deploy_post_tso"], bundle_users(synthetic))
+check("the account-id scanner finds a task step and a subflow step",
+      account_id_options(synthetic) == ["flow f.1", "flow f.4 (subflow sub) other"], account_id_options(synthetic))
+others = bundle_users(cfg)
+check("nothing but deploy_quantumbit deploys post_quantumbit (or a subpath), in any option of any task, "
+      "flow step or subflow step", not others, others)
+set_ids = account_id_options(cfg)
+check("cumulusci.yml sets aws_account_id nowhere (tasks, flow steps, subflow steps)", not set_ids, set_ids)
+twelve = re.findall(r"(?<![0-9])[0-9]{12}(?![0-9])", CCI_TEXT)
+check("cumulusci.yml contains no 12-digit number", not twelve, len(twelve))
+
+print("docker forwarding")
+RLM = (REPO / "docker/rlm").read_text()
+check("docker/rlm forwards RLM_AWS_ACCOUNT_ID by name in both the one-off and up flags",
+      RLM.count("RUN_FLAGS+=(-e RLM_AWS_ACCOUNT_ID)") == 1 and RLM.count("up_flags+=(-e RLM_AWS_ACCOUNT_ID)") == 1)
+check("docker/rlm never puts the value on the docker command line", "RLM_AWS_ACCOUNT_ID=" not in RLM)
+compose = yaml.safe_load((REPO / "docker/compose.yaml").read_text())
+envs = [e for svc in compose.get("services", {}).values() for e in (svc.get("environment") or [])]
+check("docker/compose.yaml lists the bare name, so the value comes from the shell",
+      "RLM_AWS_ACCOUNT_ID" in envs and not any(str(e).startswith("RLM_AWS_ACCOUNT_ID=") for e in envs), envs)
+DEVCONTAINER = (REPO / ".devcontainer/devcontainer.json").read_text()
+check("the dev container forwards it from the editor's environment",
+      '"RLM_AWS_ACCOUNT_ID": "${localEnv:RLM_AWS_ACCOUNT_ID}"' in DEVCONTAINER)
 
 print()
 if failures:

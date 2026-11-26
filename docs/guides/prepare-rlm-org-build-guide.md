@@ -114,7 +114,9 @@ export RLM_AWS_ACCOUNT_ID=<your-12-digit-account-id>   # e.g. in your shell prof
 cci flow run prepare_rlm_org --org beta
 ```
 
-Under Docker, `./docker/rlm`, `docker/compose.yaml` and the dev container forward `RLM_AWS_ACCOUNT_ID` from your shell when it is set, so export it before starting the container (for `./docker/rlm up`, before `up`; a running container keeps the environment it started with).
+Under Docker, `./docker/rlm` and `docker/compose.yaml` forward `RLM_AWS_ACCOUNT_ID` from your shell when it is set, so export it before starting the container (for `./docker/rlm up`, before `up`; a running container keeps the environment it started with). The dev container reads it from the editor's own environment instead (`remoteEnv` in `.devcontainer/devcontainer.json`). An editor started from the Dock or a launcher does not see variables from your shell profile, so start the editor from a shell where the variable is exported (for example `code .` or `cursor .`), then rebuild or reopen the container.
+
+If you did use `-o aws_account_id`, remember that `cci error gist` uploads `cci.log` to a GitHub gist, and that log starts with the command line, `-o` values included.
 
 Never commit the value. If the file holds anything other than the placeholder (for example after a retrieve from an org), `deploy_quantumbit` fails, and so does the offline gate (`tests/test_external_credentials.py`).
 

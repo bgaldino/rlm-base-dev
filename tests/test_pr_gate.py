@@ -281,7 +281,9 @@ check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel,
 # excludes drops out of a local image. The five cheap whole-repo checks (navigation baseline,
 # release_refs, dockerignore, private_refs, api_version_pins) therefore run for every non-empty change, while
 # unrelated expensive checks stay skipped.
-sel = selected_names(["docker/compose.yaml"])
+# docker/compose.yaml used to be that path; it forwards RLM_AWS_ACCOUNT_ID now, which
+# yaml_offline_suites asserts (todo 481), so a file nothing reads stands in for it.
+sel = selected_names(["docker/motd.sh"])
 check("an otherwise unrelated path selects only the five whole-repo baselines",
       sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs",
               "api_version_pins"}, sel)
