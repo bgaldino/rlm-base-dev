@@ -24,7 +24,9 @@ generated (it is mostly not), which is what todo pack 084 recorded and this file
 - **LWC components (17)** under `lwc/` — one per `LWC_MAP` entry (`rlm…`).
 - **Static resources (2)** under `staticresources/` — `InvoiceCardLogo.*`.
 - **Flexipages (8)** — written to `templates/flexipages/standalone/billing_ui/`, not
-  into this directory (per `FLEXIPAGE_MAP`).
+  into this directory (per `FLEXIPAGE_MAP`). One has since moved here:
+  `flexipages/RLM_Collections_Dashboard` ships in this bundle with its tab, see
+  **Collections Dashboard** below.
 
 `RLM_TxnJournalRelatedListController` is generator-owned but was for a time out of the
 generator's reach: `APEX_MAP` targeted an `RLM_TransactionJournal…` name 43 characters
@@ -104,6 +106,33 @@ deploy, measured). Sharing cannot hide a treatment from the read: on 264
 `BillingTreatment`'s organization-wide default is public (`BillingTreatmentItem` is
 controlled by its parent, `LegalEntity` is private), so "no treatment" means none
 exists. The modal's currency list is hardcoded (USD, EUR, GBP, CAD, AUD, JPY, CHF).
+
+**Dates (todo 435).** Start Date defaults to today in the user's Salesforce time zone
+(`@salesforce/i18n/timeZone`, read through `Intl`), not the browser's and not UTC; the
+billing day and month are taken from that same `YYYY-MM-DD` value, and End Date is
+calendar math on it (`billingDates.js`), so no date passes through a local or UTC `Date`.
+A day the end month lacks is clamped to its last day before a day is taken off, as
+Salesforce Pricing anchors its periods (Jan 31 + 1 Month ends Feb 27; Feb 29 2028 +
+1 Year ends Feb 27 2029). The Jest suite `rlmBillingScheduleGroupModal.dates.test.js`
+pins the browser zone through `tests/jest/browser-time-zone-environment.js`.
+
+**Bill-to contact (todo 435).** The action takes the bill-to contact from the billing
+account (`BillingAccount.BillToContactId`) and fails without one. `getAccountBillingInfo`
+flags it (`billToContactMissing`), the modal blocks Create with a sentence saying to add
+one, and create refuses the same case before calling the action. `RLM_BillingUI` grants
+read on the field; the read also needs Contact read, which the set grants.
+
+## Collections Dashboard
+
+The `RLM_Collections_Dashboard` app page (`rlmCollectionsDashboard`), its tab and the
+`RLM_CollectionsDashboard` permission set (the tab and `RLM_CollectionsDashboardController`,
+nothing else) ship here, with the component and controller they need, so they deploy with
+`billing_ui` whether or not `collections` is on. With `collections` on as well, the UX
+assembler adds the tab to the Billing - Collections console
+(`templates/applications/patches/billing_ui/standard__CollectionConsole.patch.xml`). A
+collections user needs `RLM_CollectionsDashboard` with `RLM_CollectionsUI` and the
+Billing Collections and Recovery Specialist set; `RLM_BillingUI` users hold the
+controller already. The build assigns it to the running user only.
 
 ## Do not
 

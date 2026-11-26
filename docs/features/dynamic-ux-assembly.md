@@ -244,6 +244,13 @@ The TSO template already carries its overrides.
 - `standard__BillingConsole` — when `billing=true` (`conditional/billing/`) or `billing_ui=true` (`conditional/billing_ui/`)
 - `standard__CollectionConsole`, `RLM_Receivables_Management` — when `collections=true`
 
+A conditional app then takes the navigation patches of `scripts/ux/_flags.CONDITIONAL_APP_PATCH_ORDER`
+whose gate is on: `templates/applications/patches/{feature}/{app}.patch.xml`, holding bare `<tabs>` and
+console `<mappings>` elements (anything else fails the assembly). A tab is added after the app's last
+tab and a mapping in tab-name order; entries already there are skipped. `billing_ui` adds the
+Collections Dashboard tab (shipped in `unpackaged/post_billing_ui`) to `standard__CollectionConsole`,
+so the tab is named only in a build that has both `collections` and `billing_ui`.
+
 ### Profiles
 
 **Strip-and-build approach**:

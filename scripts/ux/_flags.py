@@ -101,6 +101,16 @@ APP_PATCH_ORDER: List[Tuple[Gate, str]] = [
     (PRM_PRICING_GATE, "prm_pricing"),
 ]
 
+#: Navigation patches for the conditional standalone apps, in apply order, as (gate, patch_dir).
+#: A patch is ``templates/applications/patches/{patch_dir}/{app name}.patch.xml`` holding bare
+#: ``<tabs>`` and ``<mappings>`` (console workspace) elements; it is applied only when the app
+#: itself is assembled (its own flag) and the gate is on, so a tab shipped by another feature's
+#: bundle is never named in a build without it. billing_ui: the Collections Dashboard tab
+#: (unpackaged/post_billing_ui) in the Billing - Collections console (collections).
+CONDITIONAL_APP_PATCH_ORDER: List[Tuple[Gate, str]] = [
+    (("billing_ui",), "billing_ui"),
+]
+
 
 #: Layout template tiers in apply order (last writer wins), as (tier, gate).
 #: Shared by the assembler and writeback.

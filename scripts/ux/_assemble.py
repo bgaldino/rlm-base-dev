@@ -28,6 +28,7 @@ import xml.etree.ElementTree as ET
 from scripts.ux._context import UxContext, UxError, UxOptionError
 from scripts.ux._flags import (
     APP_PATCH_ORDER,
+    CONDITIONAL_APP_PATCH_ORDER,
     FLEXIPAGE_SUFFIX,
     LAYOUT_SUFFIX,
     PERSONAS_PROFILES,
@@ -601,6 +602,59 @@ class UxAssembler:
         app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=SF_NS)
         self.logger.debug(f"  [app patch] {patch_file.name}: +{added} actionOverride(s)")
 
+    def _apply_app_nav_patch(self, app_dest: Path, patch_file: Path) -> List[str]:
+        """Add the ``<tabs>`` and console ``<mappings>`` of a patch file to an assembled app.
+
+        The patch holds bare ``<tabs>`` and ``<mappings>`` elements (no root wrapper beyond the
+        XML declaration and comments). A tab is added after the app's last ``<tabs>``; a mapping
+        goes into ``<workspaceConfig>`` in the platform's order (by tab name, case-sensitive), so
+        a retrieve of the deployed app diffs clean. Entries the app already has are skipped, so
+        a rerun changes nothing. Returns the tabs added. Any other element is an error: this
+        patch type does not merge it.
+        """
+        raw = patch_file.read_text(encoding="utf-8")
+        raw = re.sub(r"<\?xml[^?]*\?>", "", raw)
+        raw = re.sub(r"<!--.*?-->", "", raw, flags=re.S).strip()
+        patch_root = ET.fromstring(f'<root xmlns="{SF_NS}">{raw}</root>')
+
+        app_tree = ET.parse(app_dest)
+        app_root = app_tree.getroot()
+        added_tabs: List[str] = []
+        changed = False
+        for elem in list(patch_root):
+            kind = local_tag(elem)
+            if kind == "tabs":
+                tab = (elem.text or "").strip()
+                existing = app_root.findall(f"{SF_NS_TAG}tabs")
+                if tab in {(t.text or "").strip() for t in existing}:
+                    continue
+                if existing:
+                    index = list(app_root).index(existing[-1]) + 1
+                else:
+                    raise UxError(f"{patch_file}: {app_dest.name} has no <tabs> to add {tab} after.")
+                app_root.insert(index, make_elem("tabs", tab))
+                added_tabs.append(tab)
+                changed = True
+            elif kind == "mappings":
+                tab = (elem.findtext(f"{SF_NS_TAG}tab") or "").strip()
+                config = app_root.find(f"{SF_NS_TAG}workspaceConfig")
+                if config is None:
+                    raise UxError(f"{patch_file}: {app_dest.name} has no <workspaceConfig> for the {tab} mapping.")
+                mappings = config.findall(f"{SF_NS_TAG}mappings")
+                names = [(m.findtext(f"{SF_NS_TAG}tab") or "").strip() for m in mappings]
+                if tab in names:
+                    continue
+                later = [m for m, name in zip(mappings, names) if name > tab]
+                index = list(config).index(later[0]) if later else len(list(config))
+                config.insert(index, elem)
+                changed = True
+            else:
+                raise UxError(f"{patch_file}: <{kind}> is not a tab or console mapping; only those are merged.")
+
+        if changed:
+            write_xml(app_root, app_dest)
+        return added_tabs
+
     def _assemble_applications(
         self,
         templates_path: Path,
@@ -617,6 +671,9 @@ class UxAssembler:
         Conditional standalone apps:
           standard__BillingConsole  — billing_ui=true wins over billing=true (priority: billing_ui > billing)
           standard__CollectionConsole, RLM_Receivables_Management — when collections=true
+
+        A conditional app then takes the tab/console-mapping patches of
+        CONDITIONAL_APP_PATCH_ORDER whose gate is on (``patches/{dir}/{app}.patch.xml``).
         """
         out_dir = output_path / "applications"
         app_base = templates_path / "applications"
@@ -692,15 +749,28 @@ class UxAssembler:
             dest = out_dir / fname
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(str(src_file), str(dest))
-            assembled.append(
-                {
-                    "type": "application",
-                    "name": fname,
-                    "dest": str(dest.relative_to(output_path.parent.parent)),
-                    "source_tier": f"conditional/{feature_name}",
-                }
-            )
-            self.logger.info(f"  [application] {fname} (conditional/{feature_name})")
+            # Navigation patches from other features (CONDITIONAL_APP_PATCH_ORDER): a tab that
+            # another feature's bundle ships, added only when that feature is on too.
+            patches_applied = []
+            for gate, pf in CONDITIONAL_APP_PATCH_ORDER:
+                if not gate_enabled(gate, features):
+                    continue
+                patch_file = app_base / "patches" / pf / fname.replace(".app-meta.xml", ".patch.xml")
+                if not patch_file.exists():
+                    continue
+                self._apply_app_nav_patch(dest, patch_file)
+                patches_applied.append(pf)
+            entry = {
+                "type": "application",
+                "name": fname,
+                "dest": str(dest.relative_to(output_path.parent.parent)),
+                "source_tier": f"conditional/{feature_name}",
+            }
+            if patches_applied:
+                entry["patches"] = patches_applied
+            assembled.append(entry)
+            patch_info = f" + patches: {', '.join(patches_applied)}" if patches_applied else ""
+            self.logger.info(f"  [application] {fname} (conditional/{feature_name}{patch_info})")
 
         return assembled
 

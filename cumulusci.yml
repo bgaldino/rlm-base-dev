@@ -1659,9 +1659,13 @@ tasks:
       Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
       the RLM_InvoiceCardLogo static resource, the RLM_BillingUI permission set
       (field access, read on the objects the Billing UI controllers query, Apex class access,
-      RunFlow) and the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
-      attribute query). Flexipages and the Billing Console app for billing_ui are not in
-      this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them from templates/ (billing_ui feature flag).
+      RunFlow), the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
+      attribute query), and the Collections Dashboard: its app page (RLM_Collections_Dashboard),
+      its tab and the RLM_CollectionsDashboard permission set (the tab and the dashboard
+      controller, for collections users). The other flexipages and the Billing Console app for
+      billing_ui are not in this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them
+      from templates/ (billing_ui feature flag), and adds the dashboard tab to the Billing -
+      Collections console when collections is on too.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_billing_ui
@@ -4275,6 +4279,7 @@ flows:
           api_names:
             - RLM_BillingUI
             - RLM_BillingUIAssetAttributes
+            - RLM_CollectionsDashboard
       15:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui

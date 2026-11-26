@@ -82,8 +82,12 @@
     <tabs>standard-CollectionPlan</tabs>
     <tabs>standard-CollectionPlanReason</tabs>
     <tabs>standard-IndustriesCsvDataimport</tabs>
+    <tabs>RLM_Collections_Dashboard</tabs>
     <uiType>Lightning</uiType>
     <workspaceConfig>
+        <mappings>
+            <tab>RLM_Collections_Dashboard</tab>
+        </mappings>
         <mappings>
             <tab>standard-Account</tab>
         </mappings>

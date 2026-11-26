@@ -214,13 +214,6 @@
     },
     {
       "type": "flexipage",
-      "name": "RLM_Collections_Dashboard.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Dashboard.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/billing_ui/RLM_Collections_Dashboard.flexipage-meta.xml",
-      "patches": []
-    },
-    {
-      "type": "flexipage",
       "name": "RLM_Collections_Home_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Home_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/collections/RLM_Collections_Home_Page.flexipage-meta.xml",
@@ -773,7 +766,10 @@
       "type": "application",
       "name": "standard__CollectionConsole.app-meta.xml",
       "dest": "unpackaged/post_ux/applications/standard__CollectionConsole.app-meta.xml",
-      "source_tier": "conditional/collections"
+      "source_tier": "conditional/collections",
+      "patches": [
+        "billing_ui"
+      ]
     },
     {
       "type": "application",

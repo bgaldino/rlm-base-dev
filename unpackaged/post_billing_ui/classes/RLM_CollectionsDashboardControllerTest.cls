@@ -28,6 +28,33 @@ private class RLM_CollectionsDashboardControllerTest {
     // The controller's own separators: an em dash for a missing value and an en dash
     // between a case's subject and description.
     private static final String NO_VALUE = '—';
+
+    // RLM_CollectionsDashboard is what opens the dashboard for a collections user who does not hold
+    // RLM_BillingUI (todo 435): the tab, hidden on every profile when deployed through the Metadata API,
+    // and this controller, the only class the component calls. Least privilege: nothing else, so the
+    // records the dashboard reads still come from the collections sets. Read back from the org.
+    @isTest
+    static void collectionsDashboardSet_grantsTheTabAndThisControllerOnly() {
+        PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_CollectionsDashboard'];
+        List<SetupEntityAccess> access = [
+            SELECT SetupEntityId, SetupEntityType FROM SetupEntityAccess WHERE ParentId = :ps.Id
+        ];
+        Id controllerId = [SELECT Id FROM ApexClass WHERE Name = 'RLM_CollectionsDashboardController' LIMIT 1].Id;
+        Assert.areEqual(1, access.size(), 'One entity access: the controller. ' + access);
+        Assert.areEqual(controllerId, access[0].SetupEntityId, 'The dashboard controller is granted.');
+
+        List<PermissionSetTabSetting> tabs = [
+            SELECT Name, Visibility FROM PermissionSetTabSetting WHERE ParentId = :ps.Id
+        ];
+        Assert.areEqual(1, tabs.size(), 'One tab setting: the dashboard tab. ' + tabs);
+        Assert.areEqual('RLM_Collections_Dashboard', tabs[0].Name);
+        Assert.areEqual('DefaultOn', tabs[0].Visibility, 'Visible in metadata reads back as DefaultOn.');
+
+        Assert.areEqual(0, [SELECT COUNT() FROM ObjectPermissions WHERE ParentId = :ps.Id],
+            'No object access: the records come from the collections sets.');
+        Assert.areEqual(0, [SELECT COUNT() FROM FieldPermissions WHERE ParentId = :ps.Id],
+            'No field access either.');
+    }
     private static final String SUBJECT_SEPARATOR = ' – ';
 
     // Every dashboard entrypoint is defensive: each catches internally and returns a populated

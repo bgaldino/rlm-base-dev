@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>RLM_CollectionsDashboardController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>The Collections Dashboard tab and its Apex controller, nothing else. Assign with RLM_CollectionsUI and the Billing Collections and Recovery Specialist set, which grant the records it reads.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Collections Dashboard</label>
+    <tabSettings>
+        <tab>RLM_Collections_Dashboard</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
