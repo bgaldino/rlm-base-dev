@@ -55,14 +55,14 @@ import tempfile
 import time
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote
 
 import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_flag, project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -536,10 +536,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         self._lifecycle(dry_run).set_version_active_impl(version_id, active, force=force)
 
     def _wait_for_version_state(self, version_id: str, active: bool):
+        max_wait, poll = self._wait_options()
         self._lifecycle(False).poll_version_state(
             version_id, active,
-            max_wait=self._int_option("max_wait_seconds", 45),
-            poll=self._int_option("poll_interval_seconds", 3, minimum=1),
+            max_wait=max_wait,
+            poll=poll,
             sleep=time.sleep,
         )
 
@@ -1087,18 +1088,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     _bool_option = staticmethod(_parse_bool_option)
 
-    def _int_option(self, name: str, default: int, minimum: int = 0) -> int:
-        """Read an int option, raising a clear TaskOptionsError on a non-numeric
-        value rather than letting int() throw an opaque ValueError mid-run."""
-        value = self.options.get(name)
-        if value is None:
-            return max(minimum, default)
-        try:
-            return max(minimum, int(value))
-        except (TypeError, ValueError):
-            raise TaskOptionsError(
-                f"Option '{name}' must be an integer (got {value!r})."
-            )
+    def _wait_options(self) -> Tuple[int, int]:
+        """(max_wait_seconds, poll_interval_seconds). None, blank or whitespace is the default (45, 3);
+        anything but a positive integer ("abc", 0, a list) is refused by name. Each _run_task calls this
+        up front, because the values are first used after the deactivation PATCH."""
+        def read(name: str, default: int) -> int:
+            text = option_text(self.options.get(name), name, TaskOptionsError)
+            return default if text is None else positive_int(text, name, TaskOptionsError)
+        return read("max_wait_seconds", 45), read("poll_interval_seconds", 3)
 
 
 # ======================================================================
@@ -1213,17 +1210,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             "required": False,
         },
         "max_wait_seconds": {
-            "description": "Max seconds to poll for activation state changes.",
+            "description": "Max seconds to poll for activation state changes. Default 45, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Seconds between activation state polls.",
+            "description": "Seconds between activation state polls. Default 3, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
     }
 
     def _run_task(self):
         _validate_bool_options(self)
+        self._wait_options()  # max_wait / poll are first used after the deactivation PATCH
         overlay = self._load_overlay()
         # Validate the overlay shape up front — before any deactivation — so a
         # malformed overlay never leaves a version toggled off.
@@ -1789,17 +1787,18 @@ class ImportExpressionSet(ExpressionSetConnectBase):
             "required": False,
         },
         "max_wait_seconds": {
-            "description": "Max seconds to poll for activation state changes.",
+            "description": "Max seconds to poll for activation state changes. Default 45, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Seconds between activation state polls.",
+            "description": "Seconds between activation state polls. Default 3, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
     }
 
     def _run_task(self):
         _validate_bool_options(self)
+        self._wait_options()  # max_wait / poll are first used after the deactivation PATCH
         input_path = Path(self.options["input_file"])
         if not input_path.exists():
             raise TaskOptionsError(f"Input file not found: {input_path}")
@@ -1956,17 +1955,18 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
             "required": False,
         },
         "max_wait_seconds": {
-            "description": "Max seconds to poll for activation state changes.",
+            "description": "Max seconds to poll for activation state changes. Default 45, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Seconds between activation state polls.",
+            "description": "Seconds between activation state polls. Default 3, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
     }
 
     def _run_task(self):
         _validate_bool_options(self)
+        self._wait_options()  # max_wait / poll are first used after the deactivation PATCH
         api_name = self.options["expression_set_api_name"]
         version_api_name = self.options.get("version_api_name")
         dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")

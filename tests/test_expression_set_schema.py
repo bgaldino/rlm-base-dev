@@ -2991,6 +2991,73 @@ def test_bool_options_read_through_option_flag_todo_488():
             check(f"apply: {name} {value!r} refused by name before the overlay or any lookup",
                   f"{name} {needle}" in err and calls == [])
 
+    def import_run(options):
+        """ImportExpressionSet._run_task over a minimal payload; the first _soql_query stops it."""
+        import json as _json
+        import tempfile as _tempfile
+        calls = []
+        with _tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "es.json")
+            with open(path, "w") as fh:
+                _json.dump({"apiName": "C", "versions": []}, fh)
+            task = object.__new__(mod.ImportExpressionSet)
+            task.logger = logging.getLogger("test_import_bool_options")
+            task.options = {"input_file": path, **options}
+            task._preflight_validate_definition = lambda payload: calls.append("preflight")
+
+            def stop(soql):
+                calls.append("query")
+                raise RuntimeError("stop: first query")
+            task._soql_query = stop
+            task._patch_expression_set_via_connect = lambda *a, **k: calls.append("patch")
+            try:
+                task._run_task()
+                return "no error", calls
+            except RuntimeError:
+                return "reached", calls
+            except mod.TaskOptionsError as exc:
+                return str(exc), calls
+
+    check("import: padded and blank options reach the first query",
+          import_run({"preserve_labels": " on ", "normalize_html_entities": "  ", "max_wait_seconds": "",
+                      "poll_interval_seconds": " 2 "}) == ("reached", ["preflight", "query"]))
+    for name in ("preserve_labels", "normalize_html_entities", "activate_after_import", "dry_run"):
+        for value, needle in ((["false"], "must be a single value"), ("maybe", "must be true or false")):
+            err, calls = import_run({name: value})
+            check(f"import: {name} {value!r} refused by name before the file, any query or PATCH",
+                  f"{name} {needle}" in err and calls == [])
+
+    # todo 488: max_wait_seconds / poll_interval_seconds were first read in _wait_for_version_state,
+    # after the deactivation PATCH, and blank was refused there.
+    runners = (("apply", apply_run, ["load", "lookup"]), ("import", import_run, ["preflight", "query"]),
+               ("delete", lambda o: delete_run({"confirm": "true", **o}), ["C"]))
+    for label, run, reached in runners:
+        for name in ("max_wait_seconds", "poll_interval_seconds"):
+            for value, needle in (("abc", "must be a positive integer"), (0, "must be a positive integer"),
+                                  (["5"], "must be a single value")):
+                err, calls = run({name: value})
+                check(f"{label}: {name} {value!r} refused by name before any request",
+                      f"{name} {needle}" in err and calls == [])
+            for value in ("", "  ", None, " 7 "):
+                err, calls = run({name: value})
+                check(f"{label}: {name} {value!r} is accepted (blank is the default) and reaches the first request",
+                      err == "reached" and calls == reached)
+
+    waits = object.__new__(mod.ApplyExpressionSetOverlay)
+    waits.options = {"max_wait_seconds": "", "poll_interval_seconds": "  "}
+    check("_wait_options: blank is the documented default (45, 3)", waits._wait_options() == (45, 3))
+    waits.options = {"max_wait_seconds": " 10 ", "poll_interval_seconds": 1}
+    check("_wait_options: padded text and an int are read", waits._wait_options() == (10, 1))
+    seen = {}
+
+    class _Lifecycle:
+        def poll_version_state(self, version_id, active, max_wait, poll, sleep):
+            seen.update(max_wait=max_wait, poll=poll)
+    waits.options = {"max_wait_seconds": "  ", "poll_interval_seconds": " 2 "}
+    waits._lifecycle = lambda dry_run: _Lifecycle()
+    waits._wait_for_version_state("9QM1", True)
+    check("_wait_for_version_state polls with the parsed values (blank wait is 45)", seen == {"max_wait": 45, "poll": 2})
+
 
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
