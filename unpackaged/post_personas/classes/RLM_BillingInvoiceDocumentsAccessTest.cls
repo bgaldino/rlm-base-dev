@@ -29,13 +29,17 @@
  * - the set's metadata: View All on the run chain, Access Libraries, and membership of both groups.
  * The Billing Operations run-read methods are regression checks: the managed Operations set already
  * reads the runs, and the View All the set adds is checked only by the metadata test.
- * Checks that would fail only because Salesforce grants MORE than today (the Billing Admin role
- * alone reading the runs, DocGen User alone creating a batch process) are WARN debug lines, not
- * assertions, so a platform change cannot block a deploy that runs local tests.
+ * Nothing here fails because Salesforce grants MORE than today: the only such note (DocGen User
+ * gaining the DocGen Designer permission) reads metadata and creates no user.
+ * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
+ * Batch document generation is an org setting that deploys with docgen, not personas, and with it off
+ * the insert is refused as INVALID_INPUT (measured), so only an access refusal fails the test; any
+ * other refusal is a "SKIPPED, NOT CHECKED" WARN line. batchCreateRefusalIsClassifiedAsAccessOrConfiguration
+ * pins that classification against the measured messages.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
- * DocGen Designer for the DocGen checks); no method holds more than two users at once. An org with no
+ * DocGen Designer for the DocGen checks); no method creates more than one user. An org with no
  * free seat fails on the license, not on access.
  */
 @IsTest
@@ -83,7 +87,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     static void invoiceDocumentsSetGrantsAccessLibraries() {
         PermissionSet ps = [SELECT PermissionsContentWorkspaces FROM PermissionSet WHERE Name = :INVOICE_DOCS_SET];
         Assert.isTrue(ps.PermissionsContentWorkspaces,
-            INVOICE_DOCS_SET + ' grants Access Libraries, without which a library member reads none of the template files');
+            INVOICE_DOCS_SET + ' grants Access Libraries, without which a library member did not read the default invoice template file (measured)');
     }
 
     @IsTest
@@ -104,14 +108,6 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     @IsTest
     static void billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns() {
         assertReadsRuns(ADMIN_ROLE);
-        // Only a note: the role alone is expected to be refused today, and the set is why the persona reads.
-        User roleOnly = user(new List<String>{ ADMIN_ROLE }, null, new List<String>{ BILLING_PSL });
-        System.runAs(roleOnly) {
-            if (unreadable(BATCH_RUN_OBJECTS).isEmpty()) {
-                System.debug(LoggingLevel.WARN, 'NOTE: the managed Billing Admin set now reads Invoice Batch Run;'
-                    + ' ' + INVOICE_DOCS_SET + ' may no longer be needed for that read.');
-            }
-        }
     }
 
     @IsTest
@@ -176,9 +172,21 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             new List<String>{ BILLING_PSL, DOCGEN_PSL });
         List<String> failures = new List<String>();
         System.runAs(u) {
+            // A real insert, because only it meets the DocGen Designer user-permission gate (describe
+            // does not show it). It can also be refused for configuration: with batch document
+            // generation off the platform answers INVALID_INPUT "Enable the batch document generation
+            // setting." (measured), and that setting deploys only with docgen, while this class deploys
+            // with personas. So only an access refusal fails; anything else is a visible skip.
             Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
             if (!batch.isSuccess()) {
-                failures.add('batch process create: ' + batch.getErrors()[0].getMessage());
+                Database.Error error = batch.getErrors()[0];
+                String statusCode = String.valueOf(error.getStatusCode());
+                if (isAccessRefusal(statusCode, error.getMessage())) {
+                    failures.add('batch process create: ' + statusCode + ': ' + error.getMessage());
+                } else {
+                    System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create: '
+                        + statusCode + ': ' + error.getMessage());
+                }
             }
             if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
                 failures.add('Document Generation Process create (on-demand generation)');
@@ -190,16 +198,50 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         }
         Assert.isTrue(failures.isEmpty(), roleSet + ': invoice document generation access missing:\n'
             + String.join(failures, '\n'));
+    }
 
-        // Only a note: DocGen User alone is expected to be refused the batch create today.
-        User docGenUserOnly = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER }, null,
-            new List<String>{ BILLING_PSL, DOCGEN_PSL });
-        System.runAs(docGenUserOnly) {
-            if (Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE).isSuccess()) {
-                System.debug(LoggingLevel.WARN, 'NOTE: ' + roleSet + ' with DocGen User alone created a batch process;'
-                    + ' DocGen Designer may no longer be needed.');
-            }
+    // An access refusal, as the platform reports one for this insert. Measured on a 264 org:
+    // CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY "Access to entity 'DocGenerationBatchProcess' denied" (no
+    // DocGen set), the same code with "DML operation INSERT not allowed on DocGenerationBatchProcess"
+    // (DocGen User without DocGen Designer), and "Operation failed due to fields being inaccessible ..."
+    // (field access). INSUFFICIENT_ACCESS* codes and "insufficient privileges" count too.
+    @TestVisible
+    private static Boolean isAccessRefusal(String statusCode, String message) {
+        String code = statusCode == null ? '' : statusCode;
+        String text = message == null ? '' : message.toLowerCase();
+        return code.startsWith('INSUFFICIENT_ACCESS')
+            || text.contains('not allowed')
+            || text.contains('access to entity')
+            || text.contains('insufficient privileges')
+            || text.contains('insufficient access')
+            || text.contains('inaccessible');
+    }
+
+    @IsTest
+    static void batchCreateRefusalIsClassifiedAsAccessOrConfiguration() {
+        // The messages measured on a 264 org.
+        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
+            'Access to entity \'DocGenerationBatchProcess\' denied'), 'no DocGen set');
+        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
+            'DML operation INSERT not allowed on DocGenerationBatchProcess'), 'DocGen User without DocGen Designer');
+        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
+            'Operation failed due to fields being inaccessible on Sobject DocGenerationBatchProcess, check errors on Exception or Result!'),
+            'field access');
+        Assert.isTrue(isAccessRefusal('INSUFFICIENT_ACCESS_OR_READONLY', 'insufficient access rights on object id'),
+            'INSUFFICIENT_ACCESS code');
+        Assert.isFalse(isAccessRefusal('INVALID_INPUT', 'Enable the batch document generation setting.'),
+            'batch document generation turned off is configuration, not access');
+    }
+
+    // Metadata only, no user: a note if DocGen User starts carrying the DocGen Designer permission.
+    @IsTest
+    static void docGenUserSetDoesNotCarryTheDesignerPermission() {
+        List<PermissionSet> sets = [SELECT PermissionsDocGenDesigner FROM PermissionSet WHERE Name = :DOCGEN_USER];
+        if (!sets.isEmpty() && sets[0].PermissionsDocGenDesigner) {
+            System.debug(LoggingLevel.WARN, 'NOTE: DocGenUser now carries the DocGen Designer permission;'
+                + ' DocGenDesigner may no longer be needed for the batch create.');
         }
+        Assert.areEqual(1, sets.size(), 'DocGenUser is in this org (it ships with the DocGen Designer license)');
     }
 
     private static List<String> unreadable(List<String> objectNames) {

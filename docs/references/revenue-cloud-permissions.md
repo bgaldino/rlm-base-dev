@@ -508,16 +508,16 @@ open until a live persona run passes.**
 | Billing license (`RevLifecycleMgmtBillingPsl`) | The managed role set in the group requires it | Assigned with the group |
 | DocGen Designer license (`DocGenDesignerPsl`), **`DocGenUser`** and **`DocGenDesigner`** | The groups reach no document generation object at all ("Access to entity 'DocumentTemplate' denied", the same for `DocumentGenerationProcess` and `DocGenerationBatchProcess`). `DocGenUser` opens templates (read) and the on-demand `DocumentGenerationProcess` create, but not the batch create: a user-mode insert of `DocGenerationBatchProcess` is refused ("DML operation INSERT not allowed on DocGenerationBatchProcess"), the likely cause of the `INSUFFICIENT_ACCESS` the batch action returned for a billing persona with `DocGenUser` `[inferred: the action itself was not run here]`. `DocGenDesigner` opens it. Help names DocGen User for generating, so both sets are assigned; they share the one license | **Assigned next to the group** by an admin; the build creates no billing persona users. Not in the group, for the todo 452 reason: existing holders of the billing groups may lack `DocGenDesignerPsl`, and a group gaining a set whose license a holder lacks fails to deploy (measured for `BillingAdvancedPsl` in todo 452). `RLM_Sales_Representative` and `RLM_Sales_Operations` do carry `DocGenUser`; the build's sales rep user holds that license (checked on the measured org) |
 | Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private, so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next | `RLM_BillingInvoiceDocuments`, in both groups |
-| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission reads none of the library's files (Minimum Access lacks it; Standard User has it) | `RLM_BillingInvoiceDocuments`, in both groups |
+| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`). Minimum Access lacks it; Standard User has it | `RLM_BillingInvoiceDocuments`, in both groups |
 | Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). It runs in `prepare_docgen`, under the `docgen` flag, while the groups deploy in `prepare_personas`, under `personas`: a personas build with docgen off has no membership. An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
 
 What `DocGenDesigner` opens beyond `DocGenUser` [Measured: same org; user permissions read from `PermissionSet`,
 object access from describe as the user]: `DocGenUser` carries the user permissions DocGen Runtime User,
 Context Service Runtime and Manage Content Links; `DocGenDesigner` carries **DocGen Designer**, **Context
-Service Admin** and Manage Content Links. As objects, Designer adds create and edit on `DocumentTemplate` and
-`DocumentTemplateContentDoc` (template authoring) and create and edit on `DocGenerationBatchProcess`. So a
-billing persona can also author templates and administer context definitions; that is the cost of the batch
-action. The gate on the batch create is the **DocGen Designer** user permission together with create on the
+Service Admin** and Manage Content Links. Both managed billing role sets (Billing Admin, Billing Operations)
+already carry Context Service Admin, so for these personas Designer's real extras are template authoring
+(create and edit on `DocumentTemplate` and `DocumentTemplateContentDoc`) and the batch create (create and edit
+on `DocGenerationBatchProcess`). Template authoring is the cost of the batch action. The gate on the batch create is the **DocGen Designer** user permission together with create on the
 object: a licensed custom set with only that permission is still refused, an object create grant alone is
 refused, and the two together allow the insert, without template edit. Whether the batch action accepts that
 narrower pair instead of the managed set was not measured, so the managed set is what is documented.
@@ -532,7 +532,11 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   CHECKED" WARN debug line, and then proves nothing;
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access
   set): the Invoice Batch Run reads, and with both DocGen sets the batch create, the on-demand create and
-  template read. The Billing Operations run-read checks are regression checks: the managed Operations set
+  template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
+  user-permission gate. With batch document generation turned off (an org setting deployed by `docgen`, not
+  `personas`) the platform refuses it with `INVALID_INPUT` "Enable the batch document generation setting."
+  [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4, and the class, 0AfWt00000hUUHdKAO], so
+  only an access refusal fails the test and any other refusal is a "SKIPPED, NOT CHECKED" WARN line. The Billing Operations run-read checks are regression checks: the managed Operations set
   already reads the runs, and the View All the set adds is checked only by the metadata test;
 - **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
   groups.
@@ -548,9 +552,10 @@ shape (0AfWt00000hURbVKAW) or as direct members (0AfWt00000hUSFpKAO); with only 
 direct member read it (0AfWt00000hUSHRKA4). None of this ran on a build's own group or through the shipped
 class; the live persona run checks it for real.
 
-Where Salesforce might grant more later (the Billing Admin role alone reading the runs, `DocGenUser` alone
-creating a batch process), the class writes a WARN note instead of failing, so a deploy that runs local tests
-is not blocked by a platform change. Before todo 292 the personas bundle had no Apex; a deploy that runs local
+Nothing in the class fails because Salesforce grants more than today, and it creates no user just to watch
+for that: the one remaining note (a WARN line if `DocGenUser` starts carrying the DocGen Designer permission)
+reads metadata only. Each method creates at most one user, so a deploy that runs local tests is not blocked by
+a platform change or by an extra licence seat. Before todo 292 the personas bundle had no Apex; a deploy that runs local
 tests runs every local test in the org, this class included.
 
 Not measured, and to check in the first live run as the persona:

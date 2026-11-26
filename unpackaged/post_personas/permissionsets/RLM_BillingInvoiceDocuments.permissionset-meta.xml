@@ -11,8 +11,9 @@
            run-criteria object (Invoice Batch Run Criteria here). None of the three has a permissionable
            field, so there are no field grants.
          - Access Libraries (ContentWorkspaces): the template file is in the Docgen Document Template
-           Library and is read as the generating user. A library member without this permission reads
-           none of its files (the Minimum Access profile lacks it; Standard User has it).
+           Library and is read as the generating user. A library member without this permission did not
+           read the DefaultInvoiceTemplate file (the only file measured; others inferred). The Minimum
+           Access profile lacks it; Standard User has it.
          No license: the set is in both persona groups, whose holders already have the Billing license,
          so redeploying a group with it cannot fail for a holder. -->
     <description>Billing personas' invoice documents: Read and View All on Invoice Batch Runs (with the scheduler and run criteria they require) and Access Libraries, to read the template file. DocGen sets go next to the group.</description>
