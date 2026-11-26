@@ -233,7 +233,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "strict": {
-            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Blank or unset means False; an unparseable value is refused. Default: False (report only).",
+            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Blank or unset means False; a list or an unparseable value is refused. Default: False (report only).",
             "required": False
         }
     }
