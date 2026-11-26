@@ -157,6 +157,28 @@ Afterwards the payment and credit memo carry open balances that the
 account's next posted invoice may absorb. Measurements: `docs/contracts-billing-settlement.md`
 → *Unapply*.
 
+### Apply an account's open balances by the rules (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli apply-rules --org <sf-alias> --account "<account-name>"
+python -m scripts.txn_data_harness.cli apply-rules --org <sf-alias> --account <accountId> --target-date 2026-11-25
+```
+
+Calls the rule-based application (`/revenue/billing/transactions/actions/apply`)
+once for the whole account: it applies every open payment and credit memo there
+by the Billing Settings rules, not only a run's. Prints each application row it
+created (`APPLIED:`) and the rules the response names (`RULES:`; EA is Match
+Balance, OI Prioritize Oldest Invoices), then runs the `verify` checks on the
+invoices and payments those rows touch. Without `--target-date` only invoices
+posted today (UTC) were considered (measured). Exit 0 when the platform reports
+success and nothing was applied or the checks passed with a balance checked, 1
+when it reports failure, a check fails, nothing could be checked, or its counts
+show applications no new row does, 2 when the account (none or several by that
+name) or the org cannot be read, or the call or a later read fails; read the
+account's payments and credit memos before calling again after a 2. To free a
+run's balances first, `unapply` it. Measurements:
+`docs/contracts-billing-settlement.md` → *Rule-based application*.
+
 ### Verify billing (read-only)
 
 ```bash

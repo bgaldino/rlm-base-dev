@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import threading
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -1875,6 +1876,101 @@ def unapply_credit_line(client: SfRestClient, row_id: str) -> str:
             "unapply", f"credit memo line unapply failed: {result}", record_id=row_id
         )
     return new_id
+
+
+# Rule-based application (todo 498): one call applies an account's open
+# payments and credits to its invoices by the rules in Billing Settings.
+# Measured 2026-11-26 (264, Line Level): see contracts-billing-settlement.md
+# -> Rule-based application.
+
+_ACCOUNT_ID_RE = re.compile(r"^001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?$")
+_IN_CHUNK = 200
+
+# (kind, object, source filter, invoice field) for each application object; a
+# dotted field is read through its relationship.
+_SOURCE_APPLICATIONS = (
+    ("payment", "PaymentLineInvoiceLine", "PaymentId", "InvoiceLine.InvoiceId"),
+    ("credit", "CreditMemoLineInvoiceLine", "CreditMemoLine.CreditMemoId",
+     "InvoiceLine.InvoiceId"),
+    ("payment", "PaymentLineInvoice", "PaymentId", "InvoiceId"),
+    ("credit", "CreditMemoInvApplication", "CreditMemoId", "InvoiceId"),
+)
+
+
+def _dotted(row: dict, path: str) -> Any:
+    for part in path.split("."):
+        row = row.get(part) if isinstance(row, dict) else None
+    return row
+
+
+def _query_ids_in(client: SfRestClient, select: str, field: str, ids: list[str]) -> list[dict]:
+    rows: list[dict] = []
+    for start in range(0, len(ids), _IN_CHUNK):
+        quoted = ", ".join(f"'{i}'" for i in ids[start:start + _IN_CHUNK])
+        rows += client.query(f"{select} WHERE {field} IN ({quoted})")
+    return rows
+
+
+def resolve_account_id(client: SfRestClient, account: str) -> str:
+    """The Id of the Account named ``account``, or of the Account Id ``account``."""
+    if _ACCOUNT_ID_RE.match(account):
+        rows = client.query(f"SELECT Id FROM Account WHERE Id = '{account}'")
+    else:
+        escaped = account.replace("\\", "\\\\").replace("'", "\\'")
+        rows = client.query(f"SELECT Id FROM Account WHERE Name = '{escaped}'")
+    if len(rows) != 1:
+        found = "no account" if not rows else f"{len(rows)} accounts"
+        raise SettlementError("apply-rules", f"{found} found for {account!r}; "
+                              "pass the Account Id")
+    return rows[0]["Id"]
+
+
+def open_sources(client: SfRestClient, account_id: str) -> tuple[list[str], list[str]]:
+    """Ids of the account's payments and credit memos with a non-zero Balance."""
+    payments = client.query(
+        f"SELECT Id FROM Payment WHERE AccountId = '{account_id}' AND Balance != 0")
+    memos = client.query(
+        f"SELECT Id FROM CreditMemo WHERE BillingAccountId = '{account_id}' AND Balance != 0")
+    return [r["Id"] for r in payments], [r["Id"] for r in memos]
+
+
+def read_source_applications(
+    client: SfRestClient, payment_ids: list[str], memo_ids: list[str]
+) -> list[dict]:
+    """Every application row of these payments and credit memos, line and header.
+
+    Each row comes back as ``{"id", "object", "kind", "source_id", "invoice_id",
+    "amount", "type"}``.
+    """
+    out: list[dict] = []
+    for kind, obj, source, invoice in _SOURCE_APPLICATIONS:
+        ids = payment_ids if kind == "payment" else memo_ids
+        if not ids:
+            continue
+        select = f"SELECT Id, Amount, Type, {source}, {invoice} FROM {obj}"
+        for row in _query_ids_in(client, select, source, ids):
+            out.append({"id": row["Id"], "object": obj, "kind": kind,
+                        "source_id": _dotted(row, source),
+                        "invoice_id": _dotted(row, invoice),
+                        "amount": row.get("Amount"), "type": row.get("Type")})
+    return out
+
+
+def apply_rules(client: SfRestClient, account_id: str,
+                target_date: Optional[str] = None) -> dict:
+    """Call the rule-based application once (no transport retry); return its response."""
+    body = {"accountId": account_id}
+    if target_date:
+        body["targetDate"] = target_date
+    result = client.post(
+        f"/services/data/v{client.api_version}/revenue/billing/transactions/actions/apply",
+        body, retry=False,
+    )
+    if not isinstance(result, dict) or "_raw" in result:
+        raise SettlementError("apply-rules",
+                              f"rules application answered {describe_response(result)}")
+    return result
+
 
 def build_payment_record(
     account_id: str,

@@ -816,6 +816,97 @@ def _application_ids(manifest, kind: str) -> list[str]:
                 else manifest.credit_application_ids)
 
 
+def _cmd_apply_rules(args: argparse.Namespace) -> int:
+    """Apply an account's open payments and credits by the Billing Settings rules.
+
+    Sends the rule-based application once for the whole account, lists every
+    application row it created on the payments and credit memos that had a
+    balance before the call, then runs the ``cli verify`` checks on the invoices
+    and payments those rows touch. Exit 0 when the platform reports success and
+    either nothing was applied or the checks passed with at least one balance
+    checked; 1 when the platform reports failure, a check fails, nothing could
+    be checked, or the response counts applications that no new row shows; 2
+    when the account or the org cannot be read, or the call or a later read
+    fails.
+    """
+    try:
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        account_id = lifecycle.resolve_account_id(client, args.account)
+        payment_ids, memo_ids = lifecycle.open_sources(client, account_id)
+        before = {r["id"] for r in lifecycle.read_source_applications(
+            client, payment_ids, memo_ids)}
+    except Exception as exc:  # noqa: BLE001 - nothing was written yet
+        print(f"ERROR: apply-rules: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    try:
+        result = lifecycle.apply_rules(client, account_id, args.target_date)
+    except Exception as exc:  # noqa: BLE001 - exit 1 is a verdict, never an error
+        print(f"ERROR: apply-rules: {_error_message(exc)}; read the account's payments "
+              "and credit memos before calling again", file=sys.stderr)
+        return 2
+    try:
+        new = [r for r in lifecycle.read_source_applications(client, payment_ids, memo_ids)
+               if r["id"] not in before]
+    except Exception as exc:  # noqa: BLE001 - the call already ran
+        print(f"ERROR: apply-rules: the call returned, but its applications could not "
+              f"be read: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    for r in new:
+        print(f"APPLIED: {r['kind']} {r['source_id']} {r['amount']} -> invoice "
+              f"{r['invoice_id']} ({r['object']} {r['id']}, {r['type']})")
+    summary = result.get("rulesApplicationSummary") or {}
+    rules = ", ".join(result.get("appliedRules") or []) or "none"
+    print(f"RULES: {rules}; {json.dumps(summary, sort_keys=True)}")
+    if summary.get("areAllInvoicesConsidered") is False:
+        print("WARNING: the platform did not consider every invoice "
+              "(areAllInvoicesConsidered false)")
+    label = f"account {account_id}"
+    if result.get("isSuccess") is not True or result.get("errors"):
+        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}, "
+              f"errors {json.dumps(result.get('errors') or [])}")
+        print(f"APPLY-RULES: fail ({label})")
+        return 1
+    if not new:
+        counted = sum(summary.get(k) or 0 for k in
+                      ("totalPaymentApplications", "totalCreditMemoApplications"))
+        if counted:
+            print(f"FAIL: the response counts {counted} application(s), but no new "
+                  "application row was found on the account's open payments and credit "
+                  "memos")
+            print(f"APPLY-RULES: fail ({label})")
+            return 1
+        print(f"APPLY-RULES: pass ({label}: nothing applied)")
+        return 0
+    invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
+    payment_ids_hit = list(dict.fromkeys(r["source_id"] for r in new if r["kind"] == "payment"))
+    try:
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids_hit)
+        report = billing_verify.run_checks(records)
+    except Exception as exc:  # noqa: BLE001 - verify could not report
+        print(f"ERROR: apply-rules verify: {_error_message(exc)} (the call applied "
+              f"{len(new)} row(s), listed above)", file=sys.stderr)
+        return 2
+    print(billing_verify.render_text(report))
+    if not report["ok"] or not report["checked"]:
+        reason = "a check failed" if not report["ok"] else "no balance was checked"
+        print(f"APPLY-RULES: fail ({label}: {reason})")
+        return 1
+    print(f"APPLY-RULES: pass ({label}: {len(new)} application(s) made and checked)")
+    return 0
+
+
+def _target_date(value: str) -> str:
+    """argparse type: an ISO date (YYYY-MM-DD)."""
+    from datetime import date
+
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a date (YYYY-MM-DD): {value!r}") from None
+
+
 def _emit(text: str) -> None:
     """Print to stdout; a reader that closed the pipe (``| head -1``) is not an error.
 
@@ -976,6 +1067,21 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                          help="Unapply only the payment's or only the credit's "
                               "applications (default: both, payment first).")
     unapply.set_defaults(func=_cmd_unapply)
+
+    apply_rules = sub.add_parser(
+        "apply-rules",
+        help="Apply an account's open payments and credits by the Billing Settings "
+             "rules, then verify what was applied (writes; exit 1 on a failed check).",
+    )
+    add_connection_args(apply_rules)
+    apply_rules.add_argument("--account", required=True,
+                             help="Account name, or Account Id when the name is not "
+                                  "unique.")
+    apply_rules.add_argument("--target-date", type=_target_date,
+                             help="Consider only invoices posted on or after this date "
+                                  "(YYYY-MM-DD). Without it, only invoices posted "
+                                  "today (UTC) were considered (measured).")
+    apply_rules.set_defaults(func=_cmd_apply_rules)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

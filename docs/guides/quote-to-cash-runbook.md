@@ -153,8 +153,8 @@ the pair (measured at Line Level on 264, in either order). Rerunning sends nothi
 
 - Only a finished settlement is reversed: no error on the run, and
   `payment_applied` reached (or `credit_applied` for a settlement with no
-  payment). Nothing
-  reapplies afterwards.
+  payment). The run's own settlement steps do not run again; to reapply
+  the freed balances, see [Apply by the rules](#apply-by-the-rules).
 - The payment and credit memo now carry open balances, and posting the
   account's next invoice applies what it can of them. When that covers the
   whole invoice, as in the measured cases (both reversed, a same-sized next
@@ -162,6 +162,34 @@ the pair (measured at Line Level on 264, in either order). Rerunning sends nothi
   fails it with no credit memo or payment of its own; rerun until the leftover
   is used up.
 - Header Level was not measured; the command refuses a run recorded there.
+
+## Apply by the rules
+
+To show rule-based application (Billing Settings: payments or credits first,
+then the match rules), free a run's balances and let the platform place them:
+
+```bash
+python -m scripts.txn_data_harness.cli unapply --org $ORG --manifest $RUN
+python -m scripts.txn_data_harness.cli apply-rules --org $ORG --account "Infinitech"
+```
+
+`apply-rules` makes one call for the whole account, so it applies every open
+payment and credit memo there, not only this run's, to whichever invoices the
+rules pick. It prints each application it made and the rules the platform
+reports, then runs the `verify` checks on the invoices and payments it touched.
+What was measured (264, Line Level, the build's rules Match Balance, then
+Prioritize Oldest Invoices):
+
+- Without `--target-date`, only invoices posted today (UTC) were candidates;
+  pass `--target-date YYYY-MM-DD` to include older ones.
+- A payment matching one candidate's balance went to it. One with no match
+  went to the oldest candidate. A freed 445.50 payment and 49.50 credit went
+  together to the oldest 495.00 invoice, their sum, not to the run's own
+  invoice.
+
+So the run's invoice ends settled only when the rules pick it. Details and
+exit codes:
+[`contracts-billing-settlement.md` → Rule-based application](../../scripts/txn_data_harness/docs/contracts-billing-settlement.md#rule-based-application).
 
 ## When a stage fails
 
