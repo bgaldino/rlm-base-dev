@@ -17,16 +17,13 @@ import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardCon
 // filters still free to narrow it) or 'failed' (anything else: "... could not be loaded", try again). A
 // failed call (a wire or imperative error) is always 'failed'. Nothing unavailable is shown as a zero or an
 // empty "none", and a short list with more rows than it shows says so.
-const NOT_AVAILABLE = '\u2014';
+// "—": nothing to show (no value, no plan, no contact) or a figure that could not be read.
+const DASH = '\u2014';
 const REFUSED = 'refused';
 const FAILED = 'failed';
 // More rows than a bounded read may take (the controller's ROW_CAP, or what is left of the call's query
 // rows): the figure or list would be built from a cut-off read, so narrow the filters instead.
 const TOO_MANY = 'tooMany';
-// Amounts in another currency could not be converted (the conversion rates could not be read): not something a
-// refresh fixes.
-const NO_RATES = 'noRates';
-const NO_RATES_TEXT = 'Amounts in other currencies cannot be converted: the conversion rates could not be read. Contact your administrator.';
 const SUBJECTS = {
     accounts: 'accounts',
     invoices: 'invoices',
@@ -90,7 +87,6 @@ function tooManyText(scope, active) {
 
 function unavailableText(subject, reason, scope, active) {
     if (reason === REFUSED) return `You don't have access to ${subject}.`;
-    if (reason === NO_RATES) return NO_RATES_TEXT;
     if (reason === TOO_MANY) return tooManyText(scope, active);
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
@@ -126,11 +122,6 @@ function noteClauses(scope, active) {
             short: tooManyShort,
             action: narrowing || undefined
         },
-        [NO_RATES]: {
-            alone: 'the conversion rates for their currencies could not be read. Contact your administrator.',
-            short: 'conversion rates could not be read',
-            action: 'Contact your administrator.'
-        },
         [FAILED]: {
             alone: 'they could not be loaded. Refresh the page to try again.',
             short: 'could not be loaded',
@@ -138,7 +129,7 @@ function noteClauses(scope, active) {
         }
     };
 }
-const NOTE_ORDER = [REFUSED, TOO_MANY, NO_RATES, FAILED];
+const NOTE_ORDER = [REFUSED, TOO_MANY, FAILED];
 
 function listNames(names) {
     return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
@@ -156,11 +147,20 @@ function failedSection(empty) {
 const LOADING = Object.freeze({ status: 'loading' });
 const READY = Object.freeze({ status: 'ready' });
 const LOADING_TEXT = 'Loading\u2026';
-// A row's lookup that was refused or failed: not "none".
-const NOT_AVAILABLE_CELL = 'Not available';
+// "Not available": a value that exists, or may, but could not be read (refused, failed, or hidden by sharing).
+const NOT_AVAILABLE_TEXT = 'Not available';
+
+// One rule for every name cell, in every row type (todo 435): a name the user may read is the name, linked to
+// its record; a record whose name could not be read (refused, failed, or hidden by sharing) is "Not available"
+// as plain text, since its record would open on an insufficient-privileges page; no record is "—".
+function nameCell(objectName, id, name, unavailable) {
+    if (unavailable || (id && !name)) return { label: NOT_AVAILABLE_TEXT, url: null };
+    if (!id) return { label: DASH, url: null };
+    return { label: name, url: `/lightning/r/${objectName}/${id}/view` };
+}
 
 function knownReason(reason) {
-    return reason === REFUSED || reason === TOO_MANY || reason === NO_RATES ? reason : FAILED;
+    return reason === REFUSED || reason === TOO_MANY ? reason : FAILED;
 }
 
 function unavailableState(reason) {
@@ -177,7 +177,7 @@ function wrapperState(wrapper) {
 // The text of a figure: the formatted value when ready, nothing while loading, the dash when unavailable.
 function figureText(state, format) {
     if (state.status === 'ready') return format();
-    return state.status === 'loading' ? '' : NOT_AVAILABLE;
+    return state.status === 'loading' ? '' : DASH;
 }
 
 // A failed worklist call: every tab is not available, next to the error banner.
@@ -229,7 +229,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     loadOptions() {
         this.isLoadingOptions = true;
         // Each call stands alone: a failed default-currency or currency call touches only the currency filter
-        // (it falls back to "All Currencies" and the default), a failed accounts call only the account filter
+        // (it falls back to the default currency alone), a failed accounts call only the account filter
         // (it says the accounts could not be loaded), and the page loads either way, with no error toast.
         Promise.all([
             getOrgDefaultCurrency().catch(() => null),
@@ -238,19 +238,22 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         ])
             .then(([defaultCode, currencyOpts, accountOpts]) => {
                 this.orgDefaultCurrency = defaultCode || 'USD';
-                this.currencyOptions = Array.isArray(currencyOpts)
-                    ? currencyOpts
-                    : [
-                          { value: '', label: 'All Currencies' },
-                          { value: this.orgDefaultCurrency, label: this.orgDefaultCurrency }
-                      ];
+                const options =
+                    Array.isArray(currencyOpts) && currencyOpts.length > 0
+                        ? currencyOpts
+                        : [{ value: this.orgDefaultCurrency, label: this.orgDefaultCurrency }];
+                this.currencyOptions = options;
+                // A multi-currency org shows one currency at a time and offers no "All Currencies": the user's
+                // currency is chosen, else the first one offered.
+                if (!this.selectedCurrency && !options.some((option) => option.value === '')) {
+                    this.selectedCurrency = options.some((option) => option.value === this.orgDefaultCurrency)
+                        ? this.orgDefaultCurrency
+                        : options[0].value;
+                }
                 this.listedAccountOptions = Array.isArray(accountOpts?.options) ? accountOpts.options : [ALL_ACCOUNTS];
                 this.accountOptionsHaveMore = accountOpts?.hasMore === true;
                 this.accountOptionsUnavailableReason = accountOpts?.unavailable ? knownReason(accountOpts.unavailableReason) : null;
                 this.accountOptions = this.listedAccountOptions;
-                if (!this.selectedCurrency) {
-                    this.selectedCurrency = '';
-                }
                 this.dispatchFilterChange();
             })
             .finally(() => {
@@ -392,9 +395,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         };
     }
 
-    // Every amount on the page is in one currency (the chosen one, or else the user's); on a multi-currency org,
-    // amounts recorded in another currency are converted, and the page says so.
-    // The currency each section's answer says its amounts are in.
+    // The page shows one currency at a time (the chosen one, else the user's): on a multi-currency org every
+    // amount read is filtered to it, and nothing is converted. Each section's answer says which currency it is.
     get cardsCurrency() {
         return this.dashboardData?.currencyCode;
     }
@@ -414,7 +416,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     get currencyNote() {
         const data = this.dashboardData;
         if (!data || !data.multiCurrency || !data.currencyCode) return '';
-        return `Amounts in ${data.currencyCode}. Amounts recorded in another currency are converted at the org's conversion rates.`;
+        return `Showing amounts in ${data.currencyCode} only. Choose another currency to see its amounts.`;
     }
 
     get displayCurrency() {
@@ -450,7 +452,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         if (value === this.selectedCurrency) return;
         this.selectedCurrency = value;
         this.resetFilteredSections();
-        // Progress and the user's plans are not filtered by currency, but their amounts are shown in it.
+        // Progress and the user's plans are filtered by currency too.
         this.collectionsProgressData = undefined;
         this.myCollectionPlansState = undefined;
         this.dispatchFilterChange();
@@ -670,7 +672,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         );
     }
 
-    // Formats an amount in the currency its section's answer is in (the server's page currency). A section shows
+    // Formats an amount in the currency its section's answer is in (the currency the server shows). A section shows
     // amounts only once it has answered, so its currency is known; displayCurrency is only a fallback.
     formatCurrency(val, currencyCode) {
         const n = Number(val);
@@ -684,14 +686,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     formatPtpDate(dateVal) {
-        if (!dateVal) return '—';
+        if (!dateVal) return DASH;
         // A date-only 'YYYY-MM-DD' is a calendar date: read it as local midnight, never as UTC midnight,
         // which the browser would show as the day before west of UTC (todo 435).
         let d = dateVal;
         if (typeof dateVal === 'string') {
             d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateVal) ? `${dateVal}T00:00:00` : dateVal);
         }
-        if (isNaN(d.getTime())) return '—';
+        if (isNaN(d.getTime())) return DASH;
         return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
@@ -778,7 +780,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData.totalBalanceBreakdown.map((b) => ({
             ...b,
             amount: b.amount != null ? b.amount : 0,
-            formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0, this.cardsCurrency),
+            formatted: b.unavailable ? DASH : this.formatCurrency(b.amount != null ? b.amount : 0, this.cardsCurrency),
             title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), this.cardsScope(b.unavailable), this.activeFilters) : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
@@ -947,57 +949,38 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 uniqueKey: `critical-inv-${item.invoiceId || idx}`,
                 balanceFormatted: this.formatCurrency(item.balance, this.worklistCurrency),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
-                // A name the user may not read (refused, or hidden by sharing) is plain text: its record would
-                // open on an insufficient-privileges page.
-                accountUrl: item.billingAccountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
-                billingAccountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.billingAccountName,
-                // The contact's name; one the user may not read (refused, or hidden by sharing) is plain text.
-                contactUrl: item.billToContactId && !item.billToContactNameUnavailable ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
-                billToContactLabel: this.contactLabel(item),
-                collectionPlanLabel: item.collectionPlanName || NOT_AVAILABLE,
-                collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
+                account: nameCell('Account', item.billingAccountId, item.billingAccountName, item.accountNameUnavailable),
+                contact: nameCell('Contact', item.billToContactId, item.billToContactName, item.billToContactNameUnavailable),
                 ...this.planCell(item)
             }));
         }
         return list.map((item, idx) => {
-            let ptpDateFormatted = item.ptpDate ? this.formatPtpDate(item.ptpDate) : '—';
-            if (item.ptpUnavailable) ptpDateFormatted = NOT_AVAILABLE_CELL;
+            let ptpDateFormatted = item.ptpDate ? this.formatPtpDate(item.ptpDate) : DASH;
+            if (item.ptpUnavailable) ptpDateFormatted = NOT_AVAILABLE_TEXT;
             const disputeReason = item.disputeReason || '';
-            const disputeReasonShort = disputeReason.length > 60 ? disputeReason.slice(0, 57) + '...' : (disputeReason || '—');
+            const disputeReasonShort = disputeReason.length > 60 ? disputeReason.slice(0, 57) + '...' : (disputeReason || DASH);
             return {
                 ...item,
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
-                accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
                 balanceFormatted: this.formatCurrency(item.balance, this.worklistCurrency),
-                accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
+                account: nameCell('Account', item.accountId, item.accountName, item.accountNameUnavailable),
                 invoiceNumber: null,
                 invoiceUrl: null,
                 ptpDateFormatted,
-                disputeReasonShort: disputeReasonShort || '—',
+                disputeReasonShort: disputeReasonShort || DASH,
                 disputeReason: disputeReason || '',
-                collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
-                collectionPlanLabel: item.collectionPlanName || NOT_AVAILABLE,
                 caseUrl: item.caseId ? `/lightning/r/Case/${item.caseId}/view` : null,
                 ...this.planCell(item)
             };
         });
     }
 
-    // The bill-to contact column: the contact's name, "Not available" when it could not be read, "—" for none.
-    contactLabel(item) {
-        if (!item.billToContactId) return NOT_AVAILABLE;
-        if (item.billToContactNameUnavailable || !item.billToContactName) return NOT_AVAILABLE_CELL;
-        return item.billToContactName;
-    }
-
-    // The plan column of a worklist row: a plan the lookup could not read is "Not available" and offers no
-    // Create (it may exist); a plan that was read and is absent is "—" with Create (a plan sharing hides from
-    // the user reads as absent too: a USER_MODE read cannot tell the two apart).
+    // The plan column of a worklist row (Critical, High-Value, Disputed), by nameCell. A plan lookup refused or
+    // failed is "Not available" too. Create is offered only with no plan ("—"): a plan sharing hides from the
+    // user reads as absent too, since a USER_MODE read cannot tell the two apart.
     planCell(item) {
-        return {
-            planCellText: item.collectionPlanUnavailable ? NOT_AVAILABLE_CELL : NOT_AVAILABLE,
-            showCreatePlan: !item.collectionPlanUnavailable
-        };
+        const plan = nameCell('CollectionPlan', item.collectionPlanId, item.collectionPlanName, item.collectionPlanUnavailable);
+        return { plan, showCreatePlan: plan.label === DASH };
     }
 
     // Each tab shows a fixed number of rows; when there are more, the tab says so. hasMore maps each such tab
@@ -1073,11 +1056,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return 'tab-disputed';
     }
 
-    taskPlanLabel(task) {
-        if (!task.collectionPlanId) return NOT_AVAILABLE;
-        return task.collectionPlanName || NOT_AVAILABLE_CELL;
-    }
-
     get cpTasks() {
         if (!this.cpTasksData || !Array.isArray(this.cpTasksData)) return [];
         return this.cpTasksData.map((t, idx) => {
@@ -1087,10 +1065,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 ...t,
                 uniqueKey: `cptask-${t.taskId || idx}`,
                 taskUrl: t.taskId ? `/lightning/r/Task/${t.taskId}/view` : '#',
-                activityDateFormatted: t.activityDate ? this.formatPtpDate(t.activityDate) : '—',
-                // The plan by name: "Not available" if a listed task's plan came back without one, "—" for none.
-                cpUrl: t.collectionPlanId && t.collectionPlanName ? `/lightning/r/CollectionPlan/${t.collectionPlanId}/view` : null,
-                planLabel: this.taskPlanLabel(t),
+                activityDateFormatted: t.activityDate ? this.formatPtpDate(t.activityDate) : DASH,
+                plan: nameCell('CollectionPlan', t.collectionPlanId, t.collectionPlanName, false),
                 subjectShort
             };
         });
@@ -1133,10 +1109,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.myCollectionPlansData.map((item, idx) => ({
             ...item,
             uniqueKey: `mycp-${item.collectionPlanId || idx}`,
-            cpUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : '#',
-            accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
-            accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
-            dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : '—',
+            plan: nameCell('CollectionPlan', item.collectionPlanId, item.name, false),
+            account: nameCell('Account', item.accountId, item.accountName, item.accountNameUnavailable),
+            dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : DASH,
             toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance, this.plansCurrency)
         }));
     }
@@ -1255,7 +1230,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     formatDateShort(dateVal) {
-        if (!dateVal) return '—';
+        if (!dateVal) return DASH;
         try {
             const d = new Date(dateVal + 'T00:00:00');
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });

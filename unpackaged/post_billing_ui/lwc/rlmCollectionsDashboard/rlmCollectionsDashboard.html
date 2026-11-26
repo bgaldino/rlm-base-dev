@@ -136,7 +136,7 @@
                                             <th scope="col">Balance</th>
                                             <th scope="col">Days Invoice Overdue</th>
                                             <th scope="col">Bill To Contact</th>
-                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Collection Plan</th>
                                             <th scope="col">Actions</th>
                                         </template>
                                         <template if:false={worklistTabCriticalActive}>
@@ -146,7 +146,7 @@
                                             <th scope="col">PTP Date</th>
                                             <th scope="col">Dispute Reason</th>
                                             <template if:true={showActionButtons}>
-                                                <th scope="col">Collection Plan ID</th>
+                                                <th scope="col">Collection Plan</th>
                                             </template>
                                             <template if:false={showActionButtons}>
                                                 <th scope="col">Case Number</th>
@@ -160,11 +160,11 @@
                                         <tr key={row.uniqueKey}>
                                             <template if:true={worklistTabCriticalActive}>
                                                 <td>
-                                                    <template if:true={row.accountUrl}>
-                                                        <a href={row.accountUrl} class="customer-name">{row.billingAccountName}</a>
+                                                    <template if:true={row.account.url}>
+                                                        <a href={row.account.url} class="customer-name">{row.account.label}</a>
                                                     </template>
-                                                    <template if:false={row.accountUrl}>
-                                                        <span>{row.billingAccountName}</span>
+                                                    <template if:false={row.account.url}>
+                                                        <span>{row.account.label}</span>
                                                     </template>
                                                 </td>
                                                 <td class="num">
@@ -178,16 +178,16 @@
                                                 <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
                                                 <td>
-                                                    <template if:true={row.contactUrl}>
-                                                        <a href={row.contactUrl} class="customer-name">{row.billToContactLabel}</a>
+                                                    <template if:true={row.contact.url}>
+                                                        <a href={row.contact.url} class="customer-name">{row.contact.label}</a>
                                                     </template>
-                                                    <template if:false={row.contactUrl}>{row.billToContactLabel}</template>
+                                                    <template if:false={row.contact.url}>{row.contact.label}</template>
                                                 </td>
                                                 <td class="num">
-                                                    <template if:true={row.collectionPlanUrl}>
-                                                        <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanLabel}</a>
+                                                    <template if:true={row.plan.url}>
+                                                        <a href={row.plan.url} class="customer-name">{row.plan.label}</a>
                                                     </template>
-                                                    <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
+                                                    <template if:false={row.plan.url}>{row.plan.label}</template>
                                                 </td>
                                                 <td class="actions-cell">
                                                     <template if:true={row.showCreatePlan}>
@@ -200,11 +200,11 @@
                                             <template if:false={worklistTabCriticalActive}>
                                                 <td>
                                                     <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
-                                                    <template if:true={row.accountUrl}>
-                                                        <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
+                                                    <template if:true={row.account.url}>
+                                                        <a href={row.account.url} class="customer-name">{row.account.label}</a>
                                                     </template>
-                                                    <template if:false={row.accountUrl}>
-                                                        <span>{row.accountName}</span>
+                                                    <template if:false={row.account.url}>
+                                                        <span>{row.account.label}</span>
                                                     </template>
                                                 </td>
                                                 <td class="num">{row.balanceFormatted}</td>
@@ -213,10 +213,10 @@
                                                 <td class="dispute-cell" title={row.disputeReason}>{row.disputeReasonShort}</td>
                                                 <template if:true={showActionButtons}>
                                                     <td class="num">
-                                                        <template if:true={row.collectionPlanUrl}>
-                                                            <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanLabel}</a>
+                                                        <template if:true={row.plan.url}>
+                                                            <a href={row.plan.url} class="customer-name">{row.plan.label}</a>
                                                         </template>
-                                                        <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
+                                                        <template if:false={row.plan.url}>{row.plan.label}</template>
                                                     </td>
                                                 </template>
                                                 <template if:false={showActionButtons}>
@@ -334,10 +334,10 @@
                                                 <td>{task.status}</td>
                                                 <td class="num">{task.activityDateFormatted}</td>
                                                 <td>
-                                                    <template if:true={task.cpUrl}>
-                                                        <a href={task.cpUrl} class="cp-task-cpid">{task.planLabel}</a>
+                                                    <template if:true={task.plan.url}>
+                                                        <a href={task.plan.url} class="cp-task-cpid">{task.plan.label}</a>
                                                     </template>
-                                                    <template if:false={task.cpUrl}>{task.planLabel}</template>
+                                                    <template if:false={task.plan.url}>{task.plan.label}</template>
                                                 </td>
                                             </tr>
                                         </template>
@@ -368,7 +368,7 @@
                                 <table class="my-cp-table" role="grid">
                                     <thead>
                                         <tr>
-                                            <th scope="col">Collection Plan ID</th>
+                                            <th scope="col">Collection Plan</th>
                                             <th scope="col">Due Date</th>
                                             <th scope="col">Account</th>
                                             <th scope="col">To Recover</th>
@@ -377,14 +377,19 @@
                                     <tbody>
                                         <template for:each={myCollectionPlans} for:item="plan">
                                             <tr key={plan.uniqueKey}>
-                                                <td><a href={plan.cpUrl} class="customer-name" title={plan.name}>{plan.name}</a></td>
+                                                <td>
+                                                    <template if:true={plan.plan.url}>
+                                                        <a href={plan.plan.url} class="customer-name">{plan.plan.label}</a>
+                                                    </template>
+                                                    <template if:false={plan.plan.url}>{plan.plan.label}</template>
+                                                </td>
                                                 <td class="num">{plan.dueDateFormatted}</td>
                                                 <td>
-                                                    <template if:true={plan.accountUrl}>
-                                                        <a href={plan.accountUrl} class="customer-name">{plan.accountName}</a>
+                                                    <template if:true={plan.account.url}>
+                                                        <a href={plan.account.url} class="customer-name">{plan.account.label}</a>
                                                     </template>
-                                                    <template if:false={plan.accountUrl}>
-                                                        <span>{plan.accountName}</span>
+                                                    <template if:false={plan.account.url}>
+                                                        <span>{plan.account.label}</span>
                                                     </template>
                                                 </td>
                                                 <td class="num">{plan.toRecoverFormatted}</td>

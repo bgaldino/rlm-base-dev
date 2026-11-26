@@ -19,12 +19,10 @@
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
  * Task has no object permission (access follows the related record), so only its permissionable
- * fields are listed. DatedConversionRate is listed for the Collections Dashboard (COLLECTIONS_READS and
- * DASHBOARD_READS), which converts amounts at today's dated rates where there are any; unreadable() skips it, and
- * CurrencyType, on a single-currency org. Left out on purpose: InvoiceBatchRun (the
+ * fields are listed. Left out on purpose: DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
  * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
  * set does not, and the RLM_Billing_Admin and RLM_Billing_Operations groups grant it through
- * RLM_BillingInvoiceDocuments, todo 292) and DisputeItem (the write check covers it).
+ * RLM_BillingInvoiceDocuments, todo 292), and DisputeItem (the write check covers it).
  */
 @IsTest
 private class RLM_BillingUIAccessTest {
@@ -153,9 +151,7 @@ private class RLM_BillingUIAccessTest {
             'Name', 'AccountId', 'Duedate', 'TotalInvoiceBalance', 'OwnerId', 'ClosedDate',
             'CreatedDate', 'DaysPastDue', 'CurrencyIsoCode'
         },
-        'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' },
-        // The Collections Dashboard converts amounts at today's dated rates where there are any (todo 435).
-        'DatedConversionRate' => new List<String>{ 'IsoCode', 'ConversionRate', 'StartDate', 'NextStartDate' }
+        'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' }
     };
 
     // What the Collections Dashboard controller reads, for a collections user who holds RLM_CollectionsDashboard
@@ -166,9 +162,7 @@ private class RLM_BillingUIAccessTest {
         'Account' => new List<String>{ 'Name' },
         // The Critical list's bill-to contact names.
         'Contact' => new List<String>{ 'Name' },
-        'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive', 'ConversionRate' },
-        // Today's dated rates, where advanced currency management has the object.
-        'DatedConversionRate' => new List<String>{ 'IsoCode', 'ConversionRate', 'StartDate', 'NextStartDate' },
+        'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive' },
         'Invoice' => new List<String>{
             'InvoiceNumber', 'Balance', 'DueDate', 'BillingAccountId',
             'BillToContactId', 'Status', 'CurrencyIsoCode'
@@ -361,7 +355,7 @@ private class RLM_BillingUIAccessTest {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();
         for (String obj : manifest.keySet()) {
-            if ((obj == 'CurrencyType' || obj == 'DatedConversionRate') && !multiCurrency) {
+            if (obj == 'CurrencyType' && !multiCurrency) {
                 continue;
             }
             List<String> fields = new List<String>{ 'Id' };

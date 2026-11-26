@@ -127,9 +127,9 @@ const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied 
 const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
 
 // Mounts with the filter options answered and every data section still waiting for its wire.
-async function mount({ accountsHaveMore = false, accounts, after } = {}) {
+async function mount({ accountsHaveMore = false, accounts, after, currencies = [{ value: "", label: "All Currencies" }] } = {}) {
   getOrgDefaultCurrency.mockResolvedValue("USD");
-  getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
+  getCurrencyOptions.mockResolvedValue(currencies);
   if (accounts) accounts();
   else
     getAccountOptions.mockResolvedValue({
@@ -942,16 +942,18 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
 
   // A currency call that fails touches only the currency filter: the accounts read still lists its accounts.
   it.each([
-    ["the currency options", () => getCurrencyOptions.mockRejectedValue(new Error("down"))],
-    ["the default currency", () => getOrgDefaultCurrency.mockRejectedValue(new Error("down"))]
-  ])("keeps the accounts when %s fail", async (label, breakCurrency) => {
+    ["the currency options", () => getCurrencyOptions.mockRejectedValue(new Error("down")), ["USD"], "USD"],
+    ["the default currency", () => getOrgDefaultCurrency.mockRejectedValue(new Error("down")), [""], ""]
+  ])("keeps the accounts when %s fail", async (label, breakCurrency, currencyValues, chosen) => {
     const element = await mount({ accountsHaveMore: true, after: breakCurrency });
 
     const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
     expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Acme"]);
     expect(text(element, ".filter-notice")).toEqual(["Showing the first 1 accounts by name. Search for an account to find another."]);
+    // Failed currency options fall back to the default currency alone, chosen; a failed default keeps the options.
     const currency = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "currency");
-    expect(currency.options.map((option) => option.label)[0]).toBe("All Currencies");
+    expect(currency.options.map((option) => option.value)).toEqual(currencyValues);
+    expect(currency.value).toBe(chosen);
   });
 
   // A search that fails or is refused after one that found accounts lists the first page again, keeping the
@@ -1045,15 +1047,39 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     expect(nameAnchors()).toEqual([]);
   });
 
-  // On a multi-currency org the page says which currency its amounts are in, and that others are converted.
-  it("states the currency of every amount on a multi-currency org", async () => {
+  // On a multi-currency org the page shows one currency at a time and says which.
+  it("states which currency it shows on a multi-currency org", async () => {
     const element = await mount();
     getDashboardCards.emit({ ...cards(), currencyCode: "USD", multiCurrency: true });
     await flushPromises();
 
-    expect(text(element, ".currency-note")).toEqual([
-      "Amounts in USD. Amounts recorded in another currency are converted at the org's conversion rates."
-    ]);
+    expect(text(element, ".currency-note")).toEqual(["Showing amounts in USD only. Choose another currency to see its amounts."]);
+  });
+
+  // A multi-currency org offers no "All Currencies": the user's currency is chosen, else the first one offered,
+  // and every section reads it.
+  it.each([
+    ["the user's currency", [{ value: "EUR", label: "EUR" }, { value: "USD", label: "USD" }], "USD"],
+    ["the first currency when the user's is not offered", [{ value: "EUR", label: "EUR" }, { value: "GBP", label: "GBP" }], "EUR"]
+  ])("chooses %s on a multi-currency org", async (label, currencies, chosen) => {
+    const element = await mount({ currencies });
+
+    const currency = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "currency");
+    expect(currency.value).toBe(chosen);
+    expect(currency.options.map((option) => option.label)).not.toContain("All Currencies");
+    expect(text(element, ".filter-context")[0]).toContain(chosen);
+    for (const adapter of [getDashboardCards, getWorklist, getPaymentPromiseSummary, getMyCollectionPlans, getCollectionsProgress]) {
+      expect(adapter.getLastConfig().currencyCode).toBe(chosen);
+    }
+  });
+
+  // A single-currency org keeps "All Currencies", chosen, and sends no currency.
+  it("keeps All Currencies on a single-currency org", async () => {
+    const element = await mount({ currencies: [{ value: "", label: "All Currencies" }, { value: "USD", label: "USD" }] });
+
+    const currency = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "currency");
+    expect(currency.value).toBe("");
+    expect(getDashboardCards.getLastConfig().currencyCode).toBeNull();
   });
 
   it("says nothing about currencies on a single-currency org", async () => {
@@ -1079,7 +1105,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
   });
 
   // Amounts are in the currency the server says each section is in, not the client's default.
-  it("formats the cards in the server's page currency when the default currency call fails", async () => {
+  it("formats the cards in the server's currency when the default currency call fails", async () => {
     const element = await mount({ after: () => getOrgDefaultCurrency.mockRejectedValue(new Error("down")) });
     getDashboardCards.emit({ ...cards(), currencyCode: "EUR", multiCurrency: true });
     await flushPromises();
@@ -1098,17 +1124,6 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
       recoveredPercent: 100, notRecoveredPercent: 0, avgDaysToClose: 1, avgDaysPastDue: 1, unavailable: false, currencyCode: "GBP" });
     await flushPromises();
     expect(element.shadowRoot.textContent).toContain("£50.00");
-  });
-
-  // Conversion rates that cannot be read are named as the cause, not "refresh the page".
-  it("says the conversion rates could not be read, not to refresh", async () => {
-    const element = await mount();
-    getDashboardCards.emit(cards(["invoices"], { invoices: "noRates" }));
-    await flushPromises();
-
-    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(
-      "Amounts in other currencies cannot be converted: the conversion rates could not be read. Contact your administrator."
-    );
   });
 
   // The bill-to contact and the collection plan are labelled by name, not by record Id.
@@ -1165,5 +1180,84 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     const rows = Array.from(table.querySelectorAll("tbody tr"));
     expect(rows[1].textContent).toContain("Not available");
     expect(rows[1].querySelector("a.cp-task-cpid")).toBeNull();
+  });
+
+  // A plan whose name could not be read is "Not available" as plain text, not a link labelled "—"; no plan is "—".
+  it("shows a plan without a readable name as not available, with no link and no Create", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [
+        { invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", collectionPlanId: "0Wn000000000001AAA", collectionPlanUnavailable: false },
+        { invoiceId: "3tt000000000002AAA", invoiceNumber: "INV-2", balance: 2600, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", collectionPlanUnavailable: false }
+      ],
+      highValueDelinquents: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 5000,
+        collectionPlanId: "0Wn000000000002AAA", collectionPlanUnavailable: false }]
+    });
+    await flushPromises();
+
+    const planLinks = (tr) => Array.from(tr.querySelectorAll("a")).filter((a) => (a.getAttribute("href") || "").includes("/CollectionPlan/"));
+    let rows = Array.from(element.shadowRoot.querySelectorAll(".worklist-table tbody tr"));
+    expect(planLinks(rows[0])).toEqual([]);
+    expect(rows[0].textContent).toContain("Not available");
+    expect(rows[0].textContent).not.toContain("Create Collection Plan");
+    expect(planLinks(rows[1])).toEqual([]);
+    expect(rows[1].textContent).toContain("Create Collection Plan");
+    await openTab(element, "highValue");
+    rows = Array.from(element.shadowRoot.querySelectorAll(".worklist-table tbody tr"));
+    expect(planLinks(rows[0])).toEqual([]);
+    expect(rows[0].textContent).toContain("Not available");
+  });
+
+  // One rule for every name cell: a readable name is linked, an Id without a readable name is "Not available"
+  // as plain text, and no Id is "—" (todo 435).
+  it("applies one name rule to accounts, contacts and plans in every row type", async () => {
+    const element = await mount();
+    const links = (tr) => Array.from(tr.querySelectorAll("a")).map((a) => a.getAttribute("href") || "").filter((h) => h.startsWith("/lightning/r/"));
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [
+        { invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500, billingAccountId: "001000000000001AAA",
+          accountNameUnavailable: true, billToContactId: "003000000000001AAA", collectionPlanUnavailable: true }
+      ],
+      highValueDelinquents: [{ accountId: "001000000000002AAA", accountName: "Beta", balance: 10,
+        collectionPlanId: "0Wn000000000003AAA", collectionPlanName: "CP-3", collectionPlanUnavailable: false }]
+    });
+    getMyCollectionPlans.emit({
+      items: [{ collectionPlanId: "0Wn000000000004AAA", accountId: "001000000000003AAA", accountNameUnavailable: true, totalInvoiceBalance: 1 }],
+      unavailable: false,
+      hasMore: false,
+      currencyCode: "USD"
+    });
+    await flushPromises();
+
+    const critical = element.shadowRoot.querySelector(".worklist-table tbody tr");
+    expect(links(critical)).toEqual(["/lightning/r/Invoice/3tt000000000001AAA/view"]);
+    expect(critical.textContent.match(/Not available/g)).toHaveLength(3);
+    expect(critical.textContent).not.toContain("Create Collection Plan");
+
+    const myPlan = element.shadowRoot.querySelector(".my-cp-table tbody tr");
+    expect(links(myPlan)).toEqual([]);
+    expect(myPlan.textContent.match(/Not available/g)).toHaveLength(2);
+
+    await openTab(element, "highValue");
+    const highValue = element.shadowRoot.querySelector(".worklist-table tbody tr");
+    expect(links(highValue)).toEqual(["/lightning/r/Account/001000000000002AAA/view", "/lightning/r/CollectionPlan/0Wn000000000003AAA/view"]);
+    expect(highValue.textContent).toContain("Beta");
+    expect(highValue.textContent).toContain("CP-3");
+    expect(highValue.textContent).not.toContain("Not available");
+  });
+
+  it("titles the plan columns Collection Plan, with no ID header over a name", async () => {
+    const element = await mount();
+    getWorklist.emit(EMPTY_WORKLIST);
+    await flushPromises();
+    const headers = () => Array.from(element.shadowRoot.querySelectorAll("th")).map((th) => th.textContent.trim());
+
+    expect(headers().filter((h) => /\bID\b/.test(h))).toEqual([]);
+    await openTab(element, "highValue");
+    expect(headers().filter((h) => /\bID\b/.test(h))).toEqual([]);
   });
 });

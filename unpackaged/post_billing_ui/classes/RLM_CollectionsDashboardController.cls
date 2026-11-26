@@ -121,8 +121,9 @@ public with sharing class RLM_CollectionsDashboardController {
     /** Payment Promises: total requested amount on PaymentScheduleItem by status (Ready for Processing, Draft, Failed, In Processing). */
     @AuraEnabled(cacheable=true)
     public static PaymentPromiseSummary getPaymentPromiseSummary(Id accountId, String currencyCode) {
+        currencyCode = shownCurrency(currencyCode);
         PaymentPromiseSummary summary = new PaymentPromiseSummary();
-        summary.currencyCode = usePageCurrency(currencyCode);
+        summary.currencyCode = currencyCode;
         summary.filters = promiseFilters();
         List<PaymentPromiseBucket> buckets = summary.buckets;
         try {
@@ -135,14 +136,14 @@ public with sharing class RLM_CollectionsDashboardController {
             String fromWhere = 'FROM PaymentScheduleItem WHERE Status IN (\'Ready for Processing\', \'Draft\', \'Failed\', \'Processing\') ';
             if (filterAccount) fromWhere += ' AND PaymentAccountId = :accountId ';
             if (filterCurrency) fromWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            // Rows, not SUM() GROUP BY Status: a SUM() is in the corporate currency (see usePageCurrency).
+            // Rows, not SUM() GROUP BY Status: a SUM() is in the corporate currency even filtered (see shownCurrency).
             Map<String, Decimal> amountByStatus = new Map<String, Decimal>();
             Map<String, Integer> countByStatus = new Map<String, Integer>();
-            for (SObject row : boundedRows('SELECT Status, RequestedAmount' + currencySelect() + ' ' + fromWhere,
+            for (SObject row : boundedRows('SELECT Status, RequestedAmount ' + fromWhere,
                     new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'payment schedule items')) {
                 String st = (String) row.get('Status');
                 if (st == null) continue;
-                amountByStatus.put(st, orZero(amountByStatus.get(st)) + orZero(amountIn(row, 'RequestedAmount')));
+                amountByStatus.put(st, orZero(amountByStatus.get(st)) + orZero((Decimal) row.get('RequestedAmount')));
                 countByStatus.put(st, (countByStatus.containsKey(st) ? countByStatus.get(st) : 0) + 1);
             }
             List<String> order = new List<String>{ 'Failed', 'Ready for Processing', 'Draft', 'Processing' };
@@ -171,7 +172,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // The filters the read applies (FILTER_*): what can narrow it when it has too many records.
         @AuraEnabled public List<String> filters { get; set; }
-        // The currency the amounts are in (usePageCurrency).
+        // The currency the amounts are in (shownCurrency).
         @AuraEnabled public String currencyCode { get; set; }
         public PaymentPromiseSummary() {
             buckets = new List<PaymentPromiseBucket>();
@@ -194,7 +195,11 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getCurrencyOptions() {
         List<Map<String, String>> options = new List<Map<String, String>>();
-        options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Currencies' });
+        // A multi-currency org shows one currency at a time (see shownCurrency): no "All Currencies".
+        Boolean oneAtATime = UserInfo.isMultiCurrencyOrganization();
+        if (!oneAtATime) {
+            options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Currencies' });
+        }
         try {
             for (CurrencyType ct : [SELECT IsoCode, IsCorporate FROM CurrencyType WHERE IsActive = true WITH USER_MODE ORDER BY IsCorporate DESC, IsoCode ASC]) {
                 if (String.isNotBlank(ct.IsoCode)) {
@@ -202,7 +207,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 }
             }
         } catch (Exception e) { sectionSkipped('getCurrencyOptions', e); }
-        if (options.size() == 1) {
+        if (options.size() == (oneAtATime ? 0 : 1)) {
             String defaultCode = getOrgDefaultCurrency();
             options.add(new Map<String, String>{ 'value' => defaultCode, 'label' => defaultCode });
         }
@@ -212,8 +217,9 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static CollectionsDashboardData getDashboardCards(Id accountId, String currencyCode) {
         CollectionsDashboardData data = new CollectionsDashboardData();
-        data.currencyCode = usePageCurrency(currencyCode);
-        data.multiCurrency = multiCurrency();
+        currencyCode = shownCurrency(currencyCode);
+        data.currencyCode = currencyCode;
+        data.multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> paymentFilterList = paymentFilters();
         data.filtersByKey = new Map<String, List<String>>{
             UNAVAILABLE_INVOICES => invoiceFilters(),
@@ -236,7 +242,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sumUnpaidInvoiceBalance = null;
         try {
             List<Invoice> unpaidInvoices = (List<Invoice>) boundedRows(
-                'SELECT Id, Balance, DueDate' + currencySelect() + ' FROM Invoice WHERE ' + invWhere,
+                'SELECT Id, Balance, DueDate FROM Invoice WHERE ' + invWhere,
                 new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'unpaid invoices');
             tallyInvoices(data, unpaidInvoices, Date.today());
             sumUnpaidInvoiceBalance = data.receivablesOutstanding;
@@ -342,7 +348,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal agingCurrent = 0, aging1_30 = 0, aging31_60 = 0, aging61_90 = 0, aging90Plus = 0;
 
         for (Invoice inv : unpaidInvoices) {
-            Decimal bal = orZero(amountIn(inv, 'Balance'));
+            Decimal bal = orZero(inv.Balance);
             sumUnpaidInvoiceBalance += bal;
             if (inv.DueDate != null) {
                 if (inv.DueDate >= today) {
@@ -378,7 +384,8 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static WorklistData getWorklist(Id accountId, String currencyCode) {
         WorklistData wl = new WorklistData();
-        wl.currencyCode = usePageCurrency(currencyCode);
+        currencyCode = shownCurrency(currencyCode);
+        wl.currencyCode = currencyCode;
         // Critical and High-Value read invoices by account and, where Invoice has it, currency. The Disputed
         // tab starts from open cases, which only the account narrows; buildDisputedFromCases switches its
         // entry to the invoice filters when its invoice rollup runs, so a tab with too many records names the
@@ -549,12 +556,13 @@ public with sharing class RLM_CollectionsDashboardController {
             // the days shown. Invoice.DaysInvoiceOverdue is not used: measured on a 264 org (2026-11-26) it is a
             // platform-calculated, nillable Integer that was null on every Posted invoice there (none past due),
             // so filtering or ordering on it would treat a null-days invoice apart from the due date it carries.
-            // 2000 in the page currency, whatever each invoice's own currency (balanceAtLeast).
-            String invWhere = receivableInvoiceWhere(balanceAtLeast(2000) + ' AND DueDate < :thirtyDaysAgo');
+            // 2000 in the shown currency: on a multi-currency org the read is filtered to it.
+            Decimal criticalMinBalance = 2000;
+            String invWhere = receivableInvoiceWhere('Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo');
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
 
-            String invSelect = 'SELECT Id, InvoiceNumber, Balance, DueDate' + currencySelect();
+            String invSelect = 'SELECT Id, InvoiceNumber, Balance, DueDate';
             invSelect += ', BillingAccountId';
             if (hasBillToContact) invSelect += ', BillToContactId';
 
@@ -620,7 +628,7 @@ public with sharing class RLM_CollectionsDashboardController {
             Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
 
             CriticalFollowUpInvoiceItem row = new CriticalFollowUpInvoiceItem(
-                inv.Id, invNum, orZero(amountIn(inv, 'Balance')),
+                inv.Id, invNum, orZero(inv.Balance),
                 daysOverdue, billingAcctId, billingAcctName, billToContactId, collectionPlanId
             );
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
@@ -673,7 +681,7 @@ public with sharing class RLM_CollectionsDashboardController {
         // anywhere in the tab marks it unavailable instead of leaving it empty.
         try {
             // The rows go straight to the roll-up, which drops them once it has the per-account sums.
-            addHighValueDelinquents(wl, (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + currencySelect() + ' FROM Invoice WHERE ' + invWhere,
+            addHighValueDelinquents(wl, (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
                 new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo },
                 'high-value invoices'), invAccountField, Date.today());
         } catch (Exception e) {
@@ -694,7 +702,7 @@ public with sharing class RLM_CollectionsDashboardController {
         for (Invoice inv : invs) {
             Id accId = (Id) inv.get(invAccountField);
             if (accId == null) continue;
-            Decimal bal = orZero(amountIn(inv, 'Balance'));
+            Decimal bal = orZero(inv.Balance);
             accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
             Integer days = inv.DueDate != null ? inv.DueDate.daysBetween(today) : 0;
             Integer existing = accountMaxDays.get(accId);
@@ -821,13 +829,13 @@ public with sharing class RLM_CollectionsDashboardController {
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
             Set<Id> invoiceIds = new Set<Id>();
             // The rows are held only for this loop (the rollup keeps sums and ids), not into the lookups below.
-            for (Invoice inv : (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + currencySelect() + ' FROM Invoice WHERE ' + invWhere,
+            for (Invoice inv : (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
                     new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode }, 'disputed invoices')) {
                 Id accId = (Id) inv.get(invAccountField);
                 if (accId == null) continue;
                 invoiceToAccountId.put(inv.Id, accId);
                 invoiceIds.add(inv.Id);
-                Decimal bal = orZero(amountIn(inv, 'Balance'));
+                Decimal bal = orZero(inv.Balance);
                 accountBalance.put(accId, accountBalance.get(accId) != null ? accountBalance.get(accId) + bal : bal);
                 if (inv.DueDate != null && inv.DueDate < today) {
                     Integer days = inv.DueDate.daysBetween(today);
@@ -969,13 +977,9 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String REASON_FAILED = 'failed';
     // More rows than a bounded read may take: narrow the filters (todo 435).
     @TestVisible private static final String REASON_TOO_MANY = 'tooMany';
-    // Amounts in another currency could not be converted: the conversion rates could not be read, or a currency
-    // has none. Not something a refresh fixes; the page says to contact an administrator (as the on-account
-    // cards do, pack 452).
-    @TestVisible private static final String REASON_NO_RATES = 'noRates';
 
     // Bounded reads (todo 435). Every record read in this class goes through boundedRows (sums too, through
-    // boundedSum: amounts are added here, see usePageCurrency), except the reads that carry their own small LIMIT (the critical
+    // boundedSum: amounts are added here, see shownCurrency), except the reads that carry their own small LIMIT (the critical
     // follow-up invoices, the tasks and getMyCollectionPlans' plans, each read one row past what it lists so
     // the page can say there are more (CRITICAL_ROWS, TASK_ROWS, MY_PLAN_ROWS), and the account options (ACCOUNT_OPTION_ROWS + 1)), the
     // active currencies, the account search (ACCOUNT_SEARCH_ROWS + 1), the payment count (COUNT(Id): one
@@ -996,8 +1000,7 @@ public with sharing class RLM_CollectionsDashboardController {
     //    the plan tasks (TASK_ROWS + 1 = 201 rows), keep the call under 49,250.
     // Query-row costs measured on the same org: a row read costs one per row returned; SUM costs one per row
     // it adds up, with or without GROUP BY; COUNT() and COUNT(Id) cost one; GROUP BY COUNT(Id) one per group.
-    // A sum is read as rows (boundedSum), which costs the same rows as SUM() did. The conversion rates
-    // (loadRates: one row per currency, and today's dated rates) are read once per call, within the headroom.
+    // A sum is read as rows (boundedSum), which costs the same rows as SUM() did.
     @TestVisible private static Integer ROW_CAP = 10000;
     @TestVisible private static final Integer ROW_HEADROOM = 1000;
 
@@ -1048,141 +1051,25 @@ public with sharing class RLM_CollectionsDashboardController {
         return rows;
     }
 
-    // The sum of one amount field over the rows of a bounded read (FROM ... WHERE ...), each converted to the page
-    // currency. Rows, not SUM(): a SUM() is in the corporate currency (see usePageCurrency).
+    // The sum of one amount field over the rows of a bounded read (FROM ... WHERE ...). Rows, not SUM(): a SUM() is
+    // in the corporate currency even filtered to another (see shownCurrency).
     private static Decimal boundedSum(String fromWhere, String amountField, Map<String, Object> binds, String what) {
         Decimal sum = 0;
-        for (SObject row : boundedRows('SELECT ' + amountField + currencySelect() + ' ' + fromWhere, binds, what)) {
-            sum += orZero(amountIn(row, amountField));
+        for (SObject row : boundedRows('SELECT ' + amountField + ' ' + fromWhere, binds, what)) {
+            sum += orZero((Decimal) row.get(amountField));
         }
         return sum;
     }
 
-    // ---- One currency for every amount (todo 435) ----
-    // Every amount on the page is in one currency: the chosen currency, or else the user's (the currency the page
-    // formats in, getOrgDefaultCurrency). Measured on a 264 multi-currency org (2026-11-26, rolled back): a SUM()
-    // over a currency field returns the corporate currency, even grouped by CurrencyIsoCode (100 USD and 100 EUR
-    // summed to 214.11 USD, and the EUR group alone to 114.11, not 100); convertCurrency() converts a row to the
-    // user's currency and works inside SUM(), but cannot give a currency's own amounts either. So amounts are read
-    // as rows with their CurrencyIsoCode and converted here, at today's dated rate where advanced currency
-    // management has one, else the standard rate, as the on-account cards do (pack 452). A currency with no rate
-    // makes the figure unavailable, never converted at 1. A single-currency org shows its amounts as they are.
-    private static String pageCurrency;
-    // True when the user chose the page currency: the filtered reads then return only that currency's rows.
-    private static Boolean currencyChosen = false;
-    private static Map<String, Decimal> standardRates;
-    private static Map<String, Decimal> datedRates;
-
-    @TestVisible
-    private class CurrencyConversionException extends Exception {}
-
-    // Sets, and returns, the currency this call's amounts are shown in.
-    @TestVisible
-    private static String usePageCurrency(String currencyCode) {
-        currencyChosen = String.isNotBlank(currencyCode);
-        pageCurrency = currencyChosen ? currencyCode : UserInfo.getDefaultCurrency();
-        return pageCurrency;
-    }
-
-    private static Boolean multiCurrency() {
-        return UserInfo.isMultiCurrencyOrganization();
-    }
-
-    // The currency field for a read of amounts on a multi-currency org, so each row can be converted.
-    private static String currencySelect() {
-        return multiCurrency() ? ', CurrencyIsoCode' : '';
-    }
-
-    // An amount on a row, in the page currency (as it is on a single-currency org, or for a row with no currency).
-    @TestVisible
-    private static Decimal amountIn(SObject row, String field) {
-        Map<String, Object> values = row.getPopulatedFieldsAsMap();
-        Decimal amount = (Decimal) values.get(field);
-        if (amount == null || !multiCurrency()) return amount;
-        return toPageCurrency(amount, (String) values.get('CurrencyIsoCode'));
-    }
-
-    // An amount in one currency, in the page currency: through the corporate currency, at each currency's rate.
-    @TestVisible
-    private static Decimal toPageCurrency(Decimal amount, String fromIso) {
-        if (amount == null || fromIso == null || pageCurrency == null || fromIso == pageCurrency) return amount;
-        Decimal fromRate = effectiveRate(fromIso);
-        Decimal toRate = effectiveRate(pageCurrency);
-        if (fromRate == null || toRate == null) {
-            throw new CurrencyConversionException('No conversion rate for ' + fromIso + ' or ' + pageCurrency + '.');
-        }
-        return (amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    // A balance of at least `minimum` in the page currency, as a WHERE condition: on a multi-currency org, one
-    // threshold per currency, each the minimum converted into that currency.
-    @TestVisible
-    private static String balanceAtLeast(Decimal minimum) {
-        // With a currency chosen the read is filtered to it, so its own threshold applies and no rate is read.
-        if (!multiCurrency() || pageCurrency == null || currencyChosen) return 'Balance >= ' + minimum;
-        loadRates();
-        List<String> perCurrency = new List<String>();
-        for (String iso : standardRates.keySet()) {
-            Decimal fromRate = effectiveRate(pageCurrency);
-            Decimal toRate = effectiveRate(iso);
-            if (fromRate == null || toRate == null) {
-                throw new CurrencyConversionException('No conversion rate for ' + pageCurrency + ' or ' + iso + '.');
-            }
-            Decimal inIso = (minimum.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate).setScale(2, RoundingMode.HALF_UP);
-            perCurrency.add('(CurrencyIsoCode = \'' + String.escapeSingleQuotes(iso) + '\' AND Balance >= ' + inIso + ')');
-        }
-        return '(' + String.join(perCurrency, ' OR ') + ')';
-    }
-
-    // A currency's dated rate for today, else its standard rate; null when it has neither.
-    private static Decimal effectiveRate(String isoCode) {
-        loadRates();
-        return datedRates.containsKey(isoCode) ? datedRates.get(isoCode) : standardRates.get(isoCode);
-    }
-
-    // The standard rates of every currency, active or not (a record keeps the currency it was created in), and
-    // today's dated rates. Without advanced currency management there are no dated rates; a user refused them in
-    // an org that has them would get standard-rate figures that look real, so that refuses (as pack 452 does).
-    // Set when this call could not read the rates: later sections fail the same way without reading again.
-    private static Boolean ratesUnreadable = false;
-
-    private static void loadRates() {
-        if (standardRates != null) return;
-        if (ratesUnreadable) throw new CurrencyConversionException('The conversion rates could not be read.');
-        Map<String, Decimal> standard = new Map<String, Decimal>();
-        try {
-            failIfForced('currencyRates');
-            for (SObject ct : Database.query('SELECT IsoCode, ConversionRate FROM CurrencyType', AccessLevel.USER_MODE)) {
-                standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
-            }
-        } catch (Exception e) {
-            // A refused or failed CurrencyType read is the rates' failure (noRates), not the section's own.
-            sectionSkipped('loadRates', e);
-            ratesUnreadable = true;
-            throw new CurrencyConversionException('The conversion rates could not be read.');
-        }
-        Map<String, Decimal> dated = new Map<String, Decimal>();
-        try {
-            for (SObject dcr : Database.query('SELECT IsoCode, ConversionRate FROM DatedConversionRate '
-                    + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY', AccessLevel.USER_MODE)) {
-                dated.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
-            }
-        } catch (Exception e) {
-            if (datedRatesExist()) {
-                ratesUnreadable = true;
-                throw new CurrencyConversionException('Dated conversion rates could not be read.');
-            }
-        }
-        standardRates = standard;
-        datedRates = dated;
-    }
-
-    private static Boolean datedRatesExist() {
-        try {
-            return Database.countQuery('SELECT COUNT() FROM DatedConversionRate', AccessLevel.SYSTEM_MODE) > 0;
-        } catch (Exception e) {
-            return false;
-        }
+    // ---- One currency at a time (todo 435) ----
+    // The dashboard shows one currency at a time: the chosen one, else the user's. Measured on a 264 multi-currency
+    // org (2026-11-26, rolled back): a SUM() over a currency field returns the corporate currency, even grouped by
+    // CurrencyIsoCode and even filtered to one currency (100 EUR summed to 114.11 USD). So on a multi-currency org
+    // every amount read is filtered to the shown currency and amounts are read as rows and added here (boundedSum),
+    // never as a SUM(): nothing is converted and no figure mixes currencies. A single-currency org has no
+    // CurrencyIsoCode, so its reads are not filtered.
+    private static String shownCurrency(String currencyCode) {
+        return String.isNotBlank(currencyCode) ? currencyCode : UserInfo.getDefaultCurrency();
     }
 
     @TestVisible
@@ -1192,9 +1079,6 @@ public with sharing class RLM_CollectionsDashboardController {
         }
         if (e instanceof TooManyRowsException) {
             return REASON_TOO_MANY;
-        }
-        if (e instanceof CurrencyConversionException) {
-            return REASON_NO_RATES;
         }
         String message = e == null || e.getMessage() == null ? '' : e.getMessage();
         if (!(e instanceof QueryException)) {
@@ -1318,7 +1202,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Map<String, List<String>> hasMore { get; set; }
         // The filters each tab's reads apply (FILTER_*): what can narrow a tab with too many records.
         @AuraEnabled public Map<String, List<String>> filtersByTab { get; set; }
-        // The currency the balances are in (usePageCurrency).
+        // The currency the balances are in (shownCurrency).
         @AuraEnabled public String currencyCode { get; set; }
         public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); hasMore = new Map<String, List<String>>(); filtersByTab = new Map<String, List<String>>(); }
     }
@@ -1459,7 +1343,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
         // The filters each component's read applies (FILTER_*), by UNAVAILABLE_* key.
         @AuraEnabled public Map<String, List<String>> filtersByKey { get; set; }
-        // The currency every amount on the page is in (usePageCurrency), and whether the org has several, so the
+        // The currency every amount on the page is in (shownCurrency), and whether the org has several, so the
         // page can say amounts in other currencies were converted.
         @AuraEnabled public String currencyCode { get; set; }
         @AuraEnabled public Boolean multiCurrency { get; set; }
@@ -1483,10 +1367,9 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    // The user's own plans, not filtered by currency: their amounts are shown in the page currency (currencyCode,
-    // or else the user's).
+    // The user's own plans in the shown currency (currencyCode, else the user's) on a multi-currency org.
     public static MyCollectionPlanList getMyCollectionPlans(String currencyCode) {
-        String planCurrency = usePageCurrency(currencyCode);
+        String planCurrency = shownCurrency(currencyCode);
         MyCollectionPlanList planList = new MyCollectionPlanList();
         planList.currencyCode = planCurrency;
         List<MyCollectionPlanItem> items = planList.items;
@@ -1501,8 +1384,11 @@ public with sharing class RLM_CollectionsDashboardController {
             if (cpFields.containsKey('AccountId')) {
                 acctField = 'AccountId';
             }
-            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField + currencySelect();
-            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC'
+            String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField;
+            // On a multi-currency org, the plans in the shown currency (their amounts are in it).
+            String currencyFilter = cpFields.containsKey('CurrencyIsoCode') ? ' AND CurrencyIsoCode = :planCurrency' : '';
+            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId' + currencyFilter
+                + ' ORDER BY Duedate ASC NULLS LAST, Name ASC'
                 + ' LIMIT ' + (MY_PLAN_ROWS + 1);
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
             planList.hasMore = keepFirst(plans, MY_PLAN_ROWS);
@@ -1525,15 +1411,13 @@ public with sharing class RLM_CollectionsDashboardController {
         return planList;
     }
 
-    // One row per plan, its amount in the page currency. Takes rows so a test can pass plans in another
-    // currency: TotalInvoiceBalance is computed by the platform and cannot be set on a test record.
-    @TestVisible
+    // One row per plan, its amount as recorded (the read is filtered to the shown currency).
     private static List<MyCollectionPlanItem> planItems(List<SObject> plans, String acctField, RLM_AccountNames.Result names) {
         List<MyCollectionPlanItem> items = new List<MyCollectionPlanItem>();
         for (SObject cp : plans) {
             Id accountId = (Id) cp.get(acctField);
             MyCollectionPlanItem item = new MyCollectionPlanItem((Id) cp.get('Id'), (String) cp.get('Name'), (Date) cp.get('Duedate'),
-                accountId, accountId != null ? names.names.get(accountId) : null, orZero(amountIn(cp, 'TotalInvoiceBalance')));
+                accountId, accountId != null ? names.names.get(accountId) : null, orZero((Decimal) cp.get('TotalInvoiceBalance')));
             item.accountNameUnavailable = names.unavailable(accountId);
             items.add(item);
         }
@@ -1549,7 +1433,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Boolean hasMore { get; set; }
         // The filters the read applies (FILTER_*): none, it is the user's own plans.
         @AuraEnabled public List<String> filters { get; set; }
-        // The currency the amounts are in (usePageCurrency).
+        // The currency the amounts are in (shownCurrency).
         @AuraEnabled public String currencyCode { get; set; }
         public MyCollectionPlanList() {
             items = new List<MyCollectionPlanItem>();
@@ -1560,17 +1444,19 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    // Every plan the user can read, not filtered by currency: the amounts are shown in the page currency
-    // (currencyCode, or else the user's).
+    // Every plan the user can read in the shown currency (currencyCode, else the user's) on a multi-currency org.
     public static CollectionsProgressData getCollectionsProgress(String currencyCode) {
-        String progressCurrency = usePageCurrency(currencyCode);
+        String progressCurrency = shownCurrency(currencyCode);
         CollectionsProgressData result = new CollectionsProgressData();
         result.currencyCode = progressCurrency;
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return result;
+            // On a multi-currency org, the plans in the shown currency (their amounts are in it).
+            String currencyFilter = Schema.SObjectType.CollectionPlan.fields.getMap().containsKey('CurrencyIsoCode')
+                ? ' WHERE CurrencyIsoCode = :progressCurrency' : '';
             List<CollectionPlan> plans = (List<CollectionPlan>) boundedRows(
-                'SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate' + currencySelect() + ' FROM CollectionPlan',
-                new Map<String, Object>(), 'collection plans');
+                'SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate FROM CollectionPlan' + currencyFilter,
+                new Map<String, Object>{ 'progressCurrency' => progressCurrency }, 'collection plans');
             tallyProgress(result, plans);
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
@@ -1584,9 +1470,7 @@ public with sharing class RLM_CollectionsDashboardController {
         return result;
     }
 
-    // The progress figures from the plans read, amounts in the page currency. Takes rows so a test can pass
-    // plans in another currency: TotalInvoiceBalance is computed by the platform and cannot be set on a test record.
-    @TestVisible
+    // The progress figures from the plans read, amounts as recorded (the read is filtered to the shown currency).
     private static void tallyProgress(CollectionsProgressData result, List<CollectionPlan> plans) {
         if (plans.isEmpty()) return;
         Integer totalCount = plans.size();
@@ -1600,13 +1484,13 @@ public with sharing class RLM_CollectionsDashboardController {
         for (CollectionPlan cp : plans) {
             if (cp.ClosedDate != null) {
                 recoveredCount++;
-                recoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
+                recoveredAmount += orZero(cp.TotalInvoiceBalance);
                 if (cp.CreatedDate != null) {
                     totalDaysToClose += cp.CreatedDate.date().daysBetween(cp.ClosedDate);
                     closedWithDatesCount++;
                 }
             } else {
-                notRecoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
+                notRecoveredAmount += orZero(cp.TotalInvoiceBalance);
             }
             if (cp.DaysPastDue != null) {
                 totalDaysPastDue += cp.DaysPastDue;
@@ -1640,7 +1524,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // The filters the read applies (FILTER_*): none, it covers every plan the user can read.
         @AuraEnabled public List<String> filters { get; set; }
-        // The currency the amounts are in (usePageCurrency).
+        // The currency the amounts are in (shownCurrency).
         @AuraEnabled public String currencyCode { get; set; }
         public CollectionsProgressData() {
             unavailable = false;
@@ -1663,7 +1547,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Boolean accountNameUnavailable { get; set; }
         public MyCollectionPlanItem(Id cpId, String cpName, Date dueDate, Id accountId, String accountName, Decimal totalInvBal) {
             this.collectionPlanId = cpId;
-            this.name = cpName != null ? cpName : '—';
+            // No default: the page shows a plan without a name as "Not available" (its record exists).
+            this.name = cpName;
             this.dueDate = dueDate;
             this.accountId = accountId;
             this.accountName = accountName != null ? accountName : '—';

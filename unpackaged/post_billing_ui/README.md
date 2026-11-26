@@ -227,8 +227,8 @@ account stays in the list whatever a search finds. When the accounts cannot be r
 only "All Accounts" (the dashboard still loads, unfiltered, with no error toast) and says why: "You
 don't have access to accounts." or "Accounts could not be loaded. Refresh the page to try again.",
 with no search; a refused search says "You don't have access to accounts." too. The account options,
-the currency options and the default currency are loaded as separate calls, so a currency failure
-falls back to "All Currencies" and the default without touching the accounts, and the reverse.
+the currency options and the default currency are loaded as separate calls, so a failed currency
+list falls back to the default currency alone without touching the accounts, and the reverse.
 
 Every invoice read counts the same receivable invoices: Posted, with a balance (`RECEIVABLE_INVOICE`,
 `Status = 'Posted' AND Balance > 0`, the condition the cards have always used). The cards and their
@@ -241,34 +241,22 @@ checked (2026-11-26) Invoice is not createable through DML and the only invoices
 `everyInvoiceRead_countsOnlyPostedInvoicesWithABalance` therefore checks the SOQL each invoice read
 executed, recorded where it runs (only while a test runs).
 
-Every amount on the page is in one currency: the chosen currency, or else the user's (the currency
-the page formats in). Measured on 264 (2026-11-26), on a multi-currency org (USD corporate; AUD, CAD,
-CHF, EUR, GBP and JPY active), with test payments rolled back: a `SUM()` over a currency field
-returns the corporate currency, even grouped by `CurrencyIsoCode` (100 USD and 100 EUR summed to
-214.11 USD, and the EUR group alone to 114.11, not 100); `convertCurrency()` converts a row to the
-user's currency and works inside `SUM()` (214.11 again) but not around it; and the user's default
-currency (`getOrgDefaultCurrency`) was the corporate one there. So no aggregate gives one currency's
-own amounts, and before this the cards, promises and the High-Value and Disputed rollups added amounts
-of several currencies as if they were one, or showed a chosen currency's amounts converted to the
-corporate one. Now every amount is read as a row with its `CurrencyIsoCode` and converted in Apex to
-the page currency, at today's dated rate where advanced currency management has one, else the standard
-rate, as the on-account cards do (pack 452: the same rate rule, `effectiveRate` in
-`RLM_OnAccountBillingController`). A currency with no rate, a `CurrencyType` read that is refused or
-fails, or dated rates the user cannot read in an org that has them, makes the figure unavailable (the
-rates are read once per call; after a failure the later sections fail the same way without reading
-again), never converted at 1, and the page says why rather
-than to refresh: "Amounts in other currencies cannot be converted: the conversion rates could not be
-read. Contact your administrator." (reason `noRates`). The Critical list's 2000 threshold is 2000 in
-the page currency: with no currency chosen, one condition per currency (`balanceAtLeast`); with one
-chosen, the read is filtered to it, so the plain threshold applies and no rate is read. Progress and the user's
-plans are shown in the page currency too (choosing a currency re-reads them; they still convert any
-plan in another currency). Every section says which currency its answer is in, and the page formats
-its amounts in that currency, not the browser's guess, showing none before the answer arrives. On a
-multi-currency org the page says "Amounts in USD. Amounts recorded in another currency are converted at
-the org's conversion rates." A single-currency org reads and shows its amounts as they are, with no
-note. Measured on 264 (2026-11-26): the collections user (the Billing Collections and Recovery
-Specialist set and `RLM_CollectionsDashboard` only) reads `DatedConversionRate` (none there: advanced
-currency management has no dated rates on that org) and `CurrencyType` in USER_MODE.
+The page shows one currency at a time and converts nothing. On a multi-currency org the currency
+filter offers the active currencies, with no "All Currencies", and starts on the user's default
+currency (else the first one offered); every amount read is filtered to that currency: the cards and
+their aging, the Critical and High-Value lists, the Disputed tab's invoice rollup, payment promises,
+progress and the user's plans. The amounts are formatted in it, and the page says "Showing amounts in
+EUR only. Choose another currency to see its amounts." A single-currency org keeps "All Currencies"
+and reads and shows its amounts as they are, with no note. Measured on 264 (2026-11-26), on a
+multi-currency org (USD corporate; AUD, CAD, CHF, EUR, GBP and JPY active), with test payments rolled
+back: a `SUM()` over a currency field returns the corporate currency, even grouped by
+`CurrencyIsoCode` (100 USD and 100 EUR summed to 214.11 USD, the EUR group alone to 114.11) and even
+filtered to one currency (`SUM(Amount)` and `SUM(Balance)` of a 100 EUR payment `WHERE CurrencyIsoCode
+= 'EUR'` both returned 114.11, not 100). So amounts are read as rows and added in Apex
+(`boundedSum`), never as a `SUM()`, and no figure mixes currencies or shows one currency's amounts in
+another. The Critical list's threshold is 2000 in the shown currency. Every section says which
+currency its answer is in, and the page formats its amounts in that currency, showing none before the
+answer arrives.
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does: when the Account read is refused or fails, and when the account is
@@ -353,6 +341,22 @@ payment reads filter on `CurrencyIsoCode` only where Payment has it (a multi-cur
 `RLM_BillingUIAccessTest` runs every controller read as this user, and
 `RLM_CollectionsDashboardControllerTest` loads the dashboard as this user and as the same user
 without the set. The build assigns the set to the running user only.
+
+### Known limitations
+
+Left as they are on purpose (todo 435: a review finding gets code only when it is a regression, or a
+wrong figure or a misleading or empty-looking state on the normal path):
+
+- No total across currencies. A multi-currency org shows one currency at a time; to see another
+  currency's receivables, choose it.
+- A collection plan that sharing hides from the user reads as no plan ("—", with Create), since a
+  USER_MODE read cannot tell a hidden plan from a missing one.
+- The account filter lists the first 500 accounts by name; others are found by the search, which
+  returns the first 50 matches.
+- Lists stop at their row counts (the worklist tabs, plan tasks, my plans) and say "Showing the first
+  N ..." rather than paging.
+- A figure past the row bound (10,000 rows, or what the call has left) is shown as too many records
+  rather than a partial total.
 
 ## Do not
 
