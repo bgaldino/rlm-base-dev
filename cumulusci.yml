@@ -411,13 +411,12 @@ project:
 
     ps_account_utilities: &ps_account_utilities
       # Account Utilities reset (post_utils, deployed via deploy_post_utils in
-      # BOTH the quantumbit and tso flows). deploy_post_utils ships the whole
-      # surface — RLM_AccountUtilities, the Account.RLM_Reset_Account quick
-      # action and its flows — so a quantumbit build (tso=false) that never
-      # assigns this set leaves a visible reset button no non-admin can run.
-      # Assigned here for that path; the tso flow assigns it via
-      # rlm_tso_ps_api_names. Kept separate from ps_expression_set_manager so
-      # that component keeps its least-privilege grant.
+      # BOTH the quantumbit and tso flows), assigned to the running admin. The
+      # reset is admin-only (todo 397): the Reset Account action is hidden from
+      # anyone without Modify All Data and View All Data, and the class refuses
+      # them, so the set is not assigned to the salesrep persona. The tso flow
+      # assigns it via rlm_tso_ps_api_names. Kept separate from
+      # ps_expression_set_manager so that component keeps its least-privilege grant.
       - RLM_UtilitiesPermset
 
     ps_guidedselling: &ps_guidedselling
@@ -4890,54 +4889,12 @@ flows:
         options:
           api_names: *ps_large_stx
           user_alias: salesrep
-      8:
-        # The Account Reset quick action is deployed by deploy_post_utils onto
-        # RLM_Account_Record_Page, and there is no persona-specific Account page — so the
-        # salesrep persona SEES the button. Without RLM_UtilitiesPermset it cannot invoke
-        # it: SetupEntityAccess on RLM_AccountUtilities comes only from the System
-        # Administrator profile or this permission set. The steps above assign to the
-        # RUNNING user; only a user_alias assignment reaches the persona.
-        #
-        # Granted deliberately, and the grant is broader than "the button now works".
-        # RLM_AccountUtilities is `without sharing` — declared explicitly now, where it
-        # once had no keyword at all — so when it is entered directly, as it is from
-        # this invocable, it runs in SYSTEM MODE. Granting this set therefore hands a non-admin persona a
-        # system-mode destructive entry point: the reset deletes an account's orders,
-        # assets, contracts, invoices and usage graph regardless of what that user can
-        # see. It is not bounded by their sharing.
-        #
-        # Accepted for a demo org, where resetting between demos is precisely the
-        # persona's job and a visible button that errors is worse than the grant.
-        # It would NOT be acceptable in an org holding real data. Hiding the action from
-        # the persona was the alternative and was rejected because the reset is a persona
-        # workflow, not an admin one.
-        #
-        # The sharing mode is now a DECIDED question, not an open one: `without sharing`
-        # is deliberate, because the reset must remove records the running user cannot
-        # see or the account is left half-reset. Do not "fix" it by switching to
-        # `with sharing`. This grant remains the widest non-admin privilege the build
-        # hands out, and the permission
-        # reference records it as such.
-        #
-        # NOT extended to RLM_ExpressionSetManager: that component is an admin tool and
-        # keeps its least-privilege grant (see ps_expression_set_manager).
-        #
-        # Gated on quantumbit OR tso because deploy_post_utils (and therefore the
-        # permission set) only exists on those builds; assigning it on a
-        # personas-only build would fail on a PermissionSet that was never deployed.
-        #
-        # The guard is on the FLAGS, not on whether the metadata actually landed, so
-        # running prepare_personas STANDALONE against an org where post_utils was never
-        # deployed — but quantumbit/tso are on — will fail here. That is the same
-        # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
-        # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
-        # at step 20, both of which deploy_post_utils, well before prepare_personas at
-        # step 29. If you run this flow on its own, deploy post_utils first.
-        task: assign_permission_sets
-        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
-        options:
-          api_names: *ps_account_utilities
-          user_alias: salesrep
+      # Step 8 (RLM_UtilitiesPermset for the salesrep persona) was removed: the Account
+      # Reset is for administrators only (owner decision, todo 397, 2026-11-26). The
+      # Reset Account action is hidden on RLM_Account_Record_Page from anyone without
+      # Modify All Data and View All Data, and RLM_AccountUtilities refuses such a user
+      # before reading anything, so the set gives the persona nothing it needs. The
+      # numbering gap is deliberate: later steps keep the numbers docs cite.
       9:
         # The Decision Table Manager sits on the shared Revenue Cloud Home page, and
         # there is no persona-specific Home page — so the salesrep persona SEES it. The

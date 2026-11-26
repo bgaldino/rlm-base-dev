@@ -82,7 +82,7 @@
         </value>
     </customProperties>
     <decisions>
-        <description>The pricing decision tables are refreshed only when the reset completed. A reset that stopped rolled back everything but usage records, so the contracts and assets the tables read are unchanged.</description>
+        <description>The pricing decision tables are refreshed only when the reset completed. A reset that did not complete changed none of the contracts and assets the tables read: a refused reset (the reset is for administrators, with Modify All Data and View All Data; anyone else is refused before anything is read or changed) changed nothing, and a stopped reset kept only its usage deletes.</description>
         <name>isResetSuccessful</name>
         <label>isResetSuccessful</label>
         <locationX>0</locationX>
@@ -188,7 +188,7 @@
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices), and credit memos the Allow Revenue Records Deletion permission (Billing Admin permission set). Payments, and posted or void debit memos, are never deleted: Salesforce does not allow it.&lt;/p&gt;&lt;p&gt;With Modify All Data and View All Data, what you cannot delete is kept and listed when the reset finishes. Without both, the reset first checks that you can delete every record it would delete; if you cannot, it does not run, changes nothing, and lists those records and why.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices); without it they are kept. Payments, and posted or void debit memos, are always kept: Salesforce does not allow deleting them.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -284,7 +284,7 @@
         </fields>
         <fields>
             <name>Result_Partial</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The reset finished, but some records could not be deleted.&lt;/strong&gt; They are listed below with the reason.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset finished, but some records were kept.&lt;/strong&gt; They are listed below with the reason.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -336,7 +336,7 @@
         </fields>
         <fields>
             <name>Result_Retained</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;Not deleted:&lt;/strong&gt; {!ResetRetained}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Kept:&lt;/strong&gt; {!ResetRetained}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>

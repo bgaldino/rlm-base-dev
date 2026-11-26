@@ -104,7 +104,7 @@ tasks/
 
 - QuantumBit product catalog loaded (`qb=true` in project config)
 - Test Account exists (default: "Global Media" from sample data)
-- Account must have the "Reset Account" QuickAction available
+- Account must have the "Reset Account" QuickAction available, and the run must sign in as an admin with Modify All Data and View All Data: the action is hidden from anyone else, and the reset refuses them
 - Browse Catalogs must be enabled on the Quote page
 
 ### Test Data Defaults (overridable)
@@ -224,7 +224,7 @@ Test steps are composed from high-level keywords in E2ECommon.robot:
 
 | Keyword | Description |
 |---------|-------------|
-| `Reset Test Account` | Navigate to Account, run Reset Account flow (open the Revenue Cloud app first: the action is on its Account page only) |
+| `Reset Test Account` | Navigate to Account, run Reset Account flow (open the Revenue Cloud app first: the action is on its Account page only, and shows only to admins with Modify All Data and View All Data) |
 | `Create Opportunity From Account` | QuickAction + API lookup, returns Id |
 | `Create Quote From Opportunity` | QuickAction flow + API lookup, returns Id |
 | `Add Products Via Browse Catalogs` | Full catalog workflow (Price Book modal, catalog select, search, add, save). Retried once from a fresh page if no line is saved |

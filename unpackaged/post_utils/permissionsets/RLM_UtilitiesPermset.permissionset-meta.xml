@@ -6,29 +6,6 @@
       opportunities, so this set is destructive and stays scoped to the flows
       that actually need it (tso). The Expression Set Manager has its own
       least-privilege set: RLM_ExpressionSetManager.
-
-      The class runs without sharing, but the platform still refuses a delete
-      of an object the running user cannot delete ("DML operation DELETE not
-      allowed on Asset", live 264, as the salesrep persona). So this set grants
-      what the reset's default options need to delete assets and orders, for a
-      user whose other sets grant neither (todo 397), each measured on 264:
-       - Asset read, edit and delete, and Access Lifecycle-Managed Assets
-         (CalmSobjectAccessUser): without it, "You can't delete assets that
-         have Lifecycle Management."
-       - Order read, edit and delete, and Edit Activated Orders with the
-         Activate Orders it depends on: an activated order is set back to
-         Draft before it is deleted, and without them that edit is refused
-         ("You can't edit this order because it's been activated or
-         superseded"). Order lines go with their order.
-       - Account read, which Asset read depends on, and Contact read, which
-         Account read depends on in orgs with person accounts (TSO).
-      Activate Orders and Edit Activated Orders also let the holder activate
-      and change activated orders in the UI. Billing, collections and
-      fulfillment objects are not granted: a user without Modify All Data and
-      View All Data takes the reset's plan path (RLM_AccountResetPlan, called
-      from RLM_AccountUtilities, so it needs no class access of its own), which
-      refuses, changing nothing, an account with records the user cannot read
-      or delete.
     -->
     <classAccesses>
         <apexClass>RLM_AccountUtilities</apexClass>
@@ -36,52 +13,4 @@
     </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Utilities</label>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>Account</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>Asset</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>Contact</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>Order</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>ActivateOrder</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>CalmSobjectAccessUser</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>EditActivatedOrders</name>
-    </userPermissions>
 </PermissionSet>
