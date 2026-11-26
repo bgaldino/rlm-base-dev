@@ -13,6 +13,43 @@ public class RLM_BillingUITestUsers {
     public static final String BILLING_PSL = 'RevLifecycleMgmtBillingPsl';
     public static final String BILLING_ADVANCED_PSL = 'BillingAdvancedPsl';
 
+    // The billing persona groups (unpackaged/post_personas) and the standalone collections set their
+    // users are assigned next to the group (owner decision, todo 452).
+    public static final List<String> BILLING_PERSONA_GROUPS = new List<String>{
+        'RLM_Billing_Operations', 'RLM_Billing_Admin', 'RLM_Credit_Memo_Operations'
+    };
+    public static final String COLLECTIONS_READ_SET = 'RLM_BillingCollectionsRead';
+
+    /**
+     * A billing persona user who reads collection plans, built as the persona is assigned: the
+     * persona's permission set group itself, the standalone RLM_BillingCollectionsRead set,
+     * RLM_BillingUI, and the Billing and Billing Advanced licenses (the set's Collections and
+     * Recovery Specialist user permission needs Billing Advanced). Returns null, with a visible
+     * skip, where the personas bundle is not deployed (personas off) or the group is not yet
+     * recalculated (status not Updated), so callers skip rather than fail.
+     */
+    public static User billingPersonaWithCollectionsRead(String groupName) {
+        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :groupName];
+        if (groups.isEmpty() || [SELECT COUNT() FROM PermissionSet WHERE Name = :COLLECTIONS_READ_SET] == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + groupName + ' or ' + COLLECTIONS_READ_SET
+                + ' is not deployed (personas off), so that persona\'s collections read is not tested.');
+            return null;
+        }
+        if (groups[0].Status != 'Updated') {
+            // A release or deploy can leave a group Outdated until it is recalculated, and an
+            // Outdated group cannot be assigned: skip visibly rather than fail a test-on-deploy.
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + groupName + ' is ' + groups[0].Status
+                + ', not Updated, so it cannot be assigned; recalculate it to run this check.');
+            return null;
+        }
+        User u = create(new List<String>{ 'RLM_BillingUI', COLLECTIONS_READ_SET },
+            new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetGroupId = groups[0].Id);
+        }
+        return u;
+    }
+
     public static User create(List<String> permissionSets, List<String> licenses) {
         Map<String, Id> setIds = new Map<String, Id>();
         for (PermissionSet ps : [SELECT Id, Name FROM PermissionSet WHERE Name IN :permissionSets]) {

@@ -1,22 +1,48 @@
 import { LightningElement, api, wire } from 'lwc';
 import getBillingSummary from '@salesforce/apex/RLM_OnAccountBillingController.getBillingSummary';
 
+// A status count the server could not read comes back null; it stays null rather than reading as 0.
+const countOrNull = (value) => (value == null ? null : Number(value));
+
+// Every balance part read and zero: a zero net alone could be a debit memo offset by a payment.
+const BALANCE_PARTS = ['invoiceBalance', 'debitMemoBalance', 'creditMemoBalance', 'paymentBalance', 'refundBalance'];
+const allBalancesZero = (summary) => BALANCE_PARTS.every((key) => summary[key] != null && Number(summary[key]) === 0);
+
+// Shown for a balance whose read was refused (null from the server), never a zero.
+const UNAVAILABLE = 'Unavailable';
+
 export default class RlmOnAccountBilling extends LightningElement {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: the spinner shows, and the previous record's figures, status
+    // pill and error are cleared, until the new result lands.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this.isLoading = true;
+            this.data = null;
+            this.errorMessage = '';
+        }
+        this._recordId = value;
+    }
 
     isLoading = true;
     data = null;
     errorMessage = '';
 
+    // Ready only on data or an error: the empty delivery a wire can make before the first server
+    // result does not stop the spinner.
     @wire(getBillingSummary, { accountId: '$recordId' })
     wiredSummary({ data, error }) {
-        this.isLoading = false;
         if (data) {
             this.data = data;
             this.errorMessage = '';
+            this.isLoading = false;
         } else if (error) {
             this.data = null;
             this.errorMessage = this.extractError(error);
+            this.isLoading = false;
         }
     }
 
@@ -44,17 +70,19 @@ export default class RlmOnAccountBilling extends LightningElement {
         return `All values converted to account currency (${this.currencyIsoCode})`;
     }
 
-    // Due Amount = Invoice + Debit Memo
+    // Due Amount = Invoice + Debit Memo. Null (shown as unavailable) when either part is: the
+    // server returns null for a balance whose read was refused, never counted as zero.
     get dueAmount() {
-        return Number(this.data?.invoiceBalance || 0)
-             + Number(this.data?.debitMemoBalance || 0);
+        const d = this.data;
+        if (d?.invoiceBalance == null || d?.debitMemoBalance == null) return null;
+        return Number(d.invoiceBalance) + Number(d.debitMemoBalance);
     }
 
-    // Adjusted Amount = Payment + Credit Memo - Refund
+    // Adjusted Amount = Payment + Credit Memo - Refund; null when any part is.
     get adjustedAmount() {
-        return Number(this.data?.paymentBalance || 0)
-             + Number(this.data?.creditMemoBalance || 0)
-             - Number(this.data?.refundBalance || 0);
+        const d = this.data;
+        if (d?.paymentBalance == null || d?.creditMemoBalance == null || d?.refundBalance == null) return null;
+        return Number(d.paymentBalance) + Number(d.creditMemoBalance) - Number(d.refundBalance);
     }
 
     get formattedDueAmount() {
@@ -81,8 +109,10 @@ export default class RlmOnAccountBilling extends LightningElement {
         return this.formatAmount(this.data?.paymentBalance);
     }
 
-    get formattedRefundBalance() {
-        return this.formatAmount(this.data?.refundBalance);
+    // The refund shown as a deduction; no minus sign in front of "Unavailable".
+    get formattedRefundDeduction() {
+        const refund = this.data?.refundBalance;
+        return refund == null ? UNAVAILABLE : '-' + this.formatAmount(refund);
     }
 
     get formattedNetBalance() {
@@ -90,8 +120,8 @@ export default class RlmOnAccountBilling extends LightningElement {
     }
 
     get netAmountClass() {
-        const net = Number(this.data?.netAccountBalance || 0);
-        return net < 0 ? 'net-amount net-positive' : 'net-amount';
+        const net = this.data?.netAccountBalance;
+        return net != null && Number(net) < 0 ? 'net-amount net-positive' : 'net-amount';
     }
 
     get rlmBillingStatus() {
@@ -100,20 +130,29 @@ export default class RlmOnAccountBilling extends LightningElement {
         const totalInvoices = Number(d.totalInvoices || 0);
         const overdueCount = Number(d.overdueCount || 0);
         const delinquentCount = Number(d.delinquentCount || 0);
-        const partiallyPaidOverdue = Number(d.partiallyPaidOverdueCount || 0);
+        const partiallyPaidOverdue = countOrNull(d.partiallyPaidOverdueCount);
         const openWithBalance = Number(d.openWithBalance || 0);
-        const writtenOff = Number(d.writtenOffCount || 0);
-        const disputeCount = Number(d.disputeCount || 0);
-        const inCollections = d.inCollections === true;
-        const net = Number(d.netAccountBalance || 0);
+        const writtenOff = countOrNull(d.writtenOffCount);
+        const disputeCount = countOrNull(d.disputeCount);
+        // null: that read was refused, so the standing cannot be decided past that check.
+        const inCollections = d.inCollections == null ? null : d.inCollections === true;
+        const statusUnavailable = {
+            label: 'Status Unavailable',
+            cssClass: 'status-pill status-no-activity',
+            description: 'Some billing records on this account could not be read, so its standing is not shown.'
+        };
+        const net = d.netAccountBalance == null ? null : Number(d.netAccountBalance);
 
-        if (totalInvoices === 0) {
+        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either:
+        // only when each of them is known to be none.
+        if (totalInvoices === 0 && allBalancesZero(d) && inCollections === false && writtenOff === 0 && disputeCount === 0) {
             return {
                 label: 'No Billing Activity',
                 cssClass: 'status-pill status-no-activity',
                 description: 'No invoices, payments, or billing records exist for this account.'
             };
         }
+        if (inCollections == null) return statusUnavailable;
         if (inCollections) {
             return {
                 label: 'In Collections',
@@ -121,6 +160,7 @@ export default class RlmOnAccountBilling extends LightningElement {
                 description: 'This account has been escalated to collections for significantly overdue balances.'
             };
         }
+        if (writtenOff == null) return statusUnavailable;
         if (writtenOff > 0) {
             return {
                 label: 'Written Off',
@@ -135,6 +175,7 @@ export default class RlmOnAccountBilling extends LightningElement {
                 description: `${delinquentCount} invoice(s) are 60+ days past due. Immediate attention required.`
             };
         }
+        if (disputeCount == null) return statusUnavailable;
         if (disputeCount > 0) {
             return {
                 label: 'In Dispute',
@@ -142,6 +183,9 @@ export default class RlmOnAccountBilling extends LightningElement {
                 description: `${disputeCount} open dispute(s) on this account's invoices are pending resolution.`
             };
         }
+        // Partially paid invoices are a subset of the overdue ones: with none overdue the count is a
+        // real zero whether or not it could be read.
+        if (partiallyPaidOverdue == null && overdueCount > 0) return statusUnavailable;
         if (partiallyPaidOverdue > 0) {
             return {
                 label: 'Partially Paid',
@@ -154,6 +198,13 @@ export default class RlmOnAccountBilling extends LightningElement {
                 label: 'Overdue',
                 cssClass: 'status-pill status-overdue',
                 description: `${overdueCount} invoice(s) are past their due date with outstanding balance.`
+            };
+        }
+        if (net == null) {
+            return {
+                label: 'Balance Unavailable',
+                cssClass: 'status-pill status-no-activity',
+                description: 'Some balances on this account could not be read, so its standing is not shown.'
             };
         }
         if (net < 0) {
@@ -203,7 +254,8 @@ export default class RlmOnAccountBilling extends LightningElement {
     }
 
     formatAmount(value) {
-        const amount = Number(value || 0);
+        if (value == null) return UNAVAILABLE;
+        const amount = Number(value);
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: this.currencyIsoCode,

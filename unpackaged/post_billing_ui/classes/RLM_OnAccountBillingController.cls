@@ -15,10 +15,8 @@ public with sharing class RLM_OnAccountBillingController {
         if (isMultiCurrency) {
             accountCurrency = currencyOf(accountId);
             standardRates = loadStandardRates();
+            // A currency without a dated rate falls back to its standard one (effectiveRate).
             datedRates = loadDatedRates();
-            if (datedRates.isEmpty()) {
-                datedRates = standardRates;
-            }
         }
 
         result.put('currencyIsoCode', accountCurrency);
@@ -61,9 +59,9 @@ public with sharing class RLM_OnAccountBillingController {
         );
         result.put('refundBalance', refundBalance);
 
-        Decimal netBalance = invoiceBalance + debitMemoBalance
-            - creditMemoBalance - paymentBalance + refundBalance;
-        result.put('netAccountBalance', netBalance);
+        // A balance whose read was refused is null (shown as unavailable), and so is the net
+        // balance: a refused part is never counted as zero (owner rule, pack 445).
+        result.put('netAccountBalance', netOf(invoiceBalance, debitMemoBalance, creditMemoBalance, paymentBalance, refundBalance));
 
         // Status-related queries
         Map<String, Object> statusInfo = queryBillingStatus(accountId);
@@ -71,6 +69,19 @@ public with sharing class RLM_OnAccountBillingController {
 
         return result;
     }
+
+    @TestVisible
+    private static Decimal netOf(Decimal invoiceBalance, Decimal debitMemoBalance, Decimal creditMemoBalance,
+            Decimal paymentBalance, Decimal refundBalance) {
+        if (invoiceBalance == null || debitMemoBalance == null || creditMemoBalance == null
+                || paymentBalance == null || refundBalance == null) {
+            return null;
+        }
+        return invoiceBalance + debitMemoBalance - creditMemoBalance - paymentBalance + refundBalance;
+    }
+
+    private static final String INVOICES_UNREADABLE =
+        'Unable to read this account\'s invoices, so its balances are not shown. Contact your administrator.';
 
     // The account's currency, which every balance below is converted into. A refused Account read
     // must not fall back to USD: the balances would then show in the wrong currency as if real.
@@ -86,7 +97,8 @@ public with sharing class RLM_OnAccountBillingController {
             if (!accs.isEmpty()) {
                 return (String) accs[0].get('CurrencyIsoCode');
             }
-        } catch (QueryException e) {
+        } catch (Exception e) {
+            // Any refused or failed read, whatever exception type the platform raises for it.
             throw RLM_AuraErrors.failed(
                 'Unable to read the account\'s currency, so its balances are not shown. Contact your administrator.',
                 'RLM_OnAccountBillingController.currencyOf', e);
@@ -94,7 +106,24 @@ public with sharing class RLM_OnAccountBillingController {
         return 'USD';
     }
 
+    // The invoice counts drive the status pill, and every card needs them: a refused Invoice read
+    // reports a fixed sentence (the platform text goes to the debug log), as the currency read does,
+    // instead of a raw query error or counts of zero that would read as "no billing activity".
     private static Map<String, Object> queryBillingStatus(Id accountId) {
+        try {
+            return queryInvoiceStatus(accountId);
+        } catch (Exception e) {
+            // Any exception type is caught, so no platform text reaches the cards (it goes to the
+            // debug log). Measured on a 264 scratch org (deploy 0AfWt00000hUL33KAG, 2026-11-26, a
+            // test user with no Invoice read): the first inline WITH USER_MODE COUNT() below raised
+            // System.SecurityException "Access to entity 'Invoice' denied", while the tests' dynamic
+            // Database.query(..., AccessLevel.USER_MODE) probes of a refused object raised
+            // QueryException; which inline queries raise which is not measured.
+            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
+        }
+    }
+
+    private static Map<String, Object> queryInvoiceStatus(Id accountId) {
         Map<String, Object> info = new Map<String, Object>();
         Date today = Date.today();
         Date delinquentThreshold = today.addDays(-60);
@@ -129,6 +158,13 @@ public with sharing class RLM_OnAccountBillingController {
         ];
         info.put('delinquentCount', delinquentCount);
 
+        // Four reads below are optional to the summary: partially-paid overdue, written-off, disputes
+        // and collections (the open-with-balance count between them is not). A refused or failed one
+        // gives null (shown as unavailable), never a zero or false that reads as "none" (owner rule,
+        // pack 445).
+        // An org without the Dispute object, or without the license-gated Dispute fields the count
+        // reads, has no disputes, so that count is a real zero.
+
         // Overdue invoices that have partial payments applied (Balance < TotalAmountWithTax)
         Integer partiallyPaidOverdueCount = 0;
         try {
@@ -145,7 +181,7 @@ public with sharing class RLM_OnAccountBillingController {
                 }
             }
         } catch (Exception e) {
-            // Field may not be accessible
+            partiallyPaidOverdueCount = unavailable('partiallyPaidOverdueCount', e);
         }
         info.put('partiallyPaidOverdueCount', partiallyPaidOverdueCount);
 
@@ -169,28 +205,34 @@ public with sharing class RLM_OnAccountBillingController {
                 WITH USER_MODE
             ];
         } catch (Exception e) {
-            // Status value may not exist
+            // An unknown picklist value in the filter matches no rows rather than throwing, so a
+            // failure here is a refused or failed read.
+            writtenOffCount = unavailable('writtenOffCount', e);
         }
         info.put('writtenOffCount', writtenOffCount);
 
         // Open disputes
         Integer disputeCount = 0;
-        try {
-            List<AggregateResult> dRes = Database.query(
-                'SELECT COUNT(Id) cnt FROM Dispute '
-                + 'WHERE Invoice.BillingAccountId = :accountId '
-                + 'AND Status != \'Closed\'',
-                AccessLevel.USER_MODE
-            );
-            if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
-                disputeCount = (Integer) dRes[0].get('cnt');
+        if (disputeFieldsPresent()) {
+            try {
+                List<AggregateResult> dRes = Database.query(
+                    'SELECT COUNT(Id) cnt FROM Dispute '
+                    + 'WHERE Invoice.BillingAccountId = :accountId '
+                    + 'AND Status != \'Closed\'',
+                    AccessLevel.USER_MODE
+                );
+                if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
+                    disputeCount = (Integer) dRes[0].get('cnt');
+                }
+            } catch (Exception e) {
+                disputeCount = unavailable('disputeCount', e);
             }
-        } catch (Exception e) {
-            // Dispute object may not be available
         }
         info.put('disputeCount', disputeCount);
 
         // Collections — check if any CollectionPlan records exist for this account
+        // CollectionPlan is named in static SOQL, so it exists wherever this class compiles: a
+        // failure is a refused or failed read, and the account may be in collections.
         Boolean inCollections = false;
         try {
             Integer collectionPlanCount = [
@@ -201,11 +243,50 @@ public with sharing class RLM_OnAccountBillingController {
             ];
             inCollections = collectionPlanCount > 0;
         } catch (Exception e) {
-            // CollectionPlan object may not be available
+            unavailable('inCollections', e);
+            inCollections = null;
         }
         info.put('inCollections', inCollections);
 
         return info;
+    }
+
+    // The Dispute fields the dispute count reads. InvoiceId and the other billing dispute fields
+    // are license-gated extensions absent from a baseline build (see
+    // RLM_InvoiceSummaryController.disputeHasFields). Not final, so a test can name a field the
+    // org lacks.
+    @TestVisible
+    private static Set<String> disputeFields = new Set<String>{ 'InvoiceId', 'Status' };
+
+    // True only when the Dispute object exists and has every field in disputeFields.
+    private static Boolean disputeFieldsPresent() {
+        Schema.SObjectType dispute = globalDescribe().get('Dispute');
+        if (dispute == null) {
+            return false;
+        }
+        Map<String, Schema.SObjectField> fields = dispute.getDescribe().fields.getMap();
+        for (String name : disputeFields) {
+            if (!fields.containsKey(name)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Schema.getGlobalDescribe() is costly and the page asks several times: describe once per transaction.
+    private static Map<String, Schema.SObjectType> describedTypes;
+    private static Map<String, Schema.SObjectType> globalDescribe() {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes;
+    }
+
+    // Logs a refused or failed optional status read; returns null for the caller to report.
+    private static Integer unavailable(String key, Exception e) {
+        System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.' + key + ' unavailable: '
+            + e.getTypeName() + ': ' + e.getMessage());
+        return null;
     }
 
     /**
@@ -213,7 +294,11 @@ public with sharing class RLM_OnAccountBillingController {
      * Salesforce auto-converts SUM amounts in multi-currency orgs using standard
      * CurrencyType rates, even with GROUP BY CurrencyIsoCode. To use dated rates
      * instead, we reverse the standard conversion and re-apply the dated rate.
+     * Returns null, not zero, when the read is refused or fails, so the caller shows the balance
+     * (and the net balance) as unavailable. An org without the object has none of its records,
+     * so that balance is a real zero.
      */
+    @TestVisible
     private static Decimal queryAggregate(
         String objectName, String sumField, String accountField,
         String conditions, Id accountId, String targetCurrency,
@@ -230,6 +315,9 @@ public with sharing class RLM_OnAccountBillingController {
             query += ' GROUP BY CurrencyIsoCode';
         }
 
+        if (!globalDescribe().containsKey(objectName)) {
+            return 0;
+        }
         Decimal total = 0;
         try {
             for (AggregateResult ar : Database.query(query, AccessLevel.USER_MODE)) {
@@ -240,11 +328,19 @@ public with sharing class RLM_OnAccountBillingController {
                         amount, sourceCurrency, targetCurrency,
                         standardRates, datedRates
                     );
+                    if (amount == null) {
+                        // A currency with no rate: the balance is unavailable, never converted at 1.
+                        System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.queryAggregate ' + objectName
+                            + ' unavailable: no conversion rate for ' + sourceCurrency + ' or ' + targetCurrency);
+                        return null;
+                    }
                 }
                 total += amount;
             }
         } catch (Exception e) {
-            // Object may not exist or user may lack permissions
+            System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.queryAggregate ' + objectName
+                + ' unavailable: ' + e.getTypeName() + ': ' + e.getMessage());
+            return null;
         }
         return total;
     }
@@ -261,7 +357,13 @@ public with sharing class RLM_OnAccountBillingController {
      * share a non-corporate currency, each such balance (and the net balance) shows the
      * corporate-converted figure labelled in the account currency (pinned for payments by
      * RLM_OnAccountBillingControllerTest). Revisit only if a customer reports a mismatch.
+     *
+     * Each currency's dated rate falls back to its standard rate (effectiveRate). Returns null only
+     * when a currency is in neither map, never a rate of 1, which would show a foreign balance
+     * unconverted as if it were real. The standard rates include inactive currencies (see
+     * loadStandardRates), so a record in a since-deactivated currency still has its rate.
      */
+    @TestVisible
     private static Decimal correctConversion(
         Decimal autoConverted, String fromCurrency, String toCurrency,
         Map<String, Decimal> standardRates, Map<String, Decimal> datedRates
@@ -269,29 +371,57 @@ public with sharing class RLM_OnAccountBillingController {
         if (fromCurrency == toCurrency || autoConverted == 0) {
             return autoConverted;
         }
-        Decimal stdFromRate   = standardRates.containsKey(fromCurrency) ? standardRates.get(fromCurrency) : 1;
-        Decimal datedFromRate = datedRates.containsKey(fromCurrency) ? datedRates.get(fromCurrency) : 1;
-        Decimal datedToRate   = datedRates.containsKey(toCurrency)   ? datedRates.get(toCurrency)   : 1;
+        Decimal stdFromRate   = standardRates.get(fromCurrency);
+        Decimal datedFromRate = effectiveRate(fromCurrency, standardRates, datedRates);
+        Decimal datedToRate   = effectiveRate(toCurrency, standardRates, datedRates);
+        if (stdFromRate == null || datedFromRate == null || datedToRate == null) {
+            return null;
+        }
 
         Decimal rawAmount = autoConverted * stdFromRate;
         return rawAmount.divide(datedFromRate, 10, RoundingMode.HALF_UP) * datedToRate;
     }
 
+    // A currency's dated rate for today, else its standard rate. With advanced currency management
+    // the dated rates need not cover every currency (the corporate currency, or one with no dated
+    // row); the standard rates cover every currency, active or not, with the corporate one at 1.
+    // Null only when the currency is in neither.
+    private static Decimal effectiveRate(String isoCode, Map<String, Decimal> standardRates, Map<String, Decimal> datedRates) {
+        return datedRates.containsKey(isoCode) ? datedRates.get(isoCode) : standardRates.get(isoCode);
+    }
+
+    @TestVisible
     private static Map<String, Decimal> loadStandardRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                // Every currency, active or not: a record keeps the currency it was created in, so a
+                // since-deactivated currency still needs its rate (none is inactive on the 264 org
+                // measured, so whether a deactivated currency keeps its rate is not measured).
+                'SELECT IsoCode, ConversionRate FROM CurrencyType',
                 AccessLevel.USER_MODE
             )) {
                 rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
         } catch (Exception e) {
-            // Not available
+            // Without the standard rates every foreign-currency balance would be summed at rate 1,
+            // a figure that looks real but is wrong: refuse with a fixed sentence, as currencyOf does.
+            // Not reached by any restricted user measured: a Minimum Access user with no permission
+            // sets still reads CurrencyType (264 org, 2026-11-26).
+            throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_OnAccountBillingController.loadStandardRates', e);
         }
         return rates;
     }
 
+    private static final String RATES_UNREADABLE =
+        'Unable to read the currency conversion rates, so this account\'s balances are not shown. Contact your administrator.';
+
+    // Today's dated rates (advanced currency management). Without ACM there are none and the map
+    // is empty, so every currency converts at its standard rate. A user refused the read in an org
+    // that HAS dated rates would otherwise get standard-rate figures that look real: when the user
+    // read fails, a system-mode count tells the two apart, and dated rows the user cannot read
+    // refuse with the fixed sentence, as loadStandardRates does.
+    @TestVisible
     private static Map<String, Decimal> loadDatedRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
@@ -303,8 +433,25 @@ public with sharing class RLM_OnAccountBillingController {
                 rates.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
             }
         } catch (Exception e) {
-            // ACM not enabled
+            if (datedRatesExist()) {
+                throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_OnAccountBillingController.loadDatedRates', e);
+            }
+            System.debug(LoggingLevel.FINE, 'RLM_OnAccountBillingController.loadDatedRates: no dated rates '
+                + '(advanced currency management off): ' + e.getMessage());
         }
         return rates;
+    }
+
+    // Whether the org has any dated rates, read in system mode. False when the object itself is
+    // not available (advanced currency management off). The build orgs have none: COUNT() returned
+    // 0 as admin on rlm-base__apexcov-ac1125-r1 and rlm-base__hdr-hdr-r1, both multi-currency with
+    // advanced currency management off (measured 2026-11-26).
+    @TestVisible
+    private static Boolean datedRatesExist() {
+        try {
+            return Database.countQuery('SELECT COUNT() FROM DatedConversionRate', AccessLevel.SYSTEM_MODE) > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

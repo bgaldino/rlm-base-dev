@@ -414,9 +414,10 @@ export default class RlmBsgConsolidatedTimeline extends NavigationMixin(Lightnin
         }
 
         this.consolidatedSegments = segments.map((seg) => {
+            // A missing schedule number shows a dash, never the record Id.
             const scheduleLinks = (seg.activeScheduleIds || []).map((id, idx) => ({
                 id,
-                label: seg.activeScheduleNumbers[idx] || id
+                label: (seg.activeScheduleNumbers || [])[idx] || '—'
             }));
 
             let statusClass = 'status-active';

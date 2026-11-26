@@ -412,7 +412,7 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         const allItems = [...withDates, ...noDates];
 
         const bs = this.bsgData?.billingSchedules?.[0];
-        const bsLink = bs ? { id: bs.id, scheduleNumber: bs.scheduleNumber } : null;
+        const bsLink = bs ? { id: bs.id, scheduleNumber: bs.scheduleNumber || '—' } : null;
         const bsQuantity = bs?.quantity != null ? bs.quantity : 1;
 
         const buckets = allItems.map((item, idx) => {
@@ -714,8 +714,10 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
                         netPending += pAmt;
                     }
                     const amt = contrib.isCredit ? -(bAmt + pAmt) : (bAmt + pAmt);
+                    // The id keys the row's schedule link; a missing number shows a dash, never the Id.
                     activeBS.push({
-                        scheduleNumber: bs.scheduleNumber || bs.id,
+                        id: bs.id,
+                        scheduleNumber: bs.scheduleNumber || '—',
                         quantity: isProrated ? Math.round((bs.quantity || 0) * prorationFactor * 100) / 100 : (bs.quantity != null ? bs.quantity : 0),
                         amount: Math.round(amt * 100) / 100
                     });
@@ -875,9 +877,10 @@ export default class RlmBsgOverview extends NavigationMixin(LightningElement) {
         }
 
         this.consolidatedSegments = segments.map((seg) => {
+            // A missing schedule number shows a dash, never the record Id.
             const scheduleLinks = (seg.activeScheduleIds || []).map((id, idx) => ({
                 id,
-                label: seg.activeScheduleNumbers[idx] || id
+                label: (seg.activeScheduleNumbers || [])[idx] || '—'
             }));
 
             let statusClass = 'status-active';

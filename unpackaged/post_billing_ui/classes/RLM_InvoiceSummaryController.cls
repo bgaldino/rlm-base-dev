@@ -49,18 +49,29 @@ public with sharing class RLM_InvoiceSummaryController {
         data.cashCollected = 0;
         data.openInvoices = 0;
 
-        // Convert all amounts to running user's currency (matches
-        // RLM_OnAccountBillingController which relies on SUM() auto-conversion)
+        // Every amount here is converted into the running user's default currency at the standard
+        // (CurrencyType) rates. RLM_OnAccountBillingController differs: it converts its SUM()
+        // balances into the account's currency, at dated rates where advanced currency management
+        // has them, else standard rates.
         Boolean isMultiCurrency = UserInfo.isMultiCurrencyOrganization();
         String targetCurrency = UserInfo.getDefaultCurrency();
         Map<String, Decimal> convRates = new Map<String, Decimal>();
 
+        // The rates and the open invoices are what every figure on the card needs: a refused or
+        // failed read of either refuses with a fixed sentence (the platform text goes to the debug
+        // log), the same sentences as RLM_OnAccountBillingController. Every other read below is one
+        // part of the card, which a refused read leaves unavailable (null) instead.
         if (isMultiCurrency) {
-            for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
-                AccessLevel.USER_MODE
-            )) {
-                convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
+            try {
+                for (SObject ct : Database.query(
+                    // Every currency, active or not: a record keeps the currency it was created in.
+                    'SELECT IsoCode, ConversionRate FROM CurrencyType',
+                    AccessLevel.USER_MODE
+                )) {
+                    convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
+                }
+            } catch (Exception e) {
+                throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_InvoiceSummaryController.getInvoiceSummary rates', e);
             }
         }
 
@@ -68,54 +79,25 @@ public with sharing class RLM_InvoiceSummaryController {
         String invQuery = 'SELECT Id, Balance, DueDate, Status, SettlementStatus';
         if (isMultiCurrency) invQuery += ', CurrencyIsoCode';
         invQuery += ' FROM Invoice WHERE BillingAccountId = :accountId AND Status = \'Posted\' AND Balance > 0 AND SettlementStatus != \'Settled\'';
-        List<SObject> invoices = Database.query(invQuery, AccessLevel.USER_MODE);
+        List<SObject> invoices;
+        try {
+            invoices = Database.query(invQuery, AccessLevel.USER_MODE);
+        } catch (Exception e) {
+            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_InvoiceSummaryController.getInvoiceSummary invoices', e);
+        }
 
         // ── 2. Disputes via open Cases ──────────────────────────
         // Query open cases for the account, then get Dispute records
-        // linked to those cases. Sum DisputedAmount converted to account currency.
-        Set<Id> caseIds = new Set<Id>();
-        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false WITH USER_MODE]) {
-            caseIds.add(c.Id);
-        }
-
-        Set<Id> disputedInvoiceIds = new Set<Id>();
-        Map<Id, Decimal> disputeByInvoice = new Map<Id, Decimal>();
-
-        // Dispute and its CaseId/InvoiceId lookups are license-gated billing
-        // extensions absent from a baseline build, so gate on Schema describe and
-        // run inside try/catch — the bar simply reports zero disputes where the
-        // billing dispute feature isn't provisioned rather than throwing.
-        if (!caseIds.isEmpty() && disputeHasFields(new Set<String>{ 'CaseId', 'InvoiceId' })) {
-            try {
-                String dispQuery = 'SELECT Id, DisputedAmount, InvoiceId';
-                if (isMultiCurrency) {
-                    dispQuery += ', CurrencyIsoCode';
-                }
-                dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
-
-                for (SObject d : Database.query(dispQuery, AccessLevel.USER_MODE)) {
-                    Decimal amt = (Decimal)d.get('DisputedAmount');
-                    if (amt == null || amt <= 0) continue;
-
-                    // Convert to account currency if multi-currency
-                    if (isMultiCurrency) {
-                        String dispCurr = (String)d.get('CurrencyIsoCode');
-                        amt = convertCurrency(amt, dispCurr, targetCurrency, convRates);
-                    }
-
-                    data.disputeAmount += amt;
-                    data.disputeCount++;
-
-                    Id invId = (Id)d.get('InvoiceId');
-                    if (invId != null) {
-                        disputedInvoiceIds.add(invId);
-                        Decimal prev = disputeByInvoice.containsKey(invId) ? disputeByInvoice.get(invId) : 0;
-                        disputeByInvoice.put(invId, prev + amt);
-                    }
-                }
-            } catch (Exception e) {
-                // Dispute fields not available (billing dispute feature not provisioned) — keep zero defaults.
-                System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController dispute query skipped: ' + e.getMessage());
+        // linked to those cases. Sum DisputedAmount converted to the running user's currency.
+        // An org without the dispute feature has no disputes: a real zero, so the Case read (and its
+        // refusal) is skipped. Otherwise a refused Case read leaves the disputes unavailable.
+        if (disputeHasFields(disputeQueryFields(isMultiCurrency))) {
+            Set<Id> caseIds = openCaseIds(accountId);
+            if (caseIds == null) {
+                data.disputeAmount = null;
+                data.disputeCount = null;
+            } else {
+                addDisputes(data, caseIds, isMultiCurrency, targetCurrency, convRates);
             }
         }
 
@@ -125,22 +107,163 @@ public with sharing class RLM_InvoiceSummaryController {
         // Not yet on a posted invoice: once it is, that invoice's balance counts it.
         dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\''
             + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\'';
-        for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
-            Decimal amt = (Decimal)dm.get('TotalAmount');
-            if (amt == null || amt <= 0) continue;
-            if (isMultiCurrency) {
-                amt = convertCurrency(amt, (String)dm.get('CurrencyIsoCode'), targetCurrency, convRates);
+        // A refused or failed read leaves the debit memo amount and count, and the total due that
+        // includes them, null (shown as unavailable), not zero and not a failed card.
+        try {
+            for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
+                Decimal amt = (Decimal)dm.get('TotalAmount');
+                if (amt == null || amt <= 0) continue;
+                if (isMultiCurrency) {
+                    amt = convertCurrency(amt, (String)dm.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.debitAmount += amt;
+                data.debitCount++;
             }
-            data.debitAmount += amt;
-            data.debitCount++;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController debit memos unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.debitAmount = null;
+            data.debitCount = null;
         }
 
         // ── 4. Promise to Pay — PSIs via CollectionPlan chain ───
-        // Collections users only: the collection plan link needs the Billing Advanced
-        // license, which the billing roles don't carry, and querying it without access
-        // fails the whole summary. A user who can't read collection plans has no
-        // promise to pay to show.
-        if (canReadCollectionPlans()) {
+        addPromisesToPay(data, accountId, isMultiCurrency, targetCurrency, convRates);
+
+        // ── 5. Classify invoices ────────────────────────────────
+        classifyInvoices(invoices, data, today, isMultiCurrency, targetCurrency, convRates);
+
+        data.totalDue = data.debitAmount != null ? data.totalDue + data.debitAmount : null;
+
+        // ── 6. Paid — invoices fully settled in last 30 days ────
+        // Count is # of fully-settled invoices in window.
+        // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
+        String paidInvQuery = 'SELECT ' + paidReadFields;
+        if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
+        paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
+                     + ' AND Status = \'Posted\''
+                     + ' AND SettlementStatus = \'Settled\''
+                     + ' AND FullSettlementDate = LAST_N_DAYS:30';
+        // A refused or failed read (or a currency with no rate) leaves the paid amount and count
+        // unavailable (null), not zero and not a failed card.
+        try {
+            for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
+                Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
+                applied = applied != null ? applied : 0;
+                if (isMultiCurrency) {
+                    applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.paidAmount += applied;
+                data.paidCount++;
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController paid invoices unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.paidAmount = null;
+            data.paidCount = null;
+        }
+
+        return data;
+    }
+
+    // The fields the paid-invoice read selects (CurrencyIsoCode is added in a multi-currency org).
+    // Not final, so a test can name a field the org lacks and reach the read's failure path.
+    @TestVisible
+    private static String paidReadFields = 'Id, NetPaymentsApplied';
+
+    @TestVisible
+    private static final String RATES_UNREADABLE =
+        'Unable to read the currency conversion rates, so this account\'s balances are not shown. Contact your administrator.';
+    @TestVisible
+    private static final String INVOICES_UNREADABLE =
+        'Unable to read this account\'s invoices, so its balances are not shown. Contact your administrator.';
+
+    // The account's open cases, read in USER_MODE; null when the read is refused or fails, so the
+    // disputes counted through them are unavailable rather than the whole card failing. Measured on
+    // a 264 org (2026-11-26): for a user without Case read, the inline WITH USER_MODE form of this
+    // query raised QueryException "Variable does not exist: tmpVar1", which reached the card as raw
+    // text.
+    @TestVisible
+    private static Set<Id> openCaseIds(Id accountId) {
+        Set<Id> caseIds = new Set<Id>();
+        try {
+            for (SObject c : Database.query(
+                'SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false', AccessLevel.USER_MODE
+            )) {
+                caseIds.add(c.Id);
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController open cases unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            return null;
+        }
+        return caseIds;
+    }
+
+    private static Set<String> disputeQueryFields(Boolean isMultiCurrency) {
+        Set<String> readFields = new Set<String>(disputeReadFields);
+        if (isMultiCurrency) {
+            readFields.add('CurrencyIsoCode');
+        }
+        return readFields;
+    }
+
+    // The Dispute fields the dispute query reads (CurrencyIsoCode is added in a multi-currency org).
+    // Not final, so a test can name a field the org lacks.
+    @TestVisible
+    private static Set<String> disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount' };
+
+    // Disputes on the given open cases, summed into the running user's default currency (the
+    // summary's target currency). An org without the billing dispute feature (no Dispute object, or
+    // any of the fields this query reads missing) has no disputes: a real zero. A refused
+    // or failed read leaves the amount and count null (shown as unavailable), never a zero that
+    // reads as "no disputes" (owner rule, pack 445).
+    @TestVisible
+    private static void addDisputes(InvoiceSummaryData data, Set<Id> caseIds, Boolean isMultiCurrency,
+            String targetCurrency, Map<String, Decimal> convRates) {
+        if (caseIds.isEmpty() || !disputeHasFields(disputeQueryFields(isMultiCurrency))) {
+            return;
+        }
+        try {
+            String dispQuery = 'SELECT Id, DisputedAmount';
+            if (isMultiCurrency) {
+                dispQuery += ', CurrencyIsoCode';
+            }
+            dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
+            for (SObject d : Database.query(dispQuery, AccessLevel.USER_MODE)) {
+                Decimal amt = (Decimal)d.get('DisputedAmount');
+                if (amt == null || amt <= 0) continue;
+                if (isMultiCurrency) {
+                    amt = convertCurrency(amt, (String)d.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.disputeAmount += amt;
+                data.disputeCount++;
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController disputes unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.disputeAmount = null;
+            data.disputeCount = null;
+        }
+    }
+
+    // Promise to pay: payment schedule items under the account's collection plans. An org without
+    // collections (no CollectionPlan or CollectionPlanItem object, or either link field missing) has
+    // none: a real zero. A user who cannot read collection plans (a billing role without the
+    // Collections and Recovery Specialist permission, which RLM_BillingCollectionsRead grants with
+    // the Billing Advanced license), or whose read fails, gets null (shown as unavailable): the account
+    // may have promises the user cannot see, so zero would read as "no promises".
+    @TestVisible
+    private static void addPromisesToPay(InvoiceSummaryData data, Id accountId, Boolean isMultiCurrency,
+            String targetCurrency, Map<String, Decimal> convRates) {
+        if (!collectionPlansPresent()) {
+            return;
+        }
+        if (!canReadCollectionPlans()) {
+            data.promiseToPayAmount = null;
+            data.promiseToPayCount = null;
+            return;
+        }
+        try {
             String psiQuery = 'SELECT Id, RequestedAmount, Status';
             if (isMultiCurrency) psiQuery += ', CurrencyIsoCode';
             psiQuery += ' FROM PaymentScheduleItem'
@@ -156,33 +279,12 @@ public with sharing class RLM_InvoiceSummaryController {
                 data.promiseToPayAmount += amt;
                 data.promiseToPayCount++;
             }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController promises to pay unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.promiseToPayAmount = null;
+            data.promiseToPayCount = null;
         }
-
-        // ── 5. Classify invoices ────────────────────────────────
-        classifyInvoices(invoices, data, today, isMultiCurrency, targetCurrency, convRates);
-
-        data.totalDue += data.debitAmount;
-
-        // ── 6. Paid — invoices fully settled in last 30 days ────
-        // Count is # of fully-settled invoices in window.
-        // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
-        String paidInvQuery = 'SELECT Id, NetPaymentsApplied';
-        if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
-        paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
-                     + ' AND Status = \'Posted\''
-                     + ' AND SettlementStatus = \'Settled\''
-                     + ' AND FullSettlementDate = LAST_N_DAYS:30';
-        for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
-            Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
-            applied = applied != null ? applied : 0;
-            if (isMultiCurrency) {
-                applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
-            }
-            data.paidAmount += applied;
-            data.paidCount++;
-        }
-
-        return data;
     }
 
     /**
@@ -230,27 +332,59 @@ public with sharing class RLM_InvoiceSummaryController {
         data.periodEnd = maxDate != null ? maxDate : today;
     }
 
+    // A currency with no rate is never converted at 1, which would show a foreign amount as if it
+    // were in the user's currency. Inside the dispute, debit memo, promise-to-pay and paid-invoice
+    // steps the throw makes that part unavailable (their catch); only for the open invoices does it
+    // fail the summary, with this fixed sentence.
     @TestVisible
     private static Decimal convertCurrency(Decimal amount, String fromCurr, String toCurr, Map<String, Decimal> rates) {
         if (fromCurr == toCurr || amount == 0) return amount;
-        Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;
-        Decimal toRate = rates.containsKey(toCurr) ? rates.get(toCurr) : 1;
+        Decimal fromRate = rates.get(fromCurr);
+        Decimal toRate = rates.get(toCurr);
+        if (fromRate == null || toRate == null) {
+            throw RLM_AuraErrors.handled(RATE_MISSING);
+        }
         return amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate;
     }
 
-    // Whether this user can run the promise-to-pay query: object access to both
-    // collections objects and field access to the two fields it filters on.
     @TestVisible
-    private static Boolean canReadCollectionPlans() {
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
-        for (String name : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
-            Schema.SObjectType t = types.get(name);
-            if (t == null || !t.getDescribe().isAccessible()) {
-                return false;
-            }
+    private static final String RATE_MISSING =
+        'Unable to convert this account\'s amounts: a currency has no conversion rate. Contact your administrator.';
+
+    // Whether the org has the collections objects and the two link fields the promise-to-pay
+    // query filters on, whatever the running user can read.
+    private static Boolean collectionPlansPresent() {
+        Map<String, Schema.SObjectType> types = globalDescribe();
+        if (!types.containsKey('CollectionPlan') || !types.containsKey('CollectionPlanItem')) {
+            return false;
         }
         return Schema.SObjectType.PaymentSchedule.fields.getMap().containsKey('CollectionPlanItemId')
             && types.get('CollectionPlan').getDescribe().fields.getMap().containsKey('AccountId');
+    }
+
+    // Whether this user can run the promise-to-pay query: the collections objects and link fields
+    // exist, and the user has object access to both collections objects.
+    @TestVisible
+    private static Boolean canReadCollectionPlans() {
+        if (!collectionPlansPresent()) {
+            return false;
+        }
+        Map<String, Schema.SObjectType> types = globalDescribe();
+        for (String name : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
+            if (!types.get(name).getDescribe().isAccessible()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Schema.getGlobalDescribe() is costly and the page asks several times: describe once per transaction.
+    private static Map<String, Schema.SObjectType> describedTypes;
+    private static Map<String, Schema.SObjectType> globalDescribe() {
+        if (describedTypes == null) {
+            describedTypes = Schema.getGlobalDescribe();
+        }
+        return describedTypes;
     }
 
     /**
@@ -260,11 +394,11 @@ public with sharing class RLM_InvoiceSummaryController {
      * on this before referencing those fields.
      */
     private static Boolean disputeHasFields(Set<String> fieldNames) {
-        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+        if (!globalDescribe().containsKey('Dispute')) {
             return false;
         }
         Map<String, Schema.SObjectField> dFields =
-            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+            globalDescribe().get('Dispute').getDescribe().fields.getMap();
         for (String f : fieldNames) {
             if (!dFields.containsKey(f)) {
                 return false;

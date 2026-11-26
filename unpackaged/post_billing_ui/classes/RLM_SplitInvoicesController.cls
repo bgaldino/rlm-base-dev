@@ -10,6 +10,8 @@ public with sharing class RLM_SplitInvoicesController {
     private static final String BILLING_PROFILE_LOOKUP = 'BillingProfileId';
     private static final String BILLING_PROFILE_REL = 'BillingProfile';
     private static final String BILLING_ARRANGEMENT_VERSION_FIELD = 'BillingArrangementVerNumber';
+    // Shown for a name that is missing or unreadable, never the record Id.
+    private static final String NO_NAME = '—';
 
     /**
      * Returns Billing Arrangement name and version number for the main invoice (used above the split-invoice cards).
@@ -86,7 +88,7 @@ public with sharing class RLM_SplitInvoicesController {
         Map<Id, String> names = RLM_AccountNames.forIds(accountIds);
         for (InvoiceRow row : rows) {
             row.billingAccountName = String.isNotBlank(row.billingAccountId) && names.containsKey((Id) row.billingAccountId)
-                ? names.get((Id) row.billingAccountId) : '—';
+                ? names.get((Id) row.billingAccountId) : NO_NAME;
         }
     }
 
@@ -159,11 +161,11 @@ public with sharing class RLM_SplitInvoicesController {
             Object arrId = inv.get(BILLING_ARRANGEMENT_LOOKUP);
             this.billingArrangementId = arrId != null ? String.valueOf(arrId) : null;
             SObject arr = inv.getSObject(BILLING_ARRANGEMENT_REL);
-            this.billingArrangementName = arr != null ? (String) arr.get('Name') : null;
+            this.billingArrangementName = arr != null && arr.get('Name') != null ? (String) arr.get('Name') : NO_NAME;
             Object profId = inv.get(BILLING_PROFILE_LOOKUP);
             this.billingProfileId = profId != null ? String.valueOf(profId) : null;
             SObject prof = inv.getSObject(BILLING_PROFILE_REL);
-            this.billingProfileName = prof != null ? (String) prof.get('Name') : null;
+            this.billingProfileName = prof != null && prof.get('Name') != null ? (String) prof.get('Name') : NO_NAME;
             Object ver = inv.get(BILLING_ARRANGEMENT_VERSION_FIELD);
             this.billingArrangementVerNumber = ver != null ? String.valueOf(ver) : null;
         }

@@ -1,3 +1,7 @@
+// Pinned to UTC: the billing UI's date bucketing is time-zone sensitive (todo 510), so a test
+// would otherwise pass or fail by the machine's zone.
+process.env.TZ = 'UTC';
+
 const { jestConfig } = require('@salesforce/sfdx-lwc-jest/config');
 
 module.exports = {

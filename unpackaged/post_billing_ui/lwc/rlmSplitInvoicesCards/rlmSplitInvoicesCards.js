@@ -92,7 +92,7 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             return;
         }
 
-        getRelatedNames({ accountIds, arrangementIds: [], profileIds, contactIds })
+        getRelatedNames({ accountIds, profileIds, contactIds })
             .then((result) => {
                 const accountNames = result.accountNames || {};
                 const profileNames = result.profileNames || {};
@@ -154,11 +154,9 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
                                 Status { value }
                                 CorrelationIdentifier { value }
                                 BillingAccountId { value }
-                                BillingArrangementId { value }
                                 BillingProfileId { value }
                                 BillToContactId { value }
                                 SettlementStatus { value }
-                                BillingArrangementVerNumber { value }
                             }
                         }
                     }
@@ -171,16 +169,15 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         if (!node) return undefined;
         const id = node.Id;
         const documentNumber = node?.DocumentNumber?.value;
-        const name = documentNumber || id;
+        // A missing document number shows a dash, never the record Id.
+        const name = documentNumber || '—';
         const invoiceDate = node?.InvoiceDate?.value;
         const totalWithTax = node?.TotalAmountWithTax?.value;
         const status = node?.Status?.value ?? '';
         const baId = node?.BillingAccountId?.value || null;
-        const arrangementId = node?.BillingArrangementId?.value || null;
         const profileId = node?.BillingProfileId?.value || null;
         const billToContactId = node?.BillToContactId?.value || null;
         const settlementStatus = node?.SettlementStatus?.value ?? '';
-        const billingArrangementVersionNumber = node?.BillingArrangementVerNumber?.value || null;
 
         const statusLower = status.toLowerCase();
         let statusBadgeClass = 'card-badge card-badge-neutral';
@@ -216,17 +213,12 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             statusBadgeClass,
             billingAccountId: baId,
             billingAccountName: '—',
-            billingArrangementId: arrangementId,
-            billingArrangementName: '—',
             billingProfileId: profileId,
             billingProfileName: '—',
-            billingArrangementVerNumber: billingArrangementVersionNumber,
             invoiceUrl: this.buildRecordUrl(id),
             billingAccountUrl: baId ? this.buildRecordUrl(baId) : null,
-            billingArrangementUrl: arrangementId ? this.buildRecordUrl(arrangementId) : null,
             billingProfileUrl: profileId ? this.buildRecordUrl(profileId) : null,
             noAccount: !baId,
-            noArrangement: !arrangementId,
             noProfile: !profileId,
             billToContactId,
             billToContactName: '—',
@@ -242,7 +234,6 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         event.preventDefault();
         if (action === 'open_invoice') this.navigateToRecord(id, 'Invoice');
         else if (action === 'open_ba') this.navigateToRecord(id);
-        else if (action === 'open_arrangement') this.navigateToRecord(id);
         else if (action === 'open_profile') this.navigateToRecord(id);
     }
 

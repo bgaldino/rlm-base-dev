@@ -164,9 +164,11 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual('—', forNoAccess[0].billingAccountName, 'The name shows a dash, not a raw exception.');
     }
 
-    // An invoice with no lookups set leaves every id and name null rather than failing.
+    // An invoice with no lookups set leaves every id null rather than failing, and shows a dash, never
+    // an id or a blank, for the arrangement and profile names. The account name is filled in later by
+    // applyAccountNames (a dash when missing, covered above).
     @isTest
-    static void invoiceRow_withoutLookups_leavesIdsAndNamesNull() {
+    static void invoiceRow_withoutLookups_leavesIdsNullAndShowsDashNames() {
         SObject inv = invoiceFromJson(new Map<String, Object>{
             'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
             'Id' => fakeId('Invoice', 2),
@@ -181,9 +183,9 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.isNull(row.billingAccountId, 'No billing account id.');
         Assert.isNull(row.billingAccountName, 'No billing account name.');
         Assert.isNull(row.billingArrangementId, 'No billing arrangement id.');
-        Assert.isNull(row.billingArrangementName, 'No billing arrangement name.');
+        Assert.areEqual('—', row.billingArrangementName, 'No billing arrangement: a dash for its name.');
         Assert.isNull(row.billingProfileId, 'No billing profile id.');
-        Assert.isNull(row.billingProfileName, 'No billing profile name.');
+        Assert.areEqual('—', row.billingProfileName, 'No billing profile: a dash for its name.');
         Assert.isNull(row.billingArrangementVerNumber, 'No version number.');
     }
 

@@ -106,6 +106,103 @@ private class RLM_InvoiceSummaryControllerTest {
             '100 EUR @0.5 -> 200 USD @1.0.');
     }
 
+    // A currency with no rate is never converted at 1 (pack 452): the conversion refuses with a
+    // fixed sentence, which the dispute, debit memo and promise-to-pay steps turn into unavailable.
+    @isTest
+    static void convertCurrency_withAMissingRate_refusesWithAFixedSentence() {
+        Map<String, Decimal> rates = new Map<String, Decimal>{ 'USD' => 1 };
+        String message;
+        try {
+            RLM_InvoiceSummaryController.convertCurrency(100, 'EUR', 'USD', rates);
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Assert.areEqual(RLM_InvoiceSummaryController.RATE_MISSING, message, 'No EUR rate: refused, not converted at 1.');
+    }
+
+    // A dispute step whose amounts are in a currency with no rate leaves the disputes unavailable.
+    @isTest
+    static void addDisputes_withAMissingRate_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Dispute No Rate');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute in a currency with no rate');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        RLM_InvoiceSummaryController.InvoiceSummaryData ownCurrency = zeroedSummary();
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        // The same dispute with its own currency as the target needs no rate: it sums.
+        RLM_InvoiceSummaryController.addDisputes(ownCurrency, new Set<Id>{ openCase.Id }, true,
+            UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        // Multi-currency, target ZZZ: no rate for either side in an empty map.
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, true, 'ZZZ', new Map<String, Decimal>());
+        Test.stopTest();
+        Assert.areEqual(40, ownCurrency.disputeAmount, 'PRECONDITION: with its own currency as the target the dispute sums to 40.');
+        Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable, not converted at 1.');
+        Assert.isNull(data.disputeCount, 'The dispute count is unavailable.');
+        Assert.areEqual(0, data.promiseToPayAmount, 'Only the dispute part is unavailable: promises stay as they were.');
+        Assert.areEqual(0, data.promiseToPayCount, 'Only the dispute part is unavailable.');
+    }
+
+    // A promise to pay in a currency with no rate leaves only the promise-to-pay part unavailable.
+    // Runs as a collections user, who can read the plan chain; the admin creates the records.
+    @isTest
+    static void addPromisesToPay_withAMissingRate_leavesOnlyThemUnavailable() {
+        if (!UserInfo.isMultiCurrencyOrganization()) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: single-currency org, no conversion to miss.');
+            return;
+        }
+        User u = collectionsUser();
+        String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
+        Account acc = new Account(Name = 'RLM Invoice Summary Promise No Rate', OwnerId = u.Id);
+        insert acc;
+        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
+        insert plan;
+        CollectionPlanItem planItem = new CollectionPlanItem(CollectionPlanId = plan.Id);
+        insert planItem;
+        PaymentSchedule promise = new PaymentSchedule(OwnerId = u.Id, Status = 'Draft', TotalRequestedAmount = 75);
+        promise.put('CollectionPlanItemId', planItem.Id);
+        promise.put('CurrencyIsoCode', userCurrency);
+        insert promise;
+        PaymentScheduleItem item = new PaymentScheduleItem(PaymentScheduleId = promise.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 75, TargetPaymentProcessingDate = Date.today().addDays(7), Status = 'Draft');
+        item.put('CurrencyIsoCode', userCurrency);
+        insert item;
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData withRates = zeroedSummary();
+        RLM_InvoiceSummaryController.InvoiceSummaryData noRate = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            RLM_InvoiceSummaryController.addPromisesToPay(withRates, acc.Id, true, userCurrency, new Map<String, Decimal>());
+            RLM_InvoiceSummaryController.addPromisesToPay(noRate, acc.Id, true, 'ZZZ', new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.areEqual(75, withRates.promiseToPayAmount, 'PRECONDITION: in the user\'s own currency the promise sums (no conversion).');
+        Assert.isNull(noRate.promiseToPayAmount, 'No rate for the promise\'s currency: unavailable, not 75 at rate 1.');
+        Assert.isNull(noRate.promiseToPayCount, 'And its count.');
+        Assert.areEqual(0, noRate.disputeAmount, 'Only the promise-to-pay part is unavailable: disputes stay as they were.');
+    }
+
+    // An org without the fields the dispute query reads has no disputes: a real zero, not
+    // unavailable. Simulated by naming a field this org's Dispute lacks.
+    @isTest
+    static void addDisputes_withoutTheDisputeFields_countsZeroDisputes() {
+        Account acc = new Account(Name = 'RLM Invoice Summary No Dispute Fields');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute without its fields');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        RLM_InvoiceSummaryController.disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount', 'RLM_NoSuchField__c' };
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+            UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        Test.stopTest();
+        Assert.areEqual(0, data.disputeCount, 'Without the fields there are no disputes: a real zero.');
+        Assert.areEqual(0, data.disputeAmount, 'And a real zero amount.');
+    }
+
     // Disputes are counted through the account's open cases. Dispute is Apex-createable with
     // an account, a case and a received date. A dispute with an amount on an open case counts
     // toward the disputed total; one without an amount is skipped, not counted as zero; and
@@ -294,9 +391,11 @@ private class RLM_InvoiceSummaryControllerTest {
         }
     }
 
-    // A billing role without collections can't read the collection plan link that the
-    // promise-to-pay step filters on. The summary must still load for that user, showing
-    // no promise to pay, rather than failing on that one query.
+    // A billing role without collections (the managed role on its own, without the standalone
+    // RLM_BillingCollectionsRead set) can't read the collection plan link that the promise-to-pay step
+    // filters on. The summary must still load for that user, with the
+    // promise to pay unavailable (null), not zero: the account may have promises the user cannot
+    // see (pack 452), and not failing on that one query.
     @isTest
     static void getInvoiceSummary_billingRoleWithoutCollections_loads() {
         Account acc = new Account(Name = 'RLM Invoice Summary Role Test');
@@ -312,7 +411,51 @@ private class RLM_InvoiceSummaryControllerTest {
             data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
         }
         Assert.isFalse(seesCollections, 'Premise: Billing Operations alone cannot read collection plans.');
-        Assert.areEqual(0, data.promiseToPayCount, 'No collections access -> no promise to pay.');
+        Assert.isNull(data.promiseToPayCount, 'No collections access -> the promise-to-pay count is unavailable, not zero.');
+        Assert.isNull(data.promiseToPayAmount, 'No collections access -> the promise-to-pay amount is unavailable, not zero.');
+        Assert.areEqual(0, data.totalDue, 'The rest of the summary still loads.');
+    }
+
+    // Each billing persona with the standalone RLM_BillingCollectionsRead set (owner decision, todo
+    // 452) reads collection plans, so its promise to pay is a real figure (zero here), not
+    // unavailable. Skipped visibly where the personas bundle is not deployed.
+    @isTest
+    static void getInvoiceSummary_eachBillingPersonaWithTheCollectionsSet_runsPromiseToPay() {
+        Map<String, User> personas = new Map<String, User>();
+        for (String groupName : RLM_BillingUITestUsers.BILLING_PERSONA_GROUPS) {
+            User u = RLM_BillingUITestUsers.billingPersonaWithCollectionsRead(groupName);
+            if (u == null) {
+                return;
+            }
+            personas.put(groupName, u);
+        }
+        Map<String, Id> accountByGroup = new Map<String, Id>();
+        for (String groupName : personas.keySet()) {
+            Account acc = new Account(Name = 'RLM Invoice Summary ' + groupName, OwnerId = personas.get(groupName).Id);
+            insert acc;
+            accountByGroup.put(groupName, acc.Id);
+        }
+        Map<String, Boolean> seesCollections = new Map<String, Boolean>();
+        Map<String, String> promiseReadErrors = new Map<String, String>();
+        Map<String, RLM_InvoiceSummaryController.InvoiceSummaryData> results = new Map<String, RLM_InvoiceSummaryController.InvoiceSummaryData>();
+        Test.startTest();
+        for (String groupName : personas.keySet()) {
+            System.runAs(personas.get(groupName)) {
+                seesCollections.put(groupName, RLM_InvoiceSummaryController.canReadCollectionPlans());
+                promiseReadErrors.put(groupName, userModeError('SELECT Id, RequestedAmount, Status, CurrencyIsoCode FROM PaymentScheduleItem '
+                    + 'WHERE PaymentSchedule.CollectionPlanItemId != null '
+                    + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1'));
+                results.put(groupName, RLM_InvoiceSummaryController.getInvoiceSummary(accountByGroup.get(groupName)));
+            }
+        }
+        Test.stopTest();
+
+        for (String groupName : personas.keySet()) {
+            Assert.isTrue(seesCollections.get(groupName), groupName + ' persona can read collection plans.');
+            Assert.isNull(promiseReadErrors.get(groupName), groupName + ' persona can run the promise-to-pay read: ' + promiseReadErrors.get(groupName));
+            Assert.areEqual(0, results.get(groupName).promiseToPayCount, groupName + ': the promise-to-pay count is a real zero, not unavailable.');
+            Assert.areEqual(0, results.get(groupName).promiseToPayAmount, groupName + ': the promise-to-pay amount is a real zero, not unavailable.');
+        }
     }
 
     // The other side of the gate: a collections user still gets the promise-to-pay query.
@@ -335,5 +478,265 @@ private class RLM_InvoiceSummaryControllerTest {
         }
         Assert.isTrue(seesCollections, 'A collections user can read collection plans.');
         Assert.areEqual(0, data.promiseToPayCount, 'No payment schedules -> no promise to pay.');
+    }
+
+    // Pack 452: a user who cannot read Dispute gets the dispute amount and count as unavailable
+    // (null), not zero, for an open case that has a dispute. Run on the dispute step directly: a
+    // user built to read only some billing objects cannot read DebitMemo (measured), which the
+    // full summary also needs.
+    @isTest
+    static void addDisputes_forAUserWhoCannotReadDisputes_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Disputes');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute the user cannot read');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Case' });
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id, DisputedAmount, CurrencyIsoCode FROM Dispute WHERE CaseId != null LIMIT 1'),
+                'PRECONDITION: the user cannot read Dispute.');
+            RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+                UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable (null), not zero.');
+        Assert.isNull(data.disputeCount, 'The dispute count is unavailable (null), not zero.');
+    }
+
+    // The readable path of the same step, as the admin: the dispute on the open case is summed.
+    @isTest
+    static void addDisputes_forAUserWhoCanReadDisputes_sumsThem() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Readable Disputes');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute the admin can read');
+        insert openCase;
+        String userCurrency = UserInfo.getDefaultCurrency();
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), userCurrency);
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+            userCurrency, new Map<String, Decimal>());
+        Test.stopTest();
+
+        Assert.areEqual(1, data.disputeCount, 'The dispute is counted.');
+        Assert.areEqual(40, data.disputeAmount, 'The disputed amount is summed.');
+    }
+
+    // A user who can read collection plans (so the gate opens) but not the payment schedule items
+    // the query reads: the promise to pay is unavailable (null), not zero, and the summary step
+    // does not throw.
+    @isTest
+    static void addPromisesToPay_whenTheScheduleItemReadIsRefused_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Promises');
+        insert acc;
+        User u = collectionPlanReaderWithoutScheduleItems();
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
+                'PRECONDITION: the user can read collection plans, so the promise-to-pay query runs.');
+            Assert.isNotNull(userModeError('SELECT Id, RequestedAmount, Status FROM PaymentScheduleItem LIMIT 1'),
+                'PRECONDITION: the user cannot read PaymentScheduleItem.');
+            RLM_InvoiceSummaryController.addPromisesToPay(data, acc.Id, UserInfo.isMultiCurrencyOrganization(),
+                UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.promiseToPayAmount, 'The promise-to-pay amount is unavailable (null), not zero.');
+        Assert.isNull(data.promiseToPayCount, 'The promise-to-pay count is unavailable (null), not zero.');
+    }
+
+    // A user who reads collection plans and their items but not payment schedule items. Measured
+    // on a 264 org (2026-11-26): CollectionPlan is readable only with the Collections and Recovery
+    // Specialist user permission, which the user license allows only with the Billing Advanced
+    // permission set license; object read grants alone leave it "not supported".
+    private static User collectionPlanReaderWithoutScheduleItems() {
+        User u = RLM_BillingUITestUsers.create(new List<String>(),
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet ps = new PermissionSet(Name = 'RLM_TestCollectionPlans_' + stamp, Label = 'RLM Test Collection Plans ' + stamp,
+                PermissionsRlmBillingAccess = true);
+            ps.put('PermissionsCollectionsAndRecoverySpecialist', true);
+            insert ps;
+            List<ObjectPermissions> grants = new List<ObjectPermissions>();
+            for (String objectName : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
+                grants.add(new ObjectPermissions(ParentId = ps.Id, SobjectType = objectName,
+                    PermissionsRead = true, PermissionsViewAllRecords = true));
+            }
+            insert grants;
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
+
+    // A billing user who reads the account's invoices and cases but not debit memos: the card loads,
+    // with the debit memo amount, its count and the total due unavailable (null), not zero and not
+    // a failed card (pack 452). Measured: a user built this way cannot read DebitMemo at all, which
+    // is the refusal this test needs.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadDebitMemos_leavesThemAndTheTotalDueUnavailable() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(),
+            new List<String>{ 'Account', 'Invoice', 'Case' }, new List<String>{ 'Case.AccountId' });
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Debit Memos', OwnerId = u.Id);
+        insert acc;
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNull(userModeError('SELECT Id, Balance, DueDate, Status, SettlementStatus, CurrencyIsoCode FROM Invoice LIMIT 1'),
+                'PRECONDITION: the user can read Invoice.');
+            Assert.isNotNull(userModeError('SELECT Id, TotalAmount, CurrencyIsoCode FROM DebitMemo LIMIT 1'),
+                'PRECONDITION: the user cannot read DebitMemo.');
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.debitAmount, 'The debit memo amount is unavailable (null), not zero.');
+        Assert.isNull(data.debitCount, 'The debit memo count is unavailable (null), not zero.');
+        Assert.isNull(data.totalDue, 'The total due includes debit memos, so it is unavailable.');
+        Assert.areEqual(0, data.totalInvoices, 'The invoice reads still run.');
+    }
+
+    // The live failure (pack 452): a billing user who reads only Account and Invoice saw the card
+    // replaced by the raw text "Variable does not exist: tmpVar1", raised by the inline Case read
+    // (measured as this user on a 264 org). The card now loads with the parts it cannot read
+    // unavailable: disputes (no Case read), debit memos and promises to pay.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadCases_loadsWithDisputesUnavailable() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account', 'Invoice' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Case Read', OwnerId = u.Id);
+        insert acc;
+        insert new Case(AccountId = acc.Id, Subject = 'RLM open case the user cannot read');
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        String failure;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
+            Assert.isNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user can read Invoice.');
+            Assert.isNull(RLM_InvoiceSummaryController.openCaseIds(acc.Id), 'Case refused: null (unavailable), not an empty set.');
+            try {
+                data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+            } catch (Exception e) {
+                failure = e.getTypeName() + ': ' + e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNull(failure, 'The card loads instead of failing: ' + failure);
+        Assert.isNull(data.disputeAmount, 'Without Case read the disputes are unavailable (null), not zero.');
+        Assert.isNull(data.disputeCount, 'And their count.');
+        Assert.isNull(data.debitAmount, 'Debit memos (not readable) are unavailable.');
+        Assert.isNull(data.promiseToPayAmount, 'Promises to pay (no collection plan read) are unavailable.');
+        Assert.areEqual(0, data.totalInvoices, 'The invoice reads ran.');
+        Assert.areEqual(0, data.paidCount, 'The paid-invoice read ran: a real zero.');
+    }
+
+    // An org without the dispute fields has no disputes: a real zero even for a user who cannot read
+    // Case, whose Case read is then skipped rather than refused. Simulated by naming a field the
+    // org's Dispute lacks.
+    @isTest
+    static void getInvoiceSummary_withoutTheDisputeFields_isARealZeroForAUserWhoCannotReadCases() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account', 'Invoice' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Dispute Feature', OwnerId = u.Id);
+        insert acc;
+        RLM_InvoiceSummaryController.disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount', 'RLM_NoSuchField__c' };
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Test.stopTest();
+        Assert.areEqual(0, data.disputeAmount, 'No dispute feature: a real zero, not unavailable.');
+        Assert.areEqual(0, data.disputeCount, 'And a real zero count.');
+    }
+
+    // A user who cannot read Invoice gets the fixed sentence the on-account summary uses, not the
+    // platform's query error.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadInvoices_throwsAFixedSentence() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Invoice Read', OwnerId = u.Id);
+        insert acc;
+        String message;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user cannot read Invoice.');
+            try {
+                RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+            } catch (AuraHandledException e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(RLM_InvoiceSummaryController.INVOICES_UNREADABLE, message,
+            'The user-facing sentence is fixed; no platform text is echoed.');
+    }
+
+    // openCaseIds reads in user mode: a user who can read Case and see the case (View All) but not
+    // Case.AccountId, the field it filters on, gets null (unavailable), not an empty set. Measured:
+    // the same query without USER_MODE also fails for this user, so this does not tell the access
+    // levels apart; USER_MODE stays in the code explicitly.
+    @isTest
+    static void openCaseIds_forAUserWhoCannotReadCaseAccountId_isNull() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Case' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Case Account Field');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM open case, account field unreadable');
+        insert openCase;
+        Id caseId = openCase.Id;
+        Set<Id> caseIds;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user can read Case.');
+            Assert.areEqual(1, Database.countQuery('SELECT COUNT() FROM Case WHERE Id = :caseId', AccessLevel.USER_MODE),
+                'PRECONDITION: the user can see the case (View All).');
+            Assert.isNotNull(userModeError('SELECT Id FROM Case WHERE AccountId != null LIMIT 1'),
+                'PRECONDITION: the user cannot read Case.AccountId.');
+            caseIds = RLM_InvoiceSummaryController.openCaseIds(acc.Id);
+        }
+        Test.stopTest();
+        Assert.isNull(caseIds, 'Case.AccountId refused: null (unavailable), not an empty set.');
+    }
+
+    // A failed paid-invoice read leaves the paid amount and count unavailable (null), not zero, and
+    // the rest of the card still loads. Simulated by naming a field Invoice lacks.
+    @isTest
+    static void getInvoiceSummary_whenThePaidInvoiceReadFails_leavesPaidUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Paid Read Fails');
+        insert acc;
+        RLM_InvoiceSummaryController.paidReadFields = 'Id, NetPaymentsApplied, RLM_NoSuchField__c';
+        Test.startTest();
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        Test.stopTest();
+        Assert.isNull(data.paidAmount, 'The paid amount is unavailable (null), not zero.');
+        Assert.isNull(data.paidCount, 'The paid count is unavailable (null), not zero.');
+        Assert.areEqual(0, data.totalInvoices, 'The open invoices are still read.');
+        // The paid failure blanks only its own part: the admin reads everything else as real zeros.
+        Assert.areEqual(0, data.totalDue, 'The total due is a real zero, not unavailable.');
+        Assert.areEqual(0, data.debitAmount, 'The debit memo amount is a real zero, not unavailable.');
+        Assert.areEqual(0, data.disputeAmount, 'The dispute amount is a real zero, not unavailable.');
+        Assert.areEqual(0, data.promiseToPayAmount, 'The promise-to-pay amount is a real zero, not unavailable.');
+    }
+
+    private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = new RLM_InvoiceSummaryController.InvoiceSummaryData();
+        data.disputeAmount = 0;
+        data.disputeCount = 0;
+        data.promiseToPayAmount = 0;
+        data.promiseToPayCount = 0;
+        return data;
     }
 }

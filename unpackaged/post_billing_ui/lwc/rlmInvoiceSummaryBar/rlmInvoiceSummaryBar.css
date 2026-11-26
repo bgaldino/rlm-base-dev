@@ -208,3 +208,9 @@
 .tooltip-line {
     display: block;
 }
+
+.unavailable-note {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin: 0 0 0.5rem;
+}
