@@ -134,7 +134,7 @@
       of the component's units when the answer changed; moving part of them was refused in
       a model whose component group allows one plan
       ([change-policy-mapping.md](change-policy-mapping.md)). A plan held as an attribute
-      on the component's line, and a swap of a component asset, are **Open**.
+      on the component's line is **Open**. A swap of a component asset is refused [Measured: 2026-11-26, 264, ent-sb0 harness build].
 
 ## Rule 7: constraints apply to amendments too
 

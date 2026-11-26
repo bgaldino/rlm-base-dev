@@ -80,11 +80,18 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    `AGENTS.md`).
 9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be
    amended** (`PlaceSalesTransactionPersistException`; measured on one 264 org). Built in the quote UI the same shape
-   amended. Detail and the assetization shapes: [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+   amended (evergreen not tried in the UI). Cancel failed too where tried. Detail and the assetization shapes:
+   [pitfalls.md](pitfalls.md#api-built-ramped-bundle-with-a-one-time-or-evergreen-child),
+   [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
 10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, unrounded**
     (One-Time and Evergreen lines too, whose `TotalPrice` doesn't follow the uplifted net; `UnitPriceUplift` 0 on a line
     exempts it). **A partial line edit re-applies the uplift to untouched ramp lines** (net prices move, totals don't):
-    finish every ramp edit with a whole-quote Force reprice and read net prices, not totals
+    finish every ramp edit with a whole-quote Force reprice and read net prices, not totals. No line needs the exemption
+    when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift)
+    or when every ramped line should take the uplift `[inferred]`. A line without a `RampIdentifier` took no uplift (a
+    standalone Evergreen product, one org). The uplifted price keeps full precision, not cents: add a rounding step
+    after the ramp uplift if the source rounds. Not measured on a Standard ramp (the 2026-10-29 Standard UI run had one
+    Term product and exact prices)
     [Measured: 2026-11-11/13, 264, scratch orgs; detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
     [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)].
 
@@ -95,15 +102,16 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `TotalPrice`, `CalculationStatus`, `QuoteNumber`. They are computed — the call
   fails if you set them.
 - **DO NOT** set `RampIdentifier` or `SegmentIdentifier` on a line — the ramp
-  actions stamp them ([field-legality.md](field-legality.md)).
+  actions stamp them. Whether a caller write is refused is not measured ([field-legality.md](field-legality.md)).
 - **DO NOT** write `RampUpliftType` on `QuoteLineItem`/`OrderItem` via Place — it
-  is engine-owned there. Set it on the ramp **group**: the **top-level `RampScheduleGroup`**
-  in multi-schedule mode (repo default), or the single segment group when the setting is off.
+  is engine-owned there (rejected as not-writeable even when FLS shows editable). Set it on the ramp **group**: the
+  **top-level `RampScheduleGroup`** in multi-schedule mode (repo default), or the single segment group when the
+  setting is off; it cascades to every ramped line in the schedule.
 - **DO NOT** use the trial segment type `Trial` — the live enum is **`FreeTrial`**
   (`SegmentType` ∈ `Yearly`, `Custom`, `FreeTrial`, `Prorated`).
 - **DO NOT** clone more than one group per call (`recordIds` takes exactly one id, the last segment's group), or
   expect a clone to vary quantity or price per period: it copies the prior segment as-is, so set per-segment values
-  after cloning.
+  (quantity, `UnitPriceUplift`) after cloning. Do not fake growth silently; note it.
 - **DO NOT** rely on an active CML model to add **standalone** products to a ramp segment, or put a one-instance
   rule on a quote-level virtual container (it sees every segment's lines at once). A rule-added child of a ramped
   parent is ramped. Measured detail: [pitfalls.md](pitfalls.md#cml-rules-and-ramp-segments).
@@ -227,6 +235,13 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI, the
   expected prices and assets, which lines the segment uplift reaches, and how to verify. Read it for
   a UI demo or a UI-built quote.
+
+## Headless toolkit (in development)
+
+A dependency-free `scripts/ramp_deals/` toolkit (schedule math, payload builders, status polling, read-back
+invariants) mirroring `scripts/expression_sets/` is being built on branch `feat/ramp-deals-core`, not yet merged to
+`main`. Until it lands, use the raw Connect calls in [build-sequence.md](build-sequence.md); when it merges, wire its
+CLIs into this skill's routing.
 
 ## Related References
 

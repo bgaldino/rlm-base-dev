@@ -85,7 +85,7 @@
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this Place-PATCH case; it was tried after a System PATCH (see above). What the source shows: when delta
+  reprice wasn't tried for this Place-PATCH case; it was tried after a System PATCH (below). What the source shows: when delta
   skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
   idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
   dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
@@ -98,6 +98,12 @@
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
 
+  After a System PATCH on a delta-pricing org, a Force reprice of the whole quote with no line changes restored
+  every net price exactly [Measured: 2026-11-13, 264, scratch, one org; Compound ramp, three segments, two products,
+  delta pricing on; quote only, not ordered; a Place call with Force pricing, not the line-editor button]. So run a
+  whole-quote reprice after any ramp edit and read the net prices, not the totals `[inferred]`. The cause is not
+  isolated.
+
 ## Reprice after activation
 
 - **DO NOT** reprice a lifecycle quote after its order is activated. Lifecycle lines are priced
@@ -107,6 +113,17 @@
   Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
   `Skip`) after the order was activated set the renewal lines' totals and the quote total to
   0 [Measured: 2026-11-12, 264, scratch org]: each lot became a -lot/+lot pair netting 0, and the
-  order and assets were unchanged. Not measured on amendments or cancellations, or on any ramped
-  quote; why the reprice returned 0 is not traced. Read quote values before activation and
+  order and assets were unchanged. An activated cancellation quote also repriced to 0, while an amend-add and an
+  Evergreen-reduce amendment quote did not change [Measured: 2026-11-26, 264, ent-sb0 harness build]. Other
+  amendment shapes and any ramped quote are not measured; why the reprice returned 0 is not traced. Read quote values before activation and
   don't reprice afterwards.
+
+## API-built ramped bundle with a one-time or evergreen child
+
+Quick Rule 9 in full. Measured on one 264 org: amending the bundle failed with `PlaceSalesTransactionPersistException`
+(shorthand "500"), and cancel failed too where tried. The same shape with a one-time child built in the quote UI
+amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's
+Assets remained. Built that way the child gets no ramp ids (lines present before EditGroup, then cloned, were stamped;
+that shape's amend was not measured) and assetizes as one Asset per segment it sits in; built in the UI a one-time
+child is stamped and, left in N segments, becomes one Asset whose quantity accumulates (1, 2, 3 over three segments).
+See [bundle-children-lifecycle.md](bundle-children-lifecycle.md).

@@ -35,18 +35,21 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
 
 1. **Decide each change type's numbers before you build, then test them past the first
    placement.** Follow the change from quote → reprice → order → reprice → activation →
-   asset state periods → asset actions ([verification.md](verification.md)).
-    - **Never reprice a renewal or cancellation quote after its order is activated; treat amendment quotes
-      (ramped or not) the same until measured.** Pricing reads the source asset's current state and activation changes
-      it. A full reprice (`Force`, configuration `Skip`) after activation set a renewal's lines and total to 0
-      [Measured: 2026-11-12, 264, scratch] and an activated cancellation's line and total to 0
-      [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](cancel-swap-and-linking.md)].
-      Read quote values before activation. A renewal quote that wasn't repriced still read its total after its order
+   asset state periods → asset actions. A value that is right on the quote can still drift later
+   ([verification.md](verification.md)).
+    - **Never reprice a renewal or cancellation quote after its order is activated.** Pricing of a renewal, amendment
+      or cancellation line reads the source asset's current state and activation changes it [Platform behaviour,
+      traced in part]. A full reprice (`Force`, configuration `Skip`) after activation set a renewal's lines and total
+      to 0 [Measured: 2026-11-12, 264, scratch, one org] and an activated cancellation's line and total to 0
+      [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](cancel-swap-and-linking.md)]; an
+      amend-add and an Evergreen-reduce amendment quote did not change [Measured: 2026-11-26, 264, ent-sb0 harness
+      build]. Other amendment shapes, and any ramped quote, are not measured: keep the caution there. Why the reprice
+      returned 0 is not traced. Read quote values before activation. A renewal quote that wasn't repriced still read its total after its order
       activated [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org].
 2. **Read attributes as well as prices.** A quantity change on an amendment line placed with rules on can reset the
    line's attributes and, when a root answer changes, every answer the request didn't change goes back to its CML
-   default. The cause is a **missing configurator node status** on the source asset's action-source rows, which the
-   repo's context rule and trigger fill; with both, answers held through repeated amendments and a renewal
+   default. The cause appears to be a **missing configurator node status** on the source asset's action-source rows
+   [Open: inferred from a blank-and-repeat test, not core-traced]; the repo's context rule and trigger fill it, and with both, answers held through repeated amendments and a renewal
    [Measured: 2026-11-11 and 2026-11-17, 264, fresh `ent-sb0` scratch orgs]. The 2026-11-05 reset did **not**
    reproduce on a current build with node status present [Measured: 2026-11-26, 264, ent-sb0 harness build]. After every
    activation in a multi-step replay, read the root's latest asset action source rows. Add quantity with
@@ -67,7 +70,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
    Renewals"); evergreen components come back as No Change at quantity 0, and uplift them with a price amendment dated
    on the renewal start. Detail: [prices-renewals-credits.md](prices-renewals-credits.md#rule-5-one-time-lines-have-no-term-to-renew-term-defined-bundles-renew-in-place).
 6. **On the quote, credits follow the selling model.** One-time: the full price. Evergreen: one period on the quote,
-   but the **invoice** credits by day (-1,000 against a -2,000 quote credit). Term Defined: quantity x net unit price
+   but the **invoice** credits by day (a 2,000 per month line reduced by one unit: -1,000 invoiced against a -2,000 quote credit). Term Defined: quantity x net unit price
    x remaining periods **counted from the asset start** (a Term Defined cancel measured -10,510.03, not the
    calendar-year -10,518.95). State the quote and invoice values separately
    [Measured: 2026-11-26, 264; [cancel-swap-and-linking.md](cancel-swap-and-linking.md)].
@@ -79,14 +82,15 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
    child failed in the measured shapes [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
 9. **Amending or cancelling assets whose order is still fulfilling may be limited by in-flight fulfillment.** A plain
    amendment was accepted with the Point of No Return flag copied to the step [Measured: 2026-11-13, 264, scratch,
-   one org]; enforcement was not tested. A "no change after step X" rule needs its own validation `[inferred]`; see
+   one org]; whether the state was in effect, and so enforcement, was not tested. A "no change after step X" rule needs its own validation `[inferred]`; see
    [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md).
 
 ## DO NOT
 
-- **DO NOT** demo an inline quantity edit on an amendment of a configured product until
-  the attribute reset is fixed. Change quantity with `initiateAmendment` and
-  `quantityChange` (Quick Rule 2).
+- **DO NOT** demo an inline quantity edit on an amendment of a configured product without first checking the build:
+  the 2026-11-05 runs reset the attributes [Measured: 2026-11-05, 264, QuantumBit build], and a current build with node
+  status present kept them [Measured: 2026-11-26, 264, ent-sb0 harness build]. Change quantity with `initiateAmendment`
+  and `quantityChange` (Quick Rule 2).
 - **DO NOT** order an amendment that changed a CML answer before reading every line's delta:
   the answers it didn't change can reset to their defaults (Quick Rule 2).
 - **DO NOT** promise a source's cancellation-credit or re-banding rule from the docs alone.
@@ -95,7 +99,6 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
   amendment lines, or on a positive amendment edited in the UI (Quick Rule 4).
 - **DO NOT** roll back a backdated change; it is refused once the amendment period has
   started [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
-
 - **DO NOT** reprice a renewal or cancellation after its order is activated (Quick Rule 1).
 - **DO NOT** quote an evergreen credit from the quote alone: the invoice credits by day (Quick Rule 6).
 - **DO NOT** state a Term Defined cancel credit from calendar years: it counts from the asset start (Quick Rule 6).
@@ -152,7 +155,7 @@ whether that is enough or the add-on must be its own line.
 **"Move some units of a component to another plan."** If support is a bundle component, an
 amendment has to act on the top-level asset (Quick Rule 3). A plan held as a root answer
 moves all of the component's units, not some, and a split was refused where the component
-group allows one plan. Whether a swap takes the component asset is undocumented.
+group allows one plan. A swap of the component asset is refused ("the asset is a bundle child") [Measured: 2026-11-26, 264, ent-sb0 harness build]; swap the top-level asset.
 [change-policy-mapping.md](change-policy-mapping.md) lists the paths with what to check;
 pick one in the plan and measure it.
 

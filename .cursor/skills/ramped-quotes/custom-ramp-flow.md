@@ -6,7 +6,8 @@
 ## What a custom Create Ramp Schedule flow receives and must return
 
 Revenue Settings has "Set Up Flow for Creating Ramp Schedules" (org value `RampScheduleGuidedFlowName`; default
-`transactionManagement__CreateRampSched`). It is readable only with group ramp access.
+`transactionManagement__CreateRampSched`). It is readable only with group ramp access [Open: default name and access
+requirement are carried from desk notes, not re-read on a live org; check Revenue Settings on the target release].
 
 - **Inputs: none on 264.** A probe flow with `recordId`, `selectedScopeJson` and `source` input variables, launched from the
   quote's Create Ramp Schedule action, logged all three empty; the same flow launched by URL with `recordId` logged
@@ -15,7 +16,7 @@ Revenue Settings has "Set Up Flow for Creating Ramp Schedules" (org value `RampS
   [Open: later releases may pass a selection scope; probe the flow on the target release]
 - **Outputs: the modal creates the schedule itself.** It reads the flow's `errorMessage` and schedule outputs, so a
   replacement flow must return the managed flow's output variables, not create groups itself
-  [Platform behaviour, traced in core 264].
+  [Platform behaviour, traced].
 - **Quote context:** launch your own flow from a quote action (there `recordId` arrives) and build the schedule
   with the Place sequence in [build-sequence.md](build-sequence.md); wrapping the managed flow in an action was
   reported not to create groups [Open: partner report, not reproduced].

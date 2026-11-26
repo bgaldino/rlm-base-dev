@@ -47,8 +47,9 @@ For each change, record the state after every step:
    prices (line and quote totals of 0 on a measured renewal, each lot a -lot/+lot pair; order
    and assets unchanged [Measured: 2026-11-12, 264, scratch, one org]). After
    activation, start a new lifecycle quote from the updated asset. Treat this as holding
-   for renewal, amendment and cancellation lines (measured only on a renewal, not on any
-   ramped quote); a Force reprice touches every line [Platform behaviour, traced], so it
+   for renewal, amendment and cancellation lines (measured on a renewal and on an activated cancellation, which
+   also went to 0 [Measured: 2026-11-26, 264, ent-sb0 harness build]; an amend-add and an Evergreen-reduce
+   amendment quote did not change; not measured on any ramped quote or other amendment shapes); a Force reprice touches every line [Platform behaviour, traced], so it
    shows the effect most `[inferred]`. Use Reprice All or a Place request with Force pricing; a
    System request with a line record may not reprice every line where Delta Pricing applies
    ([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)).
@@ -189,17 +190,13 @@ its `GrandTotal` equalled the order's (SKILL.md Quick Rule 4).
   has no period due yet: check billing at schedule level (amount, period, start), not invoice
   level `[inferred]` from that route. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Changing a bundle component's plan:** a plan held as an attribute on the component's
-  line, or a swap of the component asset. A price amendment on a component's line, a plan
+  line. A swap of the component asset is refused (measured 2026-11-26, [cancel-swap-and-linking.md](cancel-swap-and-linking.md)). A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen component removal to 0.** A partial Evergreen component reduction is
   measured through order and activation, by `Skip` plus a `QuoteAction` edit (2026-11-12)
   and by `Force` on a complete bundle (2026-11-17, above); removal of the whole quantity
   isn't.
-- **Evergreen swaps:** measured 2026-11-26 (see above). Evergreen
-  reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
-  evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
-  [change-policy-mapping.md](change-policy-mapping.md).
 - **An earlier-dated change against a future-dated one:** the traced gate in
   [change-policy-mapping.md](change-policy-mapping.md) is unconfirmed (an amend-before-amend capability
   decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace: a refusal

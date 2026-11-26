@@ -118,9 +118,9 @@
       months-remaining source value on a mid-period start is unmeasured. A selling
       model's proration options take the policy only at create [read from the field describe, one org]. Turning
       partial periods off counts whole periods only. Read for the annual frequency with the
-      actual-days type; that the first period runs to the calendar year end is inferred from
-      the measured numbers, and other frequencies weren't read [Platform behaviour, traced
-      in part]. A Term
+      actual-days type; other frequencies weren't read [Platform behaviour, traced
+      in part]. On a 1 January start the first period ends at the calendar year end; otherwise periods count from the
+      asset start (above). A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are in [cancel-swap-and-linking.md](cancel-swap-and-linking.md); evergreen swap credits there too.
     - A reduction of a standalone Evergreen asset (`quantityChange` -4, illustrative) credited

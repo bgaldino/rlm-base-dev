@@ -4,8 +4,8 @@
 > number, or when a flow must link a renewal or amendment to an Opportunity, an open quote or a contract.
 
 All [Measured: 2026-11-26, 264, fresh `ent-sb0` harness build] unless tagged otherwise. Dollar values are illustrative
-(a 3,240 per year Term Defined product, quantity 2, term 2025-07-01 to 2028-06-30; an Evergreen product at 1,000
-per month).
+(a 3,240 per year Term Defined product, quantity 2, term 2025-07-01 to 2028-06-30; an Evergreen product at 2,000
+per month, swapped to one at 1,000 per month).
 
 ## Term Defined cancellation: the credit counts periods from the asset start
 
@@ -18,10 +18,10 @@ This settles the "Term Defined cancellation" item in [verification.md](verificat
 
 ## Evergreen: the quote credit is not the invoice credit
 
-| Change (Evergreen, 1,000 per month) | Quote | Invoice |
+| Change (Evergreen, 2,000 per month) | Quote | Invoice |
 |---|---|---|
 | Reduce 3 to 2 | -2,000 (one period) | **-1,000.00**, the month prorated by day (11-16 to 11-30) |
-| Swap to a 1,000 per month product | -2,000 / +1,000 | nets **0.00**: the outgoing line is credited by day, the incoming line bills a full month in advance from the swap date |
+| Swap to a 1,000 per month product (outgoing 2,000 per month) | -2,000 / +1,000 | nets **0.00**: the outgoing line is credited by day, the incoming line bills a full month in advance from the swap date |
 
 A Term Defined add or cancel invoiced by day too (135.00 for 11-16 to 11-30 on the +1). So **state the quote credit
 and the invoice credit separately** in any plan; billing detail: `rlm-business-apis` → `backdated-asset-lifecycle.md`.
