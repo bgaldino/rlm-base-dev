@@ -47,11 +47,23 @@ describe('rlmDocStatusMonitor', () => {
         jest.restoreAllMocks();
     });
 
-    it('re-reads the status right after the EMP subscription is live', async () => {
-        subscribe.mockResolvedValue({ channel: '/event/DocGenProcStsChgEvent' });
+    it('re-reads the status right after the EMP subscription is live, not before', async () => {
+        let resolveSubscribe;
+        subscribe.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveSubscribe = resolve;
+                })
+        );
         mount();
         await flushPromises();
+        // A read before the subscription is live could miss a status that lands in between.
+        expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
 
+        resolveSubscribe({ channel: '/event/DocGenProcStsChgEvent' });
+        await flushPromises();
+
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledTimes(1);
         expect(notifyRecordUpdateAvailable).toHaveBeenCalledWith([{ recordId: PROCESS_ID }]);
     });
 

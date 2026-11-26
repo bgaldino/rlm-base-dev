@@ -14,11 +14,11 @@ const PENDING_STATUS = 'InProgress';
 // also take Waiting and Blocked (264 picklist and developer guide); those, like InProgress, keep
 // the screen waiting, and MAX_WAIT_MS bounds the wait.
 const FINAL_STATUSES = new Set(['Success', 'Failure']);
-// Reported to the flow when the process is still pending after MAX_WAIT_MS. Any status other
+// Reported to the flow when no final status (Success or Failure) has arrived after MAX_WAIT_MS. Any status other
 // than Success takes the flow to its error screen; for TimedOut that screen says the process was
 // still running and may finish, and for any other status it names the status.
 const TIMED_OUT_STATUS = 'TimedOut';
-// Re-read the process status this often until it leaves InProgress (todo 435): the platform
+// Re-read the process status this often until it is Success or Failure (todo 435): the platform
 // event alone can be missed, because the process can finish before the EMP subscription is live
 // (subscribe with replay -1 receives only later events), and the record wire reads once and
 // does not refresh by itself. Measured on 264: a quote proposal finished 4 s after the
