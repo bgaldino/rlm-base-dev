@@ -364,7 +364,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         else if (data) this.paymentPromiseState = data;
     }
 
-    @wire(getMyCollectionPlans, { currencyCode: '$effectiveCurrencyCode' })
+    @wire(getMyCollectionPlans)
     wiredMyCollectionPlans({ error, data }) {
         if (error) this.myCollectionPlansState = failedSection({ items: [] });
         else if (data) this.myCollectionPlansState = data;
@@ -396,7 +396,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     // The page shows one currency at a time (the chosen one, else the user's): on a multi-currency org every
-    // amount read is filtered to it, and nothing is converted. Each section's answer says which currency it is.
+    // total is filtered to it, and nothing is converted. Each section's answer says which currency it is; the
+    // user's plans are a list of every currency, each row in its own.
     get cardsCurrency() {
         return this.dashboardData?.currencyCode;
     }
@@ -407,10 +408,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     get worklistCurrency() {
         return this.worklistData?.currencyCode;
-    }
-
-    get plansCurrency() {
-        return this.myCollectionPlansState?.currencyCode;
     }
 
     get currencyNote() {
@@ -452,9 +449,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         if (value === this.selectedCurrency) return;
         this.selectedCurrency = value;
         this.resetFilteredSections();
-        // Progress and the user's plans are filtered by currency too.
+        // Progress totals amounts, so it follows the currency too; the user's plans list every currency.
         this.collectionsProgressData = undefined;
-        this.myCollectionPlansState = undefined;
         this.dispatchFilterChange();
     }
 
@@ -1112,7 +1108,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             plan: nameCell('CollectionPlan', item.collectionPlanId, item.name, false),
             account: nameCell('Account', item.accountId, item.accountName, item.accountNameUnavailable),
             dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : DASH,
-            toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance, this.plansCurrency)
+            // Each plan's amount in its own currency: the list shows every currency.
+            toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance, item.currencyCode)
         }));
     }
 
@@ -1146,6 +1143,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     get myCollectionPlansMoreText() {
         return moreText(this.myCollectionPlans.length, LIST_ORDER.plans, scopeOf('plans', this.myCollectionPlansState?.filters), this.activeFilters);
+    }
+
+    // On a multi-currency org progress covers the shown currency only (its filters say so), and says which.
+    get noProgressText() {
+        const data = this.collectionsProgressData;
+        if (data?.currencyCode && (data.filters || []).includes(CURRENCY)) return `No collection plan data in ${data.currencyCode}.`;
+        return 'No collection plan data available.';
     }
 
     get progressUnavailable() {

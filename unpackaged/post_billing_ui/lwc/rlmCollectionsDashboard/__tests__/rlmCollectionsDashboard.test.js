@@ -1068,7 +1068,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     expect(currency.value).toBe(chosen);
     expect(currency.options.map((option) => option.label)).not.toContain("All Currencies");
     expect(text(element, ".filter-context")[0]).toContain(chosen);
-    for (const adapter of [getDashboardCards, getWorklist, getPaymentPromiseSummary, getMyCollectionPlans, getCollectionsProgress]) {
+    for (const adapter of [getDashboardCards, getWorklist, getPaymentPromiseSummary, getCollectionsProgress]) {
       expect(adapter.getLastConfig().currencyCode).toBe(chosen);
     }
   });
@@ -1090,18 +1090,50 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     expect(text(element, ".currency-note")).toEqual([]);
   });
 
-  // Progress and the user's plans are shown in the chosen currency, so choosing one re-reads them.
-  it("puts progress and the user's plans back to loading when the currency changes", async () => {
+  // Progress totals amounts, so choosing a currency re-reads it; the user's plans list every currency and stay.
+  it("puts progress back to loading when the currency changes, and keeps the user's plans", async () => {
     const element = await mount();
     getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: false });
     getMyCollectionPlans.emit({ items: [], unavailable: false, hasMore: false });
     await flushPromises();
     expect(text(element, ".progress-empty")).toEqual(["No collection plan data available."]);
+    const plansEmpty = text(element, ".my-cp-empty");
+    expect(plansEmpty.length).toBe(1);
 
     await selectFilter(element, "currency", "EUR");
 
     expect(text(element, ".progress-empty")).toEqual([]);
-    expect(text(element, ".my-cp-empty")).toEqual([]);
+    expect(text(element, ".my-cp-empty")).toEqual(plansEmpty);
+  });
+
+  // On a multi-currency org progress covers the shown currency only, and its empty text says which.
+  it("names the currency when progress has no plans in it", async () => {
+    const element = await mount();
+    getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: false,
+      currencyCode: "USD", filters: ["currency"] });
+    await flushPromises();
+
+    expect(text(element, ".progress-empty")).toEqual(["No collection plan data in USD."]);
+  });
+
+  // The user's plans are a list in every currency: each amount is formatted in its own plan's currency.
+  it("formats each of the user's plans in its own currency", async () => {
+    const element = await mount();
+    getMyCollectionPlans.emit({
+      items: [
+        { collectionPlanId: "0Wn000000000001AAA", name: "CP-1", accountId: "001000000000001AAA", accountName: "Acme",
+          totalInvoiceBalance: 100, currencyCode: "EUR" },
+        { collectionPlanId: "0Wn000000000002AAA", name: "CP-2", accountId: "001000000000001AAA", accountName: "Acme",
+          totalInvoiceBalance: 200, currencyCode: "USD" }
+      ],
+      unavailable: false,
+      hasMore: false
+    });
+    await flushPromises();
+
+    const rows = Array.from(element.shadowRoot.querySelectorAll(".my-cp-table tbody tr"));
+    expect(rows[0].textContent).toContain("\u20ac100.00");
+    expect(rows[1].textContent).toContain("$200.00");
   });
 
   // Amounts are in the currency the server says each section is in, not the client's default.

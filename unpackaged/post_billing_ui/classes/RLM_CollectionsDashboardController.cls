@@ -1065,9 +1065,10 @@ public with sharing class RLM_CollectionsDashboardController {
     // The dashboard shows one currency at a time: the chosen one, else the user's. Measured on a 264 multi-currency
     // org (2026-11-26, rolled back): a SUM() over a currency field returns the corporate currency, even grouped by
     // CurrencyIsoCode and even filtered to one currency (100 EUR summed to 114.11 USD). So on a multi-currency org
-    // every amount read is filtered to the shown currency and amounts are read as rows and added here (boundedSum),
-    // never as a SUM(): nothing is converted and no figure mixes currencies. A single-currency org has no
-    // CurrencyIsoCode, so its reads are not filtered.
+    // every total is filtered to the shown currency and amounts are read as rows and added here (boundedSum),
+    // never as a SUM(): nothing is converted and no figure mixes currencies. The user's plans are a list, not a
+    // total: every plan, each amount in its own currency. A single-currency org has no CurrencyIsoCode, so its
+    // reads are not filtered.
     private static String shownCurrency(String currencyCode) {
         return String.isNotBlank(currencyCode) ? currencyCode : UserInfo.getDefaultCurrency();
     }
@@ -1343,8 +1344,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
         // The filters each component's read applies (FILTER_*), by UNAVAILABLE_* key.
         @AuraEnabled public Map<String, List<String>> filtersByKey { get; set; }
-        // The currency every amount on the page is in (shownCurrency), and whether the org has several, so the
-        // page can say amounts in other currencies were converted.
+        // The one currency the cards show (shownCurrency), and whether the org has several, so the page can say
+        // which single currency it shows.
         @AuraEnabled public String currencyCode { get; set; }
         @AuraEnabled public Boolean multiCurrency { get; set; }
 
@@ -1367,11 +1368,10 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    // The user's own plans in the shown currency (currencyCode, else the user's) on a multi-currency org.
-    public static MyCollectionPlanList getMyCollectionPlans(String currencyCode) {
-        String planCurrency = shownCurrency(currencyCode);
+    // The user's own plans, every currency: a list needs no single currency (only totals do), so each plan's
+    // amount is shown in its own currency.
+    public static MyCollectionPlanList getMyCollectionPlans() {
         MyCollectionPlanList planList = new MyCollectionPlanList();
-        planList.currencyCode = planCurrency;
         List<MyCollectionPlanItem> items = planList.items;
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return planList;
@@ -1385,9 +1385,10 @@ public with sharing class RLM_CollectionsDashboardController {
                 acctField = 'AccountId';
             }
             String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField;
-            // On a multi-currency org, the plans in the shown currency (their amounts are in it).
-            String currencyFilter = cpFields.containsKey('CurrencyIsoCode') ? ' AND CurrencyIsoCode = :planCurrency' : '';
-            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId' + currencyFilter
+            // A multi-currency org: each plan's own currency, for its amount.
+            Boolean hasCurrency = cpFields.containsKey('CurrencyIsoCode');
+            if (hasCurrency) selectFields += ', CurrencyIsoCode';
+            String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId'
                 + ' ORDER BY Duedate ASC NULLS LAST, Name ASC'
                 + ' LIMIT ' + (MY_PLAN_ROWS + 1);
             List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
@@ -1398,12 +1399,11 @@ public with sharing class RLM_CollectionsDashboardController {
             for (SObject cp : plans) {
                 if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));
             }
-            items.addAll(planItems(plans, acctField, getAccountNames(planAccountIds)));
+            items.addAll(planItems(plans, acctField, hasCurrency, getAccountNames(planAccountIds)));
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
             sectionSkipped('getMyCollectionPlans', e);
             MyCollectionPlanList unreadable = new MyCollectionPlanList();
-            unreadable.currencyCode = planCurrency;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
@@ -1411,14 +1411,17 @@ public with sharing class RLM_CollectionsDashboardController {
         return planList;
     }
 
-    // One row per plan, its amount as recorded (the read is filtered to the shown currency).
-    private static List<MyCollectionPlanItem> planItems(List<SObject> plans, String acctField, RLM_AccountNames.Result names) {
+    // One row per plan, its amount in the plan's own currency (on a single-currency org, the user's, which is the
+    // org's).
+    private static List<MyCollectionPlanItem> planItems(List<SObject> plans, String acctField, Boolean hasCurrency,
+            RLM_AccountNames.Result names) {
         List<MyCollectionPlanItem> items = new List<MyCollectionPlanItem>();
         for (SObject cp : plans) {
             Id accountId = (Id) cp.get(acctField);
             MyCollectionPlanItem item = new MyCollectionPlanItem((Id) cp.get('Id'), (String) cp.get('Name'), (Date) cp.get('Duedate'),
                 accountId, accountId != null ? names.names.get(accountId) : null, orZero((Decimal) cp.get('TotalInvoiceBalance')));
             item.accountNameUnavailable = names.unavailable(accountId);
+            item.currencyCode = hasCurrency ? (String) cp.get('CurrencyIsoCode') : UserInfo.getDefaultCurrency();
             items.add(item);
         }
         return items;
@@ -1431,10 +1434,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // True when the user owns more plans than the MY_PLAN_ROWS listed (soonest due first).
         @AuraEnabled public Boolean hasMore { get; set; }
-        // The filters the read applies (FILTER_*): none, it is the user's own plans.
+        // The filters the read applies (FILTER_*): none, it is every one of the user's own plans, in every
+        // currency (each row says its own).
         @AuraEnabled public List<String> filters { get; set; }
-        // The currency the amounts are in (shownCurrency).
-        @AuraEnabled public String currencyCode { get; set; }
         public MyCollectionPlanList() {
             items = new List<MyCollectionPlanItem>();
             unavailable = false;
@@ -1444,16 +1446,17 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    // Every plan the user can read in the shown currency (currencyCode, else the user's) on a multi-currency org.
+    // Every plan the user can read; on a multi-currency org, those in the shown currency (currencyCode, else the
+    // user's), since progress totals amounts and a total needs one currency.
     public static CollectionsProgressData getCollectionsProgress(String currencyCode) {
         String progressCurrency = shownCurrency(currencyCode);
         CollectionsProgressData result = new CollectionsProgressData();
         result.currencyCode = progressCurrency;
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return result;
-            // On a multi-currency org, the plans in the shown currency (their amounts are in it).
-            String currencyFilter = Schema.SObjectType.CollectionPlan.fields.getMap().containsKey('CurrencyIsoCode')
-                ? ' WHERE CurrencyIsoCode = :progressCurrency' : '';
+            Boolean hasCurrency = Schema.SObjectType.CollectionPlan.fields.getMap().containsKey('CurrencyIsoCode');
+            result.filters = filtersApplied(false, hasCurrency);
+            String currencyFilter = hasCurrency ? ' WHERE CurrencyIsoCode = :progressCurrency' : '';
             List<CollectionPlan> plans = (List<CollectionPlan>) boundedRows(
                 'SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate FROM CollectionPlan' + currencyFilter,
                 new Map<String, Object>{ 'progressCurrency' => progressCurrency }, 'collection plans');
@@ -1463,6 +1466,7 @@ public with sharing class RLM_CollectionsDashboardController {
             sectionSkipped('getCollectionsProgress', e);
             CollectionsProgressData unreadable = new CollectionsProgressData();
             unreadable.currencyCode = progressCurrency;
+            unreadable.filters = result.filters;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
@@ -1522,7 +1526,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Boolean unavailable { get; set; }
         // Why it is unavailable: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY (null when it is not).
         @AuraEnabled public String unavailableReason { get; set; }
-        // The filters the read applies (FILTER_*): none, it covers every plan the user can read.
+        // The filters the read applies (FILTER_*): the currency on a multi-currency org (the plans in the shown
+        // currency), else none.
         @AuraEnabled public List<String> filters { get; set; }
         // The currency the amounts are in (shownCurrency).
         @AuraEnabled public String currencyCode { get; set; }
@@ -1543,6 +1548,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id accountId { get; set; }
         @AuraEnabled public String accountName { get; set; }
         @AuraEnabled public Decimal totalInvoiceBalance { get; set; }
+        // The plan's own currency, the one its amount is in.
+        @AuraEnabled public String currencyCode { get; set; }
         // True when the account names could not be read: the name is not available, not "none".
         @AuraEnabled public Boolean accountNameUnavailable { get; set; }
         public MyCollectionPlanItem(Id cpId, String cpName, Date dueDate, Id accountId, String accountName, Decimal totalInvBal) {

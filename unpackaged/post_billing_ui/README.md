@@ -195,7 +195,7 @@ on the worklist, `filters` on the promises, tasks, plans and progress): a filter
 the object read has the field, so a single-currency org, whose Invoice and Payment have no
 `CurrencyIsoCode`, is never told to choose a currency. The Disputed tab reports the filters of the read
 that had too many: its open cases follow the account only, its invoice rollup the currency too.
-Progress and the user's own plans follow no filter. A read whose allowance is
+Progress follows the shown currency (it totals amounts), and the user's own plans follow no filter. A read whose allowance is
 zero runs no query and is too many at once. The guarantee is per call, not per read: whatever the
 data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
 so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
@@ -244,8 +244,9 @@ executed, recorded where it runs (only while a test runs).
 The page shows one currency at a time and converts nothing. On a multi-currency org the currency
 filter offers the active currencies, with no "All Currencies", and starts on the user's default
 currency (else the first one offered); every amount read is filtered to that currency: the cards and
-their aging, the Critical and High-Value lists, the Disputed tab's invoice rollup, payment promises,
-progress and the user's plans. The amounts are formatted in it, and the page says "Showing amounts in
+their aging, the Critical and High-Value lists, the Disputed tab's invoice rollup, payment promises
+and progress ("No collection plan data in USD." when it has none). The user's own plans are a list,
+not a total: every plan is listed, each amount in its plan's own currency. The amounts are formatted in it, and the page says "Showing amounts in
 EUR only. Choose another currency to see its amounts." A single-currency org keeps "All Currencies"
 and reads and shows its amounts as they are, with no note. Measured on 264 (2026-11-26), on a
 multi-currency org (USD corporate; AUD, CAD, CHF, EUR, GBP and JPY active), with test payments rolled
