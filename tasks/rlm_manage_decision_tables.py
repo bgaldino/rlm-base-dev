@@ -26,31 +26,17 @@ from datetime import datetime
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, project_api_version, require_identifier, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, require_identifier, requested_names, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
-    from cumulusci.core.utils import process_bool_arg
     from simple_salesforce import Salesforce
 except ImportError:
     BaseTask = object
     TaskOptionsError = Exception
     Salesforce = None
 
-    def process_bool_arg(arg):
-        """Offline fallback for cumulusci.core.utils.process_bool_arg.
-        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 def _anchor_gates(config: Dict, names: List[str]) -> List[Dict]:
@@ -245,14 +231,9 @@ class ManageDecisionTables(BaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name: str) -> bool:
-        """A boolean option; None, blank or whitespace is False; a list or an unparseable value is refused."""
-        text = self._option_text(name)
-        if text is None:
-            return False
-        try:
-            return bool(process_bool_arg(text))
-        except TypeError:
-            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
+        """A boolean option through soql_utils.option_flag: None, blank or whitespace is False, any int
+        its truth value, and a list or an unparseable value is refused by name."""
+        return option_flag(self.options.get(name), name, TaskOptionsError)
 
     def _option_names(self, name: str) -> List[str]:
         """A names option as a list; None, blank, whitespace or an empty list means none were asked for."""

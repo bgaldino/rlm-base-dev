@@ -4,14 +4,13 @@ from typing import List
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, project_api_version, requested_names, soql_quote
+from tasks.soql_utils import option_flag, option_text, project_api_version, requested_names, soql_quote
 
 # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
 try:
     import requests
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.keychain import BaseProjectKeychain
-    from cumulusci.core.utils import process_bool_arg
     from cumulusci.core.exceptions import CommandException, TaskOptionsError
 except ImportError:  # pragma: no cover - exercised only in the offline test environment
     requests = None
@@ -20,19 +19,6 @@ except ImportError:  # pragma: no cover - exercised only in the offline test env
     CommandException = Exception
     TaskOptionsError = Exception
 
-    def process_bool_arg(arg):
-        """Offline fallback for cumulusci.core.utils.process_bool_arg.
-        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 CONNECTION_ATTEMPTS = 3
 
@@ -103,13 +89,9 @@ class RefreshDecisionTable(SFDXBaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name) -> bool:
-        text = self._option_text(name)
-        if text is None:
-            return False
-        try:
-            return bool(process_bool_arg(text))
-        except TypeError:
-            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
+        """soql_utils.option_flag: None, blank or whitespace is False, any int its truth value, and a
+        list or an unparseable value is refused by name."""
+        return option_flag(self.options.get(name), name, TaskOptionsError)
 
     def _option_names(self, name) -> List[str]:
         return requested_names(self.options.get(name), name, TaskOptionsError)
