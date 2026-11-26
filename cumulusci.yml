@@ -4889,28 +4889,31 @@ flows:
         options:
           api_names: *ps_large_stx
           user_alias: salesrep
-      # Step 8 (RLM_UtilitiesPermset for the salesrep persona) was removed: the Account
-      # Reset is for administrators only (owner decision, todo 397, 2026-11-26). The
-      # Reset Account action is hidden on RLM_Account_Record_Page from anyone without
+      # There is no step 8: the salesrep persona is not given RLM_UtilitiesPermset. The
+      # Account Reset is for administrators only (owner decision, todo 397, 2026-11-26):
+      # the Reset Account action is hidden on RLM_Account_Record_Page from anyone without
       # Modify All Data and View All Data, and RLM_AccountUtilities refuses such a user
-      # before reading anything, so the set gives the persona nothing it needs. The
-      # numbering gap is deliberate: later steps keep the numbers docs cite.
+      # before reading anything, so the set would give the persona nothing it needs. The
+      # numbering gap keeps the later steps at the numbers docs cite.
       9:
         # The Decision Table Manager sits on the shared Revenue Cloud Home page, and
         # there is no persona-specific Home page — so the salesrep persona SEES it. The
-        # grant elsewhere in the build assigns to the RUNNING user only (same trap as
-        # step 8 documents), which left the persona looking at a default-open section
-        # that errors on Apex class access.
+        # grant elsewhere in the build assigns to the RUNNING user only: the steps of a
+        # flow assign to the running (admin) user, and only a user_alias assignment
+        # reaches the persona, which otherwise looks at a default-open section that
+        # errors on Apex class access.
         #
-        # Granted rather than hidden, following step 8's precedent: a visible component
-        # that errors is worse than the grant. The grant is also far narrower than that
-        # one — class access to a controller that reads decision-table metadata and
-        # queues the platform's own refresh action. It deletes nothing, and the refresh
-        # is the same operation the Setup page offers.
+        # Granted rather than hidden: a visible component that errors is worse than the
+        # grant, and the grant is narrow — class access to a controller that reads
+        # decision-table metadata and queues the platform's own refresh action. It
+        # deletes nothing, and the refresh is the same operation the Setup page offers.
         #
-        # Gated like step 8, and for the same reason: the permission set ships with
-        # post_utils, so assigning it on a personas-only build would fail on a
-        # PermissionSet that was never deployed.
+        # Gated on quantumbit OR tso because the permission set ships with post_utils,
+        # which only those builds deploy: assigning it on a personas-only build would
+        # fail on a PermissionSet that was never deployed. The flags are checked, not
+        # whether the metadata landed, so running prepare_personas on its own needs
+        # post_utils deployed first (prepare_rlm_org deploys it in prepare_quantumbit
+        # and prepare_tso, before prepare_personas).
         #
         # ⚠ The persona grant stops here, and does NOT extend to the other two
         # sections of that same accordion — RLM_ExpressionSetManager and
@@ -4964,8 +4967,8 @@ flows:
         # is class access to an invocable that only locks the assets being renewed, plus
         # the Asset (and required Account and Contact) read its user-mode query needs.
         #
-        # Gated like step 8: the permission set ships with post_utils, so assigning it on
-        # a personas-only build would fail on a PermissionSet that was never deployed.
+        # Gated on quantumbit OR tso: the permission set ships with post_utils, which only quantumbit and tso builds deploy, so assigning it on a
+        # personas-only build would fail on a PermissionSet that was never deployed.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:
@@ -4990,7 +4993,8 @@ flows:
         # persona's Process Usage button is left without it, deliberately (the step 9
         # reasoning).
         #
-        # Gated like step 8: both sets ship with post_utils.
+        # Gated on quantumbit OR tso: both sets ship with post_utils, which only those
+        # builds deploy, so assigning them on a personas-only build would fail.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:

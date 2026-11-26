@@ -243,12 +243,15 @@ product column too. The policy is per product *and* resource, not per resource.
 
 ## Step 5 — Reset
 
-**In the org (for demo users).** The Account Utilities action clears an account's
+**In the org (admins only).** The Reset Account action clears an account's
 orders, assets, contracts, invoices, quotes, opportunities **and its entire usage
-graph**. It requires the `RLM_UtilitiesPermset` permission set, assigned on both
-`quantumbit` and `tso` builds. It is destructive and has no confirmation step —
-it resets the account you invoke it on. It ends on a screen that lists what it
-removed and what it kept; a run that stops early asks to be run again.
+graph**. It is for administrators: it shows only to a user with Modify All Data and
+View All Data, and refuses anyone else before changing anything. It is destructive
+and has no confirmation step — it resets the account you invoke it on. It ends on a
+screen that lists what it removed and what it kept. A run that stops in its usage
+cleanup keeps those deletes and asks to be run again; one that stops later keeps
+only its usage deletes, and says whether a rerun gets further or what to delete
+first (see `unpackaged/post_utils/README.md`).
 
 **From the CLI (whole org).**
 
@@ -291,9 +294,9 @@ To rebuild from clean, the asset must go too:
 | Goal | Do this |
 |------|---------|
 | Clear usage, then use a **different** period | `clearUsageData.apex` alone (leave `DELETE_ASSET_RATE_CARD_ENTRIES = false`) |
-| Re-test the **same** period | Full per-account reset via **Account Utilities**, then rebuild the asset — a usage clear is not enough (see above) |
+| Re-test the **same** period | Full per-account reset via **Account Utilities** (admins only), then rebuild the asset — a usage clear is not enough (see above) |
 | Reload `qb-rates` design-time data | `clearUsageData.apex` with `DELETE_ASSET_RATE_CARD_ENTRIES = true` — ARCEs reference the RateCardEntry rows and block their replacement |
-| Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org (removes assets, orders, quotes **and** the usage graph), then rebuild |
+| Rebuild the asset from scratch | Full per-account reset via **Account Utilities** in the org, admins only (removes assets, orders, quotes **and** the usage graph), then rebuild |
 
 Re-run whichever you use until the reported remaining counts read **0** — a partial
 teardown is expected on a large graph and is real progress, not a failure.

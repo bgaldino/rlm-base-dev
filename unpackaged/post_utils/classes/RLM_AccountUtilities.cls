@@ -41,9 +41,11 @@
  * successful: worse than refusing. A non-admin never reaches the deletes: the
  * reset refuses them first. The repo's Apex rules permit `without
  * sharing` for exactly this case provided the reason is documented, which is
- * what this note is. Access is instead controlled at the grant: the class is
- * reachable only through RLM_UtilitiesPermset, which is assigned deliberately
- * and kept separate from the component permission sets for this reason.
+ * what this note is. Access is controlled in the class: the reset refuses, before
+ * it reads anything, a user without both Modify All Data and View All Data
+ * (ADMIN_ONLY), whatever route reached it. Class access comes from the System
+ * Administrator profile or RLM_UtilitiesPermset, which the build assigns only to
+ * the running admin; neither is the gate.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
  * context called it. An omitted keyword is NOT equivalent to `without sharing` in
@@ -66,9 +68,10 @@ public without sharing class RLM_AccountUtilities {
     // org with 831 summaries; the cap only exists so a pathological graph cannot
     // spin. In practice QUERY_RESERVE ends a run first, after four rounds (before the loop,
     // the admins-only permission check takes 1 of the 100 queries and phase 1's lookups 4
-    // to 6, and a round needs 62 left to start), and the next run carries on. The switch's read is the one query this engine spends that main's did
-    // not: no other read tells whether the user has Modify All Data and View All Data
-    // (measured live 264: FeatureManagement.checkPermission reads only custom permissions).
+    // to 6, and a round needs 62 left to start), and the next run carries on. The
+    // permission check needs that query: no other read tells whether the user has Modify
+    // All Data and View All Data (measured live 264: FeatureManagement.checkPermission
+    // reads only custom permissions).
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
@@ -87,8 +90,8 @@ public without sharing class RLM_AccountUtilities {
     // opportunities 5 = 44 on the drained path, plus the journal query and the journals'
     // record alerts, which only the undrained path runs = 46. 31 is what an account with one
     // asset and no other such data measures.
-    // QUERY_RESERVE covers the 46 and the usage retries, with main's seven spare (main kept
-    // 50 for 43). A round starts only while both are left; otherwise a large usage graph
+    // QUERY_RESERVE covers the 46 and the usage retries, with seven spare. A round starts
+    // only while both are left; otherwise a large usage graph
     // would spend phase 2's queries and end in a LimitException. A test holds the measured 31
     // exactly and the reserve against the 46.
     private static final Integer QUERIES_PER_ROUND = 9;
@@ -102,11 +105,10 @@ public without sharing class RLM_AccountUtilities {
     //  - RETRY_TAIL, for the usage retries: at most 28 follow the journal guard (journal 1,
     //    its record alerts 1, collections 5, schedule groups 1, billing 8, fulfillment 2,
     //    contracts 2, the asset step with no assets 3, quotes and opportunities 5). 31 keeps
-    //    three spare, as main's 30 did for its 27.
+    //    three spare.
     //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
     //    references 2, resource policies 3, rate card entries 3, assets 2, quotes and
-    //    opportunities 5). 18 keeps three spare, as main's 16 did for its 13: this branch
-    //    added the two rate card entry queries.
+    //    opportunities 5). 18 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
@@ -668,8 +670,8 @@ public without sharing class RLM_AccountUtilities {
     /**
      * True when the running user has both Modify All Data and View All Data, which the
      * reset requires. UserPermissionAccess holds the user's effective permissions, from the
-     * profile, permission sets and groups, and any user may read their own. It is the one
-     * query the reset spends before phase 1 that main's did not; the budgets count it.
+     * profile, permission sets and groups, and any user may read their own. It is one query
+     * before phase 1, and the budgets count it.
      */
     @TestVisible
     private static Boolean seesAndDeletesEverything() {
@@ -771,11 +773,14 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static final Integer STATEMENTS_KEPT = 2;
 
-    /** The stop for a delete or update that does not fit: out of statements, or out of rows. */
-    private static ResetStoppedException dmlStop() {
-        return new ResetStoppedException(
-            Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT ? STATEMENT_LIMIT : DML_LIMIT
-        );
+    /**
+     * Why the next delete or update would not fit: out of statements, or out of rows.
+     * Read BEFORE the statement runs: a trimmed delete that runs out of rows spends a
+     * statement itself, which could otherwise make a rows stop read as a statements one.
+     */
+    @TestVisible
+    private static String dmlStopCause() {
+        return Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT ? STATEMENT_LIMIT : DML_LIMIT;
     }
 
     // Rows the next DML statement may touch: what is left of the transaction's row
@@ -808,10 +813,11 @@ public without sharing class RLM_AccountUtilities {
         }
         notePhaseTwoRows(records);
         Integer room = dmlRowsLeft();
+        String stopCause = dmlStopCause();
         Boolean trimmed = records.size() > room;
         if (trimmed) {
             if (allOrNone || room <= 0) {
-                throw dmlStop();
+                throw new ResetStoppedException(stopCause);
             }
             List<SObject> fits = new List<SObject>();
             for (Integer i = 0; i < room; i++) {
@@ -837,7 +843,7 @@ public without sharing class RLM_AccountUtilities {
         }
         recordRemoved(records[0].getSObjectType(), removed);
         if (trimmed) {
-            throw dmlStop();
+            throw new ResetStoppedException(stopCause);
         }
         return gone;
     }
@@ -871,7 +877,7 @@ public without sharing class RLM_AccountUtilities {
         // In the stop message's tally too: an update that does not fit names its group.
         notePhaseTwoRows(records);
         if (records.size() > dmlRowsLeft()) {
-            throw dmlStop();
+            throw new ResetStoppedException(dmlStopCause());
         }
         Database.SaveResult[] results = Database.update(records, false);
         for (Integer i = 0; i < results.size(); i++) {

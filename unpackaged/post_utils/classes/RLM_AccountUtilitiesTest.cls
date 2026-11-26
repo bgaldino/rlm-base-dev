@@ -175,7 +175,33 @@ private without sharing class RLM_AccountUtilitiesTest {
         return iv;
     }
 
+    // The reset is for admins only, so the tests run it as a user with Modify All Data and
+    // View All Data, made in the setup from a profile picked by those permissions (not by
+    // name, which an org can translate): they pass whoever deploys them.
+    private static final String ADMIN_ALIAS = 'rlmradm';
+    private static User adminUser;
+
+    private static User testAdmin() {
+        if (adminUser == null) {
+            adminUser = [SELECT Id FROM User WHERE Alias = :ADMIN_ALIAS AND LastName = 'RLM Reset Admin' LIMIT 1];
+        }
+        return adminUser;
+    }
+
+    // The reset, as the test's admin. System.runAs spends one DML statement (measured live
+    // 264) and no query or row: a test that counts statements calls testAdmin() before
+    // Test.startTest() and runs invoke() in its own System.runAs instead.
     private static RLM_AccountUtilities.Result run(RLM_AccountUtilities.InputVariables iv) {
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
+        System.runAs(admin) {
+            result = invoke(iv);
+        }
+        return result;
+    }
+
+    // The reset, as whoever is running.
+    private static RLM_AccountUtilities.Result invoke(RLM_AccountUtilities.InputVariables iv) {
         List<RLM_AccountUtilities.Result> results = RLM_AccountUtilities.delAccountRelatedObjects(
             new List<RLM_AccountUtilities.InputVariables>{ iv }
         );
@@ -263,6 +289,45 @@ private without sharing class RLM_AccountUtilitiesTest {
         insert new PricebookEntry(
             Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 1, IsActive = true
         );
+
+        // The test's admin, in its own runAs: a user is a setup object, and inserting it in
+        // the same context as the records above would be a mixed DML operation.
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Profile adminProfile = [
+                SELECT Id FROM Profile
+                WHERE UserType = 'Standard' AND PermissionsModifyAllData = true AND PermissionsViewAllData = true
+                ORDER BY CreatedDate LIMIT 1
+            ];
+            User admin = new User(
+                ProfileId = adminProfile.Id, LastName = 'RLM Reset Admin', Email = 'rlm.reset.admin@example.com',
+                Username = 'rlm.reset.admin.' + Datetime.now().getTime() + '@example.com', Alias = ADMIN_ALIAS,
+                TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
+                LanguageLocaleKey = 'en_US'
+            );
+            insert admin;
+            // The objects and fields the reset reads come with Revenue Cloud's permission set
+            // licenses and permission sets, not with the profile (measured live 264: a bare
+            // System Administrator cannot see Invoice.PaymentScheduleId). The admin gets the
+            // ones the deploying user holds, so it sees what that org's admins see; whether it
+            // may reset still comes only from its profile's Modify All Data and View All Data.
+            List<PermissionSetLicenseAssign> licenses = new List<PermissionSetLicenseAssign>();
+            for (PermissionSetLicenseAssign held : [
+                SELECT PermissionSetLicenseId FROM PermissionSetLicenseAssign WHERE AssigneeId = :UserInfo.getUserId()
+            ]) {
+                licenses.add(new PermissionSetLicenseAssign(AssigneeId = admin.Id, PermissionSetLicenseId = held.PermissionSetLicenseId));
+            }
+            Database.insert(licenses, false);
+            List<PermissionSetAssignment> grants = new List<PermissionSetAssignment>();
+            for (PermissionSetAssignment held : [
+                SELECT PermissionSetId, PermissionSetGroupId FROM PermissionSetAssignment
+                WHERE AssigneeId = :UserInfo.getUserId() AND PermissionSet.IsOwnedByProfile = false
+            ]) {
+                grants.add(held.PermissionSetGroupId != null
+                    ? new PermissionSetAssignment(AssigneeId = admin.Id, PermissionSetGroupId = held.PermissionSetGroupId)
+                    : new PermissionSetAssignment(AssigneeId = admin.Id, PermissionSetId = held.PermissionSetId));
+            }
+            Database.insert(grants, false);
+        }
     }
 
     private static UsageFixture loadUsageFixture() {
@@ -964,12 +1029,16 @@ private without sharing class RLM_AccountUtilitiesTest {
         insert policy;
         newOpportunity(a.Id, 'RLM Utilities Statements Opp');
 
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
         Test.startTest();
-        // Two statements left: deleting the policy in phase 1 would leave phase 2's
-        // savepoint the last one, and its rollback none. With only one kept, this run ends
-        // in a LimitException.
-        spendDmlStatementsDownTo(2);
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        System.runAs(admin) {
+            // Two statements left: deleting the policy in phase 1 would leave phase 2's
+            // savepoint the last one, and its rollback none. With only one kept, this run
+            // ends in a LimitException.
+            spendDmlStatementsDownTo(2);
+            result = invoke(request(a.Id, false, false, false));
+        }
         Test.stopTest();
 
         // Reaching this line is part of the assertion: a LimitException cannot be caught.
@@ -1057,10 +1126,15 @@ private without sharing class RLM_AccountUtilitiesTest {
         insert q;
         newFile('RLM Statements File', q.Id);
 
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
+        Integer left;
         Test.startTest();
-        spendDmlStatementsDownTo(7);
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Integer left = Limits.getLimitDmlStatements() - Limits.getDmlStatements();
+        System.runAs(admin) {
+            spendDmlStatementsDownTo(7);
+            result = invoke(request(a.Id, false, false, false));
+            left = Limits.getLimitDmlStatements() - Limits.getDmlStatements();
+        }
         Test.stopTest();
 
         Assert.areEqual(true, result.completed, 'The run has the statements it needs. Reason: ' + result.reason);
@@ -1078,9 +1152,13 @@ private without sharing class RLM_AccountUtilitiesTest {
         insert q;
         newFile('RLM Statements Stop File', q.Id);
 
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
         Test.startTest();
-        spendDmlStatementsDownTo(3);
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        System.runAs(admin) {
+            spendDmlStatementsDownTo(3);
+            result = invoke(request(a.Id, false, false, false));
+        }
         Test.stopTest();
 
         Assert.areEqual(false, result.completed, 'A run out of statements did not complete');
@@ -1089,6 +1167,37 @@ private without sharing class RLM_AccountUtilitiesTest {
             && !result.reason.contains('largest groups'),
             'The stop names statements and gives their advice. Got: ' + result.reason);
         Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'Phase 2 rolled back');
+    }
+
+    // Out of rows, with three statements left: the trimmed delete spends one, leaving the
+    // two that are kept. The stop is still for rows, decided before that delete.
+    @IsTest
+    static void aRowsStopThatSpendsTheLastStatementBeforeTheKeptOnesIsStillForRows() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        Datetime start = Datetime.now().addDays(-10);
+        insert new List<BindingObjUsageRsrcPlcy>{
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start, EffectiveEndDate = start.addDays(4)),
+            new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start.addDays(5))
+        };
+        // Room for one of the two policies.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
+        Test.startTest();
+        System.runAs(admin) {
+            spendDmlStatementsDownTo(3);
+            result = invoke(request(a.Id, false, false, false));
+        }
+        Test.stopTest();
+
+        Assert.isTrue(result.reason.contains(RLM_AccountUtilities.DML_LIMIT)
+            && !result.reason.contains(RLM_AccountUtilities.STATEMENT_LIMIT),
+            'The stop is for rows. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE BindingObjectId = :a.Id],
+            'One policy went, in the trimmed delete');
     }
 
     @IsTest
@@ -1138,17 +1247,21 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
 
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
         Test.startTest();
-        // A teardown round starts only while its own 9 queries plus the 53 phase 2
-        // keeps back are left. Leaving 55 here, less the 5 spent before the loop (the
-        // admins-only permission check and phase 1's 4 lookups), means the first round
-        // cannot start: the state a usage graph too large for one run reaches after
-        // several rounds.
-        Integer spend = Limits.getLimitQueries() - 55;
-        for (Integer i = 0; i < spend; i++) {
-            countOf('Account', a.Id);
+        System.runAs(admin) {
+            // A teardown round starts only while its own 9 queries plus the 53 phase 2
+            // keeps back are left. Leaving 55 here, less the 5 spent before the loop (the
+            // admins-only permission check and phase 1's 4 lookups), means the first round
+            // cannot start: the state a usage graph too large for one run reaches after
+            // several rounds.
+            Integer spend = Limits.getLimitQueries() - 55;
+            for (Integer i = 0; i < spend; i++) {
+                countOf('Account', a.Id);
+            }
+            result = invoke(request(a.Id, true, true, true));
         }
-        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
 
         Assert.areEqual(false, result.completed, 'A run stopped for its query budget did not complete');
@@ -1901,9 +2014,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 45 is counted from the code with data in every branch (see the constants in
+    // The 46 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path with one asset, held exactly. It holds
-    // the reserve against the 45 and the measurement against both, but it cannot catch
+    // the reserve against the 46 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     // Phase 2's queries with every option on, an opportunity and no other data, counted from
@@ -1968,10 +2081,10 @@ private without sharing class RLM_AccountUtilitiesTest {
                 + RLM_AccountUtilities.PHASE_TWO_FIXED_MAX
         );
         Assert.areEqual(46 + 7, RLM_AccountUtilities.QUERY_RESERVE,
-            'The reserve covers phase 2\'s counted worst case, 46, with main\'s seven spare');
+            'The reserve covers phase 2\'s counted worst case, 46, with seven spare');
         Assert.areEqual(46, RLM_AccountUtilities.PHASE_TWO_FIXED_MAX, 'Phase 2\'s counted worst case');
         // The counts after each guard (see the constants): 28 after the journal guard, 15
-        // after the asset step's last one, each with main's three spare.
+        // after the asset step's last one, each with three spare.
         Assert.areEqual(28 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 28 counted plus three spare');
         Assert.areEqual(15 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus three spare');
     }
@@ -1983,14 +2096,19 @@ private without sharing class RLM_AccountUtilitiesTest {
         seedAssetAndOpportunity(a);
         List<UsageEntitlementBucket> tree = seedDeepUndrainedTree(a, f);
 
+        User admin = testAdmin();
+        RLM_AccountUtilities.Result result;
+        Integer queriesLeft;
         Test.startTest();
-        // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 53 kept back, and 6 are spent before it with an
-        // asset (the admins-only permission check; the asset, contract and two policy
-        // lookups; the account's rate card entries).
-        spendQueriesDownTo(68, a.Id);
-        RLM_AccountUtilities.Result result = run(allOn(a.Id));
-        Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
+        System.runAs(admin) {
+            // The least a run can have and still reach phase 2: the first teardown round
+            // needs its 9 queries plus the 53 kept back, and 6 are spent before it with an
+            // asset (the admins-only permission check; the asset, contract and two policy
+            // lookups; the account's rate card entries).
+            spendQueriesDownTo(68, a.Id);
+            result = invoke(allOn(a.Id));
+            queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
+        }
         Test.stopTest();
 
         // Reaching this line is part of the assertion: a LimitException cannot be caught.
@@ -2174,7 +2292,12 @@ private without sharing class RLM_AccountUtilitiesTest {
     // ------------------------------------------------------------ admins only
 
     private static User newUserWith(String alias, PermissionSet extra) {
-        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        // Picked by permission, not by name: a profile without Modify All Data and View All Data.
+        Profile standard = [
+            SELECT Id FROM Profile
+            WHERE UserType = 'Standard' AND PermissionsModifyAllData = false AND PermissionsViewAllData = false
+            ORDER BY CreatedDate LIMIT 1
+        ];
         User u = new User(
             ProfileId = standard.Id, LastName = 'Reset ' + alias, Email = 'rlm.reset.' + alias + '@example.com',
             Username = 'rlm.reset.' + alias + '.' + Datetime.now().getTime() + '@example.com', Alias = alias,
@@ -2194,7 +2317,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.runAs(u) {
             admin = RLM_AccountUtilities.seesAndDeletesEverything();
             Test.startTest();
-            result = run(request(a.Id, true, true, true));
+            result = invoke(request(a.Id, true, true, true));
             Test.stopTest();
         }
         Assert.areEqual(false, admin, 'PRECONDITION: the user lacks Modify All Data or View All Data');
@@ -2209,8 +2332,11 @@ private without sharing class RLM_AccountUtilitiesTest {
     static void anAdminResets() {
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Admin Opp');
-        Assert.isTrue(RLM_AccountUtilities.seesAndDeletesEverything(),
-            'PRECONDITION: the test\'s admin has Modify All Data and View All Data');
+        Boolean admin;
+        System.runAs(testAdmin()) {
+            admin = RLM_AccountUtilities.seesAndDeletesEverything();
+        }
+        Assert.isTrue(admin, 'PRECONDITION: the test\'s admin has Modify All Data and View All Data');
 
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));

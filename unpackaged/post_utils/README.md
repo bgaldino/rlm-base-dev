@@ -29,7 +29,7 @@ Whatever the options, every reset deletes the account's usage summaries, entitle
 
 ### Result
 
-The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object, or why it did not run. After a completed reset it also refreshes the active `PricingDiscovery` decision tables through `RLM_Refresh_Decision_Tables_By_Usage_Type`, and the screen shows how many were queued, which failed, or that none matched. A fault in that refresh is shown on the same screen and does not undo the reset; a governor limit hit by the refresh would, because it runs in the reset's transaction and no fault path catches a limit.
+The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object, or why it did not run. After a completed reset it also refreshes the active `PricingDiscovery` decision tables through `RLM_Refresh_Decision_Tables_By_Usage_Type`, and the screen shows how many were queued, which failed, or that none matched. That refresh runs as the user who ran the reset, and Salesforce queues one only for a user with Modify All Data **and Customize Application**: an admin who can reset (Modify All Data and View All Data) but lacks Customize Application, such as one on a custom profile, completes the reset while every table fails to queue, and the screen names that cause. A fault in that refresh is shown on the same screen and does not undo the reset; a governor limit hit by the refresh would, because it runs in the reset's transaction and no fault path catches a limit.
 
 | Output | Meaning |
 |--------|---------|
@@ -53,17 +53,15 @@ A governor limit would roll back both phases, so the reset stops short of one. E
 
 Known limitations: an entitlement held by a bucket kept for another account's entitlement stays, so an asset it is bound to cannot be deleted, and a Delete Assets run rolls phase 2 back with the platform's reason. Likewise a contract or asset that another account's entitlement or entitlement account is bound to (`GrantBindingTargetId`; measured live 264, it blocks the delete). An order with a line such an entitlement refers to is reported left in Draft (see *Result*).
 
-### Changes from the version before todo 397
-
-The engine is main's, with these changes:
+### Changes since 2026-11 (todo 397)
 
 - (a) Asset rate card entries are deleted in phase 2 with their assets, so a rollback keeps them with the assets, together with the binding object rate card entries sourced from a deleted asset; the query for those runs only when the account has assets.
 - (b) Binding usage policies are deleted only for the account, the contracts the run deletes and, with Delete Assets, the assets.
-- (c) A phase 2 stop says what ran out (rows, queries or statements) and what helps, and names the largest groups by distinct rows, deletes and updates.
+- (c) A phase 2 stop says what ran out (rows, queries or statements), decided before the delete that did not fit, and what helps; for rows it names the largest groups by distinct rows, deletes and updates.
 - (d) An order already in Draft is not updated again; an order set back to Draft and then refused is reported left in Draft.
 - (e) The admins-only check is one query before phase 1, counted in the query budgets.
 - (f) Two DML statements are kept, for phase 2's savepoint and rollback.
-- (g) Record alerts on the account's transaction journals are deleted before the journals (a record alert blocks its journal's delete, measured live 264), counted in the budgets with main's spare margins.
+- (g) Record alerts on the account's transaction journals are deleted before the journals (a record alert blocks its journal's delete, measured live 264). Phase 2's fixed queries are counted at 46, with 53 kept back for them (seven spare), and the walk guards keep three spare after the queries counted after them.
 
 ### Permission set
 

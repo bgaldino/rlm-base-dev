@@ -207,7 +207,7 @@ Enable "Real-time compatibility enforcement" toggle.
 ::: {.layout}
 ::: {.column}
 ### :utility-knife: Account Utilities
-Navigate to the Account screen and use the action dropdown to find 'Reset Account'.
+Navigate to the Account screen and use the action dropdown to find 'Reset Account'. It is for admins only: it shows to a user with Modify All Data and View All Data.
 Account utilities allows you to choose which data you would like to clear from your account.
 ![placeholder][img-PLACEHOLDER-account-utilities]
 :::

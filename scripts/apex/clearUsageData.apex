@@ -7,7 +7,8 @@
 //     touching orders, quotes, assets or opportunities.
 //   * RLM_AccountUtilities.delAccountRelatedObjects -- PER-ACCOUNT, full reset.
 //     Removes the account's usage graph *and* its transactional records. That is
-//     the in-org utility demo users run.
+//     the in-org Reset Account action, for admins only (Modify All Data and View
+//     All Data).
 //
 // The two now share the same teardown design: a convergent loop with a DML-row
 // budget clamp. RLM_AccountUtilities also deletes UsageEntitlementEntry and
