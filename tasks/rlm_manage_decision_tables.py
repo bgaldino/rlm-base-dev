@@ -243,9 +243,14 @@ class ManageDecisionTables(BaseTask):
         return option_text(self.options.get(name), name, TaskOptionsError)
 
     def _option_flag(self, name: str) -> bool:
-        """A boolean option; None, blank or whitespace is False; a list is refused."""
+        """A boolean option; None, blank or whitespace is False; a list or an unparseable value is refused."""
         text = self._option_text(name)
-        return False if text is None else bool(process_bool_arg(text))
+        if text is None:
+            return False
+        try:
+            return bool(process_bool_arg(text))
+        except TypeError:
+            raise TaskOptionsError(f"{name} must be true or false, got {text!r}")
 
     def _option_names(self, name: str) -> List[str]:
         """A names option as a list; None, blank, whitespace or an empty list means none were asked for."""

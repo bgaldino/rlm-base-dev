@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 199
+EXPECTED_CHECKS = 200
 
 
 def check(label, condition, detail=""):
@@ -1806,6 +1806,9 @@ opt_query("list developer_names filter", {"developer_names": ["A", "B"]}, "Devel
 opt_query("string developer_names filter", {"developer_names": " A , B "}, "DeveloperName IN ('A', 'B')")
 opt_refused("list operation is refused", {"operation": ["query"]}, "must be a single value", operation=None)
 opt_refused("whitespace developer_names on activate is 'required'", {"developer_names": " "}, "developer_names is required", operation="activate")
+_err, _fake = opt_run({"strict": "maybe"}, "validate_lists")
+check("unparseable strict is a TaskOptionsError naming the option, before any query",
+      _err is not None and "strict must be true or false" in _err and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
 check("list-typed strict is refused with the helper's error, before any query",
       _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
