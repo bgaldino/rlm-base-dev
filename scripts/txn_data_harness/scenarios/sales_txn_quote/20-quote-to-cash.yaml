@@ -20,7 +20,8 @@
 #
 # The account must be billing-ready (a BillingAccount): otherwise the harness
 # caps the stage before activation and the check fails as short. Infinitech
-# and QB-API-FLEX are in the QuantumBit data a standard build loads.
+# and its billing account come from the build's sample data (sample_data on);
+# QB-API-FLEX from the QuantumBit catalog.
 #
 # Runbook: docs/guides/quote-to-cash-runbook.md. Settlement contract:
 # scripts/txn_data_harness/docs/contracts-billing-settlement.md.

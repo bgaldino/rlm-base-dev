@@ -170,7 +170,9 @@ Chain skills in this order. Each step names the decision or proof it produces.
 **Prove quote to cash on a scratch org**
 1. [CCI orchestration](../../.cursor/skills/cci-orchestration/SKILL.md): build the org.
 2. [Transaction data harness](../../.cursor/skills/txn-data-harness/SKILL.md):
-   run a quote through order, activation and invoice.
+   run a quote through order, activation, invoice, credit and payment; the
+   [Quote-to-Cash Runbook](quote-to-cash-runbook.md) has the one command and the
+   stage-by-stage checks.
 3. [Asset lifecycle changes](../../.cursor/skills/asset-lifecycle-changes/SKILL.md):
    amend, cancel and renew the result.
 4. [Troubleshooting](../../.cursor/skills/troubleshooting/SKILL.md): when a step fails.

@@ -22,8 +22,9 @@ skill: [`verification.md`](../../.cursor/skills/billing-operations/verification.
   `rlm-base__beta`).
 - **A billing-ready account**: one with a `BillingAccount`. Without one the
   harness caps the run at `order_draft`, before activation. The shipped
-  scenario uses **Infinitech** and **QB-API-FLEX** from the QuantumBit data a
-  standard build loads.
+  scenario uses the **Infinitech** account and its billing account, from the
+  sample data a standard build loads (`insert_scratch_data`, with the
+  `sample_data` flag on), and **QB-API-FLEX** from the QuantumBit catalog.
 - **Line Level application.** The org's Credit, Payment and Refund Application
   Level is read from Billing Settings at run time. Line Level, the Foundations
   default, is live-verified. Header Level is not measured: the verifier skips
@@ -119,8 +120,8 @@ The run, the six steps and every check above passed on a 264 scratch org on
 2026-11-26.
 
 A `--config` on a later step must match the recorded block exactly; changing
-settlement options means a new run. A manifest recorded before 2026-11-26 holds
-only the parts its target reached, so one stopped at `credit_applied` cannot be
+settlement options means a new run. A manifest recorded by the harness before
+this change (todo 277) holds only the parts its target reached, so one stopped at `credit_applied` cannot be
 given a payment (start a new run), and one whose credit step did not finish
 resumes it without `--config` (the file's payment part no longer matches the
 recorded block).

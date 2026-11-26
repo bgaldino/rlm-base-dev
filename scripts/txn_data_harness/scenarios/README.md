@@ -503,8 +503,8 @@ value (null) means no payment, like leaving the key out.
   recorded block is accepted, even on a manifest that already reached its
   target (which runs nothing and changes nothing: an earlier error stays;
   only a step that runs and succeeds clears it). A recorded block without
-  `payment` (a credit-only block, or a manifest recorded before 2026-11-26,
-  when a run stopped at `credit_applied` recorded only the credit) refuses
+  `payment` (a credit-only block, or a manifest recorded by the harness before
+  todo 277, when a run stopped at `credit_applied` recorded only the credit) refuses
   `--to-stage payment_applied` before any step runs; such an old manifest
   also refuses a `--config` that has a payment part, so resume its credit
   step without `--config`.
