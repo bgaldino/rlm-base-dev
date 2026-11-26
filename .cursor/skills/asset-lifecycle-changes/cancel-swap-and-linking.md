@@ -29,8 +29,9 @@ and the invoice credit separately** in any plan; billing detail: `rlm-business-a
 ## Swaps
 
 - A swap acts as an add plus a negative amendment [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`]; values
-  co-term by day (a 3,240 per year Term Defined asset swapped to a 45 per year product, dated 2026-12-01, priced
-  -3,195.62 / +44.38, which is each price x 360/365).
+  co-term by day (a separate asset from the cancel example: quantity 1, 3,240 per year Term Defined, swapped to a
+  45 per year product dated 2026-12-01 with 360 of 365 days of its term year left, so its period ended 2027-11-25;
+  priced -3,195.62 / +44.38, which is each price x 360/365).
 - **A swap of a bundle component asset is refused:** "We couldn't process the swap request because the asset is a
   bundle child. Provide the bundle's parent-level asset." Swap the top-level asset.
 - **Usage-based assets cannot be swapped** ("You can't swap usage-based assets."), so a rule that needs a usage product

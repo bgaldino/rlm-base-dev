@@ -73,7 +73,7 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    returned 0 is not traced.
 6. **Check the build before demoing an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it reset the line's attributes to product defaults, and activation kept them on the asset
-   [Measured: early Nov 2026, 264]; on a current build with the configurator node status present the attribute was
+   [Measured: 2026-11-05, 264, QuantumBit build]; on a current build with the configurator node status present the attribute was
    kept [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](../asset-lifecycle-changes/cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)]. Where it resets, change the quantity in the
    configurator.
 7. **Header adjustments depend on the Discount Distribution Service (DDS) element; make sure only

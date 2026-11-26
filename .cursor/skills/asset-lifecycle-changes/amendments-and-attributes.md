@@ -10,7 +10,7 @@
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit did this on the 2026-11-05 build), reset the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
-   next amendment inherits them. The price stays right [Measured: 2026-11-05, 264]. Add
+   next amendment inherits them. The price stays right [Measured: 2026-11-05, 264, QuantumBit build]. Add
    quantity with `initiateAmendment` and `quantityChange`, which kept them. A current build with node status
    present did not reset (note above).
     - **Changing one CML answer on an amendment reset the others.** When a Place request on

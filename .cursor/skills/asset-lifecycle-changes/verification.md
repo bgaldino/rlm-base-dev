@@ -47,9 +47,9 @@ For each change, record the state after every step:
    prices (line and quote totals of 0 on a measured renewal, each lot a -lot/+lot pair; order
    and assets unchanged [Measured: 2026-11-12, 264, scratch, one org]). After
    activation, start a new lifecycle quote from the updated asset. Treat this as holding
-   for a renewal or cancellation (and, until measured, other amendment shapes and ramped quotes; measured on a renewal and on an activated cancellation, which
-   also went to 0 [Measured: 2026-11-26, 264, ent-sb0 harness build]; an amend-add and an Evergreen-reduce
-   amendment quote did not change); a Force reprice touches every line [Platform behaviour, traced], so it
+   for a renewal or cancellation, and, until measured, for other amendment shapes and ramped quotes. An activated
+   cancellation also went to 0, while an amend-add and an Evergreen-reduce amendment quote did not change
+   [Measured: 2026-11-26, 264, ent-sb0 harness build]. A Force reprice touches every line [Platform behaviour, traced], so it
    shows the effect most `[inferred]`. Use Reprice All or a Place request with Force pricing; a
    System request with a line record may not reprice every line where Delta Pricing applies
    ([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)).
@@ -115,7 +115,7 @@ service component and a one-time accessory). The assets' `PricingSource` was not
 | Cancel the top-level asset | Every line −1; prices in detail rows | Unchanged; state periods end at the cancel date; "Cancel / Cancellations" |
 | Cancel or renew a component alone | Refused: "the asset is a bundle component. Provide the top-level asset" | — |
 | Renew | $0; quantity 0 on every line (no Term Defined line) | — |
-| Amend in the UI, inline quantity edit, rules on | Total right; parent prices blank (details +2 and −1); **attributes reset to product defaults** | The asset's new state period carries the defaults |
+| Amend in the UI, inline quantity edit, rules on | Total right; parent prices blank (details +2 and −1); **attributes reset to product defaults** (not reproduced on a current build with node status present; see [cancel-swap-and-linking.md](cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)) | The asset's new state period carries the defaults |
 
 The action history netted to zero over add, add, remove and cancel (+, +, −, −). The
 attributes stayed unchanged after an `initiateAmendment` with `quantityChange`, a quantity change
@@ -156,7 +156,7 @@ Amendments on a CML bundle depend on the configurator's node status: on one of t
 was empty after every activation while `OrderItem.RLM_ConstraintEngineNodeStatus__c` was
 filled. That conflicts with the platform reading in [Quick Rule 2](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices), where item-sourced
 rows take a mapped line value; the cause is **Open** (live check: which rows were blank). Copying the order lines' value onto the asset action sources before amending stopped
-the reset. [Rule 2 in amendments-and-attributes.md](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices) has the cause, measured on a third org.
+the reset. [Rule 2 in amendments-and-attributes.md](amendments-and-attributes.md#rule-2-read-attributes-as-well-as-prices) has the measured fix (context rule and trigger); the cause is still Open there.
 
 ## Measured results (fresh 264 `ent-sb0` scratch org, 2026-11-17)
 

@@ -81,17 +81,16 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be
    amended** (`PlaceSalesTransactionPersistException`) [Measured: 2026-11-05/06, 264, scratch, one org]. Built in the quote UI the same shape
    amended (evergreen not tried in the UI). Cancel failed too where tried. Detail and the assetization shapes:
-   [pitfalls.md](pitfalls.md#api-built-ramped-bundle-with-a-one-time-or-evergreen-child),
-   [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+   [bundle-children-lifecycle.md](bundle-children-lifecycle.md#amend-and-cancel-limitation).
 10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, unrounded**
     (One-Time and Evergreen lines too, whose `TotalPrice` doesn't follow the uplifted net; `UnitPriceUplift` 0 on a line
     exempts it). **A partial line edit re-applies the uplift to untouched ramp lines** (net prices move, totals don't):
     finish every ramp edit with a whole-quote Force reprice and read net prices, not totals. No line needs the exemption
     when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift)
-    or when every ramped line should take the uplift [Open: inferred]. A line without a `RampIdentifier` took no uplift (a
+    or when every ramped line should take the uplift [Open: measure a mixed ramp where only some ramped lines should take the uplift]. A line without a `RampIdentifier` took no uplift (a
     standalone Evergreen product, one org). The uplifted price keeps full precision, not cents: add a rounding step
-    after the ramp uplift if the source rounds. [Open: not measured on a Standard ramp; the 2026-10-29 Standard UI run had one
-    Term product and exact prices]
+    after the ramp uplift if the source rounds. [Open: not measured on a Standard ramp; measure one with several products and a rounded price. The 2026-10-29
+    Standard UI run had one Term product and exact prices]
     [Measured: 2026-11-11/13, 264, scratch orgs; detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
     [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)].
 
@@ -144,7 +143,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](verify-and-discover.md#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [pitfalls.md](pitfalls.md) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [bundle-children-lifecycle.md](bundle-children-lifecycle.md#amend-and-cancel-limitation) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
 | Replace the admin flow behind Create Ramp Schedule, or edit a segment's uplift after creation | [custom-ramp-flow.md](custom-ramp-flow.md) |
 | A reprice, clone or partial-PATCH result looks wrong | [pitfalls.md](pitfalls.md) |
 
