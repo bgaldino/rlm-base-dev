@@ -193,8 +193,8 @@ private class RLM_OnAccountBillingControllerTest {
     // it sums or counts, with the fields it uses); those probes are the evidence that this role
     // can run the summary's reads. Dated rates are left out: that table exists only with
     // advanced currency management, and the controller treats an unreadable one as empty.
-    // Collection plans are the exception: this role on its own (without the persona group's
-    // collections set, next test) cannot read them, so the summary reports
+    // Collection plans are the exception: this role on its own (without the standalone
+    // RLM_BillingCollectionsRead set, next test) cannot read them, so the summary reports
     // collections as unavailable (null), not "not in collections", and does not fail. Measured on a
     // 264 org (2026-11-26): RLM_BillingUI's CollectionPlan read grant does not make it readable;
     // CollectionPlan also needs the Collections and Recovery Specialist user permission, which the
@@ -255,69 +255,76 @@ private class RLM_OnAccountBillingControllerTest {
             + '(the account has a plan).');
     }
 
-    // The Billing Operations persona as the build defines it (owner decision, todo 452) reads
-    // collection plans, so an account with a plan is in collections (its pill reads "In
-    // Collections"), not unavailable. Skipped visibly where the personas bundle is not deployed.
+    // Each billing persona (its group, RLM_BillingUI, the standalone RLM_BillingCollectionsRead set,
+    // Billing and Billing Advanced licenses; owner decision, todo 452) reads collection plans, so an
+    // account with a plan is in collections (the pill reads "In Collections"), not unavailable.
+    // The admin owns the plan: CollectionPlan's internal org-wide default is Public Read/Write
+    // (EntityDefinition.InternalSharingModel = ReadWrite, measured 2026-11-26 on this 264 org and, by
+    // the orchestrator, on both build orgs), so a plan the persona does not own still counts.
+    // Skipped visibly where the personas bundle is not deployed.
     @isTest
-    static void getBillingSummary_billingOperationsPersona_readsCollectionPlans() {
-        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
-        if (u == null) {
-            return;
+    static void getBillingSummary_eachBillingPersonaWithTheCollectionsSet_readsCollectionPlans() {
+        Map<String, User> personas = new Map<String, User>();
+        for (String groupName : RLM_BillingUITestUsers.BILLING_PERSONA_GROUPS) {
+            User u = RLM_BillingUITestUsers.billingPersonaWithCollectionsRead(groupName);
+            if (u == null) {
+                return;
+            }
+            personas.put(groupName, u);
         }
-        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Persona Test', null);
-        // No CollectionPlanReason (see above). Owned by the user, so sharing shows it.
-        insert new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
+        Map<String, Id> accountByGroup = new Map<String, Id>();
+        for (String groupName : personas.keySet()) {
+            Account acc = newAccountOwnedBy(personas.get(groupName), 'RLM On-Account ' + groupName, null);
+            insert new CollectionPlan(AccountId = acc.Id);
+            accountByGroup.put(groupName, acc.Id);
+        }
 
-        String collectionPlanError;
-        Map<String, Object> result;
+        Map<String, String> readErrors = new Map<String, String>();
+        Map<String, Map<String, Object>> results = new Map<String, Map<String, Object>>();
         Test.startTest();
-        System.runAs(u) {
-            collectionPlanError = userModeError(COLLECTION_PLAN_READ);
-            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        for (String groupName : personas.keySet()) {
+            System.runAs(personas.get(groupName)) {
+                readErrors.put(groupName, userModeError(COLLECTION_PLAN_READ));
+                results.put(groupName, RLM_OnAccountBillingController.getBillingSummary(accountByGroup.get(groupName)));
+            }
         }
         Test.stopTest();
 
-        Assert.isNull(collectionPlanError, 'The persona can read collection plans: ' + collectionPlanError);
-        Assert.areEqual(true, (Boolean) result.get('inCollections'), 'The account with a plan is in collections, not unavailable.');
-        Assert.areEqual(0, (Integer) result.get('disputeCount'), 'The persona\'s other status reads still run.');
+        for (String groupName : personas.keySet()) {
+            Assert.isNull(readErrors.get(groupName), groupName + ' persona can read collection plans: ' + readErrors.get(groupName));
+            Assert.areEqual(true, (Boolean) results.get(groupName).get('inCollections'),
+                groupName + ' persona: the account with a plan (owned by the admin) is in collections, not unavailable.');
+        }
     }
 
-    // The persona reads a plan another user owns: CollectionPlan's internal org-wide default is
-    // Public Read/Write (EntityDefinition.InternalSharingModel = ReadWrite, measured 2026-11-26 on
-    // this 264 org and, by the orchestrator, on both build orgs), so the admin-owned plan counts.
+    // The standalone set carries exactly the collections read the personas need, and no persona
+    // group contains it: a group with it fails to deploy while any holder lacks Billing Advanced.
     @isTest
-    static void getBillingSummary_billingOperationsPersona_readsAPlanItDoesNotOwn() {
-        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
-        if (u == null) {
+    static void billingCollectionsReadSet_pinsItsContentAndIsInNoGroup() {
+        String setName = RLM_BillingUITestUsers.COLLECTIONS_READ_SET;
+        List<PermissionSet> sets = [SELECT Id, PermissionsCollectionsAndRecoverySpecialist FROM PermissionSet WHERE Name = :setName];
+        if (sets.isEmpty()) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + setName + ' is not deployed (personas off).');
             return;
         }
-        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Persona Shared Plan', null);
-        insert new CollectionPlan(AccountId = acc.Id);
-        Map<String, Object> result;
-        Test.startTest();
-        System.runAs(u) {
-            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        Id setId = sets[0].Id;
+        Assert.isTrue(sets[0].PermissionsCollectionsAndRecoverySpecialist, setName + ' carries the Collections and Recovery Specialist user permission.');
+        Map<String, ObjectPermissions> objects = new Map<String, ObjectPermissions>();
+        for (ObjectPermissions op : [SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete
+                                     FROM ObjectPermissions WHERE ParentId = :setId]) {
+            objects.put(op.SobjectType, op);
         }
-        Test.stopTest();
-
-        Assert.areEqual(UserInfo.getUserId(), [SELECT OwnerId FROM CollectionPlan WHERE AccountId = :acc.Id].OwnerId,
-            'PRECONDITION: the admin, not the persona, owns the plan.');
-        Assert.areEqual(true, (Boolean) result.get('inCollections'), 'The persona sees the admin\'s plan: in collections.');
-    }
-
-    // The persona group carries its collections set: without it the persona cannot read
-    // collection plans and every account's pill reads "Status Unavailable".
-    @isTest
-    static void billingOperationsPersonaGroup_includesTheCollectionsSet() {
-        if ([SELECT COUNT() FROM PermissionSetGroup WHERE DeveloperName = :RLM_BillingUITestUsers.PERSONA_GROUP] == 0) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: the persona group is not deployed (personas off).');
-            return;
+        Assert.areEqual(new Set<String>{ 'CollectionPlan', 'CollectionPlanItem' }, objects.keySet(), setName + ' grants exactly these objects.');
+        for (ObjectPermissions op : objects.values()) {
+            Assert.isTrue(op.PermissionsRead && !op.PermissionsCreate && !op.PermissionsEdit && !op.PermissionsDelete,
+                setName + ' grants read only on ' + op.SobjectType + '.');
         }
-        Assert.areEqual(1, [
-            SELECT COUNT() FROM PermissionSetGroupComponent
-            WHERE PermissionSetGroup.DeveloperName = :RLM_BillingUITestUsers.PERSONA_GROUP
-              AND PermissionSet.Name = :RLM_BillingUITestUsers.PERSONA_COLLECTIONS_SET
-        ], RLM_BillingUITestUsers.PERSONA_GROUP + ' includes ' + RLM_BillingUITestUsers.PERSONA_COLLECTIONS_SET + '.');
+        List<FieldPermissions> fields = [SELECT Field, PermissionsRead, PermissionsEdit FROM FieldPermissions WHERE ParentId = :setId];
+        Assert.areEqual(1, fields.size(), setName + ' grants exactly one field read: ' + fields);
+        Assert.areEqual('CollectionPlan.AccountId', fields[0].Field, setName + ' grants CollectionPlan.AccountId.');
+        Assert.isTrue(fields[0].PermissionsRead && !fields[0].PermissionsEdit, 'Read only.');
+        Assert.areEqual(0, [SELECT COUNT() FROM PermissionSetGroupComponent WHERE PermissionSetId = :setId],
+            setName + ' is in no permission set group.');
     }
 
     // A currency with no rate is never converted at 1: the balance is unavailable (null).

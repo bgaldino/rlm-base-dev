@@ -13,28 +13,31 @@ public class RLM_BillingUITestUsers {
     public static final String BILLING_PSL = 'RevLifecycleMgmtBillingPsl';
     public static final String BILLING_ADVANCED_PSL = 'BillingAdvancedPsl';
 
-    // The RLM Billing Operations persona group (unpackaged/post_personas) and its own collections set.
-    public static final String PERSONA_GROUP = 'RLM_Billing_Operations';
-    public static final String PERSONA_COLLECTIONS_SET = 'RLM_BillingOperationsCollections';
+    // The billing persona groups (unpackaged/post_personas) and the standalone collections set their
+    // users are assigned next to the group (owner decision, todo 452).
+    public static final List<String> BILLING_PERSONA_GROUPS = new List<String>{
+        'RLM_Billing_Operations', 'RLM_Billing_Admin', 'RLM_Credit_Memo_Operations'
+    };
+    public static final String COLLECTIONS_READ_SET = 'RLM_BillingCollectionsRead';
 
     /**
-     * A Billing Operations persona user who reads collection plans, built as the persona is: the
-     * RLM_Billing_Operations permission set group itself (so dropping the collections set from the
-     * group fails the tests that use this), RLM_BillingUI, and the Billing and Billing Advanced
-     * licenses (the group's Collections and Recovery Specialist user permission needs Billing
-     * Advanced). Returns null, with a visible skip, where the personas bundle is not deployed
-     * (personas off), so callers skip rather than fail.
+     * A billing persona user who reads collection plans, built as the persona is assigned: the
+     * persona's permission set group itself, the standalone RLM_BillingCollectionsRead set,
+     * RLM_BillingUI, and the Billing and Billing Advanced licenses (the set's Collections and
+     * Recovery Specialist user permission needs Billing Advanced). Returns null, with a visible
+     * skip, where the personas bundle is not deployed (personas off), so callers skip rather than fail.
      */
-    public static User billingOperationsPersonaWithCollections() {
-        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :PERSONA_GROUP];
-        if (groups.isEmpty() || [SELECT COUNT() FROM PermissionSet WHERE Name = :PERSONA_COLLECTIONS_SET] == 0) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + PERSONA_GROUP + ' or ' + PERSONA_COLLECTIONS_SET
-                + ' is not deployed (personas off), so the persona\'s collections read is not tested.');
+    public static User billingPersonaWithCollectionsRead(String groupName) {
+        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :groupName];
+        if (groups.isEmpty() || [SELECT COUNT() FROM PermissionSet WHERE Name = :COLLECTIONS_READ_SET] == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + groupName + ' or ' + COLLECTIONS_READ_SET
+                + ' is not deployed (personas off), so that persona\'s collections read is not tested.');
             return null;
         }
         Assert.areEqual('Updated', groups[0].Status,
-            'PRECONDITION: the ' + PERSONA_GROUP + ' group is recalculated, so it can be assigned.');
-        User u = create(new List<String>{ 'RLM_BillingUI' }, new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
+            'PRECONDITION: the ' + groupName + ' group is recalculated, so it can be assigned.');
+        User u = create(new List<String>{ 'RLM_BillingUI', COLLECTIONS_READ_SET },
+            new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetGroupId = groups[0].Id);
         }

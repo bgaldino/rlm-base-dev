@@ -344,8 +344,8 @@ private class RLM_InvoiceSummaryControllerTest {
         }
     }
 
-    // A billing role without collections (the managed role on its own, without the persona
-    // group's collections set) can't read the collection plan link that the promise-to-pay step
+    // A billing role without collections (the managed role on its own, without the standalone
+    // RLM_BillingCollectionsRead set) can't read the collection plan link that the promise-to-pay step
     // filters on. The summary must still load for that user, with the
     // promise to pay unavailable (null), not zero: the account may have promises the user cannot
     // see (pack 452), and not failing on that one query.
@@ -369,34 +369,46 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.areEqual(0, data.totalDue, 'The rest of the summary still loads.');
     }
 
-    // The Billing Operations persona as the build defines it (owner decision, todo 452) reads
-    // collection plans, so its promise to pay is a real figure (zero here), not unavailable.
-    // Skipped visibly where the personas bundle is not deployed.
+    // Each billing persona with the standalone RLM_BillingCollectionsRead set (owner decision, todo
+    // 452) reads collection plans, so its promise to pay is a real figure (zero here), not
+    // unavailable. Skipped visibly where the personas bundle is not deployed.
     @isTest
-    static void getInvoiceSummary_billingOperationsPersona_runsPromiseToPay() {
-        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
-        if (u == null) {
-            return;
+    static void getInvoiceSummary_eachBillingPersonaWithTheCollectionsSet_runsPromiseToPay() {
+        Map<String, User> personas = new Map<String, User>();
+        for (String groupName : RLM_BillingUITestUsers.BILLING_PERSONA_GROUPS) {
+            User u = RLM_BillingUITestUsers.billingPersonaWithCollectionsRead(groupName);
+            if (u == null) {
+                return;
+            }
+            personas.put(groupName, u);
         }
-        Account acc = new Account(Name = 'RLM Invoice Summary Persona Test', OwnerId = u.Id);
-        insert acc;
-        Boolean seesCollections;
-        String promiseReadError;
-        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Map<String, Id> accountByGroup = new Map<String, Id>();
+        for (String groupName : personas.keySet()) {
+            Account acc = new Account(Name = 'RLM Invoice Summary ' + groupName, OwnerId = personas.get(groupName).Id);
+            insert acc;
+            accountByGroup.put(groupName, acc.Id);
+        }
+        Map<String, Boolean> seesCollections = new Map<String, Boolean>();
+        Map<String, String> promiseReadErrors = new Map<String, String>();
+        Map<String, RLM_InvoiceSummaryController.InvoiceSummaryData> results = new Map<String, RLM_InvoiceSummaryController.InvoiceSummaryData>();
         Test.startTest();
-        System.runAs(u) {
-            seesCollections = RLM_InvoiceSummaryController.canReadCollectionPlans();
-            promiseReadError = userModeError('SELECT Id, RequestedAmount, Status, CurrencyIsoCode FROM PaymentScheduleItem '
-                + 'WHERE PaymentSchedule.CollectionPlanItemId != null '
-                + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1');
-            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        for (String groupName : personas.keySet()) {
+            System.runAs(personas.get(groupName)) {
+                seesCollections.put(groupName, RLM_InvoiceSummaryController.canReadCollectionPlans());
+                promiseReadErrors.put(groupName, userModeError('SELECT Id, RequestedAmount, Status, CurrencyIsoCode FROM PaymentScheduleItem '
+                    + 'WHERE PaymentSchedule.CollectionPlanItemId != null '
+                    + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1'));
+                results.put(groupName, RLM_InvoiceSummaryController.getInvoiceSummary(accountByGroup.get(groupName)));
+            }
         }
         Test.stopTest();
 
-        Assert.isTrue(seesCollections, 'The persona can read collection plans.');
-        Assert.isNull(promiseReadError, 'The persona can run the promise-to-pay read: ' + promiseReadError);
-        Assert.areEqual(0, data.promiseToPayCount, 'The promise-to-pay count is a real zero, not unavailable.');
-        Assert.areEqual(0, data.promiseToPayAmount, 'The promise-to-pay amount is a real zero, not unavailable.');
+        for (String groupName : personas.keySet()) {
+            Assert.isTrue(seesCollections.get(groupName), groupName + ' persona can read collection plans.');
+            Assert.isNull(promiseReadErrors.get(groupName), groupName + ' persona can run the promise-to-pay read: ' + promiseReadErrors.get(groupName));
+            Assert.areEqual(0, results.get(groupName).promiseToPayCount, groupName + ': the promise-to-pay count is a real zero, not unavailable.');
+            Assert.areEqual(0, results.get(groupName).promiseToPayAmount, groupName + ': the promise-to-pay amount is a real zero, not unavailable.');
+        }
     }
 
     // The other side of the gate: a collections user still gets the promise-to-pay query.
