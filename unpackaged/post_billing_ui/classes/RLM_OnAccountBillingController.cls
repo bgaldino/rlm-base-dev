@@ -97,7 +97,8 @@ public with sharing class RLM_OnAccountBillingController {
             if (!accs.isEmpty()) {
                 return (String) accs[0].get('CurrencyIsoCode');
             }
-        } catch (QueryException e) {
+        } catch (Exception e) {
+            // Any refused or failed read, whatever exception type the platform raises for it.
             throw RLM_AuraErrors.failed(
                 'Unable to read the account\'s currency, so its balances are not shown. Contact your administrator.',
                 'RLM_OnAccountBillingController.currencyOf', e);
@@ -111,14 +112,13 @@ public with sharing class RLM_OnAccountBillingController {
     private static Map<String, Object> queryBillingStatus(Id accountId) {
         try {
             return queryInvoiceStatus(accountId);
-        } catch (QueryException e) {
-            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
-        } catch (SecurityException e) {
-            // Measured on a 264 scratch org (deploy 0AfWt00000hUL33KAG, 2026-11-26, a test user
-            // with no Invoice read): the first inline WITH USER_MODE COUNT() below raised
-            // System.SecurityException "Access to entity 'Invoice' denied". The tests' dynamic
+        } catch (Exception e) {
+            // Any exception type is caught, so no platform text reaches the cards (it goes to the
+            // debug log). Measured on a 264 scratch org (deploy 0AfWt00000hUL33KAG, 2026-11-26, a
+            // test user with no Invoice read): the first inline WITH USER_MODE COUNT() below raised
+            // System.SecurityException "Access to entity 'Invoice' denied", while the tests' dynamic
             // Database.query(..., AccessLevel.USER_MODE) probes of a refused object raised
-            // QueryException. Both are caught; which inline queries raise which is not measured.
+            // QueryException; which inline queries raise which is not measured.
             throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
         }
     }

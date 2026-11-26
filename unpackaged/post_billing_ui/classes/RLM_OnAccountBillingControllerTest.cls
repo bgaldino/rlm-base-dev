@@ -66,8 +66,9 @@ private class RLM_OnAccountBillingControllerTest {
 
     // SUM() with GROUP BY CurrencyIsoCode returns the corporate-currency total; the controller
     // converts it into the account's currency at each currency's dated rate (its standard rate
-    // when it has no dated rate: the controller's effectiveRate rule). A corporate-currency payment on an account in another currency must
-    // come back in the account's currency at that rate.
+    // when it has no dated rate: the controller's effectiveRate rule). A corporate-currency
+    // payment on an account in another currency must come back in the account's currency at
+    // that rate.
     // A second active currency with an effective rate different from the corporate one comes
     // from a pricing data plan (qb, q3 or mfg); without one the test is skipped, visibly,
     // rather than failing the deploy.
@@ -77,8 +78,8 @@ private class RLM_OnAccountBillingControllerTest {
     @isTest
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
         String corporate = corporateCurrency();
-        // The currency is picked from the effective rates the admin reads (dated if any, else
-        // standard). Dated rates the billing user cannot read are skipped visibly below;
+        // The currency is picked from the effective rates the admin reads (each currency's dated
+        // rate, else its standard rate). Dated rates the billing user cannot read are skipped visibly below;
         // differing standard rates, or a partial read, fail as a precondition.
         Map<String, Decimal> adminRates = effectiveRates(AccessLevel.SYSTEM_MODE);
         String foreign = foreignCurrency(adminRates, corporate);
