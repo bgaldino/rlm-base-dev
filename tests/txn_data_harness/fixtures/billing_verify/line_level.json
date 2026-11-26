@@ -1,5 +1,5 @@
 {
-  "_about": "Recorded query results, Line Level. Shapes and field values follow the 2026-11-25 264 scratch org reads (API 68.0); ids are synthetic. INV1: payment applied at post; INV2: unpaid; INV3: two credits on one line. No Unapplied rows: none has been measured, so tests add them where needed.",
+  "_about": "Recorded query results, Line Level. Shapes and field values follow the 2026-11-25 264 scratch org reads (API 68.0); ids are synthetic. INV1: payment applied at post; INV2: unpaid; INV3: two credits on one line. No Unapplied rows: tests add the measured unapply pair (2026-11-26) and other shapes where needed.",
   "Invoice": [
     {
       "Id": "3tt000000000001AAA",

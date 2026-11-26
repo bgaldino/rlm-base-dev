@@ -2614,7 +2614,7 @@ def test_settlement_api_errors_are_pinned_at_the_step_boundary(
 
 
 def _reverse(org, kind: str, **fields):
-    """Mark the first application row of ``kind`` reversed outside the harness."""
+    """Mark the first application row of ``kind`` reversed."""
     rows = org.credit_apps if kind == "credit" else org.payment_apps
     rows[0].update(fields)
 

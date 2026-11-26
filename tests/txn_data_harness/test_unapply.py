@@ -257,7 +257,7 @@ def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, cap
 
 
 @pytest.mark.parametrize("fields, why", [
-    ({"error": "[payment] apply returned 503"}, "has an error"),
+    ({"error": "[payment] apply returned 503"}, "records an error"),
     ({"reached_stage": "credit_applied",
       "settlement": {"application_level": "auto", "credit": {"percent": 10.0},
                      "payment": {"amount": "exact"}}},
@@ -282,10 +282,13 @@ def test_harness_refusals_are_not_labelled_unexpected(run, capsys):
     assert "unexpected" not in out and "[unapply] credit application" in out
 
 
-def test_inspect_text_shows_a_reversed_run(run, capsys):
+
+def test_inspect_shows_the_unapplied_rows_of_a_reversed_run(run, capsys):
+    from scripts.txn_data_harness.handlers import SCENARIO_HANDLERS
+
     org, path = run
     assert _unapply() == 0
-    capsys.readouterr()
-    summary = {"run_id": "DEMO-U", "settlement": {"unapplied_row_ids": ["a", "b"]}}
-    assert "Settlement reversed by cli unapply: 2 Unapplied row(s)" in (
-        cli._format_inspect_text(summary))
+    manifest = Manifest.from_dict(json.loads(path.read_text()))
+    summary = SCENARIO_HANDLERS[manifest.kind].summarize(manifest)
+    assert summary["settlement"]["unapplied_row_ids"] == manifest.unapplied_row_ids
+    assert "Unapplied rows added by cli unapply: 2" in cli._format_inspect_text(summary)

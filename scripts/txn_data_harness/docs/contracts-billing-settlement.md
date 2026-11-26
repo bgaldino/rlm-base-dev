@@ -492,9 +492,13 @@ unapply` (todo 490) is built on it.
 - **The next invoice absorbs it.** The payment and memo then carry open
   balances, and posting the account's next invoice applied both to it (the
   same rule as above): that run's credit and payment steps found no open
-  balance and wrote nothing.
+  balance and wrote nothing. `cli verify` on that invoice with the reversed
+  payment (run DEMO-20261126T040031Z) passed: the payment's pair nets to 0, its
+  new Applied row on the next invoice is 445.50, and `NetApplied` 445.50,
+  `Balance` 0.
 - Not measured: header-level unapply (`credit-memo-inv-applications/.../unapply`,
-  payment header rows), reapplying after an unapply, voiding a credit memo.
+  payment header rows), reapplying by hand after an unapply, voiding a credit
+  memo.
 - **Either order.** Unapplying the credit while the payment stays applied
   (`--only credit`, run DEMO-20261126T041707Z) left invoice and line `Balance`
   49.50 = 495.00 − 445.50 with the payment untouched; the payment's unapply

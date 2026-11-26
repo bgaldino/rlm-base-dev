@@ -111,8 +111,7 @@ def _format_inspect_text(summary: dict) -> str:
         lines.append(f"Invoice number: {summary.get('invoice_number')}")
     reversed_rows = (summary.get("settlement") or {}).get("unapplied_row_ids") or []
     if reversed_rows:
-        lines.append(f"Settlement reversed by cli unapply: {len(reversed_rows)} "
-                     "Unapplied row(s); the org's balances are open again")
+        lines.append(f"Unapplied rows added by cli unapply: {len(reversed_rows)}")
     link = summary.get("invoice_order_link") or {}
     if link.get("status") == "failed":
         detail = f": {link.get('error')}" if link.get("error") else ""
@@ -792,7 +791,8 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
 def _unfinished_settlement(manifest) -> Optional[str]:
     """Why the run's settlement is not finished, or None."""
     if manifest.error:
-        return f"has an error ({manifest.error}); resume it with `cli step` first"
+        return (f"records an error ({manifest.error}), so it may hold applications it "
+                "never recorded")
     if manifest.reached_stage == "payment_applied":
         return None
     block = settlement_from_dict(manifest.settlement) if manifest.settlement else None
