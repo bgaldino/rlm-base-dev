@@ -205,8 +205,6 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
     }
 
     def _run_task(self):
-        import requests
-
         # Options are read before the file or the org: None, blank or whitespace is unset; a list,
         # or a boolean that isn't one, is a TaskOptionsError naming the option, whatever
         # raise_on_failure says.
@@ -273,6 +271,9 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
             "Authorization": f"Bearer {self.org_config.access_token}",
             "Content-Type": "application/json",
         }
+
+        # Imported here, after the option and file checks, which need only the standard library.
+        import requests
 
         # --- GET current configuration with metadata ---
         self.logger.info("Retrieving current PCM index configuration...")

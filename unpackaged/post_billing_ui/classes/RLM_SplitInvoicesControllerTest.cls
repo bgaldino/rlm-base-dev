@@ -162,6 +162,26 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual('—', noAccountRows[0].billingAccountName, 'A row with no account also shows a dash.');
         Assert.areEqual(String.valueOf(acc.Id), forNoAccess[0].billingAccountId, 'The row still carries its account id.');
         Assert.areEqual('—', forNoAccess[0].billingAccountName, 'The name shows a dash, not a raw exception.');
+        Assert.isTrue(forNoAccess[0].accountNameUnavailable, 'A refused name read is not available, not "no account".');
+        Assert.isFalse(forAdmin[0].accountNameUnavailable, 'A read name is available.');
+        Assert.isFalse(noAccountRows[0].accountNameUnavailable, 'No account: nothing to show as not available.');
+    }
+
+    // An account missing from the name read (sharing) is flagged not available.
+    // The id belongs to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void applyAccountNames_accountMissingFromTheRead_isNotAvailable() {
+        List<RLM_SplitInvoicesController.InvoiceRow> rows = new List<RLM_SplitInvoicesController.InvoiceRow>{
+            new RLM_SplitInvoicesController.InvoiceRow(invoiceFromJson(new Map<String, Object>{
+                'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+                'Id' => fakeId('Invoice', 6), 'BillingAccountId' => fakeId('Account', 777) })) };
+
+        Test.startTest();
+        RLM_SplitInvoicesController.applyAccountNames(rows);
+        Test.stopTest();
+
+        Assert.areEqual('—', rows[0].billingAccountName, 'A missing name shows a dash in the name field.');
+        Assert.isTrue(rows[0].accountNameUnavailable, 'An account missing from the read is not available.');
     }
 
     // An invoice with no lookups set leaves every id null rather than failing, and shows a dash, never

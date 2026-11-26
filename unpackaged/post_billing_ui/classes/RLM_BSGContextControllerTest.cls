@@ -506,8 +506,8 @@ private class RLM_BSGContextControllerTest {
         List<BillingArrangementLine> lines = new List<BillingArrangementLine>();
         Map<String, Id> accountIds = new Map<String, Id>{
             'Payer' => fakeId(Account.SObjectType, 1), 'Other' => fakeId(Account.SObjectType, 2) };
-        Map<Id, String> names = new Map<Id, String>();
-        for (String n : accountIds.keySet()) names.put(accountIds.get(n), n);
+        RLM_AccountNames.Result names = new RLM_AccountNames.Result();
+        for (String n : accountIds.keySet()) names.names.put(accountIds.get(n), n);
         for (List<Object> r : new List<List<Object>>{
             new List<Object>{ 'Line B', 'Payer', 60, true },
             new List<Object>{ 'Line A', 'Other', 40, false }
@@ -544,13 +544,38 @@ private class RLM_BSGContextControllerTest {
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
-            RLM_BSGContextController.addArrangementLines(target, lines, RLM_AccountNames.forIds(new Set<Id>{ accountId }));
+            RLM_BSGContextController.addArrangementLines(target, lines, RLM_AccountNames.read(new Set<Id>{ accountId }));
         }
         Test.stopTest();
 
         Assert.areEqual(1, target.size(), 'The line is kept.');
         Assert.areEqual('Line A', target[0].lineName, 'The line is the arrangement\'s.');
         Assert.areEqual('—', target[0].accountName, 'The name shows a dash, not a raw exception.');
+        Assert.isTrue(target[0].accountNameUnavailable, 'A refused name read is not available, not "no account".');
+    }
+
+    // An account missing from the name read (sharing) is flagged not available; a read name is not flagged.
+    // The hidden id belongs to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void addArrangementLines_accountMissingFromTheRead_isNotAvailable() {
+        Account seen = new Account(Name = 'RLM BSG Name Seen');
+        insert seen;
+        Id hidden = fakeId(Account.SObjectType, 777);
+        List<BillingArrangementLine> lines = new List<BillingArrangementLine>();
+        for (Id accountId : new List<Id>{ seen.Id, hidden }) {
+            lines.add((BillingArrangementLine) row('BillingArrangementLine', new Map<String, Object>{
+                'BillingArrangementLineName' => 'Line', 'AccountId' => accountId,
+                'BillingPercentage' => 50, 'ShouldBillRemainder' => false }));
+        }
+        List<RLM_BSGContextController.ArrangementLineData> target = new List<RLM_BSGContextController.ArrangementLineData>();
+
+        Test.startTest();
+        RLM_BSGContextController.addArrangementLines(target, lines, RLM_AccountNames.read(new Set<Id>{ seen.Id, hidden }));
+        Test.stopTest();
+
+        Assert.areEqual('RLM BSG Name Seen', target[0].accountName, 'A read name is shown.');
+        Assert.isFalse(target[0].accountNameUnavailable, 'A read name is available.');
+        Assert.isTrue(target[1].accountNameUnavailable, 'An account missing from the read is not available.');
     }
 
     // Smoke test: for a plan id that matches no plan, the plan lookup returns an empty plan and

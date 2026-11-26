@@ -85,10 +85,12 @@ public with sharing class RLM_SplitInvoicesController {
         for (InvoiceRow row : rows) {
             if (String.isNotBlank(row.billingAccountId)) accountIds.add((Id) row.billingAccountId);
         }
-        Map<Id, String> names = RLM_AccountNames.forIds(accountIds);
+        RLM_AccountNames.Result names = RLM_AccountNames.read(accountIds);
         for (InvoiceRow row : rows) {
-            row.billingAccountName = String.isNotBlank(row.billingAccountId) && names.containsKey((Id) row.billingAccountId)
-                ? names.get((Id) row.billingAccountId) : NO_NAME;
+            Id accountId = String.isNotBlank(row.billingAccountId) ? (Id) row.billingAccountId : null;
+            row.billingAccountName = accountId != null && names.names.containsKey(accountId) ? names.names.get(accountId) : NO_NAME;
+            // The account's name could not be read (refused, failed, or hidden by sharing): not "no account".
+            row.accountNameUnavailable = names.unavailable(accountId);
         }
     }
 
@@ -144,6 +146,7 @@ public with sharing class RLM_SplitInvoicesController {
         @AuraEnabled public String Status;
         @AuraEnabled public String billingAccountId;
         @AuraEnabled public String billingAccountName;
+        @AuraEnabled public Boolean accountNameUnavailable;
         @AuraEnabled public String billingArrangementId;
         @AuraEnabled public String billingArrangementName;
         @AuraEnabled public String billingProfileId;

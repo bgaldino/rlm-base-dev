@@ -1,10 +1,9 @@
 /**
  * Account names for rows that carry an Account id, read in USER_MODE. A user who cannot read
- * Account (no object access) gets an empty map instead of an exception, so the caller keeps its
- * rows and shows them with a dash for the name (callers default a missing name to a dash). Names are
- * read here rather than through an Account.Name relationship in the caller's own query, because a
- * refused relationship read fails that whole query and drops the section with it. A caller that must
- * tell "no name" from "could not read the names" uses read(), whose result says so.
+ * Account (no object access) gets an empty result instead of an exception, so the caller keeps its
+ * rows. Names are read here rather than through an Account.Name relationship in the caller's own
+ * query, because a refused relationship read fails that whole query and drops the section with it.
+ * The result's unavailable(Id) tells a name that could not be read from no account.
  */
 public with sharing class RLM_AccountNames {
     public class Result {
@@ -18,10 +17,6 @@ public with sharing class RLM_AccountNames {
         public Boolean unavailable(Id accountId) {
             return accountId != null && (unreadable || !names.containsKey(accountId));
         }
-    }
-
-    public static Map<Id, String> forIds(Set<Id> accountIds) {
-        return read(accountIds).names;
     }
 
     public static Result read(Set<Id> accountIds) {
