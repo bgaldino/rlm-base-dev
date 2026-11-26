@@ -172,10 +172,16 @@ describe('rlmDocStatusMonitor', () => {
 
     it('starts polling when processId arrives after it is on the page', async () => {
         const el = createElement('c-rlm-doc-status-monitor', { is: RlmDocStatusMonitor });
+        const next = jest.fn();
+        el.addEventListener(FlowNavigationNextEventName, next);
         document.body.appendChild(el);
+        // Without a processId it waits: no timer, no subscription, no outcome.
+        expect(jest.getTimerCount()).toBe(0);
         jest.advanceTimersByTime(POLL_INTERVAL_MS * 2);
         expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
         expect(subscribe).not.toHaveBeenCalled();
+        expect(next).not.toHaveBeenCalled();
+        expect(el.status).toBe('InProgress');
 
         el.processId = PROCESS_ID;
         await flushPromises();
@@ -304,38 +310,86 @@ describe('rlmDocStatusMonitor', () => {
         await flushPromises();
         getRecord.emit(statusRecord('Success'));
         document.body.removeChild(el);
+        subscribe.mockClear();
 
+        // No status is pushed after reinsertion: it reuses the final status it already read.
         document.body.appendChild(el);
         await flushPromises();
-        // Back on the page, it re-reads the status and finds it final.
-        getRecord.emit(statusRecord('Success'));
         jest.advanceTimersByTime(1000);
 
         expect(next).toHaveBeenCalledTimes(1);
         expect(el.status).toBe('Success');
+        expect(subscribe).not.toHaveBeenCalled();
     });
 
-    it('re-reads and moves the flow on again when it is put back after it already did', async () => {
+    it('moves the flow on again with the status it read when it is put back after it already did', async () => {
         const { el, next } = mount();
         await flushPromises();
-        getRecord.emit(statusRecord('Success'));
+        getRecord.emit(statusRecord('Failure'));
         jest.advanceTimersByTime(300);
         expect(next).toHaveBeenCalledTimes(1);
         document.body.removeChild(el);
+
+        document.body.appendChild(el);
+        jest.advanceTimersByTime(300);
+
+        expect(el.status).toBe('Failure');
+        expect(next).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows the waiting state and reads the status again when it is put back after timing out', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        jest.advanceTimersByTime(MAX_WAIT_MS + 300);
+        expect(el.status).toBe('TimedOut');
+        expect(next).toHaveBeenCalledTimes(1);
+        document.body.removeChild(el);
         subscribe.mockClear();
+        notifyRecordUpdateAvailable.mockClear();
 
         document.body.appendChild(el);
         await flushPromises();
 
-        // While it re-reads, the screen shows the waiting state again, not an empty box.
+        // TimedOut is not a status the process had, so it starts a fresh wait and reads the status.
         expect(el.status).toBe('InProgress');
         expect(el.shadowRoot.querySelector('lightning-spinner')).not.toBeNull();
         expect(subscribe).toHaveBeenCalledTimes(1);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledWith([{ recordId: PROCESS_ID }]);
         expect(jest.getTimerCount()).toBe(1);
         getRecord.emit(statusRecord('Success'));
         jest.advanceTimersByTime(300);
         expect(next).toHaveBeenCalledTimes(2);
     });
+
+    it.each(['Waiting', 'Blocked', 'InProgress'])(
+        'keeps waiting on a %s status from the platform event or the record read',
+        async (pending) => {
+            let deliver;
+            subscribe.mockImplementation((channel, replayId, callback) => {
+                deliver = callback;
+                return Promise.resolve({ channel });
+            });
+            const { el, next } = mount();
+            const attributeChange = jest.fn();
+            el.addEventListener(FlowAttributeChangeEventName, attributeChange);
+            await flushPromises();
+
+            deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: pending } } });
+            getRecord.emit(statusRecord(pending));
+            jest.advanceTimersByTime(POLL_INTERVAL_MS + 300);
+
+            expect(el.status).toBe('InProgress');
+            expect(attributeChange).not.toHaveBeenCalled();
+            expect(next).not.toHaveBeenCalled();
+            expect(jest.getTimerCount()).toBe(1);
+
+            // The real outcome still moves the flow on.
+            deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Success' } } });
+            jest.advanceTimersByTime(300);
+            expect(el.status).toBe('Success');
+            expect(next).toHaveBeenCalledTimes(1);
+        }
+    );
 
     it('keeps exactly one poll timer when processId is set again', async () => {
         const { el } = mount();

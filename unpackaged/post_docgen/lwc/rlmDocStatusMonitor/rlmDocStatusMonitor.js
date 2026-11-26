@@ -10,6 +10,10 @@ let empErrorHandlerRegistered = false;
 
 // The status a process has while the platform is still generating.
 const PENDING_STATUS = 'InProgress';
+// The only statuses that end the wait. The process status and the DocGenProcStsChgEvent status
+// also take Waiting and Blocked (264 picklist and developer guide); those, like InProgress, keep
+// the screen waiting, and MAX_WAIT_MS bounds the wait.
+const FINAL_STATUSES = new Set(['Success', 'Failure']);
 // Reported to the flow when the process is still pending after MAX_WAIT_MS. Any status other
 // than Success takes the flow to its error screen; for TimedOut that screen says the process was
 // still running and may finish, and for any other status it names the status.
@@ -31,9 +35,11 @@ const NAVIGATION_DELAY_MS = 300;
 //   subscription, and invalidates a subscription still being set up (it is released when it
 //   resolves).
 // connectedCallback() calls start(), disconnectedCallback() calls teardown(), and a new
-// processId restarts. A component put back on the page after it already moved the flow on
-// starts a fresh run: it re-reads the status and moves the flow on again when the status is
-// final, so the screen never sits empty.
+// processId restarts. A final status never changes, so the component remembers the one it read
+// for its processId: put back on the page after it moved the flow on (or during the navigation
+// delay), it moves the flow on again with that status straight away, without depending on the
+// record wire re-emitting a cached value. Put back while still waiting, it starts a fresh run,
+// which reads the status as soon as the subscription is live.
 export default class RlmDocStatusMonitor extends LightningElement {
     _processId;
     @api
@@ -63,6 +69,9 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     _connected = false;
     hasNavigated = false;
+    // The final status read for _finalStatusFor (a processId).
+    _finalStatus;
+    _finalStatusFor;
     subscription = {};
     // Incremented by teardown(): a subscription that resolves for an older run is released.
     _run = 0;
@@ -87,10 +96,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
             return;
         }
         if (data) {
-            const polledStatus = getFieldValue(data, STATUS_FIELD);
-            if (polledStatus && polledStatus !== PENDING_STATUS) {
-                this.handleStatusChange(polledStatus);
-            }
+            this.handleStatusChange(getFieldValue(data, STATUS_FIELD));
         }
     }
 
@@ -115,6 +121,10 @@ export default class RlmDocStatusMonitor extends LightningElement {
         this.hasNavigated = false;
         this._status = PENDING_STATUS;
         if (!this._connected || !this._processId) {
+            return;
+        }
+        if (this._finalStatusFor === this._processId) {
+            this.finish(this._finalStatus);
             return;
         }
         const run = this._run;
@@ -157,7 +167,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     poll() {
         if (Date.now() - this.pollStartedAt >= MAX_WAIT_MS) {
-            this.handleStatusChange(TIMED_OUT_STATUS);
+            this.finish(TIMED_OUT_STATUS);
             return;
         }
         this.refreshStatus();
@@ -170,19 +180,26 @@ export default class RlmDocStatusMonitor extends LightningElement {
         });
     }
 
+    // A status from the platform event or the record read. Only Success and Failure end the wait.
     handleStatusChange(newStatus) {
-        // A status that arrives after the screen is gone or after the flow moved on is ignored.
+        if (!FINAL_STATUSES.has(newStatus)) return;
+        this._finalStatus = newStatus;
+        this._finalStatusFor = this._processId;
+        this.finish(newStatus);
+    }
+
+    // Reports the outcome to the flow and moves it on, once per run.
+    finish(outcome) {
+        // An outcome that arrives after the screen is gone or after the flow moved on is ignored.
         if (!this._connected || this.hasNavigated) return;
-        this._status = newStatus;
+        this._status = outcome;
         this.dispatchEvent(new FlowAttributeChangeEvent('status', this._status));
-        if (this._status !== PENDING_STATUS) {
-            this.hasNavigated = true;
-            this.teardown();
-            // eslint-disable-next-line @lwc/lwc/no-async-operation
-            this.navigationTimer = setTimeout(() => {
-                this.navigationTimer = undefined;
-                this.dispatchEvent(new FlowNavigationNextEvent());
-            }, NAVIGATION_DELAY_MS);
-        }
+        this.hasNavigated = true;
+        this.teardown();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.navigationTimer = setTimeout(() => {
+            this.navigationTimer = undefined;
+            this.dispatchEvent(new FlowNavigationNextEvent());
+        }, NAVIGATION_DELAY_MS);
     }
 }

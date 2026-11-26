@@ -9,7 +9,8 @@
 // users access the files in the library, add them as members, or grant access to a group
 // and add the users to that group.
 //
-// What this script ensures, each step find-or-create so a rerun changes nothing:
+// What this script ensures, each step find-or-create (a rerun changes nothing while all four are
+// in place, and puts back any that was removed; see the note after the list):
 //   1. The library: DeveloperName DocgenDocumentTemplateLibrary. On a fresh 264 build it holds
 //      the files of 12 of the 13 DocumentTemplates: the RLM_ templates from
 //      unpackaged/post_docgen/documentTemplates/, the billing templates and the collections
@@ -37,7 +38,10 @@ final String PERMISSION_NAME = 'RLM DocGen Template Viewer';
 final String GROUP_API_NAME = 'RLM_DocGen_Template_Users';
 final String GROUP_LABEL = 'RLM DocGen Template Users';
 
-// 1. Library
+// 1. Library. The lookup also finds a library the running admin is not a member of: measured on
+// 264 (todo 435), a System Administrator outside the library found it with and without sharing,
+// and an insert of the same DeveloperName fails with DUPLICATE_VALUE ("Another library already
+// has this name."), which this script would then report instead of continuing.
 List<ContentWorkspace> libraries = [
     SELECT Id FROM ContentWorkspace WHERE DeveloperName = :LIBRARY_API_NAME LIMIT 1
 ];
