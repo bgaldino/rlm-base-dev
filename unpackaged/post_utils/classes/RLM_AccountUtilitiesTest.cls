@@ -1784,9 +1784,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 43 is counted from the code with data in every branch (see the constants in
+    // The 46 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 43 and the measurement against both, but it cannot catch
+    // the reserve against the 46 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1810,7 +1810,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reserve kept for phase 2 must cover its counted worst case'
         );
         Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 13,
+            RLM_AccountUtilities.RETRY_TAIL >= 30 && RLM_AccountUtilities.ASSET_TAIL >= 13,
             'The walk guards must cover the queries counted after them'
         );
     }
@@ -1875,6 +1875,82 @@ private without sharing class RLM_AccountUtilitiesTest {
             result.removedSummary.contains(entry(Order.SObjectType, 1)),
             'The deleted order must be reported. Got: ' + result.removedSummary
         );
+    }
+
+    // ------------------------------------------------------- record delete access
+
+    private static final String NO_DELETE_ACCESS = 'the user running the reset cannot delete them: they belong '
+        + 'to another user and sharing does not let this user delete them; they were left unchanged';
+
+    private static Order newActivatedOrder(Id accountId) {
+        Order o = new Order(
+            AccountId = accountId, EffectiveDate = Date.today(), Status = 'Draft',
+            Pricebook2Id = Test.getStandardPricebookId()
+        );
+        insert o;
+        insert new OrderItem(OrderId = o.Id, PricebookEntryId = loadUsageFixture().pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        o.Status = 'Activated';
+        update o;
+        return o;
+    }
+
+    @IsTest
+    static void anOrderTheUserCannotDeleteStaysActivatedAndIsReportedKept() {
+        Account a = newAccount();
+        Order o = newActivatedOrder(a.Id);
+        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status,
+            'PRECONDITION: the order must be activated');
+        // Live 264 the salesrep persona could edit this order through sharing but not
+        // delete it, and the reset set it back to Draft before the delete was refused.
+        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>();
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'A kept order does not stop the reset. Reason: ' + result.reason);
+        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status,
+            'An order the user cannot delete must be left exactly as it was, not set back to Draft');
+        Assert.areEqual(entry(Order.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')', result.retainedSummary,
+            'The kept order must be reported with the reason');
+    }
+
+    @IsTest
+    static void aContractTheUserCannotDeleteIsKeptAndTheOthersGo() {
+        Account a = newAccount();
+        Contract mine = new Contract(AccountId = a.Id, StartDate = Date.today(), ContractTerm = 12, Status = 'Draft');
+        Contract theirs = new Contract(AccountId = a.Id, StartDate = Date.today(), ContractTerm = 12, Status = 'Draft');
+        insert new List<Contract>{ mine, theirs };
+        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ mine.Id };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed,
+            'A contract the user cannot delete must be kept, not fail the run. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contract WHERE Id = :mine.Id], 'The contract the user may delete must go');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :theirs.Id], 'The other contract must stay');
+        Assert.areEqual(entry(Contract.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')', result.retainedSummary,
+            'The kept contract must be reported with the reason');
+    }
+
+    @IsTest
+    static void deleteAccessFollowsTheRunningUsersRecordAccess() {
+        Account a = newAccount();
+        User u = newMinimalAccessUser();
+        Set<Id> minimalMayDelete;
+        System.runAs(u) {
+            minimalMayDelete = RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id });
+        }
+        Assert.isTrue(minimalMayDelete.isEmpty(),
+            'A user who does not own the record and has no access to it may not delete it');
+        Assert.areEqual(
+            [SELECT RecordId, HasDeleteAccess FROM UserRecordAccess WHERE UserId = :UserInfo.getUserId() AND RecordId = :a.Id].HasDeleteAccess,
+            RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }).contains(a.Id),
+            'The running user may delete what UserRecordAccess says they may'
+        );
+        Assert.isTrue(RLM_AccountUtilities.deletableByUser(new Set<Id>()).isEmpty(), 'No ids, no access');
     }
 
     // ------------------------------------------------------------ scope guard

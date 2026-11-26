@@ -285,8 +285,12 @@ persona user instead. See the persona rows in the flow inventory below.
 > ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
 > running admin — and it runs in SYSTEM MODE.** It grants `RLM_AccountUtilities`, which
 > is declared `without sharing`, so when entered directly from its invocable the class
-> runs unrestricted by sharing. The persona can therefore delete an account's orders,
-> assets, contracts, quotes, opportunities and usage graph **regardless of who owns them**.
+> is meant to run unrestricted by sharing, and deletes an account's orders, assets, contracts,
+> quotes, opportunities and usage graph. Live 264 (todo 397) the persona's reset was still held to
+> its record access: an order another user owns, which the persona can edit but not delete, was
+> kept (the class now checks delete access first and leaves such records unchanged, reporting
+> them), and another user's opportunity under Private sharing was not found and was left without
+> a report.
 > The set itself grants the object access those deletes need and the persona's other sets
 > lack (live 264, todo 397): Asset and Order read, edit and delete, Access Lifecycle-Managed
 > Assets (`CalmSobjectAccessUser`), Edit Activated Orders with the Activate Orders it depends
