@@ -16,6 +16,9 @@ from pathlib import Path
 
 import requests
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -148,11 +151,7 @@ class ReorderAppLauncher(BaseSalesforceTask):
 
         priority_labels = self.options.get("priority_app_labels") or DEFAULT_PRIORITY_LABELS
 
-        api_version = getattr(self.project_config, "project__package__api_version", None)
-        if not api_version:
-            raise TaskOptionsError(
-                "project.package.api_version is not set in cumulusci.yml"
-            )
+        api_version = project_api_version(self.project_config, TaskOptionsError)
 
         ordered_ids = self._build_ordered_app_ids(priority_labels, api_version)
         ordered_list = [i for i in ordered_ids.split(",") if i]

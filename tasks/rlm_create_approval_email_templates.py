@@ -19,6 +19,9 @@ import json
 import requests
 from pathlib import Path
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -103,10 +106,7 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
     def _api_headers(self):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        api_version = (
-            getattr(self.project_config, "project__package__api_version", None)
-            or "68.0"
-        )
+        api_version = project_api_version(self.project_config, default="68.0")
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",

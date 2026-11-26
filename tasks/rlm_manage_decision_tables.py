@@ -26,7 +26,7 @@ from datetime import datetime
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, require_identifier, requested_names, soql_quote
+from tasks.soql_utils import option_text, positive_int, project_api_version, require_identifier, requested_names, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -175,7 +175,7 @@ class ManageDecisionTables(BaseTask):
         A Salesforce client on the PROJECT's API version, not the org's newest. Called
         only by `_sf`. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
         """
-        api_version = self.project_config.project__package__api_version
+        api_version = project_api_version(self.project_config, default="")
         if not api_version or Salesforce is None:
             # Why the warning: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
             self.logger.warning(

@@ -1,8 +1,12 @@
 import requests
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.keychain import BaseProjectKeychain
 from abc import abstractmethod
+from cumulusci.core.exceptions import TaskOptionsError
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
 class SyncPricingData(SFDXBaseTask, BaseSalesforceTask):
@@ -51,7 +55,7 @@ class SyncPricingData(SFDXBaseTask, BaseSalesforceTask):
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
-        url = f"{self.instance_url}/services/data/v{self.project_config.project__package__api_version}/{endpoint}"
+        url = f"{self.instance_url}/services/data/v{project_api_version(self.project_config, TaskOptionsError)}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",

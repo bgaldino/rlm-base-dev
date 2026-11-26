@@ -19,6 +19,13 @@ incorporates the newly-configured fields.
 """
 import json
 import os
+import sys
+
+if not __package__:  # run as a script (the offline self-test at the bottom): resolve `tasks.*` from the repo root
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -251,7 +258,10 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
             f"{os.path.basename(config_path)} (mode={mode})"
         )
 
-        api_version = self.project_config.project__package__api_version
+        try:
+            api_version = project_api_version(self.project_config, CumulusCIException)
+        except CumulusCIException as e:
+            return self._handle_failure(str(e), raise_on_failure)
         base_url = (
             f"{self.org_config.instance_url}/services/data/v{api_version}"
         )

@@ -19,6 +19,9 @@ import shutil
 import tempfile
 from pathlib import Path
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
 except ImportError:
@@ -107,10 +110,7 @@ class PublishAgents(BaseSalesforceTask):
         )
 
     def _api_version(self):
-        return (
-            getattr(self.project_config, "project__package__api_version", None)
-            or FALLBACK_API_VERSION
-        )
+        return project_api_version(self.project_config, default=FALLBACK_API_VERSION)
 
     def _write_sfdx_project(self, stage_path):
         (stage_path / "sfdx-project.json").write_text(json.dumps({
