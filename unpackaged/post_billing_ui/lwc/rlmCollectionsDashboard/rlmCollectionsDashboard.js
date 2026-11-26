@@ -10,15 +10,22 @@ import getPaymentPromiseSummary from '@salesforce/apex/RLM_CollectionsDashboardC
 import getMyCollectionPlans from '@salesforce/apex/RLM_CollectionsDashboardController.getMyCollectionPlans';
 import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardController.getCollectionsProgress';
 
-// Figures the user may not be allowed to read (todo 435). The controller returns a refused read as
-// unavailable (null, or listed in the cards' `unavailable`), and the page shows it as not available
-// with the reason, never as a zero that reads as a real amount.
-const NOT_AVAILABLE = '—';
-const NO_ACCESS = {
-    invoices: "You don't have access to invoices.",
-    debitMemos: "You don't have access to debit memos.",
-    unappliedCredits: "You don't have access to payments.",
-    unappliedPayments: "You don't have access to payments."
+// Figures and lists the page could not read (todo 435). The controller marks each one unavailable with a
+// reason: 'refused' (the user may not read it: "You don't have access to ...", ask an administrator) or
+// 'failed' (anything else: "... could not be loaded", try again). A failed call (a wire or imperative
+// error) is always 'failed'. Nothing unavailable is shown as a zero or an empty "none".
+const NOT_AVAILABLE = '\u2014';
+const REFUSED = 'refused';
+const FAILED = 'failed';
+const SUBJECTS = {
+    invoices: 'invoices',
+    debitMemos: 'debit memos',
+    unappliedCredits: 'payments',
+    unappliedPayments: 'payments',
+    paymentSchedules: 'payment schedules',
+    collectionPlans: 'collection plans',
+    planTasks: 'collection plan tasks',
+    worklist: 'the records this list is built from'
 };
 const EXCLUDED_NAMES = {
     invoices: 'unpaid invoices',
@@ -26,16 +33,29 @@ const EXCLUDED_NAMES = {
     unappliedCredits: 'unapplied credits',
     unappliedPayments: 'unapplied payments'
 };
-const NO_ACCESS_PAYMENT_SCHEDULES = "You don't have access to payment schedules.";
-const NO_ACCESS_COLLECTION_PLANS = "You don't have access to collection plans.";
-const NO_ACCESS_PLAN_TASKS = "You don't have access to collection plan tasks.";
-const NO_ACCESS_WORKLIST = "You don't have access to the records this list is built from.";
-// A failed worklist call: every tab is not available (shown as a refused read is), next to the error banner.
-const WORKLIST_UNAVAILABLE = {
+const WORKLIST_TABS = ['critical', 'highValue', 'disputed'];
+
+function unavailableText(subject, reason) {
+    if (reason === REFUSED) return `You don't have access to ${subject}.`;
+    return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
+}
+
+function listNames(names) {
+    return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+// A section the call itself could not return: unavailable, and a failure, not a refusal.
+function failedSection(empty) {
+    return { ...empty, unavailable: true, unavailableReason: FAILED };
+}
+
+// A failed worklist call: every tab is not available, next to the error banner.
+const WORKLIST_FAILED = {
     criticalFollowUpInvoices: [],
     highValueDelinquents: [],
     disputedInvoices: [],
-    unavailable: ['critical', 'highValue', 'disputed']
+    unavailable: WORKLIST_TABS,
+    unavailableReason: { critical: FAILED, highValue: FAILED, disputed: FAILED }
 };
 
 /**
@@ -52,9 +72,11 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     isLoadingOptions = true;
     dashboardData = null;
     worklistData = null;
-    cpTasksData = [];
-    paymentPromiseData = [];
-    myCollectionPlansData = [];
+    // The task, promise and plan wrappers from the server ({ items | buckets, unavailable, unavailableReason });
+    // undefined until the first answer, which is "still loading", not "none".
+    cpTasksState;
+    paymentPromiseState;
+    myCollectionPlansState;
     collectionsProgressData = null;
     dataError = null;
     worklistError = null;
@@ -117,34 +139,27 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     @wire(getCollectionPlanTasks, { accountId: '$effectiveAccountId' })
     wiredCpTasks({ error, data }) {
-        // null from the server (a refused read) and a failed call are both "not available", not "no tasks".
-        if (error) this.cpTasksData = null;
-        else if (data !== undefined) this.cpTasksData = Array.isArray(data) ? data : null;
+        if (error) this.cpTasksState = failedSection({ items: [] });
+        else if (data) this.cpTasksState = data;
     }
 
     @wire(getPaymentPromiseSummary, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
     wiredPaymentPromises({ error, data }) {
-        if (error) {
-            // A failed call is not "no promises" either.
-            this.paymentPromiseData = null;
-        } else if (data !== undefined) {
-            // null from the server: the schedule items could not be read (not "no promises").
-            this.paymentPromiseData = Array.isArray(data) ? data : null;
-        }
+        if (error) this.paymentPromiseState = failedSection({ buckets: [] });
+        else if (data) this.paymentPromiseState = data;
     }
 
     @wire(getMyCollectionPlans)
     wiredMyCollectionPlans({ error, data }) {
-        // null from the server (a refused read) and a failed call are both "not available", not "no plans".
-        if (error) this.myCollectionPlansData = null;
-        else if (data !== undefined) this.myCollectionPlansData = Array.isArray(data) ? data : null;
+        if (error) this.myCollectionPlansState = failedSection({ items: [] });
+        else if (data) this.myCollectionPlansState = data;
     }
 
     @wire(getCollectionsProgress)
     wiredCollectionsProgress({ error, data }) {
         if (data) this.collectionsProgressData = data;
-        // A failed call is shown like a refused read: not available, not zero averages.
-        else if (error) this.collectionsProgressData = { unavailable: true };
+        // A failed call: not available (could not be loaded), not zero averages.
+        else if (error) this.collectionsProgressData = failedSection({});
     }
 
     @wire(getWorklist, { accountId: '$effectiveAccountId', currencyCode: '$effectiveCurrencyCode' })
@@ -153,7 +168,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             this.worklistData = data;
             this.worklistError = undefined;
         } else if (error) {
-            this.worklistData = WORKLIST_UNAVAILABLE;
+            this.worklistData = WORKLIST_FAILED;
             this.worklistError = this.reduceErrors(error);
             this.loadWorklistImperative();
         }
@@ -166,7 +181,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 this.worklistError = undefined;
             })
             .catch((err) => {
-                this.worklistData = WORKLIST_UNAVAILABLE;
+                this.worklistData = WORKLIST_FAILED;
                 this.worklistError = this.reduceErrors(err);
             });
     }
@@ -419,28 +434,48 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.unavailableKeys.includes('invoices');
     }
 
+    // The payment balance (a component of the total) and the payment count are separate: a count that
+    // could not be read shows only the count as not available.
     get paymentsUnavailable() {
         return this.unavailableKeys.includes('unappliedPayments');
     }
 
-    get invoicesUnavailableText() {
-        return NO_ACCESS.invoices;
+    get paymentCountUnavailable() {
+        return this.unavailableKeys.includes('unappliedPaymentCount');
     }
 
-    // "Excludes debit memos: you don't have access to them." when any component of the total was refused.
+    cardReason(key) {
+        return this.dashboardData?.unavailableReason?.[key] === REFUSED ? REFUSED : FAILED;
+    }
+
+    get invoicesUnavailableText() {
+        return unavailableText(SUBJECTS.invoices, this.cardReason('invoices'));
+    }
+
+    // Names the total's components that could not be read, and why: "Excludes debit memos: you don't have
+    // access to them." / "...: they could not be loaded. Refresh the page to try again." / both, when mixed.
     get totalBalanceNote() {
-        const names = this.unavailableKeys.map((key) => EXCLUDED_NAMES[key]).filter((name) => name);
-        if (names.length === 0) return '';
-        const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-        return `Excludes ${list}: you don't have access to them.`;
+        const excluded = this.unavailableKeys.filter((key) => EXCLUDED_NAMES[key]);
+        if (excluded.length === 0) return '';
+        const refused = excluded.filter((key) => this.cardReason(key) === REFUSED).map((key) => EXCLUDED_NAMES[key]);
+        const failed = excluded.filter((key) => this.cardReason(key) !== REFUSED).map((key) => EXCLUDED_NAMES[key]);
+        if (failed.length === 0) return `Excludes ${listNames(refused)}: you don't have access to them.`;
+        if (refused.length === 0) {
+            return `Excludes ${listNames(failed)}: they could not be loaded. Refresh the page to try again.`;
+        }
+        return `Excludes ${listNames(refused)} (you don't have access) and ${listNames(failed)} (could not be loaded).`;
     }
 
     get invoiceCountLabel() {
-        return this.invoicesUnavailable ? NO_ACCESS.invoices : `${this.invoiceCount} invoices`;
+        return this.invoicesUnavailable ? this.invoicesUnavailableText : `${this.invoiceCount} invoices`;
     }
 
     get unappliedPaymentMeta() {
-        return this.paymentsUnavailable ? NO_ACCESS.unappliedPayments : `${this.unappliedPaymentCount} records · Action required`;
+        if (this.paymentsUnavailable) {
+            return unavailableText(SUBJECTS.unappliedPayments, this.cardReason('unappliedPayments'));
+        }
+        const count = this.paymentCountUnavailable ? NOT_AVAILABLE : this.unappliedPaymentCount;
+        return `${count} records · Action required`;
     }
 
     get totalBalanceValue() {
@@ -453,7 +488,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             ...b,
             amount: b.amount != null ? b.amount : 0,
             formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0),
-            title: b.unavailable ? NO_ACCESS[b.unavailable] || '' : '',
+            title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable)) : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
     }
@@ -580,16 +615,21 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             });
     }
 
+    get paymentPromiseData() {
+        return this.paymentPromiseState?.buckets || [];
+    }
+
     get paymentPromisesUnavailable() {
-        return this.paymentPromiseData === null;
+        return this.paymentPromiseState?.unavailable === true;
     }
 
     get paymentPromisesUnavailableText() {
-        return NO_ACCESS_PAYMENT_SCHEDULES;
+        return unavailableText(SUBJECTS.paymentSchedules, this.paymentPromiseState?.unavailableReason);
     }
 
+    // "No payment promises." only once the server answered with none.
     get showNoPaymentPromises() {
-        return !this.paymentPromisesUnavailable && !this.hasPaymentPromises;
+        return this.paymentPromiseState !== undefined && !this.paymentPromisesUnavailable && !this.hasPaymentPromises;
     }
 
     get hasPaymentPromises() {
@@ -658,7 +698,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get worklistUnavailableText() {
-        return NO_ACCESS_WORKLIST;
+        return unavailableText(SUBJECTS.worklist, this.worklistData?.unavailableReason?.[this.selectedWorklistTab]);
     }
 
     get noWorklistItems() {
@@ -717,19 +757,24 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         });
     }
 
+    get cpTasksData() {
+        return this.cpTasksState?.items || [];
+    }
+
     get cpTasksUnavailable() {
-        return this.cpTasksData === null;
+        return this.cpTasksState?.unavailable === true;
     }
 
     get cpTasksUnavailableText() {
-        return NO_ACCESS_PLAN_TASKS;
+        return unavailableText(SUBJECTS.planTasks, this.cpTasksState?.unavailableReason);
     }
 
     get showNoCpTasks() {
-        return !this.cpTasksUnavailable && !this.hasCpTasks;
+        return this.cpTasksState !== undefined && !this.cpTasksUnavailable && !this.hasCpTasks;
     }
 
     get cpTasksCount() {
+        if (this.cpTasksState === undefined) return '';
         if (this.cpTasksUnavailable) return NOT_AVAILABLE;
         return this.cpTasks ? this.cpTasks.length : 0;
     }
@@ -754,19 +799,24 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.myCollectionPlans && this.myCollectionPlans.length > 0;
     }
 
+    get myCollectionPlansData() {
+        return this.myCollectionPlansState?.items || [];
+    }
+
     get myCollectionPlansUnavailable() {
-        return this.myCollectionPlansData === null;
+        return this.myCollectionPlansState?.unavailable === true;
     }
 
     get myCollectionPlansUnavailableText() {
-        return NO_ACCESS_COLLECTION_PLANS;
+        return unavailableText(SUBJECTS.collectionPlans, this.myCollectionPlansState?.unavailableReason);
     }
 
     get showNoMyCollectionPlans() {
-        return !this.myCollectionPlansUnavailable && !this.hasMyCollectionPlans;
+        return this.myCollectionPlansState !== undefined && !this.myCollectionPlansUnavailable && !this.hasMyCollectionPlans;
     }
 
     get myCollectionPlansCount() {
+        if (this.myCollectionPlansState === undefined) return '';
         if (this.myCollectionPlansUnavailable) return NOT_AVAILABLE;
         return this.myCollectionPlans ? this.myCollectionPlans.length : 0;
     }
@@ -776,7 +826,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressUnavailableText() {
-        return NO_ACCESS_COLLECTION_PLANS;
+        return unavailableText(SUBJECTS.collectionPlans, this.collectionsProgressData?.unavailableReason);
     }
 
     get showNoProgress() {

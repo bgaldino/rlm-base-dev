@@ -172,15 +172,21 @@ Debit memos stay unread, by owner decision: reading `DebitMemo` needs the Manage
 permission (measured on 264), a manage permission too broad for a read-only collections role, so
 the set does not grant it.
 
-The dashboard shows anything its user cannot read as not available, never as a zero or an empty
-"none" (todo 435). Figures: a refused invoice, debit memo, payment, payment schedule or collection
-plan read comes back null or listed in the cards' `unavailable` (or the progress `unavailable`
-flag), and the page shows "—" with "You don't have access to ...": the Debit Memos line of the
-total balance reads "—" and the Total Balance says it excludes debit memos, or shows "—" itself
-when nothing could be read. Lists: a refused read of the plan tasks or the user's plans returns null
-and the page shows "—" for the count with a not-available note; a worklist tab whose read was
-refused is listed in `WorklistData.unavailable`, gets no placeholder row, and says so instead of
-"No items in this view". A failed call (a wire error) is shown the same way.
+The dashboard shows anything it could not read as not available, never as a zero or an empty
+"none" (todo 435), and says why. Every unavailable section carries a reason: `refused` when the user
+may not read it (a USER_MODE read throws "sObject type ... is not supported" or "No such column ...",
+measured on 264), shown as "You don't have access to ...", or `failed` for any other error, shown as
+"... could not be loaded. Refresh the page to try again.", so a fully granted user hitting a
+transient failure is not sent to an administrator. A failed call (a wire or imperative error) is
+always `failed`. Figures: an unread invoice, debit memo, payment or payment schedule amount comes back
+null and listed in the cards' `unavailable` with its `unavailableReason`; the Debit Memos line of the
+total balance reads "—" and the Total Balance says it excludes debit memos and why, or shows "—"
+itself when nothing could be read. The unapplied payment count is its own key: if only the count
+could not be read, only the count shows "—" and the balance stays in the total. Payment promises,
+plan tasks and the user's plans come back as wrappers with an explicit `unavailable` flag and reason
+(an empty wrapper while loading is "still loading", not "none"); progress carries the same flag; a
+worklist tab that could not be read is listed in `WorklistData.unavailable`, gets no placeholder
+row, and says so instead of "No items in this view".
 `RLM_BillingUIAccessTest` runs every controller read as this user, and
 `RLM_CollectionsDashboardControllerTest` loads the dashboard as this user and as the same user
 without the set. The build assigns the set to the running user only.

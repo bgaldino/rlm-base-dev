@@ -238,6 +238,17 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
     }
   );
 
+  // A user time zone this browser's Intl does not know falls back to the browser's own zone rather
+  // than failing the modal (billingDates.todayInTimeZone).
+  it("falls back to the browser's zone when the user's time zone is unknown to Intl", async () => {
+    const { element } = await open({
+      now: "2026-11-24T22:00:00Z",
+      browserTimeZone: "Asia/Tokyo",
+      userTimeZone: "Not/A_Zone"
+    });
+    expect(field(element, "lightning-input", "startDate").value).toBe("2026-11-25");
+  });
+
   // The end date the platform computes for a term-defined quote line from its start date and term
   // (measured on a 264 org, 2026-11-26, todo 435; Place Sales Transaction with no EndDate): the day
   // before the start's day of the month that many months later, clamped to a month's last day, for

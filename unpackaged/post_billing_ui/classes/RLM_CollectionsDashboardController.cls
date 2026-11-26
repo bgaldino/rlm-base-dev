@@ -30,12 +30,13 @@ public with sharing class RLM_CollectionsDashboardController {
 
     /** Payment Promises: total requested amount on PaymentScheduleItem by status (Ready for Processing, Draft, Failed, In Processing). */
     @AuraEnabled(cacheable=true)
-    public static List<PaymentPromiseBucket> getPaymentPromiseSummary(Id accountId, String currencyCode) {
-        List<PaymentPromiseBucket> buckets = new List<PaymentPromiseBucket>();
+    public static PaymentPromiseSummary getPaymentPromiseSummary(Id accountId, String currencyCode) {
+        PaymentPromiseSummary summary = new PaymentPromiseSummary();
+        List<PaymentPromiseBucket> buckets = summary.buckets;
         try {
-            if (!Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) return buckets;
+            if (!Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) return summary;
             Map<String, Schema.SObjectField> psiFields = Schema.getGlobalDescribe().get('PaymentScheduleItem').getDescribe().fields.getMap();
-            if (!psiFields.containsKey('Status') || !psiFields.containsKey('RequestedAmount')) return buckets;
+            if (!psiFields.containsKey('Status') || !psiFields.containsKey('RequestedAmount')) return summary;
             String accFld = psiFields.containsKey('PaymentAccountId') ? 'PaymentAccountId' : null;
             Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null;
             Boolean filterCurrency = String.isNotBlank(currencyCode) && paymentScheduleItemHasCurrencyField();
@@ -62,9 +63,23 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) {
             // Not "no promises": the page says the schedule items could not be read.
             sectionSkipped('getPaymentPromiseSummary', e);
-            return null;
+            PaymentPromiseSummary unreadable = new PaymentPromiseSummary();
+            unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
+            return unreadable;
         }
-        return buckets;
+        return summary;
+    }
+
+    // The promise buckets, or unavailable (with its reason) when the schedule items could not be read.
+    public class PaymentPromiseSummary {
+        @AuraEnabled public List<PaymentPromiseBucket> buckets { get; set; }
+        @AuraEnabled public Boolean unavailable { get; set; }
+        @AuraEnabled public String unavailableReason { get; set; }
+        public PaymentPromiseSummary() {
+            buckets = new List<PaymentPromiseBucket>();
+            unavailable = false;
+        }
     }
 
     public class PaymentPromiseBucket {
@@ -121,21 +136,31 @@ public with sharing class RLM_CollectionsDashboardController {
             // A refused or failed Invoice read is not "nothing owed": the invoice figures are
             // marked unavailable (null) and the other components still load.
             sectionSkipped('getDashboardCards', e);
-            markInvoicesUnavailable(data);
+            markInvoicesUnavailable(data, e);
         }
 
-        // Each component is null when its read was refused (the catch blocks of getUnappliedCreditsSum,
-        // getDebitMemoNotInvoicedSum, getUnappliedPaymentBalanceSum and getUnappliedPaymentCount, and the
-        // Invoice catch above), and is then listed in data.unavailable. The total balance adds only what
-        // was read and the page names what it leaves out; with nothing read it is null, not zero.
-        Decimal unappliedCredits = getUnappliedCreditsSum(accountId, currencyCode);
-        Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(accountId, currencyCode);
-        Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(accountId, currencyCode);
-        Integer unappliedPaymentCount = getUnappliedPaymentCount(accountId, currencyCode);
-        if (debitMemoNotInvoiced == null) data.unavailable.add(UNAVAILABLE_DEBIT_MEMOS);
-        if (unappliedCredits == null) data.unavailable.add(UNAVAILABLE_CREDITS);
-        if (unappliedPaymentBalance == null || unappliedPaymentCount == null) data.unavailable.add(UNAVAILABLE_PAYMENTS);
+        // Each component is null when its read was refused or failed (the catch blocks of
+        // getUnappliedCreditsSum, getDebitMemoNotInvoicedSum, getUnappliedPaymentBalanceSum and
+        // getUnappliedPaymentCount, and the Invoice catch above), which list it in data.unavailable with
+        // its reason. The total balance adds only the amounts that were read and the page names what it
+        // leaves out; with nothing read it is null, not zero. The payment count is its own key: a failed
+        // count leaves the payment balance, the total and the note as they are.
+        Decimal unappliedCredits = getUnappliedCreditsSum(data, accountId, currencyCode);
+        Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(data, accountId, currencyCode);
+        Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(data, accountId, currencyCode);
+        Integer unappliedPaymentCount = getUnappliedPaymentCount(data, accountId, currencyCode);
 
+        totalUp(data, sumUnpaidInvoiceBalance, unappliedCredits, debitMemoNotInvoiced, unappliedPaymentBalance,
+            unappliedPaymentCount);
+        return data;
+    }
+
+    // The card figures and the total balance from the components that were read (null = not read). The
+    // total, its breakdown and the payment card follow the amounts alone: a payment count that could not be
+    // read shows only the count as not available. Takes values so a test can build any mix.
+    @TestVisible
+    private static void totalUp(CollectionsDashboardData data, Decimal sumUnpaidInvoiceBalance, Decimal unappliedCredits,
+            Decimal debitMemoNotInvoiced, Decimal unappliedPaymentBalance, Integer unappliedPaymentCount) {
         data.unappliedCredits = unappliedCredits;
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
@@ -153,7 +178,6 @@ public with sharing class RLM_CollectionsDashboardController {
         data.totalBalanceBreakdown.add(breakdownRow('Unapplied Credits', negate(unappliedCredits), 'green', UNAVAILABLE_CREDITS));
         data.totalBalanceBreakdown.add(breakdownRow('Unapplied Payments', negate(unappliedPaymentBalance), 'red', UNAVAILABLE_PAYMENTS));
 
-        return data;
     }
 
     // Keys of CollectionsDashboardData.unavailable: the card components whose read was refused or
@@ -163,9 +187,18 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String UNAVAILABLE_DEBIT_MEMOS = 'debitMemos';
     @TestVisible private static final String UNAVAILABLE_CREDITS = 'unappliedCredits';
     @TestVisible private static final String UNAVAILABLE_PAYMENTS = 'unappliedPayments';
+    // The unapplied payment count alone: not a component of the total balance.
+    @TestVisible private static final String UNAVAILABLE_PAYMENT_COUNT = 'unappliedPaymentCount';
 
-    private static void markInvoicesUnavailable(CollectionsDashboardData data) {
-        data.unavailable.add(UNAVAILABLE_INVOICES);
+    private static void markUnavailable(CollectionsDashboardData data, String key, Exception e) {
+        if (!data.unavailable.contains(key)) {
+            data.unavailable.add(key);
+        }
+        data.unavailableReason.put(key, reasonFor(e));
+    }
+
+    private static void markInvoicesUnavailable(CollectionsDashboardData data, Exception e) {
+        markUnavailable(data, UNAVAILABLE_INVOICES, e);
         data.receivablesOutstanding = null;
         data.invoiceCount = null;
         data.partiallySettledCount = null;
@@ -278,6 +311,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Integer highValueRefused = wl.unavailable.indexOf(WORKLIST_HIGH_VALUE);
         if (!wl.highValueDelinquents.isEmpty() && highValueRefused >= 0) {
             wl.unavailable.remove(highValueRefused);
+            wl.unavailableReason.remove(WORKLIST_HIGH_VALUE);
         }
         addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
@@ -288,6 +322,13 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String WORKLIST_CRITICAL = 'critical';
     @TestVisible private static final String WORKLIST_HIGH_VALUE = 'highValue';
     @TestVisible private static final String WORKLIST_DISPUTED = 'disputed';
+
+    private static void markWorklistUnavailable(WorklistData wl, String key, Exception e) {
+        if (!wl.unavailable.contains(key)) {
+            wl.unavailable.add(key);
+        }
+        wl.unavailableReason.put(key, reasonFor(e));
+    }
 
     private static void addPlaceholderRowsIfEmpty(WorklistData wl, Id filterAccountId) {
         List<Account> accts = new List<Account>();
@@ -309,9 +350,10 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<CpTaskItem> getCollectionPlanTasks(Id accountId) {
-        List<CpTaskItem> results = new List<CpTaskItem>();
-        if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return results;
+    public static CpTaskList getCollectionPlanTasks(Id accountId) {
+        CpTaskList taskList = new CpTaskList();
+        List<CpTaskItem> results = taskList.items;
+        if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return taskList;
         try {
             String cpWhere = ' Id != null ';
             if (accountId != null && String.isNotBlank(String.valueOf(accountId))) {
@@ -321,16 +363,30 @@ public with sharing class RLM_CollectionsDashboardController {
             for (SObject cp : Database.query('SELECT Id FROM CollectionPlan WHERE ' + cpWhere + ' LIMIT 2000', AccessLevel.USER_MODE)) {
                 cpIds.add((Id) cp.get('Id'));
             }
-            if (cpIds.isEmpty()) return results;
+            if (cpIds.isEmpty()) return taskList;
             for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
                 results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
             }
         } catch (Exception e) {
             // Not "no tasks": the page says the plans or their tasks could not be read.
             sectionSkipped('getCollectionPlanTasks', e);
-            return null;
+            CpTaskList unreadable = new CpTaskList();
+            unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
+            return unreadable;
         }
-        return results;
+        return taskList;
+    }
+
+    // The plan tasks, or unavailable (with its reason) when the plans or their tasks could not be read.
+    public class CpTaskList {
+        @AuraEnabled public List<CpTaskItem> items { get; set; }
+        @AuraEnabled public Boolean unavailable { get; set; }
+        @AuraEnabled public String unavailableReason { get; set; }
+        public CpTaskList() {
+            items = new List<CpTaskItem>();
+            unavailable = false;
+        }
     }
 
     public class CpTaskItem {
@@ -473,7 +529,7 @@ public with sharing class RLM_CollectionsDashboardController {
             addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildCriticalFollowUpInvoices', e);
-            wl.unavailable.add(WORKLIST_CRITICAL);
+            markWorklistUnavailable(wl, WORKLIST_CRITICAL, e);
         }
     }
 
@@ -555,7 +611,7 @@ public with sharing class RLM_CollectionsDashboardController {
             invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
         } catch (Exception e) {
             sectionSkipped('buildHighValueDelinquents', e);
-            wl.unavailable.add(WORKLIST_HIGH_VALUE);
+            markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e);
             return;
         }
         addHighValueDelinquents(wl, invs, invAccountField, Date.today());
@@ -702,7 +758,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
         } catch (Exception e) {
             sectionSkipped('buildDisputedFromCases', e);
-            wl.unavailable.add(WORKLIST_DISPUTED);
+            markWorklistUnavailable(wl, WORKLIST_DISPUTED, e);
         }
     }
 
@@ -716,11 +772,33 @@ public with sharing class RLM_CollectionsDashboardController {
     //    load, and is logged at WARN; it is a permission or data problem, not an absent schema.
     //    Where the section is a figure (the cards and total balance, payment promises, progress), it is
     //    returned as unavailable (null, or the wrapper's unavailable flag or list), never as a zero the
-    //    page would show as a real amount (todo 435). The lists follow the same rule: tasks and plans
-    //    return null, and a worklist tab whose read was refused is listed in WorklistData.unavailable.
+    //    page would show as a real amount (todo 435). The lists follow the same rule: the task, plan and
+    //    promise wrappers carry an unavailable flag, and a worklist tab whose read was refused or failed is
+    //    listed in WorklistData.unavailable. Each carries its reason (reasonFor: refused or failed).
     // Neither throws and neither puts platform exception text in a response.
     private static void probeSkipped(String context, Exception e) {
         System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (field or object not present): ' + e.getMessage());
+    }
+
+    // Why a section is unavailable, so the page can tell the user what to do: 'refused' when the user may
+    // not read it (ask an administrator), 'failed' for anything else (try again). Measured on a 264 org
+    // (2026-11-26, todo 435): a USER_MODE read of an object the user cannot read throws a QueryException
+    // "sObject type 'X' is not supported", and of a field the user cannot read "No such column 'F' on
+    // entity 'X'". Any other exception (a timeout, a limit, a platform error) is a failure, not a refusal.
+    @TestVisible private static final String REASON_REFUSED = 'refused';
+    @TestVisible private static final String REASON_FAILED = 'failed';
+
+    @TestVisible
+    private static String reasonFor(Exception e) {
+        if (e instanceof NoAccessException) {
+            return REASON_REFUSED;
+        }
+        String message = e == null || e.getMessage() == null ? '' : e.getMessage();
+        if (e instanceof QueryException
+                && (message.contains('is not supported') || message.startsWith('No such column '))) {
+            return REASON_REFUSED;
+        }
+        return REASON_FAILED;
     }
 
     private static void sectionSkipped(String context, Exception e) {
@@ -783,7 +861,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<WorklistItem> disputedInvoices { get; set; }
         // Tabs whose read was refused or failed (WORKLIST_*): their lists are not "none".
         @AuraEnabled public List<String> unavailable { get; set; }
-        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); }
+        // Each unavailable tab's reason: REASON_REFUSED or REASON_FAILED.
+        @AuraEnabled public Map<String, String> unavailableReason { get; set; }
+        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); }
     }
 
     // Invoice.BillingAccountId always exists where this module deploys: other classes in it
@@ -819,7 +899,7 @@ public with sharing class RLM_CollectionsDashboardController {
     // Pending, Failed or Canceled payment keeps its Balance but is not money to apply.
     private static final String PROCESSED_PAYMENT = 'Processed';
 
-    private static Decimal getUnappliedCreditsSum(Id accountId, String currencyCode) {
+    private static Decimal getUnappliedCreditsSum(CollectionsDashboardData data, Id accountId, String currencyCode) {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
@@ -833,11 +913,11 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); return null; }
+        } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); markUnavailable(data, UNAVAILABLE_CREDITS, e); return null; }
         return sum;
     }
 
-    private static Decimal getDebitMemoNotInvoicedSum(Id accountId, String currencyCode) {
+    private static Decimal getDebitMemoNotInvoicedSum(CollectionsDashboardData data, Id accountId, String currencyCode) {
         Decimal sum = 0;
         try {
             // No DebitMemo object in this org: nothing can be owed on one, so zero is the real figure.
@@ -854,11 +934,11 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumAmt') != null) sum = (Decimal) ar[0].get('sumAmt');
-        } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); return null; }
+        } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); markUnavailable(data, UNAVAILABLE_DEBIT_MEMOS, e); return null; }
         return sum;
     }
 
-    private static Decimal getUnappliedPaymentBalanceSum(Id accountId, String currencyCode) {
+    private static Decimal getUnappliedPaymentBalanceSum(CollectionsDashboardData data, Id accountId, String currencyCode) {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
@@ -872,11 +952,11 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
-        } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); return null; }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); markUnavailable(data, UNAVAILABLE_PAYMENTS, e); return null; }
         return sum;
     }
 
-    private static Integer getUnappliedPaymentCount(Id accountId, String currencyCode) {
+    private static Integer getUnappliedPaymentCount(CollectionsDashboardData data, Id accountId, String currencyCode) {
         Integer cnt = 0;
         try {
             String accFld = getPaymentAccountFieldName();
@@ -888,7 +968,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('cnt') != null) cnt = (Integer) ar[0].get('cnt');
-        } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); return null; }
+        } catch (Exception e) { sectionSkipped('getUnappliedPaymentCount', e); markUnavailable(data, UNAVAILABLE_PAYMENT_COUNT, e); return null; }
         return cnt;
     }
 
@@ -910,9 +990,12 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<Map<String, Object>> agingBuckets { get; set; }
         // Components whose read was refused or failed (UNAVAILABLE_*); their figures are null.
         @AuraEnabled public List<String> unavailable { get; set; }
+        // Each unavailable key's reason: REASON_REFUSED or REASON_FAILED.
+        @AuraEnabled public Map<String, String> unavailableReason { get; set; }
 
         public CollectionsDashboardData() {
             unavailable = new List<String>();
+            unavailableReason = new Map<String, String>();
             totalBalance = 0;
             totalBalanceBreakdown = new List<Map<String, Object>>();
             receivablesOutstanding = 0;
@@ -932,10 +1015,11 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<MyCollectionPlanItem> getMyCollectionPlans() {
-        List<MyCollectionPlanItem> items = new List<MyCollectionPlanItem>();
+    public static MyCollectionPlanList getMyCollectionPlans() {
+        MyCollectionPlanList planList = new MyCollectionPlanList();
+        List<MyCollectionPlanItem> items = planList.items;
         try {
-            if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return items;
+            if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return planList;
             Id currentUserId = UserInfo.getUserId();
             String acctField = 'AccountId';
             Map<String, Schema.SObjectField> cpFields = Schema.SObjectType.CollectionPlan.fields.getMap();
@@ -967,9 +1051,23 @@ public with sharing class RLM_CollectionsDashboardController {
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
             sectionSkipped('getMyCollectionPlans', e);
-            return null;
+            MyCollectionPlanList unreadable = new MyCollectionPlanList();
+            unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
+            return unreadable;
         }
-        return items;
+        return planList;
+    }
+
+    // The user's plans, or unavailable (with its reason) when the plans could not be read.
+    public class MyCollectionPlanList {
+        @AuraEnabled public List<MyCollectionPlanItem> items { get; set; }
+        @AuraEnabled public Boolean unavailable { get; set; }
+        @AuraEnabled public String unavailableReason { get; set; }
+        public MyCollectionPlanList() {
+            items = new List<MyCollectionPlanItem>();
+            unavailable = false;
+        }
     }
 
     @AuraEnabled(cacheable=true)
@@ -1021,6 +1119,7 @@ public with sharing class RLM_CollectionsDashboardController {
             sectionSkipped('getCollectionsProgress', e);
             CollectionsProgressData unreadable = new CollectionsProgressData();
             unreadable.unavailable = true;
+            unreadable.unavailableReason = reasonFor(e);
             return unreadable;
         }
         return result;
@@ -1038,6 +1137,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Decimal avgDaysPastDue { get; set; }
         // True when the collection plans could not be read: the figures above are not measurements.
         @AuraEnabled public Boolean unavailable { get; set; }
+        // Why it is unavailable: REASON_REFUSED or REASON_FAILED (null when it is not).
+        @AuraEnabled public String unavailableReason { get; set; }
         public CollectionsProgressData() {
             unavailable = false;
             totalPlans = 0; recoveredCount = 0; notRecoveredCount = 0;
