@@ -1,6 +1,8 @@
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CloseActionScreenEvent } from 'lightning/actions';
+import USER_TIME_ZONE from '@salesforce/i18n/timeZone';
+import { parseYmd, termEndDate, todayInTimeZone } from './billingDates';
 
 import getAccountBillingInfo from '@salesforce/apex/RLM_BillingScheduleGroupService.getAccountBillingInfo';
 import getLegalEntities from '@salesforce/apex/RLM_BillingScheduleGroupService.getLegalEntities';
@@ -33,9 +35,9 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     totalPrice = 0; // TotalPrice__std - defaults to 0
     productId; // Product2 Id
     productName; // ProductName__std
-    startDate; // StartDate__std (defaults to today)
-    billingDayOfMonth; // BillingDayOfMonth__std (defaults to today's day)
-    billingStartMonth; // BillingStartMonth__std (defaults to current month)
+    startDate; // StartDate__std, 'YYYY-MM-DD' (defaults to today in the user's Salesforce time zone)
+    billingDayOfMonth; // BillingDayOfMonth__std (the start date's day)
+    billingStartMonth; // BillingStartMonth__std (the start date's month)
     chargeType; // "One Time" or "Recurring"
     termSetting = 'Evergreen'; // "Evergreen" or "Termed" - defaults to Evergreen
     termDuration = 1; // Number of periods for termed contracts - defaults to 1
@@ -125,13 +127,21 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     connectedCallback() {
-        // Set default values for date fields
-        const today = new Date();
-        this.startDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-        this.billingDayOfMonth = today.getDate();
-        this.billingStartMonth = today.getMonth() + 1; // JavaScript months are 0-indexed
-        // Calculate initial end date with defaults
+        // Today in the user's Salesforce time zone, not the browser's and not UTC: the date the user
+        // sees is the date that is sent, and the billing day and month are taken from that same date.
+        this.startDate = todayInTimeZone(USER_TIME_ZONE);
+        this.setBillingAnchor(this.startDate);
         this.calculateEndDate();
+    }
+
+    // Billing day of month and start month from a 'YYYY-MM-DD' start date, read from the string
+    // itself so no time zone can move them. An empty or invalid date leaves them as they were.
+    setBillingAnchor(startDate) {
+        const start = parseYmd(startDate);
+        if (start) {
+            this.billingDayOfMonth = start.day;
+            this.billingStartMonth = start.month;
+        }
     }
 
     @wire(getAccountBillingInfo, { accountId: '$recordId' })
@@ -280,7 +290,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             return 'Total Price is required.';
         }
         if (this.isTermed && !this.endDate) {
-            return 'Start Date and Term Duration are required to calculate the End Date of a termed charge.';
+            return 'A Start Date and a whole-number Term Duration of at least 1 are required to calculate the End Date of a termed charge.';
         }
         return '';
     }
@@ -374,7 +384,6 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             return;
         }
 
-        const start = new Date(this.startDate + 'T00:00:00');
         let monthsToAdd = 0;
 
         switch (this.termDurationUnit) {
@@ -394,12 +403,14 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
                 monthsToAdd = 0;
         }
 
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + monthsToAdd);
-        // Subtract one day to get the last day of the term
-        end.setDate(end.getDate() - 1);
-
-        this.endDate = end.toISOString().split('T')[0];
+        // Calendar math on the 'YYYY-MM-DD' value (the day before the start date monthsToAdd months
+        // later). A term that is not a whole number of months has no end date, and submitBlocker
+        // says so.
+        this.endDate = termEndDate(this.startDate, monthsToAdd);
+        if (!this.endDate) {
+            this.numberOfBillingPeriods = 0;
+            return;
+        }
 
         // Calculate number of billing periods
         this.calculateNumberOfBillingPeriods(monthsToAdd);
@@ -522,12 +533,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
 
     handleStartDateChange(event) {
         this.startDate = event.detail.value;
-        // Update billing day and month based on start date
-        if (this.startDate) {
-            const selectedDate = new Date(this.startDate + 'T00:00:00');
-            this.billingDayOfMonth = selectedDate.getDate();
-            this.billingStartMonth = selectedDate.getMonth() + 1; // JavaScript months are 0-indexed
-        }
+        this.setBillingAnchor(this.startDate);
         // Recalculate end date when start date changes
         this.calculateEndDate();
     }
