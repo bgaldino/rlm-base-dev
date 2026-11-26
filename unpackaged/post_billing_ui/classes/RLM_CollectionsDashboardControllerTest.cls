@@ -505,6 +505,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
         RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Account disputed = newAccount('RLM CD Filters Dispute');
+        insert new Case(AccountId = disputed.Id, Subject = 'RLM CD filters dispute');
+        RLM_CollectionsDashboardController.WorklistData withCase = RLM_CollectionsDashboardController.getWorklist(null, null);
         RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
         RLM_CollectionsDashboardController.MyCollectionPlanList plans = RLM_CollectionsDashboardController.getMyCollectionPlans();
         RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
@@ -515,13 +518,39 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(paymentFilters, cards.filtersByKey.get(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS), 'Payments');
         Assert.areEqual(paymentFilters, cards.filtersByKey.get(RLM_CollectionsDashboardController.UNAVAILABLE_CREDITS), 'Credits');
         for (String tab : new List<String>{ RLM_CollectionsDashboardController.WORKLIST_CRITICAL,
-                RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE, RLM_CollectionsDashboardController.WORKLIST_DISPUTED }) {
-            Assert.areEqual(invoiceFilters, wl.filtersByTab.get(tab), 'Every tab reads invoices: ' + tab);
+                RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE }) {
+            Assert.areEqual(invoiceFilters, wl.filtersByTab.get(tab), 'The tab reads invoices: ' + tab);
         }
+        // No open case: the Disputed tab read only cases, which the account alone narrows.
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
+            wl.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Disputed without its rollup: the account');
+        // With an open case it goes on to the invoice rollup, which the currency narrows too.
+        Assert.areEqual(invoiceFilters, withCase.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Disputed with its rollup: the invoice filters');
         Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT }, tasks.filters, 'Tasks: the account');
         Assert.isTrue(plans.filters.isEmpty(), 'The user\'s plans: none');
         Assert.isTrue(progress.filters.isEmpty(), 'Progress: none');
         Assert.isTrue(promises.filters.contains(RLM_CollectionsDashboardController.FILTER_ACCOUNT), 'Promises: the account');
+    }
+
+    // Too many open cases: the read that overflowed is narrowed by the account only, so the Disputed tab reports
+    // the account alone, even where the invoice reads would follow the currency too.
+    @isTest
+    static void disputedTab_withTooManyOpenCases_reportsTheAccountFilterOnly() {
+        Account a = newAccount('RLM CD Case Overflow A');
+        Account b = newAccount('RLM CD Case Overflow B');
+        insert new List<Case>{ new Case(AccountId = a.Id, Subject = 'RLM CD overflow A'), new Case(AccountId = b.Id, Subject = 'RLM CD overflow B') };
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+            wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'PRECONDITION: the open-case read overflowed');
+        Assert.areEqual(new List<String>{ RLM_CollectionsDashboardController.FILTER_ACCOUNT },
+            wl.filtersByTab.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Only the account narrows open cases: the currency is not offered');
     }
 
     // ---- High-Value ranking (todo 435) ----

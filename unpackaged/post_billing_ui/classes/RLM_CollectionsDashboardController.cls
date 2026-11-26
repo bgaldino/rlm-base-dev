@@ -389,13 +389,15 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static WorklistData getWorklist(Id accountId, String currencyCode) {
         WorklistData wl = new WorklistData();
-        // Every tab reads invoices by account and, where Invoice has it, currency (the Disputed tab's rollup
-        // too); the Disputed tab's list of accounts comes from open cases, which only the account narrows.
+        // Critical and High-Value read invoices by account and, where Invoice has it, currency. The Disputed
+        // tab starts from open cases, which only the account narrows; buildDisputedFromCases switches its
+        // entry to the invoice filters when its invoice rollup runs, so a tab with too many records names the
+        // filters of the read that had them.
         List<String> invoiceFilterList = invoiceFilters();
         wl.filtersByTab = new Map<String, List<String>>{
             WORKLIST_CRITICAL => invoiceFilterList,
             WORKLIST_HIGH_VALUE => invoiceFilterList,
-            WORKLIST_DISPUTED => invoiceFilterList
+            WORKLIST_DISPUTED => new List<String>{ FILTER_ACCOUNT }
         };
         String invAccountField = getInvoiceAccountFieldName();
         Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId));
@@ -770,10 +772,13 @@ public with sharing class RLM_CollectionsDashboardController {
             if (keepFirst(disputedAccountOrder, DISPUTED_ROWS)) {
                 wl.hasMore.put(WORKLIST_DISPUTED, new List<String>{ FILTER_ACCOUNT });
             }
-            List<Case> shownCases = new List<Case>();
-            for (Id accId : disputedAccountOrder) shownCases.add(shownCaseByAccount.get(accId));
+            // Only the listed accounts' cases are kept: the map of every account's newest case (up to the read
+            // cap) is released before the case text, name and invoice reads.
+            Map<Id, Case> listedCaseByAccount = new Map<Id, Case>();
+            for (Id accId : disputedAccountOrder) listedCaseByAccount.put(accId, shownCaseByAccount.get(accId));
+            shownCaseByAccount = null;
             Set<Id> disputedAccountIds = new Set<Id>(disputedAccountOrder);
-            Map<Id, String> accountDisputeReason = readDisputeReasons(shownCases);
+            Map<Id, String> accountDisputeReason = readDisputeReasons(listedCaseByAccount.values());
             RLM_AccountNames.Result accountNames = getAccountNames(disputedAccountIds);
             Date today = Date.today();
 
@@ -783,6 +788,8 @@ public with sharing class RLM_CollectionsDashboardController {
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
+            // From here the tab's reads are invoices, which the currency narrows too where Invoice has it.
+            wl.filtersByTab.put(WORKLIST_DISPUTED, invoiceFilters());
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -817,8 +824,8 @@ public with sharing class RLM_CollectionsDashboardController {
                 Date ptpDate = accountPtpDate.get(accId);
                 WorklistItem item = new WorklistItem(accId, accountNames.names.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
                 item.accountNameUnavailable = accountNames.unreadable;
-                item.caseId = shownCaseByAccount.get(accId).Id;
-                item.caseNumber = shownCaseByAccount.get(accId).CaseNumber;
+                item.caseId = listedCaseByAccount.get(accId).Id;
+                item.caseNumber = listedCaseByAccount.get(accId).CaseNumber;
                 // A promise lookup that was refused, failed or found too many rows is not "no promise".
                 item.ptpUnavailable = ptpLookupFailed;
                 wl.disputedInvoices.add(item);

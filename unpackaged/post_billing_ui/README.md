@@ -193,8 +193,9 @@ is in use, "Too many records to total here even for this account and currency." 
 section is what the controller reports its reads applied (`filtersByKey` on the cards, `filtersByTab`
 on the worklist, `filters` on the promises, tasks, plans and progress): a filter is listed only where
 the object read has the field, so a single-currency org, whose Invoice and Payment have no
-`CurrencyIsoCode`, is never told to choose a currency; the Disputed tab's invoice rollup follows the
-currency, so its advice names it; progress and the user's own plans follow no filter. A read whose allowance is
+`CurrencyIsoCode`, is never told to choose a currency. The Disputed tab reports the filters of the read
+that had too many: its open cases follow the account only, its invoice rollup the currency too.
+Progress and the user's own plans follow no filter. A read whose allowance is
 zero runs no query and is too many at once. The guarantee is per call, not per read: whatever the
 data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
 so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
@@ -247,7 +248,9 @@ Heap, measured on the same org against the 6 MB synchronous limit, for these rea
   for those ten only; `addHighValueDelinquents_atTheReadCap_listsTheTenLargest` runs the real method at
   that size within the test's limits.
 
-Each invoice and case read is released before the next large read in its tab. The payment schedule
+Each invoice and case read is released before the next large read in its tab: on the Disputed tab, once
+the 200 listed accounts are picked, only their cases are kept (not every account's newest case) through
+the case text, name and invoice reads. The payment schedule
 and schedule item reads were not measured; they select two and three short fields.
 
 Figures: an unread invoice, debit memo or payment amount comes back null and listed in the cards'

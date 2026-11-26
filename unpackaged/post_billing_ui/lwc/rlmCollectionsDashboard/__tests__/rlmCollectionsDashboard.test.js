@@ -610,14 +610,16 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
   });
 
   it.each([
-    ["critical", "Too many records to list here. Choose an account or currency to narrow it."],
-    ["highValue", "Too many records to list here. Choose an account or currency to narrow it."],
-    // Disputed's invoice rollup follows the currency too.
-    ["disputed", "Too many records to list here. Choose an account or currency to narrow it."]
-  ])("says the %s tab has too many records to list, naming the filter that narrows it", async (tab, message) => {
+    ["critical", BOTH, "Too many records to list here. Choose an account or currency to narrow it."],
+    ["highValue", BOTH, "Too many records to list here. Choose an account or currency to narrow it."],
+    // Disputed with too many open cases: only the account narrows that read.
+    ["disputed", ["account"], "Too many records to list here. Choose an account to narrow it."],
+    // Disputed with too many invoices in its rollup: the currency narrows that read too.
+    ["disputed", BOTH, "Too many records to list here. Choose an account or currency to narrow it."]
+  ])("says the %s tab has too many records to list, naming the filters of the read (%j)", async (tab, filters, message) => {
     const element = await mount();
     getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: [tab], unavailableReason: { [tab]: "tooMany" },
-      filtersByTab: { critical: BOTH, highValue: BOTH, disputed: BOTH } });
+      filtersByTab: { critical: BOTH, highValue: BOTH, disputed: ["account"], [tab]: filters } });
     await flushPromises();
     const button = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
       (candidate) => candidate.dataset.tab === tab
