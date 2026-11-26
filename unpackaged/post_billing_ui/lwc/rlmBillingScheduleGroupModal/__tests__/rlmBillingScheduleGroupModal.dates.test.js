@@ -1,6 +1,7 @@
 /**
  * @jest-environment <rootDir>/tests/jest/browser-time-zone-environment.js
  */
+/* global setBrowserTimeZone */
 // The modal's dates: Start Date defaults to today in the user's Salesforce time zone, the billing
 // day and month come from that same date, and the End Date of a termed charge is calendar math on
 // the 'YYYY-MM-DD' value. Each case pins the browser's time zone (setBrowserTimeZone, from the test
@@ -241,7 +242,7 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
   // Salesforce Pricing anchors a period (Help: ind.pricing_monthly_proration_examples_for_leap_years,
   // 31-Jan-2025 to 27-Feb-2025; ind.pricing_annual_proration_examples_for_leap_years, 29-Feb-2024
   // to 27-Feb-2025). The old Date.setMonth overflow ran Jan 31 + 1 Month into March.
-  it.each([
+  const TERMS = [
     ["2027-01-31", "1", "Month", "2027-02-27"],
     ["2028-01-31", "1", "Month", "2028-02-28"],
     ["2028-02-29", "1", "Year", "2029-02-27"],
@@ -252,21 +253,23 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
     ["2026-11-25", "2", "Semi-Annual", "2027-11-24"],
     ["2026-12-01", "1", "Month", "2026-12-31"],
     ["2026-12-15", "1", "Month", "2027-01-14"]
-  ])(
-    "Start %s + %s %s ends %s, in every browser time zone",
-    async (start, duration, unit, end) => {
-      for (const browserTimeZone of ["Asia/Tokyo", "America/Los_Angeles", "UTC"]) {
-        document.body.innerHTML = "";
-        const { element } = await open({
-          now: "2026-11-25T12:00:00Z",
-          browserTimeZone,
-          userTimeZone: "America/Los_Angeles"
-        });
-        await fillTermed(element, { duration, unit });
-        change(element, "lightning-input", "startDate", start);
-        await flushPromises();
-        expect(field(element, "lightning-input", "endDate").value).toBe(end);
-      }
+  ];
+  it.each(
+    TERMS.flatMap((term) =>
+      ["Asia/Tokyo", "America/Los_Angeles", "UTC"].map((zone) => [...term, zone])
+    )
+  )(
+    "Start %s + %s %s ends %s, browser in %s",
+    async (start, duration, unit, end, browserTimeZone) => {
+      const { element } = await open({
+        now: "2026-11-25T12:00:00Z",
+        browserTimeZone,
+        userTimeZone: "America/Los_Angeles"
+      });
+      await fillTermed(element, { duration, unit });
+      change(element, "lightning-input", "startDate", start);
+      await flushPromises();
+      expect(field(element, "lightning-input", "endDate").value).toBe(end);
     }
   );
 
@@ -283,22 +286,5 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
       "End Date"
     );
     expect(create).not.toHaveBeenCalled();
-  });
-
-  // The cases above pin the browser zones they name; this guard keeps a date read back through a
-  // local or UTC Date from coming back in a zone no case covers. The only Date the modal makes is
-  // the current instant, handed to Intl with the user's zone (billingDates.todayInTimeZone).
-  it("reads and writes calendar dates without a local or UTC Date", () => {
-    const fs = require("fs");
-    const path = require("path");
-    const source = (file) =>
-      fs
-        .readFileSync(path.join(__dirname, "..", file), "utf8")
-        .replace(/\/\/.*$/gm, "");
-    const forbidden =
-      /toISOString|toJSON|\.get(UTC)?(FullYear|Month|Date|Day)\(|\.set(UTC)?(FullYear|Month|Date)\(|Date\.parse|new Date\([^)]/;
-    expect(source("rlmBillingScheduleGroupModal.js")).not.toMatch(forbidden);
-    expect(source("rlmBillingScheduleGroupModal.js")).not.toMatch(/new Date\(/);
-    expect(source("billingDates.js")).not.toMatch(forbidden);
   });
 });

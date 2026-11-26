@@ -57,7 +57,7 @@ export function todayInTimeZone(timeZone, now = new Date()) {
     let parts;
     try {
         parts = datePartsIn(timeZone || undefined, now);
-    } catch (e) {
+    } catch {
         parts = datePartsIn(undefined, now);
     }
     return formatYmd(parts);
