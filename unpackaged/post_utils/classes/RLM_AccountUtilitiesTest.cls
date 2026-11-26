@@ -1,8 +1,10 @@
 /**
  * Tests for RLM_AccountUtilities.delAccountRelatedObjects. The reset is for admins only:
  * a user without both Modify All Data and View All Data is refused before anything is
- * read or changed (the refusal tests run as such users); every other test runs as the
- * test's admin, who has both.
+ * read or changed. The refusal tests run, with System.runAs, as users built from
+ * profiles picked by those permissions (and, for View All Data alone, a permission
+ * set); every other test that resets runs as the running user, and skips, with the
+ * reason logged, when the running user lacks either.
  *
  * WHAT IS WORTH TESTING HERE
  * --------------------------
@@ -39,8 +41,8 @@
  *    entitlement-account retry and the asset step's bucket walk.
  *  - The asset step's entitlement-account delete: in these fixtures phase 2's
  *    entitlement-account retry has already removed them.
- *  - Running out of DML statements or queries partway through phase 2, and an
- *    unexpected exception in phase 1.
+ *  - An unexpected exception in phase 1. (Running out of rows, statements or queries
+ *    in either phase is reached, with the limits lowered or spent down.)
  *
  * Three objects cannot be created in a unit test at all: Invoice and
  * BillingScheduleGroup are createable=false, and a CreditMemo's required
@@ -141,29 +143,6 @@ private without sharing class RLM_AccountUtilitiesTest {
         return [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :version.Id].ContentDocumentId;
     }
 
-    private static User newMinimalAccessUser() {
-        Profile leastPrivileged = [
-            SELECT Id
-            FROM Profile
-            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
-            ORDER BY Name ASC
-            LIMIT 1
-        ];
-        User u = new User(
-            ProfileId = leastPrivileged.Id,
-            LastName = 'Reset',
-            Email = 'rlm.reset.minimal@example.com',
-            Username = 'rlm.reset.minimal.' + Datetime.now().getTime() + '@example.com',
-            Alias = 'rlmrst',
-            TimeZoneSidKey = 'America/Los_Angeles',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
-        );
-        insert u;
-        return u;
-    }
-
     private static RLM_AccountUtilities.InputVariables request(
         Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling
     ) {
@@ -187,10 +166,13 @@ private without sharing class RLM_AccountUtilitiesTest {
         ];
         Boolean admin = access.PermissionsModifyAllData == true && access.PermissionsViewAllData == true;
         if (!admin) {
-            System.debug(LoggingLevel.WARN, 'RLM_AccountUtilitiesTest: skipped, the running user lacks Modify All '
-                + 'Data or View All Data and the reset is for admins only');
+            skipped('the running user lacks Modify All Data or View All Data, and the reset is for admins only');
         }
         return admin;
+    }
+
+    private static void skipped(String reason) {
+        System.debug(LoggingLevel.WARN, 'RLM_AccountUtilitiesTest: skipped, ' + reason);
     }
 
     private static RLM_AccountUtilities.Result run(RLM_AccountUtilities.InputVariables iv) {
@@ -629,7 +611,10 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void postedInvoicePermissionIsReadForTheRunningUser() {
-        User u = newMinimalAccessUser();
+        // A user without admin permissions, picked by permission.
+        Profile neither = profileWith(false, false);
+        if (neither == null) return;
+        User u = newUserFrom(neither, 'rlmrst');
 
         Boolean minimalUser;
         System.runAs(u) {
@@ -1212,8 +1197,8 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // A teardown round starts only while its own 9 queries plus the 53 phase 2
-        // keeps back are left. Leaving 55 here, less the 5 spent before the loop (the
-        // admins-only permission check and phase 1's 4 lookups), means the first round
+        // keeps back are left. Leaving 55 here, less the 4 spent before the loop (the
+        // admins-only permission check and phase 1's 3 lookups), means the first round
         // cannot start: the state a usage graph too large for one run reaches after
         // several rounds.
         Integer spend = Limits.getLimitQueries() - 55;
@@ -2062,10 +2047,10 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(46 + 7, RLM_AccountUtilities.QUERY_RESERVE,
             'The reserve covers phase 2\'s counted worst case, 46, with seven spare');
         Assert.areEqual(46, RLM_AccountUtilities.PHASE_TWO_FIXED_MAX, 'Phase 2\'s counted worst case');
-        // The counts after each guard (see the constants): 28 after the journal guard, 15
+        // The counts after each guard (see the constants): 28 after the journal guard, 14
         // after the asset step's last one, each with three spare.
         Assert.areEqual(28 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 28 counted plus three spare');
-        Assert.areEqual(15 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus three spare');
+        Assert.areEqual(14 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 14 counted plus three spare');
     }
 
     @IsTest
@@ -2078,10 +2063,10 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 53 kept back, and 6 are spent before it with an
-        // asset (the admins-only permission check; the asset, contract and two policy
-        // lookups; the account's rate card entries).
-        spendQueriesDownTo(68, a.Id);
+        // needs its 9 queries plus the 53 kept back, and 4 are spent before it (the
+        // admins-only permission check; the asset lookup; the account's policies and rate
+        // card entries).
+        spendQueriesDownTo(66, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();
@@ -2191,6 +2176,67 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The account\'s own policy goes');
     }
 
+    // A contract the run deletes and, with Delete Assets, an asset take their binding policies.
+    @IsTest
+    static void aDeletedContractOrAssetTakesItsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        List<BindingObjUsageRsrcPlcy> policies = seedContractAssetAndAccountPolicies(a);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Contract WHERE AccountId = :a.Id], 'The contract is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id IN :policies],
+            'The contract\'s, the asset\'s and the account\'s policies go');
+    }
+
+    // Phase 2 deletes a contract's and an asset's policies with them, so its rollback keeps
+    // them; only the account's own, which phase 1 deletes, stay deleted.
+    @IsTest
+    static void aPhaseTwoRollbackKeepsTheContractsAndAssetsBindingPolicies() {
+        if (!runnerIsAdmin()) return;
+        Account a = newAccount();
+        List<BindingObjUsageRsrcPlcy> policies = seedContractAssetAndAccountPolicies(a);
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'Phase 2 was rolled back');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE AccountId = :a.Id], 'The contract stays');
+        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset stays');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[0].Id],
+            'The contract keeps its policy');
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[1].Id],
+            'The asset keeps its policy');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policies[2].Id],
+            'The account\'s own policy went in phase 1, which a rollback does not undo');
+    }
+
+    // A contract, an asset and the account, each with one binding policy: [contract, asset, account].
+    private static List<BindingObjUsageRsrcPlcy> seedContractAssetAndAccountPolicies(Account a) {
+        UsageFixture f = loadUsageFixture();
+        Contract c = new Contract(AccountId = a.Id, StartDate = Date.today().addDays(-7), ContractTerm = 12, Status = 'Draft');
+        insert c;
+        Asset asset = new Asset(Name = 'RLM Utilities Policy Asset', AccountId = a.Id);
+        insert asset;
+        Datetime start = Datetime.now().addDays(-10);
+        List<BindingObjUsageRsrcPlcy> policies = new List<BindingObjUsageRsrcPlcy>();
+        for (Id boundTo : new List<Id>{ c.Id, asset.Id, a.Id }) {
+            policies.add(new BindingObjUsageRsrcPlcy(BindingObjectId = boundTo, UsageResourceId = f.resourceId,
+                EffectiveStartDate = start));
+        }
+        insert policies;
+        Assert.areEqual(3, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id IN :policies],
+            'PRECONDITION: the three policies exist');
+        return policies;
+    }
+
     @IsTest
     static void aContractPreservedForItsPricesKeepsItsBindingPolicies() {
         if (!runnerIsAdmin()) return;
@@ -2271,22 +2317,114 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     // ------------------------------------------------------------ admins only
 
-    private static User newUserWith(String alias, PermissionSet extra) {
-        // Picked by permission, not by name: a profile without Modify All Data and View All Data.
-        Profile standard = [
-            SELECT Id FROM Profile
-            WHERE UserType = 'Standard' AND PermissionsModifyAllData = false AND PermissionsViewAllData = false
-            ORDER BY CreatedDate LIMIT 1
-        ];
+    // A standard profile with exactly the given Modify All Data and View All Data, picked by
+    // those permissions, never by name: on the running user's license if it has one there,
+    // otherwise on another license; either way one with a free seat, the first by Id. Null,
+    // with the reason logged, when there is none.
+    private static Profile profileWith(Boolean modifyAllData, Boolean viewAllData) {
+        Id runnersLicense = [SELECT UserLicenseId FROM Profile WHERE Id = :UserInfo.getProfileId()].UserLicenseId;
+        Profile elsewhere;
+        for (Profile candidate : [
+            SELECT Id, UserLicenseId, UserLicense.TotalLicenses, UserLicense.UsedLicenses FROM Profile
+            WHERE UserType = 'Standard' AND PermissionsModifyAllData = :modifyAllData
+                AND PermissionsViewAllData = :viewAllData
+            ORDER BY Id
+        ]) {
+            if (candidate.UserLicense.UsedLicenses >= candidate.UserLicense.TotalLicenses) {
+                continue;
+            }
+            if (candidate.UserLicenseId == runnersLicense) {
+                return candidate;
+            }
+            if (elsewhere == null) {
+                elsewhere = candidate;
+            }
+        }
+        if (elsewhere == null) {
+            skipped('no standard profile with Modify All Data ' + modifyAllData + ' and View All Data '
+                + viewAllData + ' has a free seat');
+        }
+        return elsewhere;
+    }
+
+    private static User newUserFrom(Profile profile, String alias) {
         User u = new User(
-            ProfileId = standard.Id, LastName = 'Reset ' + alias, Email = 'rlm.reset.' + alias + '@example.com',
+            ProfileId = profile.Id, LastName = 'Reset ' + alias, Email = 'rlm.reset.' + alias + '@example.com',
             Username = 'rlm.reset.' + alias + '.' + Datetime.now().getTime() + '@example.com', Alias = alias,
             TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
             LanguageLocaleKey = 'en_US'
         );
         insert u;
-        if (extra != null) {
-            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = extra.Id);
+        return u;
+    }
+
+    // A user with View All Data and without Modify All Data, as a read-only auditor has.
+    // From such a profile when one has a free seat; otherwise from a profile with neither,
+    // plus a permission set that grants View All Data. View All Data depends on Read and View
+    // All on every object and on six system permissions (platform validation, 264), so the
+    // set grants those on the objects a profile with both reads, plus every object Apex
+    // describes (one the profile reads only through View All Data, such as Location, has no
+    // row of its own), retrying each pass the rows whose own dependency a pass granted. The
+    // update that adds View All Data then says whether that was all: if the platform refuses
+    // it, the test skips with the reason logged. Null then, and when the org has no profile
+    // to build from. Setup objects, so in its own runAs (no mixed DML with the test's data).
+    private static User newViewAllDataOnlyUser() {
+        Profile viewAllOnly = profileWith(false, true);
+        if (viewAllOnly != null) {
+            return newUserFrom(viewAllOnly, 'rlmvad');
+        }
+        Profile neither = profileWith(false, false);
+        Profile admin = profileWith(true, true);
+        if (neither == null || admin == null) {
+            return null;
+        }
+        User u;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet viewAll = new PermissionSet(Name = 'RLM_Reset_Test_View_All', Label = 'RLM Reset Test View All');
+            insert viewAll;
+            Set<String> objects = new Set<String>();
+            for (ObjectPermissions read : [
+                SELECT SobjectType FROM ObjectPermissions WHERE PermissionsRead = true AND Parent.ProfileId = :admin.Id
+            ]) {
+                objects.add(read.SobjectType);
+            }
+            for (Schema.SObjectType objectType : Schema.getGlobalDescribe().values()) {
+                objects.add(String.valueOf(objectType));
+            }
+            while (!objects.isEmpty() && objects.size() <= Limits.getLimitDmlRows() - Limits.getDmlRows() - 100) {
+                List<String> names = new List<String>(objects);
+                List<ObjectPermissions> grants = new List<ObjectPermissions>();
+                for (String name : names) {
+                    grants.add(new ObjectPermissions(
+                        ParentId = viewAll.Id, SobjectType = name, PermissionsRead = true, PermissionsViewAllRecords = true
+                    ));
+                }
+                Database.SaveResult[] results = Database.insert(grants, false);
+                Integer granted = 0;
+                for (Integer i = 0; i < results.size(); i++) {
+                    if (results[i].isSuccess()) {
+                        objects.remove(names[i]);
+                        granted++;
+                    }
+                }
+                if (granted == 0) {
+                    break;
+                }
+            }
+            viewAll.PermissionsViewAllData = true;
+            viewAll.PermissionsViewAllForecasts = true;
+            viewAll.PermissionsViewEventLogFiles = true;
+            viewAll.PermissionsViewPublicDashboards = true;
+            viewAll.PermissionsViewPublicReports = true;
+            viewAll.PermissionsViewRoles = true;
+            viewAll.PermissionsViewSetup = true;
+            Database.SaveResult added = Database.update(viewAll, false);
+            if (added.isSuccess()) {
+                u = newUserFrom(neither, 'rlmvad');
+                insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = viewAll.Id);
+            } else {
+                skipped('a permission set cannot be given View All Data here: ' + added.getErrors()[0].getMessage().left(300));
+            }
         }
         return u;
     }
@@ -2324,14 +2462,30 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity is deleted');
     }
 
-    // A user with only one of the two cannot be built in a test: Modify All Data depends on
-    // View All Data, and View All Data on read access to every object (platform validation,
-    // 264). The rule reads both, so a user without either is refused the same way.
+    // Modify All Data depends on View All Data, so no user has the first alone; these two
+    // cover a user with neither and one with View All Data alone.
     @IsTest
     static void aUserWithoutModifyAllOrViewAllIsRefused() {
+        Profile neither = profileWith(false, false);
+        if (neither == null) return;
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Refused Opp');
-        assertRefusedAndUnchanged(newUserWith('rlmnone', null), a);
+        assertRefusedAndUnchanged(newUserFrom(neither, 'rlmnone'), a);
+    }
+
+    @IsTest
+    static void aUserWithViewAllDataButNotModifyAllDataIsRefused() {
+        User u = newViewAllDataOnlyUser();
+        if (u == null) return;
+        UserPermissionAccess access;
+        System.runAs(u) {
+            access = [SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
+        }
+        Assert.isTrue(access.PermissionsViewAllData == true && access.PermissionsModifyAllData != true,
+            'PRECONDITION: the user has View All Data and not Modify All Data');
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Refused View All Opp');
+        assertRefusedAndUnchanged(u, a);
     }
 
     // Live 264: a usage entitlement on an order line blocks the order's delete. The order

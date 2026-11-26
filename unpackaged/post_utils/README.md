@@ -46,8 +46,8 @@ An activated order is set back to Draft before it is deleted. If its delete is t
 
 The reset runs in two phases:
 
-1. **Pre-savepoint (convergent):** usage resource policies (of the account, the contracts the run deletes and, with Delete Assets, the assets), binding object rate card entries bound to the account, and the usage summary graph. These operations are idempotent, so partial progress survives a later failure.
-2. **Transactional (savepoint-wrapped):** entitlements, journals (the record alerts on them first), collection plans and disputes, billing, fulfillment, contracts with their rate card entries, orders (those not in Draft set back to Draft first), assets with their rate card entries, quotes, and opportunities. Collection plans and disputes go before billing because deleting an invoice clears a dispute's link to it. If a step fails, the whole phase rolls back and the result says so; only the usage records from phase 1 stay deleted, and a kept asset keeps its rate card entries. A record that refuses a best-effort delete is reported as kept, with the platform's reason, instead of failing the run.
+1. **Pre-savepoint (convergent):** the usage resource policies and binding object rate card entries bound to the account, and the usage summary graph. These operations are idempotent, so partial progress survives a later failure.
+2. **Transactional (savepoint-wrapped):** entitlements, journals (the record alerts on them first), collection plans and disputes, billing, fulfillment, contracts with their usage resource policies and rate card entries, orders (those not in Draft set back to Draft first), assets with their usage resource policies and rate card entries, quotes, and opportunities. Collection plans and disputes go before billing because deleting an invoice clears a dispute's link to it. If a step fails, the whole phase rolls back and the result says so; only the usage records from phase 1 stay deleted, and a contract or asset that stays keeps its usage resource policies and rate card entries. A record that refuses a best-effort delete is reported as kept, with the platform's reason, instead of failing the run.
 
 A governor limit would roll back both phases, so the reset stops short of one. Each delete is clamped to the DML rows left and leaves two DML statements, since phase 2's savepoint and its rollback each count as one (measured live 264). The usage teardown stops while the queries phase 2 needs are still available. A run that stops in phase 1 returns a result asking for another run, which resumes from the smaller graph. A run that stops in phase 2 keeps nothing from phase 2: the result asks for another run when phase 1 deleted usage records this run, which leaves the next run more room, and otherwise says a rerun stops at the same point, with advice for what ran out. Out of DML rows, it names the three largest groups phase 2 reached (each row counted once, deletes and updates) and says to delete some of those records first. Out of queries or statements, it points to the usage bucket tree, whose walk spends a query and a statement a level.
 
@@ -56,12 +56,12 @@ Known limitations: an entitlement held by a bucket kept for another account's en
 ### Changes since 2026-11 (todo 397)
 
 - (a) Asset rate card entries are deleted in phase 2 with their assets, so a rollback keeps them with the assets, together with the binding object rate card entries sourced from a deleted asset; the query for those runs only when the account has assets.
-- (b) Binding usage policies are deleted only for the account, the contracts the run deletes and, with Delete Assets, the assets.
+- (b) Binding usage policies are deleted only for the account, the contracts the run deletes and, with Delete Assets, the assets. Those of the contracts and assets go in phase 2, each before its contract or asset, so a rollback keeps them with what stays; phase 1 deletes only the account's.
 - (c) A phase 2 stop says what ran out (rows, queries or statements), decided before the delete that did not fit, and what helps; for rows it names the largest groups by distinct rows, deletes and updates.
 - (d) An order already in Draft is not updated again; an order set back to Draft and then refused is reported left in Draft.
 - (e) The admins-only check is one query before phase 1, counted in the query budgets.
 - (f) Two DML statements are kept, for phase 2's savepoint and rollback.
-- (g) Record alerts on the account's transaction journals are deleted before the journals (a record alert blocks its journal's delete, measured live 264). Phase 2's fixed queries are counted at 46, with 53 kept back for them (seven spare), and the walk guards keep three spare after the queries counted after them.
+- (g) Record alerts on the account's transaction journals are deleted before the journals (a record alert blocks its journal's delete, measured live 264). Phase 2's fixed queries are counted at 46, with 53 kept back for them (seven spare), and the walk guards (31 for the usage retries, 17 for the asset step) keep three spare after the queries counted after them.
 
 ### Permission set
 

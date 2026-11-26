@@ -3954,9 +3954,10 @@ flows:
         options:
           api_names: *ps_expression_set_manager
       6:
-        # Same reasoning for the other component deploy_post_utils ships: the
-        # Account Utilities reset. Without this the quick action deploys on a
-        # quantumbit build but no persona user can invoke it.
+        # The other component deploy_post_utils ships: the Account Utilities
+        # reset. Assigns its class access to the running admin, the only user the
+        # reset serves (admin-only, todo 397). The tso flow assigns it via
+        # rlm_tso_ps_api_names.
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
