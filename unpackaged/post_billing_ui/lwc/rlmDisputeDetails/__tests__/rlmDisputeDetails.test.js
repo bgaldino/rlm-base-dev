@@ -283,3 +283,37 @@ describe('rlmDisputeDetails stale state', () => {
         expect(lineLink(el)).toBe('Line B');
     });
 });
+
+// Pack 452 (round 13): a refused or failed read of the dispute's lines shows a sentence in place of
+// the lines and the approved total as Unavailable, never "no lines".
+describe('rlmDisputeDetails lines unavailable', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        jest.clearAllMocks();
+    });
+
+    it('shows the lines as unavailable and the approved total as Unavailable when the line read fails', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        getRelatedNames.mockResolvedValue({ invoiceNames: { [INVOICE_ID]: 'INV-0001' } });
+        const el = createElement('c-rlm-dispute-details', { is: RlmDisputeDetails });
+        el.recordId = CASE_ID;
+        document.body.appendChild(el);
+        graphql.emit({ uiapi: { query: { Dispute: { edges: [{ node: {
+            Id: DISPUTE_ID, Name: { value: 'D-0001' }, InvoiceId: { value: INVOICE_ID },
+            DisputedAmount: { value: 10 }, ReceivedDate: { value: null }
+        } }] } } } });
+        await flush();
+        // Only the dispute-lines wire fails: it is the last graphql wire instance created (this
+        // component's second wire). The stub's configs are empty here, so the filter matches the
+        // instance's own config object.
+        const instances = Array.from(graphql._wireInstances);
+        const linesWireConfig = instances[instances.length - 1].getConfig();
+        graphql.emitErrors([{ message: "Validation error of type FieldUndefined: Field 'DisputeItem'" }],
+            (config) => config === linesWireConfig);
+        await flush();
+        expect(el.shadowRoot.querySelector('.items-unavailable').textContent)
+            .toBe('Unable to read this dispute\'s lines. Contact your administrator.');
+        expect(el.shadowRoot.querySelector('.amount-approved').textContent).toBe('Unavailable');
+        expect(el.shadowRoot.querySelector('.items-table')).toBeNull();
+    });
+});

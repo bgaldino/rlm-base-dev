@@ -11,7 +11,22 @@ import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRel
 const SPLIT_INVOICES_UNREADABLE = 'Unable to read the split invoices. Contact your administrator.';
 
 export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElement) {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: the previous record's rows and error are cleared.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this.allRows = [];
+            this.rows = [];
+            this.correlationIdentifier = undefined;
+            this.error = undefined;
+            this.errorMessage = '';
+            this.isLoading = true;
+        }
+        this._recordId = value;
+    }
 
     @track isLoading = true;
     @track error;
@@ -43,13 +58,11 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             return;
         }
         if (errors && errors.length) {
-            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
-            console.error('rlmSplitInvoicesCards: split invoice read failed', JSON.stringify(errors));
-            this.error = errors;
-            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
-            this.rows = [];
-            this.isLoading = false;
+            this.fail('split invoice read failed', errors);
             return;
+        }
+        if (data) {
+            this.clearError();
         }
         const current = data?.uiapi?.query?.Invoice?.edges?.[0]?.node;
         this.correlationIdentifier = current?.CorrelationIdentifier?.value ?? null;
@@ -73,12 +86,7 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         if (this.correlationIdentifier === undefined) return;
         if (!this.correlationIdentifier) return;
         if (errors && errors.length) {
-            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
-            console.error('rlmSplitInvoicesCards: split invoice read failed', JSON.stringify(errors));
-            this.error = errors;
-            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
-            this.rows = [];
-            this.isLoading = false;
+            this.fail('split invoice read failed', errors);
             return;
         }
         const listEdges = data?.uiapi?.query?.InvoiceByCorrelation?.edges || [];
@@ -86,8 +94,7 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         // Exclude the current invoice (the record we're on)
         const rows = allShaped.filter((r) => r.Id !== this.recordId);
         this.allRows = rows;
-        this.error = undefined;
-        this.errorMessage = '';
+        this.clearError();
 
         const accountIds = [...new Set(rows.map((r) => r.billingAccountId).filter(Boolean))];
         const profileIds = [...new Set(rows.map((r) => r.billingProfileId).filter(Boolean))];
@@ -255,16 +262,31 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         });
     }
 
+    // Every error path: the fixed sentence only (never the platform text, which goes to the console),
+    // no rows, and loading done. The template shows nothing else while error is set.
+    fail(what, detail) {
+        console.error('rlmSplitInvoicesCards: ' + what, JSON.stringify(detail));
+        this.error = detail || true;
+        this.errorMessage = SPLIT_INVOICES_UNREADABLE;
+        this.allRows = [];
+        this.rows = [];
+        this.isLoading = false;
+    }
+
+    // Every success path clears the error.
+    clearError() {
+        this.error = undefined;
+        this.errorMessage = '';
+    }
+
     @api async refresh() {
         this.isLoading = true;
-        this.error = undefined;
+        this.clearError();
         try {
             await this._refreshCurrent?.();
             await this._refreshList?.();
         } catch (err) {
-            console.error('rlmSplitInvoicesCards: refresh failed', err);
-            this.error = err;
-            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
+            this.fail('refresh failed', err);
         } finally {
             this.isLoading = false;
         }

@@ -15,24 +15,27 @@
                 </div>
             </template>
 
-            <template if:true={rows.length}>
-                <lightning-datatable
-                    key-field="Id"
-                    data={rows}
-                    columns={columns}
-                    sorted-by={sortedBy}
-                    sorted-direction={sortedDirection}
-                    onsort={handleSort}
-                    onrowaction={handleRowAction}
-                    hide-checkbox-column
-                ></lightning-datatable>
-            </template>
+            <!-- While an error is shown, nothing else is: no rows, no empty state. -->
+            <template if:false={error}>
+                <template if:true={rows.length}>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={rows}
+                        columns={columns}
+                        sorted-by={sortedBy}
+                        sorted-direction={sortedDirection}
+                        onsort={handleSort}
+                        onrowaction={handleRowAction}
+                        hide-checkbox-column
+                    ></lightning-datatable>
+                </template>
 
-            <template if:false={rows.length}>
-                <template if:false={isLoading}>
-                    <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
-                        No split invoices found for this invoice.
-                    </div>
+                <template if:false={rows.length}>
+                    <template if:false={isLoading}>
+                        <div class="slds-m-vertical_medium slds-align_absolute-center slds-text-color_weak">
+                            No split invoices found for this invoice.
+                        </div>
+                    </template>
                 </template>
             </template>
         </div>

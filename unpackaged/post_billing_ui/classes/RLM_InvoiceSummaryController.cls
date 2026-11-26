@@ -89,12 +89,16 @@ public with sharing class RLM_InvoiceSummaryController {
         // ── 2. Disputes via open Cases ──────────────────────────
         // Query open cases for the account, then get Dispute records
         // linked to those cases. Sum DisputedAmount converted to the running user's currency.
-        Set<Id> caseIds = openCaseIds(accountId);
-        if (caseIds == null) {
-            data.disputeAmount = null;
-            data.disputeCount = null;
-        } else {
-            addDisputes(data, caseIds, isMultiCurrency, targetCurrency, convRates);
+        // An org without the dispute feature has no disputes: a real zero, so the Case read (and its
+        // refusal) is skipped. Otherwise a refused Case read leaves the disputes unavailable.
+        if (disputeHasFields(disputeQueryFields(isMultiCurrency))) {
+            Set<Id> caseIds = openCaseIds(accountId);
+            if (caseIds == null) {
+                data.disputeAmount = null;
+                data.disputeCount = null;
+            } else {
+                addDisputes(data, caseIds, isMultiCurrency, targetCurrency, convRates);
+            }
         }
 
         // ── 3. Debit Memos — posted for this account ────────────
@@ -195,6 +199,14 @@ public with sharing class RLM_InvoiceSummaryController {
         return caseIds;
     }
 
+    private static Set<String> disputeQueryFields(Boolean isMultiCurrency) {
+        Set<String> readFields = new Set<String>(disputeReadFields);
+        if (isMultiCurrency) {
+            readFields.add('CurrencyIsoCode');
+        }
+        return readFields;
+    }
+
     // The Dispute fields the dispute query reads (CurrencyIsoCode is added in a multi-currency org).
     // Not final, so a test can name a field the org lacks.
     @TestVisible
@@ -208,11 +220,7 @@ public with sharing class RLM_InvoiceSummaryController {
     @TestVisible
     private static void addDisputes(InvoiceSummaryData data, Set<Id> caseIds, Boolean isMultiCurrency,
             String targetCurrency, Map<String, Decimal> convRates) {
-        Set<String> readFields = new Set<String>(disputeReadFields);
-        if (isMultiCurrency) {
-            readFields.add('CurrencyIsoCode');
-        }
-        if (caseIds.isEmpty() || !disputeHasFields(readFields)) {
+        if (caseIds.isEmpty() || !disputeHasFields(disputeQueryFields(isMultiCurrency))) {
             return;
         }
         try {

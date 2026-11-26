@@ -11,6 +11,10 @@ import saveApprovedAmounts from '@salesforce/apex/RLM_DisputeDetailsController.s
  */
 // Shown when the dispute read fails or is refused, in place of the raw GraphQL error.
 const DISPUTE_UNREADABLE = 'Unable to read this case\'s dispute. Contact your administrator.';
+// Shown in place of the dispute's lines (and as the approved total) when their read fails or is
+// refused, so the dispute never reads as having no lines.
+const LINES_UNREADABLE = 'Unable to read this dispute\'s lines. Contact your administrator.';
+const UNAVAILABLE = 'Unavailable';
 
 export default class RlmDisputeDetails extends NavigationMixin(LightningElement) {
     _recordId;
@@ -26,6 +30,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             this._disputeId = null;
             this.error = undefined;
             this.errorMessage = '';
+            this.itemsUnavailable = false;
             this._disputeLoaded = false;
             this._itemsLoaded = false;
             this.isLoading = true;
@@ -40,6 +45,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
     @track disputeData = null;
     @track disputeItems = [];
 
+    itemsUnavailable = false;
     _disputeId = null;
     _disputeLoaded = false;
     _itemsLoaded = false;
@@ -78,6 +84,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             this.errorMessage = DISPUTE_UNREADABLE;
             this.disputeData = null;
             this.disputeItems = [];
+            this.itemsUnavailable = false;
             this._disputeId = null;
             this._disputeLoaded = true;
             this._itemsLoaded = true;
@@ -131,7 +138,14 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
     wiredDisputeItems({ data, errors }) {
         if (!this._disputeId) return;
         if (errors && errors.length) {
+            // Refused or failed (DisputeItem or the InvoiceLine it reads): the lines and the approved
+            // total are unavailable, not "no lines".
+            console.error('rlmDisputeDetails: dispute line read failed', JSON.stringify(errors));
             this.disputeItems = [];
+            this.itemsUnavailable = true;
+            if (this.disputeData) {
+                this.disputeData = { ...this.disputeData, formattedApprovedAmount: UNAVAILABLE };
+            }
             this._itemsLoaded = true;
             this.checkLoadingComplete();
             return;
@@ -269,6 +283,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             };
         });
 
+        this.itemsUnavailable = false;
         this.disputeItems = items;
         this.recalculateTotalApproved();
 
@@ -360,6 +375,10 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
     // ── Getters ──
     get hasData() {
         return this.disputeData !== null;
+    }
+
+    get linesUnreadableMessage() {
+        return LINES_UNREADABLE;
     }
 
     get hasItems() {

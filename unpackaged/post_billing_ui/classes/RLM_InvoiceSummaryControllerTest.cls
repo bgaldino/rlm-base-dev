@@ -640,6 +640,27 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.areEqual(0, data.paidCount, 'The paid-invoice read ran: a real zero.');
     }
 
+    // An org without the dispute fields has no disputes: a real zero even for a user who cannot read
+    // Case, whose Case read is then skipped rather than refused. Simulated by naming a field the
+    // org's Dispute lacks.
+    @isTest
+    static void getInvoiceSummary_withoutTheDisputeFields_isARealZeroForAUserWhoCannotReadCases() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account', 'Invoice' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Dispute Feature', OwnerId = u.Id);
+        insert acc;
+        RLM_InvoiceSummaryController.disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount', 'RLM_NoSuchField__c' };
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Test.stopTest();
+        Assert.areEqual(0, data.disputeAmount, 'No dispute feature: a real zero, not unavailable.');
+        Assert.areEqual(0, data.disputeCount, 'And a real zero count.');
+    }
+
     // A user who cannot read Invoice gets the fixed sentence the on-account summary uses, not the
     // platform's query error.
     @isTest

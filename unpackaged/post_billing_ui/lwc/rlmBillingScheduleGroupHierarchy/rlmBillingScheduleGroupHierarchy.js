@@ -4,11 +4,31 @@ import getBillingScheduleGroups from '@salesforce/apex/RLM_BillingScheduleGroupC
 import { NavigationMixin } from 'lightning/navigation';
 
 // Fixed sentences in place of UI API or script error text.
-const ORDER_UNREADABLE = 'Unable to read this order\'s account, so its billing schedule groups are not shown. Contact your administrator.';
+const ORDER_UNREADABLE = 'Unable to read this order, so its billing schedule groups are not shown. Contact your administrator.';
 const GROUPS_NOT_SHOWN = 'Unable to show the billing schedule groups. Contact your administrator.';
 
 export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(LightningElement) {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: the previous record's groups, summary and error are cleared.
+    // On an Account page the new account loads here; on an Order page the order wire reloads.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        const changed = value !== this._recordId;
+        this._recordId = value;
+        if (!changed) return;
+        this.clearData();
+        this.clearError();
+        this.hasInitialized = false;
+        this.accountId = undefined;
+        this.isLoading = true;
+        if (this._connected && this.objectApiName === 'Account') {
+            this.accountId = value;
+            this.loadBillingGroups();
+        }
+    }
+
     @api objectApiName;
     @track billingGroups = [];
     @track error;
@@ -33,7 +53,10 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
     hasInitialized = false;
     allBillingGroups = [];
 
+    _connected = false;
+
     connectedCallback() {
+        this._connected = true;
         // For Account pages, recordId IS the accountId
         if (this.objectApiName === 'Account') {
             this.accountId = this.recordId;
@@ -54,13 +77,12 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         }
 
         if (data) {
+            this.clearError();
             this.accountId = getFieldValue(data, 'Order.AccountId');
             this.loadBillingGroups();
         } else if (error) {
             // A fixed sentence, never the UI API's error text; the detail goes to the console.
-            console.error('rlmBillingScheduleGroupHierarchy: order read failed', JSON.stringify(error));
-            this.error = ORDER_UNREADABLE;
-            this.isLoading = false;
+            this.fail(ORDER_UNREADABLE, error);
         }
     }
 
@@ -82,25 +104,60 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         
         this.hasInitialized = true;
         this.isLoading = true;
-        getBillingScheduleGroups({ accountId: this.accountId })
+        const requested = this.accountId;
+        getBillingScheduleGroups({ accountId: requested })
             .then(data => {
+                // A reply for an account no longer shown changes nothing.
+                if (this.accountId !== requested) return;
                 try {
                     this.allBillingGroups = data;
                     this.countChargeTypes(data);
                     this.applyChargeTypeFilter();
-                    this.error = undefined;
+                    this.clearError();
                 } catch (e) {
-                    console.error('rlmBillingScheduleGroupHierarchy: could not process the groups', e);
-                    this.error = GROUPS_NOT_SHOWN;
-                    this.billingGroups = [];
+                    this.fail(GROUPS_NOT_SHOWN, e);
+                    return;
                 }
                 this.isLoading = false;
             })
             .catch(error => {
-                this.error = error.body ? error.body.message : 'Unknown error occurred';
-                this.billingGroups = [];
-                this.isLoading = false;
+                if (this.accountId !== requested) return;
+                // The controller raises a fixed sentence (RLM_AuraErrors); anything else gets ours.
+                this.fail(error?.body?.message || GROUPS_NOT_SHOWN, error);
             });
+    }
+
+    // Every error path: the fixed sentence only (any platform or script text goes to the console),
+    // no groups, tabs, tiles or summary, and loading done.
+    fail(message, detail) {
+        console.error('rlmBillingScheduleGroupHierarchy: ' + message, detail);
+        this.clearData();
+        this.error = message;
+        this.isLoading = false;
+        // A later success loads again rather than keeping this error.
+        this.hasInitialized = false;
+    }
+
+    // Every success path clears the error.
+    clearError() {
+        this.error = undefined;
+    }
+
+    clearData() {
+        this.allBillingGroups = [];
+        this.billingGroups = [];
+        this.chargeTypeCounts = { all: 0, recurring: 0, oneTime: 0, usage: 0, milestone: 0 };
+        this.totalBsgs = 0;
+        this.activeBsgs = 0;
+        this.expiredBsgs = 0;
+        this.completelyBilledBsgs = 0;
+        this.totalAmount = 0;
+        this.pendingAmount = 0;
+    }
+
+    // The header summary shows only for loaded data: never beside an error or while loading.
+    get showSummary() {
+        return this.hasData && !this.error && !this.isLoading;
     }
 
     countChargeTypes(data) {
