@@ -185,9 +185,13 @@ controller), so a large org gets a section that says it has too many records ins
 from a cut-off read, or the per-transaction limit of 50,000 query rows, whose `LimitException` no
 catch block can handle and which would fail the whole call (every card, or every worklist tab, at
 once). Each read may take the lesser of `ROW_CAP` (10,000 rows) and what the call has left less
-`ROW_HEADROOM` (1,000 rows); one row more makes its section unavailable as `tooMany`, shown as "Too
-many records to total here. Choose an account or currency to narrow it." (progress, which the
-filters do not narrow, says "Too many collection plans to total here."). A read whose allowance is
+`ROW_HEADROOM` (1,000 rows); one row more makes its section unavailable as `tooMany`. The page says
+"Too many records to total here." for a figure and "Too many records to list here." for a list, then
+names only the filters that narrow that section: "Choose an account or currency to narrow it." for
+the cards, the total, payment promises and the Critical and High-Value tabs; "Choose an account to
+narrow it." for the Disputed tab (its open cases and 200-account cap follow the account only) and the
+plan tasks (no currency filter); nothing more for progress and the user's own plans, which no filter
+reaches (`SCOPES` in `rlmCollectionsDashboard.js`). A read whose allowance is
 zero runs no query and is too many at once. The guarantee is per call, not per read: whatever the
 data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
 so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
@@ -230,7 +234,9 @@ reason. The unapplied payment count is its own key: if only the count
 could not be read, only the count shows "—" and the balance stays in the total. Payment promises,
 plan tasks and the user's plans come back as wrappers with an explicit `unavailable` flag and reason;
 progress carries the same flag; a worklist tab that could not be read is listed in
-`WorklistData.unavailable` and says so instead of "No items in this view". Inside a tab that was
+`WorklistData.unavailable` and says so instead of "No items in this view". A failure anywhere in
+building a tab, not only in its first read, marks that tab unavailable and drops any rows it had
+added; the other tabs are still built. Inside a tab that was
 read, a row whose collection plan (or, on the Disputed tab, promise-to-pay date) could not be looked
 up shows "Not available" rather than "—", and offers no Create Collection Plan, since a plan may
 exist.

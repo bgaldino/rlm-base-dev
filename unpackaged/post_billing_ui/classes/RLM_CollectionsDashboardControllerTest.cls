@@ -254,6 +254,91 @@ private class RLM_CollectionsDashboardControllerTest {
         }
     }
 
+    // A failure after the High-Value read (its roll-up, names or plan lookup) marks the tab, not an empty list.
+    @isTest
+    static void worklist_aFailureInTheHighValueRows_marksTheTabUnavailable() {
+        RLM_CollectionsDashboardController.forcedFailures.add('highValueRows');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED,
+            wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE), 'The High-Value tab failed, not empty');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_CRITICAL), 'Critical is unaffected');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED), 'Disputed is unaffected');
+    }
+
+    // Anything escaping a tab's builder marks that tab in getWorklist's own catch; the other tabs still build.
+    @isTest
+    static void worklist_aFailureEscapingABuilder_marksItsTabAndBuildsTheOthers() {
+        Account a = newAccount('RLM CD Escaping Failure');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD escaping failure');
+        RLM_CollectionsDashboardController.forcedFailures.addAll(new Set<String>{
+            RLM_CollectionsDashboardController.WORKLIST_CRITICAL, RLM_CollectionsDashboardController.WORKLIST_DISPUTED });
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        Test.stopTest();
+
+        for (String tab : new List<String>{ RLM_CollectionsDashboardController.WORKLIST_CRITICAL, RLM_CollectionsDashboardController.WORKLIST_DISPUTED }) {
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, wl.unavailableReason.get(tab), tab + ' failed, not empty');
+        }
+        Assert.isTrue(wl.disputedInvoices.isEmpty(), 'An unavailable tab carries no rows');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_HIGH_VALUE), 'High-Value is still built');
+    }
+
+    // The Disputed tab's promise-to-pay reads, run without invoices (Apex cannot insert them): each is bounded.
+    @isTest
+    static void schedulesForInvoices_isABoundedRead() {
+        Id someInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000007');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        Map<Id, Id> schedules = RLM_CollectionsDashboardController.schedulesForInvoices(new Set<Id>{ someInvoice });
+        Set<String> reads = new Set<String>(RLM_CollectionsDashboardController.boundedReads);
+        Test.stopTest();
+
+        Assert.isTrue(schedules.isEmpty(), 'No schedule refers to that invoice');
+        Assert.areEqual(new Set<String>{ 'payment schedules' }, reads, 'The schedule read is bounded');
+    }
+
+    @isTest
+    static void latestPromiseDates_takesEachAccountsLatestItemDate_andIsBounded() {
+        Account acc = newAccount('RLM CD Promise Dates');
+        String corporate = corporateCurrency();
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 30, CurrencyIsoCode = corporate);
+        insert ps;
+        Date sooner = Date.today().addDays(3);
+        Date later = Date.today().addDays(9);
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 10, TargetPaymentProcessingDate = later, Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 20, TargetPaymentProcessingDate = sooner, Status = 'Draft')
+        };
+        Id someInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000006');
+        Map<Id, Id> scheduleToInvoice = new Map<Id, Id>{ ps.Id => someInvoice };
+        Map<Id, Id> invoiceToAccount = new Map<Id, Id>{ someInvoice => acc.Id };
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        Map<Id, Date> dates = RLM_CollectionsDashboardController.latestPromiseDates(scheduleToInvoice, invoiceToAccount);
+        Set<String> reads = new Set<String>(RLM_CollectionsDashboardController.boundedReads);
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+        Boolean tooMany = false;
+        try {
+            RLM_CollectionsDashboardController.latestPromiseDates(scheduleToInvoice, invoiceToAccount);
+        } catch (RLM_CollectionsDashboardController.TooManyRowsException e) {
+            tooMany = true;
+        }
+        Test.stopTest();
+
+        Assert.areEqual(later, dates.get(acc.Id), 'The latest of the account\'s item dates');
+        Assert.areEqual(new Set<String>{ 'payment schedule items' }, reads, 'The schedule item read is bounded');
+        Assert.isTrue(tooMany, 'Two items against a cap of one: too many, not the first date alone');
+    }
+
     // ---- the collections user (todo 435) ----
 
     private static final List<String> COLLECTIONS_LICENSES = new List<String>{

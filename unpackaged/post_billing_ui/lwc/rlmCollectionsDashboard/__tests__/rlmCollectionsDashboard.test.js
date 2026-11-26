@@ -322,7 +322,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     ["refused", "You don't have access to collection plans."],
     ["failed", LOAD_FAILED("Collection plans")],
     // Progress does not follow the filters, so its too-many text does not suggest narrowing them.
-    ["tooMany", "Too many collection plans to total here."]
+    ["tooMany", "Too many records to total here."]
   ])("says the collection plans are unavailable (%s) instead of zero averages", async (reason, message) => {
     const element = await mount();
     getCollectionsProgress.emit({
@@ -563,15 +563,48 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     setBrowserTimeZone("UTC");
   });
 
-  // The filtered sections' too-many text suggests narrowing the filters.
-  it("says payment promises and a worklist tab have too many records to read", async () => {
+  // Each section says what it is (a figure is totalled, a list listed) and which filters narrow it.
+  it("says payment promises have too many records to total, narrowed by account or currency", async () => {
     const element = await mount();
-    const message = "Too many records to total here. Choose an account or currency to narrow it.";
     getPaymentPromiseSummary.emit({ buckets: [], unavailable: true, unavailableReason: "tooMany" });
-    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["critical"], unavailableReason: { critical: "tooMany" } });
     await flushPromises();
 
-    expect(text(element, ".payment-promises-empty")).toEqual([message]);
+    expect(text(element, ".payment-promises-empty")).toEqual([
+      "Too many records to total here. Choose an account or currency to narrow it."
+    ]);
+  });
+
+  it.each([
+    ["critical", "Too many records to list here. Choose an account or currency to narrow it."],
+    ["highValue", "Too many records to list here. Choose an account or currency to narrow it."],
+    // Disputed starts from open cases and its account cap: only the account narrows it.
+    ["disputed", "Too many records to list here. Choose an account to narrow it."]
+  ])("says the %s tab has too many records to list, naming the filter that narrows it", async (tab, message) => {
+    const element = await mount();
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: [tab], unavailableReason: { [tab]: "tooMany" } });
+    await flushPromises();
+    const button = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
+      (candidate) => candidate.dataset.tab === tab
+    );
+    button.click();
+    await flushPromises();
+
     expect(text(element, ".worklist-empty")).toEqual([message]);
+  });
+
+  it("says plan tasks have too many records to list, narrowed by account only", async () => {
+    const element = await mount();
+    getCollectionPlanTasks.emit({ items: [], unavailable: true, unavailableReason: "tooMany" });
+    await flushPromises();
+
+    expect(text(element, ".cp-tasks-empty")).toEqual(["Too many records to list here. Choose an account to narrow it."]);
+  });
+
+  it("says the user's plans have too many records to list, with no filter to suggest", async () => {
+    const element = await mount();
+    getMyCollectionPlans.emit({ items: [], unavailable: true, unavailableReason: "tooMany" });
+    await flushPromises();
+
+    expect(text(element, ".my-cp-empty")).toEqual(["Too many records to list here."]);
   });
 });

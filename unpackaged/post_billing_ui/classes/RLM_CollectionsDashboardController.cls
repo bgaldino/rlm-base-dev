@@ -298,9 +298,21 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         Date thirtyDaysAgo = Date.today().addDays(-30);
 
-        try { buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        try { buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
-        try { buildDisputedFromCases(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+        // Each builder catches its own reads and marks its tab. Anything that still escapes one is not an empty
+        // tab either: the catch here marks that tab unavailable too (reasonFor: failed for an unexpected error),
+        // and the next tab is still built.
+        try {
+            failIfForced(WORKLIST_CRITICAL);
+            buildCriticalFollowUpInvoices(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo);
+        } catch (Exception e) { sectionSkipped('getWorklist', e); markWorklistUnavailable(wl, WORKLIST_CRITICAL, e); }
+        try {
+            failIfForced(WORKLIST_HIGH_VALUE);
+            buildHighValueDelinquents(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, thirtyDaysAgo);
+        } catch (Exception e) { sectionSkipped('getWorklist', e); markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e); }
+        try {
+            failIfForced(WORKLIST_DISPUTED);
+            buildDisputedFromCases(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode);
+        } catch (Exception e) { sectionSkipped('getWorklist', e); markWorklistUnavailable(wl, WORKLIST_DISPUTED, e); }
         // Each tab shows exactly what its own read returns: rows, or nothing ("No items in this view"), or
         // unavailable with its reason. No fallback widens an empty tab and no placeholder row fills one.
         return wl;
@@ -312,11 +324,28 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String WORKLIST_HIGH_VALUE = 'highValue';
     @TestVisible private static final String WORKLIST_DISPUTED = 'disputed';
 
+    // An unavailable tab carries no rows: any it added before the failure are dropped, not shown as the list.
     private static void markWorklistUnavailable(WorklistData wl, String key, Exception e) {
         if (!wl.unavailable.contains(key)) {
             wl.unavailable.add(key);
         }
         wl.unavailableReason.put(key, reasonFor(e));
+        if (key == WORKLIST_CRITICAL) wl.criticalFollowUpInvoices.clear();
+        if (key == WORKLIST_HIGH_VALUE) wl.highValueDelinquents.clear();
+        if (key == WORKLIST_DISPUTED) wl.disputedInvoices.clear();
+    }
+
+    // Test seam: a test names the steps that throw, to prove a failure there marks its tab rather than
+    // leaving it empty. Never set outside tests.
+    @TestVisible private static Set<String> forcedFailures = new Set<String>();
+
+    @TestVisible
+    private class ForcedFailureException extends Exception {}
+
+    private static void failIfForced(String step) {
+        if (forcedFailures.contains(step)) {
+            throw new ForcedFailureException('Forced failure at ' + step);
+        }
     }
 
     @AuraEnabled(cacheable=true)
@@ -500,17 +529,17 @@ public with sharing class RLM_CollectionsDashboardController {
         if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
         if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
         invWhere += getInvoiceNotFullySettledStatusFilter();
-        List<Invoice> invs = new List<Invoice>();
+        // The read and the rows built from it share one catch, as the Critical and Disputed tabs do: a failure
+        // anywhere in the tab marks it unavailable instead of leaving it empty.
         try {
-            invs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+            List<Invoice> invs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
                 new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo },
                 'high-value invoices');
+            addHighValueDelinquents(wl, invs, invAccountField, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildHighValueDelinquents', e);
             markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e);
-            return;
         }
-        addHighValueDelinquents(wl, invs, invAccountField, Date.today());
     }
 
     // Rolls the queried invoices up by account and adds the ten largest balances of 2000 or more,
@@ -518,6 +547,7 @@ public with sharing class RLM_CollectionsDashboardController {
     // cannot insert.
     @TestVisible
     private static void addHighValueDelinquents(WorklistData wl, List<Invoice> invs, String invAccountField, Date today) {
+        failIfForced('highValueRows');
         Decimal minBalanceThreshold = 2000;
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
         Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
@@ -642,26 +672,7 @@ public with sharing class RLM_CollectionsDashboardController {
             Boolean ptpLookupFailed = false;
             if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('PaymentSchedule') && Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) {
                 try {
-                    List<Id> invIdList = new List<Id>(invoiceIds);
-                    Map<Id, Id> scheduleToInvoiceId = new Map<Id, Id>();
-                    for (SObject ps : boundedRows('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList',
-                            new Map<String, Object>{ 'invIdList' => invIdList }, 'payment schedules')) {
-                        Id refId = (Id) ps.get('ReferenceEntityId');
-                        if (refId != null) scheduleToInvoiceId.put((Id) ps.get('Id'), refId);
-                    }
-                    if (!scheduleToInvoiceId.isEmpty()) {
-                        Set<Id> scheduleIds = scheduleToInvoiceId.keySet();
-                        for (SObject row : boundedRows('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null',
-                                new Map<String, Object>{ 'scheduleIds' => scheduleIds }, 'payment schedule items')) {
-                            PaymentScheduleItem psi = (PaymentScheduleItem) row;
-                            Id invId = scheduleToInvoiceId.get(psi.PaymentScheduleId);
-                            Id accId = invoiceToAccountId.get(invId);
-                            if (accId == null) continue;
-                            Date d = psi.TargetPaymentProcessingDate;
-                            Date existing = accountPtpDate.get(accId);
-                            if (existing == null || (d != null && d > existing)) accountPtpDate.put(accId, d);
-                        }
-                    }
+                    accountPtpDate = latestPromiseDates(schedulesForInvoices(invoiceIds), invoiceToAccountId);
                 } catch (Exception e) { sectionSkipped('buildDisputedFromCases', e); ptpLookupFailed = true; }
             }
 
@@ -680,6 +691,40 @@ public with sharing class RLM_CollectionsDashboardController {
             sectionSkipped('buildDisputedFromCases', e);
             markWorklistUnavailable(wl, WORKLIST_DISPUTED, e);
         }
+    }
+
+    // The payment schedules of the disputed accounts' invoices, by schedule id: the invoice each one is for.
+    // Bounded; separate from latestPromiseDates so a test can run each read without invoices, which Apex
+    // cannot insert.
+    @TestVisible
+    private static Map<Id, Id> schedulesForInvoices(Set<Id> invoiceIds) {
+        List<Id> invIdList = new List<Id>(invoiceIds);
+        Map<Id, Id> scheduleToInvoiceId = new Map<Id, Id>();
+        for (SObject ps : boundedRows('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList',
+                new Map<String, Object>{ 'invIdList' => invIdList }, 'payment schedules')) {
+            Id refId = (Id) ps.get('ReferenceEntityId');
+            if (refId != null) scheduleToInvoiceId.put((Id) ps.get('Id'), refId);
+        }
+        return scheduleToInvoiceId;
+    }
+
+    // Each account's latest promise-to-pay date: the latest target processing date among its invoices'
+    // payment schedule items. Bounded.
+    @TestVisible
+    private static Map<Id, Date> latestPromiseDates(Map<Id, Id> scheduleToInvoiceId, Map<Id, Id> invoiceToAccountId) {
+        Map<Id, Date> accountPtpDate = new Map<Id, Date>();
+        if (scheduleToInvoiceId.isEmpty()) return accountPtpDate;
+        Set<Id> scheduleIds = scheduleToInvoiceId.keySet();
+        for (SObject row : boundedRows('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null',
+                new Map<String, Object>{ 'scheduleIds' => scheduleIds }, 'payment schedule items')) {
+            PaymentScheduleItem psi = (PaymentScheduleItem) row;
+            Id accId = invoiceToAccountId.get(scheduleToInvoiceId.get(psi.PaymentScheduleId));
+            if (accId == null) continue;
+            Date d = psi.TargetPaymentProcessingDate;
+            Date existing = accountPtpDate.get(accId);
+            if (existing == null || (d != null && d > existing)) accountPtpDate.put(accId, d);
+        }
+        return accountPtpDate;
     }
 
     // The Disputed tab lists at most this many accounts (newest open case first). More is too many: the tab
