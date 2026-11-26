@@ -18,6 +18,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     billingAccountName;
     billingCity;
     billingLinkUnreadable = false; // a billing account may exist but the user cannot read it
+    billToContactMissing = false; // the billing account has no bill-to contact, which the create action requires
 
     isLoading = true; // Start as loading while we fetch account data
     legalEntityOptions = [];
@@ -152,6 +153,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billingAccountName = data.billingAccountName;
             this.billingCity = data.billingCity;
             this.billingLinkUnreadable = data.billingLinkUnreadable === true;
+            this.billToContactMissing = data.billToContactMissing === true;
 
             if (this.billingLinkUnreadable) {
                 this.dispatchEvent(
@@ -179,6 +181,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billingAccountName = undefined;
             this.billingCity = undefined;
             this.billingLinkUnreadable = false;
+            this.billToContactMissing = false;
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Error loading Account',
@@ -285,6 +288,11 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         // The service rejects a blank Billing City; the city comes from the Account.
         if (this.billingAccountId && !this.billingCity) {
             return 'The Account has no Billing City. Add one to the Account before creating a billing schedule group.';
+        }
+        // The create action takes the bill-to contact from the billing account and fails without one;
+        // the service refuses it with this same sentence.
+        if (this.billingAccountId && this.billToContactMissing) {
+            return 'The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.';
         }
         if (!Number.isFinite(this.totalPrice)) {
             return 'Total Price is required.';

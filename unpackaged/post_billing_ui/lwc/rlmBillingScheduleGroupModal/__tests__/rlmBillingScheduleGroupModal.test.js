@@ -406,6 +406,74 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(toasts[0].message).toContain("Billing City");
   });
 
+  it("blocks Create and explains why when the billing account has no bill-to contact", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: true
+    });
+    getLegalEntities.emit([{ id: "0le000000000001AAA", name: "LE" }]);
+    getTaxTreatments.emit([{ id: "0tt000000000001AAA", name: "TT" }]);
+    getProducts.emit([{ id: "01t000000000001AAA", name: "Product" }]);
+    await flushPromises();
+    await fillRecurring(element, "Evergreen");
+
+    const sentence =
+      "The billing account has no Bill To Contact. Add one to the billing account before creating a billing schedule group.";
+    expect(createButton(element).disabled).toBe(true);
+    expect(
+      element.shadowRoot.querySelector('[role="alert"]').textContent
+    ).toBe(sentence);
+    const toasts = recordToasts(element);
+    createButton(element).dispatchEvent(new CustomEvent("click"));
+    await flushPromises();
+
+    expect(createBillingScheduleGroupAndScheduleViaAPI).not.toHaveBeenCalled();
+    expect(toasts.map((toast) => [toast.message, toast.variant])).toEqual([
+      [sentence, "error"]
+    ]);
+
+    // Once a contact is added and the account info is refreshed, Create opens.
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: false
+    });
+    await flushPromises();
+    expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
+    expect(createButton(element).disabled).toBe(false);
+  });
+
+  it("forgets a missing bill-to contact when the account info turns into an error", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({
+      accountName: "Acme",
+      billingAccountId: "0aa000000000001AAA",
+      billingAccountName: "Acme BA",
+      billingCity: "Austin",
+      billToContactMissing: true
+    });
+    await flushPromises();
+    getAccountBillingInfo.error();
+    await flushPromises();
+
+    // No billing account is known now, so no bill-to sentence: only the account error.
+    expect(element.shadowRoot.textContent).not.toContain("Bill To Contact");
+  });
+
   it("drops the tax treatment when the legal entity changes", async () => {
     const element = await mount();
     const treatment = () =>

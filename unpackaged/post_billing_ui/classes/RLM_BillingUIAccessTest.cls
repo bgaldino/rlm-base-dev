@@ -101,7 +101,8 @@ private class RLM_BillingUIAccessTest {
             'BillingArrangementLineName', 'AccountId', 'BillingAccountId', 'BillingPercentage',
             'ShouldBillRemainder', 'BillingArrangementId'
         },
-        'BillingAccount' => new List<String>{ 'Name', 'AccountId', 'IsDefaultBillingProfile' },
+        // BillToContactId: the Create Billing Schedule Group modal and service check it before the action.
+        'BillingAccount' => new List<String>{ 'Name', 'AccountId', 'IsDefaultBillingProfile', 'BillToContactId' },
         'AccountBillingAccount' => new List<String>{ 'AccountId', 'BillingAccountId' },
         'UsageResource' => new List<String>{ 'Name' },
         'Product2' => new List<String>{ 'Name', 'IsActive', 'Family' },
