@@ -134,11 +134,12 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static final String ADMIN_ONLY = 'Account reset is for administrators: it needs the Modify All Data and '
         + 'View All Data permissions. Nothing was changed.';
-    // Phase 2 keeps nothing when it stops: a rerun gets further only when phase 1 deleted
-    // something this run, which leaves the next run's phase 1 less to do.
+    // Phase 2 keeps nothing when it stops. Phase 1 deleted something this run, so a rerun
+    // may get further, but not always: phase 2's own work can need more than one run has.
     @TestVisible
     private static final String PHASE_TWO_STOPPED_AFTER_USAGE = 'Run the reset again: the usage records this run '
-        + 'deleted stay deleted, which leaves the next run more room for the rest.';
+        + 'deleted stay deleted, so the next run may get further. If it stops at the same point, the account has '
+        + 'more records than one run can clear; delete some of its usage records first.';
     @TestVisible
     private static final String PHASE_TWO_STOPPED_NO_PROGRESS = 'Running the reset again stops at the same point, '
         + 'because nothing this run deleted was kept. Delete some of the records in the largest groups first, then '
@@ -625,7 +626,7 @@ public without sharing class RLM_AccountUtilities {
 
     /**
      * The advice for a phase 2 stop, by its cause. After phase 1 deleted something, a rerun
-     * gets further whatever ran out. Otherwise: for rows, the largest groups to thin out;
+     * may get further whatever ran out. Otherwise: for rows, the largest groups to thin out;
      * for queries or statements, the usage bucket tree, whose walk spends them.
      */
     @TestVisible
@@ -1666,9 +1667,10 @@ public without sharing class RLM_AccountUtilities {
      * ContractItemPrice.ContractId is a master-detail relationship, a surviving
      * Contract retains its contracted prices automatically — no explicit child
      * handling is required. The binding policies, rate card entries and commitment links
-     * bound to a contract go with it, so a kept contract keeps them, except an entry
-     * sourced from an asset the run deletes (Delete Assets): it blocks the asset's
-     * delete, so the asset step deletes it.
+     * bound to a contract go with it, so a kept contract keeps them, with two exceptions
+     * under Delete Assets: an entry sourced from an asset the run deletes blocks that
+     * asset's delete, so the asset step deletes it; and a commitment link whose
+     * commitment asset is this account's goes with that asset.
      *
      * @param accountId The ID of the account whose records should be deleted
      * @param preserveContractsWithPrices When true, skip contracts that have
