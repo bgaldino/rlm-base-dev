@@ -254,6 +254,37 @@ for name in ("simulation", "sync_objectset_source_to_source", "dynamic_assigned_
               ("TaskOptionsError", True, [], True))
 
 
+
+def prep_runtime_steps(options):
+    """LoadSFDMUData._prep_runtime with each side-effecting step stubbed to record; return (error, steps)."""
+    steps = []
+    t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    t.options = {"pathtoexportjson": str(PLAIN), **options}
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.logger = _Log()
+    for step in ("_load_keychain", "_apply_dynamic_assigned_to_user", "_apply_parent_id_lookups",
+                 "_apply_conditional_steps", "_sync_objectset_source_to_source", "_prepare_export_json_file"):
+        setattr(t, step, lambda step=step: steps.append(step))
+    try:
+        t._prep_runtime()
+        return None, steps
+    except Exception as exc:  # the task's own error is what is asserted
+        return exc, steps
+
+
+# todo 488: the up-front reads in _prep_runtime. Without them, dynamic_assigned_to_user is refused only
+# after _load_keychain, sync_objectset_source_to_source after the lookups, and simulation and
+# fail_on_row_errors not until the export.json is rewritten or the run is over.
+for name in ("dynamic_assigned_to_user", "sync_objectset_source_to_source", "simulation", "fail_on_row_errors"):
+    for value in (["true"], "maybe"):
+        error, steps = prep_runtime_steps({name: value})
+        check(f"_prep_runtime: {name} {value!r} is refused before the keychain, the lookups or the export.json rewrite",
+              (type(error).__name__, name in str(error), steps), ("TaskOptionsError", True, []))
+error, steps = prep_runtime_steps({"simulation": " true ", "sync_objectset_source_to_source": "on"})
+check("_prep_runtime: valid values run every step (the refusals above are not vacuous)",
+      (error, steps), (None, ["_load_keychain", "_apply_parent_id_lookups", "_apply_conditional_steps",
+                              "_sync_objectset_source_to_source", "_prepare_export_json_file"]))
+
 def row_errors_outcome(fail_on_row_errors):
     """_check_row_errors over one rejected row: 'failed' or 'warned'."""
     work = pathlib.Path(tempfile.mkdtemp())
