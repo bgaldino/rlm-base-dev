@@ -601,6 +601,33 @@ private class RLM_CollectionsDashboardControllerTest {
             'The allowance ran out before the account past the listed ones: too many');
     }
 
+    // Every invoice read, the cards and aging, Critical, High-Value and the Disputed rollup, starts from the one
+    // receivable condition (Posted, with a balance), so a Draft, Pending or Canceled invoice is in no figure or
+    // list. Apex cannot insert an invoice (Invoice is not createable), so the condition is checked on the
+    // WHERE clause each read used rather than on rows.
+    @isTest
+    static void everyInvoiceRead_countsOnlyPostedInvoicesWithABalance() {
+        Account a = newAccount('RLM CD Receivable');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD receivable dispute');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.invoiceWheres.clear();
+        RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        Map<String, String> wheres = RLM_CollectionsDashboardController.invoiceWheres.clone();
+        Test.stopTest();
+
+        Assert.areEqual(new Set<String>{ 'unpaid invoices', 'critical invoices', 'high-value invoices', 'disputed invoices' },
+            wheres.keySet(), 'Every invoice read goes through the one condition');
+        for (String label : wheres.keySet()) {
+            String clause = wheres.get(label).trim();
+            Assert.isTrue(clause.startsWith(RLM_CollectionsDashboardController.RECEIVABLE_INVOICE),
+                label + ' starts from the receivable condition: ' + clause);
+        }
+        Assert.areEqual('Status = \'Posted\' AND Balance > 0', RLM_CollectionsDashboardController.RECEIVABLE_INVOICE,
+            'Posted, with a balance: a non-Posted invoice is excluded');
+    }
+
     // ---- High-Value ranking (todo 435) ----
 
     @isTest

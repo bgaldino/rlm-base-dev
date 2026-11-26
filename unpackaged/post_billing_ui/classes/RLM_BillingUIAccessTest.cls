@@ -162,7 +162,7 @@ private class RLM_BillingUIAccessTest {
         'Account' => new List<String>{ 'Name' },
         'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive' },
         'Invoice' => new List<String>{
-            'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'DaysInvoiceOverdue', 'BillingAccountId',
+            'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'BillingAccountId',
             'BillToContactId', 'Status', 'CurrencyIsoCode'
         },
         'PaymentSchedule' => new List<String>{ 'ReferenceEntityId' },

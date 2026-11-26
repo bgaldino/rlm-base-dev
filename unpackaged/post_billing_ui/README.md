@@ -210,7 +210,7 @@ then says "Showing the first N of more than N" with its order and the filters th
 it lists (only the account, for Disputed), with "N+" as the count where the list shows one, instead
 of reading as complete. The Critical list is read, ordered and shown by one key, the due date:
 invoices of 2000 or more due over 30 days ago, earliest due first, with days overdue counted from the
-due date. `Invoice.DaysInvoiceOverdue` is not used: on 264 (measured 2026-11-27) it is a
+due date. `Invoice.DaysInvoiceOverdue` is not used: on 264 (measured 2026-11-26) it is a
 platform-calculated, nillable Integer that was null on every Posted invoice in the org checked (none
 there was past due), so ordering on it would put a null-days invoice after others whatever its due
 date. The reads with their own small `LIMIT` (those short lists, the account
@@ -226,7 +226,20 @@ the first 50 by name (`searchAccounts`, USER_MODE), and says when there are more
 account stays in the list whatever a search finds. When the accounts cannot be read, the filter offers
 only "All Accounts" (the dashboard still loads, unfiltered, with no error toast) and says why: "You
 don't have access to accounts." or "Accounts could not be loaded. Refresh the page to try again.",
-with no search.
+with no search; a refused search says "You don't have access to accounts." too. The account options,
+the currency options and the default currency are loaded as separate calls, so a currency failure
+falls back to "All Currencies" and the default without touching the accounts, and the reverse.
+
+Every invoice read counts the same receivable invoices: Posted, with a balance (`RECEIVABLE_INVOICE`,
+`Status = 'Posted' AND Balance > 0`, the condition the cards have always used). The cards and their
+aging, the Critical and High-Value tabs and the Disputed tab's rollup each build their WHERE clause
+from it (`receivableInvoiceWhere`), so a Draft, Pending or Canceled invoice is in no figure or list,
+and a figure on one part of the page cannot count invoices another leaves out. Before this, Critical
+had no status filter, the Disputed rollup counted every status and High-Value excluded only Paid,
+Closed and Canceled. Whether a Draft invoice carries a balance could not be observed: on the 264 org
+checked (2026-11-26) Invoice is not createable through DML and the only invoices were Posted;
+`everyInvoiceRead_countsOnlyPostedInvoicesWithABalance` therefore checks the WHERE clause each read
+used.
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does, rather than the "—" of an account with no name.
@@ -235,7 +248,7 @@ Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query ro
 adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
 counts its rows first and adds them up only within the bound. A SOQL for loop over a list (`for
 (List<Case> chunk : ...)`) fetches 200-row chunks and is charged for what it fetched: one that stopped
-after its first chunk of a 500-row result was charged 400 rows, not 500 (measured 2026-11-27); a loop
+after its first chunk of a 500-row result was charged 400 rows, not 500 (measured 2026-11-26); a loop
 over single rows of `Database.query` or `Database.queryWithBinds` was charged all 500. The Disputed
 tab's open-case read is such a list loop, limited to its allowance plus one row like any bounded read:
 it stops at the first account past the 200 listed ones, so an org with more open cases than the row

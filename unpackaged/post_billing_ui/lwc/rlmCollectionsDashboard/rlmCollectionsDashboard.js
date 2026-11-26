@@ -218,15 +218,22 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     loadOptions() {
         this.isLoadingOptions = true;
+        // Each call stands alone: a failed default-currency or currency call touches only the currency filter
+        // (it falls back to "All Currencies" and the default), a failed accounts call only the account filter
+        // (it says the accounts could not be loaded), and the page loads either way, with no error toast.
         Promise.all([
-            getOrgDefaultCurrency(),
-            getCurrencyOptions(),
-            // A failed accounts call is its own failure: the page still loads, unfiltered, and says so.
+            getOrgDefaultCurrency().catch(() => null),
+            getCurrencyOptions().catch(() => null),
             getAccountOptions().catch(() => ({ options: [ALL_ACCOUNTS], hasMore: false, unavailable: true, unavailableReason: FAILED }))
         ])
             .then(([defaultCode, currencyOpts, accountOpts]) => {
                 this.orgDefaultCurrency = defaultCode || 'USD';
-                this.currencyOptions = Array.isArray(currencyOpts) ? currencyOpts : [];
+                this.currencyOptions = Array.isArray(currencyOpts)
+                    ? currencyOpts
+                    : [
+                          { value: '', label: 'All Currencies' },
+                          { value: this.orgDefaultCurrency, label: this.orgDefaultCurrency }
+                      ];
                 this.listedAccountOptions = Array.isArray(accountOpts?.options) ? accountOpts.options : [ALL_ACCOUNTS];
                 this.accountOptionsHaveMore = accountOpts?.hasMore === true;
                 this.accountOptionsUnavailableReason = accountOpts?.unavailable ? knownReason(accountOpts.unavailableReason) : null;
@@ -234,17 +241,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 if (!this.selectedCurrency) {
                     this.selectedCurrency = '';
                 }
-                this.dispatchFilterChange();
-            })
-            .catch(() => {
-                this.currencyOptions = [
-                    { value: '', label: 'All Currencies' },
-                    { value: this.orgDefaultCurrency || 'USD', label: this.orgDefaultCurrency || 'USD' }
-                ];
-                this.accountOptions = [ALL_ACCOUNTS];
-                this.listedAccountOptions = this.accountOptions;
-                this.accountOptionsUnavailableReason = FAILED;
-                this.selectedCurrency = '';
                 this.dispatchFilterChange();
             })
             .finally(() => {
@@ -268,13 +264,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 const options = Array.isArray(found?.options) ? found.options : [ALL_ACCOUNTS];
                 this.accountSearch = {
                     unavailable: found?.unavailable === true,
+                    reason: knownReason(found?.unavailableReason),
                     hasMore: found?.hasMore === true,
                     count: options.filter((option) => option.value).length
                 };
                 this.accountOptions = this.withSelectedAccount(options);
             })
             .catch(() => {
-                if (this.accountSearchTerm === term) this.accountSearch = { unavailable: true, hasMore: false, count: 0 };
+                if (this.accountSearchTerm === term) this.accountSearch = { unavailable: true, reason: FAILED, hasMore: false, count: 0 };
             });
     }
 
@@ -295,7 +292,10 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return unavailableText(SUBJECTS.accounts, this.accountOptionsUnavailableReason, scopeOf('plans', []), {});
         }
         const search = this.accountSearch;
-        if (search?.unavailable) return 'Accounts could not be searched. Try again.';
+        // A refused search is a refusal, as the account options say; any other failure, try again.
+        if (search?.unavailable) {
+            return search.reason === REFUSED ? "You don't have access to accounts." : 'Accounts could not be searched. Try again.';
+        }
         if (search?.hasMore) return `Showing the first ${search.count} matching accounts by name. Type more of the name to narrow it.`;
         if (search && search.count === 0) return 'No account name contains that text.';
         if (search) return '';

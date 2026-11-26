@@ -221,8 +221,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         String invAccountField = getInvoiceAccountFieldName();
 
-        // Base invoice filter: unpaid posted invoices only
-        String invWhere = ' Balance > 0 AND Status = \'Posted\' ';
+        String invWhere = receivableInvoiceWhere('unpaid invoices', '');
         if (filterAccount) {
             invWhere += ' AND ' + invAccountField + ' = :accountId ';
         }
@@ -554,11 +553,11 @@ public with sharing class RLM_CollectionsDashboardController {
             Boolean hasBillToContact = invoiceHasBillToContactId();
 
             // One key, the due date, decides which invoices are critical, their order ("most overdue first") and
-            // the days shown. Invoice.DaysInvoiceOverdue is not used: measured on a 264 org (2026-11-27) it is a
+            // the days shown. Invoice.DaysInvoiceOverdue is not used: measured on a 264 org (2026-11-26) it is a
             // platform-calculated, nillable Integer that was null on every Posted invoice there (none past due),
             // so filtering or ordering on it would treat a null-days invoice apart from the due date it carries.
             Decimal criticalMinBalance = 2000;
-            String invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
+            String invWhere = receivableInvoiceWhere('critical invoices', 'Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo');
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
 
@@ -652,10 +651,9 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     private static void buildHighValueDelinquents(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
-        String invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
+        String invWhere = receivableInvoiceWhere('high-value invoices', 'DueDate < :thirtyDaysAgo');
         if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
         if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-        invWhere += getInvoiceNotFullySettledStatusFilter();
         // The read and the rows built from it share one catch, as the Critical and Disputed tabs do: a failure
         // anywhere in the tab marks it unavailable instead of leaving it empty.
         try {
@@ -727,15 +725,24 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
+    // The one receivable condition every invoice read starts from (todo 435): a Posted invoice with a balance,
+    // as the cards have always counted. The cards and their aging, the Critical and High-Value tabs and the
+    // Disputed tab's rollup all read through receivableInvoiceWhere, so the figures and lists on one page count
+    // the same invoices (a Draft or Canceled invoice is in none of them).
+    @TestVisible private static final String RECEIVABLE_INVOICE = 'Status = \'Posted\' AND Balance > 0';
+
+    // The WHERE clause of one invoice read: RECEIVABLE_INVOICE, then the read's own condition. Each read's
+    // clause is kept by label (invoiceWheres), so a test can show every invoice read starts from it.
+    @TestVisible private static Map<String, String> invoiceWheres = new Map<String, String>();
+
+    private static String receivableInvoiceWhere(String label, String condition) {
+        String clause = ' ' + RECEIVABLE_INVOICE + (String.isBlank(condition) ? '' : ' AND ' + condition) + ' ';
+        invoiceWheres.put(label, clause);
+        return clause;
+    }
+
     // The High-Value tab lists this many accounts, largest balance first.
     @TestVisible private static Integer HIGH_VALUE_ROWS = 10;
-
-    private static String getInvoiceNotFullySettledStatusFilter() {
-        try {
-            if (!Schema.SObjectType.Invoice.fields.getMap().containsKey('Status')) return '';
-            return ' AND (Status = null OR Status NOT IN (\'Paid\', \'Closed\', \'Canceled\')) ';
-        } catch (Exception e) { probeSkipped('getInvoiceNotFullySettledStatusFilter', e); return ''; }
-    }
 
     private static void buildDisputedFromCases(WorklistData wl, String invAccountField, Boolean filterAccount,
             Boolean filterCurrency, Id accountId, String currencyCode) {
@@ -747,7 +754,7 @@ public with sharing class RLM_CollectionsDashboardController {
             // can be 32,000 characters. The read stops at the first account past the DISPUTED_ROWS listed ones (the
             // tab then says there are more), so an org with many open cases still gets its list. It runs as a SOQL
             // for loop, which fetches 200-row chunks and is charged for what it fetched (measured on a 264 org,
-            // 2026-11-27: a loop that stopped after its first chunk of a 500-row result was charged 400 rows, not
+            // 2026-11-26: a loop that stopped after its first chunk of a 500-row result was charged 400 rows, not
             // 500), within the same allowance as a bounded read (LIMIT one past it). It is too many only when the
             // allowance runs out before that account turns up.
             Map<Id, Case> listedCaseByAccount = new Map<Id, Case>();
@@ -783,7 +790,7 @@ public with sharing class RLM_CollectionsDashboardController {
             // A refused Invoice read throws here and is caught at the end of this method, which drops the
             // whole disputed section and marks it unavailable (WORKLIST_DISPUTED): a row without its invoice
             // rollup would carry a zero balance and no days overdue, which reads as a real "nothing owed".
-            String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
+            String invWhere = receivableInvoiceWhere('disputed invoices', invAccountField + ' IN :disputedAccountIds');
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
             // From here the tab's reads are invoices, which the currency narrows too where Invoice has it.

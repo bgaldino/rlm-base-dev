@@ -127,7 +127,7 @@ const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied 
 const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
 
 // Mounts with the filter options answered and every data section still waiting for its wire.
-async function mount({ accountsHaveMore = false, accounts } = {}) {
+async function mount({ accountsHaveMore = false, accounts, after } = {}) {
   getOrgDefaultCurrency.mockResolvedValue("USD");
   getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
   if (accounts) accounts();
@@ -140,6 +140,8 @@ async function mount({ accountsHaveMore = false, accounts } = {}) {
       hasMore: accountsHaveMore,
       unavailable: false
     });
+  // A test's own change to the option calls, made after the defaults above.
+  if (after) after();
   const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
   document.body.appendChild(element);
   await flushPromises();
@@ -925,5 +927,30 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     getDashboardCards.emit(cards());
     await flushPromises();
     expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("$1,455.00");
+  });
+
+  it("says a refused account search is a refusal, not a failure to try again", async () => {
+    const element = await mount({ accountsHaveMore: true });
+    searchAccounts.mockResolvedValue({ options: [{ value: "", label: "All Accounts" }], hasMore: false, unavailable: true, unavailableReason: "refused" });
+    const search = accountSearchInput(element);
+    search.value = "Acme";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+
+    expect(text(element, ".filter-notice")).toEqual(["You don't have access to accounts."]);
+  });
+
+  // A currency call that fails touches only the currency filter: the accounts read still lists its accounts.
+  it.each([
+    ["the currency options", () => getCurrencyOptions.mockRejectedValue(new Error("down"))],
+    ["the default currency", () => getOrgDefaultCurrency.mockRejectedValue(new Error("down"))]
+  ])("keeps the accounts when %s fail", async (label, breakCurrency) => {
+    const element = await mount({ accountsHaveMore: true, after: breakCurrency });
+
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Acme"]);
+    expect(text(element, ".filter-notice")).toEqual(["Showing the first 1 accounts by name. Search for an account to find another."]);
+    const currency = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "currency");
+    expect(currency.options.map((option) => option.label)[0]).toBe("All Currencies");
   });
 });
