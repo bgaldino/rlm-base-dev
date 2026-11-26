@@ -359,7 +359,7 @@ These permission sets are stored as metadata in this repository but are not assi
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS; read on the Quote and QuoteLineItem estimated-tax fields only with `quote_est_tax` and `tax` |
 | `RLM_BillingCollectionsRead` | `unpackaged/post_personas/` | Read-only collection plans for the billing personas: assigned to a Billing Operations, Billing Admin or Credit Memo Operations user **next to** their persona group (see *Persona PSGs*). Needs `BillingAdvancedPsl` on the assignee |
-| `RLM_BillingInvoiceDocuments` | `unpackaged/post_personas/` | Not assigned to any user by the build: it is a component of the `RLM_Billing_Admin` and `RLM_Billing_Operations` persona groups. Invoice Batch Run read with View All (and its scheduler and run-criteria chain) and Access Libraries, for invoice documents; see [Billing personas and invoice documents](#billing-personas-and-invoice-documents) |
+| `RLM_BillingInvoiceDocuments` | `unpackaged/post_personas/` | Not assigned to any user by the build: it is a component of the `RLM_Billing_Admin` and `RLM_Billing_Operations` persona groups. Invoice Batch Run read with View All (and its scheduler and run-criteria chain), Access Libraries, and the invoice data mappers' reads (Product2, UnitOfMeasure, three Account fields), for invoice documents; see [Billing personas and invoice documents](#billing-personas-and-invoice-documents) |
 | `RLM_BillingAccountFieldAccess` | `unpackaged/pre/3_permissionsetgroups/` | A component of `RLM_RCB` and of the billing persona groups (`RLM_Billing_Admin`, `RLM_Billing_Operations`, `RLM_Credit_Memo_Operations`), not assigned on its own; see the `RLM_RCB` table above |
 | `RLM_DeleteInvoices` | `unpackaged/pre/3_permissionsetgroups/` | A component of `RLM_RCB` only, not assigned on its own; see the `RLM_RCB` table above |
 | `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
@@ -510,11 +510,10 @@ one it deliberately doesn't:
 What a user of `RLM_Billing_Admin` or `RLM_Billing_Operations` needs to generate invoice PDFs, batch
 (**Generate Invoice Documents** on an Invoice Batch Run) and on demand (**Generate Invoice Document** on an
 Invoice) (todo 292). The access below was measured headlessly, in check-only and post-deploy test runs, mostly as Minimum
-Access users holding the Billing license and each group or its content (the rows below name the other users
+Access users holding the Billing license and each group or its content (the text below names the other users
 measured) [Measured: 2026-11-26, 264, ent-sb0
 scratch builds: rlm-base__hdr-hdr-r1, and rlm-base__apexcov-ac1125-r1 for the group-status check below].
-The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in `RLM_Billing_Admin` and `RLM_Billing_Operations`: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". The batch process create (checked as each managed role set plus `RLM_BillingInvoiceDocuments` and both DocGen sets, not as the group) was asserted in a synchronous test run after deploy 0AfWt00000hUX2bKAG: its debug log (07LWt00000AEx5hMAD) shows "CHECKED: RevenueLifecycleManagementBillingAdmin batch process create asserted (setting ENABLED)" and the same for RevenueLifecycleManagementBillingOperations, so the test reads the setting row and asserts the insert. **Generating a document as the persona has not been run yet, so pack 292 stays
-open until a live persona run passes.**
+The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in `RLM_Billing_Admin` and `RLM_Billing_Operations`: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". The batch process create (checked as each managed role set plus `RLM_BillingInvoiceDocuments` and both DocGen sets, not as the group) was asserted in a synchronous test run after deploy 0AfWt00000hUX2bKAG: its debug log (07LWt00000AEx5hMAD) shows "CHECKED: RevenueLifecycleManagementBillingAdmin batch process create asserted (setting ENABLED)" and the same for RevenueLifecycleManagementBillingOperations, so the test reads the setting row and asserts the insert. **A live persona run found the empty-PDF gap the invoice document data reads close; the re-run with them, and batch generation on a Minimum Access persona, are still open, so pack 292 stays open.**
 
 | Need | Why | How the persona gets it |
 |---|---|---|
@@ -523,6 +522,14 @@ open until a live persona run passes.**
 | Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private [Measured: 2026-11-26, 264 scratch, EntityDefinition.InternalSharingModel], so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next. None of the three objects has a permissionable field, so the set has no field grants | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` |
 | Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`); measured as the managed role set plus `RLM_BillingInvoiceDocuments`, and as Minimum Access users without it, through a recreated library group shape or as direct members, not as a persona group (see below). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas. The other billing persona groups do not get it from this set: the repo's `RLM Tax Admin` profile enables it, the managed Credit Memo Operations set was checked and lacks it (`PermissionsContentWorkspaces` false), and the managed Tax Admin and Accounting Admin sets were not checked for it | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` only |
 | Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). It runs in `prepare_docgen`, under the `docgen` flag, while the groups deploy in `prepare_personas`, under `personas`: a personas build with docgen off has no membership. An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
+| Invoice document data | The invoice document's data mappers (`BillingDocumentGenerationGetInvoiceDetails` and `BillingDocumentGenerationTransformInvoiceDetails`, for `DefaultInvoiceTemplate`) read as the generating user: Invoice, InvoiceLineRelationship, InvoiceLine, Account (billing and shipping address, phone), Contact, User (company street, city, phone), ContentDocument, Product2 and UnitOfMeasure. A persona missing a read gets a Success status and an **empty PDF**, not an error [Measured: 2026-11-26, 264, scratch, Login As personas]. Product2 and UnitOfMeasure read together fill in the invoice data and lines (either alone does not); the Account billing address, shipping address and phone reads fill in the addresses. The managed Billing Admin set reads Account but not Product2, UnitOfMeasure or those Account fields; the managed Billing Operations set reads Product2 and UnitOfMeasure but not the fields [Measured: 2026-11-26, 264, scratch, check-only probe as Minimum Access users]. Account object read comes from the role sets, so the set adds only the field reads | `RLM_BillingInvoiceDocuments`: Read on Product2 and UnitOfMeasure, read (not edit) on `Account.BillingAddress`, `Account.ShippingAddress` and `Account.Phone` |
+
+**Live persona run** [Measured: 2026-11-26, 264, scratch, Login As personas]: a Minimum Access persona and a Standard User persona, each holding the Billing and DocGen Designer licenses, `RLM_Billing_Admin` (with this set as it was before the invoice document data reads were added), `DocGenUser` and `DocGenDesigner`, used the UI buttons with `DefaultInvoiceTemplate`.
+
+- **On demand (Generate Invoice Document):** status Success on both profiles; the persona owns the generated file and it is shared with the invoice. Before the invoice document data reads were granted, the PDF was the template frame only (no number, dates, lines or totals), while an admin's PDF of a sibling invoice was complete. Granting Product2 and UnitOfMeasure read filled in the invoice data and lines, and the three Account field reads the addresses; with all of them the persona's PDF matched the admin's. Omnistudio User (`OmniStudioExecution` with its license) changed nothing.
+- **Batch (Generate Invoice Documents on the run), Standard User persona:** completes; the PDF is empty without the data reads and complete with them (addresses, both lines, milestone text).
+- **Batch, Minimum Access persona: did not start. [Open]** The `DocGenerationBatchProcess` it creates stays `New` and the run stays In Progress, while an admin's and a Standard User persona's move to `InProgress` at once. Ruled out: API Enabled; the 37 user permissions the Standard User profile has and Minimum Access lacks that a permission set can grant; Omnistudio User. Not tried: View Setup, the email permissions, Convert Leads and similar, and object access. The cause is not isolated, so a billing persona on Minimum Access cannot run batch generation today; one on Standard User can.
+- The platform sets `DocGenerationBatchProcess.Description` itself, so the persona needs no field access on it.
 
 What `DocGenDesigner` opens beyond `DocGenUser` [Measured: same org; user permissions read from `PermissionSet`,
 object access from describe as the user]: `DocGenUser` carries the user permissions DocGen Runtime User,
@@ -573,7 +580,11 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   and the View All the set adds is checked only by the metadata test. In both DocGen methods (Admin and
   Operations) the DocGen assertions check the managed DocGen sets assigned next to the group; the Admin one
   depends on the set only through its run reads, which the Admin run-read method already checks;
-- **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of
+- **the invoice document data reads**, as the managed role set plus `RLM_BillingInvoiceDocuments`: a USER_MODE
+  read of Product2, UnitOfMeasure and the three Account fields (fails for Billing Admin if the set loses any of
+  them, for Billing Operations if it loses a field);
+- **the set's metadata:** exactly Read and View All on the run chain, exactly Read on Product2 and
+  UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
   `RLM_Billing_Admin` and `RLM_Billing_Operations`.
 
 It does **not** read the template file. That read depends on org data and configuration (the template, its
@@ -596,24 +607,18 @@ Billing license, and `DocGenDesignerPsl` for the DocGen methods. Both seat needs
 before todo 292 the personas bundle had no Apex, and a deploy that runs local
 tests runs every local test in the org, this class included.
 
-Not measured, and to check in the first live run as the persona:
+Answered by the live persona run: the `DocGenerationBatchProcess.Description` write (the platform sets it);
+reading the output (the persona owns the file, shared with the invoice); bill-to data on the PDF (it needs the
+Account field reads above, now in the set); Omnistudio User (not needed for on-demand generation on either
+profile, nor for batch generation on the Standard User profile). Still open, or not measured:
 
-- **`DocGenerationBatchProcess.Description` write, first.** Help says the batch process's description holds the
-  Invoice Batch Run's Id. A Minimum Access persona cannot set that field on a direct insert ("Operation failed
-  due to fields being inaccessible on Sobject DocGenerationBatchProcess"), and no set grants it. The same holds
-  for `DocumentGenerationProcess.RequestText` and `ReferenceObject` (the Standard User profile grants all three).
-  Whether the platform's two actions need the user to hold them is not known. The Help's own route of creating
-  the record in a Flow or Apex as the user does need them.
-- **Reading the output:** the Invoice Documents related list on the invoice and the file's `ContentDocumentLink`
-  to the Invoice, as the persona.
-- **Bill-to data on the PDF:** `BillingAccount` is Private and no shipped billing set grants View All on it
-  (`RLM_BillingUITestUsers`: a fresh user reads zero BillingAccount rows), so whether the document shows bill-to
-  details when the persona does not own the billing account is unknown.
+- **Batch generation for a Minimum Access persona** (see the live run above): the batch process stays `New`.
+- **`DocumentGenerationProcess.RequestText` and `ReferenceObject`:** a Minimum Access persona cannot set them on a
+  direct insert ("Operation failed due to fields being inaccessible"); the on-demand action succeeded without
+  them, but the Help's route of creating the record in a Flow or Apex as the user does need them.
 - **The scheduler's Generate invoice documents option** (Billing Batch Scheduler; release note
   `rn_billing_generate_invoice_documents_batch`), which generates documents during the run: not checked for a
   persona-owned or persona-run scheduler.
-- **Omnistudio User** (`OmniStudioExecution`, OmniStudio license): Help lists it for generating PDFs; it is not
-  granted. The sales rep persona generates quote documents without that license (todo 435).
 - **Credit Memo Operations** (`RLM_Credit_Memo_Operations`) is not covered.
 
 On 264 `DocGenUser` does not carry the DocGen Designer user permission (`PermissionsDocGenDesigner` false,

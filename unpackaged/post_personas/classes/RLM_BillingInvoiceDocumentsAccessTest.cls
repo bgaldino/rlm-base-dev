@@ -6,12 +6,15 @@
  * This class does not read the template file: that read depends on org data and configuration.
  *
  * Which tests check what:
- * - the group itself: the *GroupReadsInvoiceBatchRuns methods. A group that is not Updated cannot be assigned (inside a
- *   deploy that changes it, it reads Outdated), so these skip with a "SKIPPED, NOT CHECKED" WARN debug
- *   line and then prove nothing. A Failed group fails the test.
+ * - the group itself: the *GroupReadsInvoiceBatchRuns methods. A group that is not Updated cannot be
+ *   assigned (inside a deploy that changes it, it reads Outdated), so these skip with a "SKIPPED, NOT
+ *   CHECKED" WARN debug line and then prove nothing. A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
- *   field-access set): the Invoice Batch Run reads and the DocGen access.
- * - the set's metadata: View All on the run chain, Access Libraries, and membership of
+ *   field-access set): the Invoice Batch Run reads, the DocGen access, and the *ReadsInvoiceDocumentData
+ *   methods' USER_MODE reads of what the invoice data mappers read as the generating user (Product2,
+ *   UnitOfMeasure, and Account billing address, shipping address and phone).
+ * - the set's metadata: exactly Read and View All on the run chain, exactly Read on Product2 and
+ *   UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
  *   RLM_Billing_Admin and RLM_Billing_Operations.
  * The Billing Operations methods are regression checks for RLM_BillingInvoiceDocuments: the managed
  * Operations set already reads the runs, and the View All the set adds is checked only by the metadata
@@ -58,11 +61,18 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     private static final List<String> BATCH_RUN_OBJECTS = new List<String>{
         'InvoiceBatchRun', 'BillingBatchScheduler', 'InvoiceBatchRunCriteria'
     };
+    // What the invoice document's data mappers read as the generating user, beyond what the managed
+    // role sets give: without Product2 and UnitOfMeasure the PDF has no invoice data or lines, and
+    // without the Account fields no addresses (live persona run, todo 292). Read only.
+    private static final List<String> DOCUMENT_DATA_OBJECTS = new List<String>{ 'Product2', 'UnitOfMeasure' };
+    private static final List<String> DOCUMENT_ACCOUNT_FIELDS = new List<String>{
+        'Account.BillingAddress', 'Account.Phone', 'Account.ShippingAddress'
+    };
 
     // ---- The set and the groups (metadata) ---------------------------------------------------
 
     @IsTest
-    static void invoiceDocumentsSetGrantsViewAllOnTheRunChain() {
+    static void invoiceDocumentsSetGrantsExactlyItsObjectReads() {
         Map<String, ObjectPermissions> grants = new Map<String, ObjectPermissions>();
         for (ObjectPermissions op : [
             SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
@@ -71,13 +81,32 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         ]) {
             grants.put(op.SobjectType, op);
         }
-        Assert.areEqual(new Set<String>(BATCH_RUN_OBJECTS), grants.keySet(),
-            INVOICE_DOCS_SET + ' grants exactly the Invoice Batch Run chain');
+        Set<String> expected = new Set<String>(BATCH_RUN_OBJECTS);
+        expected.addAll(DOCUMENT_DATA_OBJECTS);
+        Assert.areEqual(expected, grants.keySet(),
+            INVOICE_DOCS_SET + ' grants exactly the Invoice Batch Run chain, Product2 and UnitOfMeasure');
         for (ObjectPermissions op : grants.values()) {
-            Assert.isTrue(op.PermissionsRead && op.PermissionsViewAllRecords,
-                op.SobjectType + ': read and View All (Invoice Batch Run is Private)');
+            Boolean runChain = BATCH_RUN_OBJECTS.contains(op.SobjectType);
+            Assert.isTrue(op.PermissionsRead, op.SobjectType + ': read');
+            Assert.areEqual(runChain, op.PermissionsViewAllRecords,
+                op.SobjectType + ': View All on the run chain only (Invoice Batch Run is Private)');
             Assert.isFalse(op.PermissionsCreate || op.PermissionsEdit || op.PermissionsDelete
                 || op.PermissionsModifyAllRecords, op.SobjectType + ': read only');
+        }
+    }
+
+    @IsTest
+    static void invoiceDocumentsSetGrantsExactlyTheAccountFieldReads() {
+        Map<String, FieldPermissions> grants = new Map<String, FieldPermissions>();
+        for (FieldPermissions fp : [
+            SELECT Field, PermissionsRead, PermissionsEdit FROM FieldPermissions WHERE Parent.Name = :INVOICE_DOCS_SET
+        ]) {
+            grants.put(fp.Field, fp);
+        }
+        Assert.areEqual(new Set<String>(DOCUMENT_ACCOUNT_FIELDS), grants.keySet(),
+            INVOICE_DOCS_SET + ' grants exactly the Account billing address, shipping address and phone');
+        for (FieldPermissions fp : grants.values()) {
+            Assert.isTrue(fp.PermissionsRead && !fp.PermissionsEdit, fp.Field + ': read, not edit');
         }
     }
 
@@ -99,6 +128,22 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         }
         Assert.isTrue(groupsWithSet.containsAll(new Set<String>{ ADMIN_GROUP, OPERATIONS_GROUP }),
             'RLM_Billing_Admin and RLM_Billing_Operations each contain ' + INVOICE_DOCS_SET + '; found in: ' + groupsWithSet);
+    }
+
+    // ---- Invoice document data -------------------------------------------------------------
+    // Measured on a 264 org: the managed Billing Admin set reads Account but not Product2,
+    // UnitOfMeasure or the three Account fields; the managed Billing Operations set reads Product2
+    // and UnitOfMeasure but not the fields. So the Admin method fails if the set loses any of them,
+    // and the Operations one if it loses a field.
+
+    @IsTest
+    static void billingAdminReadsInvoiceDocumentData() {
+        assertReadsDocumentData(ADMIN_ROLE);
+    }
+
+    @IsTest
+    static void billingOperationsReadsInvoiceDocumentData() {
+        assertReadsDocumentData(OPERATIONS_ROLE);
     }
 
     // ---- Invoice Batch Run read --------------------------------------------------------------
@@ -136,6 +181,24 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     // ---- helpers -----------------------------------------------------------------------------
+
+    private static void assertReadsDocumentData(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(DOCUMENT_DATA_OBJECTS);
+            List<String> fields = new List<String>();
+            for (String field : DOCUMENT_ACCOUNT_FIELDS) {
+                fields.add(field.substringAfter('.'));
+            }
+            try {
+                Database.query('SELECT ' + String.join(fields, ', ') + ' FROM Account WITH USER_MODE LIMIT 1');
+            } catch (Exception e) {
+                failures.add('Account ' + fields + ': ' + e.getMessage());
+            }
+            Assert.isTrue(failures.isEmpty(), roleSet + ' + ' + INVOICE_DOCS_SET
+                + ': invoice document data reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
 
     private static void assertReadsRuns(String roleSet) {
         User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
