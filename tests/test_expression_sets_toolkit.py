@@ -3166,6 +3166,11 @@ def test_pack512_additions():
     res = line_results([{"outputValues": {"pricingResult": json.dumps(
         {"NetUnitPrice": [{"value": 5, "dataPath": "CTX_QuoteLineItem_2"}]})}}])
     check("line results read from the JSON string", res and res[0]["NetUnitPrice"] == 5)
+    live = line_results([{"outputValues": {"pricingResult": {"NetUnitPrice": [
+        {"value": 7, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_3"]},
+        {"value": 5, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_2"]}]}}}])
+    check("live shape: dataPath is a list; lines come back in payload order",
+          [r["NetUnitPrice"] for r in live] == [5, 7], live)
 
     from scripts.expression_sets._schema import validate_overlay_against_definition
     version = {"apiName": "V1", "steps": [
@@ -3193,6 +3198,62 @@ def test_pack512_additions():
     check("a preview marks lifecycle lines", seen == ["[preview] PATCHed expression set X."], seen)
 
 
+def test_import_labels_block():
+    """A 'labels' block in the import file labels a clone after create and layers
+    onto the target version on replace; it never reaches the Connect body."""
+    print("test_import_labels_block")
+    import scripts.expression_sets.import_expression_set as import_mod
+    from scripts.expression_sets._payload import payload_labels, strip_readonly_fields
+    from scripts.expression_sets._resolve import ResolveError
+    check("payload_labels keeps string pairs only",
+          payload_labels({"labels": {"A": "Alpha", "B": 1, "C": ""}}) == {"A": "Alpha"})
+    check("labels is stripped from the Connect body",
+          "labels" not in strip_readonly_fields({"apiName": "X", "labels": {"A": "a"}}))
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "clone.json"
+        path.write_text(json.dumps({
+            "apiName": "CLONE", "labels": {"GetPrice": "Get Price"},
+            "versions": [{"apiName": "CLONE_V1", "steps": [], "variables": []}]}))
+        calls = []
+
+        def record(engine, **kw):
+            calls.append((kw["version_api_name"], dict(kw["name_to_label"])))
+            return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+        state = {"created": False}
+
+        class _CreateEngine(_FakeEngine):
+            def post_definition(self, *a, **k):
+                state["created"] = True
+                return {"id": "9QLn"}
+
+        def resolve_def(*a, **k):
+            if not state["created"]:
+                raise ResolveError("not found")
+            return "9QAn"
+
+        undo = _patch_cli(
+            import_mod, LifecycleEngine=_CreateEngine, Transport=lambda **k: None,
+            resolve_definition_id=resolve_def,
+            resolve_version_by_es_id=lambda *a, **k: {
+                "Id": "9QMn", "ApiName": "CLONE_V1", "IsActive": True, "VersionNumber": 1},
+            validate_definition=lambda *a, **k: _passing_validation(),
+            restore_labels_after_clobber=record)
+        try:
+            rc = import_mod.main(["--target-org", "x", "--input-file", str(path),
+                                  "--confirm"])
+            check("create: exit 0", rc == 0, rc)
+            check("create: the labels block is applied to the new version",
+                  calls == [("CLONE_V1", {"GetPrice": "Get Price"})], calls)
+            calls.clear()
+            state["created"] = False
+            rc = import_mod.main(["--target-org", "x", "--input-file", str(path),
+                                  "--confirm", "--no-preserve-labels"])
+            check("create --no-preserve-labels applies nothing", rc == 0 and not calls, calls)
+        finally:
+            undo()
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
@@ -3204,7 +3265,7 @@ def main():
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
                test_overlay_multi_version, test_row_lock_retry,
-               test_pack512_additions):
+               test_pack512_additions, test_import_labels_block):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

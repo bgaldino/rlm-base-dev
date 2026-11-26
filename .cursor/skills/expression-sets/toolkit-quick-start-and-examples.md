@@ -28,10 +28,13 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
   `sf ... --json` yourself.
 - **Tool gaps.** `set_step_formula.py` changes formulas only: there is no tool that edits
   a list-group filter's criteria, so that change is a full re-import (or an overlay
-  `updateSteps`). Cloned steps import with no labels: run `relabel_expression_set.py`
-  last. An import of a clone should not be the way to "restore" a shipped procedure from
-  its own export; the content could not be confirmed afterwards [Open: label
-  preservation on a create-import is not built].
+  `updateSteps`). To label a clone, export with
+  `export_expression_set.py --for-import --with-labels` (adds a top-level `labels` block read from
+  the Tooling metadata), rename it, and import: the importer applies the block through Tooling
+  after the create (119 labels on a clone of the default pricing procedure, version left
+  active) [Measured: 2026-11-26, 264, ent-sb0 harness build; run time several minutes]. A
+  replace layers the block onto the target version's captured labels. `--no-preserve-labels`
+  skips it.
 
 ## <a name="quick-start"></a>Quick Start
 

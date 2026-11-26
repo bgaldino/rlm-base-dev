@@ -243,6 +243,15 @@ other steps keeps the graph structurally valid, but a `ListGroup`/filter that
 selected that element's target subset is now left with nothing computing its
 result, mispricing that scenario with no error.
 
+Measured on a clone of the default pricing procedure (2026-11-26, 264, ent-sb0 harness build):
+an overlay removing both children of a group is refused locally before any write and the version
+stays active; a valid removal (the group plus its two children) applies with a PATCH, a label
+relabel cycle and a final `IsActive=True` readback [Measured]. A removal the server rejects
+(`Assignment` leaves a `SetNetUnitPriceforLastTransactionPricing` as the last step of its
+`ListContainer`, INVALID_INPUT) on a version that was inactive beforehand ends with the version
+still inactive and a loud "not reactivated" banner, never a silently stale or half-active
+version [Measured].
+
 Before removing a step: check what consumes its **outputs** and whether any
 **filter/`ListGroup` selecting its target subset** is left orphaned; if so,
 remove or rewire those too. `trace_expression_set.py --variable <output>` shows

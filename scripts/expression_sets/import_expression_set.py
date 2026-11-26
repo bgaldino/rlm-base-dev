@@ -62,6 +62,7 @@ from scripts.expression_sets._client import (  # noqa: E402
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._payload import (  # noqa: E402
     normalize_html_entities,
+    payload_labels,
     rewrite_version_id,
     strip_readonly_fields,
 )
@@ -112,8 +113,9 @@ def main(argv=None) -> int:
                         help="Do NOT auto-restore step labels after a REPLACE. By "
                              "default the readable labels the Connect PATCH clobbers "
                              "are captured beforehand and re-applied afterwards via a "
-                             "second deactivate→Tooling PATCH→reactivate cycle. (No "
-                             "effect on create — a new set starts label-less.)")
+                             "second deactivate→Tooling PATCH→reactivate cycle. (A "
+                             "'labels' block in the input is applied after a "
+                             "create or replace unless this is set.)")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually perform the import. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -151,6 +153,7 @@ def main(argv=None) -> int:
     activate_after = not args.no_activate
     cascade = not args.no_cascade
     preserve_labels = not args.no_preserve_labels
+    file_labels = payload_labels(payload)
     # Default = nothing to restore (preview, create, --no-preserve-labels,
     # --no-activate, or an empty restore map all leave this untouched → ok). A
     # performed REPLACE restore overwrites it; its `ok` gates the exit code below.
@@ -220,9 +223,13 @@ def main(argv=None) -> int:
             # target-org snapshot is the only source; create/POST starts
             # label-less, so nothing to do.)
             versions = versions or [esv]
+            # A top-level "labels" block in the input (export_expression_set.py
+            # --with-labels writes one) layers onto the version the PATCH targets.
             restore_maps = capture_version_labels(
                 transport, versions if preserve_labels else [], eprint,
                 es_def_id=es_def_id,
+                extra_labels=file_labels if preserve_labels else None,
+                extra_version=esv if preserve_labels else None,
             )
             if restore_maps:
                 eprint(f"Will restore step labels on {len(restore_maps)} version(s) "
@@ -296,6 +303,21 @@ def main(argv=None) -> int:
                     engine.wait_for_version_state(esv["Id"], desired)
                 result["expressionSetId"] = es_id
                 result["versionId"] = esv["Id"]
+                # A clone starts label-less (POST has no label field): apply the
+                # input's "labels" block through Tooling, in place (no cycle needed
+                # while inactive; the shared relabel core toggles an active version).
+                if file_labels and preserve_labels:
+                    new_def_id = resolve_definition_id(
+                        api_name, target_org=args.target_org,
+                        api_version=args.api_version)
+                    restore_result = restore_version_labels(
+                        engine, [(esv.get("ApiName"), esv["Id"], file_labels)],
+                        es_id=es_id, es_def_id=new_def_id, cascade=cascade,
+                    )
+                    restore_result.pop("skipped", None)
+            if preview and file_labels and preserve_labels:
+                engine.log(f"[preview] Would apply {len(file_labels)} step label(s) "
+                           "from the input's 'labels' block after the create.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError) as exc:
         eprint(f"\nFAILED: {exc}")

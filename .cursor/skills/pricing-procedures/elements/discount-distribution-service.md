@@ -142,7 +142,7 @@ Snapshot only. Discover live:
 `AppliedDiscount` and `AppliedDiscountAmount` on Quote are DDS inputs, not roll-up targets: writing
 to them discounts again. `Quote.Discount` and `Order.DiscountPercent` already hold the total
 percent. A header total-discount roll-up belongs in custom fields, through Aggregate Price after
-DDS [Open: from VOC desk analysis, not measured]. For lines that must not be discounted, see
+DDS [Open: from VOC desk analysis; needs custom Quote fields and a context mapping that were not deployed to the shared org]. For lines that must not be discounted, see
 [manual-discount.md](./manual-discount.md#non-discountable-lines).
 
 ## Troubleshooting

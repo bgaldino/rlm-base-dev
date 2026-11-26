@@ -132,8 +132,13 @@ and waterfall. Refresh the custom decision table first (`../../decision-tables/S
 
 The shipped partner-procedure bundle carries a matrix whose adjustment is zero: it reads a
 decision table to put a value on the line without changing the price, and a List Price-type
-recipe variant exists [Open: cited from a VOC desk review; the matrix and recipe names are not
-re-read here, check `unpackaged/` before relying on it]. The matrix route to a term discount
+recipe variant exists [Measured: 2026-11-26, 264, ent-sb0 harness build, read-only export of the shipped
+partner procedure: the lookup steps `LookupPartnerProgramDiscount` and
+`LookupDistributorProgramDiscount` are Price Adjustment Matrix elements that read
+`RLM_Adjustment_Type__c` / `RLM_Adjustment_Value__c` and write the custom `RLM_Discount_Rate__c`
+(tag `PartnerDiscountPercent`) plus `NetUnitPrice`. [Open: that a given row's adjustment is
+zero was not checked, as the decision table rows were not read; the List Price-type recipe
+variant is also unchecked]]. The matrix route to a term discount
 built live applied nothing: see the Open note in
 [commitment-term-discount.md](./commitment-term-discount.md#route-a-price-adjustment-matrix).
 

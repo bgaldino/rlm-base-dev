@@ -116,7 +116,7 @@ and similar. Discover with
 ## Plan cache after a deploy
 
 The procedure plan cache is evicted only by an `IsActive` change, so after deploying a procedure
-cycle `IsActive` and then refresh the decision tables [Open: VOC desk analysis, not measured].
+cycle `IsActive` and then refresh the decision tables [Open: VOC desk analysis; measuring needs an IsActive cycle on a procedure plan that is live in a pricing run, which would disturb the shared org].
 Wiring order: [`../../pricing-wiring/SKILL.md`](../../pricing-wiring/SKILL.md).
 
 ## Open questions

@@ -40,7 +40,19 @@ from typing import Any, Dict
 # Top-level output-only fields the Connect API rejects on PATCH/POST. Deny-list,
 # not allow-list: the Input representation accepts almost every field the Output
 # representation returns; only these output-only ones must be removed.
-TOP_LEVEL_DENY = frozenset({"id", "error"})
+TOP_LEVEL_DENY = frozenset({"id", "error", "labels"})
+
+
+def payload_labels(payload: dict) -> dict:
+    """The ``{step name: label}`` block an import file may carry (string pairs only).
+
+    Connect has no label field, so ``labels`` never reaches Connect (it is in
+    ``TOP_LEVEL_DENY``); the importer applies it afterwards through Tooling. Pure.
+    """
+    raw = payload.get("labels") if isinstance(payload, dict) else None
+    if not isinstance(raw, dict):
+        return {}
+    return {k: v for k, v in raw.items() if isinstance(k, str) and isinstance(v, str) and v}
 
 
 def strip_readonly_fields(payload: dict, for_create: bool = False) -> dict:

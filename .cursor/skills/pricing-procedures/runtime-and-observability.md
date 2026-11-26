@@ -266,12 +266,17 @@ in scientific notation; stored trailing zeros are returned at full precision.
 
 `python scripts/expression_sets/run_headless_pricing.py --target-org <sf_alias> --procedure <name> --request <file> --pricebook <id>`
 fills these in, runs one request (nothing saved) and prints each line's `ListPrice`, `NetUnitPrice`
-and `NetTotalPrice` [Repo: `scripts/expression_sets/run_headless_pricing.py`; the helper's output
-shape is tested offline, not yet against a live org: Open]. `--print-request` shows the body.
+and `NetTotalPrice` [Repo: `scripts/expression_sets/run_headless_pricing.py`]. `--print-request` shows the body.
+Run live against the shipped default procedure (a 2-year Term Annual line, list 15,000, headless):
+`ListPrice` 15,000, `NetTotalPrice` 30,000, `PricingTermCount` 2. Without the pricebook:
+`ListPrice` empty and `NetUnitPrice` 0. With a full-year end date (start + 2 years, not minus a
+day): `PricingTermCount` 3 and `NetTotalPrice` 45,000 [Measured: 2026-11-26, 264, ent-sb0
+harness build]. The response carries each result's `dataPath` as a list, for example
+`["CTX_Quote_1", "CTX_QuoteLineItem_2"]`.
 
 Pricing adjustment batch data: no retention setting exists, deletes from Apex or Flow hit open
 defects (W-20894282), and Apex that references these objects needs API 63 or later [Open: VOC
-desk analysis, not measured].
+desk analysis; no live measure here, as it needs an Apex run against an org with adjustment batch data].
 
 ## Open questions
 

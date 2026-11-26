@@ -161,6 +161,8 @@ def line_results(response: Any) -> List[Dict[str, Any]]:
         entries = result.get(tag)
         for e in (entries if isinstance(entries, list) else [entries] if entries else []):
             path = e.get("dataPath") if isinstance(e, dict) else None
+            if isinstance(path, list):  # live shape: ["CTX_Quote_1", "CTX_QuoteLineItem_2"]
+                path = "/".join(str(p) for p in path)
             if path and "QuoteLineItem" in str(path):
                 rows.setdefault(path, {})[tag] = e.get("value")
     ordered = sorted(rows.items(), key=lambda kv: int(str(kv[0]).rsplit("_", 1)[-1])

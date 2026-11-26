@@ -141,7 +141,7 @@ manual entry. An excluded line keeps a pass-through DDS waterfall row. Setting `
 a post-propagation step works for the percent only (setting `Discount` and `DiscountAmount`
 together errors). Group discounts always propagate, and a header percent adjustment leaves a zero
 waterfall row on excluded lines unless a List Group runs before DDS [Open: from VOC desk
-analysis, not yet measured on a clean build; the flag on both filters is the part to measure].
+analysis, not measured: it needs a product flag, a new context tag and two filters deployed to a context definition, which a shared build org should not take].
 
 ## Troubleshooting
 | Symptom | Cause | Fix |

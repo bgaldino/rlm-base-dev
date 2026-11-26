@@ -43,6 +43,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     CONNECT_BASE,
     DEFAULT_API_VERSION,
     ExpressionSetClientError,
+    Transport,
     connect_get,
     eprint,
 )
@@ -52,8 +53,10 @@ from scripts.expression_sets._payload import (  # noqa: E402
 )
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
+    resolve_definition_id,
     resolve_expression_set_id,
 )
+from scripts.expression_sets._tooling import capture_labels  # noqa: E402
 
 
 def fetch_definition(es_id, target_org, api_version):
@@ -88,6 +91,12 @@ def main(argv=None) -> int:
              "top-level fields and HTML-unescape string leaves. Default: verbatim "
              "snapshot.",
     )
+    parser.add_argument(
+        "--with-labels", action="store_true",
+        help="Add a top-level 'labels' block ({step name: readable label}) read from "
+             "the Tooling Metadata of the first version, so import_expression_set.py "
+             "can give a CLONE its readable labels (Connect cannot carry them).",
+    )
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     args = parser.parse_args(argv)
@@ -106,6 +115,22 @@ def main(argv=None) -> int:
 
     if args.for_import:
         definition = normalize_html_entities(strip_readonly_fields(definition))
+
+    if args.with_labels:
+        try:
+            es_def_id = resolve_definition_id(
+                args.developer_name or definition.get("apiName"),
+                target_org=args.target_org, api_version=args.api_version)
+            version = (definition.get("versions") or [{}])[0]
+            transport = Transport(args.target_org, args.api_version, logger=eprint)
+            labels = capture_labels(
+                transport, version.get("apiName"), eprint, es_def_id=es_def_id,
+                version_number=version.get("versionNumber"))
+        except (ExpressionSetClientError, ResolveError) as exc:
+            eprint(f"Error: could not read step labels: {exc}")
+            return 1
+        definition = dict(definition, labels=labels)
+        eprint(f"Added {len(labels)} step label(s) from the first version.")
 
     payload = json.dumps(definition, indent=2)
     if args.out:
