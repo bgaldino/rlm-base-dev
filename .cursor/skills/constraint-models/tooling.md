@@ -49,7 +49,7 @@ the version is not active. `QuantumBitBundle` reads 8,774 bytes and `Server2` 21
 ## When a push fails
 
 A failed activation leaves the new blob stored and the version inactive; the old model is
-no longer the stored one `[Open: seen on the model that lacked `type LineItem;`; the stored
+no longer the stored one `[Open: seen on the model that lacked the LineItem type; the stored
 blob was not read back after that failure]`. Before writing, `push` saves the model in service to `<file>.previous`, but only when
 the version is active. A rerun after a failed activation finds the version inactive, so
 it leaves `.previous` alone; pushing that file restores the old model
