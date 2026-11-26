@@ -151,6 +151,9 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": "2"}),
     dict(OK, rulesApplicationSummary={"totalCreditMemoApplications": 1.0}),
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": True}),
+    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                          totalPaymentApplications=True)),
+    {"isSuccess": False, "rulesApplicationSummary": {"totalPaymentApplications": "2"}},
     {"isSuccess": True}, {k: v for k, v in OK.items() if k != "rulesApplicationSummary"},
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1}),
 ])
@@ -172,6 +175,9 @@ def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
     {"isSuccess": False, "appliedRules": None, "rulesApplicationSummary": None,
      "errors": [{"message": "m", "errorCode": None}]},
     OK, dict(OK, isSuccess=False), dict(OK, errors=[]),
+    {"isSuccess": False, "errors": [{"message": "m"}],
+     "rulesApplicationSummary": {"totalPaymentApplications": None}},
+    {"isSuccess": False, "errors": [{"message": "m"}], "rulesApplicationSummary": {}},
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
 ])
@@ -339,13 +345,26 @@ def test_no_warning_when_the_summary_does_not_say(monkeypatch, capsys):
     assert "WARNING" not in capsys.readouterr().out
 
 
-def test_a_payment_row_without_an_invoice_still_verifies_the_payment(monkeypatch):
+def test_a_payment_row_without_an_invoice_still_verifies_the_payment(monkeypatch, capsys):
     pay = _row("1AlNOINV", "payment", PAYMENT, None, 5)
     result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
                                                "totalCreditMemoApplications": 0})
     org = Org(monkeypatch, after=[OLD, pay], result=result)
     assert _apply_rules() == 0
     assert ("fetch", [], [PAYMENT]) in org.calls
+    out = capsys.readouterr().out
+    assert "SKIP:" not in out
+    assert "2 balance(s) checked, 1 skipped)" in out
+
+
+def test_a_payment_row_naming_nothing_readable_fails_as_nothing_checked(monkeypatch, capsys):
+    pay = _row("1AlNOPAY", "payment", None, None, 5)
+    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
+                                               "totalCreditMemoApplications": 0})
+    org = Org(monkeypatch, after=[OLD, pay], result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert "no balance was checked" in capsys.readouterr().out
 
 
 def test_read_account_applications_keeps_a_null_relationship_as_none():

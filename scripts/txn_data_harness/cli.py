@@ -884,7 +884,8 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         print(f"APPLY-RULES: pass ({label}: nothing applied)")
         return 0
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
-    payment_ids = list(dict.fromkeys(r["source_id"] for r in new if r["kind"] == "payment"))
+    payment_ids = list(dict.fromkeys(r["source_id"] for r in new
+                                     if r["kind"] == "payment" and r["source_id"]))
     if not invoice_ids and not payment_ids:
         print(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
               "readable invoice or payment)")

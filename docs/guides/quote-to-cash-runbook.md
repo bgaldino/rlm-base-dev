@@ -175,7 +175,7 @@ python -m scripts.txn_data_harness.cli apply-rules --org $ORG --account "Infinit
 
 `apply-rules` makes one call for the whole account, so the platform considers
 every open payment and credit memo there, not only this run's, and applies them
-to whichever invoices the rules pick. It prints each application it made and the rules the platform
+to whichever invoices the rules pick. It prints each new application row on the account and the rules the platform
 reports, then runs the `verify` checks on the invoices and payments it touched.
 What was measured (264, Line Level, the build's rules EA, OI, HI; the
 responses reported Match Balance and Prioritize Oldest Invoices):
