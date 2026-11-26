@@ -169,7 +169,7 @@ once for the whole account: the platform considers every open payment and
 credit memo there by the Billing Settings rules, not only a run's. Reads every
 application row on the account's payments and credit memos before and after,
 prints each new row (`APPLIED:`) and the rules the response names (`RULES:`, as
-Help names; EA is Match Balance), then runs the `verify` checks on the invoices
+Help names, e.g. Match Balance), then runs the `verify` checks on the invoices
 and payments the new rows touch; the pass line gives the checked and skipped
 counts. Without `--target-date`, one measured evening's calls considered only
 invoices posted that UTC day. Exit 0 when the platform reports success and

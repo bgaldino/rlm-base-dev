@@ -181,17 +181,15 @@ What was measured (264, Line Level, the build's rules EA, OI, HI; the
 responses reported Match Balance and Prioritize Oldest Invoices):
 
 - Without `--target-date`, only invoices posted that UTC day were candidates;
-  pass `--target-date YYYY-MM-DD` to include older ones. In a US evening the
-  run's own invoice may already be on the previous UTC day, so the freed
-  balances go to another invoice posted that UTC day; pass the run's posted
-  date to keep it a candidate. When no invoice is eligible (measured with a
-  future `--target-date`) the platform answers "We couldn't find eligible
-  invoices" and `apply-rules` exits 1.
+  pass `--target-date YYYY-MM-DD` to include older ones. When no invoice was
+  eligible (a raw call with a future `targetDate`) the platform answered "We
+  couldn't find eligible invoices"; `apply-rules` exits 1 on that answer.
 - A payment matching one candidate's balance went to it. Payments with no
   match went to the candidate with the highest balance, with Prioritize
   Oldest Invoices reported; all candidates were posted the same day, so which
-  rule decided is not established. A freed 445.50 payment and 49.50 credit
-  both went to one 495.00 invoice, not to the run's own.
+  rule decided is not established. In both `apply-rules` runs the freed
+  445.50 payment and 49.50 credit went together to another 495.00 invoice
+  posted that day, not to the run's own, which was a candidate too.
 
 So the run's invoice ends settled only when the rules pick it. Details and
 exit codes:

@@ -138,6 +138,7 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, rulesApplicationSummary="summary"),
     {}, {k: v for k, v in OK.items() if k != "isSuccess"}, dict(OK, isSuccess="true"),
     {"isSuccess": False, "rulesApplicationSummary": [1]},
+    dict(OK, errors=5), dict(OK, errors="boom"), dict(OK, errors={"message": "m"}),
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
@@ -156,7 +157,7 @@ def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
                             "credits and payments. "}], "isSuccess": False},
     {"isSuccess": False, "appliedRules": None, "rulesApplicationSummary": None,
      "errors": [{"message": "m", "errorCode": None}]},
-    OK, dict(OK, isSuccess=False), {"isSuccess": True},
+    OK, dict(OK, isSuccess=False), {"isSuccess": True}, dict(OK, errors=[]),
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
 ])
@@ -243,20 +244,36 @@ def test_verifies_the_invoices_of_credit_rows_too(monkeypatch):
     assert ("fetch", [INVOICE_A, INVOICE_B], [PAYMENT]) in org.calls
 
 
+@pytest.mark.parametrize("count", [1, 2])
 @pytest.mark.parametrize("after, key, kind", [
     ([OLD], "totalPaymentApplications", "payment"),
     ([OLD], "totalCreditMemoApplications", "credit"),
     ([OLD, NEW_CREDIT], "totalPaymentApplications", "payment"),
     ([OLD, NEW_PAY], "totalCreditMemoApplications", "credit"),
 ])
-def test_a_counted_kind_with_no_new_row_of_it_fails(monkeypatch, capsys, after, key, kind):
+def test_a_counted_kind_with_no_new_row_of_it_fails(monkeypatch, capsys, after, key, kind,
+                                                    count):
     result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 0,
-                                               "totalCreditMemoApplications": 0, key: 2})
+                                               "totalCreditMemoApplications": 0, key: count})
     org = Org(monkeypatch, after=after, result=result)
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
-    assert f"the response counts 2 {kind} application(s), but no new row of that kind" in \
-        capsys.readouterr().out
+    assert (f"the response counts {count} {kind} application(s), but no new row of that "
+            "kind") in capsys.readouterr().out
+
+
+def test_a_reported_failure_with_counts_prints_the_platform_error(monkeypatch, capsys):
+    result = {"isSuccess": False, "errors": [{"message": "Rolled back: lock"}],
+              "rulesApplicationSummary": {"totalPaymentApplications": 1}}
+    Org(monkeypatch, after=[OLD], result=result)
+    assert _apply_rules() == 1
+    assert "Rolled back: lock" in capsys.readouterr().out
+
+
+def test_a_success_with_empty_errors_verifies(monkeypatch):
+    org = Org(monkeypatch, result=dict(OK, errors=[]))
+    assert _apply_rules() == 0
+    assert "fetch" in org.names()
 
 
 def test_non_integer_counts_with_no_new_row_pass_as_nothing_applied(monkeypatch, capsys):

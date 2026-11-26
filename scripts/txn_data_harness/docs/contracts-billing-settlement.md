@@ -546,15 +546,16 @@ Each then called:
   earlier `cli apply-rules` that read rows by payment and memo Id. The current
   one, which reads every row on the account, ran end to end at 07:38Z: run
   DEMO-20261126T073706Z through `quote-to-cash`, `unapply`, then `apply-rules`
-  listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35),
+  listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35,
+  not on the run's own DOC-37, posted that day and still open at 495.00 after),
   `cli verify` passed on them (3 balances checked, 0 skipped) and it exited 0.
 - **Rule names.** `appliedRules` gives Help names, not the settings codes.
   Calls that reported Match Balance alone (probes 1 and 4) put the payment on
-  the invoice with that balance, so **EA is Match Balance**. The other name
-  reported was Prioritize Oldest Invoices, always second after Match Balance,
-  as OI follows EA in the setting; that OI is that rule, and HI Prioritize
-  Highest Balance Invoices, is inferred from the codes and that order. No call
-  reported a third rule.
+  the invoice with that balance. The other name reported was Prioritize Oldest
+  Invoices, always second after Match Balance. That EA is Match Balance, OI
+  Prioritize Oldest Invoices and HI Prioritize Highest Balance Invoices is
+  inferred from the codes and their order (EA, OI, HI in the setting); no
+  probe changed the setting. No call reported a third rule.
 
 The probes, in the order they ran (invoice numbers are that org's
 `DocumentNumber`s; "candidates" are the open invoices posted that UTC day):
@@ -615,8 +616,8 @@ platform reports `isSuccess` true and either nothing was applied or the checks
 passed with at least one balance checked (the pass line gives the checked and
 skipped counts); 1 when the platform reports failure (no eligible invoice
 included), a check fails, no balance could be checked, or the response
-counts applications and no new row was found (any application writes at
-least one row of its kind); 2 when the account
+counts applications of a kind and no new row of that kind was found (any
+application writes at least one row of its kind); 2 when the account
 cannot be resolved (none or several by that name, or an Id not found), the org
 cannot be read, or the call, its response (not the measured shape) or a later
 read fails. A failed call may or may not have applied anything: read the

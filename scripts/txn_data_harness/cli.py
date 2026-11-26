@@ -862,6 +862,13 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         print("WARNING: the platform did not consider every invoice "
               "(areAllInvoicesConsidered false)")
     label = f"account {account_id}"
+    if result.get("isSuccess") is not True or result.get("errors"):
+        messages = [html.unescape(str(e.get("message"))) if isinstance(e, dict) else str(e)
+                    for e in result.get("errors") or []]
+        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}: "
+              f"{'; '.join(messages) or 'no error message'}")
+        print(f"APPLY-RULES: fail ({label})")
+        return 1
     # Any application writes at least one row of its kind on the account.
     unseen = [f"{count} {kind}" for kind, key in (("payment", "totalPaymentApplications"),
                                                   ("credit", "totalCreditMemoApplications"))
@@ -870,13 +877,6 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     if unseen:
         print(f"FAIL: the response counts {' and '.join(unseen)} application(s), but no "
               "new row of that kind was found on the account's payments and credit memos")
-        print(f"APPLY-RULES: fail ({label})")
-        return 1
-    if result.get("isSuccess") is not True or result.get("errors"):
-        messages = [html.unescape(str(e.get("message"))) if isinstance(e, dict) else str(e)
-                    for e in result.get("errors") or []]
-        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}: "
-              f"{'; '.join(messages) or 'no error message'}")
         print(f"APPLY-RULES: fail ({label})")
         return 1
     if not new:

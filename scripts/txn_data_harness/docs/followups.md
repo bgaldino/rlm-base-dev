@@ -331,8 +331,8 @@ Line Level is live-verified on 264; everything below is not.
   the invoice being posted; ingesting as Posted did not; a payment created
   after posting stayed unapplied for 60 s. Open: with several open invoices,
   does the rule set (`{"first":"Payments","rules":["EA","OI","HI"]}` on the
-  verification org; EA is Match Balance, measured through the rule-based
-  apply call) pick the newly posted one or an
+  verification org; the rule-based apply call reported Match Balance and
+  Prioritize Oldest Invoices, taken to be EA and OI) pick the newly posted one or an
   older one? Does a
   scheduled invoice or payment run apply a standalone payment later (Help:
   standalone processed payments apply "during an invoice run")? Does
@@ -362,8 +362,9 @@ Line Level is live-verified on 264; everything below is not.
   the account's rules). The stages' read-backs fail on an `Unapplied`
   row or an unapplied flag among the rows they read.
 - `[gap]` **Rule-based application beyond the measured cases.** `cli
-  apply-rules` (todo 498) rests on raw calls with payments and one `cli
-  apply-rules` run on a payment and credit memo pair, on responses that reported Match Balance and Prioritize
+  apply-rules` (todo 498) rests on raw calls with payments and two `cli
+  apply-rules` runs on a freed payment and credit memo pair (one on an
+  earlier read by source Id, one on the current account-wide read), on responses that reported Match Balance and Prioritize
   Oldest Invoices, at Line Level
   ([contract](contracts-billing-settlement.md#rule-based-application)). Not
   measured: Credits First, Match ID, Prioritize Highest Balance Invoices

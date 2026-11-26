@@ -1947,7 +1947,8 @@ def apply_rules(client: SfRestClient, account_id: str,
 
     Refuses (``SettlementError``) a response that is not the measured shape:
     ``isSuccess`` a boolean, ``appliedRules`` absent, null or a list of
-    strings, ``rulesApplicationSummary`` absent, null or an object.
+    strings, ``rulesApplicationSummary`` absent, null or an object, ``errors``
+    absent, null or a list.
     """
     body = {"accountId": account_id}
     if target_date:
@@ -1964,7 +1965,8 @@ def apply_rules(client: SfRestClient, account_id: str,
     if (not isinstance(result.get("isSuccess"), bool)
             or not (rules is None or (isinstance(rules, list)
                                       and all(isinstance(r, str) for r in rules)))
-            or not (summary is None or isinstance(summary, dict))):
+            or not (summary is None or isinstance(summary, dict))
+            or not (result.get("errors") is None or isinstance(result.get("errors"), list))):
         raise SettlementError(
             "apply-rules", "rules application answered an unexpected shape "
             f"(isSuccess {result.get('isSuccess')!r}, appliedRules {type(rules).__name__}, "
