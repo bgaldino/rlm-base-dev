@@ -148,7 +148,7 @@ Both Quote Proposal templates (`RLM_QuoteProposal` and `RLM_QuoteProposal_CS`) i
 
 The `RLM_DocGen` permission set (deployed in step 10 of `prepare_docgen`) grants `readable: true` on all 13 formula fields.
 
-**Field access of the generating user.** The extract mappers of `RLM_QuoteProposal` and `RLM_Sales_Proposal_Document` read with the field access of the user who generates: a field that user cannot read comes out as an empty token, with no error (measured on 264). The sales rep persona set `RLM_QuantumBit_Sales_Representative` therefore grants read on the quote and quote line fields the two extracts read, including `Quote.GrandTotal` and `QuoteLineItem.RLM_ProductName__c`; add read access there when a mapper starts reading a new field.
+**Field access of the generating user.** The extract mappers of `RLM_QuoteProposal` and `RLM_Sales_Proposal_Document` read with the field access of the user who generates: a field that user cannot read comes out as an empty token, with no error (measured on 264). The sales rep persona set `RLM_QuantumBit_Sales_Representative` therefore grants read on `Quote.GrandTotal` and `QuoteLineItem.RLM_ProductName__c`, which the rep's `RLM_Sales_Representative` group does not; when a mapper starts reading a new field, check that the rep can read it.
 
 ### Address Format
 
@@ -454,4 +454,4 @@ python scripts/docgen/docgen_template_generate.py \
 | `enable_document_builder_toggle` | Uses Robot Framework; requires Robot deps. May fail if the Revenue Settings page is slow. Run `validate_setup` to check Robot deps. |
 | Template logo is static | Logo image bytes are embedded inside the DOCX binary and cannot be updated via metadata deploy. A `PatchDocumentTemplateLogos` CCI task is planned to automate this (see `tasks/rlm_docgen.py`). |
 | `SellerWebsite` blank for internal users | `$Organization.Website` is not a valid formula merge field. `RLM_Seller_Website__c` returns blank when the Quote Owner's Account has no Website set and there is no org-level fallback available. |
-| One-time blank OmniDataTransform documents | On one fresh 264 org, `RLM_QuoteProposal` and `RLM_Sales_Proposal_Document` once came out with every token empty although generation reported Success; it did not reproduce. If it happens, check the data with `POST /services/data/v68.0/omnistudio/dataraptor/RLMQuoteExtractBasic` and `{"Id": "<quote Id>"}`, use `RLM_QuoteProposal_CS` meanwhile, and generate again. |
+| One-time blank OmniDataTransform documents | On one fresh 264 org, `RLM_QuoteProposal` and `RLM_Sales_Proposal_Document` once came out with every token empty although generation reported Success; it did not reproduce. If it happens, check the data with `POST /services/data/v68.0/omnistudio/dataraptor/<extract>` and `{"Id": "<quote Id>"}` (`RLMQuoteExtractBasic` for `RLM_QuoteProposal`, `RLMQuoteProposalExtract` for `RLM_Sales_Proposal_Document`), use `RLM_QuoteProposal_CS` meanwhile, and generate again. |
