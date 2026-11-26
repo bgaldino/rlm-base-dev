@@ -7,7 +7,7 @@ sf CLI transport of `scripts/expression_sets/_client.py`, and holds no org ids.
 | Command | Does | Writes? |
 |---|---|---|
 | `size` | Byte length of each constraint model version and its share of a limit; exit 1 if any is over | No |
-| `push <model-file>` | Cycles a version: deactivate if active, write `ConstraintModel`, activate; raises when activation reports `success: false` | Yes, with `--confirm` |
+| `push --api-name <Name> --file <model-file>` | Cycles a version: deactivate if active, write `ConstraintModel`, activate; raises when activation reports `success: false` | Yes, with `--confirm` |
 | `scaffold <spec.json>` | Creates a classification, picklist attributes, products, selling model option, price book entries, an Expression Set with its version and the constraint rows, from a spec | Yes, with `--confirm` |
 
 Mutating commands print a preview unless `--confirm` is given.
@@ -38,7 +38,16 @@ a developer name and picklist `values`) and `products` (a name and a tag). Produ
 ## Status
 
 The unit test (`tests/test_cml_tool.py`) covers size arithmetic, the push call order
-against a fake transport, and spec validation. The scaffold's record creation ran
-against a scratch org up to the constraint-row step; the constraint-row step and
-`size` against live models were not run, because the build used lacked the constraints
-engine `[Open: needs a scratch org with the Constraints Engine setting enabled]`.
+against a fake transport, and spec validation. `size` ran against two live constraint
+models on a full 264 build and printed their byte lengths
+`[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`. `push`: the preview ran; a
+`--confirm` run deactivated the model, then the constraint-version PATCH failed with a
+connection reset, leaving the model inactive. Rerun the same command: `push` skips the
+deactivate step for an inactive version, so a rerun is the recovery. Because of that, the
+write path and the scaffold's constraint-row step have not completed against a live org
+`[Open: needs a rerun on a build with the Constraints Engine enabled]`.
+
+The text the constraint-version resource returns for a model is not always the file that
+was uploaded: the two shipped models read back at 9,694 and 24,899 bytes while active,
+against 8,774 and 21,541 bytes in the repo files, and one model read 27,811 bytes once
+inactive. Compare sizes only against readings taken the same way.
