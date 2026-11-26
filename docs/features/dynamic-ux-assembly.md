@@ -67,7 +67,7 @@ templates/
 │   │   └── ... (24 others)
 │   ├── standalone/                     # Feature-specific pages (new pages or non-additive overrides)
 │   │   ├── billing/                    # 17 billing pages (billing schedules, invoice, usage policies, utility bar)
-│   │   ├── billing_ui/                 # 10 pages for the custom billing console (billing_ui=true)
+│   │   ├── billing_ui/                 # 9 pages for the custom billing console (billing_ui=true; the Collections Dashboard page ships in unpackaged/post_billing_ui with its tab)
 │   │   ├── collections/                # 3 collections pages
 │   │   ├── constraints/                # RLM_Asset_Action_Source_Record_Page
 │   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 2 others
@@ -94,7 +94,8 @@ templates/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
 │   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when quantumbit=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
-│   ├── patches/                        # actionOverrides patches: billing, payments, rates, prm_pricing
+│   ├── patches/                        # RLM_Revenue_Cloud actionOverrides: billing, payments, rates, prm_pricing;
+│   │                                   #   billing_ui/standard__CollectionConsole: Collections Dashboard tab (conditional-app nav patch)
 │   └── conditional/
 │       ├── billing/                    # standard__BillingConsole (billing=true)
 │       ├── billing_ui/                 # standard__BillingConsole variant (billing_ui=true)
@@ -250,6 +251,11 @@ console `<mappings>` elements (anything else fails the assembly). A tab is added
 tab and a mapping in tab-name order; entries already there are skipped. `billing_ui` adds the
 Collections Dashboard tab (shipped in `unpackaged/post_billing_ui`) to `standard__CollectionConsole`,
 so the tab is named only in a build that has both `collections` and `billing_ui`.
+
+The tab itself deploys with `deploy_post_billing_ui` (`prepare_billing`, step 13), before the UX step
+(30) in `prepare_rlm_org`. On an existing org, deploy the `billing_ui` bundle before running
+`assemble_and_deploy_ux` with `billing_ui` on, as most `billing_ui` pages already require (7 of the 9
+place components from that bundle): an app naming a tab the org does not have fails to deploy.
 
 ### Profiles
 

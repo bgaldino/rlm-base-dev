@@ -119,20 +119,36 @@ pins the browser zone through `tests/jest/browser-time-zone-environment.js`.
 **Bill-to contact (todo 435).** The action takes the bill-to contact from the billing
 account (`BillingAccount.BillToContactId`) and fails without one. `getAccountBillingInfo`
 flags it (`billToContactMissing`), the modal blocks Create with a sentence saying to add
-one, and create refuses the same case before calling the action. `RLM_BillingUI` grants
+one, and create refuses the same case before calling the action. `getAccountBillingInfo` is
+cacheable, so the modal shows the cached answer at once and asks the server once per opening
+(`refreshApex`): a contact or Billing City added since clears the blocker without waiting for the
+cache to expire. `RLM_BillingUI` grants
 read on the field; the read also needs Contact read, which the set grants.
 
 ## Collections Dashboard
 
 The `RLM_Collections_Dashboard` app page (`rlmCollectionsDashboard`), its tab and the
-`RLM_CollectionsDashboard` permission set (the tab and `RLM_CollectionsDashboardController`,
-nothing else) ship here, with the component and controller they need, so they deploy with
-`billing_ui` whether or not `collections` is on. With `collections` on as well, the UX
-assembler adds the tab to the Billing - Collections console
-(`templates/applications/patches/billing_ui/standard__CollectionConsole.patch.xml`). A
-collections user needs `RLM_CollectionsDashboard` with `RLM_CollectionsUI` and the
-Billing Collections and Recovery Specialist set; `RLM_BillingUI` users hold the
-controller already. The build assigns it to the running user only.
+`RLM_CollectionsDashboard` permission set ship here, with the component and controller they
+need, so they deploy with `billing_ui` whether or not `collections` is on. With `collections` on
+as well, the UX assembler adds the tab to the Billing - Collections console
+(`templates/applications/patches/billing_ui/standard__CollectionConsole.patch.xml`); on an
+existing org, deploy this bundle before `assemble_and_deploy_ux`, or the console names a tab the
+org does not have.
+
+A collections user who does not hold `RLM_BillingUI` needs the Billing and Billing Advanced
+licenses, the managed Billing Collections and Recovery Specialist set, `RLM_CollectionsUI` and
+`RLM_CollectionsDashboard`. The specialist set reads accounts, currencies, invoices, payment
+schedules and collection plans; `RLM_CollectionsDashboard` adds the tab, the controller and the
+reads the dashboard makes that the specialist set lacks (measured on 264, todo 435): read on
+Case and Payment, Case AccountId/Subject/Description/Reason, CollectionPlanItem.InvoiceId and
+Task ActivityDate/WhatId (the platform adds Event.WhatId with Task.WhatId, so the file lists it).
+Without them the controller swallows the refused reads and the cards, disputed worklist and
+plan tasks come back empty, which reads as nothing owed. Debit memos stay unread: `DebitMemo`
+needs the Manage Debit Memos user permission, which a read-only collections role is not given, so
+the Debit Memos amount on the total balance is zero for such a user. `RLM_BillingUIAccessTest`
+runs every controller read as this user, and `RLM_CollectionsDashboardControllerTest` loads the
+dashboard as this user and as the same user without the set. The build assigns the set to the
+running user only.
 
 ## Do not
 

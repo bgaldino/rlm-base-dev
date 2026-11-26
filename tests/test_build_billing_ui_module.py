@@ -277,6 +277,27 @@ def test_partial_source_fails(m):
               f"unexpected writes: {[str(p) for p in wrote][:5]}")
 
 
+def test_bundle_flexipages_go_to_the_module(m):
+    """The Collections Dashboard page ships in the module with its tab (todo 435): a build writes it to
+    the module's flexipages/, never to the templates directory the other pages go to."""
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        src = td / "src"
+        _write_full_source(m, src)
+        module, templates = td / "module", td / "templates"
+        env = dict(os.environ, RLM_BILLING_LWC_SRC=str(src), RLM_BILLING_UI_DEST=str(module),
+                   RLM_BILLING_UI_FLEXIPAGE_DEST=str(templates))
+        r = subprocess.run([sys.executable, str(MODULE_PATH)], env=env, capture_output=True, text=True)
+        check("split-destination run exits 0", r.returncode == 0, (r.stderr or r.stdout)[-400:])
+        check("the dashboard page is the bundle page", m.BUNDLE_FLEXIPAGES == {"RLM_Collections_Dashboard"})
+        for name in m.FLEXIPAGE_MAP.values():
+            in_module = (module / "flexipages" / f"{name}.flexipage-meta.xml").exists()
+            in_templates = (templates / f"{name}.flexipage-meta.xml").exists()
+            bundled = name in m.BUNDLE_FLEXIPAGES
+            check(f"{name} written to {'the module' if bundled else 'templates'} only",
+                  in_module == bundled and in_templates != bundled)
+
+
 def _no_raise(fn):
     try:
         fn()
@@ -296,6 +317,7 @@ def main():
     test_idempotent(m)
     test_end_to_end_build_is_safe_and_idempotent(m)
     test_partial_source_fails(m)
+    test_bundle_flexipages_go_to_the_module(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

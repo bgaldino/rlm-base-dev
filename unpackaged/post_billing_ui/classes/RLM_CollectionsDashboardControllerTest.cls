@@ -28,16 +28,23 @@ private class RLM_CollectionsDashboardControllerTest {
     // The controller's own separators: an em dash for a missing value and an en dash
     // between a case's subject and description.
     private static final String NO_VALUE = '—';
+    private static final String SUBJECT_SEPARATOR = ' – ';
 
-    // RLM_CollectionsDashboard is what opens the dashboard for a collections user who does not hold
-    // RLM_BillingUI (todo 435): the tab, hidden on every profile when deployed through the Metadata API,
-    // and this controller, the only class the component calls. Least privilege: nothing else, so the
-    // records the dashboard reads still come from the collections sets. Read back from the org.
+    // ---- the collections user (todo 435) ----
+
+    private static final List<String> COLLECTIONS_LICENSES = new List<String>{
+        RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL
+    };
+
+    // RLM_CollectionsDashboard opens the dashboard for a collections user who does not hold RLM_BillingUI:
+    // the tab (hidden on every profile when deployed through the Metadata API), this controller, and only
+    // the reads the managed Billing Collections and Recovery Specialist set lacks. Read back from the org,
+    // so a grant the platform drops or adds shows here (Event.WhatId is added with Task.WhatId).
     @isTest
-    static void collectionsDashboardSet_grantsTheTabAndThisControllerOnly() {
+    static void collectionsDashboardSet_grantsTheTabTheControllerAndTheSpecialistsMissingReads() {
         PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_CollectionsDashboard'];
         List<SetupEntityAccess> access = [
-            SELECT SetupEntityId, SetupEntityType FROM SetupEntityAccess WHERE ParentId = :ps.Id
+            SELECT SetupEntityId FROM SetupEntityAccess WHERE ParentId = :ps.Id
         ];
         Id controllerId = [SELECT Id FROM ApexClass WHERE Name = 'RLM_CollectionsDashboardController' LIMIT 1].Id;
         Assert.areEqual(1, access.size(), 'One entity access: the controller. ' + access);
@@ -50,12 +57,102 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('RLM_Collections_Dashboard', tabs[0].Name);
         Assert.areEqual('DefaultOn', tabs[0].Visibility, 'Visible in metadata reads back as DefaultOn.');
 
-        Assert.areEqual(0, [SELECT COUNT() FROM ObjectPermissions WHERE ParentId = :ps.Id],
-            'No object access: the records come from the collections sets.');
-        Assert.areEqual(0, [SELECT COUNT() FROM FieldPermissions WHERE ParentId = :ps.Id],
-            'No field access either.');
+        Set<String> objects = new Set<String>();
+        for (ObjectPermissions op : [
+            SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
+                PermissionsViewAllRecords, PermissionsModifyAllRecords
+            FROM ObjectPermissions WHERE ParentId = :ps.Id
+        ]) {
+            objects.add(op.SobjectType);
+            Assert.isTrue(op.PermissionsRead && !op.PermissionsCreate && !op.PermissionsEdit && !op.PermissionsDelete
+                && !op.PermissionsViewAllRecords && !op.PermissionsModifyAllRecords, 'Read only: ' + op);
+        }
+        Assert.areEqual(new Set<String>{ 'Case', 'Payment' }, objects, 'Object reads the specialist set lacks.');
+
+        Set<String> fields = new Set<String>();
+        for (FieldPermissions fp : [SELECT Field, PermissionsEdit FROM FieldPermissions WHERE ParentId = :ps.Id]) {
+            fields.add(fp.Field);
+            Assert.isFalse(fp.PermissionsEdit, 'Read only: ' + fp.Field);
+        }
+        Assert.areEqual(new Set<String>{
+            'Case.AccountId', 'Case.Description', 'Case.Reason', 'Case.Subject', 'CollectionPlanItem.InvoiceId',
+            'Event.WhatId', 'Task.ActivityDate', 'Task.WhatId'
+        }, fields, 'Field reads the specialist set lacks.');
     }
-    private static final String SUBJECT_SEPARATOR = ' – ';
+
+    // The dashboard as the collections user it is for, with no RLM_BillingUI: the Billing and Billing
+    // Advanced licenses, the managed Billing Collections and Recovery Specialist set, RLM_CollectionsUI
+    // and RLM_CollectionsDashboard. Every section that reads a record the test can create returns it
+    // (invoices cannot be inserted; RLM_BillingUIAccessTest.collectionsUserWithoutBillingUiCanRunTheDashboardReads
+    // runs every read the controller makes as this user). The same records, read by the same user without
+    // RLM_CollectionsDashboard, leave the case, task and payment sections empty: those reads come
+    // from this set, and the controller swallows a refused read, so only data proves them.
+    // Records are owned by the user, so the result does not depend on the org's sharing defaults
+    // (Payment has no owner; it follows the org-wide default, Read/Write on a fresh 264 org).
+    @isTest
+    static void collectionsUser_withoutBillingUi_getsEverySectionsData() {
+        User withSet = RLM_BillingUITestUsers.create(new List<String>{
+            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI', 'RLM_CollectionsDashboard'
+        }, COLLECTIONS_LICENSES);
+        User withoutSet = RLM_BillingUITestUsers.create(new List<String>{
+            'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI'
+        }, COLLECTIONS_LICENSES);
+        Account a = new Account(Name = 'RLM CD Collections User', OwnerId = withSet.Id);
+        insert a;
+        CollectionPlan plan = newPlan(a.Id, Date.today().addDays(3));
+        plan.OwnerId = withSet.Id;
+        insert plan;
+        insert new Task(WhatId = plan.Id, Subject = 'RLM CD collections call', ActivityDate = Date.today(),
+            OwnerId = withSet.Id);
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD collections dispute', OwnerId = withSet.Id);
+        insert new CaseShare(CaseId = [SELECT Id FROM Case WHERE AccountId = :a.Id].Id,
+            UserOrGroupId = withoutSet.Id, CaseAccessLevel = 'Read');
+        insert payment(a.Id, 250, 'Processed', corporateCurrency());
+
+        Map<String, Object> granted;
+        Map<String, Object> control;
+        Test.startTest();
+        System.runAs(withSet) {
+            granted = dashboardFor(a.Id);
+        }
+        System.runAs(withoutSet) {
+            control = dashboardFor(a.Id);
+        }
+        Test.stopTest();
+
+        Assert.isTrue(((List<Map<String, String>>) granted.get('accounts')).size() > 1, 'Accounts are listed.');
+        Assert.isTrue(((List<Map<String, String>>) granted.get('currencies')).size() > 1, 'Currencies are listed.');
+        Assert.areEqual(1, granted.get('payments'), 'The unapplied payment is counted.');
+        Assert.areEqual(1, granted.get('disputed'), 'The open case lists the account as disputed.');
+        Assert.areEqual(Date.today(), granted.get('taskDate'), 'The plan task is listed with its due date.');
+        Assert.areEqual(1, granted.get('myPlans'), 'The user\'s plan is listed.');
+        Assert.areEqual(1, granted.get('plans'), 'Progress counts the plan.');
+
+        Assert.areEqual(0, control.get('payments'), 'Without the set the payment read is refused.');
+        Assert.areEqual(0, control.get('disputed'), 'Without the set the case read is refused.');
+        Assert.isNull(control.get('taskDate'), 'Without the set the task read is refused.');
+    }
+
+    // Calls every section the dashboard loads, as the running user, and keeps what the test checks.
+    private static Map<String, Object> dashboardFor(Id accountId) {
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards =
+            RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData worklist =
+            RLM_CollectionsDashboardController.getWorklist(null, null);
+        List<RLM_CollectionsDashboardController.CpTaskItem> tasks =
+            RLM_CollectionsDashboardController.getCollectionPlanTasks(accountId);
+        RLM_CollectionsDashboardController.WorklistItem disputedRow = byAccount(worklist.disputedInvoices).get(accountId);
+        return new Map<String, Object>{
+            'accounts' => RLM_CollectionsDashboardController.getAccountOptions(),
+            'currencies' => RLM_CollectionsDashboardController.getCurrencyOptions(),
+            'payments' => cards.unappliedPaymentCount,
+            'disputed' => disputedRow == null ? 0 : 1,
+            'taskDate' => tasks.isEmpty() ? null : tasks[0].activityDate,
+            'myPlans' => RLM_CollectionsDashboardController.getMyCollectionPlans().size(),
+            'plans' => RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
+            'promises' => RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null)
+        };
+    }
 
     // Every dashboard entrypoint is defensive: each catches internally and returns a populated
     // wrapper/list even when the underlying collections objects hold no data or are license-gated.

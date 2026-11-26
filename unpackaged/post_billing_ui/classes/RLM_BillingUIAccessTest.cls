@@ -18,8 +18,8 @@
  *
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
- * Left out on purpose: Task (access follows the related record; no object permission
- * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
+ * Task has no object permission (access follows the related record), so only its permissionable
+ * fields are listed. Left out on purpose: DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
  * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
  * set does not, and the RLM_Billing_Admin and RLM_Billing_Operations groups grant it through
  * RLM_BillingInvoiceDocuments, todo 292), and DisputeItem (the write check covers it).
@@ -105,6 +105,8 @@ private class RLM_BillingUIAccessTest {
         'BillingAccount' => new List<String>{ 'Name', 'AccountId', 'IsDefaultBillingProfile', 'BillToContactId' },
         'AccountBillingAccount' => new List<String>{ 'AccountId', 'BillingAccountId' },
         'UsageResource' => new List<String>{ 'Name' },
+        // Collections Dashboard plan tasks (todo 435): ActivityDate and WhatId are permissionable.
+        'Task' => new List<String>{ 'Subject', 'Status', 'ActivityDate', 'WhatId' },
         'Product2' => new List<String>{ 'Name', 'IsActive', 'Family' },
         'LegalEntity' => new List<String>{ 'Name', 'Status' },
         'TaxTreatment' => new List<String>{ 'Name', 'Status', 'LegalEntityId' },
@@ -151,6 +153,78 @@ private class RLM_BillingUIAccessTest {
         },
         'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' }
     };
+
+    // What the Collections Dashboard controller reads, for a collections user who holds RLM_CollectionsDashboard
+    // instead of RLM_BillingUI (todo 435). DebitMemo is left out: it reads as "not supported" without the
+    // Manage Debit Memos user permission, which a read-only collections role is not given (measured on
+    // 264); collectionsUserCannotReadDebitMemos pins that.
+    private static final Map<String, List<String>> DASHBOARD_READS = new Map<String, List<String>>{
+        'Account' => new List<String>{ 'Name' },
+        'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive' },
+        'Invoice' => new List<String>{
+            'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'DaysInvoiceOverdue', 'BillingAccountId',
+            'BillToContactId', 'Status', 'CurrencyIsoCode'
+        },
+        'PaymentSchedule' => new List<String>{ 'ReferenceEntityId' },
+        'PaymentScheduleItem' => new List<String>{
+            'Status', 'RequestedAmount', 'PaymentAccountId', 'CurrencyIsoCode', 'PaymentScheduleId',
+            'TargetPaymentProcessingDate'
+        },
+        'CollectionPlan' => new List<String>{
+            'Name', 'Duedate', 'TotalInvoiceBalance', 'AccountId', 'OwnerId', 'ClosedDate', 'CreatedDate', 'DaysPastDue'
+        },
+        'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' },
+        'Task' => new List<String>{ 'Subject', 'Status', 'ActivityDate', 'WhatId' },
+        'Case' => new List<String>{ 'CaseNumber', 'AccountId', 'Subject', 'Description', 'Reason', 'IsClosed', 'CreatedDate' },
+        'Payment' => new List<String>{ 'Balance', 'Status', 'Type', 'AccountId', 'CurrencyIsoCode' }
+    };
+    private static final List<String> COLLECTIONS_USER_SETS = new List<String>{
+        'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI', 'RLM_CollectionsDashboard'
+    };
+    private static final List<String> COLLECTIONS_LICENSES = new List<String>{
+        RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL
+    };
+
+    // The collections user the dashboard is for, without RLM_BillingUI: every read the controller makes runs.
+    @IsTest
+    static void collectionsUserWithoutBillingUiCanRunTheDashboardReads() {
+        User u = RLM_BillingUITestUsers.create(COLLECTIONS_USER_SETS, COLLECTIONS_LICENSES);
+        List<String> failures;
+        System.runAs(u) {
+            failures = unreadable(DASHBOARD_READS);
+        }
+        Assert.isTrue(failures.isEmpty(),
+            'Collections Dashboard reads a collections user cannot run. Grant them in RLM_CollectionsDashboard:\n'
+            + String.join(failures, '\n'));
+    }
+
+    // RLM_CollectionsDashboard adds those reads: without it the same user cannot read cases or payments.
+    @IsTest
+    static void collectionsUserWithoutTheDashboardSetCannotReadCasesOrPayments() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'BillingCollectionsAndRecoverySpecialist', 'RLM_CollectionsUI' }, COLLECTIONS_LICENSES);
+        List<String> failures;
+        System.runAs(u) {
+            failures = unreadable(new Map<String, List<String>>{
+                'Case' => new List<String>{ 'Subject' },
+                'Payment' => new List<String>{ 'Balance' },
+                'Task' => new List<String>{ 'ActivityDate' }
+            });
+        }
+        Assert.areEqual(3, failures.size(), 'Each read comes from RLM_CollectionsDashboard: ' + failures);
+    }
+
+    // Debit memos need the Manage Debit Memos user permission; the dashboard's Debit Memos amount is
+    // zero for a collections user without it. Pinned so a platform change that opens the read shows here.
+    @IsTest
+    static void collectionsUserCannotReadDebitMemos() {
+        User u = RLM_BillingUITestUsers.create(COLLECTIONS_USER_SETS, COLLECTIONS_LICENSES);
+        List<String> failures;
+        System.runAs(u) {
+            failures = unreadable(new Map<String, List<String>>{ 'DebitMemo' => new List<String>{ 'TotalAmount' } });
+        }
+        Assert.areEqual(1, failures.size(), 'DebitMemo read is refused for the collections user: ' + failures);
+    }
 
     // One method per role: each runs a query per manifest object, so together they would
     // pass the 100-query limit.

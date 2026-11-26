@@ -1661,8 +1661,9 @@ tasks:
       (field access, read on the objects the Billing UI controllers query, Apex class access,
       RunFlow), the RLM_BillingUIAssetAttributes permission set (CoreCPQUser, for the asset
       attribute query), and the Collections Dashboard: its app page (RLM_Collections_Dashboard),
-      its tab and the RLM_CollectionsDashboard permission set (the tab and the dashboard
-      controller, for collections users). The other flexipages and the Billing Console app for
+      its tab and the RLM_CollectionsDashboard permission set (the tab, the dashboard
+      controller and the reads it needs beyond the Collections and Recovery Specialist set,
+      for collections users). The other flexipages and the Billing Console app for
       billing_ui are not in this bundle; assemble_and_deploy_ux (prepare_ux flow) deploys them
       from templates/ (billing_ui feature flag), and adds the dashboard tab to the Billing -
       Collections console when collections is on too.

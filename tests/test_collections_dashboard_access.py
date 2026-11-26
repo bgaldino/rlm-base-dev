@@ -1,7 +1,9 @@
 """The Collections Dashboard ships whole for a collections user (todo 435).
 
-RLM_CollectionsDashboard must grant every Apex class the dashboard component calls and its
-tab, and nothing else; the tab must name the page, and the page the component. The page,
+RLM_CollectionsDashboard must grant every Apex class the dashboard component calls, its tab, and
+read-only access to exactly the records the controller reads that the managed Billing Collections
+and Recovery Specialist set lacks (measured on 264; the Apex tests prove them as that user). The tab
+must name the page, and the page the component. The page,
 tab and permission set ship together in unpackaged/post_billing_ui (billing_ui), so none of
 them may reference metadata from a bundle that can be off while billing_ui is on.
 
@@ -38,8 +40,25 @@ class CollectionsDashboardAccessTest(unittest.TestCase):
         tabs = {(e.findtext("sf:tab", namespaces=NS), e.findtext("sf:visibility", namespaces=NS))
                 for e in root.findall("sf:tabSettings", NS)}
         self.assertEqual(tabs, {("RLM_Collections_Dashboard", "Visible")})
-        # Least privilege: no object, field, user or app grants; those come from the collections sets.
-        for tag in ("objectPermissions", "fieldPermissions", "userPermissions", "applicationVisibilities"):
+        # Least privilege: read-only, only the specialist set's gaps, no user or app grants.
+        objects = {}
+        for e in root.findall("sf:objectPermissions", NS):
+            flags = {k: e.findtext(f"sf:{k}", namespaces=NS) for k in (
+                "allowRead", "allowCreate", "allowEdit", "allowDelete", "viewAllRecords", "modifyAllRecords")}
+            objects[e.findtext("sf:object", namespaces=NS)] = flags
+        self.assertEqual(set(objects), {"Case", "Payment"})
+        for name, flags in objects.items():
+            self.assertEqual(flags, {"allowRead": "true", "allowCreate": "false", "allowEdit": "false",
+                                     "allowDelete": "false", "viewAllRecords": "false",
+                                     "modifyAllRecords": "false"}, name)
+        fields = {e.findtext("sf:field", namespaces=NS): (e.findtext("sf:readable", namespaces=NS),
+                                                         e.findtext("sf:editable", namespaces=NS))
+                  for e in root.findall("sf:fieldPermissions", NS)}
+        self.assertEqual(set(fields), {
+            "Case.AccountId", "Case.Description", "Case.Reason", "Case.Subject",
+            "CollectionPlanItem.InvoiceId", "Event.WhatId", "Task.ActivityDate", "Task.WhatId"})
+        self.assertEqual(set(fields.values()), {("true", "false")})
+        for tag in ("userPermissions", "applicationVisibilities"):
             self.assertEqual(root.findall(f"sf:{tag}", NS), [], tag)
 
     def test_tab_page_and_component_reference_each_other_inside_the_bundle(self):
