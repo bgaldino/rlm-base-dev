@@ -34,8 +34,8 @@
  * Fixed: getAccountBillingInfo picks the account's default billing profile first, then the oldest
  * billing account (ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id), and
  * resolves one linked only through AccountBillingAccount; getLegalEntities offers only Active
- * records and getTaxTreatments only Active ones of the chosen legal entity; the create path rejects a null total price and a Termed
- * recurring create with no end date.
+ * records and getTaxTreatments only Active ones of the chosen legal entity; the create path
+ * rejects a null total price and a Termed recurring create with no end date.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
