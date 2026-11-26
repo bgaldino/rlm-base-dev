@@ -434,7 +434,8 @@ Both modules guard their CumulusCI imports, as `tasks/rlm_apex_file.py` does and
 runs without CumulusCI installed. `rlm_refresh_decision_table.py` once lacked the guard, and the
 suite died on its import before a single check ran. The offline `process_bool_arg` uses the same
 vocabulary and raises the same `TypeError` as CCI's. It is not identical: CCI also emits two
-DeprecationWarnings for `None`, but both call sites pass `or False`, so that path is unreachable.
+DeprecationWarnings for `None`, but that path is unreachable: `manage_decision_tables` reads booleans
+through `_option_flag`, which never passes `None`, and `refresh_dt_*` passes `or False`.
 An earlier fallback returned `bool(arg)` for anything unrecognised, so "maybe" was True offline
 and raised under CCI, and tests using it proved the wrong thing.
 

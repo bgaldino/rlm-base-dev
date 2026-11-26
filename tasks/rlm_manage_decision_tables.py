@@ -26,7 +26,7 @@ from datetime import datetime
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import positive_int, require_identifier, soql_quote
+from tasks.soql_utils import option_text, positive_int, require_identifier, requested_names, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -139,26 +139,6 @@ def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
     return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
 
 
-def _as_name_list(value, option_name: str) -> List[str]:
-    """
-    Normalise a task option that names one or more records into a list, splitting a
-    comma-separated CLI string. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-    """
-    if isinstance(value, str):
-        names = [part.strip() for part in value.split(",")]
-    elif isinstance(value, list):
-        names = [str(part).strip() for part in value]
-    else:
-        raise TaskOptionsError(
-            f"{option_name} must be a string or list of strings, got {type(value).__name__}"
-        )
-
-    names = [name for name in names if name]
-    if not names:
-        raise TaskOptionsError(f"{option_name} was provided but contained no usable names.")
-    return names
-
-
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
@@ -225,11 +205,11 @@ class ManageDecisionTables(BaseTask):
             "required": True
         },
         "developer_names": {
-            "description": "List of Decision Table DeveloperNames to operate on. If not provided, queries all active tables.",
+            "description": "Decision Table DeveloperNames to operate on: a comma-separated string or a list. Blank, whitespace or an empty list means not set: list and query then do not filter, refresh uses every table the status filter matches, and activate and deactivate refuse.",
             "required": False
         },
         "status": {
-            "description": "Filter by Status ('Active', 'Inactive', or None for all). Default: 'Active'",
+            "description": "Filter by Status ('Active', 'Inactive'). Not given, or a YAML null (not the CLI string null), means 'Active'; an explicit empty or whitespace value (-o status \"\") means no status filter; padding is trimmed.",
             "required": False
         },
         "is_incremental": {
@@ -237,15 +217,15 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "sort_by": {
-            "description": "Field to sort by (e.g., 'LastSyncDate', 'DeveloperName'). Default: 'LastSyncDate'",
+            "description": "Field to sort by (e.g., 'LastSyncDate', 'DeveloperName'); padding is trimmed and blank means the default. Default: 'LastSyncDate'",
             "required": False
         },
         "sort_order": {
-            "description": "Sort order: 'Asc' or 'Desc'. Default: 'Desc'",
+            "description": "Sort order: 'Asc' or 'Desc'; padding is trimmed and blank means the default. Default: 'Desc'",
             "required": False
         },
         "limit": {
-            "description": "Maximum number of decision tables to return. Default: None (no limit)",
+            "description": "Maximum number of decision tables to return: a positive integer (padding is trimmed; 0 is refused); blank means no limit. Default: None (no limit)",
             "required": False
         },
         "list_anchors": {
@@ -258,9 +238,22 @@ class ManageDecisionTables(BaseTask):
         }
     }
     
+    def _option_text(self, name: str):
+        """An option as stripped text; None, blank or whitespace is not set (int 0 is a value); a list is refused."""
+        return option_text(self.options.get(name), name, TaskOptionsError)
+
+    def _option_flag(self, name: str) -> bool:
+        """A boolean option; None, blank or whitespace is False; a list is refused."""
+        text = self._option_text(name)
+        return False if text is None else bool(process_bool_arg(text))
+
+    def _option_names(self, name: str) -> List[str]:
+        """A names option as a list; None, blank, whitespace or an empty list means none were asked for."""
+        return requested_names(self.options.get(name), name, TaskOptionsError)
+
     def _run_task(self):
         """Execute the task based on the operation specified."""
-        operation = self.options.get("operation", "").lower()
+        operation = (self._option_text("operation") or "").lower()
         
         if operation == "list":
             self._list_decision_tables()
@@ -323,6 +316,8 @@ class ManageDecisionTables(BaseTask):
         
         Returns a list of decision table records with their metadata.
         """
+        # Built first: a bad option is reported as itself, not wrapped as a query failure.
+        soql = self._build_soql_query()
         try:
             # Use Salesforce client (works for Tooling API objects like DecisionTable)
             if not hasattr(self, 'org_config') or not self.org_config:
@@ -331,9 +326,6 @@ class ManageDecisionTables(BaseTask):
             # Get Salesforce connection - DecisionTable is a Tooling API object
             # Try using salesforce_client first (works for some Tooling API objects)
             sf = self._sf
-            
-            # Build SOQL query
-            soql = self._build_soql_query()
             
             self.logger.debug(f"Executing SOQL query: {soql}")
             
@@ -374,15 +366,17 @@ class ManageDecisionTables(BaseTask):
         where_clauses = []
         
         # Filter by developer names if provided
-        developer_names = self.options.get("developer_names")
+        developer_names = self._option_names("developer_names")
         if developer_names:
-            developer_names = _as_name_list(developer_names, "developer_names")
-
             names_str = ", ".join(soql_quote(name) for name in developer_names)
             where_clauses.append(f"DeveloperName IN ({names_str})")
         
         # Filter by status
-        status = self.options.get("status", "Active")
+        # Not given (None) means the default, Active; an explicit blank or "" means no status filter.
+        if "status" not in self.options or self.options["status"] is None:
+            status = "Active"
+        else:
+            status = self._option_text("status")
         if status:
             where_clauses.append(f"Status = {soql_quote(status)}")
         
@@ -394,16 +388,16 @@ class ManageDecisionTables(BaseTask):
         
         # Add sorting
         sort_by = require_identifier(
-            str(self.options.get("sort_by") or "").strip() or "LastSyncDate", "sort_by", TaskOptionsError
+            self._option_text("sort_by") or "LastSyncDate", "sort_by", TaskOptionsError
         )
-        sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
+        sort_order = (self._option_text("sort_order") or "Desc").capitalize()
         if sort_order not in ("Asc", "Desc"):
             raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {sort_by} {sort_order}"
         
         # Add limit if specified
-        limit = self.options.get("limit")
-        if limit not in (None, ""):
+        limit = self._option_text("limit")
+        if limit is not None:
             soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
         
         return soql
@@ -415,7 +409,7 @@ class ManageDecisionTables(BaseTask):
         Supports both full and incremental refresh.
         """
         # Get decision tables to refresh
-        developer_names = self.options.get("developer_names")
+        developer_names = self._option_names("developer_names")
         
         if not developer_names:
             # Query all active decision tables if none specified
@@ -426,11 +420,9 @@ class ManageDecisionTables(BaseTask):
             if not developer_names:
                 self.logger.warning("No active decision tables found to refresh.")
                 return
-        else:
-            developer_names = _as_name_list(developer_names, "developer_names")
 
         # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-        is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
+        is_incremental = self._option_flag("is_incremental")
         # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
         refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         
@@ -499,6 +491,9 @@ class ManageDecisionTables(BaseTask):
         - Reports DTs in org that are not in any configured list.
         - Reports list entries that are not in the org (invalid/missing).
         """
+        # Read first so a malformed option is refused before any query.
+        strict = self._option_flag("strict")
+        list_anchors = self._option_names("list_anchors")
         # Query all active decision tables (ignore developer_names so we get full org list)
         saved_dev_names = self.options.get("developer_names")
         try:
@@ -519,10 +514,7 @@ class ManageDecisionTables(BaseTask):
         org_names = set(org_by_name.keys())
 
         # Resolve which list anchors to validate
-        list_anchors = self.options.get("list_anchors")
-        if list_anchors:
-            list_anchors = _as_name_list(list_anchors, "list_anchors")
-        else:
+        if not list_anchors:
             list_anchors = self._get_decision_table_list_anchors()
 
         # Build: anchor -> list of developer names; and set of all names in any list
@@ -609,7 +601,7 @@ class ManageDecisionTables(BaseTask):
             self.logger.info("=== In lists but not in org: (none) ===")
         self.logger.info("")
         self.logger.info("Validate lists complete. Org total: %d, Listed total (unique): %d.", len(org_names), len(all_listed_names))
-        if unexpected and process_bool_arg(self.options.get("strict") or False):
+        if unexpected and strict:
             raise TaskOptionsError(
                 "Decision tables missing or inactive, not explained by a flag: " + ", ".join(sorted(unexpected))
             )
@@ -670,13 +662,11 @@ class ManageDecisionTables(BaseTask):
 
     def _set_decision_tables_status(self, target_status: str):
         """Set status for specified DecisionTable records."""
-        developer_names = self.options.get("developer_names")
+        developer_names = self._option_names("developer_names")
         if not developer_names:
             raise TaskOptionsError(
                 "developer_names is required for activate/deactivate operations"
             )
-
-        developer_names = _as_name_list(developer_names, "developer_names")
 
         names_str = ", ".join(soql_quote(name) for name in developer_names)
         soql = (
