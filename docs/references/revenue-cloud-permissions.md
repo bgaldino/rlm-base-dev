@@ -509,8 +509,9 @@ one it deliberately doesn't:
 
 What a user of `RLM_Billing_Admin` or `RLM_Billing_Operations` needs to generate invoice PDFs, batch
 (**Generate Invoice Documents** on an Invoice Batch Run) and on demand (**Generate Invoice Document** on an
-Invoice) (todo 292). The access below was measured headlessly, in check-only and post-deploy test runs as Minimum
-Access users holding the Billing license and each group or its content [Measured: 2026-11-26, 264, ent-sb0
+Invoice) (todo 292). The access below was measured headlessly, in check-only and post-deploy test runs, mostly as Minimum
+Access users holding the Billing license and each group or its content (the rows below name the other users
+measured) [Measured: 2026-11-26, 264, ent-sb0
 scratch builds: rlm-base__hdr-hdr-r1, and rlm-base__apexcov-ac1125-r1 for the group-status check below].
 The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in `RLM_Billing_Admin` and `RLM_Billing_Operations`: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". The batch process create (checked as each managed role set plus `RLM_BillingInvoiceDocuments` and both DocGen sets, not as the group) was asserted in a synchronous test run after deploy 0AfWt00000hUX2bKAG: its debug log (07LWt00000AEx5hMAD) shows "CHECKED: RevenueLifecycleManagementBillingAdmin batch process create asserted (setting ENABLED)" and the same for RevenueLifecycleManagementBillingOperations, so the test reads the setting row and asserts the insert. **Generating a document as the persona has not been run yet, so pack 292 stays
 open until a live persona run passes.**
