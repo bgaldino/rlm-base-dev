@@ -482,7 +482,8 @@ value (null) means no payment, like leaving the key out.
   `credit_amount_requested`, `credit_amount_applied`,
   `payment_ids`, `payment_submitted`, `payment_application_ids`, `payment_amount`,
   `payment_apply_target`, `payment_amount_applied`, `payment_mode`
-  (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`.
+  (`partial` \| `exact` \| `over`), `invoice_balance`, `settlement_warnings`,
+  and `unapplied_row_ids` (the Unapplied rows `cli unapply` recorded).
 - **Amounts** are rounded to the invoice currency's
   `CurrencyType.DecimalPlaces` everywhere they are computed or sent: credit
   caps and allocations, `Payment.Amount`, each apply amount, and the balances

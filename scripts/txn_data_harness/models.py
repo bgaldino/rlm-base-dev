@@ -236,6 +236,10 @@ class Manifest:
     # Non-fatal surprises during settlement (application rows in the junction
     # for the other level, a credit capped at the open balance, ...).
     settlement_warnings: list[str] = field(default_factory=list)
+    # `cli unapply` (todo 490): the Type Unapplied rows it recorded, one per
+    # application of this run that it reversed or found already reversed. The originals stay in
+    # credit_application_ids / payment_application_ids, flagged unapplied.
+    unapplied_row_ids: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)

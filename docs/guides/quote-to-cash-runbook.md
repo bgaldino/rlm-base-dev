@@ -31,8 +31,9 @@ skill: [`verification.md`](../../.cursor/skills/billing-operations/verification.
   its balance checks there, so expect `cli quote-to-cash` to exit 1 even when
   every stage ran.
 - **A scratch or demo org.** Every run adds a new transaction. Posted
-  invoices and billing schedules cannot be deleted, and no cleanup path was
-  measured for the settlement records (see [Cleanup limits](#cleanup-limits)).
+  invoices and billing schedules cannot be deleted, and no delete, void or
+  cancel path was tried for the settlement records (see
+  [Cleanup limits](#cleanup-limits)).
 - **One run at a time per account**: posting an invoice applies the account's
   open payment balance to it, so parallel runs on one account can take each
   other's payment. The commands below use `--concurrency 1`.
@@ -135,6 +136,33 @@ the `invoice_ingestion` settlement example
 an invoice minted directly with no quote or order, started at `invoice_draft`
 or `invoice_posted`), which has two scenarios on one account.
 
+## Undo the settlement
+
+To show an unapply, or to put a settled invoice back to its open balance:
+
+```bash
+python -m scripts.txn_data_harness.cli unapply --org $ORG --manifest $RUN   # payment, then credit
+python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN
+```
+
+`--only payment` or `--only credit` reverses one. Each application gets a
+`Type` Unapplied row pointing at the original, which stays Applied and is
+flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
+balances go back up by the amount reversed, and `verify` checks
+the pair (measured at Line Level on 264, in either order). Rerunning sends nothing for a row already unapplied. Limits:
+
+- Only a finished settlement is reversed: no error on the run, and
+  `payment_applied` reached (or `credit_applied` for a settlement with no
+  payment). Nothing
+  reapplies afterwards.
+- The payment and credit memo now carry open balances, and posting the
+  account's next invoice applies what it can of them. When that covers the
+  whole invoice, as in the measured cases (both reversed, a same-sized next
+  invoice), that run has nothing left to credit or pay and `quote-to-cash`
+  fails it with no credit memo or payment of its own; rerun until the leftover
+  is used up.
+- Header Level was not measured; the command refuses a run recorded there.
+
 ## When a stage fails
 
 1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and
@@ -164,8 +192,9 @@ Drive any cleanup from the manifest ids
 - **Posted invoices**: only Draft or Canceled invoices can be deleted, and
   `Status` cannot be set to Canceled.
 - **Billing schedules**: system-managed.
-- **Credit memos, payments and their applications**: no unapply, void or
-  cancel path was measured.
+- **Credit memos, payments and their applications**: no delete, void or
+  cancel path was tried; the applications can be reversed
+  ([Undo the settlement](#undo-the-settlement)).
 
 The harness guide's recipes for assets, the order and the quote were written
 for runs that stop before an invoice; deleting them once the order has a

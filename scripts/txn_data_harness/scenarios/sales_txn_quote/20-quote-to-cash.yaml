@@ -14,8 +14,9 @@
 # balance.
 #
 # Writes records. Posted invoices and billing schedules cannot be deleted,
-# and no cleanup path was measured for the credit memo, payment and their
-# applications, so run this on scratch or demo orgs only. Each run adds a
+# and no delete, void or cancel path was tried for the credit memo and
+# payment (`cli unapply` reverses their applications), so run this on scratch
+# or demo orgs only. Each run adds a
 # new transaction; nothing is reused.
 #
 # The account must be billing-ready (a BillingAccount): otherwise the harness

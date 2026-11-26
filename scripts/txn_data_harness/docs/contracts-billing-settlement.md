@@ -299,10 +299,11 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   `Applied` row, flags it (`UnappliedStatus` on `CreditMemoLineInvoiceLine` /
   `PaymentLineInvoiceLine`, `HasBeenUnapplied` on `CreditMemoInvApplication` /
   `PaymentLineInvoice` = `Yes`; field names from describe on 264) and adds an
-  `Unapplied` row. Reversals are not measured, so the read-backs of this
-  run's memo and payment read every row: any `Unapplied` row or flag `Yes`
-  fails the stage (an application was reversed outside the harness; this run
-  cannot settle; start a new run) instead of computing amounts from it.
+  `Unapplied` row (measured at Line Level for an unapply: see
+  [Unapply](#unapply)). The settlement stages' read-backs of this run's memo
+  and payment still read every row: any `Unapplied` row or flag `Yes` fails
+  the stage (an application was reversed; this run cannot settle; start a new
+  run) instead of computing amounts from it.
 - **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (the whole block, `payment` included when the run stops at `credit_applied`, so the run can be stepped on to `payment_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
   scenario pinning an account's new name matches the manifest when that name
   resolves to the manifest's `account_id`. The check runs before the
@@ -463,10 +464,69 @@ absorbed it, as the baseline of that run shows. The same file run at the
 default `--concurrency 4` was refused before any write (and `cli plan`
 warned).
 
+## Unapply
+
+Measured live on 2026-11-26 (264 scratch org, Line Level, API 68.0) on a
+settled run (invoice 495.00, credit 49.50, payment 445.50, balance 0); `cli
+unapply` (todo 490) is built on it.
+
+| Call | Response |
+|---|---|
+| `POST /services/data/v68.0/commerce/billing/payments/{PaymentId}/paymentlines/{PaymentLineInvoiceLine Id}/actions/unapply`, body `{"comments": ...}` | `{"id": <new row>, "unappliedDate": ...}` |
+| `POST /services/data/v68.0/commerce/invoicing/credit-memo-line-invoice-line/{CreditMemoLineInvoiceLine Id}/actions/unapply`, body `{}` | `{"creditMemoLineInvoiceLineId": <new row>, "errors": [], "success": true}` |
+
+- **Synchronous and whole.** The rows and rollups had changed when the call
+  returned. Neither body takes an amount: an unapply reverses the whole row.
+- **Rows.** The original row stays `Type` Applied with `Amount` and
+  `ImpactAmount` unchanged; `UnappliedStatus` goes No -> Yes and
+  `UnappliedDateTime` is set (the payment row's `AppliedImpactAmount` goes to
+  0). A new row is added: `Type` Unapplied, a positive `Amount` equal to the
+  original's, on the same `InvoiceLineId` and `PaymentId` / `CreditMemoLineId`,
+  `UnappliedStatus` NA, `RelatedPaymentLineInvcLineId` /
+  `RelatedCrMemoLineInvcLineId` naming the original, positive `ImpactAmount`.
+  Both Related fields are filterable: a rerun found the existing Unapplied rows
+  by them.
+- **Balances.** After the payment's unapply: invoice and line `Balance` 445.50,
+  `NetPaymentsApplied` 0; payment `Balance` 445.50, `NetApplied` 0. After the
+  credit's too: invoice `Balance` 495.00, both nets 0, credit memo `Balance`
+  49.50, and `Invoice.SettlementLevel` back to null (it was InvoiceLine).
+- **Twice.** A second unapply of the same row is refused with HTTP 400
+  `INVALID_FIELD_FOR_INSERT_UPDATE` and writes nothing.
+- **The next invoice absorbs it.** The payment and memo then carry open
+  balances, and posting the account's next invoice applied both to it (the
+  same rule as above): that run's credit and payment steps found no open
+  balance and wrote nothing. `cli verify` on that invoice with the reversed
+  payment (run DEMO-20261126T040031Z) passed: the payment's pair nets to 0, its
+  new Applied row on the next invoice is 445.50, and `NetApplied` 445.50,
+  `Balance` 0.
+- Not measured: header-level unapply (`credit-memo-inv-applications/.../unapply`,
+  payment header rows), reapplying by hand after an unapply, voiding a credit
+  memo.
+- **Either order.** Unapplying the credit while the payment stays applied
+  (`--only credit`, run DEMO-20261126T041707Z) left invoice and line `Balance`
+  49.50 = 495.00 − 445.50 with the payment untouched; the payment's unapply
+  after it restored 495.00, as in the first order.
+
+`cli unapply --org <sf-alias> --manifest <run> [--only payment|credit]`
+reverses the run's own recorded line-level applications, the payment's first.
+It takes only a finished settlement: no error on the manifest, and
+`payment_applied` reached or `credit_applied` with a block that has no payment,
+so every application the
+run made is recorded and no `cli step` can advance it afterwards. It reads each
+row first and unapplies only a line-level Applied row (a run that stopped at
+`credit_applied` records no application level; its rows decide). One already
+unapplied is not sent again (the platform would refuse it); its Unapplied row
+is looked up instead, and a flagged row with none fails. The new rows go in the
+manifest's `unapplied_row_ids`. Exit 0 when every selected application is
+unapplied and recorded; 1 when one could not be (a failed read or write on one
+row included) or nothing was recorded to unapply; 2 when the manifest cannot be
+read, the settlement is not finished, the run is recorded at Header Level, or
+the org cannot be read before any unapply. `cli verify` then checks the pair (see `verify.py`).
+
 ## Cleanup
 
-Payments, credit memos and their application records were not deleted and no
-cleanup path was probed. A Payment's `Status` picklist includes `Canceled`;
-unapplying (`.../paymentlines/{id}/actions/unapply`) and voiding credit memos
-are documented but not exercised here. Treat settlement records like Posted
+Payments, credit memos and their application records were not deleted, and no
+delete, void or cancel path was probed. A Payment's `Status` picklist includes
+`Canceled`; voiding credit memos is documented but not exercised here.
+Unapplying is measured ([Unapply](#unapply)). Treat settlement records like Posted
 invoices: leftovers. Tracked in [`followups.md`](followups.md#billing-settlement).

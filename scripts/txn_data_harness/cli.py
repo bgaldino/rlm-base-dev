@@ -14,7 +14,7 @@ from typing import Optional
 
 import requests
 
-from . import generate
+from . import generate, lifecycle
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import (
@@ -109,6 +109,9 @@ def _format_inspect_text(summary: dict) -> str:
         lines.append(f"Error: {summary.get('error')}")
     if summary.get("invoice_number"):
         lines.append(f"Invoice number: {summary.get('invoice_number')}")
+    reversed_rows = (summary.get("settlement") or {}).get("unapplied_row_ids") or []
+    if reversed_rows:
+        lines.append(f"Unapplied rows recorded by cli unapply: {len(reversed_rows)}")
     link = summary.get("invoice_order_link") or {}
     if link.get("status") == "failed":
         detail = f": {link.get('error')}" if link.get("error") else ""
@@ -580,7 +583,7 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _error_message(exc: Exception) -> str:
     """The one-line reason a command could not run or report."""
-    if isinstance(exc, billing_verify.VerifyError):
+    if isinstance(exc, (billing_verify.VerifyError, LifecycleError)):
         return str(exc)
     if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
         # RequestException: the --api-version latest lookup.
@@ -694,6 +697,123 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     runs = ", ".join(m.run_id for m in batch)
     print(f"QUOTE-TO-CASH: pass ({len(batch)} scenario(s) at {QUOTE_TO_CASH_STAGE}: {runs})")
     return 0
+
+
+UNAPPLY_KINDS = ("payment", "credit")
+
+
+def _cmd_unapply(args: argparse.Namespace) -> int:
+    """Unapply this run's own line-level applications: the payment's, then the credit's.
+
+    Only a finished settlement is reversed: no error on the manifest, and
+    ``payment_applied`` reached or ``credit_applied`` with a settlement block that
+    has no payment (so no
+    ``cli step`` can advance it afterwards, and every application it made is
+    recorded). Reads each recorded application row first; only a line-level
+    Applied row is unapplied (measured at Line Level only). A row already
+    unapplied is not sent again (the platform refuses a second unapply); its
+    Unapplied row is looked up and recorded instead. Exit 0 when every selected
+    application is unapplied and recorded; 1 when one could not be (a failed
+    read or write on one row included) or nothing was recorded to unapply; 2 when
+    the manifest cannot be read, the settlement is not finished, the run is at
+    Header Level, or the org cannot be read before any unapply.
+    """
+    try:
+        manifest = load_manifest(args.manifest)
+    except Exception as exc:  # noqa: BLE001 - an unreadable manifest is an input error
+        print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    unfinished = _unfinished_settlement(manifest)
+    if unfinished:
+        print(f"ERROR: unapply: manifest {manifest.run_id} {unfinished}; only a finished "
+              "settlement is reversed", file=sys.stderr)
+        return 2
+    if manifest.application_level == "header":
+        print(f"ERROR: unapply: manifest {manifest.run_id} is at header application "
+              "level; unapply was measured at Line Level only", file=sys.stderr)
+        return 2
+    kinds = UNAPPLY_KINDS if args.only is None else (args.only,)
+    if not any(_application_ids(manifest, kind) for kind in kinds):
+        print(f"FAIL: {manifest.run_id} recorded no {' or '.join(kinds)} application "
+              "to unapply")
+        print(f"UNAPPLY: fail ({manifest.run_id})")
+        return 1
+    try:
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        rows = {kind: {r["Id"]: r for r in lifecycle.read_line_applications(
+            client, kind, _application_ids(manifest, kind))} for kind in kinds}
+    except Exception as exc:  # noqa: BLE001 - nothing was written yet
+        print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    failures = sent = 0
+    for kind in kinds:
+        for row_id in _application_ids(manifest, kind):
+            row = rows[kind].get(row_id)
+            try:
+                if row is None or row.get("Type") != "Applied":
+                    raise SettlementError(
+                        "unapply", f"{kind} application {row_id} is not a line-level "
+                        "Applied row the org returns (unapply is measured at Line Level "
+                        "only)", record_id=row_id)
+                if row.get("UnappliedStatus") == "Yes":
+                    new_id = lifecycle.find_unapplied_row(client, kind, row_id)
+                    note = "already unapplied"
+                    if not new_id:
+                        raise SettlementError(
+                            "unapply", f"{kind} application {row_id} is flagged unapplied "
+                            "but no Unapplied row names it (not the measured shape)",
+                            record_id=row_id)
+                else:
+                    new_id = (lifecycle.unapply_payment_line(client, row["PaymentId"], row_id)
+                              if kind == "payment"
+                              else lifecycle.unapply_credit_line(client, row_id))
+                    note = "unapplied"
+                    sent += 1
+                if new_id not in manifest.unapplied_row_ids:
+                    manifest.unapplied_row_ids.append(new_id)
+                    try:
+                        write_manifest(manifest)
+                    except Exception as exc:
+                        # Not recorded: drop it so a later row's write does not
+                        # save it either; the rerun looks it up.
+                        manifest.unapplied_row_ids.remove(new_id)
+                        raise SettlementError(
+                            "unapply", f"{note} in the org (Unapplied row {new_id}), but "
+                            f"the manifest write failed ({type(exc).__name__}: {exc}); "
+                            "rerun to record it", record_id=row_id) from None
+            except Exception as exc:  # noqa: BLE001 - report and go on to the next row
+                failures += 1
+                print(f"FAIL: {kind} {row_id}: {_error_message(exc)}")
+                continue
+            print(f"{note.upper()}: {kind} {row_id} ({row.get('Amount')}) -> "
+                  f"Unapplied row {new_id}")
+    if sent:
+        print(f"NOTE: {sent} application(s) unapplied; what they held is open again on "
+              "the payment or credit memo, and posting the account's next invoice may "
+              "apply it there (measured)")
+    print(f"UNAPPLY: {'fail' if failures else 'done'} ({manifest.run_id})")
+    return 1 if failures else 0
+
+
+def _unfinished_settlement(manifest) -> Optional[str]:
+    """Why the run's settlement is not finished, or None."""
+    if manifest.error:
+        return (f"records an error ({manifest.error}), so it may hold applications it "
+                "never recorded")
+    if manifest.reached_stage == "payment_applied":
+        return None
+    block = settlement_from_dict(manifest.settlement) if manifest.settlement else None
+    if manifest.reached_stage == "credit_applied" and block and block.payment is None:
+        return None
+    return (f"reached {manifest.reached_stage or 'no stage'}, not the end of its "
+            "settlement; step it on first")
+
+
+def _application_ids(manifest, kind: str) -> list[str]:
+    return list(manifest.payment_application_ids if kind == "payment"
+                else manifest.credit_application_ids)
 
 
 def _emit(text: str) -> None:
@@ -844,6 +964,18 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     q2c.add_argument("-v", "--verbose", action="count", default=0,
                      help="-v for INFO, -vv for DEBUG.")
     q2c.set_defaults(func=_cmd_quote_to_cash)
+
+    unapply = sub.add_parser(
+        "unapply",
+        help="Unapply a run's own line-level payment and credit applications "
+             "(exit 1 when one could not be unapplied).",
+    )
+    add_connection_args(unapply)
+    unapply.add_argument("--manifest", required=True, help="Run id or manifest path.")
+    unapply.add_argument("--only", choices=UNAPPLY_KINDS,
+                         help="Unapply only the payment's or only the credit's "
+                              "applications (default: both, payment first).")
+    unapply.set_defaults(func=_cmd_unapply)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

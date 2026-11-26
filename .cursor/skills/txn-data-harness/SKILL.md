@@ -190,6 +190,7 @@ before adding any quote-creation path to either tool.
 | Start usage rating after `target_stage: usage_upload` | `python -m scripts.txn_data_harness.cli rate ...` |
 | Check invoice, line and payment balances against their applications (read-only) | `python -m scripts.txn_data_harness.cli verify ...` |
 | Prove an org can carry a quote to an applied payment (writes records) | `python -m scripts.txn_data_harness.cli quote-to-cash ...`, or `cci task run verify_quote_to_cash` |
+| Reverse a settled run's payment and credit applications (Line Level; writes records) | `python -m scripts.txn_data_harness.cli unapply ...` |
 
 ## Standard Workflow
 
@@ -235,8 +236,9 @@ before adding any quote-creation path to either tool.
 
 1. For invoices with payments or credits applied, run the read-only billing checks
    (exit 1 on a failed check, 2 on bad input; formulas in `billing-operations` →
-   `verification.md`; anything unmeasured, such as unapplied application rows, is
-   skipped with a reason, not failed). `--latest` checks only the newest manifest; after a batch of
+   `verification.md`; anything unmeasured, such as unapplied rows other than the
+   measured line-level pair `cli unapply` leaves, is skipped with a reason, not
+   failed). `--latest` checks only the newest manifest; after a batch of
    several scenarios, pass each one with `--manifest` (repeatable) or the ids with
    `--invoice-ids`:
 
@@ -270,7 +272,7 @@ Drive cleanup from manifest ids. Delete what is deletable child → parent:
 assets/orders, then quote, then opportunity. Activated orders must be reverted to
 Draft before deletion. Posted invoices and BillingSchedules are not cleanly
 deletable; settlement payments, credit memos and their application records have
-no probed cleanup path. Tell the user before attempting cleanup.
+no probed delete, void or cancel path (`cli unapply` reverses the applications). Tell the user before attempting cleanup.
 
 For copy-paste cleanup recipes, use `docs/guides/txn-data-harness.md`.
 

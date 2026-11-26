@@ -137,6 +137,26 @@ one the generator refuses while resolving accounts and products (all refused
 before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
 <cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
 
+### Unapply a run's settlement (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_id>
+python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_id> --only payment
+```
+
+Reverses the run's own recorded line-level applications (payment, then
+credit) with the unapply actions, and records the `Type` Unapplied rows (new,
+or found for a row already unapplied) in the manifest's `unapplied_row_ids`. A row already unapplied is not sent again.
+Only a finished settlement is taken (no error; `payment_applied` reached, or
+`credit_applied` with a block that has no payment). A rerun recovers a row
+whose unapply response or manifest write was lost. Exit 0 when every selected application is unapplied
+and recorded, 1 when one could not be or nothing was recorded to unapply, 2
+when the manifest cannot be read, the settlement is not finished, the run is
+recorded at Header Level, or the org cannot be read before any unapply.
+Afterwards the payment and credit memo carry open balances that the
+account's next posted invoice may absorb. Measurements: `docs/contracts-billing-settlement.md`
+→ *Unapply*.
+
 ### Verify billing (read-only)
 
 ```bash
@@ -168,7 +188,8 @@ through the invoices' application rows, or passed with `--payment-ids`.
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records
 inside one allow-list of measured cases (Line Level: Posted invoices, taxed
 ones included, without write-off or other unmeasured totals, separate Tax lines
-or header-captured tax; Charge lines; Applied rows; Processed
+or header-captured tax; Charge lines; Applied rows, and a line-level
+Applied/Unapplied pair from an unapply; Processed
 payments with applications or Canceled ones without; Posted credit memos), and
 an invoice and a payment or credit memo joined by a row are measured only
 together; anything else skips naming its first cause and origin.
