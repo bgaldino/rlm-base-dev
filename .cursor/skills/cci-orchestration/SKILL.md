@@ -442,10 +442,6 @@ cci flow info prepare_rlm_org
 - `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` — generated
   task, flow, and feature-flag references; regenerate after configuration edits.
 
-- Running `sf` (query, Apex, record create, metadata deploy) from a sandboxed agent: the
-  recipe is `.cursor/skills/toolchain/sandboxed-agents.md`. `cci` itself cannot run in
-  that sandbox.
-
 ## Related Skills
 
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
@@ -453,3 +449,5 @@ cci flow info prepare_rlm_org
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
+- **Toolchain** — `.cursor/skills/toolchain/sandboxed-agents.md`: running `sf` (query, Apex, record
+  create, metadata deploy) from a sandboxed agent; `cci` itself cannot run in that sandbox.

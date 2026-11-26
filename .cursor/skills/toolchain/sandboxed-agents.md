@@ -15,7 +15,7 @@ export SF_DISABLE_LOG_FILE=true SF_DISABLE_TELEMETRY=true SF_AUTOUPDATE_DISABLE=
 sf data query -q "SELECT COUNT() FROM Account" --target-org <sf alias or username>
 ```
 
-- Bash `allowed_domains` must include the org's `<host>.my.salesforce.com`,
+- The Bash tool's `allowed_domains` setting must include the org's `<host>.my.salesforce.com`,
   `*.my.salesforce.com` and `*.salesforce.com`. Without them the calls fail on the
   network, not on a permission.
 - `SF_DISABLE_LOG_FILE=true` is required. Without it sf tries to write
@@ -50,8 +50,9 @@ read the outcome from the org.
    records `Failed` with 0 components) and submit it:
    `sf project deploy start --metadata-dir <dir> --target-org <o> --wait 5`.
    [Open: `--source-dir` deploys were reported to hit the same EPERM; not re-measured.]
-2. Find the request: `sf data query --use-tooling-api -q "SELECT Id,Status,NumberComponentsDeployed,NumberComponentErrors FROM DeployRequest ORDER BY CreatedDate DESC LIMIT 1" --target-org <o>`.
-   Wait until `Status` is `Succeeded` or `Failed`.
+2. Find the request: `sf data query --use-tooling-api -q "SELECT Id,Status,NumberComponentsDeployed,NumberComponentErrors FROM DeployRequest WHERE CreatedBy.Username = '<the target-org user>' ORDER BY CreatedDate DESC LIMIT 1" --target-org <o>`
+   (other sessions deploying to a shared org would otherwise be picked up; the `--json`
+   output of the deploy, when it prints one, also carries the id). Wait until `Status` is `Succeeded` or `Failed`.
 3. Read the failures: `sf api request rest "/services/data/v68.0/metadata/deployRequest/<id>?includeDetails=true" --target-org <o> 2>/dev/null | jq '.deployResult.details.componentFailures'`.
 4. Confirm the artefact exists with a query (for example Tooling `ApexClass`).
 
@@ -70,9 +71,9 @@ user's choice, never an agent's retry.
 
 - Regular Chrome is blocked by policy; use Chrome for Testing under `~/.cache/cft/`
   and set the pair `CHROME_BINARY` and `CHROMEDRIVER_PATH` (see
-  `docs/guides/local-installation.md`, Chrome for Testing). Selenium: the CumulusCI
-  pipx venv's Python has it; the repo `.venv` has a selenium 3 that conflicts with
-  urllib3 2.
+  `docs/guides/local-installation.md`, Chrome for Testing). Selenium: the repo `.venv`
+  may carry an old selenium that conflicts with urllib3 2; use the CumulusCI pipx
+  venv's Python (`docs/guides/local-installation.md`).
 - chromedriver needs `sandbox.network.allowLocalBinding: true` in the user's
   gitignored `.claude/settings.local.json` (it applies without a restart).
 - That is **not enough** to run it sandboxed: Chrome creates its extension-unpack

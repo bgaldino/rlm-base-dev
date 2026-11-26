@@ -25,8 +25,9 @@ python scripts/ui_check/ui_check.py shot --org <sf alias or username> \
   `sf org open --url-only --json`, uses it for one `driver.get`, and never prints,
   logs or puts it in an error. Screenshots show no URL bar. Keep it that way in any
   change: no session URL, `sid` or password in a file, a log or a PR.
-- Text dumps match headings, buttons, links, labels and table cells. Rich text
-  components are not matched; use the screenshot for those.
+- Text dumps match headings, buttons, links, labels and table cells. [Measured:
+  2026-11-26, 264 (USA796), ent-sb0 harness build] A rich-text component's text was
+  missing from the dump but visible in the screenshot, so use the screenshot for it.
 
 [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, Chrome for Testing 157]
 `shot` reached the Home page and printed its navigation text.
@@ -35,33 +36,38 @@ python scripts/ui_check/ui_check.py shot --org <sf alias or username> \
 
 For role-specific checks (a rep, a billing user) the sf user is the wrong identity.
 
-1. Create the user with a Standard (or other) profile: `sf data create record -s User -v "Username=... ProfileId=..."`.
-   Test users are not org-authenticated, so `sf org generate password` does not
-   apply.
-2. Set a password through the REST password resource, which is what
-   `set-password` does: `POST /services/data/v68.0/sobjects/User/<id>/password`
-   with `{"NewPassword": ...}`. It prints a generated password for a disposable
-   test user; put it in an environment variable, not a file.
+1. Create the user with a Standard (or other) profile: `sf data create record -s User -v "..."`
+   with `Username`, `LastName`, `Email`, `Alias`, `ProfileId`, `TimeZoneSidKey`,
+   `LocaleSidKey`, `EmailEncodingKey` and `LanguageLocaleKey`. Test users are not
+   org-authenticated, so `sf org generate password` does not apply.
+2. Set a password through the REST password resource, which is what `set-password`
+   does: `POST /services/data/v68.0/sobjects/User/<id>/password` with
+   `{"NewPassword": ...}`. The password comes from an environment variable you set
+   (`--password-env`); it is never taken from the command line and never printed.
 3. Log in and screenshot:
 
 ```bash
-export UI_CHECK_PASSWORD=$(python scripts/ui_check/ui_check.py set-password --org <o> --username <u> | sed 's/password: //')
+export UI_CHECK_PASSWORD='<a password that meets the org policy>'
+export UI_CHECK_NEW_PASSWORD='<a different one>'   # used on the forced change-password page
+python scripts/ui_check/ui_check.py set-password --org <o> --username <u> --password-env UI_CHECK_PASSWORD
 python scripts/ui_check/ui_check.py user-shot --org <o> --username <u> \
-    --password-env UI_CHECK_PASSWORD --path /lightning/page/home --out user.png --text
+    --password-env UI_CHECK_PASSWORD --new-password-env UI_CHECK_NEW_PASSWORD \
+    --path /lightning/page/home --out user.png --text
 ```
 
 `user-shot` opens the org's my-domain login page, enters the username, continues to
-the password step if the page is identity-first, signs in, handles the forced
-change-password page if one appears, then opens `--path`. `--app-path
+the password step if the page is identity-first, signs in, changes the password on the forced change-password page when the org shows it
+(to `--new-password-env`; the user then has that password, so later runs pass it as
+`--password-env`), then opens `--path`. `--app-path
 /lightning/app/c__<AppDeveloperName>` opens an app first (record pages render under
 the last-used app).
 
 [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build] A Standard User created
-over the API and given a REST password signed in and landed on Lightning Home; the
-page showed the user's own app menu, not the sf user's.
-[Open: the forced change-password page did not appear for that user, so that
-branch of the helper (the `newpassword` / `confirmpassword` fields) has not run
-live; an org with a password policy that expires admin-set passwords exercises it.]
+over the API and given a REST password stopped on the forced change-password page
+(`/_ui/system/security/ChangePassword`: `newpassword`, `confirmpassword`, a security
+`answer` field and the `password-button` submit); after the change it landed on
+Lightning Home showing the user's own app menu, not the sf user's. Each `set-password`
+brings the page back.
 
 ## Test a FlexiPage in a shared org without changing anyone's pages
 
