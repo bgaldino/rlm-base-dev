@@ -3057,6 +3057,11 @@ def test_bool_options_read_through_option_flag_todo_488():
     waits._lifecycle = lambda dry_run: _Lifecycle()
     waits._wait_for_version_state("9QM1", True)
     check("_wait_for_version_state polls with the parsed values (blank wait is 45)", seen == {"max_wait": 45, "poll": 2})
+    seen.clear()
+    waits.options = {"max_wait_seconds": " 10 ", "poll_interval_seconds": "2"}
+    waits._wait_for_version_state("9QM1", False)
+    check("_wait_for_version_state polls with a non-default wait (10, 2), not a hardcoded 45",
+          seen == {"max_wait": 10, "poll": 2})
 
 
 def main():

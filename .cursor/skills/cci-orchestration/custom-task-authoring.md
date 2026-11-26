@@ -94,9 +94,15 @@ twice.
 ## Import Pattern
 
 Always guard CCI imports with try/except so the module can be imported for
-linting and testing without CCI installed:
+linting and testing without CCI installed. Import the repo's own `tasks.*` helpers
+(`tasks.soql_utils` and the like) **before** them: CumulusCI's project config registers a
+synthetic `tasks` package and empties its `__path__`, so a `tasks.soql_utils` import placed
+after the CumulusCI imports fails. The tasks that import it carry a one-line comment saying so
+above that import.
 
 ```python
+from tasks.soql_utils import option_flag, option_text, requested_names  # before CumulusCI
+
 try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
