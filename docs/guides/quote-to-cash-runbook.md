@@ -56,7 +56,7 @@ or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
 | 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or it created no credit memo or payment of its own, or a check failed (the `RESULT:` line above names it), or no balance was checked. |
 | 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. Records may already exist if the run had started: its run ids are in the `run base` and per-scenario `[n/N]` lines above. When only the verify failed, the `ERROR:` line names the runs, which passed the stage and own-records checks: check them with `cli verify --org $ORG --manifest <run>` rather than a new run, and count it a pass only when it checked at least one balance. |
 | 3 | Discovery failed before any write: an unknown account or product, or a refused discovery query such as an expired session. |
-| 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |
+| 4 | The config could not be read, a scenario in it does not target `payment_applied`, or the generator refused it while resolving accounts and products (for example a `term:` on an Evergreen product); refused before any write. |
 
 `WARNING:` lines are the run's settlement warnings: an over-payment left
 unapplied, a credit capped at the invoice balance, or something the platform

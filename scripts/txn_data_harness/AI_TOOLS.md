@@ -132,8 +132,9 @@ exist if the run had started, and when only the verify failed the `ERROR:`
 line names the runs, to check with `cli verify --org <sf-alias> --manifest
 <run>`, a pass only when it checked at least one balance); 3 when discovery
 fails (including an expired session); 4 for
-an unreadable config or one with a scenario not targeting `payment_applied`
-(refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
+an unreadable config, one with a scenario not targeting `payment_applied`, or
+one the generator refuses while resolving accounts and products (all refused
+before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
 <cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
 
 ### Verify billing (read-only)
