@@ -38,7 +38,9 @@
  * so the city the modal submits matches it. It reads BillingCity in the same
  * query as the account (covered by the compound BillingAddress grant
  * RLM_BillingUI holds), not after a billing account is resolved: one read, one
- * refusal message. No billing treatment read can be hidden by sharing:
+ * refusal message. Create also refuses a tax treatment or product the modal's pickers would not
+ * offer (getTaxTreatments: active and of the chosen legal entity; getProducts: active, Software
+ * family), each read in USER_MODE, before the action is called. No billing treatment read can be hidden by sharing:
  * BillingTreatment's organization-wide default is public (measured on a 264
  * org; BillingTreatmentItem is controlled by its parent), so "no treatment"
  * means none exists, not that sharing hid one.
@@ -584,6 +586,8 @@ public with sharing class RLM_BillingScheduleGroupService {
 
         requireActiveCurrency(currencyIsoCode);
         String legalEntityName = readActiveLegalEntityName(legalEntityId);
+        requirePickerTaxTreatment(taxTreatmentId, legalEntityId);
+        requirePickerProduct(productId);
 
         // Timing travels only through a billing treatment (see the class header), chosen for the
         // legal entity and currency. A one-time charge gets the treatment the one-time rule picks (any
@@ -940,6 +944,45 @@ public with sharing class RLM_BillingScheduleGroupService {
                 'The legal entity was not found, is not active, or is not visible to you. Choose another legal entity.');
         }
         return les[0].Name;
+    }
+
+    // The tax treatment sent must be one getTaxTreatments offers (active, visible to the user) and
+    // belong to the chosen legal entity, so an id from elsewhere is refused before any action call.
+    private static void requirePickerTaxTreatment(Id taxTreatmentId, Id legalEntityId) {
+        List<TaxTreatment> tts;
+        try {
+            tts = [
+                SELECT Id FROM TaxTreatment
+                WHERE Id = :taxTreatmentId AND Status = 'Active' AND LegalEntityId = :legalEntityId
+                WITH USER_MODE LIMIT 1
+            ];
+        } catch (QueryException qe) {
+            throw readRefused('the tax treatment', qe);
+        }
+        if (tts.isEmpty()) {
+            throw RLM_AuraErrors.handled(
+                'The tax treatment was not found, is not active, is not visible to you, or is not '
+                + 'a tax treatment of the chosen legal entity. Choose another tax treatment.');
+        }
+    }
+
+    // The product sent must be one getProducts offers (active, Software family, visible to the user).
+    private static void requirePickerProduct(Id productId) {
+        List<Product2> prods;
+        try {
+            prods = [
+                SELECT Id FROM Product2
+                WHERE Id = :productId AND IsActive = true AND Family = 'Software'
+                WITH USER_MODE LIMIT 1
+            ];
+        } catch (QueryException qe) {
+            throw readRefused('the product', qe);
+        }
+        if (prods.isEmpty()) {
+            throw RLM_AuraErrors.handled(
+                'The product was not found, is not active, is not offered for billing schedules, or is not '
+                + 'visible to you. Choose another product.');
+        }
     }
 
     @TestVisible

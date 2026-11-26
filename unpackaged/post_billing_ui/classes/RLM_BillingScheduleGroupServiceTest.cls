@@ -142,8 +142,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         RLM_BillingScheduleGroupService.CreateResult r =
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
                 ba.Id, 'Month', 12, 'Advance', 2, activeLegalEntityId(),
-                fakeId(TaxTreatment.SObjectType), CUR, 10, 240, 'San Francisco',
-                fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1),
+                activeTaxTreatmentId(), CUR, 10, 240, 'San Francisco',
+                softwareProductId(), 'Widget', Date.newInstance(2026, 1, 1),
                 1, 1, 'Termed', Date.newInstance(2026, 12, 31), null
             );
         Test.stopTest();
@@ -1570,13 +1570,15 @@ private class RLM_BillingScheduleGroupServiceTest {
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>{ 'LegalEntity' },
-            new List<String>{ 'BillingAccount', 'Account' },
-            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status' });
+            new List<String>{ 'BillingAccount', 'Account', 'TaxTreatment', 'Product2' },
+            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
+                'Product2.IsActive', 'Product2.Family' });
         User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>(),
-            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' },
-            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status' });
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment', 'Product2' },
+            new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
+                'Product2.IsActive', 'Product2.Family' });
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
 
@@ -1636,6 +1638,172 @@ private class RLM_BillingScheduleGroupServiceTest {
         Map<String, Object> txn = onlyTransaction(detailsViewAll);
         Assert.areEqual(String.valueOf(args.legalEntityId), txn.get('LegalEntityId__std'),
             'The view-all call reached the action with the legal entity.');
+    }
+
+    private static final String TT_REFUSAL =
+        'The tax treatment was not found, is not active, is not visible to you, or is not '
+        + 'a tax treatment of the chosen legal entity. Choose another tax treatment.';
+    private static final String PRODUCT_REFUSAL =
+        'The product was not found, is not active, is not offered for billing schedules, or is not '
+        + 'visible to you. Choose another product.';
+
+    private static AuraHandledException refusedCreate(CreateArgs args) {
+        try {
+            args.call();
+        } catch (AuraHandledException e) {
+            return e;
+        }
+        return null;
+    }
+
+    // The picker offers only active treatments of the chosen legal entity; any other id is refused
+    // before the action is called.
+    @isTest
+    static void createViaAPI_taxTreatmentNotOffered_isRefused() {
+        Id baId = insertBillingAccount('BSG TT Refused');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-TT' };
+        // One treatment per legal entity (unique key), so each case has its own entity.
+        LegalEntity leDraft = new LegalEntity(Name = 'BSG TT Draft LE', Status = 'Active');
+        insert leDraft;
+        TaxTreatment draft = new TaxTreatment(Name = 'BSG TT Draft', Status = 'Draft', LegalEntityId = leDraft.Id);
+        insert draft;
+        Id otherEntityTreatment = activeTaxTreatmentId();
+        LegalEntity leChosen = new LegalEntity(Name = 'BSG TT Chosen LE', Status = 'Active');
+        insert leChosen;
+
+        CreateArgs inactive = new CreateArgs(baId);
+        inactive.legalEntityId = leDraft.Id;
+        inactive.taxTreatmentId = draft.Id;
+        CreateArgs otherEntity = new CreateArgs(baId);
+        otherEntity.legalEntityId = leChosen.Id;
+        otherEntity.taxTreatmentId = otherEntityTreatment;
+        CreateArgs missing = new CreateArgs(baId);
+        missing.taxTreatmentId = fakeId(TaxTreatment.SObjectType);
+        Map<String, CreateArgs> cases = new Map<String, CreateArgs>{
+            'An inactive tax treatment' => inactive,
+            'A tax treatment of another legal entity' => otherEntity,
+            'A tax treatment that does not exist' => missing
+        };
+
+        Test.startTest();
+        for (String label : cases.keySet()) {
+            AuraHandledException thrown = refusedCreate(cases.get(label));
+            Assert.isNotNull(thrown, label + ' is refused.');
+            Assert.areEqual(TT_REFUSAL, thrown.getMessage(), label + ' gets the tax treatment refusal.');
+        }
+        Test.stopTest();
+
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The picker offers only active products of the Software family; any other id is refused.
+    @isTest
+    static void createViaAPI_productNotOffered_isRefused() {
+        Id baId = insertBillingAccount('BSG Product Refused');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-PR' };
+        Product2 inactive = new Product2(Name = 'BSG Inactive Software', IsActive = false, Family = 'Software');
+        Product2 otherFamily = new Product2(Name = 'BSG Hardware', IsActive = true, Family = 'Hardware');
+        insert new List<Product2>{ inactive, otherFamily };
+        Map<String, Id> cases = new Map<String, Id>{
+            'An inactive product' => inactive.Id,
+            'A product outside the Software family' => otherFamily.Id,
+            'A product that does not exist' => fakeId(Product2.SObjectType)
+        };
+
+        Test.startTest();
+        for (String label : cases.keySet()) {
+            CreateArgs args = new CreateArgs(baId);
+            args.productId = cases.get(label);
+            AuraHandledException thrown = refusedCreate(args);
+            Assert.isNotNull(thrown, label + ' is refused.');
+            Assert.areEqual(PRODUCT_REFUSAL, thrown.getMessage(), label + ' gets the product refusal.');
+        }
+        Test.stopTest();
+
+        Assert.isNull(RLM_BillingScheduleGroupService.lastTransactionDetails, 'Nothing reached the action.');
+    }
+
+    // The tax treatment and product reads run as the user, on records the admin owns. With no read on
+    // the object the refusal names it. With read but no sharing, a record hidden by sharing is refused
+    // as not visible (where the org-wide default hides it; otherwise it passes). With view-all both pass
+    // and the call reaches the action.
+    @isTest
+    static void createViaAPI_taxTreatmentAndProductRead_refusedHiddenOrVisible() {
+        Account a = new Account(Name = 'BSG Picker Read Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Picker Read BA', AccountId = a.Id);
+        insert ba;
+        List<String> fields = new List<String>{
+            'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
+            'Product2.IsActive', 'Product2.Family' };
+        List<String> psl = new List<String>{ RLM_BillingUITestUsers.BILLING_PSL };
+        User noTaxTreatmentRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'Product2' }, fields);
+        User noProductRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' }, fields);
+        User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(psl,
+            new List<String>{ 'TaxTreatment', 'Product2' },
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' }, fields);
+        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment', 'Product2' }, fields);
+        CreateArgs args = new CreateArgs(ba.Id);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-PK' };
+
+        AuraHandledException noTtError;
+        AuraHandledException noProductError;
+        AuraHandledException sharedError;
+        Boolean ttVisible;
+        Boolean productVisible;
+        String detailsShared;
+        AuraHandledException viewAllError;
+        String detailsViewAll;
+        Test.startTest();
+        System.runAs(noTaxTreatmentRead) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM TaxTreatment LIMIT 1'),
+                'PRECONDITION: the user cannot read TaxTreatment.');
+            noTtError = refusedCreate(args);
+        }
+        System.runAs(noProductRead) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Product2 LIMIT 1'),
+                'PRECONDITION: the user cannot read Product2.');
+            noProductError = refusedCreate(args);
+        }
+        System.runAs(readNoSharing) {
+            ttVisible = ![SELECT Id FROM TaxTreatment WHERE Id = :args.taxTreatmentId WITH USER_MODE].isEmpty();
+            productVisible = ![SELECT Id FROM Product2 WHERE Id = :args.productId WITH USER_MODE].isEmpty();
+            sharedError = refusedCreate(args);
+            detailsShared = RLM_BillingScheduleGroupService.lastTransactionDetails;
+        }
+        RLM_BillingScheduleGroupService.lastTransactionDetails = null;
+        System.runAs(viewAll) {
+            viewAllError = refusedCreate(args);
+            detailsViewAll = RLM_BillingScheduleGroupService.lastTransactionDetails;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(noTtError, 'No TaxTreatment read refuses create.');
+        Assert.isTrue(noTtError.getMessage().contains('read the tax treatment this screen needs'),
+            'It names the tax treatment read: ' + noTtError.getMessage());
+        Assert.isNotNull(noProductError, 'No Product2 read refuses create.');
+        Assert.isTrue(noProductError.getMessage().contains('read the product this screen needs'),
+            'It names the product read: ' + noProductError.getMessage());
+        if (ttVisible && productVisible) {
+            Assert.isNull(sharedError, 'Records the user can see pass: '
+                + (sharedError == null ? null : sharedError.getMessage()));
+            Assert.isNotNull(detailsShared, 'The visible-records call reached the action.');
+        } else {
+            Assert.isNotNull(sharedError, 'A record hidden by sharing refuses create.');
+            Assert.areEqual(ttVisible ? PRODUCT_REFUSAL : TT_REFUSAL, sharedError.getMessage(),
+                'It says the hidden record is not visible.');
+            Assert.isNull(detailsShared, 'Nothing reached the action.');
+        }
+        Assert.isNull(viewAllError, 'With view-all both reads pass: '
+            + (viewAllError == null ? null : viewAllError.getMessage()));
+        Map<String, Object> txn = onlyTransaction(detailsViewAll);
+        Assert.areEqual(String.valueOf(args.taxTreatmentId), txn.get('TaxTreatmentId__std'),
+            'The view-all call reached the action with the tax treatment.');
+        Assert.areEqual(String.valueOf(args.productId), txn.get('ProductId__std'),
+            'The view-all call reached the action with the product.');
     }
 
     // The real query's cap and truncation message, through a small injected cap. Three Advance-only
@@ -2184,12 +2352,12 @@ private class RLM_BillingScheduleGroupServiceTest {
         public String billingType = 'Advance';
         public Decimal quantity = 2;
         public Id legalEntityId = activeLegalEntityId();
-        public Id taxTreatmentId = fakeId(TaxTreatment.SObjectType);
+        public Id taxTreatmentId = activeTaxTreatmentId();
         public String currencyIsoCode = UserInfo.getDefaultCurrency();
         public Decimal unitPrice = 10;
         public Decimal totalPrice = 240;
         public String billingCity = 'San Francisco';
-        public Id productId = fakeId(Product2.SObjectType);
+        public Id productId = softwareProductId();
         public String productName = 'Widget';
         public Date startDate = Date.newInstance(2026, 1, 1);
         public Integer billingDayOfMonth = 1;
@@ -2223,6 +2391,29 @@ private class RLM_BillingScheduleGroupServiceTest {
             testLegalEntityId = le.Id;
         }
         return testLegalEntityId;
+    }
+
+    // The tax treatment and product the pickers offer (getTaxTreatments: active; getProducts: active,
+    // Software family), the treatment on the test legal entity: one per test, made on first use.
+    private static Id testTaxTreatmentId;
+    private static Id activeTaxTreatmentId() {
+        if (testTaxTreatmentId == null) {
+            TaxTreatment tt = new TaxTreatment(
+                Name = 'BSG Test TT', Status = 'Active', LegalEntityId = activeLegalEntityId());
+            insert tt;
+            testTaxTreatmentId = tt.Id;
+        }
+        return testTaxTreatmentId;
+    }
+
+    private static Id testProductId;
+    private static Id softwareProductId() {
+        if (testProductId == null) {
+            Product2 p = new Product2(Name = 'BSG Test Software', IsActive = true, Family = 'Software');
+            insert p;
+            testProductId = p.Id;
+        }
+        return testProductId;
     }
 
     // A treatment the lookup finds, unless a test has set its own candidates.
