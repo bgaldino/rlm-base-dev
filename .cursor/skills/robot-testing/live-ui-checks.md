@@ -25,7 +25,8 @@ python scripts/ui_check/ui_check.py shot --org <sf alias or username> \
   `sf org open --url-only --json`, uses it for one `driver.get`, and never prints,
   logs or puts it in an error. Screenshots show no URL bar. Keep it that way in any
   change: no session URL, `sid` or password in a file, a log or a PR.
-- Text dumps match headings, buttons, links, labels and table cells. [Measured:
+- Text dumps match `h1`-`h3`, buttons, links, labels, table cells, spans, paragraphs and
+  `lightning-formatted-text`. [Measured:
   2026-11-26, 264 (USA796), ent-sb0 harness build] A rich-text component's text was
   missing from the dump but visible in the screenshot, so use the screenshot for it.
 
@@ -39,7 +40,8 @@ For role-specific checks (a rep, a billing user) the sf user is the wrong identi
 1. Create the user with a Standard (or other) profile: `sf data create record -s User -v "..."`
    with `Username`, `LastName`, `Email`, `Alias`, `ProfileId`, `TimeZoneSidKey`,
    `LocaleSidKey`, `EmailEncodingKey` and `LanguageLocaleKey`. Test users are not
-   org-authenticated, so `sf org generate password` does not apply.
+   org-authenticated. [Open: an earlier batch reported `sf org generate password` has no
+   auth for such users; not re-measured here.]
 2. Set a password through the REST password resource, which is what `set-password`
    does: `POST /services/data/v68.0/sobjects/User/<id>/password` with
    `{"NewPassword": ...}`. The password comes from an environment variable you set
@@ -47,27 +49,27 @@ For role-specific checks (a rep, a billing user) the sf user is the wrong identi
 3. Log in and screenshot:
 
 ```bash
-export UI_CHECK_PASSWORD='<a password that meets the org policy>'
-export UI_CHECK_NEW_PASSWORD='<a different one>'   # used on the forced change-password page
+# Each agent Bash call is a fresh shell: export and use the passwords in one call.
+export UI_CHECK_PASSWORD="$(python3 -c 'import secrets;print(secrets.token_urlsafe(12)+"aA1!")')"
 python scripts/ui_check/ui_check.py set-password --org <o> --username <u> --password-env UI_CHECK_PASSWORD
 python scripts/ui_check/ui_check.py user-shot --org <o> --username <u> \
-    --password-env UI_CHECK_PASSWORD --new-password-env UI_CHECK_NEW_PASSWORD \
+    --password-env UI_CHECK_PASSWORD \
     --path /lightning/page/home --out user.png --text
 ```
 
 `user-shot` opens the org's my-domain login page, enters the username, continues to
-the password step if the page is identity-first, signs in, changes the password on the forced change-password page when the org shows it
-(to `--new-password-env`; the user then has that password, so later runs pass it as
-`--password-env`), then opens `--path`. `--app-path
+the password step if the page is identity-first, signs in, then opens `--path`. It stops with "login did not complete" if the final page is
+the login or change-password page. `--app-path
 /lightning/app/c__<AppDeveloperName>` opens an app first (record pages render under
 the last-used app).
 
 [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build] A Standard User created
-over the API and given a REST password stopped on the forced change-password page
-(`/_ui/system/security/ChangePassword`: `newpassword`, `confirmpassword`, a security
-`answer` field and the `password-button` submit); after the change it landed on
-Lightning Home showing the user's own app menu, not the sf user's. Each `set-password`
-brings the page back.
+over the API and given a REST password signed in and landed on the forced
+change-password page (`/_ui/system/security/ChangePassword`) after every
+`set-password`. The session was already signed in: navigating on to a Lightning path
+skipped the page without changing the password, and the user's own app menu showed
+(not the sf user's). Submitting the change form did not leave the page in the helper's
+runs, so the helper does not use it.
 
 ## Test a FlexiPage in a shared org without changing anyone's pages
 
@@ -82,7 +84,7 @@ Activating a record page as the org default changes it for everyone. Instead, gi
    ```xml
    <actionOverrides>
        <actionName>View</actionName>
-       <content>T512_Account_Page</content>
+       <content>UiCheck_Account_Page</content>
        <formFactor>Large</formFactor>
        <skipRecordTypeSelect>false</skipRecordTypeSelect>
        <type>Flexipage</type>
@@ -92,20 +94,21 @@ Activating a record page as the org default changes it for everyone. Instead, gi
 
    The CustomApplication also needs `<navType>Standard</navType>`,
    `<uiType>Lightning</uiType>`, `<formFactors>Large</formFactors>`, a label and a
-   `<tabs>` entry. Do not put `<mode>Replace</mode>` on a region with no parent: the
-   deploy fails with "specifies mode 'REPLACE' but a parent region enabling that mode
-   doesn't exist".
+   `<tabs>` entry. Do not put `<mode>Replace</mode>` on a region with no parent (see the
+   measured note below).
 2. Make the app visible to the permission set with a `SetupEntityAccess` row:
    `ParentId` = the PermissionSet Id, `SetupEntityId` = the CustomApplication Id
    (Tooling `CustomApplication`, or `AppMenuItem.ApplicationId`).
 3. Assign the permission set to the test user (`PermissionSetAssignment`).
 4. Open the app, then the record: `user-shot --app-path /lightning/app/c__<DeveloperName>
-   --path /lightning/r/Account/<id>/view`. The app id form `/lightning/app/<02u id>`
-   did not switch apps; the `c__<DeveloperName>` form did.
+   --path /lightning/r/Account/<id>/view`.
 
 [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build] The test user saw the
 test page (the marker text) only inside the test app. The same record opened in the
-user's default app, and as the sf user, showed the normal record page.
+user's default app, and as the sf user, showed the normal record page. The app URL
+`/lightning/app/c__<DeveloperName>` switched apps; `/lightning/app/<CustomApplication
+Id>` did not. A deploy with `<mode>Replace</mode>` on a parentless region failed with
+"specifies mode 'REPLACE' but a parent region enabling that mode doesn't exist".
 
 The app, page, permission set and assignment are test metadata: remove them with the
 test records once the check is done.

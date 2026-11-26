@@ -15,7 +15,7 @@ export SF_DISABLE_LOG_FILE=true SF_DISABLE_TELEMETRY=true SF_AUTOUPDATE_DISABLE=
 sf data query -q "SELECT COUNT() FROM Account" --target-org <sf alias or username>
 ```
 
-- The Bash tool's `allowed_domains` setting must include the org's `<host>.my.salesforce.com`,
+- The Bash tool call's `allowed_domains` parameter must include the org's `<host>.my.salesforce.com`,
   `*.my.salesforce.com` and `*.salesforce.com`. Without them the calls fail on the
   network, not on a permission.
 - `SF_DISABLE_LOG_FILE=true` is required. Without it sf tries to write
@@ -51,6 +51,7 @@ read the outcome from the org.
    `sf project deploy start --metadata-dir <dir> --target-org <o> --wait 5`.
    [Open: `--source-dir` deploys were reported to hit the same EPERM; not re-measured.]
 2. Find the request: `sf data query --use-tooling-api -q "SELECT Id,Status,NumberComponentsDeployed,NumberComponentErrors FROM DeployRequest WHERE CreatedBy.Username = '<the target-org user>' ORDER BY CreatedDate DESC LIMIT 1" --target-org <o>`
+   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build: the filter works on Tooling `DeployRequest`.]
    (other sessions deploying to a shared org would otherwise be picked up; the `--json`
    output of the deploy, when it prints one, also carries the id). Wait until `Status` is `Succeeded` or `Failed`.
 3. Read the failures: `sf api request rest "/services/data/v68.0/metadata/deployRequest/<id>?includeDetails=true" --target-org <o> 2>/dev/null | jq '.deployResult.details.componentFailures'`.

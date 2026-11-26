@@ -83,18 +83,26 @@ def _frontdoor_url(org, path="/lightning/page/home"):
     try:
         return json.loads(proc.stdout)["result"]["url"]
     except (ValueError, KeyError, TypeError):
-        raise SystemExit("sf org open --url-only returned no URL (exit %s)" % proc.returncode)
+        detail = ""
+        for text in (proc.stderr, proc.stdout):  # sf v2 writes error JSON to stderr
+            try:
+                detail = str(json.loads(text).get("message") or "")
+                break
+            except (ValueError, AttributeError):
+                continue
+        raise SystemExit("sf org open --url-only returned no URL (exit %s): %s"
+                         % (proc.returncode, _scrub(detail) or "no detail"))
 
 
-def make_driver(headed=None):
+def make_driver():
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
 
     options = webdriver.ChromeOptions()
-    binary = os.environ.get("CHROME_BINARY") or os.environ.get("CHROME_BIN")
+    binary = os.environ.get("CHROME_BINARY")
     if binary:
         options.binary_location = binary
-    if not (headed if headed is not None else os.environ.get("HEADED") == "1"):
+    if os.environ.get("HEADED") != "1":
         options.add_argument("--headless=new")
     for arg in ("--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1600,1000"):
         options.add_argument(arg)
@@ -158,7 +166,7 @@ def _rest(instance, token, method, path, body=None):
 
 
 def _password(args):
-    value = os.environ.get(args.password_env)
+    value = os.environ.pop(args.password_env, None)
     if not value:
         raise SystemExit("set the password in the environment variable %s" % args.password_env)
     return value
@@ -177,12 +185,16 @@ def cmd_set_password(args):
     print("password set for", args.username)
 
 
-def _login_as(driver, instance, username, password, new_password=None):
-    """Identity-first login page, then the forced change-password page if the org shows it.
+def _require_logged_in(driver):
+    """Stop instead of screenshotting the login or change-password page as if it were the app."""
+    path = urlparse(driver.current_url).path
+    if path.rstrip("/") == "" or "ChangePassword" in path or "login" in path.lower():
+        raise SystemExit("login did not complete (on %s)" % (path or "/"))
 
-    An admin-set password makes the first login stop on /_ui/system/security/ChangePassword;
-    ``new_password`` is what it is changed to (the user's password afterwards).
-    """
+
+def _login_as(driver, instance, username, password):
+    """Identity-first login page. After an admin-set password the org lands on its
+    change-password page; the session is already signed in, so navigating on skips it."""
     from selenium.webdriver.common.by import By
 
     driver.get(instance + "/")
@@ -193,19 +205,11 @@ def _login_as(driver, instance, username, password, new_password=None):
         driver.find_element(By.ID, "Login").click()  # identity-first: continue, then password
         time.sleep(3)
         pw = driver.find_elements(By.ID, "password")
+    if not pw:
+        raise SystemExit("login did not complete: no password field on the login page")
     pw[0].send_keys(password)
     driver.find_element(By.ID, "Login").click()
     wait_ready(driver, 40)
-    if driver.find_elements(By.ID, "newpassword"):
-        if not new_password:
-            raise SystemExit("the org asks this user to change the password on first login: "
-                             "pass --new-password-env")
-        driver.find_element(By.ID, "newpassword").send_keys(new_password)
-        driver.find_element(By.ID, "confirmpassword").send_keys(new_password)
-        for answer in driver.find_elements(By.ID, "answer"):
-            answer.send_keys("test")  # the security-question answer; not a secret
-        driver.find_element(By.ID, "password-button").click()
-        wait_ready(driver, 40)
 
 
 def cmd_user_shot(args):
@@ -213,13 +217,13 @@ def cmd_user_shot(args):
     password = _password(args)
     driver = make_driver()
     try:
-        new_password = os.environ.get(args.new_password_env) if args.new_password_env else None
-        _login_as(driver, instance, args.username, password, new_password)
+        _login_as(driver, instance, args.username, password)
         if args.app_path:  # open the app first: record pages render under the last-used app
             driver.get(instance + args.app_path)
             wait_ready(driver)
         driver.get(instance + args.path)
         wait_ready(driver)
+        _require_logged_in(driver)
         _save(driver, args.out, args.text)
     finally:
         driver.quit()
@@ -244,8 +248,6 @@ def main(argv=None):
     us.add_argument("--username", required=True)
     us.add_argument("--password-env", required=True, help="env var holding the password")
     us.add_argument("--path", default="/lightning/page/home")
-    us.add_argument("--new-password-env", help="env var holding the password to set on the "
-                    "forced change-password page (needed after set-password)")
     us.add_argument("--app-path", help="e.g. /lightning/app/c__<DeveloperName>, opened before --path")
     us.add_argument("--out", required=True)
     us.add_argument("--text", action="store_true")

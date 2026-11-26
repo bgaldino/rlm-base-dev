@@ -38,6 +38,22 @@ class UiCheckTest(unittest.TestCase):
                 ui_check._frontdoor_url("alias")
         self.assertNotIn("SECRET", str(ctx.exception))
 
+    def test_login_page_after_login_is_not_a_pass(self):
+        for url in ("https://x.my.salesforce.com/", "https://x.my.salesforce.com/login/?c=1",
+                    "https://x.my.salesforce.com/_ui/system/security/ChangePassword"):
+            driver = mock.Mock(current_url=url)
+            with self.assertRaises(SystemExit):
+                ui_check._require_logged_in(driver)
+        ui_check._require_logged_in(mock.Mock(current_url="https://x.my.salesforce.com/lightning/page/home"))
+
+    def test_password_is_read_from_the_environment_and_removed(self):
+        args = mock.Mock(password_env="UI_CHECK_TEST_PW")
+        with mock.patch.dict(ui_check.os.environ, {"UI_CHECK_TEST_PW": "pw"}):
+            self.assertEqual(ui_check._password(args), "pw")
+            self.assertNotIn("UI_CHECK_TEST_PW", ui_check.os.environ)
+            with self.assertRaises(SystemExit):
+                ui_check._password(args)
+
 
 if __name__ == "__main__":
     unittest.main()

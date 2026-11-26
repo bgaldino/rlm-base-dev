@@ -448,6 +448,4 @@ cci flow info prepare_rlm_org
 - **Build Harness** — `.cursor/skills/build-harness/SKILL.md`
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
-- **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
-- **Toolchain** — `.cursor/skills/toolchain/sandboxed-agents.md`: running `sf` (query, Apex, record
-  create, metadata deploy) from a sandboxed agent; `cci` itself cannot run in that sandbox.
+- **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`; `sf` from a sandboxed agent (`cci` cannot run there): `.cursor/skills/toolchain/sandboxed-agents.md`
