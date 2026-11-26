@@ -390,7 +390,12 @@ private class RLM_OnAccountBillingControllerTest {
         String userReadError;
         System.runAs(noAccess) {
             // Which branch this run takes: a refused read (the catch) or an empty one.
-            userReadError = userModeError('SELECT IsoCode, ConversionRate FROM DatedConversionRate LIMIT 1');
+            // Diagnostic only: any exception becomes the logged message, so it cannot fail the test.
+            try {
+                userReadError = userModeError('SELECT IsoCode, ConversionRate FROM DatedConversionRate LIMIT 1');
+            } catch (Exception e) {
+                userReadError = e.getTypeName() + ': ' + e.getMessage();
+            }
             userRates = RLM_OnAccountBillingController.loadDatedRates();
         }
         Test.stopTest();

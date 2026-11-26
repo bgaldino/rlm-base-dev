@@ -8,8 +8,8 @@
          managed role set carries this read.
          CollectionPlan is readable only with the Collections and Recovery Specialist user permission,
          which the user license allows only with the Billing Advanced permission set license (measured
-         on a 264 org): the assignee must also hold BillingAdvancedPsl. Read only; collections writes
-         stay with BillingCollectionsAndRecoverySpecialist. The object grants and the CollectionPlan.AccountId
+         on a 264 org): the assignee must also hold BillingAdvancedPsl. Object access is read only; what
+         the user permission unlocks beyond object access is not measured. The object grants and the CollectionPlan.AccountId
          field grant are copied here (RLM_BillingUI has them too); the account balance cards still need
          RLM_BillingUI for their Apex classes and other reads. -->
     <description>Read-only collection plans and their items for the billing personas (Billing Operations, Billing Admin, Credit Memo Operations), assigned next to their group. The assignee needs the Billing Advanced permission set license.</description>

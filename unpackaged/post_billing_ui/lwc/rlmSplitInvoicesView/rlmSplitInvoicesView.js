@@ -217,7 +217,8 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         if (!node) return undefined;
         const id = node.Id;
         const documentNumber = node?.DocumentNumber?.value;
-        const name = documentNumber;
+        // The invoice link's label: a missing document number shows a dash, never the link (an Id).
+        const name = documentNumber || '—';
         const invoiceDate = node?.InvoiceDate?.value;
         const balance = node?.Balance?.value;
         const status = node?.Status?.value;
