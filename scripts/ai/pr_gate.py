@@ -816,6 +816,10 @@ CHECKS = [
                   "tasks/rlm_sfdmu.py",
                   "tasks/rlm_configure_pricing_recipe_table_mappings.py",
                   "tasks/rlm_repair_pricing_schedules.py",
+                  # pack 503: the toggle suite also checks the settings paths cumulusci.yml configures.
+                  "tests/test_repair_pricing_schedules_toggle.py", "cumulusci.yml",
+                  "tasks/resources/pricing_settings_disable/",
+                  "unpackaged/pre/2_settings/IndustriesPricing.settings-meta.xml",
                   "tasks/rlm_recalculate_permission_set_groups.py",
                   "tasks/rlm_reconfigure_expression_set.py",
                   "tasks/rlm_create_procedure_plan_def.py",
@@ -844,7 +848,7 @@ CHECKS = [
                   "docs/references/expression-set-overlay-examples/"],
         # cumulusci too: tests/test_soql_option_hardening.py imports tasks/rlm_extend_stdctx.py,
         # which subclasses CumulusCI's base classes with no fallback.
-        deps=["cumulusci", "requests"], gating=True,
+        deps=["cumulusci", "requests", "PyYAML"], gating=True,
     ),
     dict(
         name="yaml_offline_suites",
@@ -1123,6 +1127,7 @@ REQUESTS_SUITES = [
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
     "tests/test_project_api_version.py",
+    "tests/test_repair_pricing_schedules_toggle.py",
     "tests/test_rlm_mcp_configure.py",
     "tests/test_soql_option_hardening.py",
 ]
