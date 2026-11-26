@@ -96,6 +96,47 @@ def test_parse_flag_overrides_rejects_bad_input(bad):
         parse_flag_overrides([bad])
 
 
+@pytest.mark.parametrize("value, expected", [
+    (True, True), (False, False), (1, True), (0, False), (None, False), ("", False), ("   ", False),
+    ("true", True), ("TRUE", True), (" true ", True), ("on", True), ("y", True), ("yes", True), ("1", True),
+    ("false", False), ("off", False), ("n", False), ("no", False), ("0", False),
+])
+def test_to_bool_uses_cumulusci_vocabulary(value, expected):
+    # todo 488: "on" and "y" are CumulusCI's too; blank and padded follow tasks.soql_utils.option_flag.
+    from scripts.ux._flags import to_bool
+    assert to_bool(value, "billing") is expected
+
+
+@pytest.mark.parametrize("value", ["maybe", "treu", "2", ["true"], {"a": 1}])
+def test_to_bool_refuses_what_cumulusci_refuses_naming_the_flag(value):
+    # It read "maybe" (and a list) as False, which silently assembled the flag-off pages.
+    from scripts.ux._flags import to_bool
+    with pytest.raises(UxOptionError, match="UX feature flag billing must be true or false"):
+        to_bool(value, "billing")
+
+
+def test_to_bool_agrees_with_installed_cumulusci():
+    process_bool_arg = pytest.importorskip("cumulusci.core.utils").process_bool_arg
+    from scripts.ux._flags import _FALSE_VALUES, _TRUE_VALUES, to_bool
+
+    def outcome(fn, value):
+        try:
+            return fn(value)
+        except (TypeError, UxOptionError):
+            return "refused"
+    values = list(_TRUE_VALUES + _FALSE_VALUES) + [v.upper() for v in _TRUE_VALUES + _FALSE_VALUES] + [
+        "maybe", "2", "t", "f", True, False, 0, 1, 2]
+    assert [(v, outcome(process_bool_arg, v), outcome(to_bool, v)) for v in values
+            if outcome(process_bool_arg, v) != outcome(to_bool, v)] == []
+
+
+def test_features_from_custom_refuses_a_bad_flag_by_name():
+    from scripts.ux._flags import features_from_custom
+    assert features_from_custom({"billing": " on ", "tax": "off"})["billing"] is True
+    with pytest.raises(UxOptionError, match="UX feature flag tax must be true or false"):
+        features_from_custom({"tax": "maybe"})
+
+
 def test_resolve_features_precedence(tmp_path):
     name = UX_KNOWN_FLAGS[0]
     defaults, _ = resolve_features(REPO_ROOT)

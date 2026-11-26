@@ -17,7 +17,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -75,7 +75,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "required": False,
         },
         "versionActive": {
-            "description": "Whether the procedure plan definition version should be active",
+            "description": "Whether the procedure plan definition version should be active. Blank is false; a list or an unparseable value is refused.",
             "required": True,
         },
         "versionContextDefinition": {
@@ -202,7 +202,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             return None
 
         version_item = {
-            "active": self._to_bool(self.options.get("versionActive", False)),
+            "active": self._version_active(),
             "contextDefinition": context_definition_id,
             "readContextMapping": self.options.get("versionReadContextMapping"),
             "saveContextMapping": self.options.get("versionSaveContextMapping"),
@@ -237,6 +237,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
+        self._version_active()  # refuse a bad value before the existence query
 
         if self._definition_exists(dev_name):
             self.logger.info(
@@ -277,13 +278,10 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
                 f"{resp.status_code} {resp.text}"
             )
 
-    @staticmethod
-    def _to_bool(value):
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() in ("true", "1", "yes")
-        return bool(value)
+    def _version_active(self) -> bool:
+        """versionActive through soql_utils.option_flag: None, blank or whitespace is False, padded
+        text is read, and a list (which bool() read as True) or "maybe" (read as False) is refused."""
+        return option_flag(self.options.get("versionActive"), "versionActive", TaskOptionsError)
 
 
 class ActivateProcedurePlanVersion(BaseSalesforceTask):

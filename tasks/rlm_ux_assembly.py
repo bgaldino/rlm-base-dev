@@ -115,9 +115,13 @@ class AssembleAndDeployUX(SFDXBaseTask):
         output_path = repo_root / self.options.get("output_path", "unpackaged/post_ux")
         should_deploy = self._deploy_option()
 
+        try:
+            features = features_from_custom(getattr(self.project_config, "project__custom", {}))
+        except UxOptionError as exc:  # a flag that isn't true or false, named
+            raise TaskOptionsError(str(exc)) from exc
         ctx = UxContext(
             repo_root=repo_root,
-            features=features_from_custom(getattr(self.project_config, "project__custom", {})),
+            features=features,
             api_version=project_api_version(self.project_config, default=DEFAULT_API_VERSION),
             logger=self.logger or logging.getLogger("rlm_ux"),
         )

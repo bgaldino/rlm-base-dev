@@ -23,7 +23,7 @@ ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*m')
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, require_identifier, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, require_identifier, soql_quote
 
 # Note: If CumulusCI is not installed, you'll need to install it or mock these imports for development.
 try:
@@ -555,6 +555,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     def _prep_runtime(self) -> None:
         # First, so a bad value fails before any side effect (temp copy, export.json rewrite).
         self._row_error_ignores = _parse_row_error_ignores(self.options.get("ignore_row_errors_for"))
+        # The boolean options too, though some are read only after the load: a refused one must
+        # fail before the temp copy, the export.json rewrite or the run.
+        for name in ("dynamic_assigned_to_user", "sync_objectset_source_to_source", "simulation"):
+            _as_bool(self.options.get(name), name)
+        _as_bool(self.options.get("fail_on_row_errors"), "fail_on_row_errors", default=True)
         self._load_keychain()
         
         self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
@@ -568,11 +573,12 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
 
-        if _as_bool(self.options.get("dynamic_assigned_to_user")):
+        if _as_bool(self.options.get("dynamic_assigned_to_user"), "dynamic_assigned_to_user"):
             self._apply_dynamic_assigned_to_user()
         self._apply_parent_id_lookups()
         self._apply_conditional_steps()
-        if self.options.get("sync_objectset_source_to_source"):
+        # Was raw truthiness: `-o sync_objectset_source_to_source false` is the truthy string "false".
+        if _as_bool(self.options.get("sync_objectset_source_to_source"), "sync_objectset_source_to_source"):
             self._sync_objectset_source_to_source()
         self._prepare_export_json_file()
     
@@ -621,7 +627,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
     def _check_row_errors(self, baseline: Dict[str, float]) -> None:
         """Fail (or warn) on rows Salesforce rejected; the exit code does not show them."""
-        if _as_bool(self.options.get("simulation")):
+        if _as_bool(self.options.get("simulation"), "simulation"):
             return  # nothing was written, so there is nothing to have been rejected
         if not os.path.isdir(os.path.join(self.pathtoexportjson, "target")):
             # Not expected (SFDMU always writes target/), so say so rather than read as clean.
@@ -631,8 +637,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         if not found:
             return
         known, unknown = sfdmu_export.split_known_row_errors(found, self._row_error_ignores)
-        fail = self.options.get("fail_on_row_errors")
-        failing = fail is None or _as_bool(fail)
+        # Blank is the default (fail); it used to read as false and let rejected rows through.
+        failing = _as_bool(self.options.get("fail_on_row_errors"), "fail_on_row_errors", default=True)
         plan = self.options.get("pathtoexportjson")
         if getattr(self, "_temp_plan_dir", None):
             plan += " (target/ paths are in the temp plan copy, removed after the run)"
@@ -666,7 +672,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 pathtoexportjson=self.pathtoexportjson,
                 instanceurl=trimmed_instance_url
             )
-        if _as_bool(self.options.get("simulation")):
+        if _as_bool(self.options.get("simulation"), "simulation"):
             cmd += " --simulation"
         return cmd
         
@@ -692,11 +698,13 @@ def _parse_row_error_ignores(value) -> Dict[str, Optional[str]]:
         raise TaskOptionsError(f"ignore_row_errors_for: cannot parse {value!r}: {exc}") from exc
 
 
-def _as_bool(value) -> bool:
-    """A CCI option as a bool: `-o name false` arrives as the string "false"."""
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true", "yes", "y", "on")
-    return bool(value)
+def _as_bool(value, option: str, default: bool = False) -> bool:
+    """A CCI option as a bool: `-o name false` arrives as the string "false".
+
+    soql_utils.option_flag: None, blank or whitespace is `default`, padded text is read, and a
+    list (which bool() read as True) or a value outside CumulusCI's vocabulary is refused by name.
+    """
+    return option_flag(value, option, TaskOptionsError, default)
 
 
 def _sobjects_from_export_json(export_path: str) -> list:
@@ -1158,7 +1166,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
 
     def _assigned_to_user_name(self) -> Optional[str]:
         """The target org user's Name when dynamic_assigned_to_user is set (queried once), else None."""
-        if not _as_bool(self.options.get("dynamic_assigned_to_user")):
+        if not _as_bool(self.options.get("dynamic_assigned_to_user"), "dynamic_assigned_to_user"):
             return None
         if getattr(self, "_assigned_to_name", None) is None:
             # A real username, as LoadSFDMUData uses: the query matches Username = '<x>'.
@@ -1289,6 +1297,11 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         if not os.path.isdir(plan_dir):
             raise FileNotFoundError(f"Plan directory not found: {plan_dir}")
+        # Booleans are read before the first load: the roundtrip ones used to be read after it,
+        # and `str(v).lower() in {...}` read " true ", "on" and [True] as false.
+        use_roundtrip = _as_bool(self.options.get("use_extraction_roundtrip"), "use_extraction_roundtrip")
+        persist_output = _as_bool(self.options.get("persist_extraction_output"), "persist_extraction_output")
+        _as_bool(self.options.get("dynamic_assigned_to_user"), "dynamic_assigned_to_user")
         if isinstance(self.org_config, ScratchOrgConfig):
             self.targetusername = self.org_config.username
         else:
@@ -1305,10 +1318,8 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         self._run_load_once(strict=False)
         self._run_post_load_apex_if_configured()
         counts_after_first = self._get_record_counts(sobjects)
-        use_roundtrip = str(self.options.get("use_extraction_roundtrip", "")).lower() in {"1", "true", "yes"}
         if use_roundtrip:
             self.logger.info("Extraction roundtrip: extract -> post-process -> load from processed (validates v5 re-import)")
-            persist_output = str(self.options.get("persist_extraction_output", "")).lower() in {"1", "true", "yes"}
             if persist_output:
                 from datetime import datetime
                 plan_name = os.path.basename(os.path.normpath(plan_dir))
@@ -1792,11 +1803,10 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.accesstoken = self.org_config.access_token
             self.instanceurl = self.org_config.instance_url
 
-            raw_run_post_process = self.options.get("run_post_process")
-            if raw_run_post_process is None:
-                run_post_process = True  # default when option is absent
-            else:
-                run_post_process = str(raw_run_post_process).strip().lower() not in {"0", "false", "no"}
+            # Before the extract. None, blank or whitespace is the default (post-process; copy_to_plan
+            # off); "off", "n" and a list used to read as true, "maybe" too.
+            run_post_process = _as_bool(self.options.get("run_post_process"), "run_post_process", default=True)
+            copy_to_plan = _as_bool(self.options.get("copy_to_plan"), "copy_to_plan")
             # Once, before the extract: a bad referenceplandir fails fast, and only when used.
             reference_plan_dir = self._resolve_reference_plan_dir(plan_dir) if run_post_process else None
 
@@ -1853,7 +1863,6 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                     with open(code_map_file, "w", encoding="utf-8") as f:
                         json.dump(code_map, f, indent=2, ensure_ascii=False)
                     self.logger.info(f"Wrote code backfill map: {code_map_file}")
-                copy_to_plan = str(self.options.get("copy_to_plan", "")).strip().lower() in {"1", "true", "yes"}
                 run_post_process_script(
                     output_dir, plan_dir, processed_dir,
                     cwd=self.options.get("dir"), logger=self.logger,

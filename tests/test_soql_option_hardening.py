@@ -857,6 +857,99 @@ for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"
           err is not None and needle in err and "log" not in seen, repr((err, seen)))
 
 
+print("todo 488: recalculate_permission_set_groups and create_procedure_plan_definition booleans")
+_psg = load("rlm_recalculate_permission_set_groups")
+
+
+def psg_run(options):
+    """Run _run_task with an Outdated group; return (error, queries, wait kwargs, force args)."""
+    seen = {"queries": [], "wait": None, "force": None}
+    task = _psg.RecalculatePermissionSetGroups.__new__(_psg.RecalculatePermissionSetGroups)
+    task.options = {"api_names": "G1", "initial_delay_seconds": 0, **options}
+    task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+    task._query_groups = lambda names: seen["queries"].append(list(names)) or [
+        {"DeveloperName": n, "Status": "Outdated"} for n in names]
+    task._wait_until_updated = lambda **kw: seen.__setitem__("wait", kw)
+    task._run_force = lambda names, timeout, poll, verify=None: seen.__setitem__("force", (names, verify))
+    try:
+        task._run_task()
+        err = None
+    except Exception as exc:
+        err = str(exc)
+    return err, seen
+
+
+for value, want in ((None, True), ("", True), ("   ", True), (" true ", True), ("on", True),
+                    ("false", False), (" off ", False), (0, False)):
+    err, seen = psg_run({"trigger_recalc": value})
+    check(f"psg: trigger_recalc {value!r} is {want} (blank read false, against its default true)",
+          err is None and seen["queries"] and seen["wait"] and seen["wait"]["trigger_recalc"] is want,
+          repr((err, seen)))
+for value, want in ((" true ", True), ("on", True), ("", False), ("false", False)):
+    err, seen = psg_run({"use_tooling_api": value})
+    check(f"psg: use_tooling_api {value!r} is {want}",
+          err is None and seen["wait"] and seen["wait"]["use_tooling_api"] is want, repr((err, seen)))
+err, seen = psg_run({"force_recalc": " true ", "verify_fields": " Quote.A , Quote.B "})
+check("psg: a padded force_recalc runs the force path with the parsed verify_fields",
+      err is None and seen["force"] == (["G1"], ["Quote.A", "Quote.B"]), repr((err, seen)))
+err, seen = psg_run({"force_recalc": "  ", "verify_fields": "  "})
+check("psg: blank force_recalc is false (the normal wait runs) and blank verify_fields is none",
+      err is None and seen["wait"] and seen["force"] is None, repr((err, seen)))
+err, seen = psg_run({"api_names": [" G1 ", "G2,G3"]})
+check("psg: api_names list items are trimmed and split",
+      err is None and seen["queries"][0] == ["G1", "G2", "G3"], repr((err, seen)))
+for options, needle in (({"trigger_recalc": ["true"]}, "trigger_recalc must be a single value"),
+                        ({"trigger_recalc": "maybe"}, "trigger_recalc must be true or false"),
+                        ({"use_tooling_api": "maybe"}, "use_tooling_api must be true or false"),
+                        ({"force_recalc": ["true"]}, "force_recalc must be a single value"),
+                        ({"verify_fields": ["Quote.A", None]}, "verify_fields items must be names"),
+                        ({"api_names": ["G1", None]}, "api_names items must be names"),
+                        ({"api_names": 0}, "api_names must be a comma-separated string"),
+                        ({"api_names": "  "}, "api_names cannot be empty"),
+                        ({"api_names": []}, "api_names cannot be empty")):
+    err, seen = psg_run(options)
+    check(f"psg: {options!r} refused by name before any query",
+          err is not None and needle in err and not seen["queries"] and not seen["wait"] and not seen["force"],
+          repr((err, seen)))
+
+_ppd = load("rlm_create_procedure_plan_def")
+
+
+def ppd_run(options):
+    """Run CreateProcedurePlanDefinition._run_task; return (error, existence queries, POST bodies)."""
+    queries, posts = [], []
+    task = _ppd.CreateProcedurePlanDefinition.__new__(_ppd.CreateProcedurePlanDefinition)
+    task.options = {"developerName": "D", "name": "N", "processType": "P", **options}
+    task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None, error=lambda *a: None)
+    task._definition_exists = lambda name: queries.append(name) or False
+    task._resolve_context_definition_id = lambda: "CTX"
+    resp = types.SimpleNamespace(ok=True, content=b"{}", json=lambda: {"id": "X"})
+    with mock.patch.object(_ppd.CreateProcedurePlanDefinition, "_base_url", "https://x", create=True), \
+            mock.patch.object(_ppd.CreateProcedurePlanDefinition, "_headers", {}, create=True), \
+            mock.patch.object(_ppd.requests, "post", lambda url, headers=None, json=None, timeout=None:
+                              posts.append(json) or resp):
+        try:
+            task._run_task()
+            err = None
+        except Exception as exc:
+            err = str(exc)
+    return err, queries, posts
+
+
+for value, want in ((True, True), (" true ", True), ("on", True), (None, False), ("", False),
+                    ("  ", False), ("false", False), (0, False)):
+    err, queries, posts = ppd_run({"versionActive": value})
+    check(f"procedure plan: versionActive {value!r} posts active={want}",
+          err is None and queries == ["D"] and len(posts) == 1
+          and posts[0]["procedurePlanDefinitionVersions"][0]["active"] is want
+          if posts and "procedurePlanDefinitionVersions" in posts[0] else False, repr((err, queries, posts)))
+for value, needle in ((["false"], "versionActive must be a single value"),
+                      ("maybe", "versionActive must be true or false")):
+    err, queries, posts = ppd_run({"versionActive": value})
+    check(f"procedure plan: versionActive {value!r} refused by name before any query (a list read True)",
+          err is not None and needle in err and queries == [] and posts == [], repr((err, queries, posts)))
+
+
 print()
 if FAILURES:
     print(f"{len(FAILURES)} check(s) failed")

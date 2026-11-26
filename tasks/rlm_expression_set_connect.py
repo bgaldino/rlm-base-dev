@@ -62,7 +62,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -185,13 +185,27 @@ class _TaskLifecycle(LifecycleCore):
         )
 
 
-def _parse_bool_option(value: Any, default: bool) -> bool:
-    """Parse a CCI bool option: None → default, bool → as-is, string → truthy match."""
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    return str(value).lower() in ("true", "1", "yes")
+# Every boolean option these tasks declare, with its default.
+_BOOL_OPTION_DEFAULTS = {
+    "dry_run": False, "verify": True, "skip_validation": False, "normalize_html_entities": True,
+    "preserve_labels": True, "activate_after_apply": True, "activate_after_import": True,
+    "cascade_deactivate_procedure_plan": True, "confirm": False, "strict": False,
+}
+
+
+def _parse_bool_option(value: Any, default: bool, option: str = "option") -> bool:
+    """Parse a CCI bool option through soql_utils.option_flag: None, blank or whitespace is
+    `default`, padded text is read, and a list or a value outside CumulusCI's vocabulary is
+    refused by name (it was `str(v).lower() in ("true", "1", "yes")`: " true " and "on" read false)."""
+    return option_flag(value, option, TaskOptionsError, default)
+
+
+def _validate_bool_options(task) -> None:
+    """Parse every boolean option the task declares, before its first request: some are read only
+    mid-run (preserve_labels, normalize_html_entities), after a deactivation."""
+    for name in getattr(task, "task_options", {}):
+        if name in _BOOL_OPTION_DEFAULTS:
+            _parse_bool_option(task.options.get(name), _BOOL_OPTION_DEFAULTS[name], name)
 
 
 class ExpressionSetConnectBase(BaseSalesforceTask):
@@ -593,7 +607,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         ``preserve_labels`` task option (default true) turns it off. See
         ``_run_activation_cycle`` for the activation guarantees.
         """
-        preserve_requested = self._bool_option(self.options.get("preserve_labels"), True)
+        preserve_requested = self._bool_option(self.options.get("preserve_labels"), True, "preserve_labels")
         label_target = label_esv or esv
         versions = list(label_versions or [esv])
         if not any(v.get("VersionNumber") == label_target.get("VersionNumber")
@@ -989,7 +1003,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         Off only when `normalize_html_entities: false` is passed (a probe
         escape hatch to reproduce the un-normalized gack on demand).
         """
-        if not self._bool_option(self.options.get("normalize_html_entities"), True):
+        if not self._bool_option(self.options.get("normalize_html_entities"), True, "normalize_html_entities"):
             self.logger.info(
                 "normalize_html_entities=false — sending payload WITHOUT "
                 "HTML-entity normalization (escaped GET output may gack)."
@@ -1006,11 +1020,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     # a payload the validator is too strict about).
 
     def _skip_validation(self) -> bool:
-        return self._bool_option(self.options.get("skip_validation"), False)
+        return self._bool_option(self.options.get("skip_validation"), False, "skip_validation")
 
     def _raise_on_validation_errors(self, result, what: str, *, log_summary: bool = True) -> None:
         handled = 0
-        normalize = self._bool_option(self.options.get("normalize_html_entities"), True)
+        normalize = self._bool_option(self.options.get("normalize_html_entities"), True, "normalize_html_entities")
         for issue in result.warnings:
             automatic = what == "definition" and (
                 issue.code in {"output_only_fields", "version_id"}
@@ -1108,6 +1122,7 @@ class ExportExpressionSet(ExpressionSetConnectBase):
     }
 
     def _run_task(self):
+        _validate_bool_options(self)
         api_name = self.options["expression_set_api_name"]
         output_path = Path(self.options["output_file"])
 
@@ -1208,6 +1223,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
     }
 
     def _run_task(self):
+        _validate_bool_options(self)
         overlay = self._load_overlay()
         # Validate the overlay shape up front — before any deactivation — so a
         # malformed overlay never leaves a version toggled off.
@@ -1221,13 +1237,13 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 "expression_set_api_name required in options or overlay file."
             )
 
-        dry_run = self._bool_option(self.options.get("dry_run"), False)
-        verify = self._bool_option(self.options.get("verify"), True)
+        dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")
+        verify = self._bool_option(self.options.get("verify"), True, "verify")
         activate_after = self._bool_option(
-            self.options.get("activate_after_apply"), True
+            self.options.get("activate_after_apply"), True, "activate_after_apply"
         )
         cascade = self._bool_option(
-            self.options.get("cascade_deactivate_procedure_plan"), True
+            self.options.get("cascade_deactivate_procedure_plan"), True, "cascade_deactivate_procedure_plan"
         )
 
         es_id = self._get_expression_set_id(es_api_name)
@@ -1783,6 +1799,7 @@ class ImportExpressionSet(ExpressionSetConnectBase):
     }
 
     def _run_task(self):
+        _validate_bool_options(self)
         input_path = Path(self.options["input_file"])
         if not input_path.exists():
             raise TaskOptionsError(f"Input file not found: {input_path}")
@@ -1795,12 +1812,12 @@ class ImportExpressionSet(ExpressionSetConnectBase):
         # Pre-flight: validate the full definition before any create/replace.
         self._preflight_validate_definition(payload)
 
-        dry_run = self._bool_option(self.options.get("dry_run"), False)
+        dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")
         activate_after = self._bool_option(
-            self.options.get("activate_after_import"), True
+            self.options.get("activate_after_import"), True, "activate_after_import"
         )
         cascade = self._bool_option(
-            self.options.get("cascade_deactivate_procedure_plan"), True
+            self.options.get("cascade_deactivate_procedure_plan"), True, "cascade_deactivate_procedure_plan"
         )
 
         # Check if expression set already exists
@@ -1949,10 +1966,11 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
     }
 
     def _run_task(self):
+        _validate_bool_options(self)
         api_name = self.options["expression_set_api_name"]
         version_api_name = self.options.get("version_api_name")
-        dry_run = self._bool_option(self.options.get("dry_run"), False)
-        confirm = self._bool_option(self.options.get("confirm"), False)
+        dry_run = self._bool_option(self.options.get("dry_run"), False, "dry_run")
+        confirm = self._bool_option(self.options.get("confirm"), False, "confirm")
 
         if not confirm and not dry_run:
             raise TaskOptionsError(
@@ -2033,6 +2051,7 @@ class ValidateExpressionSet(BaseTask):
     _bool_option = staticmethod(_parse_bool_option)
 
     def _run_task(self):
+        _validate_bool_options(self)
         path = Path(self.options["file"])
         if not path.exists():
             raise TaskOptionsError(f"File not found: {path}")
@@ -2047,7 +2066,7 @@ class ValidateExpressionSet(BaseTask):
         for issue in result.errors:
             self.logger.error("%s: %s", issue.location, issue.message)
 
-        strict = self._bool_option(self.options.get("strict"), False)
+        strict = self._bool_option(self.options.get("strict"), False, "strict")
         if result.errors or (strict and result.warnings):
             raise TaskOptionsError(
                 f"Schema validation failed for {path} as {kind}: "

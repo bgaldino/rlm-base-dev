@@ -137,13 +137,25 @@ _TRUE_VALUES = ("true", "1", "yes", "y", "on")
 _FALSE_VALUES = ("false", "0", "no", "n", "off")
 
 
-def to_bool(val: Any) -> bool:
-    """Coerce a flag value the way CumulusCI's process_bool_arg does."""
-    if isinstance(val, bool):
-        return val
+def to_bool(val: Any, name: str = "flag") -> bool:
+    """Coerce a flag value with CumulusCI's process_bool_arg vocabulary (``_TRUE_VALUES`` /
+    ``_FALSE_VALUES``, any case; a bool or an int is its truth value).
+
+    Like ``tasks.soql_utils.option_flag``, None, blank or whitespace is False and padded text is
+    read. Anything else ("maybe", a list) raises UxOptionError naming the flag: it used to read as
+    False, which assembled the flag-off variant of every page without a word.
+    """
+    if isinstance(val, (bool, int)):
+        return bool(val)
     if val is None:
         return False
-    return str(val).strip().lower() in _TRUE_VALUES
+    if isinstance(val, str):
+        text = val.strip().lower()
+        if not text or text in _FALSE_VALUES:
+            return False
+        if text in _TRUE_VALUES:
+            return True
+    raise UxOptionError(f"UX feature flag {name} must be true or false, got {val!r}")
 
 
 def features_from_custom(custom: Optional[Mapping[str, Any]]) -> Dict[str, bool]:
@@ -151,8 +163,7 @@ def features_from_custom(custom: Optional[Mapping[str, Any]]) -> Dict[str, bool]
     custom = custom or {}
     flags: Dict[str, bool] = {}
     for flag in UX_KNOWN_FLAGS:
-        val = custom.get(flag, False)
-        flags[flag] = to_bool(val) if isinstance(val, (str, bool)) else bool(val)
+        flags[flag] = to_bool(custom.get(flag, False), flag)
     return flags
 
 

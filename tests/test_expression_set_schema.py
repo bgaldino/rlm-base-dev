@@ -2910,6 +2910,88 @@ def test_overlay_transform_details_are_debug_only():
           task.logger.debug.call_count == 2 and not task.logger.info.called)
 
 
+def test_bool_options_read_through_option_flag_todo_488():
+    """todo 488: `str(v).lower() in ("true", "1", "yes")` read " true " and "on" as false and a list
+    as false; preserve_labels and normalize_html_entities were read only mid-run."""
+    import logging
+    import tasks.rlm_expression_set_connect as mod
+
+    parse = mod._parse_bool_option
+    check("bool option: padded ' true ' and 'on' are True", parse(" true ", False, "dry_run") is True
+          and parse("on", False, "dry_run") is True)
+    check("bool option: None, blank and whitespace are the default",
+          [parse(v, True, "verify") for v in (None, "", "  ")] == [True] * 3
+          and [parse(v, False, "dry_run") for v in (None, "", "  ")] == [False] * 3)
+    check("bool option: int 0 and 'off' are False", parse(0, True, "verify") is False
+          and parse(" off ", True, "verify") is False)
+    for value, needle in ((["true"], "dry_run must be a single value"), ("maybe", "dry_run must be true or false")):
+        try:
+            parse(value, False, "dry_run")
+            check(f"bool option {value!r} is refused, naming the option", False)
+        except mod.TaskOptionsError as exc:
+            check(f"bool option {value!r} is refused, naming the option", needle in str(exc))
+
+    def delete_run(options):
+        calls = []
+        task = object.__new__(mod.DeleteExpressionSet)
+        task.logger = logging.getLogger("test_delete_bool_options")
+        task.options = {"expression_set_api_name": "C", **options}
+
+        def stop(name):
+            calls.append(name)
+            raise RuntimeError("stop: lookup reached")
+        task._get_expression_set_id = stop
+        try:
+            task._run_task()
+            return "no error", calls
+        except RuntimeError:
+            return "reached", calls
+        except mod.TaskOptionsError as exc:
+            return str(exc), calls
+
+    for value in (" true ", "on", "Y", True):
+        check(f"delete: confirm {value!r} is a confirmation and reaches the lookup",
+              delete_run({"confirm": value}) == ("reached", ["C"]))
+    for value in ("", "  ", None, "false"):
+        err, calls = delete_run({"confirm": value})
+        check(f"delete: confirm {value!r} refuses to delete, before any lookup",
+              "Refusing to delete without confirmation" in err and calls == [])
+    for options, needle in (({"confirm": ["true"]}, "confirm must be a single value"),
+                            ({"dry_run": "maybe", "confirm": "true"}, "dry_run must be true or false")):
+        err, calls = delete_run(options)
+        check(f"delete: {options!r} refused by name before any lookup", needle in err and calls == [])
+
+    def apply_run(options):
+        calls = []
+        task = object.__new__(mod.ApplyExpressionSetOverlay)
+        task.logger = logging.getLogger("test_apply_bool_options")
+        task.options = {"overlay_file": "unused", **options}
+        task._load_overlay = lambda: calls.append("load") or {"expressionSetApiName": "C"}
+        task._preflight_validate_overlay = lambda overlay: None
+
+        def stop(name):
+            calls.append("lookup")
+            raise RuntimeError("stop: lookup reached")
+        task._get_expression_set_id = stop
+        try:
+            task._run_task()
+            return "no error", calls
+        except RuntimeError:
+            return "reached", calls
+        except mod.TaskOptionsError as exc:
+            return str(exc), calls
+
+    check("apply: padded and blank boolean options reach the lookup",
+          apply_run({"dry_run": " true ", "preserve_labels": "  ", "normalize_html_entities": "",
+                     "cascade_deactivate_procedure_plan": "off"}) == ("reached", ["load", "lookup"]))
+    for name in ("preserve_labels", "normalize_html_entities", "skip_validation", "verify",
+                 "activate_after_apply", "cascade_deactivate_procedure_plan", "dry_run"):
+        for value, needle in ((["false"], "must be a single value"), ("maybe", "must be true or false")):
+            err, calls = apply_run({name: value})
+            check(f"apply: {name} {value!r} refused by name before the overlay or any lookup",
+                  f"{name} {needle}" in err and calls == [])
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")
