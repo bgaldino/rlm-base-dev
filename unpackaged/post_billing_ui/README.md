@@ -111,11 +111,30 @@ exists. The modal's currency list is hardcoded (USD, EUR, GBP, CAD, AUD, JPY, CH
 (`@salesforce/i18n/timeZone`, read through `Intl`), not the browser's and not UTC; the
 billing day and month are taken from that same `YYYY-MM-DD` value, and End Date is
 calendar math on it (`billingDates.js`), so no date passes through a local or UTC `Date`.
-A day the end month lacks is clamped to its last day before a day is taken off, as
-Salesforce Pricing anchors its periods, and a whole-year term from the last day of a month
-ends the day before that month's last day, as the 264 Help states (Jan 31 + 1 Month ends
-Feb 27; Feb 28 2027 + 1 Year ends Feb 28 2028; Feb 29 2028 +
-1 Year ends Feb 27 2029). The Jest suite `rlmBillingScheduleGroupModal.dates.test.js`
+End Date is the end date the platform itself computes for a term-defined line from its start date
+and term: the day before the start's day of the month that many months later, that day moved to the
+last day of a month that lacks it, with no month-end special case. Measured on a 264 org
+(2026-11-26, todo 435) by placing a quote with Place Sales Transaction, lines given a StartDate and
+SubscriptionTerm and no EndDate, and reading back the EndDate:
+
+| Start | Term | Platform End Date |
+|-------|------|-------------------|
+| 2027-02-28 | 1 Annual | 2028-02-27 (priced as 0.9973 of a year) |
+| 2027-02-28 | 12 Months | 2028-02-27 |
+| 2027-02-28 | 2 Annual | 2029-02-27 |
+| 2027-02-28 | 1 / 3 / 6 Months | 2027-03-27 / 2027-05-27 / 2027-08-27 |
+| 2028-02-29 | 1 Annual, 12 Months | 2029-02-27 |
+| 2027-01-31 | 1 Annual, 12 Months | 2028-01-30 |
+| 2027-01-31 | 1 Month | 2027-02-27 |
+| 2027-03-31 | 1 Month | 2027-04-29 |
+| 2026-04-30 | 1 Annual | 2027-04-29 |
+
+The 2027-02-28 annual result is the Help's partial-period case
+(`ind.pricing_annual_proration_examples_for_leap_years`), not its 28-Feb-2028 full period: the modal
+follows what the platform computes. Quarterly and semi-annual units were not measured (no price book
+entry on that org uses them) and are computed as 3 and 6 months. Billing periods are only
+materialized by an invoice run, which was not run, so whether billing adds a stub for these ends is
+not measured. The Jest suite `rlmBillingScheduleGroupModal.dates.test.js`
 pins the browser zone through `tests/jest/browser-time-zone-environment.js`.
 
 **Bill-to contact (todo 435).** The action takes the bill-to contact from the billing

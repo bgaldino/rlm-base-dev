@@ -238,28 +238,32 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
     }
   );
 
-  // A day the end month lacks is clamped to that month's last day before the day is taken off, as
-  // Salesforce Pricing anchors a period (Help: ind.pricing_monthly_proration_examples_for_leap_years,
-  // 31-Jan-2025 to 27-Feb-2025 and 28-Feb-2027 to 27-Mar-2027). A whole-year term from the last day of a
-  // month ends the day before that month's last day (ind.pricing_annual_proration_examples_for_leap_years:
-  // 28-Feb-2027 to 28-Feb-2028, 29-Feb-2024 to 27-Feb-2025). The old Date.setMonth overflow ran
-  // Jan 31 + 1 Month into March.
+  // The end date the platform computes for a term-defined quote line from its start date and term
+  // (measured on a 264 org, 2026-11-26, todo 435; Place Sales Transaction with no EndDate): the day
+  // before the start's day of the month that many months later, clamped to a month's last day, for
+  // annual and monthly terms alike and with no month-end special case. The old Date.setMonth overflow
+  // ran Jan 31 + 1 Month into March.
   const TERMS = [
-    // The Help article's own examples, then the same rules across leap years.
-    ["2025-01-31", "1", "Month", "2025-02-27"],
+    // Measured: the platform's own end date for these starts and terms.
+    ["2027-02-28", "1", "Year", "2028-02-27"],
+    ["2027-02-28", "12", "Month", "2028-02-27"],
     ["2027-02-28", "1", "Month", "2027-03-27"],
-    ["2027-02-28", "1", "Year", "2028-02-28"],
-    ["2024-02-29", "1", "Year", "2025-02-27"],
-    ["2027-02-28", "12", "Month", "2028-02-28"],
     ["2027-02-28", "2", "Year", "2029-02-27"],
-    ["2026-02-28", "1", "Year", "2027-02-27"],
-    ["2028-02-28", "1", "Year", "2029-02-27"],
-    ["2031-02-28", "1", "Year", "2032-02-28"],
-    ["2027-02-28", "1", "Quarter", "2027-05-27"],
+    ["2027-02-28", "3", "Month", "2027-05-27"],
+    ["2027-02-28", "6", "Month", "2027-08-27"],
+    ["2028-02-29", "1", "Year", "2029-02-27"],
+    ["2028-02-29", "12", "Month", "2029-02-27"],
+    ["2027-01-31", "1", "Year", "2028-01-30"],
+    ["2027-01-31", "12", "Month", "2028-01-30"],
+    ["2027-03-31", "1", "Month", "2027-04-29"],
     ["2026-04-30", "1", "Year", "2027-04-29"],
+    // Not measured (no quarterly or semi-annual price book entry on the org): 3 and 6 months.
+    ["2027-02-28", "4", "Quarter", "2028-02-27"],
+    ["2027-02-28", "2", "Semi-Annual", "2028-02-27"],
+    ["2027-02-28", "1", "Quarter", "2027-05-27"],
+    // The same rule across other dates.
     ["2027-01-31", "1", "Month", "2027-02-27"],
     ["2028-01-31", "1", "Month", "2028-02-28"],
-    ["2028-02-29", "1", "Year", "2029-02-27"],
     ["2028-02-29", "4", "Year", "2032-02-28"],
     ["2026-11-25", "1", "Quarter", "2027-02-24"],
     ["2026-11-30", "1", "Quarter", "2027-02-27"],

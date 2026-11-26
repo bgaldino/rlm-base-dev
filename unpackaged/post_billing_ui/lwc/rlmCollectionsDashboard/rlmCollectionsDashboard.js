@@ -504,6 +504,10 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get totalBalanceFormatted() {
+        // Every component refused: there is no total to show, only the note saying what was left out.
+        if (this.dashboardData && this.dashboardData.totalBalance == null && this.unavailableKeys.length > 0) {
+            return NOT_AVAILABLE;
+        }
         return this.formatCurrency(this.totalBalanceValue);
     }
 

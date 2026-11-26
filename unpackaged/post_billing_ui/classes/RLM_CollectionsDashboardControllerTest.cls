@@ -751,6 +751,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isNull(cards.unappliedPaymentBalance, 'Nor the unapplied payments.');
         Assert.isNull(cards.unappliedPaymentCount, 'Nor their count.');
         Assert.isNull(cards.totalOutstanding, 'Nor the total outstanding.');
+        Assert.isNull(cards.totalBalance, 'With nothing read there is no total balance, not a zero.');
         Assert.areEqual(4, cards.totalBalanceBreakdown.size(), 'The breakdown names every component.');
         for (Map<String, Object> row : cards.totalBalanceBreakdown) {
             Assert.isNull(row.get('amount'), 'No amount for ' + row.get('label'));

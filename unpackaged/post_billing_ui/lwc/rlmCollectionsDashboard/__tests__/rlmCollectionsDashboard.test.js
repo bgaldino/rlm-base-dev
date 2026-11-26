@@ -76,8 +76,10 @@ function row(label, amount, color, unavailable) {
 // The cards as the controller returns them: everything read, or the named components refused.
 function cards(unavailable = []) {
   const has = (key) => unavailable.includes(key);
+  const all = ["invoices", "debitMemos", "unappliedCredits", "unappliedPayments"].every(has);
   return {
-    totalBalance: (has("invoices") ? 0 : 1455) - (has("unappliedPayments") ? 0 : 20),
+    // The controller's total: what was read, or null when nothing was.
+    totalBalance: all ? null : (has("invoices") ? 0 : 1455) - (has("unappliedPayments") ? 0 : 20),
     receivablesOutstanding: has("invoices") ? null : 1455,
     invoiceCount: has("invoices") ? null : 3,
     currentDue: has("invoices") ? null : 1000,
@@ -181,6 +183,20 @@ describe("c-rlm-collections-dashboard figures the user cannot read", () => {
       "Excludes unpaid invoices, unapplied credits and unapplied payments: you don't have access to them."
     );
     expect(breakdown(element, "Debit Memos").text).toBe("$0.00");
+  });
+
+  it("shows no total at all when every component of it was refused", async () => {
+    const element = await mount();
+    getDashboardCards.emit(cards(["invoices", "debitMemos", "unappliedCredits", "unappliedPayments"]));
+    await flushPromises();
+
+    expect(card(element, "Total Balance").querySelector(".pulse-card-value").textContent).toBe(DASH);
+    expect(element.shadowRoot.querySelector(".total-balance-note").textContent).toBe(
+      "Excludes unpaid invoices, debit memos, unapplied credits and unapplied payments: you don't have access to them."
+    );
+    for (const label of ["Unpaid Invoices", "Debit Memos", "Unapplied Credits", "Unapplied Payments"]) {
+      expect(breakdown(element, label).text).toBe(DASH);
+    }
   });
 
   it("says the payment schedules could not be read instead of 'No payment promises'", async () => {

@@ -64,8 +64,8 @@ export function todayInTimeZone(timeZone, now = new Date()) {
 }
 
 // `months` calendar months after `date`. A day the target month lacks is moved to that month's last
-// day (Jan 31 + 1 month = Feb 28, or Feb 29 in a leap year), as Apex Date.addMonths does and as
-// Salesforce Pricing anchors a period that starts on the 29th, 30th or 31st.
+// day (Jan 31 + 1 month = Feb 28, or Feb 29 in a leap year), as Apex Date.addMonths does and as the
+// platform anchors a term (see termEndDate).
 function addMonths(date, months) {
     const index = date.year * 12 + (date.month - 1) + months;
     const year = Math.floor(index / 12);
@@ -82,27 +82,22 @@ function previousDay(date) {
     return { year, month, day: daysInMonth(year, month) };
 }
 
-// The last day of a term of `months` whole months starting on `startYmd`: the day before the term's
-// anniversary. This follows Salesforce Pricing's period convention as its 264 Help states it:
-// - The anniversary keeps the start's day of the month, moved to the last day of a month that lacks
-//   it, and the period ends the day before (ind.pricing_monthly_proration_examples_for_leap_years:
-//   31-Jan-2025 monthly ends 27-Feb-2025; 28-Feb-2027 monthly ends 27-Mar-2027, so a month-end
-//   start keeps its day on a monthly term).
-// - A whole-year term that starts on the last day of a month anniversaries on the last day of that
-//   month instead: "a full period ends one day before the next month-end"
-//   (ind.pricing_annual_proration_examples_for_leap_years: 28-Feb-2027 ends 28-Feb-2028, and
-//   29-Feb-2024 ends 27-Feb-2025). Within a single month this differs from the first rule only for a
-//   February start next to a leap year. Help gives no example for a month-end start on a quarterly
-//   or semi-annual term, so those keep the first rule.
+// The last day of a term of `months` whole months starting on `startYmd`: the day before the start's
+// day of the month `months` later, that day moved to the last day of a month that lacks it. This is the
+// end date the platform itself computes for a term-defined quote line from its start date and term
+// (measured on a 264 org, 2026-11-26, todo 435; Place Sales Transaction with no EndDate, read back):
+// 2027-02-28 + 1 Annual = 2028-02-27 and + 12 Months = 2028-02-27; 2028-02-29 + 1 Annual = 2029-02-27;
+// 2027-01-31 + 1 Month = 2027-02-27 and + 1 Annual = 2028-01-30; 2027-03-31 + 1 Month = 2027-04-29;
+// 2027-02-28 + 3 and + 6 Months = 2027-05-27 and 2027-08-27. A month-end start gets no special case:
+// for 2027-02-28 + 1 Annual the platform returns 2028-02-27 and prices it as 0.9973 of a year, the
+// Help's partial-period example (ind.pricing_annual_proration_examples_for_leap_years), not the
+// 28-Feb-2028 full period that article also describes. Quarterly and semi-annual units could not be
+// measured (no price book entry uses them on that org); they are computed as 3 and 6 months.
 // Null when the start is not a valid date or `months` is not a positive whole number.
 export function termEndDate(startYmd, months) {
     const start = parseYmd(startYmd);
     if (!start || !Number.isInteger(months) || months <= 0) {
         return null;
     }
-    const anniversary = addMonths(start, months);
-    if (months % 12 === 0 && start.day === daysInMonth(start.year, start.month)) {
-        anniversary.day = daysInMonth(anniversary.year, anniversary.month);
-    }
-    return formatYmd(previousDay(anniversary));
+    return formatYmd(previousDay(addMonths(start, months)));
 }

@@ -124,8 +124,10 @@ public with sharing class RLM_CollectionsDashboardController {
             markInvoicesUnavailable(data);
         }
 
-        // Each component is null when its read was refused (see sumOrNull), and is then listed in
-        // data.unavailable; the total balance adds only what was read and names what it leaves out.
+        // Each component is null when its read was refused (the catch blocks of getUnappliedCreditsSum,
+        // getDebitMemoNotInvoicedSum, getUnappliedPaymentBalanceSum and getUnappliedPaymentCount, and the
+        // Invoice catch above), and is then listed in data.unavailable. The total balance adds only what
+        // was read and the page names what it leaves out; with nothing read it is null, not zero.
         Decimal unappliedCredits = getUnappliedCreditsSum(accountId, currencyCode);
         Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(accountId, currencyCode);
         Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(accountId, currencyCode);
@@ -138,7 +140,9 @@ public with sharing class RLM_CollectionsDashboardController {
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
 
-        data.totalBalance = orZero(sumUnpaidInvoiceBalance) + orZero(debitMemoNotInvoiced)
+        Boolean nothingRead = sumUnpaidInvoiceBalance == null && debitMemoNotInvoiced == null
+            && unappliedCredits == null && unappliedPaymentBalance == null;
+        data.totalBalance = nothingRead ? null : orZero(sumUnpaidInvoiceBalance) + orZero(debitMemoNotInvoiced)
             - orZero(unappliedCredits) - orZero(unappliedPaymentBalance);
         data.totalOutstanding = sumUnpaidInvoiceBalance == null || unappliedPaymentBalance == null
             ? null : sumUnpaidInvoiceBalance - unappliedPaymentBalance;
