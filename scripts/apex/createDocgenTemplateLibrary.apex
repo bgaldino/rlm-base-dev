@@ -32,7 +32,9 @@
 // emptying the group or by removing the group from the library: it re-seeds All Internal Users
 // and re-adds the membership. To narrow access durably, replace the group's members with the
 // users, roles or groups that should read the templates instead of emptying it, or do not rerun
-// this step on that org.
+// this step on that org. After narrowing, whoever reruns it must still be a library member
+// (directly, or by staying in the group): anyone else cannot see the library and the rerun stops
+// at step 1 with the duplicate-name message.
 // Any failure throws, so the CCI task fails instead of leaving a library only the admin can read.
 
 final String LIBRARY_API_NAME = 'DocgenDocumentTemplateLibrary';

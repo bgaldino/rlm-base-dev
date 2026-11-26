@@ -502,4 +502,31 @@ describe('rlmDocStatusMonitor', () => {
         expect(el.status).toBe('TimedOut');
         expect(next).toHaveBeenCalledTimes(1);
     });
+
+    it('waits again for a new processId instead of replaying the status of the previous one', async () => {
+        let deliver;
+        subscribe.mockImplementation((channel, replayId, callback) => {
+            deliver = callback;
+            return Promise.resolve({ channel });
+        });
+        const { el, next } = mount();
+        await flushPromises();
+        deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Success' } } });
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(1);
+
+        const otherProcess = '0nnWt0000007zzzAAA';
+        el.processId = otherProcess;
+        await flushPromises();
+        jest.advanceTimersByTime(1000);
+
+        expect(el.status).toBe('InProgress');
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(jest.getTimerCount()).toBe(1);
+
+        deliver({ data: { payload: { DocGenProcessIdentifier: otherProcess, Status: 'Failure' } } });
+        jest.advanceTimersByTime(300);
+        expect(el.status).toBe('Failure');
+        expect(next).toHaveBeenCalledTimes(2);
+    });
 });
