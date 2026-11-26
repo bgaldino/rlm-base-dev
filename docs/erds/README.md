@@ -217,6 +217,11 @@ provenance stamp; see `scripts/erd/erd_shards.py`). The scripts above write both
 `python scripts/erd/erd_shards.py check` verifies them. New objects enter with
 `validate_erd_against_org.py --add-objects ... --add-domain ...`, not by hand.
 
+Cost of keeping both forms: `docs/erds/` carries about 1 MB more (the shards, 1.0 MB, duplicate
+`erd-data.json`, 1.0 MB). Both stay because `query_erd.py`, `build_erds.py`, the tests and the HTML
+viewer's fetch read the single composed file unchanged, while review diffs are per domain and each
+shard carries its own provenance stamp.
+
 Detailed workflow at `.cursor/skills/schema-validation/SKILL.md`.
 
 ---

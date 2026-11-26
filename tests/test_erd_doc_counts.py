@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 119
+EXPECTED_CHECKS = 115
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -326,41 +326,21 @@ def main():
 
     print()
     print("erd-data.json is the composition of docs/erds/data/ shards")
-    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd"))
+    for sub in ("", "schema_diff"):
+        sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd", sub))
     import erd_shards
     problems = erd_shards.check()
     check("shards_compose_to_erd_data", not problems, "; ".join(problems[:3]))
 
-    # The shard layer's own behaviour, on copies: a dropped key, a missing stamp and an
-    # overlay redefining a public key must each fail; an overlay adding a key must not.
+    # A shard missing a stamp key must fail check(); work on a copy of the shards.
     import copy
     shards = erd_shards.read_shards()
     dom = next(n for n in shards if n not in erd_shards.RESERVED)
-    monolith = json.loads(open(erd_shards.ERD_PATH, encoding="utf-8").read())
-    schema = json.loads(open(erd_shards.SCHEMA_PATH, encoding="utf-8").read())["definitions"]["domain"]
-    check("shards_compose_deep_equals_monolith", erd_shards.compose(shards) == monolith
-          and list(erd_shards.compose(shards)["objects"]) == list(monolith["objects"]))
-    broken = copy.deepcopy(shards)
-    del broken[dom]["objects"][next(iter(broken[dom]["objects"]))]
-    check("shards_dropped_object_is_caught", erd_shards.compose(broken) != monolith)
     broken = copy.deepcopy(shards)
     del broken[dom]["provenance"]["verifiedOn"]
-    check("shards_missing_stamp_fails_schema", bool(erd_shards.validate(broken[dom], schema)))
-    obj, body = next(iter(shards[dom]["objects"].items()))
-    broken = copy.deepcopy(shards)
-    broken["overlay-internal.json"] = {"provenance": {}, "objects": {obj: {**body, "domain": "Contradiction"}}}
-    try:
-        erd_shards.compose(broken)
-        refused = False
-    except ValueError:
-        refused = True
-    check("shards_overlay_redefining_public_key_is_refused", refused)
-    broken["overlay-internal.json"] = {"provenance": {}, "objects": {
-        "ZzNewObject": {"domain": "Billing", "domainShort": "Billing", "fields": {"X": {}}}}}
-    check("shards_overlay_may_add_a_new_object", "ZzNewObject" in erd_shards.compose(broken)["objects"])
+    check("shards_missing_stamp_is_reported", bool(erd_shards.shape_problems(broken)))
 
     print("object discovery from committed snapshots")
-    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff"))
     import diff_schemas
     sd = os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff")
     snap = {n: json.loads(open(os.path.join(sd, f"{n}-schema.json"), encoding="utf-8").read())

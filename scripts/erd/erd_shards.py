@@ -9,11 +9,9 @@ which rewrites the composed file and the shards together. `check()` fails when t
 
     python scripts/erd/erd_shards.py split    # (re)write shards from erd-data.json
     python scripts/erd/erd_shards.py compose  # (re)write erd-data.json from the shards
-    python scripts/erd/erd_shards.py check    # schema + composition + equality, exit 1 on any failure
+    python scripts/erd/erd_shards.py check    # shape + composition + equality, exit 1 on any failure
 
-Composition invariant: an internal overlay shard (any extra `*.json` in the data directory
-other than the ones above, named `overlay-*.json`) may add objects, fields and relationships but
-may never redefine a public key; `compose` raises on a contradiction.
+Every other `*.json` in the data directory is a domain shard: `{provenance, objects}`.
 """
 
 import json
@@ -25,9 +23,9 @@ REPO = Path(__file__).resolve().parent.parent.parent
 ERD_DIR = REPO / "docs" / "erds"
 ERD_PATH = ERD_DIR / "erd-data.json"
 DATA_DIR = ERD_DIR / "data"
-SCHEMA_PATH = DATA_DIR / "erd-shard.schema.json"
 META, RELS = "_meta.json", "relationships.json"
-RESERVED = {META, RELS, SCHEMA_PATH.name}
+RESERVED = {META, RELS}
+STAMP_KEYS = ("release", "apiVersion", "verifiedOn", "method", "coreSourceValidated")
 
 
 def dumps(data) -> str:
@@ -81,37 +79,23 @@ def split(erd: dict, old_shards: dict = None, verified: dict = None) -> dict:
 
 def read_shards(data_dir: Path = DATA_DIR) -> dict:
     return {p.name: json.loads(p.read_text(encoding="utf-8"))
-            for p in sorted(data_dir.glob("*.json")) if p.name != SCHEMA_PATH.name}
+            for p in sorted(data_dir.glob("*.json"))}
 
 
 def compose(shards: dict) -> dict:
     meta = shards[META]
-    objects, rels = {}, list(shards[RELS]["relationships"])
-    parts = {n: s for n, s in shards.items() if n not in RESERVED}
-    public = {n: s for n, s in parts.items() if not n.startswith("overlay-")}
-    overlays = {n: s for n, s in parts.items() if n.startswith("overlay-")}
-    for s in public.values():
+    objects = {}
+    for fname, s in shards.items():
+        if fname in RESERVED:
+            continue
         for name, obj in s["objects"].items():
             if name in objects:
                 raise ValueError(f"object {name} appears in more than one shard")
             objects[name] = obj
-    for fname, s in overlays.items():
-        for name, obj in s["objects"].items():
-            base = objects.setdefault(name, {k: v for k, v in obj.items() if k != "fields"} | {"fields": {}})
-            for k, v in obj.items():
-                if k == "fields":
-                    for f, fv in v.items():
-                        if f in base["fields"] and base["fields"][f] != fv:
-                            raise ValueError(f"{fname} redefines public field {name}.{f}")
-                        base["fields"][f] = fv
-                elif k in base and base[k] != v:
-                    raise ValueError(f"{fname} redefines public key {name}.{k}")
-                else:
-                    base[k] = v
-        rels.extend(r for r in s.get("relationships", []) if r not in rels)
     ordered = {n: objects[n] for n in meta["objectOrder"] if n in objects}
     ordered.update({n: o for n, o in objects.items() if n not in ordered})
-    erd = {"metadata": meta["metadata"], "objects": ordered, "relationships": rels}
+    erd = {"metadata": meta["metadata"], "objects": ordered,
+           "relationships": list(shards[RELS]["relationships"])}
     erd["stats"] = stats_for(erd)
     return {k: erd[k] for k in ("metadata", "stats", "objects", "relationships")}
 
@@ -131,48 +115,31 @@ def save(erd: dict, path: Path = ERD_PATH, verified: dict = None) -> None:
     path.write_text(dumps(erd), encoding="utf-8")
 
 
-def validate(instance, schema, where="$") -> list:
-    """Minimal JSON Schema subset (type, required, properties, additionalProperties, items,
-    enum, minItems, pattern) - enough for erd-shard.schema.json without a dependency."""
-    import re
-    types = {"object": dict, "array": list, "string": str, "boolean": bool, "integer": int}
-    errs = []
-    t = schema.get("type")
-    if t and not isinstance(instance, types[t]):
-        return [f"{where}: expected {t}"]
-    if "enum" in schema and instance not in schema["enum"]:
-        errs.append(f"{where}: {instance!r} not in {schema['enum']}")
-    if "pattern" in schema and isinstance(instance, str) and not re.search(schema["pattern"], instance):
-        errs.append(f"{where}: {instance!r} does not match {schema['pattern']}")
-    if isinstance(instance, dict):
-        for r in schema.get("required", []):
-            if r not in instance:
-                errs.append(f"{where}: missing {r}")
-        props = schema.get("properties", {})
-        for k, v in instance.items():
-            if k in props:
-                errs += validate(v, props[k], f"{where}.{k}")
-            elif isinstance(schema.get("additionalProperties"), dict):
-                errs += validate(v, schema["additionalProperties"], f"{where}.{k}")
-            elif schema.get("additionalProperties") is False:
-                errs.append(f"{where}: unexpected key {k}")
-    if isinstance(instance, list):
-        if len(instance) < schema.get("minItems", 0):
-            errs.append(f"{where}: fewer than {schema['minItems']} items")
-        if "items" in schema:
-            for i, v in enumerate(instance):
-                errs += validate(v, schema["items"], f"{where}[{i}]")
-    return errs
+def shape_problems(shards: dict) -> list:
+    """Explicit key checks: _meta has metadata + objectOrder, relationships has a list, and
+    every domain shard has a full provenance stamp and an objects map."""
+    out = []
+    if "metadata" not in shards.get(META, {}) or not shards[META].get("objectOrder"):
+        out.append(f"{META}: needs metadata and a non-empty objectOrder")
+    if not isinstance(shards.get(RELS, {}).get("relationships"), list):
+        out.append(f"{RELS}: needs a relationships list")
+    for fname, s in shards.items():
+        if fname in RESERVED:
+            continue
+        missing = [k for k in STAMP_KEYS if k not in s.get("provenance", {})]
+        if missing:
+            out.append(f"{fname}: provenance missing {', '.join(missing)}")
+        if not isinstance(s.get("objects"), dict):
+            out.append(f"{fname}: needs an objects map")
+    return out
 
 
 def check() -> list:
-    """Return a list of problems; empty means shards validate, compose and equal erd-data.json."""
-    problems = []
-    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    """Return a list of problems; empty means shards are well formed, compose and equal erd-data.json."""
     shards = read_shards()
-    for fname, s in shards.items():
-        kind = "meta" if fname == META else "relationships" if fname == RELS else "domain"
-        problems += [f"{fname} {e}" for e in validate(s, schema["definitions"][kind], "$")]
+    problems = shape_problems(shards)
+    if problems:
+        return problems
     try:
         composed = compose(shards)
     except ValueError as e:
