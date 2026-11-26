@@ -109,6 +109,10 @@ def _format_inspect_text(summary: dict) -> str:
         lines.append(f"Error: {summary.get('error')}")
     if summary.get("invoice_number"):
         lines.append(f"Invoice number: {summary.get('invoice_number')}")
+    reversed_rows = (summary.get("settlement") or {}).get("unapplied_row_ids") or []
+    if reversed_rows:
+        lines.append(f"Settlement reversed by cli unapply: {len(reversed_rows)} "
+                     "Unapplied row(s); the org's balances are open again")
     link = summary.get("invoice_order_link") or {}
     if link.get("status") == "failed":
         detail = f": {link.get('error')}" if link.get("error") else ""
@@ -192,10 +196,6 @@ def _cmd_step(args: argparse.Namespace) -> int:
         args.org, api_version=args.api_version, transport=args.transport
     )
     manifest = load_manifest(args.manifest)
-    if manifest.unapplied_row_ids:
-        raise SettlementError(
-            "step", f"manifest {manifest.run_id}'s settlement was reversed by `cli "
-            "unapply`; the run is closed: start a new run")
     account = _resolve_step_account(client, args, manifest)
     ctx = discover(
         client,
@@ -584,7 +584,7 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _error_message(exc: Exception) -> str:
     """The one-line reason a command could not run or report."""
-    if isinstance(exc, billing_verify.VerifyError):
+    if isinstance(exc, (billing_verify.VerifyError, LifecycleError)):
         return str(exc)
     if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
         # RequestException: the --api-version latest lookup.
@@ -706,18 +706,27 @@ UNAPPLY_KINDS = ("payment", "credit")
 def _cmd_unapply(args: argparse.Namespace) -> int:
     """Unapply this run's own line-level applications: the payment's, then the credit's.
 
-    Reads each recorded application row first; only a line-level Applied row is
-    unapplied (unapply was measured at Line Level only). A row already unapplied is
-    not sent again (the platform refuses a second unapply); its Unapplied row is
-    looked up and recorded instead. Exit 0 when every selected application is
-    unapplied and recorded; 1 when one could not be, or nothing was recorded to
-    unapply; 2 when the manifest or the org cannot be read or the run is at Header
-    Level. A run it reversed is closed: `cli step` refuses it.
+    Only a finished settlement is reversed: no error on the manifest, and
+    ``payment_applied`` reached or a settlement block with no payment (so no
+    ``cli step`` can advance it afterwards, and every application it made is
+    recorded). Reads each recorded application row first; only a line-level
+    Applied row is unapplied (measured at Line Level only). A row already
+    unapplied is not sent again (the platform refuses a second unapply); its
+    Unapplied row is looked up and recorded instead. Exit 0 when every selected
+    application is unapplied and recorded; 1 when one could not be (a failed
+    read or write on one row included) or nothing was recorded to unapply; 2 when
+    the manifest cannot be read, the settlement is not finished, the run is at
+    Header Level, or the org cannot be read before any unapply.
     """
     try:
         manifest = load_manifest(args.manifest)
     except Exception as exc:  # noqa: BLE001 - an unreadable manifest is an input error
         print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    unfinished = _unfinished_settlement(manifest)
+    if unfinished:
+        print(f"ERROR: unapply: manifest {manifest.run_id} {unfinished}; only a finished "
+              "settlement is reversed", file=sys.stderr)
         return 2
     if manifest.application_level == "header":
         print(f"ERROR: unapply: manifest {manifest.run_id} is at header application "
@@ -778,6 +787,19 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
               "apply it there (measured)")
     print(f"UNAPPLY: {'fail' if failures else 'done'} ({manifest.run_id})")
     return 1 if failures else 0
+
+
+def _unfinished_settlement(manifest) -> Optional[str]:
+    """Why the run's settlement is not finished, or None."""
+    if manifest.error:
+        return f"has an error ({manifest.error}); resume it with `cli step` first"
+    if manifest.reached_stage == "payment_applied":
+        return None
+    block = settlement_from_dict(manifest.settlement) if manifest.settlement else None
+    if manifest.reached_stage == "credit_applied" and block and block.payment is None:
+        return None
+    return (f"reached {manifest.reached_stage or 'no stage'}, not the end of its "
+            "settlement; step it on first")
 
 
 def _application_ids(manifest, kind: str) -> list[str]:

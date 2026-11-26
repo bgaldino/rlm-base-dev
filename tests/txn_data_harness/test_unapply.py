@@ -208,7 +208,8 @@ def test_a_credit_only_run_with_no_recorded_level_is_unapplied(run):
     # The credit stage records no application level; the rows decide.
     org, path = run
     _set(path, application_level=None, reached_stage="credit_applied", payment_ids=[],
-         payment_application_ids=[])
+         payment_application_ids=[],
+         settlement={"application_level": "auto", "credit": {"percent": 10.0}})
     assert _unapply() == 0
     assert _recorded(path) == ["4sGNEW000000000001"]
 
@@ -254,10 +255,37 @@ def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, cap
     assert sorted(_recorded(path)) == ["1AlNEW000000000001", "4sGNEW000000000002"]
 
 
-def test_cli_step_refuses_a_run_that_was_unapplied(run, capsys):
+
+@pytest.mark.parametrize("fields, why", [
+    ({"error": "[payment] apply returned 503"}, "has an error"),
+    ({"reached_stage": "credit_applied",
+      "settlement": {"application_level": "auto", "credit": {"percent": 10.0},
+                     "payment": {"amount": "exact"}}},
+     "reached credit_applied, not the end of its settlement"),
+])
+def test_an_unfinished_settlement_is_refused_before_any_read(run, capsys, fields, why):
+    # An unfinished run may hold applications it never recorded, and a later
+    # `cli step` could settle it again: only a finished one is reversed.
+    org, path = run
+    _set(path, **fields)
+    org.fail_reads = True  # a read would raise; the refusal comes first
+    assert _unapply() == 2
+    assert org.posts == []
+    assert why in capsys.readouterr().err
+
+
+def test_harness_refusals_are_not_labelled_unexpected(run, capsys):
+    org, _path = run
+    del org.rows[CREDIT_ROW]
+    assert _unapply() == 1
+    out = capsys.readouterr().out
+    assert "unexpected" not in out and "[unapply] credit application" in out
+
+
+def test_inspect_text_shows_a_reversed_run(run, capsys):
     org, path = run
     assert _unapply() == 0
-    code = cli.main(["step", "--org", "x", "--manifest", "DEMO-U",
-                     "--to-stage", "payment_applied"])
-    assert code == 1
-    assert "reversed by `cli unapply`; the run is closed" in capsys.readouterr().err
+    capsys.readouterr()
+    summary = {"run_id": "DEMO-U", "settlement": {"unapplied_row_ids": ["a", "b"]}}
+    assert "Settlement reversed by cli unapply: 2 Unapplied row(s)" in (
+        cli._format_inspect_text(summary))

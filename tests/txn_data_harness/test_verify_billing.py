@@ -1511,12 +1511,18 @@ def _move_reversal(data):
         "5TV000000000021GAA")
 
 
+def _other_payment(data):
+    _row(data, "PaymentLineInvoiceLine", "1Al000000000090CAA")["PaymentId"] = (
+        "0aQ000000000002EAA")
+
+
 @pytest.mark.parametrize("kwargs, after, why", [
     ({"amount": 999}, None, "an Unapplied row of another amount"),
     ({"related": "1Al000000000099CAA"}, None, "an Unapplied row reversing another row"),
     ({"reversals": 2}, None, "two Unapplied rows for one Applied row"),
     ({}, _unflag, "the reversed Applied row not flagged Yes"),
     ({}, _move_reversal, "the Unapplied row on another invoice line"),
+    ({}, _other_payment, "the Unapplied row on another payment"),
 ])
 def test_a_pair_that_is_not_the_measured_shape_is_skipped(kwargs, after, why):
     def mutate(data):
@@ -1546,3 +1552,22 @@ def test_a_reversed_credit_pair_is_checked():
     inv3 = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
             and r["check"] in ("invoice_balance", "invoice_line_balance")]
     assert inv3 and all(r["status"] == "pass" for r in inv3), inv3
+
+
+def test_a_credit_pair_on_another_memo_line_is_skipped():
+    def mutate(data):
+        applied = _row(data, "CreditMemoLineInvoiceLine", "4sG000000000001EAA")
+        applied["UnappliedStatus"] = "Yes"
+        memo = _row(data, "CreditMemoLine", applied["CreditMemoLineId"])["CreditMemoId"]
+        data["CreditMemoLine"].append({"Id": "9yx000000000099EAA", "CreditMemoId": memo})
+        data["CreditMemoLineInvoiceLine"].append({
+            "Id": "4sG000000000009EAA", "InvoiceLineId": "5TV000000000031GAA",
+            "CreditMemoLineId": "9yx000000000099EAA", "Amount": 40, "Type": "Unapplied",
+            "UnappliedStatus": "NA", "RelatedCrMemoLineInvcLineId": "4sG000000000001EAA"})
+        _row(data, "Invoice", "3tt000000000003AAA").update(NetCreditsApplied=60, Balance=190)
+        _row(data, "InvoiceLine", "5TV000000000031GAA").update(NetCreditsApplied=60, Balance=40)
+    report = _line(mutate=mutate)
+    assert report["ok"] is True, report["failed_checks"]
+    inv3 = [r for r in report["checks"] if r["subject"].startswith("3tt000000000003AAA")
+            and r["check"] in ("invoice_balance", "invoice_line_balance")]
+    assert inv3 and all(r["status"] == "skip" for r in inv3), inv3

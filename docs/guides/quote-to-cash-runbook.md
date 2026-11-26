@@ -150,7 +150,9 @@ flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
 balances return to what they were before it was applied, and `verify` checks
 the pair (measured at Line Level on 264, in either order). Rerunning sends nothing for a row already unapplied. Limits:
 
-- The run is closed: `cli step` refuses it, and nothing reapplies.
+- Only a finished settlement is reversed: no error on the run, and
+  `payment_applied` reached (or a settlement with no payment). Nothing
+  reapplies afterwards.
 - The payment and credit memo now carry open balances, and posting the
   account's next invoice applies what it can of them. When that covers the
   whole invoice, as in the one measured case (both reversed, a same-sized next
@@ -188,9 +190,9 @@ Drive any cleanup from the manifest ids
 - **Posted invoices**: only Draft or Canceled invoices can be deleted, and
   `Status` cannot be set to Canceled.
 - **Billing schedules**: system-managed.
-- **Credit memos, payments and their applications**: they cannot be deleted
-  here, only reversed ([Undo the settlement](#undo-the-settlement)); no void or
-  cancel path was measured.
+- **Credit memos, payments and their applications**: no delete, void or
+  cancel path was tried; the applications can be reversed
+  ([Undo the settlement](#undo-the-settlement)).
 
 The harness guide's recipes for assets, the order and the quote were written
 for runs that stop before an invoice; deleting them once the order has a

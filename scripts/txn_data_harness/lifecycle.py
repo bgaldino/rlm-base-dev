@@ -1772,7 +1772,8 @@ def _unreversed(rows: list[dict], flag: str, what: str) -> list[dict]:
     Unapplying or voiding keeps the original ``Applied`` row, flags it
     (``UnappliedStatus`` on the line junctions, ``HasBeenUnapplied`` on the
     header ones = ``Yes``) and adds an ``Unapplied`` row. The settlement stages
-    do not compute amounts across a reversal (``cli unapply`` closes the run), so
+    do not compute amounts across a reversal (``cli unapply`` takes only a
+    finished settlement, which no step can advance), so
     any such row means the amounts they read back can no longer be trusted.
     """
     for r in rows:

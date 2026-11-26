@@ -502,15 +502,18 @@ unapply` (todo 490) is built on it.
 
 `cli unapply --org <sf-alias> --manifest <run> [--only payment|credit]`
 reverses the run's own recorded line-level applications, the payment's first.
-It reads each row first and unapplies only a line-level Applied row (a run
-that stopped at `credit_applied` records no application level; its rows
-decide). One already unapplied is not sent again (the platform would refuse
-it); its Unapplied row is looked up instead, and a flagged row with none fails.
-The new rows go in the manifest's `unapplied_row_ids`, and `cli step` then
-refuses the run (it is closed). Exit 0 when every selected application is
-unapplied and recorded; 1 when one could not be or nothing was recorded to
-unapply; 2 when the manifest or the org cannot be read or the run is recorded
-at Header Level. `cli verify` then checks the pair (see `verify.py`).
+It takes only a finished settlement: no error on the manifest, and
+`payment_applied` reached or a block with no payment, so every application the
+run made is recorded and no `cli step` can advance it afterwards. It reads each
+row first and unapplies only a line-level Applied row (a run that stopped at
+`credit_applied` records no application level; its rows decide). One already
+unapplied is not sent again (the platform would refuse it); its Unapplied row
+is looked up instead, and a flagged row with none fails. The new rows go in the
+manifest's `unapplied_row_ids`. Exit 0 when every selected application is
+unapplied and recorded; 1 when one could not be (a failed read or write on one
+row included) or nothing was recorded to unapply; 2 when the manifest cannot be
+read, the settlement is not finished, the run is recorded at Header Level, or
+the org cannot be read before any unapply. `cli verify` then checks the pair (see `verify.py`).
 
 ## Cleanup
 

@@ -66,7 +66,7 @@ those payments.
 
 Amounts compare exactly as decimals, with no rounding, so a currency with zero or three
 decimal places is checked as it is stored. The net of a set of application rows is the
-sum of their amounts. A null `Balance` fails wherever the check runs.
+sum of the Applied amounts less the Unapplied amounts. A null `Balance` fails wherever the check runs.
 
 **Only what was measured is checked.** The balance checks run only on records inside
 one allow-list, the cases measured on a Line Level 264 org. Anything outside it is
@@ -74,7 +74,7 @@ skipped with the first cause found; nothing is guessed.
 
 | Record | Measured when |
 | ------ | ------------- |
-| Application row | `Type` Applied, and no unapplied flag (`UnappliedStatus`, `HasBeenUnapplied`) is `Yes`. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. Or, at Line Level, an unapplied pair: the Applied row flagged `UnappliedStatus` Yes and the one `Type` Unapplied row whose `RelatedPaymentLineInvcLineId` / `RelatedCrMemoLineInvcLineId` names it, with the same `Amount` [Measured: 2026-11-26, 264, scratch org, API 68.0]. Rows net as Applied minus Unapplied, so a pair nets to zero, as the rollups did. |
+| Application row | `Type` Applied, and no unapplied flag (`UnappliedStatus`, `HasBeenUnapplied`) is `Yes`. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. Or, at Line Level, an unapplied pair: the Applied row flagged `UnappliedStatus` Yes and the one `Type` Unapplied row whose `RelatedPaymentLineInvcLineId` / `RelatedCrMemoLineInvcLineId` names it, on the same invoice line and payment or credit memo line, with the same `Amount` [Measured: 2026-11-26, 264, scratch org, API 68.0]. Rows net as Applied minus Unapplied, so a pair nets to zero, as the rollups did. |
 | Invoice line | `Type` Charge (Tax, Adjustment, null or any other value is not), and `ConvertedNegAmount`, `ChargeConvertedNegAmount` and `AdjustmentAmount` null or zero. |
 | Invoice | `Status` Posted; no header evidence (no header application rows, `SettlementLevel` not `Invoice`); no `WriteOffStatus`; `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount`, `TotalAdjustmentAmount` and `TotalTaxesCapturedAtHeader` null or zero; every line and every application row measured. |
 | Payment | `Status` Processed with application rows, or Canceled with none; no header-level application rows; `NetRefundApplied` and `NetPaymentCreditApplied` null or zero; every application row measured. |
