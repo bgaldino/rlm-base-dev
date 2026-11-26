@@ -238,8 +238,8 @@ and a figure on one part of the page cannot count invoices another leaves out. B
 had no status filter, the Disputed rollup counted every status and High-Value excluded only Paid,
 Closed and Canceled. Whether a Draft invoice carries a balance could not be observed: on the 264 org
 checked (2026-11-26) Invoice is not createable through DML and the only invoices were Posted;
-`everyInvoiceRead_countsOnlyPostedInvoicesWithABalance` therefore checks the WHERE clause each read
-used.
+`everyInvoiceRead_countsOnlyPostedInvoicesWithABalance` therefore checks the SOQL each invoice read
+executed, recorded where it runs (only while a test runs).
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does, rather than the "—" of an account with no name.

@@ -260,19 +260,30 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         }
         searchAccounts({ term })
             .then((found) => {
+                // A newer search has been typed since: its answer, not this one, fills the list.
                 if (this.accountSearchTerm !== term) return;
+                if (found?.unavailable) {
+                    this.searchUnavailable(knownReason(found.unavailableReason));
+                    return;
+                }
                 const options = Array.isArray(found?.options) ? found.options : [ALL_ACCOUNTS];
                 this.accountSearch = {
-                    unavailable: found?.unavailable === true,
-                    reason: knownReason(found?.unavailableReason),
+                    unavailable: false,
                     hasMore: found?.hasMore === true,
                     count: options.filter((option) => option.value).length
                 };
                 this.accountOptions = this.withSelectedAccount(options);
             })
             .catch(() => {
-                if (this.accountSearchTerm === term) this.accountSearch = { unavailable: true, reason: FAILED, hasMore: false, count: 0 };
+                if (this.accountSearchTerm === term) this.searchUnavailable(FAILED);
             });
+    }
+
+    // A search that was refused or failed lists the first page of accounts again (keeping the chosen one), never
+    // another search's matches, and says why.
+    searchUnavailable(reason) {
+        this.accountSearch = { unavailable: true, reason, hasMore: false, count: 0 };
+        this.accountOptions = this.withSelectedAccount(this.listedAccountOptions);
     }
 
     withSelectedAccount(options) {

@@ -221,7 +221,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         String invAccountField = getInvoiceAccountFieldName();
 
-        String invWhere = receivableInvoiceWhere('unpaid invoices', '');
+        String invWhere = receivableInvoiceWhere('');
         if (filterAccount) {
             invWhere += ' AND ' + invAccountField + ' = :accountId ';
         }
@@ -557,7 +557,7 @@ public with sharing class RLM_CollectionsDashboardController {
             // platform-calculated, nillable Integer that was null on every Posted invoice there (none past due),
             // so filtering or ordering on it would treat a null-days invoice apart from the due date it carries.
             Decimal criticalMinBalance = 2000;
-            String invWhere = receivableInvoiceWhere('critical invoices', 'Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo');
+            String invWhere = receivableInvoiceWhere('Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo');
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
 
@@ -565,8 +565,10 @@ public with sharing class RLM_CollectionsDashboardController {
             invSelect += ', BillingAccountId';
             if (hasBillToContact) invSelect += ', BillToContactId';
 
-            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY DueDate ASC, Id ASC'
-                + ' LIMIT ' + (CRITICAL_ROWS + 1), AccessLevel.USER_MODE);
+            String criticalQuery = invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY DueDate ASC, Id ASC'
+                + ' LIMIT ' + (CRITICAL_ROWS + 1);
+            recordExecuted('critical invoices', criticalQuery);
+            List<Invoice> invs = Database.query(criticalQuery, AccessLevel.USER_MODE);
             if (keepFirst(invs, CRITICAL_ROWS)) wl.hasMore.put(WORKLIST_CRITICAL, invoiceFilters());
             addCriticalFollowUps(wl, invs, hasBillToContact, Date.today());
         } catch (Exception e) {
@@ -651,7 +653,7 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     private static void buildHighValueDelinquents(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
-        String invWhere = receivableInvoiceWhere('high-value invoices', 'DueDate < :thirtyDaysAgo');
+        String invWhere = receivableInvoiceWhere('DueDate < :thirtyDaysAgo');
         if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
         if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
         // The read and the rows built from it share one catch, as the Critical and Disputed tabs do: a failure
@@ -731,14 +733,17 @@ public with sharing class RLM_CollectionsDashboardController {
     // the same invoices (a Draft or Canceled invoice is in none of them).
     @TestVisible private static final String RECEIVABLE_INVOICE = 'Status = \'Posted\' AND Balance > 0';
 
-    // The WHERE clause of one invoice read: RECEIVABLE_INVOICE, then the read's own condition. Each read's
-    // clause is kept by label (invoiceWheres), so a test can show every invoice read starts from it.
-    @TestVisible private static Map<String, String> invoiceWheres = new Map<String, String>();
+    // The WHERE clause of one invoice read: RECEIVABLE_INVOICE, then the read's own condition.
+    private static String receivableInvoiceWhere(String condition) {
+        return ' ' + RECEIVABLE_INVOICE + (String.isBlank(condition) ? '' : ' AND ' + condition) + ' ';
+    }
 
-    private static String receivableInvoiceWhere(String label, String condition) {
-        String clause = ' ' + RECEIVABLE_INVOICE + (String.isBlank(condition) ? '' : ' AND ' + condition) + ' ';
-        invoiceWheres.put(label, clause);
-        return clause;
+    // Test seam: the SOQL each labelled read ran, recorded at the point of execution and only while a test runs
+    // (in production it records nothing and changes nothing), so a test sees exactly what was queried.
+    @TestVisible private static Map<String, String> executedSoql = new Map<String, String>();
+
+    private static void recordExecuted(String label, String soql) {
+        if (Test.isRunningTest()) executedSoql.put(label, soql);
     }
 
     // The High-Value tab lists this many accounts, largest balance first.
@@ -790,7 +795,7 @@ public with sharing class RLM_CollectionsDashboardController {
             // A refused Invoice read throws here and is caught at the end of this method, which drops the
             // whole disputed section and marks it unavailable (WORKLIST_DISPUTED): a row without its invoice
             // rollup would carry a zero balance and no days overdue, which reads as a real "nothing owed".
-            String invWhere = receivableInvoiceWhere('disputed invoices', invAccountField + ' IN :disputedAccountIds');
+            String invWhere = receivableInvoiceWhere(invAccountField + ' IN :disputedAccountIds');
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
             // From here the tab's reads are invoices, which the currency narrows too where Invoice has it.
@@ -1015,7 +1020,9 @@ public with sharing class RLM_CollectionsDashboardController {
     private static List<SObject> boundedRows(String soql, Map<String, Object> binds, String what) {
         boundedReads.add(what);
         Integer allowed = requireAllowance(what);
-        List<SObject> rows = Database.queryWithBinds(soql + ' LIMIT ' + (allowed + 1), binds, AccessLevel.USER_MODE);
+        String query = soql + ' LIMIT ' + (allowed + 1);
+        recordExecuted(what, query);
+        List<SObject> rows = Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
         requireWithin(rows.size(), allowed, what);
         return rows;
     }

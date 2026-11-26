@@ -953,4 +953,60 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     const currency = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "currency");
     expect(currency.options.map((option) => option.label)[0]).toBe("All Currencies");
   });
+
+  // A search that fails or is refused after one that found accounts lists the first page again, keeping the
+  // chosen account, and says why: never the earlier search's matches.
+  it.each([
+    ["fails", () => searchAccounts.mockRejectedValueOnce(new Error("down")), "Accounts could not be searched. Try again."],
+    [
+      "is refused",
+      () => searchAccounts.mockResolvedValueOnce({ options: [{ value: "", label: "All Accounts" }], hasMore: false,
+        unavailable: true, unavailableReason: "refused" }),
+      "You don't have access to accounts."
+    ]
+  ])("lists the first page again when a later search %s", async (label, nextSearch, message) => {
+    const element = await mount({ accountsHaveMore: true });
+    searchAccounts.mockResolvedValueOnce({
+      options: [{ value: "", label: "All Accounts" }, { value: "001000000000002AAA", label: "Zeta" }, { value: "001000000000003AAA", label: "Zebra" }],
+      hasMore: false,
+      unavailable: false
+    });
+    const search = accountSearchInput(element);
+    search.value = "Ze";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+    await selectFilter(element, "account", "001000000000002AAA");
+
+    nextSearch();
+    search.value = "Qu";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Zeta", "Acme"]);
+    expect(text(element, ".filter-notice")).toEqual([message]);
+  });
+
+  // Answers can arrive out of order: the list shows the latest search's matches, whichever answers last.
+  it("shows the latest search's matches when an earlier search answers after it", async () => {
+    const element = await mount({ accountsHaveMore: true });
+    let answerFirst;
+    let answerSecond;
+    searchAccounts
+      .mockImplementationOnce(() => new Promise((resolve) => { answerFirst = resolve; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { answerSecond = resolve; }));
+    const search = accountSearchInput(element);
+    search.value = "Al";
+    search.dispatchEvent(new CustomEvent("commit"));
+    search.value = "Be";
+    search.dispatchEvent(new CustomEvent("commit"));
+
+    answerSecond({ options: [{ value: "", label: "All Accounts" }, { value: "001000000000005AAA", label: "Beta" }], hasMore: false, unavailable: false });
+    await flushPromises();
+    answerFirst({ options: [{ value: "", label: "All Accounts" }, { value: "001000000000004AAA", label: "Alpha" }], hasMore: false, unavailable: false });
+    await flushPromises();
+
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Beta"]);
+  });
 });
