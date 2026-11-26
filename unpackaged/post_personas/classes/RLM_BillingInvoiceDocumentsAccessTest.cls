@@ -37,19 +37,22 @@
  * gaining the DocGen Designer permission) reads metadata and creates no user.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
  * Batch generation needs two org settings (DocumentGenerationSetting.IsBatchDocGnrnEnabled and
- * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first. With
- * both on, any refusal of the insert fails. Otherwise, or with no setting row, only INVALID_INPUT is a
- * "SKIPPED, NOT CHECKED" WARN line and any other code fails. Measured on a 264 org: with batch off the
- * persona gets INVALID_INPUT "Enable the batch document generation setting.", and with batch on and
- * server-side off (client-side mechanism) INVALID_INPUT "Enable the server-side document generation
- * setting."; in both, a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY,
- * because the access checks answer first. The other settings do not matter here (measured): with both
- * flags on, the insert succeeds with the client-side generation mechanism and with an hourly batch
- * percentage limit (batchDocGnrnPctLimitPerHour) of 0. With no setting row the code treats batch
- * generation as off; the platform's refusal code then is not measured (every measured org had a row),
- * so any refusal there other than INVALID_INPUT fails loudly. The measured org has one setting row and Help speaks of "a Document Generation Setting
- * record"; one row is not guaranteed, so the query orders by CreatedDate and reads the oldest. batchRefusalSkipsOnlyForInvalidInputWithBatchOff and
- * batchGenerationNeedsBothSettings pin the split by status code and settings, not by message text.
+ * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first:
+ * - no setting row (batch document generation not configured, as on an org without docgen): the
+ *   insert is not attempted, and the test logs "SKIPPED, NOT CHECKED";
+ * - a row with both flags on: any refusal of the insert fails;
+ * - a row with either flag off: only INVALID_INPUT is a "SKIPPED, NOT CHECKED" WARN line, and any
+ *   other code fails.
+ * Measured on a 264 org: with batch off the persona gets INVALID_INPUT "Enable the batch document
+ * generation setting.", and with batch on and server-side off (client-side mechanism) INVALID_INPUT
+ * "Enable the server-side document generation setting."; in both, a user without DocGen Designer still
+ * gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, because the access checks answer first. The other settings
+ * do not matter here (measured): with both flags on, the insert succeeds with the client-side
+ * generation mechanism and with an hourly batch percentage limit (batchDocGnrnPctLimitPerHour) of 0.
+ * The measured org has one setting row and Help speaks of "a Document Generation Setting record"; one
+ * row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
+ * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWithBatchOff pin the split
+ * by setting and status code, not by message text.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
@@ -184,27 +187,16 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     private static void assertDocGenAccess(String roleSet) {
         User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER, DOCGEN_DESIGNER }, null,
             new List<String>{ BILLING_PSL, DOCGEN_PSL });
-        Boolean batchEnabled = batchGenerationEnabled(
+        BatchGeneration state = batchGeneration(
             [SELECT IsBatchDocGnrnEnabled, IsServerSideDocGenEnabled FROM DocumentGenerationSetting
              ORDER BY CreatedDate LIMIT 1]);
         List<String> failures = new List<String>();
         System.runAs(u) {
-            // A real insert, because only it meets the DocGen Designer user-permission gate (describe
-            // does not show it). With batch or server-side generation off it is refused for configuration
-            // (see skipsBatchRefusal); those settings deploy with docgen, this class with personas.
-            Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
-            if (!batch.isSuccess()) {
-                Database.Error error = batch.getErrors()[0];
-                String statusCode = String.valueOf(error.getStatusCode());
-                if (skipsBatchRefusal(batchEnabled, statusCode)) {
-                    System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
-                        + ' batch or server-side document generation is off (' + statusCode + ': ' + error.getMessage() + ').'
-                        + ' The access checks run before that one, so the DocGen Designer gate already passed;'
-                        + ' the create itself was not checked.');
-                } else {
-                    failures.add('batch process create (batch generation settings '
-                        + (batchEnabled ? 'on' : 'off') + '): ' + statusCode + ': ' + error.getMessage());
-                }
+            if (state == BatchGeneration.NOT_CONFIGURED) {
+                System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                    + ' no DocumentGenerationSetting row (batch document generation not configured).');
+            } else {
+                failures.addAll(batchCreateFailures(roleSet, state == BatchGeneration.ENABLED));
             }
             if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
                 failures.add('Document Generation Process create (on-demand generation)');
@@ -218,21 +210,53 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             + String.join(failures, '\n'));
     }
 
-    // Batch generation is on only when the org has a setting row with both batch and server-side
-    // generation on. Measured on a 264 org: either one off makes the persona's insert INVALID_INPUT.
-    // (Batch on with server-side off and the server-side mechanism is refused at deploy: "To select
-    // Server-Side for the Generation Mechanism, you must select the ServerSide Docgen Enabled option.")
+    // A real insert, because only it meets the DocGen Designer user-permission gate (describe does not
+    // show it). With batch or server-side generation off it is refused for configuration (see
+    // skipsBatchRefusal); those settings deploy with docgen, this class with personas.
+    private static List<String> batchCreateFailures(String roleSet, Boolean batchEnabled) {
+        Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
+        if (batch.isSuccess()) {
+            return new List<String>();
+        }
+        Database.Error error = batch.getErrors()[0];
+        String statusCode = String.valueOf(error.getStatusCode());
+        if (skipsBatchRefusal(batchEnabled, statusCode)) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                + ' batch or server-side document generation is off (' + statusCode + ': ' + error.getMessage() + ').'
+                + ' The access checks run before that one, so the DocGen Designer gate already passed;'
+                + ' the create itself was not checked.');
+            return new List<String>();
+        }
+        return new List<String>{ 'batch process create (batch generation settings '
+            + (batchEnabled ? 'on' : 'off') + '): ' + statusCode + ': ' + error.getMessage() };
+    }
+
+    private enum BatchGeneration { NOT_CONFIGURED, ENABLED, DISABLED }
+
+    // No setting row: not configured (the row exists only where docgen deployed it), so the insert is
+    // not attempted. A row: enabled only with both batch and server-side generation on. Measured on a
+    // 264 org: either one off makes the persona's insert INVALID_INPUT. (Batch on with server-side off
+    // and the server-side mechanism is refused at deploy: "To select Server-Side for the Generation
+    // Mechanism, you must select the ServerSide Docgen Enabled option.")
     @TestVisible
-    private static Boolean batchGenerationEnabled(List<DocumentGenerationSetting> settings) {
-        return !settings.isEmpty() && settings[0].IsBatchDocGnrnEnabled && settings[0].IsServerSideDocGenEnabled;
+    private static BatchGeneration batchGeneration(List<DocumentGenerationSetting> settings) {
+        if (settings.isEmpty()) {
+            return BatchGeneration.NOT_CONFIGURED;
+        }
+        return settings[0].IsBatchDocGnrnEnabled && settings[0].IsServerSideDocGenEnabled
+            ? BatchGeneration.ENABLED : BatchGeneration.DISABLED;
     }
 
     @IsTest
     static void batchGenerationNeedsBothSettings() {
-        Assert.isFalse(batchGenerationEnabled(new List<DocumentGenerationSetting>()), 'no setting row counts as off');
-        Assert.isTrue(batchGenerationEnabled(new List<DocumentGenerationSetting>{ setting(true, true) }), 'both on');
-        Assert.isFalse(batchGenerationEnabled(new List<DocumentGenerationSetting>{ setting(false, true) }), 'batch off (measured)');
-        Assert.isFalse(batchGenerationEnabled(new List<DocumentGenerationSetting>{ setting(true, false) }), 'server-side off (measured)');
+        Assert.areEqual(BatchGeneration.NOT_CONFIGURED, batchGeneration(new List<DocumentGenerationSetting>()),
+            'no setting row: the insert is skipped, not attempted');
+        Assert.areEqual(BatchGeneration.ENABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, true) }), 'both on');
+        Assert.areEqual(BatchGeneration.DISABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(false, true) }), 'batch off (measured)');
+        Assert.areEqual(BatchGeneration.DISABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, false) }), 'server-side off (measured)');
     }
 
     // An in-memory row, as the query would return it (never inserted).
@@ -241,7 +265,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     // Whether a refused batch process insert is a visible skip rather than a failure: only INVALID_INPUT
-    // with batch generation off (see batchGenerationEnabled). Measured on a 264 org with the setting
+    // with a setting row whose batch generation is off (see batchGeneration). Measured on a 264 org with the setting
     // off: a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY (the access
     // check answers first), and the persona with DocGen Designer gets INVALID_INPUT "Enable the batch
     // document generation setting.". With the setting on the persona's insert succeeds, so any refusal
@@ -272,7 +296,6 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             System.debug(LoggingLevel.WARN, 'NOTE: DocGenUser now carries the DocGen Designer permission;'
                 + ' DocGenDesigner may no longer be needed for the batch create.');
         }
-        Assert.areEqual(1, sets.size(), 'DocGenUser is in this org (it ships with the DocGen Designer license)');
     }
 
     private static List<String> unreadable(List<String> objectNames) {

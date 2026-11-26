@@ -502,7 +502,8 @@ What a user of `RLM_Billing_Admin` or `RLM_Billing_Operations` needs to generate
 (**Generate Invoice Documents** on an Invoice Batch Run) and on demand (**Generate Invoice Document** on an
 Invoice) (todo 292). The access below was measured headlessly, in check-only test runs as Minimum Access
 users holding the Billing license and each group or its content [Measured: 2026-11-26, 264, ent-sb0
-scratch builds: rlm-base__hdr-hdr-r1, and rlm-base__apexcov-ac1125-r1 for the group-status check below]. **Generating a document as the persona has not been run yet, so pack 292 stays
+scratch builds: rlm-base__hdr-hdr-r1, and rlm-base__apexcov-ac1125-r1 for the group-status check below].
+The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in both groups: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". **Generating a document as the persona has not been run yet, so pack 292 stays
 open until a live persona run passes.**
 
 | Need | Why | How the persona gets it |
@@ -548,12 +549,11 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   check. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
   "Enable the server-side document generation setting." [Measured: 0AfWt00000hUViMKAW]; batch on with
   server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
-  (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`): with both on, any refusal fails; otherwise, or
-  with no setting row, only `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code
-  fails. With both flags on, the other settings do not stop the insert: it succeeds with the client-side
-  generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 (0AfWt00000hUW89KAG). With no
-  setting row the code treats batch generation as off; the platform's refusal code in that case is not
-  measured (every measured org had a row), so any refusal there other than `INVALID_INPUT` fails loudly. It decides by status code and setting, never by message text. The Billing
+  (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`). With no setting row (batch document generation
+  not configured; the row exists only where `docgen` deployed it) the insert is not attempted and the test logs
+  "SKIPPED, NOT CHECKED". With a row and both flags on, any refusal fails; with a row and either flag off, only
+  `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code fails. With both flags on, the other settings do not stop the insert: it succeeds with the client-side
+  generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 (0AfWt00000hUW89KAG). It decides by status code and setting, never by message text. The Billing
   Operations methods are regression checks for the set: the managed Operations set already reads the runs,
   the View All the set adds is checked only by the metadata test, and the Operations DocGen method's DocGen
   assertions check the managed DocGen sets assigned next to the group;
@@ -573,9 +573,10 @@ class; the live persona run checks it for real.
 
 Nothing in the class fails because Salesforce grants more than today, and it creates no user just to watch
 for that: the one remaining note (a WARN line if `DocGenUser` starts carrying the DocGen Designer permission)
-reads metadata only. It does fail on an access regression, by design. Each method creates at most one user
-and needs one free seat of each license it assigns: the Billing license, and `DocGenDesignerPsl` for the
-DocGen methods (a seat need this bundle introduces). Before todo 292 the personas bundle had no Apex; a deploy that runs local
+reads metadata only. It does fail on an access regression, by design. Each method creates at most one user,
+which needs a Salesforce user license, and needs one free seat of each permission set license it assigns: the
+Billing license, and `DocGenDesignerPsl` for the DocGen methods. Both seat needs are new to this bundle:
+before todo 292 the personas bundle had no Apex, and a deploy that runs local
 tests runs every local test in the org, this class included.
 
 Not measured, and to check in the first live run as the persona:
