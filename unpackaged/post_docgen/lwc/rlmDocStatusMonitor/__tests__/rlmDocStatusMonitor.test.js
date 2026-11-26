@@ -402,6 +402,28 @@ describe('rlmDocStatusMonitor', () => {
         expect(next).toHaveBeenCalledTimes(2);
     });
 
+    it('gives a fresh 5 minutes when it is put back after timing out', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        jest.advanceTimersByTime(MAX_WAIT_MS + 300);
+        expect(el.status).toBe('TimedOut');
+        expect(next).toHaveBeenCalledTimes(1);
+        document.body.removeChild(el);
+
+        document.body.appendChild(el);
+        await flushPromises();
+
+        // Just under the limit, counted from the put-back: still waiting.
+        jest.advanceTimersByTime(MAX_WAIT_MS - POLL_INTERVAL_MS);
+        expect(el.status).toBe('InProgress');
+        expect(next).toHaveBeenCalledTimes(1);
+
+        // Past it: TimedOut again.
+        jest.advanceTimersByTime(POLL_INTERVAL_MS + 300);
+        expect(el.status).toBe('TimedOut');
+        expect(next).toHaveBeenCalledTimes(2);
+    });
+
     it.each(['Waiting', 'Blocked', 'InProgress'])(
         'keeps waiting on a %s status from the platform event or the record read',
         async (pending) => {
