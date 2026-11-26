@@ -987,9 +987,11 @@ without it the edit would split the line instead
 ([One line per component](#one-line-per-component-split--false)). Read each message as in
 [Reading a result](#reading-a-result).
 
-If the `finishes` relation's `[1..1]` bound rejects two finishes first (an
-[open item](#open-items)), the message assertion catches it. Then either drop the bound to
-`[0..1]` or add the bound's message to the accepted set.
+When two finishes arrive together (X2 sent in one Place), the `finishes` relation's
+`[1..1]` bound rejects first, with "Have 2 components, can't have more than 1 components
+in Port finishes ..." instead of the answer rule's message
+`[Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]`. Add that message to X2's
+accepted set, or drop the bound to `[0..1]`.
 
 ---
 
@@ -1054,6 +1056,13 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M43 | Configurator group ramp (Annual, three segments, suite added with *Current and Subsequent Segments*) of a bundle whose component types carried `@(split = false)` (the top-level support types in the container did not); segments 1 and 2 configured and saved, one segment's answer changed to switch some components off | Each segment held one line per component at the rule's quantity, no error log; the changed answer reached the later segment. Years that excluded the one-time children held only the root and the software lines (top-level lines aside). Two orgs; correcting a segment-1 split by hand was not run | 2026-11-11 |
 | M44 | A top-level support line held by a virtual `Quote` container relation, its regional attribute taken from the bundle root's answer through `parent()` and priced by a regional adjustment on its classification; deals in two regions | The support line's own net unit price took the regional adjustment and matched its expected value in each region. One org, illustrative attribute | 2026-11-11 |
 | M45 | Implications on a bundle answer that picks one of two options; a line of the option the answer didn't pick placed against it | That line rejected with the rule's message, present in the error log; a later `configure` reported success. One org | 2026-11-11 |
+| M46 | The worked example's R1 to R5 and X1 to X3, headless | Every quantity matched the table, one line per component, `configure` success; X1 and X3 rejected with the expected messages; the R1 quote ordered and activated into 8 assets; X3's order refused ("config warnings in the quote") | 2026-11-26 |
+| M47 | Two finishes sent in one new-sale Place, then a finish added by a later Place PATCH | Together: the relation bound's message, an error-log row, sized lines held at 1. Later: the answer rule's message | 2026-11-26 |
+| M48 | An answer change on units (27, 41, 40) through Place PATCH and `configure`, `ceil(units/10)` inline | 3, 5, 4 per unit, lines resized, both `ceil` forms deployed | 2026-11-26 |
+| M49 | `exclude`, `constraint` and both, with the line a default and with the rep sending it | Default: removed silently by all. Rep line: `exclude` removed it, `constraint` refused it, both removed it | 2026-11-26 |
+| M50 | A Warning message (units 150, then 333 with an Error), an Info message (99) | Warning: error-log row, order refused; Info: no log row, order goes through | 2026-11-26 |
+| M51 | A computed PCM attribute and one annotated `configurable = false`; caller sends a wrong value | Both written back to the line; the wrong value refused with the rule's message | 2026-11-26 |
+| M52 | `setdefault` quantity after an unrelated answer change and after a change to the condition's own variable | The rep's value stayed in both cases; the rule's text appears as an Info message | 2026-11-26 |
 
 ---
 
@@ -1081,31 +1090,40 @@ Each needs a live 264 org:
    rules off (not `Skip`) `[Measured: 2026-11-11, 264, Force with configuration rules off]`.
 2. How a large cardinality (hundreds of units) displays in the configurator and the
    Transaction Line Editor.
-3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
-   quantity of a line that a `constraint` sizes on a `@(split = false)` type (error
-   banner, locked field, or something else; through Place the edit was saved and flagged,
-   M23), and whether a `setdefault` quantity stays as the rep set it after they change an
-   unrelated answer.
-4. Whether an inline `ceil()` recalculates when a rep changes the PCM attribute it reads.
-5. Whether an `exclude` and a `constraint` that both set the same relation to zero, under
-   the same condition, behave the same as either alone.
-6. Which action counts as the "next step" that a `Warning` blocks (save, pricing, submit
-   for approval).
-7. Why one rejection's message appeared only in `RevenueTransactionErrorLog` while a
-   later `configure` returned `solverStatus: "success"` (M29), and which rejections do
-   that. (Elsewhere the message was in `configure`'s `messages` at type `error`, with
-   `errors: []`.)
-8. Whether the `finishes` relation's `[1..1]` bound rejects two finishes first, with a
-   different message or none. (One state that broke two rules reported one message, M33;
-   a hand-set quantity split the line or, with `@(split = false)`, was rejected, M22 and
-   M23.)
-9. Whether a rep can see or edit a derived variable in the configurator, with or without
-   `@(configurable = false)`.
-10. Solve time for the worked example's largest answers (200 seats, 10
-    areas).
-11. Whether a literal `%` in a message string is passed through or read as a Java format
-    specifier. The dev guide documents Java format for these strings
-    `[Dev guide: cml-logical-constraints]`; the worked example avoids `%`.
+3. Settled for `setdefault` headlessly: a rep's quantity survived an unrelated answer
+   change and also a change to the condition's own variable while the condition stayed true;
+   it did not reset to the default [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Still open: what a rep sees in the
+   configurator or the Transaction Line Editor when they edit the quantity of a line that a
+   `constraint` sizes on a `@(split = false)` type (error banner, locked field, or
+   something else; through Place the edit was saved and flagged, M23).
+4. Settled: an inline `ceil()` recalculates on an answer change in both forms
+   (`ceil(unitsCopy/10)` and `ceil(units/10)` on the PCM attribute), including a true
+   ceiling at the exact multiple (40 gives 4) [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Not tested: a rep editing the
+   attribute in the UI.
+5. Settled: a default line is removed silently by `exclude`, by `constraint` and by both
+   together. A rep's line is removed by `exclude`, refused by `constraint` (the message, an
+   error-log row, and the order refused), and removed when both are present, so
+   `constraint` plus `exclude` behaves like `exclude` alone [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+6. Partly settled: a Warning `message` writes a Warning error-log row, and quote-to-order
+   refuses ("config warnings in the quote"); an Info message is not logged and the order
+   goes through [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Still open: which UI buttons a Warning disables (save, pricing,
+   submit for approval).
+7. Settled for the worked example: all four rejections appeared in `configure` twice
+   (20 s apart, `solverStatus` error both times) and in the error log, keyed to the root
+   line, not the edited child; the "log only, later `configure` success" case did not
+   reproduce [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Still open: where the UI shows a rejection.
+8. Settled: the bound wins when both finishes arrive in one Place (message "can't have
+   more than 1 components in Port finishes ..."); the answer rule's message appears when one
+   finish is added later; "Choose exactly one finish." never appeared [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+9. Settled headlessly: a PCM attribute the model computes is written back to the line,
+   including one annotated `configurable = false`; a caller's wrong value is refused with
+   the rule's message [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Still open: whether a rep sees or edits it in the
+   configurator UI.
+10. Settled: no measurable difference between 1 and 200 seats (Place and `configure` 3 to
+    5 s against a 2 s CLI baseline; other runs shared the org, so an upper bound)
+    [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+11. Settled: a literal `%` in a message string passes through ("25% of 99 units")
+    [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 12. Whether an amendment that changes only a line quantity re-derives the quantities that
     depend on it (an answer change does, M38; see
     [Answers on an amendment](#answers-on-an-amendment)), and which rules run on an

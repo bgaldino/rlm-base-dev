@@ -305,7 +305,7 @@ Read it rather than guessing flags:
 | `scripts/erd/*` | `schema-validation` |
 | `scripts/context_service/*` | `context-service` |
 | `scripts/expression_sets/*` | `expression-sets` |
-| `tasks/rlm_cml.py` | `constraint-models` |
+| `tasks/rlm_cml.py`, `scripts/constraint_models/*` | `constraint-models` |
 | `scripts/ux/*` | `repo-integration` |
 | `scripts/renewal_assets/*` | `renewal-asset-creation` |
 | `scripts/decision_tables/*` | `decision-tables` |
