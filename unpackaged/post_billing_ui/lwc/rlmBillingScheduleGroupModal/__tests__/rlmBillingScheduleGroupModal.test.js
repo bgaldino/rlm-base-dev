@@ -5,7 +5,13 @@ import getAccountBillingInfo from "@salesforce/apex/RLM_BillingScheduleGroupServ
 import getLegalEntities from "@salesforce/apex/RLM_BillingScheduleGroupService.getLegalEntities";
 import getTaxTreatments from "@salesforce/apex/RLM_BillingScheduleGroupService.getTaxTreatments";
 import getProducts from "@salesforce/apex/RLM_BillingScheduleGroupService.getProducts";
+import { refreshApex } from "@salesforce/apex";
 
+// refreshApex asks the server again; the test plays the server's answer by emitting on the wire,
+// which is how a refreshed cacheable wire re-provisions.
+jest.mock("@salesforce/apex", () => ({ refreshApex: jest.fn(() => Promise.resolve()) }), {
+  virtual: true
+});
 // The sfdx-lwc-jest stubs have no lightning/actions module.
 jest.mock(
   "lightning/actions",
@@ -440,7 +446,10 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
       [sentence, "error"]
     ]);
 
-    // Once a contact is added and the account info is refreshed, Create opens.
+    // The cached answer was shown, and the server was asked again once for this opening.
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    // The contact was added since that answer was cached: the server's answer re-provisions the
+    // wire, and Create opens without reopening the modal.
     getAccountBillingInfo.emit({
       accountName: "Acme",
       billingAccountId: "0aa000000000001AAA",
@@ -451,6 +460,7 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     await flushPromises();
     expect(element.shadowRoot.querySelector('[role="alert"]')).toBeNull();
     expect(createButton(element).disabled).toBe(false);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
   });
 
   it("forgets a missing bill-to contact when the account info turns into an error", async () => {

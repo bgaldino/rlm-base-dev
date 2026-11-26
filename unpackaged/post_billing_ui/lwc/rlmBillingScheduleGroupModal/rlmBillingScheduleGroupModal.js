@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CloseActionScreenEvent } from 'lightning/actions';
+import { refreshApex } from '@salesforce/apex';
 import USER_TIME_ZONE from '@salesforce/i18n/timeZone';
 import { parseYmd, termEndDate, todayInTimeZone } from './billingDates';
 
@@ -19,6 +20,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     billingCity;
     billingLinkUnreadable = false; // a billing account may exist but the user cannot read it
     billToContactMissing = false; // the billing account has no bill-to contact, which the create action requires
+    accountInfoRefreshed = false; // the cacheable account info has been asked of the server once this opening
 
     isLoading = true; // Start as loading while we fetch account data
     legalEntityOptions = [];
@@ -146,7 +148,17 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     @wire(getAccountBillingInfo, { accountId: '$recordId' })
-    wiredAccountInfo({ error, data }) {
+    wiredAccountInfo(result) {
+        const { error, data } = result;
+        // getAccountBillingInfo is cacheable, so the first value can be a cached one from before an
+        // edit made since (a bill-to contact or Billing City added to clear a blocker). It is shown at
+        // once, and the server is asked once per opening; a different answer re-provisions this wire.
+        if (!this.accountInfoRefreshed && (data || error)) {
+            this.accountInfoRefreshed = true;
+            refreshApex(result).catch(() => {
+                // The cached value stays; the service refuses a create the records no longer allow.
+            });
+        }
         if (data) {
             this.accountName = data.accountName;
             this.billingAccountId = data.billingAccountId;

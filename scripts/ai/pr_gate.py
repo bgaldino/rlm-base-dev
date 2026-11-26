@@ -1076,7 +1076,9 @@ CHECKS = [
         # directories) or installs.
         segments=["lwc"],
         triggers=["jest.config.js", "package.json", "package-lock.json", "sfdx-project.json",
-                  ".nvmrc", "scripts/ai/run_lwc_jest.py"],
+                  ".nvmrc", "scripts/ai/run_lwc_jest.py",
+                  # Test environments a suite names in its docblock (browser time zone, todo 435).
+                  "tests/jest/"],
         deps=[], node_deps=["node_modules/.bin/sfdx-lwc-jest"], gating=True,
     ),
 ]
