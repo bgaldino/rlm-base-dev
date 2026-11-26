@@ -32,10 +32,13 @@
  * Nothing here fails because Salesforce grants MORE than today: the only such note (DocGen User
  * gaining the DocGen Designer permission) reads metadata and creates no user.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
- * Batch document generation is an org setting that deploys with docgen, not personas, and with it off
- * the insert is refused as INVALID_INPUT (measured), so only an access refusal fails the test; any
- * other refusal is a "SKIPPED, NOT CHECKED" WARN line. batchCreateRefusalIsClassifiedAsAccessOrConfiguration
- * pins that classification against the measured messages.
+ * Batch document generation is an org setting (DocumentGenerationSetting.IsBatchDocGnrnEnabled) that
+ * deploys with docgen, not personas. The test reads it first. With it on, any refusal of the insert
+ * fails. With it off, or with no setting row, only INVALID_INPUT is a "SKIPPED, NOT CHECKED" WARN line
+ * and any other code fails: measured on a 264 org with the setting off, the access checks answer first
+ * (CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY for a user without DocGen Designer) and INVALID_INPUT ("Enable
+ * the batch document generation setting.") comes only after they pass. batchRefusalSkipsOnlyForInvalidInputWithBatchOff
+ * pins that split by status code and setting, not by message text.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
@@ -170,22 +173,25 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     private static void assertDocGenAccess(String roleSet) {
         User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER, DOCGEN_DESIGNER }, null,
             new List<String>{ BILLING_PSL, DOCGEN_PSL });
+        List<DocumentGenerationSetting> settings = [SELECT IsBatchDocGnrnEnabled FROM DocumentGenerationSetting LIMIT 1];
+        Boolean batchEnabled = !settings.isEmpty() && settings[0].IsBatchDocGnrnEnabled;
         List<String> failures = new List<String>();
         System.runAs(u) {
             // A real insert, because only it meets the DocGen Designer user-permission gate (describe
-            // does not show it). It can also be refused for configuration: with batch document
-            // generation off the platform answers INVALID_INPUT "Enable the batch document generation
-            // setting." (measured), and that setting deploys only with docgen, while this class deploys
-            // with personas. So only an access refusal fails; anything else is a visible skip.
+            // does not show it). With batch document generation off it is refused for configuration
+            // (see skipsBatchRefusal); that setting deploys with docgen, this class with personas.
             Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
             if (!batch.isSuccess()) {
                 Database.Error error = batch.getErrors()[0];
                 String statusCode = String.valueOf(error.getStatusCode());
-                if (isAccessRefusal(statusCode, error.getMessage())) {
-                    failures.add('batch process create: ' + statusCode + ': ' + error.getMessage());
+                if (skipsBatchRefusal(batchEnabled, statusCode)) {
+                    System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                        + ' batch document generation is off (' + statusCode + ': ' + error.getMessage() + ').'
+                        + ' The access checks run before that one, so the DocGen Designer gate already passed;'
+                        + ' the create itself was not checked.');
                 } else {
-                    System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create: '
-                        + statusCode + ': ' + error.getMessage());
+                    failures.add('batch process create (batch document generation '
+                        + (batchEnabled ? 'on' : 'off') + '): ' + statusCode + ': ' + error.getMessage());
                 }
             }
             if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
@@ -200,42 +206,34 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             + String.join(failures, '\n'));
     }
 
-    // An access refusal, as the platform reports one for this insert. Measured on a 264 org:
-    // CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY "Access to entity 'DocGenerationBatchProcess' denied" (no
-    // DocGen set), the same code with "DML operation INSERT not allowed on DocGenerationBatchProcess"
-    // (DocGen User without DocGen Designer), and "Operation failed due to fields being inaccessible ..."
-    // (field access). INSUFFICIENT_ACCESS* codes and "insufficient privileges" count too.
+    // Whether a refused batch process insert is a visible skip rather than a failure: only INVALID_INPUT
+    // with batch document generation off (or no setting row). Measured on a 264 org with the setting
+    // off: a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY (the access
+    // check answers first), and the persona with DocGen Designer gets INVALID_INPUT "Enable the batch
+    // document generation setting.". With the setting on the persona's insert succeeds, so any refusal
+    // then is a regression. Decided by status code and setting only, never by message text.
     @TestVisible
-    private static Boolean isAccessRefusal(String statusCode, String message) {
-        String code = statusCode == null ? '' : statusCode;
-        String text = message == null ? '' : message.toLowerCase();
-        return code.startsWith('INSUFFICIENT_ACCESS')
-            || text.contains('not allowed')
-            || text.contains('access to entity')
-            || text.contains('insufficient privileges')
-            || text.contains('insufficient access')
-            || text.contains('inaccessible');
+    private static Boolean skipsBatchRefusal(Boolean batchEnabled, String statusCode) {
+        return batchEnabled != true && statusCode == 'INVALID_INPUT';
     }
 
     @IsTest
-    static void batchCreateRefusalIsClassifiedAsAccessOrConfiguration() {
-        // The messages measured on a 264 org.
-        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
-            'Access to entity \'DocGenerationBatchProcess\' denied'), 'no DocGen set');
-        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
-            'DML operation INSERT not allowed on DocGenerationBatchProcess'), 'DocGen User without DocGen Designer');
-        Assert.isTrue(isAccessRefusal('CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY',
-            'Operation failed due to fields being inaccessible on Sobject DocGenerationBatchProcess, check errors on Exception or Result!'),
-            'field access');
-        Assert.isTrue(isAccessRefusal('INSUFFICIENT_ACCESS_OR_READONLY', 'insufficient access rights on object id'),
-            'INSUFFICIENT_ACCESS code');
-        Assert.isFalse(isAccessRefusal('INVALID_INPUT', 'Enable the batch document generation setting.'),
-            'batch document generation turned off is configuration, not access');
+    static void batchRefusalSkipsOnlyForInvalidInputWithBatchOff() {
+        // Measured on a 264 org: setting off, persona with DocGen Designer.
+        Assert.isTrue(skipsBatchRefusal(false, 'INVALID_INPUT'), 'batch generation off is configuration');
+        // Measured on a 264 org: access refusals, setting on or off.
+        Assert.isFalse(skipsBatchRefusal(false, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'), 'access refusal with the setting off');
+        Assert.isFalse(skipsBatchRefusal(true, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'), 'access refusal with the setting on');
+        // Not measured (synthetic): with the setting on nothing skips, and other codes never skip.
+        Assert.isFalse(skipsBatchRefusal(true, 'INVALID_INPUT'), 'setting on: any refusal fails');
+        Assert.isFalse(skipsBatchRefusal(false, 'INSUFFICIENT_ACCESS_OR_READONLY'), 'synthetic access code');
+        Assert.isFalse(skipsBatchRefusal(false, 'UNKNOWN_EXCEPTION'), 'synthetic unknown error');
+        Assert.isTrue(skipsBatchRefusal(null, 'INVALID_INPUT'), 'no setting row counts as off');
     }
 
     // Metadata only, no user: a note if DocGen User starts carrying the DocGen Designer permission.
     @IsTest
-    static void docGenUserSetDoesNotCarryTheDesignerPermission() {
+    static void docGenUserDesignerPermissionNote() {
         List<PermissionSet> sets = [SELECT PermissionsDocGenDesigner FROM PermissionSet WHERE Name = :DOCGEN_USER];
         if (!sets.isEmpty() && sets[0].PermissionsDocGenDesigner) {
             System.debug(LoggingLevel.WARN, 'NOTE: DocGenUser now carries the DocGen Designer permission;'

@@ -358,7 +358,8 @@ These permission sets are stored as metadata in this repository but are not assi
 |---|---|---|
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS; read on the Quote and QuoteLineItem estimated-tax fields only with `quote_est_tax` and `tax` |
-| `RLM_BillingCollectionsRead` | `unpackaged/post_personas/` | Read-only collection plans for the billing personas: assigned to a Billing Operations, Billing Admin or Credit Memo Operations user **next to** their persona group (see *Persona PSGs*). Needs `BillingAdvancedPsl` on the assignee |
+| `RLM_BillingInvoiceDocuments` | `unpackaged/post_personas/` | Not assigned to any user by the build: it is a component of the `RLM_Billing_Admin` and `RLM_Billing_Operations` persona groups. Invoice Batch Run read with View All (and its scheduler and run-criteria chain) and Access Libraries, for invoice documents; see [Billing personas and invoice documents](#billing-personas-and-invoice-documents) |
+| `RLM_BillingAccountFieldAccess` | `unpackaged/pre/3_permissionsetgroups/` | A component of `RLM_RCB` and of the billing persona groups (`RLM_Billing_Admin`, `RLM_Billing_Operations`, `RLM_Credit_Memo_Operations`), not assigned on its own; see the `RLM_RCB` table above |
 | `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
 
 ### Tableau Permission Sets (`rlm_tableaunext_ps_api_names`) -- Not Assigned by Default
@@ -535,8 +536,12 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
   user-permission gate. With batch document generation turned off (an org setting deployed by `docgen`, not
   `personas`) the platform refuses it with `INVALID_INPUT` "Enable the batch document generation setting."
-  [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4, and the class, 0AfWt00000hUUHdKAO], so
-  only an access refusal fails the test and any other refusal is a "SKIPPED, NOT CHECKED" WARN line. The Billing Operations run-read checks are regression checks: the managed Operations set
+  [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4]. With it off, a user without DocGen
+  Designer still gets `CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY`: the access check answers before the setting
+  check. So the test reads the setting first (`DocumentGenerationSetting.IsBatchDocGnrnEnabled`): with it on,
+  any refusal fails; with it off or missing, only `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any
+  other status code fails. It decides by status code and setting, never by message text. The Billing
+  Operations run-read checks are regression checks: the managed Operations set
   already reads the runs, and the View All the set adds is checked only by the metadata test;
 - **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
   groups.
@@ -554,8 +559,9 @@ class; the live persona run checks it for real.
 
 Nothing in the class fails because Salesforce grants more than today, and it creates no user just to watch
 for that: the one remaining note (a WARN line if `DocGenUser` starts carrying the DocGen Designer permission)
-reads metadata only. Each method creates at most one user, so a deploy that runs local tests is not blocked by
-a platform change or by an extra licence seat. Before todo 292 the personas bundle had no Apex; a deploy that runs local
+reads metadata only. It does fail on an access regression, by design. Each method creates at most one user
+and needs one free seat of each license it assigns: the Billing license, and `DocGenDesignerPsl` for the
+DocGen methods (a seat need this bundle introduces). Before todo 292 the personas bundle had no Apex; a deploy that runs local
 tests runs every local test in the org, this class included.
 
 Not measured, and to check in the first live run as the persona:
