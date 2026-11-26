@@ -83,7 +83,7 @@ cci task run manage_decision_tables --operation list --developer_names RLM_Produ
 
 ### Refreshing Decision Tables
 
-#### 10. Refresh All Active Decision Tables (Full Refresh)
+#### 10. Refresh All Active Decision Tables (Platform Chooses the Type)
 ```bash
 cci task run manage_decision_tables --operation refresh
 ```
@@ -93,7 +93,7 @@ cci task run manage_decision_tables --operation refresh
 cci task run manage_decision_tables --operation refresh --is_incremental true
 ```
 
-#### 12. Refresh Specific Decision Tables (Full Refresh)
+#### 12. Refresh Specific Decision Tables (Platform Chooses the Type)
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification"
 ```
@@ -103,7 +103,7 @@ cci task run manage_decision_tables --operation refresh --developer_names "RLM_C
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification" --is_incremental true
 ```
 
-#### 14. Refresh Single Decision Table (Full Refresh)
+#### 14. Refresh Single Decision Table (Platform Chooses the Type)
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification
 ```
@@ -191,7 +191,7 @@ cci task run manage_decision_tables --operation refresh --status Active --is_inc
 When setting up a new org, you typically need to refresh all decision tables:
 
 ```bash
-# Full refresh of all active decision tables (recommended for initial setup)
+# Refresh all active decision tables (recommended for initial setup; is_incremental false, so the platform chooses the type)
 cci task run manage_decision_tables --operation refresh
 ```
 
@@ -223,7 +223,7 @@ compatibility and has no effect.
 When you know which tables need updating:
 
 ```bash
-# Refresh specific decision tables (full refresh)
+# Refresh specific decision tables (is_incremental false: the platform chooses the type)
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification,RLM_ProductQualification"
 ```
 
@@ -271,7 +271,7 @@ decision-tables skill → `lifecycle-and-refresh.md` → *After editing setup da
 task does the same job non-interactively:
 
 ```bash
-# Instead of running the flow manually, use the task for a full refresh:
+# Instead of running the flow manually, use the task (is_incremental false: the platform chooses the type):
 cci task run manage_decision_tables --operation refresh
 ```
 
@@ -340,8 +340,9 @@ The `query` operation returns decision table data as JSON, useful for scripting 
 The `refresh` operation triggers Salesforce to refresh decision table data from external sources.
 
 **Refresh Types:**
-- **Full Refresh** (`is_incremental: false`): in Release 264 this lets the platform
-  choose, and it can run as incremental
+- **Platform's choice** (`is_incremental: false`, the default): asks for no incremental,
+  which is not a request for a full refresh. In Release 264 the platform chooses, and it
+  can run as incremental
 - **Incremental Refresh** (`is_incremental: true`): runs incremental unless the last
   incremental failed or the source hard-deletes. It usually advances `LastIncrementalSyncDate`
   only; a first incremental on a table with no incremental history was measured

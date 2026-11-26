@@ -132,19 +132,38 @@ class MyTask(BaseTask):
     }
 ```
 
-Access options in `_run_task` via `self.options`:
+Read options through the shared helpers in `tasks/soql_utils.py`, and read every one
+before the first request, so a refused option leaves the org untouched:
 
 ```python
+# Import above the CumulusCI imports (see Import Pattern).
+from tasks.soql_utils import option_flag, option_text, requested_names
+
 def _run_task(self):
-    operation = self.options.get("operation", "list")
-    dev_names = self.options.get("developer_names", [])
-    dry_run = self.options.get("dry_run", False)
+    operation = (option_text(self.options.get("operation"), "operation", TaskOptionsError) or "list").lower()
+    dev_names = requested_names(self.options.get("developer_names"), "developer_names", TaskOptionsError)
+    dry_run = option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError)
 ```
 
 Option values can be:
-- Strings, booleans, numbers (scalar)
+- Strings, booleans, numbers (scalar). `-o name value` always arrives as a string, so
+  `-o dry_run False` is the truthy string `"False"`: never test a boolean option for truthiness
 - Lists (YAML sequences) — accessed from `self.options` as Python lists
 - YAML anchor references (`*anchor_name`) — resolved by YAML loader
+
+What the helpers do with each shape:
+
+| Helper | None, blank, whitespace | Padded | int `0` | A list | Refused, naming the option |
+|---|---|---|---|---|---|
+| `option_text` | unset (`None`) | stripped | the value `"0"` | refused | a list, tuple, set or dict |
+| `option_flag` | `default` (False unless given) | stripped | False | refused | anything outside CumulusCI's `process_bool_arg` words (true/false, yes/no, y/n, on/off, 1/0) |
+| `requested_names` | no names (`[]`; so is `[]`) | each name stripped | refused | flattened, split on commas, de-duplicated | an int, an all-blank list, or a list item that is not a string (`- ~`, `- [A, B]`) |
+
+Don't hand-roll a boolean parse (`str(v).lower() == "true"` misreads `" true "` and
+`["true"]`), and don't write an offline `process_bool_arg` fallback: `option_flag`
+needs no CumulusCI and matches its vocabulary (`tests/test_soql_option_hardening.py`
+checks it against the installed CumulusCI). In a Robot task wrapper, changing how an
+option is parsed is a behavioral change and needs a live run (AGENTS.md rule 9).
 
 ---
 
@@ -477,7 +496,7 @@ tasks:
 | `rlm_mcp.py` | `ConfigureMcpServers` | Activate hosted MCP servers and build the custom sales-transactions server |
 | `rlm_sharing.py` | `SetOrgWideDefaultsSharingOnly`, `AssertSObjectOWDs` | Set the sharing-only org-wide defaults, and assert sObject OWDs |
 | `rlm_validate_keys.py` | `ValidateSourceDataKeys` | Pre-extraction check of a plan's externalId key fields |
-| `soql_utils.py` | (utilities) | `soql_quote`, `soql_like_prefix` (LIKE prefixes), `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
+| `soql_utils.py` | (utilities) | Option readers `option_text`, `option_flag`, `requested_names` (see **Task Options**); `soql_quote`, `soql_like_prefix` (LIKE prefixes), `split_names`, `require_identifier`, `positive_int` for every option that reaches SOQL; `project_api_version` |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
 ---
