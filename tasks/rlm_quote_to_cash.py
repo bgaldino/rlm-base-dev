@@ -55,8 +55,7 @@ class VerifyQuoteToCash(BaseTask):
         returncode = subprocess.run(cmd, cwd=self.project_config.repo_root).returncode
         if returncode:
             raise CommandException(
-                f"quote-to-cash check failed (exit {returncode}): 1 means a "
-                "scenario fell short of payment_applied or a balance check "
-                "failed or none was checked; 2 or more means an error or a "
-                "refused config, named in the output above."
+                f"quote-to-cash check failed (exit {returncode}); the FAIL or "
+                "ERROR lines above say why. Exit codes: "
+                "docs/guides/quote-to-cash-runbook.md."
             )

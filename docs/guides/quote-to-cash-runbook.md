@@ -53,15 +53,16 @@ or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
 |------|---------|
 | 0 | Every scenario reached `payment_applied`, at least one balance was checked, none failed. |
 | 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or it created no credit memo or payment of its own, or a balance check failed, or nothing was checked. |
-| 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. When the run had already reached `payment_applied`, the `ERROR:` line names its run ids: check them with `cli verify --manifest <run>` rather than starting a new run. |
+| 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. When the batch had already run, the `ERROR:` line names its run ids: check them with `cli verify --manifest <run>` rather than starting a new run. |
 | 3 | Discovery failed before any write: an unknown account or product, or a refused discovery query such as an expired session. |
 | 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |
 
-A `WARNING:` line means the platform applied something to the invoice that
-this run did not, for example an earlier run's unapplied payment on the same
-account when the invoice posted. The balances can still pass, but when nothing
-was left for this run's credit memo or payment the command fails: the check
-proves the run's own credit and payment, not someone else's.
+`WARNING:` lines are the run's settlement warnings: an over-payment left
+unapplied, a credit capped at the invoice balance, or something the platform
+applied that this run did not, such as an earlier run's unapplied payment on
+the same account when the invoice posted. The balances can still pass, but
+when nothing was left for this run's credit memo or payment the command fails:
+the check proves the run's own credit and payment, not someone else's.
 
 `--config <file>` runs another config; its scenarios must target
 `payment_applied`. Measured on a 264 scratch org (2026-11-26, Line Level): a

@@ -228,7 +228,7 @@ def _print_settlement(settlement, stage: str) -> None:
         print(f"    • payment  : {how} on {lines_of(pm.lines)}; created after the "
               f"invoice posts, then applied explicitly"
               + ("" if stage == "payment_applied" else later))
-        if pm.percent is not None and pm.percent > 100:
+        if pm.percent is not None and pm.percent > 100 and stage == "payment_applied":
             print("      ⚠  over-payment: the unapplied rest may settle the "
                   "account's next posted invoice")
 
@@ -363,10 +363,11 @@ def main(
         max_retries=max(0, args.max_retries),
     )
 
-    report = build_batch_report(manifests, base_run_id=result.base_run_id)
-    json_path, _md_path = write_batch_report(report, result.manifest_dir)
+    # Before the report write, so a caller still gets the manifests if it fails.
     if on_batch is not None:
         on_batch(result, manifests)
+    report = build_batch_report(manifests, base_run_id=result.base_run_id)
+    json_path, _md_path = write_batch_report(report, result.manifest_dir)
 
     print(f"\nDone: {result.total - result.failures}/{result.total} scenario(s) "
           f"succeeded. Manifests in {result.manifest_dir}/")

@@ -126,9 +126,9 @@ none failing; 1 for a short stage, a scenario that created no credit memo or
 payment of its own (its invoice was already settled), or a failed or empty
 check (always on a Header Level org, where the balance checks skip; a request
 refused mid-run is a short stage); 2 when the command could not finish (no
-`sf` or no token, the verify read refused, an unreadable manifest; after a run
-that reached `payment_applied` the `ERROR:` line names its run ids, to check
-with `cli verify --manifest`); 3 when discovery
+`sf` or no token, the verify read refused, an unreadable manifest; when the
+batch had already run the `ERROR:` line names its run ids, to check with
+`cli verify --manifest`); 3 when discovery
 fails (including an expired session); 4 for
 an unreadable config or one with a scenario not targeting `payment_applied`
 (refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
