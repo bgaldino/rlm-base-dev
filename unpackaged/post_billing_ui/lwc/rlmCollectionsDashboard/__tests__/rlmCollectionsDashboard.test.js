@@ -286,4 +286,33 @@ describe("c-rlm-collections-dashboard figures the user cannot read", () => {
       "You don't have access to the records this list is built from."
     ]);
   });
+  it("marks every worklist tab not available when the worklist call fails, next to the error", async () => {
+    getWorklist.mockRejectedValue({ body: { message: "boom" } });
+    const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
+    getOrgDefaultCurrency.mockResolvedValue("USD");
+    getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
+    getAccountOptions.mockResolvedValue([{ value: "", label: "All Accounts" }]);
+    document.body.appendChild(element);
+    await flushPromises();
+    await flushPromises();
+
+    expect(text(element, ".worklist-empty")).toEqual([
+      "You don't have access to the records this list is built from."
+    ]);
+    expect(element.shadowRoot.textContent).toContain("Worklist: boom");
+    expect(element.shadowRoot.textContent).not.toContain("No items in this view");
+  });
+
+  it("marks every worklist tab not available on a worklist wire error", async () => {
+    const element = await mount();
+    getWorklist.mockRejectedValue({ body: { message: "still down" } });
+    getWorklist.error({ message: "wire down" });
+    await flushPromises();
+    await flushPromises();
+
+    expect(text(element, ".worklist-empty")).toEqual([
+      "You don't have access to the records this list is built from."
+    ]);
+    expect(element.shadowRoot.textContent).not.toContain("No items in this view");
+  });
 });

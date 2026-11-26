@@ -986,6 +986,33 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual('critical', wl.highValueDelinquents[0].segment, 'Last-resort rows are critical');
     }
 
+    // The last-resort query honours the page's account and currency filters, as the primary high-value
+    // query does: with an account selected it never lists other accounts' balances. Invoices cannot be
+    // inserted in a test, so the query is checked as built, and run with the same bind names the
+    // controller passes (a bind it lacks would throw).
+    @isTest
+    static void lastResortQuery_honoursTheAccountAndCurrencyFilters() {
+        Account a = newAccount('RLM CD Last Resort Filter');
+        String unfiltered = RLM_CollectionsDashboardController.lastResortQuery('BillingAccountId', false, false);
+        String filtered = RLM_CollectionsDashboardController.lastResortQuery('BillingAccountId', true, true);
+
+        Assert.isFalse(unfiltered.contains(':accountId'), 'No account filter without a selected account.');
+        Assert.isTrue(filtered.contains('BillingAccountId = :accountId'), 'The selected account filters it: ' + filtered);
+        Assert.isTrue(filtered.contains('CurrencyIsoCode = :currencyCode'), 'The selected currency filters it: ' + filtered);
+        List<SObject> rows = Database.queryWithBinds(filtered,
+            new Map<String, Object>{ 'accountId' => a.Id, 'currencyCode' => corporateCurrency() }, AccessLevel.USER_MODE);
+        Assert.isTrue(rows.isEmpty(), 'The filtered query runs; no invoice exists for a new account.');
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.WorklistData wl =
+            RLM_CollectionsDashboardController.getWorklist(a.Id, corporateCurrency());
+        Test.stopTest();
+        for (RLM_CollectionsDashboardController.WorklistItem item : wl.highValueDelinquents) {
+            Assert.areEqual(a.Id, item.accountId, 'With an account selected only that account is listed.');
+        }
+        Assert.isTrue(wl.unavailable.isEmpty(), 'The admin reads every tab: ' + wl.unavailable);
+    }
+
     // The last resort only fills an empty list.
     @isTest
     static void addLastResortDelinquents_addsNothingOnceTheListHasRows() {

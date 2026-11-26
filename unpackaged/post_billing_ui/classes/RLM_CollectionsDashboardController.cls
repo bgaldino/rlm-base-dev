@@ -268,10 +268,13 @@ public with sharing class RLM_CollectionsDashboardController {
         try { buildDisputedFromCases(wl, invAccountField, filterAccount, accountId); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         try { buildWorklistUnifiedFallback(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         if (wl.highValueDelinquents.isEmpty()) {
-            try { buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo); } catch (Exception e) { sectionSkipped('getWorklist', e); }
+            try { buildWorklistLastResort(wl, invAccountField, filterAccount, filterCurrency, accountId, currencyCode, today); } catch (Exception e) { sectionSkipped('getWorklist', e); }
         }
-        // A section a fallback filled after all is not unavailable; one still empty after a refused read
-        // gets no placeholder row (a "nothing overdue" row there would read as a real answer).
+        // A section a fallback filled after all is not unavailable: the fallbacks read the same Invoice
+        // fields as the primary query and honour the same account and currency filters, so rows here were
+        // read under the user's access and the page's filters, never unfiltered data covering a refusal.
+        // One still empty after a refused read gets no placeholder row (a "nothing overdue" row there would
+        // read as a real answer).
         Integer highValueRefused = wl.unavailable.indexOf(WORKLIST_HIGH_VALUE);
         if (!wl.highValueDelinquents.isEmpty() && highValueRefused >= 0) {
             wl.unavailable.remove(highValueRefused);
@@ -345,11 +348,24 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    private static void buildWorklistLastResort(WorklistData wl, String invAccountField, Date today, Date thirtyDaysAgo) {
+    // Any unpaid invoice, when nothing older than 30 days was found, under the same account and currency
+    // filters as the primary high-value query: with an account selected it never lists other accounts.
+    private static void buildWorklistLastResort(WorklistData wl, String invAccountField, Boolean filterAccount,
+            Boolean filterCurrency, Id accountId, String currencyCode, Date today) {
         try {
-            String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0 LIMIT 500';
-            addLastResortDelinquents(wl, Database.query(soql, AccessLevel.USER_MODE), invAccountField, today);
+            Map<String, Object> binds = new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode };
+            List<SObject> rows = Database.queryWithBinds(
+                lastResortQuery(invAccountField, filterAccount, filterCurrency), binds, AccessLevel.USER_MODE);
+            addLastResortDelinquents(wl, rows, invAccountField, today);
         } catch (Exception e) { sectionSkipped('buildWorklistLastResort', e); }
+    }
+
+    @TestVisible
+    private static String lastResortQuery(String invAccountField, Boolean filterAccount, Boolean filterCurrency) {
+        String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0';
+        if (filterAccount) soql += ' AND ' + invAccountField + ' = :accountId';
+        if (filterCurrency && invoiceHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode';
+        return soql + ' LIMIT 500';
     }
 
     // Rolls the queried invoices up by account and, when the list is still empty, adds the five
@@ -629,10 +645,9 @@ public with sharing class RLM_CollectionsDashboardController {
             Map<Id, String> accountNames = getAccountNames(disputedAccountIds);
             Date today = Date.today();
 
-            // Accepted gap (pack 445): when the Invoice read is refused the whole disputed section is
-            // dropped by the caller's isolation catch. A row without its invoice rollup would carry a
-            // zero balance and no days overdue, which reads as a real "nothing owed", and a user who
-            // cannot read Invoice has no balances to work from in any other worklist section either.
+            // A refused Invoice read throws here and is caught at the end of this method, which drops the
+            // whole disputed section and marks it unavailable (WORKLIST_DISPUTED): a row without its invoice
+            // rollup would carry a zero balance and no days overdue, which reads as a real "nothing owed".
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();

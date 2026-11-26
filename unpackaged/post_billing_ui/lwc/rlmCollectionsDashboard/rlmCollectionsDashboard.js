@@ -30,6 +30,13 @@ const NO_ACCESS_PAYMENT_SCHEDULES = "You don't have access to payment schedules.
 const NO_ACCESS_COLLECTION_PLANS = "You don't have access to collection plans.";
 const NO_ACCESS_PLAN_TASKS = "You don't have access to collection plan tasks.";
 const NO_ACCESS_WORKLIST = "You don't have access to the records this list is built from.";
+// A failed worklist call: every tab is not available (shown as a refused read is), next to the error banner.
+const WORKLIST_UNAVAILABLE = {
+    criticalFollowUpInvoices: [],
+    highValueDelinquents: [],
+    disputedInvoices: [],
+    unavailable: ['critical', 'highValue', 'disputed']
+};
 
 /**
  * AR Recovery Agent Mission Control – premium dashboard with Pulse (KPIs), Aging chart, and Action worklist.
@@ -146,7 +153,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             this.worklistData = data;
             this.worklistError = undefined;
         } else if (error) {
-            this.worklistData = null;
+            this.worklistData = WORKLIST_UNAVAILABLE;
             this.worklistError = this.reduceErrors(error);
             this.loadWorklistImperative();
         }
@@ -159,7 +166,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 this.worklistError = undefined;
             })
             .catch((err) => {
-                this.worklistData = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [] };
+                this.worklistData = WORKLIST_UNAVAILABLE;
                 this.worklistError = this.reduceErrors(err);
             });
     }
