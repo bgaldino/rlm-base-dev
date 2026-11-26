@@ -124,9 +124,9 @@ and record milestone billing of a service an amendment adds as an open decision 
 Read each amendment, cancellation and renewal quote's values before its order activates, and don't
 reprice it afterward: a full reprice after activation set a renewal's totals to 0
 (`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in part
-for every lifecycle quote; the zero total was measured once, on an unramped renewal by API call;
-amendments, cancellations, ramped quotes and the button aren't measured, and why it returned 0 isn't
-traced).
+for every lifecycle quote; the zero total was measured on an unramped renewal and an unramped
+cancellation by API call, while an amend-add and an Evergreen-reduce amendment did not change; other
+amendment shapes, ramped quotes and the button aren't measured, and why it returned 0 isn't traced).
 
 ## 5. Phases, gates, skills
 

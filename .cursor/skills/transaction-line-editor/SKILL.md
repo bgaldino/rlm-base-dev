@@ -71,9 +71,11 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    also repriced to 0, and two amendment quotes did not change [Measured: 2026-11-26, 264, ent-sb0 harness build].
    Not measured on other amendment shapes, any ramped quote, or through the button; why the reprice
    returned 0 is not traced.
-6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
-   configuration rules on it resets the line's attributes to product defaults, and activation
-   keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
+6. **Check the build before demoing an inline quantity edit on an amendment of a configured product.** With
+   configuration rules on it reset the line's attributes to product defaults, and activation kept them on the asset
+   [Measured: early Nov 2026, 264]; on a current build with the configurator node status present the attribute was
+   kept [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](../asset-lifecycle-changes/cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)]. Where it resets, change the quantity in the
+   configurator.
 7. **Header adjustments depend on the Discount Distribution Service (DDS) element; make sure only
    one DDS runs per pricing pass.** Help's setup puts a DDS element in the pricing procedure;
    the rep picks the type, value and distribution in Manage Header Adjustment, and pricing spreads

@@ -79,7 +79,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
    `AGENTS.md`).
 9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be
-   amended** (`PlaceSalesTransactionPersistException`; measured on one 264 org). Built in the quote UI the same shape
+   amended** (`PlaceSalesTransactionPersistException`) [Measured: 2026-11-05/06, 264, scratch, one org]. Built in the quote UI the same shape
    amended (evergreen not tried in the UI). Cancel failed too where tried. Detail and the assetization shapes:
    [pitfalls.md](pitfalls.md#api-built-ramped-bundle-with-a-one-time-or-evergreen-child),
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
@@ -88,10 +88,10 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     exempts it). **A partial line edit re-applies the uplift to untouched ramp lines** (net prices move, totals don't):
     finish every ramp edit with a whole-quote Force reprice and read net prices, not totals. No line needs the exemption
     when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift)
-    or when every ramped line should take the uplift `[inferred]`. A line without a `RampIdentifier` took no uplift (a
+    or when every ramped line should take the uplift [Open: inferred]. A line without a `RampIdentifier` took no uplift (a
     standalone Evergreen product, one org). The uplifted price keeps full precision, not cents: add a rounding step
-    after the ramp uplift if the source rounds. Not measured on a Standard ramp (the 2026-10-29 Standard UI run had one
-    Term product and exact prices)
+    after the ramp uplift if the source rounds. [Open: not measured on a Standard ramp; the 2026-10-29 Standard UI run had one
+    Term product and exact prices]
     [Measured: 2026-11-11/13, 264, scratch orgs; detail in [pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp),
     [ui-group-ramp.md](ui-group-ramp.md#what-the-segment-uplift-reaches), [compound-uplift.md](compound-uplift.md)].
 
@@ -102,7 +102,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `TotalPrice`, `CalculationStatus`, `QuoteNumber`. They are computed — the call
   fails if you set them.
 - **DO NOT** set `RampIdentifier` or `SegmentIdentifier` on a line — the ramp
-  actions stamp them. Whether a caller write is refused is not measured ([field-legality.md](field-legality.md)).
+  actions stamp them. [Open: whether a caller write is refused is not measured] ([field-legality.md](field-legality.md)).
 - **DO NOT** write `RampUpliftType` on `QuoteLineItem`/`OrderItem` via Place — it
   is engine-owned there (rejected as not-writeable even when FLS shows editable). Set it on the ramp **group**: the
   **top-level `RampScheduleGroup`** in multi-schedule mode (repo default), or the single segment group when the
@@ -124,8 +124,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** trust untouched lines after a **partial line PATCH on a Compound ramp**
   ([pitfalls.md](pitfalls.md#partial-line-patch-on-a-compound-ramp)).
 - **DO NOT** reprice a lifecycle quote after its order is activated: lifecycle lines price from the source asset's
-  current state and activation rewrites it; a measured renewal repriced to 0
-  ([pitfalls.md](pitfalls.md#reprice-after-activation),
+  current state and activation rewrites it. A renewal and a cancellation repriced to 0; other amendment shapes and
+  ramped quotes are unmeasured, so treat them the same ([pitfalls.md](pitfalls.md#reprice-after-activation),
   [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md)).
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed

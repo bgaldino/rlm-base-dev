@@ -37,7 +37,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still drift later
    ([verification.md](verification.md)).
-    - **Never reprice a renewal or cancellation quote after its order is activated.** Pricing of a renewal, amendment
+    - **Never reprice a renewal or cancellation (and, until measured, other amendment shapes and ramped quotes) quote after its order is activated.** Pricing of a renewal, amendment
       or cancellation line reads the source asset's current state and activation changes it [Platform behaviour,
       traced in part]. A full reprice (`Force`, configuration `Skip`) after activation set a renewal's lines and total
       to 0 [Measured: 2026-11-12, 264, scratch, one org] and an activated cancellation's line and total to 0
@@ -99,7 +99,7 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
   amendment lines, or on a positive amendment edited in the UI (Quick Rule 4).
 - **DO NOT** roll back a backdated change; it is refused once the amendment period has
   started [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
-- **DO NOT** reprice a renewal or cancellation after its order is activated (Quick Rule 1).
+- **DO NOT** reprice a renewal or cancellation (and, until measured, other amendment shapes and ramped quotes) after its order is activated (Quick Rule 1).
 - **DO NOT** quote an evergreen credit from the quote alone: the invoice credits by day (Quick Rule 6).
 - **DO NOT** state a Term Defined cancel credit from calendar years: it counts from the asset start (Quick Rule 6).
 

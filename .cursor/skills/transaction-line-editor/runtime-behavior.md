@@ -299,10 +299,13 @@ Measured on amendment lines [Measured: early Nov 2026, 264]:
   moves to detail rows (for example +2 and −1 at the unit price) and the line total is right. The API's
   `quantityChange` keeps the price on the parent line, so UI and API amendments look different in the
   editor.
-- **A UI quantity edit with configuration rules on resets the line's attributes to the product
-  defaults**, and activation writes those defaults to the asset. Reopening such a line in the
-  configurator shows the diff against the asset. Don't demo an inline quantity edit on an amendment of a
-  configured product; change the quantity in the configurator, or demo a product without attributes.
+- **A UI quantity edit with configuration rules on reset the line's attributes to the product
+  defaults** on the early Nov 2026 build, and activation wrote those defaults to the asset
+  [Measured: early Nov 2026, 264]. Reopening such a line in the configurator shows the diff against the asset. A
+  current build with the configurator node status present kept the attribute
+  [Measured: 2026-11-26, 264, ent-sb0 harness build; [cancel-swap-and-linking.md](../asset-lifecycle-changes/cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced)]. Check the build before demoing an inline quantity
+  edit on a configured product; where it resets, change the quantity in the configurator, or demo a product without
+  attributes.
 
 Renewal and cancellation line display in the STLE was not measured; see the parent's Open list.
 
@@ -316,7 +319,8 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
    catalog if needed, and pick a leaf subcategory before adding.
 4. Demo lines placed with configuration rules on; open each configurable line once in the configurator.
 5. Procedure plan inactive before any header-discount demo.
-6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
+6. Amendment demo: check the build before an inline quantity edit on configured products (it reset attributes on the
+   early Nov 2026 build, not on a current one); explain blank parent prices as
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
    changed since, our run showed none. After changing a header field that pricing reads, do click it:

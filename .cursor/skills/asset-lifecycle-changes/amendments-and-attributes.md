@@ -8,10 +8,11 @@
 > The 2026-11-05 reset did not reproduce on a current build with node status present; blanking node status reproduces it [Measured: 2026-11-26, 264, ent-sb0 harness build], see [cancel-swap-and-linking.md](cancel-swap-and-linking.md#attribute-reset-on-amendment-not-reproduced). The configurator also restores a reset attribute (same section).
 
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
-   with configuration rules on (the UI's inline quantity edit does this), resets the
+   with configuration rules on (the UI's inline quantity edit did this on the 2026-11-05 build), reset the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
    next amendment inherits them. The price stays right [Measured: 2026-11-05, 264]. Add
-   quantity with `initiateAmendment` and `quantityChange`, which kept them.
+   quantity with `initiateAmendment` and `quantityChange`, which kept them. A current build with node status
+   present did not reset (note above).
     - **Changing one CML answer on an amendment reset the others.** When a Place request on
       an amendment quote changed one root answer with rules on, every answer the request
       didn't change went back to its CML default on the solve, and the children those
@@ -30,7 +31,8 @@
       Activation fills them only when the context definition has an order-to-asset rule
       (`AssetActionSource` ⇐ `SalesTransactionItem` in `AssetToSalesTransactionMapping`), and
       never fills rows made from order product detail rows: the cancel-and-reprice pair an
-      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
+      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org]. The causal chain (a missing
+      node status, not another path) is [Open: inferred from a blank-and-repeat test, not core-traced].
     - **Why detail rows stay blank.** Activation writes one asset action source row per
       order line, or one per order line detail when the line has details; a detail-sourced
       row takes its quantity and prices from the detail, and its `ReferenceEntityItemId` is

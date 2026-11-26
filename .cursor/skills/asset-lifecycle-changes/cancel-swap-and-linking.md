@@ -10,7 +10,7 @@ per month, swapped to one at 1,000 per month).
 ## Term Defined cancellation: the credit counts periods from the asset start
 
 `initiateCancellation` on a Term Defined top-level asset, dated 2026-11-16, credited **-10,510.03**: periods
-anchored on the **asset start**, 1 whole year plus 227/365 of the next, not calendar years from 1 January (a
+anchored on the **asset start**: 227/365 of the current period (2026-11-16 to 2027-06-30) plus the next whole year, not calendar years from 1 January (a
 calendar-year count gave -10,518.95, which is wrong for a non-1-January start). The quote had one detail row at -2 x
 3,240 for 2026-11-16 to 2028-06-30 and a null parent `UnitPrice`/`NetUnitPrice`; the billing schedule totalled
 -10,510.03; the asset state period ended 2026-11-15. A +1 amendment on the same asset used the same anchor (5,255.01).
@@ -29,7 +29,8 @@ and the invoice credit separately** in any plan; billing detail: `rlm-business-a
 ## Swaps
 
 - A swap acts as an add plus a negative amendment [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`]; values
-  co-term by day (a swap dated 2026-12-01 priced -3,195.62 / +44.38, x360/365).
+  co-term by day (a 3,240 per year Term Defined asset swapped to a 45 per year product, dated 2026-12-01, priced
+  -3,195.62 / +44.38, which is each price x 360/365).
 - **A swap of a bundle component asset is refused:** "We couldn't process the swap request because the asset is a
   bundle child. Provide the bundle's parent-level asset." Swap the top-level asset.
 - **Usage-based assets cannot be swapped** ("You can't swap usage-based assets."), so a rule that needs a usage product

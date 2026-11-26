@@ -260,4 +260,6 @@ This runbook builds the API (unstamped) shape. Steps 4, 6, 7 and 9 differ on a q
 9. **Verify (API-built).** For the bundle asset, check Assets per child: the term child gives one Asset with one AssetStatePeriod per
    segment. A one-time child that was left in N segments gives N Assets with one period each and no end date. Count
    AssetRelationships to the bundle: one for the term child, plus one per child Asset. Check that each order line's
-   dates match a segment.
+   dates match a segment. An API-built child gets no ramp ids (lines present before EditGroup, then cloned, were stamped;
+   that shape's amend was not measured). A UI-built one-time child is stamped and, left in N segments, becomes one Asset
+   whose quantity accumulates (1, 2, 3 over three segments) [Measured: 2026-11-05/06, 264, scratch, one org].

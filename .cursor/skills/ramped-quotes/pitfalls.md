@@ -120,10 +120,5 @@
 
 ## API-built ramped bundle with a one-time or evergreen child
 
-Quick Rule 9 in full. Measured on one 264 org: amending the bundle failed with `PlaceSalesTransactionPersistException`
-(shorthand "500"), and cancel failed too where tried. The same shape with a one-time child built in the quote UI
-amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's
-Assets remained. Built that way the child gets no ramp ids (lines present before EditGroup, then cloned, were stamped;
-that shape's amend was not measured) and assetizes as one Asset per segment it sits in; built in the UI a one-time
-child is stamped and, left in N segments, becomes one Asset whose quantity accumulates (1, 2, 3 over three segments).
-See [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+Quick Rule 9 in SKILL.md states the rule. The measured amend and cancel failures, the assetization shapes and the
+lifecycle recipe are in [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
