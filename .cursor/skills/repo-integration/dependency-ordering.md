@@ -9,7 +9,7 @@ control order):
 
 | Dir | Deploys | Why First |
 |-----|---------|-----------|
-| `1_settings/`, `2_settings/` | Org settings (`2_settings/` is also the `enable_settings_path` some tasks redeploy) | Features must be enabled before metadata that uses them |
+| `1_settings/`, `2_settings/` | Org settings (`ensure_pricing_schedules` redeploys only `2_settings/IndustriesPricing.settings-meta.xml`) | Features must be enabled before metadata that uses them |
 | `3_permissionsetgroups/` | PSGs, plus repo-owned permission sets they include | PSG metadata deploys here; references PSLs from `force-app/`. A permission set a PSG includes (e.g. `RLM_BillingAccountFieldAccess`) lives in this folder so it deploys in the same bundle |
 | `4_tax/` | Tax adapter Apex | Must exist before the tax metadata and data that reference it |
 | `5_decisiontables/` | Decision table definitions | Must exist before expression sets or flows reference them |

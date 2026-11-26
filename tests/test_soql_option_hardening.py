@@ -568,12 +568,14 @@ check("validate_keys rejects a key field that is not an identifier",
 T = new_task("rlm_repair_pricing_schedules", "EnsurePricingSchedules")
 sent = grab(T, T._get_missing_schedules, [])
 check("repair_pricing_schedules: no schedule names means no query", not sent and T._get_missing_schedules([]) == [], repr(sent))
-T.options = {"schedule_names": "A,B", "validate_decision_table_lookups": "false"}
+# The settings paths are required options (CumulusCI always supplies them); grab stubs the deploys.
+REPAIR_PATHS = {"disable_settings_path": "disable", "enable_settings_path": "enable"}
+T.options = {"schedule_names": "A,B", "validate_decision_table_lookups": "false", **REPAIR_PATHS}
 sent = grab(T, T._run_task)
 check("repair_pricing_schedules: a comma-separated schedule_names option is read as names",
       any(f"Name IN ({soql_quote('A')}, {soql_quote('B')})" in q for q in sent), repr(sent))
 for blank in (None, "", "  ", []):
-    T.options = {"schedule_names": blank, "validate_decision_table_lookups": "false"}
+    T.options = {"schedule_names": blank, "validate_decision_table_lookups": "false", **REPAIR_PATHS}
     sent = grab(T, T._run_task)
     check(f"repair_pricing_schedules: schedule_names={blank!r} checks the default schedules",
           any(soql_quote("Standard Price Adjustment Tier") in q for q in sent), repr(sent))

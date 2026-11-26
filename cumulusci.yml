@@ -1930,7 +1930,8 @@ tasks:
     class_path: tasks.rlm_repair_pricing_schedules.EnsurePricingSchedules
     options:
       disable_settings_path: tasks/resources/pricing_settings_disable
-      enable_settings_path: unpackaged/pre/2_settings
+      # Only the Pricing settings: the whole 2_settings bundle also resets settings later bundles change (Billing).
+      enable_settings_path: unpackaged/pre/2_settings/IndustriesPricing.settings-meta.xml
 
   deploy_expression_sets:
     description: Deploy Expression Sets

@@ -3459,7 +3459,7 @@
 **Options:**
 
 - `disable_settings_path`: `tasks/resources/pricing_settings_disable`
-- `enable_settings_path`: `unpackaged/pre/2_settings`
+- `enable_settings_path`: `unpackaged/pre/2_settings/IndustriesPricing.settings-meta.xml`
 
 ---
 
