@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**269 tasks** across **9 groups**.
+**270 tasks** across **9 groups**.
 
 ---
 
@@ -873,7 +873,7 @@
 
 ## Revenue Lifecycle Management
 
-*176 task(s)*
+*177 task(s)*
 
 ### `activate_agents`
 
@@ -3174,6 +3174,14 @@
 **Options:**
 
 - `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
+
+---
+
+### `verify_quote_to_cash`
+
+**Description:** Opt-in check that a built org can carry a transaction from quote to cash. Runs the Transaction Data Harness `cli quote-to-cash` command: one quote on a billing-ready account through order, activation, a Posted invoice, a credit memo and a payment, both applied, then the read-only balance checks of `cli verify`. Fails when a scenario stops short of payment_applied, creates no credit memo or payment of its own, a check fails, or no balance was checked (expected on a Header Level org, which is not measured). Writes records, and Posted invoices cannot be deleted, so it is in no flow. Runbook: docs/guides/quote-to-cash-runbook.md.
+
+**Class:** `tasks.rlm_quote_to_cash.VerifyQuoteToCash`
 
 ---
 

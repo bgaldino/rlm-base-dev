@@ -182,9 +182,9 @@ class Manifest:
     failure_class: Optional[str] = None
 
     # -- settlement (credit_applied / payment_applied) -----------------------
-    # The scenario's ``settlement:`` block as a dict, recorded when the first
-    # settlement step starts (trimmed to the stages the run's target reaches)
-    # and fixed from then on: ``cli step`` resumes with it and refuses a
+    # The scenario's ``settlement:`` block as a dict, recorded whole when the
+    # first settlement step starts (``payment`` included on a run that stops at
+    # ``credit_applied``) and fixed from then on: ``cli step`` resumes with it and refuses a
     # ``--config`` that differs. ``None`` until a settlement step starts.
     settlement: Optional[dict] = None
     # "line" (Credit, Payment and Refund Application Level = Line Level) or

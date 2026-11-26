@@ -52,9 +52,9 @@ first 15 characters, so `3TT000000000001AAA` reads as `3tt000000000001AAA`; an i
 suffix fits no casing is refused. If stdout is closed early (`verify --json | head -1`),
 the output stops quietly and the verify process still exits with the checks' result; a
 shell pipeline reports the last command's status, so read verify's with
-`set -o pipefail` or `PIPESTATUS` (`pipestatus` in zsh). From a manifest, `verify` reads `invoice_id` or `invoice_ids`. Harness
-manifests carry no payment ids (no stage writes them); `payment_id` or `payment_ids` is
-read only if a manifest has one. A manifest with no ids is only a warning when another
+`set -o pipefail` or `PIPESTATUS` (`pipestatus` in zsh). From a manifest, `verify` reads `invoice_id` or `invoice_ids`, and `payment_id` or
+`payment_ids` when the manifest has them (the `payment_applied` settlement stage writes
+`payment_ids`; earlier stages write none). A manifest with no ids is only a warning when another
 source supplies ids.
 `--latest` reads only the newest manifest, so after a batch of several scenarios pass
 each manifest with `--manifest` (repeatable) or the ids with `--invoice-ids`.

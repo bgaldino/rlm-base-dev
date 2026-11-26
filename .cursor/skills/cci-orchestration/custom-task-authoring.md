@@ -429,6 +429,7 @@ tasks:
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
 | `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
 | `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Thin CCI wrapper over `scripts/ux/` (UX assembly + deploy; drift tooling is `scripts/ux/ux_tool.py`, not a task) |
+| `rlm_quote_to_cash.py` | `VerifyQuoteToCash` | Thin wrapper over `cli quote-to-cash` in the Transaction Data Harness (opt-in; writes records) |
 | `rlm_empty_recycle_bin.py` | `EmptyRecycleBin` | Thin wrapper over `scripts/recycle_bin/empty_recycle_bin.py` (Recycle Bin purge; non-fatal by default) |
 | `rlm_stamp_commit.py` | `StampGitCommit` | Git commit stamping into org |
 | `rlm_validate_setup.py` | `ValidateSetup` | Local environment validation |

@@ -264,6 +264,10 @@ python -m scripts.txn_data_harness.cli verify --org <sf-alias> \
 
 Checks and formulas: `.cursor/skills/billing-operations/verification.md`.
 
+To carry one quote to an applied payment and verify it in one command
+(`cli quote-to-cash`, or the `verify_quote_to_cash` CCI task), or to walk it
+through stage by stage, see the [Quote-to-Cash Runbook](quote-to-cash-runbook.md).
+
 ### Transient-failure retries
 
 Both `generate`/`cli run` retry **transient** scenario failures (network timeouts,

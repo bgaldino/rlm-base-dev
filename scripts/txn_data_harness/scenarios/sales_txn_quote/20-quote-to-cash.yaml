@@ -1,0 +1,40 @@
+# Quote to cash -- one transaction from quote to an applied payment.
+#
+#   python -m scripts.txn_data_harness.cli quote-to-cash --org <sf-alias>
+#
+# `cli quote-to-cash` runs this file (its default --config) at --concurrency 1,
+# fails unless every scenario reaches payment_applied, then runs the `cli
+# verify` checks on the invoices and payments the run recorded. The CCI task
+# `verify_quote_to_cash` wraps that command for a built org.
+#
+# The chain: Quote (Place Sales Transaction) -> Order ->
+# activation (billing schedules, assets) -> Draft invoice -> Posted invoice ->
+# a 10% credit memo applied (credit_applied) -> one external payment for
+# exactly what is left, applied (payment_applied). The invoice ends at a zero
+# balance.
+#
+# Writes records. Posted invoices and billing schedules cannot be deleted,
+# and no cleanup path was measured for the credit memo, payment and their
+# applications, so run this on scratch or demo orgs only. Each run adds a
+# new transaction; nothing is reused.
+#
+# The account must be billing-ready (a BillingAccount): otherwise the harness
+# caps the stage before activation and the check fails as short. Infinitech
+# and its billing account come from the build's sample data (sample_data on);
+# QB-API-FLEX from the QuantumBit catalog.
+#
+# Runbook: docs/guides/quote-to-cash-runbook.md. Settlement contract:
+# scripts/txn_data_harness/docs/contracts-billing-settlement.md.
+defaults:
+  kind: sales_txn_quote
+  target_stage: payment_applied
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 1
+    settlement:
+      credit: {percent: 10}
+      payment: {amount: exact}

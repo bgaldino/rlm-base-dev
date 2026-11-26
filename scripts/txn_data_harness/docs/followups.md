@@ -357,8 +357,9 @@ Line Level is live-verified on 264; everything below is not.
   an `Unapplied` row or an unapplied flag on this run's applications fails
   the stage (field names from describe on 264).
 - `[gap]` **Changing settlement options means a new run.** The block is
-  fixed once recorded; a run that stopped at `credit_applied` cannot be given
-  a payment, and refused options cannot be corrected on the same invoice.
+  fixed once recorded (whole, so a run that stopped at `credit_applied`
+  continues to `payment_applied` with the payment it was configured with),
+  and refused options cannot be corrected on the same invoice.
 - `[gap]` **Settlement cleanup.** No unapply, payment cancel or credit memo
   void was probed; settlement records are treated as leftovers like Posted
   invoices.

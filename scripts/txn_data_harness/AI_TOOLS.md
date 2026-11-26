@@ -112,6 +112,31 @@ Rebuilds the batch report from manifests already on disk (all `out/*.json` shari
 the `<base_run_id>` prefix). Use it to re-summarize an older batch or to read a
 failure-signature rollup when triaging which scenarios to continue or clean up.
 
+### Quote to cash in one command (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli quote-to-cash --org <sf-alias>
+```
+
+Runs `scenarios/sales_txn_quote/20-quote-to-cash.yaml` (or `--config`, whose
+scenarios must target `payment_applied`) at `--concurrency 1`, then the
+`verify` checks on the run's invoices and payments. Exit 0 only when every
+scenario reached `payment_applied` and at least one balance was checked with
+none failing; 1 for a short stage, a scenario that created no credit memo or
+payment of its own (its invoice was already settled), or a failed or empty
+check (expected on a Header Level org, not measured, where the balance checks
+skip; a request
+refused mid-run is a short stage); 2 when the command could not finish (no
+`sf` or no token, the verify read refused, an unreadable manifest; records may
+exist if the run had started, and when only the verify failed the `ERROR:`
+line names the runs, to check with `cli verify --org <sf-alias> --manifest
+<run>`, a pass only when it checked at least one balance); 3 when discovery
+fails (including an expired session); 4 for
+an unreadable config, one with a scenario not targeting `payment_applied`, or
+one the generator refuses while resolving accounts and products (all refused
+before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
+<cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
+
 ### Verify billing (read-only)
 
 ```bash
@@ -136,7 +161,8 @@ on `PATH`, any unexpected error); with `--json` an error also prints
 usage on stderr and, when the command line contains `--json`, one
 `{"ok": false, "error": "usage: ..."}` object on stdout. Abbreviated options
 are refused. Ids may be 15 or 18
-characters. Harness manifests carry no payment ids: payments are found
+characters. A manifest's payment ids are read when it has them (the
+`payment_applied` stage writes `payment_ids`); other payments are found
 through the invoices' application rows, or passed with `--payment-ids`.
 `--latest` checks only the newest manifest: after a batch of several
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records

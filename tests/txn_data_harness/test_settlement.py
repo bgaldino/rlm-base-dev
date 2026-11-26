@@ -240,7 +240,7 @@ def test_partial_settlement_round_trips_without_inventing_blocks(spec) -> None:
     assert settlement_from_dict(data) == spec
 
 
-def test_shared_defaults_with_credit_and_payment_allow_credit_only_target(tmp_path) -> None:
+def test_shared_defaults_keep_the_whole_block_on_a_credit_only_target(tmp_path) -> None:
     from scripts.txn_data_harness.config import load_scenarios
 
     cfg = tmp_path / "c.yaml"
@@ -252,7 +252,8 @@ def test_shared_defaults_with_credit_and_payment_allow_credit_only_target(tmp_pa
         "  - {account: Infinitech, target_stage: payment_applied}\n"
     )
     a, b = load_scenarios(SimpleNamespace(config=str(cfg)))
-    assert a.settlement.credit.amount == 5.0 and a.settlement.payment is None
+    # Kept whole: a run stopped at credit_applied can be stepped on to payment_applied.
+    assert a.settlement.credit.amount == 5.0 and a.settlement.payment.is_exact
     assert b.settlement.payment.is_exact
 
 
@@ -2011,9 +2012,10 @@ def test_config_never_adds_to_a_recorded_block(tmp_path) -> None:
     m = _posted_manifest(settlement={"application_level": "line", "credit": {"amount": 5}})
     with pytest.raises(LifecycleError, match="differs .* in payment.*new run"):
         _settlement_for_step(args, m)
-    # Run to credit_applied only: the payment part is not part of the comparison.
+    # The whole block is compared whatever the target.
     args.to_stage = "credit_applied"
-    assert _settlement_for_step(args, m) is None
+    with pytest.raises(LifecycleError, match="differs .* in payment.*new run"):
+        _settlement_for_step(args, m)
 
 
 @pytest.mark.parametrize(
@@ -2333,10 +2335,24 @@ def test_block_is_recorded_when_the_first_settlement_step_starts(billable_accoun
     m = _posted_manifest()
     assert m.settlement is None
     m = steps.run_credit(ctx, m)
-    # The run stops at credit_applied: the payment part is never recorded.
-    assert m.settlement == {"application_level": "line",
-                            "credit": {"amount": 5.0, "percent": None, "lines": None,
-                                       "tax_strategy": "auto"}}
+    # The run stops at credit_applied, and the whole block is recorded, payment
+    # included, so a later step to payment_applied continues with it.
+    assert m.settlement == spec.to_dict() and "payment" in m.settlement
+
+
+def test_a_run_stopped_at_credit_applied_steps_on_without_config(billable_account) -> None:
+    from scripts.txn_data_harness.cli import _settlement_for_step
+
+    org = SettleOrg("line")
+    spec = SettlementSpec(application_level="line", credit=CreditSpec(amount=5.0),
+                          payment=PaymentSpec())
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "credit_applied"
+    m = steps.run_credit(ctx, _posted_manifest())
+    args = SimpleNamespace(config=None, to_stage="payment_applied")
+    # No refusal: the recorded block has the payment part, and it is used.
+    assert _settlement_for_step(args, m) is None
+    assert settlement_from_dict(m.settlement).payment == spec.payment
 
 
 def test_cli_step_evaluates_config_against_to_stage(tmp_path) -> None:
@@ -3337,6 +3353,21 @@ def test_fixed_sub_unit_payment_is_refused_before_the_credit_post(billable_accou
         steps.run_credit(_settle_ctx(org, billable_account, spec), _posted_manifest())
     assert org.posts == [] and org.memos == []
 
+
+
+def test_sub_unit_payment_is_refused_on_a_run_stopping_at_credit_applied(billable_account) -> None:
+    """The whole block is recorded at credit_applied, so its payment is checked
+    there too: nothing is written for a block the run could never finish."""
+    org = SettleOrg("line", places=0)
+    org.invoice["CurrencyIsoCode"] = "JPY"
+    spec = _pst(target_stage="payment_applied", settlement={
+        "application_level": "line", "credit": {"amount": 50}, "payment": {"amount": 0.4},
+    }).settlement
+    ctx = _settle_ctx(org, billable_account, spec)
+    ctx.target_stage = "credit_applied"
+    with pytest.raises(lifecycle.SettlementError, match="configured payment rounds to 0 in JPY"):
+        steps.run_credit(ctx, _posted_manifest())
+    assert org.posts == [] and org.memos == []
 
 # -- review round 13 (todo 275): the memo applies its whole total here ----------
 

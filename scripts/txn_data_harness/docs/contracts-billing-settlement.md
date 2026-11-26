@@ -303,7 +303,7 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   run's memo and payment read every row: any `Unapplied` row or flag `Yes`
   fails the stage (an application was reversed outside the harness; this run
   cannot settle; start a new run) instead of computing amounts from it.
-- **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
+- **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (the whole block, `payment` included when the run stops at `credit_applied`, so the run can be stepped on to `payment_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
   scenario pinning an account's new name matches the manifest when that name
   resolves to the manifest's `account_id`. The check runs before the
   "already reached" check, so a differing `--config` is never ignored; a
@@ -341,7 +341,8 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   (e.g. JPY 0.4, or a tiny percent) is refused the same way, naming the
   currency and its decimal places; fixed amounts are checked before the
   first write of the run (so a sub-unit payment refuses before the credit
-  is sent), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
+  is sent; this holds on a run that stops at `credit_applied` too, because
+  the whole block is recorded), percents where they are computed. The credit is also capped at the invoice's own `Balance` (tax included): per line, the invoice budget left is turned into its pre-tax share by the same rule as the line capacity (`Calculate` in proportion, `CopyFromInvoiceLine` less the line's tax, `Ignore` as is), rounded down, so the memo, tax included, cannot exceed what the invoice owes.
   A credit `percent` is taken of that capped amount (a warning says when the
   cap reduced its base). When the invoice owes something but none of the
   chosen lines can take even the smallest credit (tax included) within it,

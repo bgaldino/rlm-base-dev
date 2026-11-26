@@ -2678,6 +2678,19 @@ tasks:
     options:
       path: scripts/apex/checkDecisionTableFreshness.apex
 
+  verify_quote_to_cash:
+    group: Revenue Lifecycle Management
+    description: >
+      Opt-in check that a built org can carry a transaction from quote to cash.
+      Runs the Transaction Data Harness `cli quote-to-cash` command: one quote on a
+      billing-ready account through order, activation, a Posted invoice, a credit
+      memo and a payment, both applied, then the read-only balance checks of
+      `cli verify`. Fails when a scenario stops short of payment_applied, creates no
+      credit memo or payment of its own, a check fails, or no balance was checked
+      (expected on a Header Level org, which is not measured). Writes records, and Posted invoices cannot be deleted, so it is in no
+      flow. Runbook: docs/guides/quote-to-cash-runbook.md.
+    class_path: tasks.rlm_quote_to_cash.VerifyQuoteToCash
+
   validate_billing_structure:
     group: Revenue Lifecycle Management
     description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
