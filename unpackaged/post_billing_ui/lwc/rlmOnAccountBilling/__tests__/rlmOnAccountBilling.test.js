@@ -57,6 +57,13 @@ describe('rlmOnAccountBilling', () => {
         expect(el.shadowRoot.querySelector('.status-pill').textContent).toBe('Balance Unavailable');
     });
 
+    it('does not claim no billing activity when a balance could not be read', async () => {
+        const el = mount();
+        getBillingSummary.emit({ ...REFUNDS_REFUSED, totalInvoices: 0 });
+        await flush();
+        expect(el.shadowRoot.querySelector('.status-pill').textContent).toBe('Balance Unavailable');
+    });
+
     it('shows the server error and no figures when the summary fails', async () => {
         const el = mount();
         getBillingSummary.error({ message: 'Unable to read this account\'s invoices.' });

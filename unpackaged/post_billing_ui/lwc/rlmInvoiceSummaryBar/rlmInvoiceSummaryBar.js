@@ -94,7 +94,8 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         const inCollections = b.inCollections === true;
         const net = b.netAccountBalance == null ? null : Number(b.netAccountBalance);
 
-        if (totalInvoices === 0) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
+        // "No Billing Activity" claims no payments or memos either, so not when one could not be read.
+        if (totalInvoices === 0 && net != null) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
         if (inCollections) return { label: 'In Collections', cssClass: 'status-pill status-collections', description: 'This account has been escalated to collections for significantly overdue balances.' };
         if (writtenOff > 0) return { label: 'Written Off', cssClass: 'status-pill status-written-off', description: `${writtenOff} invoice(s) have been written off as uncollectible.` };
         if (delinquentCount > 0) return { label: 'Delinquent', cssClass: 'status-pill status-delinquent', description: `${delinquentCount} invoice(s) are 60+ days past due.` };

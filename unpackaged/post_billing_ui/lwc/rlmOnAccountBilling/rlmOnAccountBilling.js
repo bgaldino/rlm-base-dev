@@ -128,7 +128,8 @@ export default class RlmOnAccountBilling extends LightningElement {
         const inCollections = d.inCollections === true;
         const net = d.netAccountBalance == null ? null : Number(d.netAccountBalance);
 
-        if (totalInvoices === 0) {
+        // "No Billing Activity" claims no payments or memos either, so not when one could not be read.
+        if (totalInvoices === 0 && net != null) {
             return {
                 label: 'No Billing Activity',
                 cssClass: 'status-pill status-no-activity',

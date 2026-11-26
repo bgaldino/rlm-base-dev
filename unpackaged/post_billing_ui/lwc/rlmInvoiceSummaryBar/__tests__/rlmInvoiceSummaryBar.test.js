@@ -130,6 +130,14 @@ describe('rlmInvoiceSummaryBar unavailable balances and loading', () => {
         expect(el.shadowRoot.querySelector('.status-pill').textContent).toBe('Balance Unavailable');
     });
 
+    it('does not claim no billing activity when a balance could not be read', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit({ ...PAYMENTS_REFUSED, totalInvoices: 0 });
+        await flush();
+        expect(el.shadowRoot.querySelector('.status-pill').textContent).toBe('Balance Unavailable');
+    });
+
     it('keeps the spinner through the empty first delivery and until both wires answer', async () => {
         const el = mount();
         await flush();
