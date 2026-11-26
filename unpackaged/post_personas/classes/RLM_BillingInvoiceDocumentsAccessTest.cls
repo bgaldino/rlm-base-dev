@@ -16,9 +16,9 @@
  * - the set's metadata: exactly Read and View All on the run chain, exactly Read on Product2 and
  *   UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
  *   RLM_Billing_Admin and RLM_Billing_Operations.
- * The Billing Operations methods are regression checks for RLM_BillingInvoiceDocuments: the managed
- * Operations set already reads the runs, and the View All the set adds is checked only by the metadata
- * test. In both *WithBothDocGenSets* methods the DocGen assertions check the managed DocGen sets
+ * The Billing Operations run-read, group and DocGen methods are regression checks for
+ * RLM_BillingInvoiceDocuments: the managed Operations set already reads the runs, and the View All the
+ * set adds is checked only by the metadata test. In both *WithBothDocGenSets* methods the DocGen assertions check the managed DocGen sets
  * assigned next to the group. The Operations one passes with the set emptied, apart from the
  * set-exists check; the Admin one depends on the set only through its run reads, which
  * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
