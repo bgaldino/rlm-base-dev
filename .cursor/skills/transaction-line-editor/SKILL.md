@@ -83,7 +83,7 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    Help allows one DDS per pricing procedure [Help: `ind.pricing_discount_distribution_service_limits`];
    the one-per-pass rule is this skill's conclusion from the doubling below. The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
    which the procedure plan runs. With the plan active and `skipOrgSttPricing` on, both ran and a 10%
-   header discount came out at 19% [Measured: 2026-11-05, 264, QuantumBit build] [Repo: datasets/sfdmu/procedure-plans/README.md].
+   header discount came out at 19% [Measured: early Nov 2026, 264, demo orgs] [Repo: datasets/sfdmu/procedure-plans/README.md].
    Keep the plan inactive (the repo default) for header-adjustment demos.
 
 ## DO NOT
@@ -180,7 +180,7 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    as a record-page highlights-panel action (`BrowseCatalog`) instead.
 5. Whether Reprice All validates configuration on 264. Help says it skips configuration, and its request shape
    is Force pricing with configuration skipped [Platform behaviour, traced]; the success toast read "The prices
-   were refreshed and the configuration was validated." [Measured: 2026-11-05, 264, QuantumBit build] and its origin was not traced.
+   were refreshed and the configuration was validated." [Measured: early Nov 2026, 264, demo orgs] and its origin was not traced.
 6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
    scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't
@@ -234,7 +234,7 @@ in the quote page) and the same with `example=false` (it isn't). Finish with
 
 **A rep says the amendment line lost its price.** After a UI quantity edit on an amendment line,
 Sales Price and Net Unit Price are blank on the parent and the price sits on detail rows (for
-example +2 and −1 at the unit price) while the line total is right [Measured: 2026-11-05, 264, QuantumBit build].
+example +2 and −1 at the unit price) while the line total is right [Measured: early Nov 2026, 264, demo orgs].
 Check the detail rows and the total before treating it as a pricing fault.
 
 **Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has

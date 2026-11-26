@@ -110,7 +110,7 @@ wasn't repeated there.
 
 ## Cloning a segment that holds a bundle
 
-[Measured: 2026-11-06, 264, scratch] On the same org, root and term child on Term Annual, EditGroup then Connect clone
+[Measured: 2026-11-06, 264] On the same org, root and term child on Term Annual, EditGroup then Connect clone
 (`lineScope: AllLines`) to three segments:
 
 - A test bundle with a term child and a one-time child (no constraint model references it) cloned with no error.
@@ -217,7 +217,7 @@ tested by flipping it. The four QB simple products that carry it true came from 
 
 ## Runbook: group-ramped bundle with a one-time or evergreen child
 
-[Measured: 2026-11-06, 264, scratch, one org] API build path, plus amend and cancel on quote UI-built bundles. Run it on a disposable org. Check each response body, not the status.
+[Measured: 264, scratch, one org; date not recorded] API build path, plus amend and cancel on quote UI-built bundles. Run it on a disposable org. Check each response body, not the status.
 This runbook builds the API (unstamped) shape. Steps 4, 6, 7 and 9 differ on a quote UI-built bundle (see "Limiting a one-time child to segment 1", the matrix and Assetization shape); renewal of a UI-built bundle was not measured.
 
 1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote with `CurrencyIsoCode` set

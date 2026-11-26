@@ -7,7 +7,7 @@ Windows are contiguous per-period spans. For **`SegmentType=Yearly`**, send segm
 through EditGroup as **exactly 365 days** (`StartDate` + 364 days). Help says "exactly 365
 days for all segments, fixed" [Help: ind.qocal_ramp_deal_for_groups_create]. Clones, though,
 **end each later segment on the calendar anniversary**: 2027-05-01..2028-04-30 is 366 days and
-works [Measured: 2026-10-28, 264, scratch]. So only segment 1 can't contain 29 February. If
+works [Measured: 2026-10-28, 264]. So only segment 1 can't contain 29 February. If
 it did, it would end a day short of the anniversary and the segments would drift; pick another
 start or use `Custom`. Later leap years are fine. `build_quote_to_asset.py --ramp-kind group`
 refuses such a start. For variable durations use **`SegmentType=Custom`**.
@@ -87,7 +87,7 @@ matches the groups to convert by `referenceId`; with a label such as `"g"` nothi
 the call fails with `UNKNOWN_EXCEPTION` *"Index 0 out of bounds for length 0"* (measured on 264,
 2026-10-28; `GroupRampActionHandler.handleEditGroup` indexes the empty match list).
 
-**Multi-schedule mode (repo default): add the parent yourself.** Neither
+**Multi-schedule mode (repo default): add the parent yourself.** [Measured: 264, date and org not recorded] Neither
 EditGroup nor clone creates the `RampScheduleGroup`, and an order without one fails activation
 with *"Specify a ramp schedule group for ramp segment"* (todo 159). After the clones, POST a
 `QuoteLineGroup` with `Type: "RampScheduleGroup"` (a Place with the Quote PATCH and that POST),
