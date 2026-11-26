@@ -351,7 +351,7 @@ describe('unavailable invoice segments', () => {
     });
 
     const READ = { totalInvoices: 2, totalDue: 100, currentAmount: 100, currentCount: 2, debitAmount: 0, debitCount: 0,
-        disputeAmount: 0, disputeCount: 0, promiseToPayAmount: 0, promiseToPayCount: 0 };
+        disputeAmount: 0, disputeCount: 0, promiseToPayAmount: 0, promiseToPayCount: 0, paidAmount: 0, paidCount: 0 };
     const noteFor = async (invoice) => {
         const el = mount();
         getInvoiceSummary.emit(invoice);
@@ -382,6 +382,28 @@ describe('unavailable invoice segments', () => {
     it('names all three when all are refused', async () => {
         expect(await noteFor({ ...READ, debitAmount: null, disputeAmount: null, promiseToPayAmount: null }))
             .toBe('Debit memos, disputes and promises to pay could not be read and are not shown.');
+    });
+
+    it('names refused paid invoices', async () => {
+        expect(await noteFor({ ...READ, paidAmount: null, paidCount: null }))
+            .toBe('Paid invoices could not be read and are not shown.');
+    });
+
+    // The live persona with only Account and Invoice read: every part it cannot read is named.
+    it('names every refused part for a user who reads only invoices', async () => {
+        expect(await noteFor({ ...READ, debitAmount: null, disputeAmount: null, promiseToPayAmount: null }))
+            .toBe('Debit memos, disputes and promises to pay could not be read and are not shown.');
+    });
+
+    it('never shows a refused paid amount as a segment', async () => {
+        const el = mount();
+        getInvoiceSummary.emit({ ...READ, paidAmount: null, paidCount: null });
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(el.shadowRoot.textContent).not.toContain('-Unavailable');
+        const segmentLabels = [...el.shadowRoot.querySelectorAll('.abc-seg-label')].map((n) => n.textContent);
+        expect(segmentLabels.some((label) => label.startsWith('Paid'))).toBe(false);
+        expect(segmentLabels).toContain('Current');
     });
 
     it('names both when both are refused', async () => {

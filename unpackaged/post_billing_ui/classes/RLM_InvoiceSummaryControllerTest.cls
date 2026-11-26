@@ -605,6 +605,63 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.areEqual(0, data.totalInvoices, 'The invoice reads still run.');
     }
 
+    // The live failure (pack 452): a billing user who reads only Account and Invoice saw the card
+    // replaced by the raw text "Variable does not exist: tmpVar1", raised by the inline Case read
+    // (measured as this user on a 264 org). The card now loads with the parts it cannot read
+    // unavailable: disputes (no Case read), debit memos and promises to pay.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadCases_loadsWithDisputesUnavailable() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account', 'Invoice' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Case Read', OwnerId = u.Id);
+        insert acc;
+        insert new Case(AccountId = acc.Id, Subject = 'RLM open case the user cannot read');
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        String failure;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
+            Assert.isNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user can read Invoice.');
+            try {
+                data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+            } catch (Exception e) {
+                failure = e.getTypeName() + ': ' + e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNull(failure, 'The card loads instead of failing: ' + failure);
+        Assert.isNull(data.disputeAmount, 'Without Case read the disputes are unavailable (null), not zero.');
+        Assert.isNull(data.disputeCount, 'And their count.');
+        Assert.isNull(data.debitAmount, 'Debit memos (not readable) are unavailable.');
+        Assert.isNull(data.promiseToPayAmount, 'Promises to pay (no collection plan read) are unavailable.');
+        Assert.areEqual(0, data.totalInvoices, 'The invoice reads ran.');
+        Assert.areEqual(0, data.paidCount, 'The paid-invoice read ran: a real zero.');
+    }
+
+    // A user who cannot read Invoice gets the fixed sentence the on-account summary uses, not the
+    // platform's query error.
+    @isTest
+    static void getInvoiceSummary_forAUserWhoCannotReadInvoices_throwsAFixedSentence() {
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Account' });
+        Account acc = new Account(Name = 'RLM Invoice Summary No Invoice Read', OwnerId = u.Id);
+        insert acc;
+        String message;
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user cannot read Invoice.');
+            try {
+                RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+            } catch (AuraHandledException e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+        Assert.areEqual(RLM_InvoiceSummaryController.INVOICES_UNREADABLE, message,
+            'The user-facing sentence is fixed; no platform text is echoed.');
+    }
+
     private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {
         RLM_InvoiceSummaryController.InvoiceSummaryData data = new RLM_InvoiceSummaryController.InvoiceSummaryData();
         data.disputeAmount = 0;

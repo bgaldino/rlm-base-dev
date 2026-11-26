@@ -55,13 +55,21 @@ public with sharing class RLM_InvoiceSummaryController {
         String targetCurrency = UserInfo.getDefaultCurrency();
         Map<String, Decimal> convRates = new Map<String, Decimal>();
 
+        // The rates and the open invoices are what every figure on the card needs: a refused or
+        // failed read of either refuses with a fixed sentence (the platform text goes to the debug
+        // log), the same sentences as RLM_OnAccountBillingController. Every other read below is one
+        // part of the card, which a refused read leaves unavailable (null) instead.
         if (isMultiCurrency) {
-            for (SObject ct : Database.query(
-                // Every currency, active or not: a record keeps the currency it was created in.
-                'SELECT IsoCode, ConversionRate FROM CurrencyType',
-                AccessLevel.USER_MODE
-            )) {
-                convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
+            try {
+                for (SObject ct : Database.query(
+                    // Every currency, active or not: a record keeps the currency it was created in.
+                    'SELECT IsoCode, ConversionRate FROM CurrencyType',
+                    AccessLevel.USER_MODE
+                )) {
+                    convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
+                }
+            } catch (Exception e) {
+                throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_InvoiceSummaryController.getInvoiceSummary rates', e);
             }
         }
 
@@ -69,17 +77,23 @@ public with sharing class RLM_InvoiceSummaryController {
         String invQuery = 'SELECT Id, Balance, DueDate, Status, SettlementStatus';
         if (isMultiCurrency) invQuery += ', CurrencyIsoCode';
         invQuery += ' FROM Invoice WHERE BillingAccountId = :accountId AND Status = \'Posted\' AND Balance > 0 AND SettlementStatus != \'Settled\'';
-        List<SObject> invoices = Database.query(invQuery, AccessLevel.USER_MODE);
+        List<SObject> invoices;
+        try {
+            invoices = Database.query(invQuery, AccessLevel.USER_MODE);
+        } catch (Exception e) {
+            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_InvoiceSummaryController.getInvoiceSummary invoices', e);
+        }
 
         // ── 2. Disputes via open Cases ──────────────────────────
         // Query open cases for the account, then get Dispute records
         // linked to those cases. Sum DisputedAmount converted to the running user's currency.
-        Set<Id> caseIds = new Set<Id>();
-        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false WITH USER_MODE]) {
-            caseIds.add(c.Id);
+        Set<Id> caseIds = openCaseIds(accountId);
+        if (caseIds == null) {
+            data.disputeAmount = null;
+            data.disputeCount = null;
+        } else {
+            addDisputes(data, caseIds, isMultiCurrency, targetCurrency, convRates);
         }
-
-        addDisputes(data, caseIds, isMultiCurrency, targetCurrency, convRates);
 
         // ── 3. Debit Memos — posted for this account ────────────
         String dmQuery = 'SELECT Id, TotalAmount';
@@ -123,17 +137,55 @@ public with sharing class RLM_InvoiceSummaryController {
                      + ' AND Status = \'Posted\''
                      + ' AND SettlementStatus = \'Settled\''
                      + ' AND FullSettlementDate = LAST_N_DAYS:30';
-        for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
-            Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
-            applied = applied != null ? applied : 0;
-            if (isMultiCurrency) {
-                applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
+        // A refused or failed read (or a currency with no rate) leaves the paid amount and count
+        // unavailable (null), not zero and not a failed card.
+        try {
+            for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
+                Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
+                applied = applied != null ? applied : 0;
+                if (isMultiCurrency) {
+                    applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.paidAmount += applied;
+                data.paidCount++;
             }
-            data.paidAmount += applied;
-            data.paidCount++;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController paid invoices unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            data.paidAmount = null;
+            data.paidCount = null;
         }
 
         return data;
+    }
+
+    @TestVisible
+    private static final String RATES_UNREADABLE =
+        'Unable to read the currency conversion rates, so this account\'s balances are not shown. Contact your administrator.';
+    @TestVisible
+    private static final String INVOICES_UNREADABLE =
+        'Unable to read this account\'s invoices, so its balances are not shown. Contact your administrator.';
+
+    // The account's open cases, read in USER_MODE; null when the read is refused or fails, so the
+    // disputes counted through them are unavailable rather than the whole card failing. Measured on
+    // a 264 org (2026-11-26): for a user without Case read, the inline WITH USER_MODE form of this
+    // query raised QueryException "Variable does not exist: tmpVar1", which reached the card as raw
+    // text.
+    @TestVisible
+    private static Set<Id> openCaseIds(Id accountId) {
+        Set<Id> caseIds = new Set<Id>();
+        try {
+            for (SObject c : Database.query(
+                'SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false', AccessLevel.USER_MODE
+            )) {
+                caseIds.add(c.Id);
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController open cases unavailable: '
+                + e.getTypeName() + ': ' + e.getMessage());
+            return null;
+        }
+        return caseIds;
     }
 
     // The Dispute fields the dispute query reads (CurrencyIsoCode is added in a multi-currency org).

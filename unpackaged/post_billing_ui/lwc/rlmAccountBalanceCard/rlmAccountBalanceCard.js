@@ -224,6 +224,7 @@ export default class RlmAccountBalanceCard extends LightningElement {
         if (d.debitAmount == null) names.push('debit memos');
         if (d.disputeAmount == null) names.push('disputes');
         if (d.promiseToPayAmount == null) names.push('promises to pay');
+        if (d.paidAmount == null) names.push('paid invoices');
         if (!names.length) return '';
         const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
         const text = `${list} could not be read and are not shown.`;
