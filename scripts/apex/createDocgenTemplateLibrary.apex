@@ -22,7 +22,10 @@
 //      Internal Users. A library takes only users and public groups as members (adding All
 //      Internal Users directly is refused), so the group carries it. Generating any document
 //      means reading its template, and templates hold no record data, so every internal
-//      user reads them. A rerun leaves a group that has members alone.
+//      user reads them. The per-user Salesforce CRM Content User permission is not needed for
+//      that: measured on 264, the sales rep (without it) generated, and a Standard User without it
+//      read the template's versions through the group. A rerun leaves a group that has members
+//      alone.
 //   4. The group's library membership with that permission. An existing membership for the
 //      group is left as it is.
 // A rerun (this task, prepare_docgen or prepare_rlm_org) restores access an admin took away by
@@ -44,8 +47,11 @@ final String GROUP_LABEL = 'RLM DocGen Template Users';
 // admin finds the library and the permission, group and membership, so a rerun by any internal
 // admin inserts nothing; with the group taken out of the library, the same admin finds no library,
 // with or without sharing, and inserting the same DeveloperName fails with DUPLICATE_VALUE
-// ("Another library already has this name."). That happens when the running admin is not a member
-// of a library someone else created, so the script stops with what to do instead.
+// ("Another library already has this name."). Both the name and the unique name are unique, and the
+// error is the same for either (measured: same name with another unique name, another name with the
+// same unique name, and both, each fail with that message and no field). So on DUPLICATE_VALUE the
+// script looks for a visible library with the same name: found, it is a library under another
+// unique name; not found, it is one the running admin cannot see. It stops with what to do.
 List<ContentWorkspace> libraries = [
     SELECT Id FROM ContentWorkspace WHERE DeveloperName = :LIBRARY_API_NAME LIMIT 1
 ];
@@ -56,10 +62,22 @@ if (libraries.isEmpty()) {
     if (!created.isSuccess()) {
         Database.Error error = created.getErrors()[0];
         if (error.getStatusCode() == StatusCode.DUPLICATE_VALUE) {
-            throw new DmlException('A library with the unique name ' + LIBRARY_API_NAME
-                + ' already exists, but ' + UserInfo.getUserName() + ' is not a member, so it cannot see it.'
-                + ' In Salesforce Classic, open Libraries (/sfc/#workspaces) as a member of that library,'
-                + ' add ' + UserInfo.getUserName() + ' as a Library Administrator, and run this step again.');
+            List<ContentWorkspace> sameName = [
+                SELECT DeveloperName FROM ContentWorkspace WHERE Name = :LIBRARY_LABEL LIMIT 1
+            ];
+            if (!sameName.isEmpty()) {
+                throw new DmlException('A library named "' + LIBRARY_LABEL + '" already exists with the unique name '
+                    + sameName[0].DeveloperName + '. Document generation needs the unique name ' + LIBRARY_API_NAME
+                    + '. In Salesforce Classic, Libraries (/sfc/#workspaces), either set that library\'s unique name'
+                    + ' to ' + LIBRARY_API_NAME + ' (if it holds the document templates) or rename it, then run'
+                    + ' this step again.');
+            }
+            throw new DmlException('A library named "' + LIBRARY_LABEL + '" or with the unique name '
+                + LIBRARY_API_NAME + ' already exists, but ' + UserInfo.getUserName() + ' is not a member, so it'
+                + ' cannot see it. In Salesforce Classic, Libraries (/sfc/#workspaces), as a member of that library:'
+                + ' if its unique name is ' + LIBRARY_API_NAME + ', add ' + UserInfo.getUserName() + ' as a Library'
+                + ' Administrator; otherwise rename it or set its unique name to ' + LIBRARY_API_NAME + '. Then run'
+                + ' this step again.');
         }
         throw new DmlException('Could not create the library ' + LIBRARY_API_NAME + ': ' + error.getMessage());
     }

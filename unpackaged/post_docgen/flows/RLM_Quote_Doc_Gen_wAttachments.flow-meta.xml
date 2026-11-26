@@ -123,6 +123,13 @@
                 <elementReference>varT_SingleDocContentVersionId</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varB_MergeStarted</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Merge_PDF_Documents</targetReference>
         </connector>
@@ -312,28 +319,28 @@
         <expression>&apos;Quote_&apos; +  {!forT_TodayDay} + &apos;-&apos; + {!forT_TodayMonth} + &apos;-&apos; +   TEXT(YEAR(TODAY()))</expression>
     </formulas>
     <formulas>
-        <description>What the error screen tells the user to do, by outcome: a fault, a generation that ended without Success, a generation or merge the status screen stopped waiting for (TimedOut, which may still finish; the platform attaches its output to the quote), or a merge that failed after the proposal was generated.</description>
+        <description>What the error screen tells the user to do, by outcome and step: a fault, a generation that ended without Success, a generation or merge the status screen stopped waiting for (TimedOut; the platform attaches any output to the quote), or a merge that failed or faulted after the proposal was generated.</description>
         <name>forT_ErrorAdvice</name>
         <dataType>String</dataType>
-        <expression>IF(NOT(ISBLANK({!$Flow.FaultMessage})), &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;, IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, IF(NOT(ISBLANK({!docMergeStatus})), &apos;The merged PDF may still finish: check the Files list on the quote in a few minutes. If no merged PDF appears, generate the proposal again or contact your administrator. The separate proposal PDF stays on the quote; delete it by hand if you do not want it.&apos;, &apos;The document may still finish: check the Files list on the quote in a few minutes. If no file appears, generate it again or contact your administrator.&apos; &amp; IF({!varN_FileCount} &gt; 0, &apos; The files you chose to attach were not added to it.&apos;, &apos;&apos;)), IF(NOT(ISBLANK({!docMergeStatus})), &apos;The proposal document was generated and is in the Files list on the quote, without the files you chose to attach. Check that you can open those files, then generate the proposal again if you need them merged; delete the extra proposal files by hand if you do not want them.&apos;, &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;)))</expression>
+        <expression>IF(NOT(ISBLANK({!$Flow.FaultMessage})), IF({!varB_MergeStarted}, &apos;The proposal document was generated and is in the Files list on the quote, and a merged PDF may be there too. Delete the files you do not want by hand, check that you can open the files you chose to attach, and generate the proposal again if you still need them merged. If the problem continues, contact your administrator.&apos;, &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;), IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, IF({!varB_MergeStarted}, &apos;The merged PDF may still finish: check the Files list on the quote in a few minutes. If no merged PDF appears, generate the proposal again or contact your administrator. The separate proposal PDF stays on the quote; delete it by hand if you do not want it.&apos;, &apos;The document may still finish: check the Files list on the quote in a few minutes. If no file appears, generate it again or contact your administrator.&apos; &amp; IF({!varN_FileCount} &gt; 0, &apos; The files you chose to attach were not added to it.&apos;, &apos;&apos;)), IF({!varB_MergeStarted}, &apos;The proposal document was generated and is in the Files list on the quote, without the files you chose to attach. Check that you can open those files, then generate the proposal again if you need them merged; delete the extra proposal files by hand if you do not want them.&apos;, &apos;Check that you can read the quote document template and that the generated PDF is available to you, then try again. If the problem continues, contact your administrator.&apos;)))</expression>
     </formulas>
     <formulas>
-        <description>What the error screen says happened. The fault message is not shown: it can name objects, fields and Apex classes. An administrator sees it by running the flow in debug.</description>
+        <description>What the error screen says happened, by step: generation or the attachment merge (varB_MergeStarted). The fault message is not shown: it can name objects, fields and Apex classes. An administrator sees it by running the flow in debug.</description>
         <name>forT_ErrorDetail</name>
         <dataType>String</dataType>
-        <expression>IF(NOT(ISBLANK({!$Flow.FaultMessage})), &apos;A step in the document generation could not be completed.&apos;, IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, IF(NOT(ISBLANK({!docMergeStatus})), &apos;Merging the attachments into the PDF was still running after 5 minutes, so this screen stopped waiting for it.&apos;, &apos;The document generation process was still running after 5 minutes, so this screen stopped waiting for it.&apos;), IF(NOT(ISBLANK({!docMergeStatus})), &apos;Merging the attachments into the PDF ended with status &apos; &amp; {!forT_ProcessStatus} &amp; &apos;.&apos;, &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!forT_ProcessStatus}), &apos;unknown&apos;, {!forT_ProcessStatus}) &amp; &apos;.&apos;)))</expression>
+        <expression>IF(NOT(ISBLANK({!$Flow.FaultMessage})), IF({!varB_MergeStarted}, &apos;A step in merging the attachments into the proposal could not be completed.&apos;, &apos;A step in the document generation could not be completed.&apos;), IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, IF({!varB_MergeStarted}, &apos;Merging the attachments into the PDF was still running after 5 minutes, so this screen stopped waiting for it.&apos;, &apos;The document generation process was still running after 5 minutes, so this screen stopped waiting for it.&apos;), IF({!varB_MergeStarted}, &apos;Merging the attachments into the PDF ended with status &apos; &amp; {!forT_ProcessStatus} &amp; &apos;.&apos;, &apos;The document generation process ended with status &apos; &amp; IF(ISBLANK({!forT_ProcessStatus}), &apos;unknown&apos;, {!forT_ProcessStatus}) &amp; &apos;.&apos;)))</expression>
     </formulas>
     <formulas>
-        <description>The error screen heading. TimedOut is not a failure (the process may still succeed), and a failed merge comes after the proposal was generated.</description>
+        <description>The error screen heading. TimedOut is not a failure (the process may still succeed), and anything that goes wrong once the merge has started (varB_MergeStarted) comes after the proposal was generated.</description>
         <name>forT_ErrorHeading</name>
         <dataType>String</dataType>
-        <expression>IF(NOT(ISBLANK({!$Flow.FaultMessage})), &apos;The document could not be generated.&apos;, IF({!forT_ProcessStatus} = &apos;TimedOut&apos;, &apos;The document is taking longer than expected.&apos;, IF(NOT(ISBLANK({!docMergeStatus})), &apos;The attachments could not be added to the proposal.&apos;, &apos;The document could not be generated.&apos;)))</expression>
+        <expression>IF(ISBLANK({!$Flow.FaultMessage}) &amp;&amp; {!forT_ProcessStatus} = &apos;TimedOut&apos;, &apos;The document is taking longer than expected.&apos;, IF({!varB_MergeStarted}, &apos;The attachments could not be added to the proposal.&apos;, &apos;The document could not be generated.&apos;))</expression>
     </formulas>
     <formulas>
-        <description>The status of the step the flow last waited on: the attachment merge once it has started, otherwise document generation.</description>
+        <description>The status of the step the flow last waited on: the attachment merge once it has started (varB_MergeStarted), otherwise document generation.</description>
         <name>forT_ProcessStatus</name>
         <dataType>String</dataType>
-        <expression>IF(ISBLANK({!docMergeStatus}), {!docStatus}, {!docMergeStatus})</expression>
+        <expression>IF({!varB_MergeStarted}, {!docMergeStatus}, {!docStatus})</expression>
     </formulas>
     <formulas>
         <name>forT_TodayDay</name>
@@ -1011,7 +1018,7 @@
         </outputAssignments>
     </subflows>
     <variables>
-        <description>Status the attachment-merge screen reports. Blank until a merge starts, so the error screen can tell the merge path from document generation.</description>
+        <description>Status the attachment-merge screen reports, kept apart from docStatus (generation). Read through forT_ProcessStatus once varB_MergeStarted is true.</description>
         <name>docMergeStatus</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -1031,6 +1038,17 @@
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>True once the flow starts merging the attachments into the proposal PDF (set before Merge_PDF_Documents), so the error screen can tell a merge-path fault or outcome from document generation: by then the proposal document is already on the quote.</description>
+        <name>varB_MergeStarted</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
     </variables>
     <variables>
         <name>varN_FileCount</name>
