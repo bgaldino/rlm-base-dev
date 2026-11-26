@@ -28,8 +28,11 @@
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads and the DocGen access.
  * - the set's metadata: View All on the run chain, Access Libraries, and membership of both groups.
- * The Billing Operations run-read methods are regression checks: the managed Operations set already
- * reads the runs, and the View All the set adds is checked only by the metadata test.
+ * The Billing Operations methods are regression checks for RLM_BillingInvoiceDocuments: the managed
+ * Operations set already reads the runs, the View All the set adds is checked only by the metadata
+ * test, and billingOperationsWithBothDocGenSetsHasBatchAndOnDemandAccess's DocGen assertions check the
+ * managed DocGen sets assigned next to the group (it passes with the set emptied, apart from the
+ * set-exists check).
  * Nothing here fails because Salesforce grants MORE than today: the only such note (DocGen User
  * gaining the DocGen Designer permission) reads metadata and creates no user.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
@@ -42,7 +45,9 @@
  * setting."; in both, a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY,
  * because the access checks answer first. The other settings do not matter here (measured): with both
  * flags on, the insert succeeds with the client-side generation mechanism and with an hourly batch
- * limit of 0. The measured org has one setting row and Help speaks of "a Document Generation Setting
+ * percentage limit (batchDocGnrnPctLimitPerHour) of 0. With no setting row the code treats batch
+ * generation as off; the platform's refusal code then is not measured (every measured org had a row),
+ * so any refusal there other than INVALID_INPUT fails loudly. The measured org has one setting row and Help speaks of "a Document Generation Setting
  * record"; one row is not guaranteed, so the query orders by CreatedDate and reads the oldest. batchRefusalSkipsOnlyForInvalidInputWithBatchOff and
  * batchGenerationNeedsBothSettings pin the split by status code and settings, not by message text.
  *
