@@ -24,7 +24,7 @@ That is the form measured below; the dev guide's examples show a line id in `rec
 - The dev guide documents `{ requestId, salesTransactionId, success, errors }`, with
   `success` covering only the synchronous part and `requestId` for the async status
   [Dev guide: `connect-responses-clone-sales-transaction-output`].
-- [Measured: two whole-quote clones, date, release and org not recorded] The response also carried `trackerId` and
+- Measured on two whole-quote clones: the response also carried `trackerId` and
   `trackerUrl` (as the `ramped-quotes` skill also records for group clones); `requestId`, `trackerId` and `trackerUrl` were all null;
   `salesTransactionId` was the **new** quote's id. After the first clone, the new quote read
   `CalculationStatus = CompletedWithPricing` on the first query, about 5 seconds later
