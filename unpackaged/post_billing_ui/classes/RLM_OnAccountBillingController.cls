@@ -156,6 +156,10 @@ public with sharing class RLM_OnAccountBillingController {
         ];
         info.put('delinquentCount', delinquentCount);
 
+        // The four reads below are optional to the summary: a refused or failed one gives null
+        // (shown as unavailable), never a zero or false that reads as "none" (owner rule, pack 445).
+        // An org without the Dispute object has no disputes, so that count is a real zero.
+
         // Overdue invoices that have partial payments applied (Balance < TotalAmountWithTax)
         Integer partiallyPaidOverdueCount = 0;
         try {
@@ -172,7 +176,7 @@ public with sharing class RLM_OnAccountBillingController {
                 }
             }
         } catch (Exception e) {
-            // Field may not be accessible
+            partiallyPaidOverdueCount = unavailable('partiallyPaidOverdueCount', e);
         }
         info.put('partiallyPaidOverdueCount', partiallyPaidOverdueCount);
 
@@ -196,28 +200,34 @@ public with sharing class RLM_OnAccountBillingController {
                 WITH USER_MODE
             ];
         } catch (Exception e) {
-            // Status value may not exist
+            // An unknown picklist value in the filter matches no rows rather than throwing, so a
+            // failure here is a refused or failed read.
+            writtenOffCount = unavailable('writtenOffCount', e);
         }
         info.put('writtenOffCount', writtenOffCount);
 
         // Open disputes
         Integer disputeCount = 0;
-        try {
-            List<AggregateResult> dRes = Database.query(
-                'SELECT COUNT(Id) cnt FROM Dispute '
-                + 'WHERE Invoice.BillingAccountId = :accountId '
-                + 'AND Status != \'Closed\'',
-                AccessLevel.USER_MODE
-            );
-            if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
-                disputeCount = (Integer) dRes[0].get('cnt');
+        if (Schema.getGlobalDescribe().containsKey('Dispute')) {
+            try {
+                List<AggregateResult> dRes = Database.query(
+                    'SELECT COUNT(Id) cnt FROM Dispute '
+                    + 'WHERE Invoice.BillingAccountId = :accountId '
+                    + 'AND Status != \'Closed\'',
+                    AccessLevel.USER_MODE
+                );
+                if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
+                    disputeCount = (Integer) dRes[0].get('cnt');
+                }
+            } catch (Exception e) {
+                disputeCount = unavailable('disputeCount', e);
             }
-        } catch (Exception e) {
-            // Dispute object may not be available
         }
         info.put('disputeCount', disputeCount);
 
         // Collections — check if any CollectionPlan records exist for this account
+        // CollectionPlan is named in static SOQL, so it exists wherever this class compiles: a
+        // failure is a refused or failed read, and the account may be in collections.
         Boolean inCollections = false;
         try {
             Integer collectionPlanCount = [
@@ -228,11 +238,19 @@ public with sharing class RLM_OnAccountBillingController {
             ];
             inCollections = collectionPlanCount > 0;
         } catch (Exception e) {
-            // CollectionPlan object may not be available
+            unavailable('inCollections', e);
+            inCollections = null;
         }
         info.put('inCollections', inCollections);
 
         return info;
+    }
+
+    // Logs a refused or failed optional status read; returns null for the caller to report.
+    private static Integer unavailable(String key, Exception e) {
+        System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.' + key + ' unavailable: '
+            + e.getTypeName() + ': ' + e.getMessage());
+        return null;
     }
 
     /**

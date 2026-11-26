@@ -15,6 +15,8 @@ jest.mock(
 // as $0.00; the wire is ready only on data or an error; a new recordId starts a new load.
 const ALL_READ = {
     currencyIsoCode: 'USD', isMultiCurrency: false, totalInvoices: 2,
+    overdueCount: 0, delinquentCount: 0, partiallyPaidOverdueCount: 0, openWithBalance: 1,
+    writtenOffCount: 0, disputeCount: 0, inCollections: false,
     invoiceBalance: 100, debitMemoBalance: 20, creditMemoBalance: 5,
     paymentBalance: 30, refundBalance: 1, netAccountBalance: 86
 };
@@ -95,5 +97,39 @@ describe('rlmOnAccountBilling', () => {
         await flush();
         expect(spinner(el)).toBeNull();
         expect(net(el)).toBe('$7.00');
+    });
+});
+
+// Pack 452: a status count the server could not read comes back null. The pill cannot decide the
+// standing past that check, so it says so instead of treating the count as zero or false.
+describe('status pill with an unavailable count', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+    });
+
+    const pillFor = async (billing) => {
+        const el = mount();
+        getBillingSummary.emit(billing);
+        await flush();
+        return el.shadowRoot.querySelector('.status-pill').textContent;
+    };
+
+    it('reads the standing when every count is known', async () => {
+        expect(await pillFor(ALL_READ)).toBe('Good Standing');
+    });
+
+    it.each(['inCollections', 'writtenOffCount', 'disputeCount', 'partiallyPaidOverdueCount'])(
+        'shows Status Unavailable, not a standing, when %s is unavailable', async (key) => {
+            expect(await pillFor({ ...ALL_READ, [key]: null })).toBe('Status Unavailable');
+        }
+    );
+
+    it('still shows a known earlier status ahead of an unavailable later count', async () => {
+        expect(await pillFor({ ...ALL_READ, inCollections: true, disputeCount: null })).toBe('In Collections');
+        expect(await pillFor({ ...ALL_READ, delinquentCount: 1, disputeCount: null })).toBe('Delinquent');
+    });
+
+    it('does not claim no billing activity when collections are unavailable', async () => {
+        expect(await pillFor({ ...ALL_READ, totalInvoices: 0, inCollections: null })).toBe('Status Unavailable');
     });
 });

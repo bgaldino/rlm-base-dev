@@ -11,12 +11,9 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // Checks that, as the admin, the summary for an account with no billing records returns
-    // zero balances and clean status flags. A refused aggregate balance read returns null, not
-    // zero (see the refused-read tests below), so these zeros show the balance reads ran; the
-    // partially-paid, written-off, dispute and collection reads are still swallowed into zeros
-    // when they fail, so this does not prove they run. See
-    // getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans: the probes
-    // there show this role can run the reads.
+    // zero balances and clean status flags. A refused balance or status read returns null, not
+    // zero or false (see the refused-read tests below), so these zeros show the reads ran. See
+    // getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans for a role.
     @isTest
     static void getBillingSummary_accountWithNoBilling_returnsZeroBalances() {
         Account acc = new Account(Name = 'RLM On-Account Billing Test');
@@ -190,15 +187,14 @@ private class RLM_OnAccountBillingControllerTest {
             'An account with a collection plan is in collections.');
     }
 
-    // The partially-paid, written-off, dispute and collections reads swallow a query the user may
-    // not run and report zero, so a zero there proves nothing by itself (a refused balance read is
-    // null, not zero). For a billing operations user holding RLM_BillingUI this runs, in USER_MODE, a
+    // A refused balance or status read is null, not zero or false, so the zeros below show the reads
+    // ran. For a billing operations user holding RLM_BillingUI this also runs, in USER_MODE, a
     // probe of each read the summary makes (account currency, standard rates, and each object
     // it sums or counts, with the fields it uses); those probes are the evidence that this role
     // can run the summary's reads. Dated rates are left out: that table exists only with
     // advanced currency management, and the controller treats an unreadable one as empty.
-    // Collection plans are the exception: this role cannot read them, and the summary shows
-    // "not in collections" instead of failing.
+    // Collection plans are the exception: this role cannot read them, so the summary reports
+    // collections as unavailable (null), not "not in collections", and does not fail.
     @isTest
     static void getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans() {
         User u = billingOperationsUser();
@@ -249,8 +245,10 @@ private class RLM_OnAccountBillingControllerTest {
         }) {
             Assert.areEqual(0, (Integer) result.get(key), key + ' should be zero with no billing activity.');
         }
-        Assert.areEqual(false, (Boolean) result.get('inCollections'),
-            'A role that cannot read collection plans is shown as not in collections, though the account has one.');
+        Assert.isTrue(result.containsKey('inCollections'), 'inCollections is returned.');
+        Assert.isNull(result.get('inCollections'),
+            'A role that cannot read collection plans gets collections as unavailable, not "not in collections" '
+            + '(the account has a plan).');
     }
 
     private static final String COLLECTION_PLAN_READ = 'SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1';
@@ -477,17 +475,18 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.isNull(RLM_OnAccountBillingController.netOf(100, 20, 5, 30, null), 'Refunds refused: no net balance.');
     }
 
-    // A billing user who reads the account and its invoices but none of the other balance objects:
-    // each of those balances, and the net balance, is unavailable; the invoice balance is a real zero.
+    // A billing user who reads the account and its invoices but none of the other billing objects:
+    // each of those balances, the net balance, the dispute count and the collections flag are
+    // unavailable (null); the invoice balance and the invoice counts are real zeros.
     @isTest
-    static void getBillingSummary_forAUserWhoReadsOnlyInvoices_showsTheOtherBalancesAndTheNetUnavailable() {
+    static void getBillingSummary_forAUserWhoReadsOnlyInvoices_showsTheOtherBalancesTheNetAndTheirCountsUnavailable() {
         User u = billingUserReading(new List<String>{ 'Account', 'Invoice' });
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Invoices Only', null);
         Map<String, Object> result;
         Test.startTest();
         System.runAs(u) {
-            assertReads(new List<String>{ ACCOUNT_READ, INVOICE_READ },
-                new List<String>{ DEBIT_MEMO_READ, CREDIT_MEMO_READ, PAYMENT_SUM_READ, REFUND_READ });
+            assertReads(new List<String>{ ACCOUNT_READ, INVOICE_READ, PARTIALLY_PAID_READ },
+                new List<String>{ DEBIT_MEMO_READ, CREDIT_MEMO_READ, PAYMENT_SUM_READ, REFUND_READ, DISPUTE_READ, COLLECTION_PLAN_READ });
             result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
         }
         Test.stopTest();
@@ -499,6 +498,13 @@ private class RLM_OnAccountBillingControllerTest {
         }
         Assert.isNull(result.get('netAccountBalance'), 'The net balance includes the refused parts, so it is unavailable.');
         Assert.areEqual(0, (Integer) result.get('totalInvoices'), 'The invoice counts still run.');
+        Assert.areEqual(0, (Integer) result.get('writtenOffCount'), 'The written-off count reads Invoice, so its zero is real.');
+        Assert.areEqual(0, (Integer) result.get('partiallyPaidOverdueCount'),
+            'The partially-paid count reads Invoice (granted, probed above), so its zero is real.');
+        for (String key : new List<String>{ 'disputeCount', 'inCollections' }) {
+            Assert.isTrue(result.containsKey(key), key + ' is returned.');
+            Assert.isNull(result.get(key), key + ' is unavailable (null), not zero or false, when its read is refused.');
+        }
     }
 
     // Per balance: with Payment also readable, the payment balance is a real zero while the
@@ -554,6 +560,10 @@ private class RLM_OnAccountBillingControllerTest {
         'SELECT SUM(TotalChargeAmount) total, CurrencyIsoCode curr FROM DebitMemo WHERE AccountId != null AND Status = \'Posted\' AND TotalChargeAmount != 0 AND InvoiceGenerationStatus != \'Posted Invoice Generated\' GROUP BY CurrencyIsoCode';
     private static final String CREDIT_MEMO_READ =
         'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM CreditMemo WHERE BillingAccountId != null AND Status = \'Posted\' AND Balance != 0 GROUP BY CurrencyIsoCode';
+    private static final String PARTIALLY_PAID_READ =
+        'SELECT Id, Balance, TotalAmountWithTax FROM Invoice WHERE Status = \'Posted\' AND Balance > 0 LIMIT 1';
+    private static final String DISPUTE_READ =
+        'SELECT COUNT(Id) cnt FROM Dispute WHERE Invoice.BillingAccountId != null AND Status != \'Closed\'';
     private static final String PAYMENT_SUM_READ =
         'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM Payment WHERE AccountId != null AND Status = \'Processed\' AND Balance != 0 GROUP BY CurrencyIsoCode';
     private static final String REFUND_READ =

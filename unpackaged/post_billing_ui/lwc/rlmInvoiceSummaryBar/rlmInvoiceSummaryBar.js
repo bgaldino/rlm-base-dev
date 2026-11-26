@@ -4,6 +4,9 @@ import getBillingSummary from '@salesforce/apex/RLM_OnAccountBillingController.g
 
 const ARROW_TIP = 18;
 
+// A status count the server could not read comes back null; it stays null rather than reading as 0.
+const countOrNull = (value) => (value == null ? null : Number(value));
+
 // Shown for a balance whose read was refused (null from the server), never a zero.
 const UNAVAILABLE = 'Unavailable';
 
@@ -87,19 +90,25 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         const totalInvoices = Number(b.totalInvoices || 0);
         const overdueCount = Number(b.overdueCount || 0);
         const delinquentCount = Number(b.delinquentCount || 0);
-        const partiallyPaidOverdue = Number(b.partiallyPaidOverdueCount || 0);
+        const partiallyPaidOverdue = countOrNull(b.partiallyPaidOverdueCount);
         const openWithBalance = Number(b.openWithBalance || 0);
-        const writtenOff = Number(b.writtenOffCount || 0);
-        const disputeCount = Number(b.disputeCount || 0);
-        const inCollections = b.inCollections === true;
+        const writtenOff = countOrNull(b.writtenOffCount);
+        const disputeCount = countOrNull(b.disputeCount);
+        // null: that read was refused, so the standing cannot be decided past that check.
+        const inCollections = b.inCollections == null ? null : b.inCollections === true;
+        const statusUnavailable = { label: 'Status Unavailable', cssClass: 'status-pill status-no-activity', description: 'Some billing records on this account could not be read, so its standing is not shown.' };
         const net = b.netAccountBalance == null ? null : Number(b.netAccountBalance);
 
         // "No Billing Activity" claims no payments or memos either, so not when one could not be read.
-        if (totalInvoices === 0 && net != null) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
+        if (totalInvoices === 0 && net != null && inCollections != null) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
+        if (inCollections == null) return statusUnavailable;
         if (inCollections) return { label: 'In Collections', cssClass: 'status-pill status-collections', description: 'This account has been escalated to collections for significantly overdue balances.' };
+        if (writtenOff == null) return statusUnavailable;
         if (writtenOff > 0) return { label: 'Written Off', cssClass: 'status-pill status-written-off', description: `${writtenOff} invoice(s) have been written off as uncollectible.` };
         if (delinquentCount > 0) return { label: 'Delinquent', cssClass: 'status-pill status-delinquent', description: `${delinquentCount} invoice(s) are 60+ days past due.` };
+        if (disputeCount == null) return statusUnavailable;
         if (disputeCount > 0) return { label: 'In Dispute', cssClass: 'status-pill status-dispute', description: `${disputeCount} open dispute(s) on this account's invoices.` };
+        if (partiallyPaidOverdue == null) return statusUnavailable;
         if (partiallyPaidOverdue > 0) return { label: 'Partially Paid', cssClass: 'status-pill status-partial', description: `${partiallyPaidOverdue} overdue invoice(s) have partial payments.` };
         if (overdueCount > 0) return { label: 'Overdue', cssClass: 'status-pill status-overdue', description: `${overdueCount} invoice(s) are past their due date.` };
         if (net == null) return { label: 'Balance Unavailable', cssClass: 'status-pill status-no-activity', description: 'Some balances on this account could not be read, so its standing is not shown.' };

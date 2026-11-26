@@ -182,7 +182,8 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
                 const chargeType = this.classifyChargeType(item.bsg);
                 const bsg = {
                     id: item.bsg.Id,
-                    name: item.bsg.ProductName || item.bsg.ReferenceEntityId || 'Unnamed Subscription',
+                    // A missing product name shows a dash, never the referenced record's Id.
+                    name: item.bsg.ProductName || '—',
                     startDate: item.bsg.StartDate || '—',
                     endDate: (chargeType === 'oneTime' && !item.bsg.EndDate)
                         ? (item.bsg.StartDate || '—')
