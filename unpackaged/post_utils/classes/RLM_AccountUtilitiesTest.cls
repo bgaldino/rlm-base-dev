@@ -946,6 +946,59 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(2, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Phase 2 rolled back');
     }
 
+    // Leaves `left` DML statements, without side effects: a savepoint counts as one.
+    private static void spendDmlStatementsDownTo(Integer left) {
+        while (Limits.getLimitDmlStatements() - Limits.getDmlStatements() > left) {
+            Database.setSavepoint();
+        }
+    }
+
+    @IsTest
+    static void phaseOneLeavesTheStatementsPhaseTwosSavepointAndRollbackNeed() {
+        Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        BindingObjUsageRsrcPlcy policy = new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id,
+            UsageResourceId = f.resourceId, EffectiveStartDate = Datetime.now().addDays(-10));
+        insert policy;
+        newOpportunity(a.Id, 'RLM Utilities Statements Opp');
+
+        Test.startTest();
+        // Two statements left: deleting the policy in phase 1 would leave phase 2's
+        // savepoint the last one, and its rollback none.
+        spendDmlStatementsDownTo(2);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: a LimitException cannot be caught.
+        Assert.areEqual(false, result.completed, 'A run out of DML statements did not complete');
+        Assert.isTrue(result.reason.contains('limit on record changes') && result.reason.contains('nothing else was touched'),
+            'Phase 1 stops before its delete. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id], 'Nothing was deleted');
+    }
+
+    @IsTest
+    static void phaseTwoLeavesItsRollbackAStatement() {
+        Account a = newAccount();
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Quote Opp');
+        Quote q = new Quote(Name = 'RLM Utilities Statements Quote', OpportunityId = o.Id);
+        insert q;
+        newFile('RLM Statements File', q.Id);
+
+        Test.startTest();
+        // Three statements left: phase 2's savepoint, then room for the file and the quote
+        // but not the rollback the opportunity's stop then needs, unless two are kept.
+        spendDmlStatementsDownTo(3);
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: a LimitException cannot be caught.
+        Assert.areEqual(false, result.completed, 'A run out of DML statements did not complete');
+        Assert.isTrue(result.reason.contains('limit on record changes')
+            && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS),
+            'Phase 2 stops and rolls back. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'Phase 2 rolled back');
+    }
+
     @IsTest
     static void noQueryBudgetForATeardownRoundStopsBeforePhaseTwo() {
         Account a = newAccount();
@@ -953,9 +1006,10 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // A teardown round starts only while its own 9 queries plus the 50 phase 2
-        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
-        // loop, means the first round cannot start: the state a usage graph too
-        // large for one run reaches after several rounds.
+        // keeps back are left. Leaving 55 here, less the 5 spent before the loop (the
+        // path switch's permission read and phase 1's 4 lookups), means the first round
+        // cannot start: the state a usage graph too large for one run reaches after
+        // several rounds.
         Integer spend = Limits.getLimitQueries() - 55;
         for (Integer i = 0; i < spend; i++) {
             countOf('Account', a.Id);
@@ -1713,9 +1767,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 43 is counted from the code with data in every branch (see the constants in
+    // The 44 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 43 and the measurement against both, but it cannot catch
+    // the reserve against the 44 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1753,19 +1807,26 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 50 kept back (5 are spent before it with an asset: the asset, contract and policy lookups and the rate card entries).
-        spendQueriesDownTo(64, a.Id);
+        // needs its 9 queries plus the 50 kept back, and 6 are spent before it with an
+        // asset (the path switch's permission read; the asset, contract and two policy
+        // lookups; the account's rate card entries).
+        spendQueriesDownTo(65, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();
 
         // Reaching this line is part of the assertion: a LimitException cannot be caught.
         Assert.isTrue(queriesLeft >= 0, 'The run must stay within the query limit');
+        Assert.isNotNull(RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'The run must reach phase 2, whose walk guards this test is for. Reason: ' + result.reason);
         Assert.areEqual(false, result.completed, 'The tree cannot be cleared: it holds another account\'s entitlements');
         Assert.isNotNull(result.reason, 'A run that did not complete must say why');
         Assert.isTrue(
-            result.reason.contains('limit on queries') && result.reason.contains('Run the reset again'),
-            'The reason must name the query limit and say a rerun continues. Got: ' + result.reason
+            result.reason.contains('limit on queries')
+                && !result.reason.contains('nothing else was touched')
+                && (result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_AFTER_USAGE)
+                    || result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS)),
+            'The reason must be phase 2\'s query-limit stop. Got: ' + result.reason
         );
         Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
             'A stopped phase 2 rolls back as a whole');

@@ -26,17 +26,23 @@
  * delete was refused; that is why the plan is read in system mode and checked per
  * record.
  *
- * No partial runs. Every read of the plan is bounded by the query rows and heap left,
- * and each first requires a query to spare beyond the ones kept for the decision table
- * refresh the flow runs afterwards (REFRESH_RESERVE). Reaching a bound refuses the run,
- * changing nothing, with a message that a user with Modify All Data and View All Data
- * can run it (they take RLM_AccountUtilities' engine, which converges over several
- * runs). So does a plan whose rows exceed the DML rows left. The deletes then run
- * inside one savepoint, usage first (its constraints are circular, so the planned
- * usage rows are retried round after round until a round removes nothing), then
- * collections, billing, fulfillment, contracts with their rate card entries, orders,
- * assets with theirs, quotes and opportunities. If anything fails or a limit is
- * reached, all of it rolls back and the Result says so.
+ * No partial runs. Every read of the plan, the per-record access reads included, is
+ * bounded by the query rows and heap left, and each first requires a query to spare
+ * beyond the ones kept for the decision table refresh the flow runs afterwards
+ * (REFRESH_RESERVE); the check itself first requires heap for the planned rows.
+ * Reaching a bound refuses the run, changing nothing, with a message that a user with
+ * Modify All Data and View All Data can run it (they take RLM_AccountUtilities' engine,
+ * which converges over several runs). So does a plan whose rows exceed the DML rows
+ * left. The deletes then run inside one savepoint, all or nothing: usage first (its
+ * constraints are circular, so the planned usage rows are retried round after round
+ * until a round removes nothing), then collections, billing, fulfillment, contracts
+ * with their rate card entries, orders, assets with theirs, quotes and opportunities.
+ * Every delete is all or nothing (a row a parent's delete already took counts as
+ * deleted). If the platform refuses any planned row, a usage row is still there when
+ * the usage teardown can do no more, anything fails, or a limit is reached part way,
+ * all of it rolls back and the Result says nothing was changed and why, naming the
+ * refused record. DML statements are kept for the rollback (STATEMENTS_KEPT), which
+ * counts as one.
  *
  * Sharing: `without sharing`, deliberately: the plan must see records sharing hides
  * from the user, so a refusal can count them. Nothing is deleted that the check has
@@ -56,6 +62,13 @@ public without sharing class RLM_AccountResetPlan {
     // active PricingDiscovery tables took 1 query, as an admin and as the salesrep persona.
     @TestVisible
     private static final Integer REFRESH_RESERVE = 5;
+    // DML statements no delete may use: the rollback counts as one (measured live 264:
+    // setSavepoint and rollback each added one), and one more is spare.
+    @TestVisible
+    private static final Integer STATEMENTS_KEPT = 2;
+    // Heap the check needs per planned row for its maps (ids, names, access), so a plan
+    // too large to check is refused before they are built.
+    private static final Integer CHECK_BYTES_PER_ROW = 500;
     // Ids per UserRecordAccess read: the most it accepts.
     private static final Integer ACCESS_BATCH = 200;
     // Names listed per object and reason in a refusal; the rest are counted.
@@ -63,6 +76,7 @@ public without sharing class RLM_AccountResetPlan {
 
     private static final String USAGE_TOO_LARGE = 'The account has more usage records than one run can remove.';
     private static final String FOREIGN_BUCKET = 'kept: holds, or is above, another account\'s entitlement';
+    private static final String HELD_BY_KEPT_BUCKET = 'kept: held by a bucket kept for another account\'s entitlement';
     private static final String DML_LIMIT = 'The reset reached the Salesforce limit on record changes in one run.';
     private static final String PAYMENTS_KEPT = 'payments are not deleted: Salesforce does not allow deleting processed payments';
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
@@ -111,6 +125,9 @@ public without sharing class RLM_AccountResetPlan {
 
     /** Ends a run early when a limit is close, before the platform throws a LimitException. */
     private class ResetStoppedException extends Exception {}
+
+    /** The platform refused a planned row: the run rolls back. */
+    private class RefusedException extends Exception {}
 
     /** Ends the planning, before anything changes, when the account is too large to plan in one run. */
     private class PlanTooLargeException extends Exception {}
@@ -205,6 +222,10 @@ public without sharing class RLM_AccountResetPlan {
     @TestVisible
     private static Integer maxTeardownRoundsForTest;
 
+    // Lets a test shrink the heap the check sees, to prove a plan too large to check is refused.
+    @TestVisible
+    private static Integer heapLeftForTest;
+
     // Lets a test shrink the DML row budget, to prove a plan larger than it is refused.
     @TestVisible
     private static Integer dmlRowLimitForTest;
@@ -262,6 +283,8 @@ public without sharing class RLM_AccountResetPlan {
         }
         // Not deleted by design: another account's data, and what Salesforce never deletes.
         recordRetained(UsageEntitlementBucket.SObjectType, plan.foreignBuckets, FOREIGN_BUCKET);
+        recordRetained(UsageEntitlementAccount.SObjectType, plan.keptEntitlementAccounts, FOREIGN_BUCKET);
+        recordRetained(TransactionUsageEntitlement.SObjectType, plan.keptEntitlements, HELD_BY_KEPT_BUCKET);
         recordRetained(Payment.SObjectType, plan.payments, PAYMENTS_KEPT);
         if (plan.lockedDebitMemos > 0) {
             recordRetained(typeOf('DebitMemo'), plan.lockedDebitMemos, DEBIT_MEMOS_KEPT);
@@ -278,44 +301,45 @@ public without sharing class RLM_AccountResetPlan {
         try {
             // The usage graph first: policies, the account's own rate card entries,
             // summaries, entitlements and their buckets, journals and commitment junctions.
-            teardown(USAGE_TEARDOWN);
+            // Rows still held by something deleted later are retried at the end.
+            teardown(USAGE_TEARDOWN, false);
             // Before billing: deleting an invoice clears a dispute's link to it.
             if (deleteCollections) {
                 deleteCollectionRecords();
             }
-            deletePlanned(G_SCHEDULE_GROUPS);
+            deleteAll(plan.rowsOf(G_SCHEDULE_GROUPS));
             if (deleteBilling) {
                 deleteBillingRecords();
             }
             // Fulfillment records that reference orders and order lines go first.
             if (deleteFulfillment) {
-                deletePlanned(G_LINE_SOURCE_RELATIONS);
-                deletePlanned(G_STEP_SOURCES);
-                deletePlanned(G_FULFILLMENT_ORDER_LINES);
-                deletePlanned(G_FULFILLMENT_ORDERS);
+                deleteAll(plan.rowsOf(G_LINE_SOURCE_RELATIONS));
+                deleteAll(plan.rowsOf(G_STEP_SOURCES));
+                deleteAll(plan.rowsOf(G_FULFILLMENT_ORDER_LINES));
+                deleteAll(plan.rowsOf(G_FULFILLMENT_ORDERS));
             }
             // A contract's rate card entries go with it; contracts Preserve Contracts
             // with Contracted Prices keeps are not in the plan, nor are their entries.
-            deletePlanned(G_CONTRACT_RATE_CARD_ENTRIES);
+            deleteAll(plan.rowsOf(G_CONTRACT_RATE_CARD_ENTRIES));
             deleteAll(plan.rowsOf(G_CONTRACTS));
             // An activated order cannot be deleted, so it goes back to Draft first; an order
             // already in Draft is not updated. All or nothing.
             updateAll(plan.ordersToDraft());
             deleteAll(plan.rowsOf(G_ORDERS));
             if (deleteFulfillment) {
-                deletePlanned(G_FULFILLMENT_PLANS);
-                deletePlanned(G_DECOMPOSITIONS);
-                deletePlanned(G_FULFILLMENT_ASSETS);
+                deleteAll(plan.rowsOf(G_FULFILLMENT_PLANS));
+                deleteAll(plan.rowsOf(G_DECOMPOSITIONS));
+                deleteAll(plan.rowsOf(G_FULFILLMENT_ASSETS));
             }
             if (deleteAssets) {
                 deleteAssets();
-            } else if (!plan.usageDrained()) {
+            } else {
                 // What the usage teardown could not delete gets one more try, now that
-                // what may have held it is gone.
-                teardown(USAGE_TEARDOWN);
+                // what may have held it is gone; a row still there then rolls the run back.
+                teardown(USAGE_TEARDOWN, true);
             }
-            deletePlanned(G_QUOTE_DOCUMENTS);
-            deletePlanned(G_FILES);
+            deleteAll(plan.rowsOf(G_QUOTE_DOCUMENTS));
+            deleteAll(plan.rowsOf(G_FILES));
             deleteAll(plan.rowsOf(G_QUOTES));
             deleteAll(plan.rowsOf(G_OPPORTUNITIES));
 
@@ -326,7 +350,8 @@ public without sharing class RLM_AccountResetPlan {
             Database.rollback(sp);
             report = beforeDeletes;
             // A limit reached part way (DML rows or statements, or the teardown's round cap):
-            // the account is too large for this path, and nothing is kept.
+            // the account is too large for this path. A refusal or failure: the platform's
+            // message, with the record. Either way nothing is kept.
             String cause = e instanceof ResetStoppedException
                 ? e.getMessage() + ' ' + TOO_LARGE_FOR_USER
                 : e.getMessage();
@@ -364,16 +389,11 @@ public without sharing class RLM_AccountResetPlan {
      * Plan and dispute items go with their parents (live 264).
      */
     private static void deleteCollectionRecords() {
-        deletePlanned(G_PLAN_SCHEDULES);
-        Set<Id> gone = deletePlanned(G_COLLECTION_PLANS);
-        gone.addAll(deletePlanned(G_DISPUTES));
-        List<SObject> cases = new List<SObject>();
-        for (SObject planCase : plan.rowsOf(G_COLLECTION_CASES)) {
-            if (gone.contains(plan.caseParent.get(planCase.Id))) {
-                cases.add(planCase);
-            }
-        }
-        deleteQuietly(cases);
+        deleteAll(plan.rowsOf(G_PLAN_SCHEDULES));
+        deleteAll(plan.rowsOf(G_COLLECTION_PLANS));
+        deleteAll(plan.rowsOf(G_DISPUTES));
+        // Every plan and dispute went (a refusal rolls the run back), so all their cases go.
+        deleteAll(plan.rowsOf(G_COLLECTION_CASES));
     }
 
     /**
@@ -390,10 +410,10 @@ public without sharing class RLM_AccountResetPlan {
     private static void deleteBillingRecords() {
         // First, so that a debit memo line adjusting an invoice line, or a debit
         // memo raised from a credit memo, is gone before either is deleted.
-        deletePlanned(G_DEBIT_MEMOS);
+        deleteAll(plan.rowsOf(G_DEBIT_MEMOS));
         deleteAll(plan.rowsOf(G_INVOICES));
-        deletePlanned(G_INVOICE_SCHEDULES);
-        deletePlanned(G_INVOICE_DOCUMENTS);
+        deleteAll(plan.rowsOf(G_INVOICE_SCHEDULES));
+        deleteAll(plan.rowsOf(G_INVOICE_DOCUMENTS));
         // A posted credit memo cannot be deleted, but a canceled one can (live 264).
         List<SObject> posted = new List<SObject>();
         for (SObject memo : plan.rowsOf(G_CREDIT_MEMOS)) {
@@ -416,23 +436,25 @@ public without sharing class RLM_AccountResetPlan {
      * recreated for an existing asset, so they go here, with the assets.
      */
     private static void deleteAssets() {
-        deletePlanned(G_ASSET_RATE_CARD_ENTRIES);
+        deleteAll(plan.rowsOf(G_ASSET_RATE_CARD_ENTRIES));
         List<String> usage = new List<String>{ G_ASSET_ENTRIES, G_ASSET_BUCKETS, G_ASSET_ENTITLEMENTS };
         usage.addAll(USAGE_TEARDOWN);
-        teardown(usage);
-        deletePlanned(G_WORK_ORDERS);
-        deletePlanned(G_ASSET_CASES);
+        teardown(usage, true);
+        deleteAll(plan.rowsOf(G_WORK_ORDERS));
+        deleteAll(plan.rowsOf(G_ASSET_CASES));
         deleteAll(plan.rowsOf(G_ASSET_RELATIONSHIPS));
         deleteAll(plan.rowsOf(G_ASSETS));
     }
 
     /**
-     * Retries the planned rows of `keys`, in order, round after round, until a round
-     * removes nothing or nothing is left. A row a round refuses is recorded; a later
-     * round that removes it takes it back out. Still removing rows when the rounds
-     * run out stops the run, which rolls it back.
+     * Retries the planned rows of `keys`, in order, round after round, until nothing is
+     * left or a round removes nothing. The constraints between usage rows are circular, so
+     * a row a round refuses may go in a later one. When a round removes nothing and rows
+     * are left: on the `last` try the run rolls back, naming the refused row; otherwise
+     * they wait for the last try. Still removing rows when the rounds run out rolls the
+     * run back too (USAGE_TOO_LARGE).
      */
-    private static void teardown(List<String> keys) {
+    private static void teardown(List<String> keys, Boolean last) {
         Integer maxRounds = maxTeardownRoundsForTest != null ? maxTeardownRoundsForTest : MAX_TEARDOWN_ROUNDS;
         for (Integer round = 1; round <= maxRounds; round++) {
             Integer progress = 0;
@@ -441,18 +463,43 @@ public without sharing class RLM_AccountResetPlan {
                 progress += deletePlanned(key).size();
                 left += plan.rowsOf(key).size();
             }
-            if (progress == 0 || left == 0) {
+            if (left == 0) {
+                return;
+            }
+            if (progress == 0) {
+                if (last) {
+                    throw new RefusedException(refusalOf(firstLeft(keys)));
+                }
                 return;
             }
         }
-        for (String key : keys) {
-            if (!plan.rowsOf(key).isEmpty()) {
-                throw new ResetStoppedException(USAGE_TOO_LARGE);
-            }
-        }
+        throw new ResetStoppedException(USAGE_TOO_LARGE);
     }
 
-    /** Deletes what is left of a planned group, best effort, and drops what went from the plan. */
+    private static Id firstLeft(List<String> keys) {
+        for (String key : keys) {
+            if (!plan.rowsOf(key).isEmpty()) {
+                return plan.rowsOf(key)[0].Id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * "Salesforce refused to delete Usage Entitlement Bucket UEB-0001: <the platform's
+     * message>". Every planned record passed the check, so the user can see it; one the
+     * user could not see would be described, not named.
+     */
+    @TestVisible
+    private static String refusalOf(Id rowId) {
+        String label = rowId.getSObjectType().getDescribe().getLabel();
+        String name = plan != null && plan.visibleNames.containsKey(rowId)
+            ? plan.visibleNames.get(rowId) : 'a record the user cannot see';
+        String message = report.refused.containsKey(rowId) ? report.refused.get(rowId) : 'no reason given';
+        return 'Salesforce refused to delete ' + label + ' ' + name + ': ' + message;
+    }
+
+    /** Deletes what is left of a planned group, best effort (the teardown's rounds), and drops what went from the plan. */
     private static Set<Id> deletePlanned(String key) {
         Set<Id> gone = deleteRows(plan.rowsOf(key), false);
         plan.remove(key, gone);
@@ -558,10 +605,15 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     /**
-     * True when the org has the object and the running user can read it. Live 264, a
-     * query on an object the user cannot read failed in this class although it runs
-     * without sharing ("sObject type 'Invoice' is not supported", the salesrep persona),
-     * and isAccessible() was false for exactly the objects whose queries failed.
+     * True when the org has the object and the running user can read it (describe
+     * isAccessible). The plan reads every object in system mode, so its own queries do not
+     * depend on this; check() uses it afterwards to count a planned record of an object the
+     * user cannot read (CANNOT_READ). Measured live 264 (todo 397, commit 1aa36c4da): as the
+     * salesrep persona, the reset's earlier static queries, run in the user's context,
+     * failed with "sObject type 'Invoice' is not supported", and isAccessible() was false
+     * for exactly the objects whose queries failed; in system mode, a filter through a
+     * relationship of such an object was still not understood, which is why the plan's
+     * filters use ids.
      */
     @TestVisible
     private static Boolean canRead(String objectName) {
@@ -708,10 +760,11 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     // Rows the next DML statement may touch: what is left of the transaction's row
-    // budget, or none once its statement budget is spent.
+    // budget, or none once all but STATEMENTS_KEPT of its statements are spent, so the
+    // rollback always has one.
     @TestVisible
     private static Integer dmlRowsLeft() {
-        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements()) {
+        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT) {
             return 0;
         }
         Integer rowLimit = dmlRowLimitForTest != null ? dmlRowLimitForTest : Limits.getLimitDmlRows();
@@ -719,61 +772,52 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     /**
-     * Deletes the rows and records the outcome: rows that went count as removed,
-     * rows that refused as retained unless a later attempt removes them. With
-     * allOrNone, a refusal throws instead, which rolls the run back.
+     * Deletes the rows and records the outcome: rows that went count as removed, and a
+     * row a parent's delete already took (ENTITY_IS_DELETED) counts as gone. A refused
+     * row is recorded; with `strict`, the first one then throws a RefusedException, which
+     * rolls the run back. The rows go in one statement with allOrNone false, so a row a
+     * cascade took does not fail the others; the rollback makes the rest all or nothing.
      *
-     * The 10,000-row DML limit is per TRANSACTION, not per statement, so the list is
-     * clamped to the remaining budget here -- one clamp covers every call site.
-     * Running out stops the run with a ResetStoppedException, which rolls it back,
-     * rather than a LimitException that fails the flow. The plan's DML check makes
-     * that rare: it applies to the statement limit and to rows a cascade adds.
+     * The 10,000-row DML limit is per TRANSACTION, not per statement: a statement that
+     * would not fit in what is left stops the run with a ResetStoppedException, which
+     * rolls it back, rather than a LimitException that fails the flow. The plan's DML
+     * check makes that rare: it applies to the statement limit and to rows a cascade adds.
      *
      * @return The ids that are gone, including rows a parent's delete already took
      */
-    private static Set<Id> deleteRows(List<SObject> records, Boolean allOrNone) {
+    private static Set<Id> deleteRows(List<SObject> records, Boolean strict) {
         Set<Id> gone = new Set<Id>();
         if (records == null || records.isEmpty()) {
             return gone;
         }
-        Integer room = dmlRowsLeft();
-        Boolean trimmed = records.size() > room;
-        if (trimmed) {
-            if (allOrNone || room <= 0) {
-                throw new ResetStoppedException(DML_LIMIT);
-            }
-            List<SObject> fits = new List<SObject>();
-            for (Integer i = 0; i < room; i++) {
-                fits.add(records[i]);
-            }
-            records = fits;
+        if (records.size() > dmlRowsLeft()) {
+            throw new ResetStoppedException(DML_LIMIT);
         }
         Integer removed = 0;
-        Database.DeleteResult[] results = Database.delete(records, allOrNone);
+        Id firstRefused;
+        Database.DeleteResult[] results = Database.delete(records, false);
         for (Integer i = 0; i < results.size(); i++) {
             Id rowId = records[i].Id;
             if (results[i].isSuccess()) {
                 removed++;
             } else if (results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
                 report.refused.put(rowId, results[i].getErrors()[0].getMessage());
+                if (firstRefused == null) {
+                    firstRefused = rowId;
+                }
                 continue;
             }
             gone.add(rowId);
             report.refused.remove(rowId);
         }
         recordRemoved(records[0].getSObjectType(), removed);
-        if (trimmed) {
-            throw new ResetStoppedException(DML_LIMIT);
+        if (strict && firstRefused != null) {
+            throw new RefusedException(refusalOf(firstRefused));
         }
         return gone;
     }
 
-    /** Best-effort delete: a refusal is recorded, not thrown. */
-    private static Integer deleteQuietly(List<SObject> records) {
-        return deleteRows(records, false).size();
-    }
-
-    /** All-or-nothing delete: any refusal throws and rolls the run back. */
+    /** All-or-nothing delete: a refused row rolls the run back. */
     private static void deleteAll(List<SObject> records) {
         deleteRows(records, true);
     }
@@ -914,19 +958,19 @@ public without sharing class RLM_AccountResetPlan {
      */
     @TestVisible
     private without sharing class Plan {
-        private final List<String> USAGE_GROUPS = new List<String>{
-            G_ENTRIES, G_BILLING_PERIOD_ITEMS, G_SUMMARIES, G_RATABLE_SUMMARIES, G_JOURNALS, G_BUCKETS, G_ENTITLEMENTS,
-            G_ENTITLEMENT_ACCOUNTS, G_COMMITMENT_JUNCTIONS, G_POLICIES, G_ACCOUNT_RATE_CARD_ENTRIES
-        };
 
         public List<Blocker> blockers = new List<Blocker>();
+        // The names of the planned records the user can see, for a refusal's message.
+        public Map<Id, String> visibleNames = new Map<Id, String>();
         // Not deleted by design, counted for the Result.
         public Integer foreignBuckets = 0;
+        // The account's entitlement accounts above a kept bucket, and its entitlements a
+        // kept bucket holds: neither can be deleted while the bucket is there.
+        public Integer keptEntitlementAccounts = 0;
+        public Integer keptEntitlements = 0;
         public Integer payments = 0;
         public Integer lockedDebitMemos = 0;
         public Map<String, Integer> creditMemosByOtherStatus = new Map<String, Integer>();
-        // The plan or dispute each collection case belongs to.
-        public Map<Id, Id> caseParent = new Map<Id, Id>();
 
         private Map<String, List<SObject>> rows = new Map<String, List<SObject>>();
         private Map<String, String> objectOfGroup = new Map<String, String>();
@@ -1128,7 +1172,6 @@ public without sharing class RLM_AccountResetPlan {
                     put(G_PLAN_SCHEDULES, 'PaymentSchedule', read('PaymentSchedule', '',
                         'ReferenceEntityId IN :planIds OR CollectionPlanItemId IN :planItemIds'));
                     for (SObject planCase : read('Case', ', SourceId', 'SourceId IN :planIds AND AccountId = :accountId')) {
-                        caseParent.put(planCase.Id, (Id) planCase.get('SourceId'));
                         collectionCases.add(planCase);
                     }
                 }
@@ -1136,19 +1179,15 @@ public without sharing class RLM_AccountResetPlan {
                     List<SObject> disputes = read('Dispute', ', CaseId',
                         'AccountId = :accountId OR InvoiceId IN :invoiceIds');
                     put(G_DISPUTES, 'Dispute', disputes);
-                    Map<Id, Id> disputeOfCase = new Map<Id, Id>();
+                    Set<Id> disputeCaseIds = new Set<Id>();
                     for (SObject dispute : disputes) {
                         if (dispute.get('CaseId') != null) {
-                            disputeOfCase.put((Id) dispute.get('CaseId'), dispute.Id);
+                            disputeCaseIds.add((Id) dispute.get('CaseId'));
                         }
                     }
-                    if (!disputeOfCase.isEmpty()) {
-                        Set<Id> disputeCaseIds = disputeOfCase.keySet();
+                    if (!disputeCaseIds.isEmpty()) {
                         binds.put('disputeCaseIds', disputeCaseIds);
-                        for (SObject disputeCase : read('Case', '', 'Id IN :disputeCaseIds AND AccountId = :accountId')) {
-                            caseParent.put(disputeCase.Id, disputeOfCase.get(disputeCase.Id));
-                            collectionCases.add(disputeCase);
-                        }
+                        collectionCases.addAll(read('Case', '', 'Id IN :disputeCaseIds AND AccountId = :accountId'));
                     }
                 }
                 put(G_COLLECTION_CASES, 'Case', collectionCases);
@@ -1239,8 +1278,11 @@ public without sharing class RLM_AccountResetPlan {
          * those bound to its assets) or under its entitlement accounts, and every
          * descendant, a level per query, however deep. A bucket holding another account's
          * entitlement, and every bucket above it, is never deleted: a reset never touches
-         * another account's data. Those are counted (foreignBuckets) and left out.
-         * Buckets holding an entitlement bound to an asset go with the asset.
+         * another account's data. Those are counted (foreignBuckets) and left out, and so
+         * are the account's entitlement accounts directly above one and its entitlements
+         * one holds (keptEntitlementAccounts, keptEntitlements): the platform refuses to
+         * delete either while the bucket is there. Buckets holding an entitlement bound to
+         * an asset go with the asset.
          */
         private void planBuckets(Set<Id> entitlementAccountIds, Set<Id> ownTueIds, Set<Id> assetTueIds, Set<Id> assetIds) {
             Set<Id> roots = new Set<Id>(entitlementAccountIds);
@@ -1278,6 +1320,25 @@ public without sharing class RLM_AccountResetPlan {
                 }
             }
             foreignBuckets = foreign.size();
+            Set<Id> holders = new Set<Id>();
+            for (Id bucketId : foreign) {
+                SObject bucket = buckets.get(bucketId);
+                Id held = (Id) bucket.get('TransactionUsageEntitlementId');
+                if (held != null && heldBy.contains(held)) {
+                    holders.add(held);
+                }
+                Id parent = (Id) bucket.get('ParentId');
+                if (parent != null && parent.getSObjectType() == UsageEntitlementAccount.SObjectType) {
+                    holders.add(parent);
+                }
+            }
+            Integer accountsBefore = rowsOf(G_ENTITLEMENT_ACCOUNTS).size();
+            Integer entitlementsBefore = rowsOf(G_ENTITLEMENTS).size() + rowsOf(G_ASSET_ENTITLEMENTS).size();
+            remove(G_ENTITLEMENT_ACCOUNTS, holders);
+            remove(G_ENTITLEMENTS, holders);
+            remove(G_ASSET_ENTITLEMENTS, holders);
+            keptEntitlementAccounts = accountsBefore - rowsOf(G_ENTITLEMENT_ACCOUNTS).size();
+            keptEntitlements = entitlementsBefore - rowsOf(G_ENTITLEMENTS).size() - rowsOf(G_ASSET_ENTITLEMENTS).size();
             List<SObject> own = new List<SObject>();
             List<SObject> withAssets = new List<SObject>();
             for (SObject bucket : buckets.values()) {
@@ -1391,6 +1452,15 @@ public without sharing class RLM_AccountResetPlan {
          * user is privileged), and a record is named only when the user can see it.
          */
         private void check() {
+            // Heap for the maps below first: a plan too large to check is refused.
+            Integer planned = 0;
+            for (List<SObject> records : rows.values()) {
+                planned += records.size();
+            }
+            Integer heapLeft = heapLeftForTest != null ? heapLeftForTest : Limits.getLimitHeapSize() - Limits.getHeapSize();
+            if (planned * CHECK_BYTES_PER_ROW > heapLeft) {
+                throw new PlanTooLargeException(PLAN_TOO_LARGE);
+            }
             Map<Id, String> objectOf = new Map<Id, String>();
             Map<Id, String> nameOf = new Map<Id, String>();
             for (String key : rows.keySet()) {
@@ -1421,6 +1491,10 @@ public without sharing class RLM_AccountResetPlan {
                     List<Id> chunk = new List<Id>();
                     for (Integer i = start; i < Math.min(start + ACCESS_BATCH, recordIds.size()); i++) {
                         chunk.add(recordIds[i]);
+                    }
+                    // Bounded like the plan's reads: one row a record at most.
+                    if (readCap() <= chunk.size()) {
+                        throw new PlanTooLargeException(PLAN_TOO_LARGE);
                     }
                     for (UserRecordAccess access : [
                         SELECT RecordId, HasReadAccess, HasDeleteAccess FROM UserRecordAccess
@@ -1454,7 +1528,10 @@ public without sharing class RLM_AccountResetPlan {
                     specialReason.get(recordId), deletable.contains(recordId));
                 if (reason == NOT_VISIBLE) {
                     blocker(objectName, NOT_VISIBLE).count++;
-                } else if (reason != null) {
+                    continue;
+                }
+                visibleNames.put(recordId, nameOf.get(recordId));
+                if (reason != null) {
                     name(objectName, reason, nameOf.get(recordId));
                 }
             }
@@ -1497,16 +1574,6 @@ public without sharing class RLM_AccountResetPlan {
                 }
             }
             rows.put(key, left);
-        }
-
-        /** True when the usage teardown deleted every planned usage row. */
-        public Boolean usageDrained() {
-            for (String key : USAGE_GROUPS) {
-                if (!rowsOf(key).isEmpty()) {
-                    return false;
-                }
-            }
-            return true;
         }
 
         /** The orders that are not in Draft, as updates that set them back to it. */

@@ -69,8 +69,11 @@ public without sharing class RLM_AccountUtilities {
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
     // spin. In practice QUERY_RESERVE ends a run first, after four or five rounds
-    // (phase 1's lookups before the loop take 4 to 6 of the 100 queries, and a round
-    // needs 59 left to start), and the next run carries on.
+    // (before the loop, the path switch's permission read takes 1 of the 100 queries and
+    // phase 1's lookups 4 to 6, and a round needs 59 left to start), and the next run
+    // carries on. The switch's read is the one query this engine spends that main's did
+    // not: no other read tells whether the user has Modify All Data and View All Data
+    // (measured live 264: FeatureManagement.checkPermission reads only custom permissions).
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
@@ -259,7 +262,7 @@ public without sharing class RLM_AccountUtilities {
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
     // always ends the loop first (a round needs 59 queries left, and 100 allow four or five, depending on the
-    // 4 to 6 queries phase 1 spends on assets and contracts before the loop), so
+    // 5 to 7 queries spent before the loop: the path switch's 1, and phase 1's 4 to 6), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
     @TestVisible
@@ -672,10 +675,15 @@ public without sharing class RLM_AccountUtilities {
         report.kept.add(new Kept(label, why, count));
     }
 
+    // DML statements no delete may use: phase 2's savepoint and its rollback each count as
+    // one (measured live 264), so phase 1 leaves both and phase 2 leaves the rollback one.
+    @TestVisible
+    private static final Integer STATEMENTS_KEPT = 2;
+
     // Rows the next DML statement may touch: what is left of the transaction's row
-    // budget, or none once its statement budget is spent.
+    // budget, or none once all but STATEMENTS_KEPT of its statements are spent.
     private static Integer dmlRowsLeft() {
-        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements()) {
+        if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - STATEMENTS_KEPT) {
             return 0;
         }
         Integer rowLimit = dmlRowLimitForTest != null ? dmlRowLimitForTest : Limits.getLimitDmlRows();

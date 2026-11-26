@@ -1100,6 +1100,13 @@ private without sharing class RLM_AccountResetPlanTest {
             String.valueOf(result.retainedSummary).contains(other.Name),
             'The report must not name the other account'
         );
+        // The entitlement account above the kept bucket cannot go either: left out of the
+        // plan and reported, not refused (which would roll the run back).
+        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementAccount WHERE Id = :uea.Id],
+            'The entitlement account above the kept bucket stays');
+        Assert.isTrue(result.retainedSummary.contains(entry(UsageEntitlementAccount.SObjectType, 1)
+            + ' (kept: holds, or is above, another account\'s entitlement)'),
+            'The entitlement account must be reported kept. Got: ' + result.retainedSummary);
     }
 
     @IsTest
@@ -1139,6 +1146,12 @@ private without sharing class RLM_AccountResetPlanTest {
         Assert.areEqual(1, result.retainedSummary.split(
             UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': ').size() - 1,
             'The buckets must be one row, not a refused row plus a foreign row. Got: ' + result.retainedSummary);
+        // Our entitlement, which the kept bucket holds, cannot go either: left out and reported.
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :ownTue.Id],
+            'The entitlement the kept bucket holds stays');
+        Assert.isTrue(result.retainedSummary.contains(entry(TransactionUsageEntitlement.SObjectType, 1)
+            + ' (kept: held by a bucket kept for another account\'s entitlement)'),
+            'The entitlement must be reported kept. Got: ' + result.retainedSummary);
     }
 
     @IsTest
@@ -1191,13 +1204,12 @@ private without sharing class RLM_AccountResetPlanTest {
             'The reason must say nothing was changed. Got: ' + result.reason);
     }
 
-    // The completed-run path: the plan counts the moved entitlement as the account's (the
-    // account's own TUEs), then the asset step sees both as the account's (the TUE is
-    // bound to its asset) and deletes `child`. A previous owner's usage summary holds
-    // `held`, so that delete is refused; the entitlement under `child` is gone, so the
-    // asset can go and the run completes. `held` must be reported once, as refused.
+    // A previous owner's usage summary, which the plan does not delete, holds `held`, so
+    // the platform refuses that delete. The run is all or nothing: it rolls back, the
+    // child bucket and the asset the run had deleted come back, and the reason names
+    // the refused bucket with the platform's message.
     @IsTest
-    static void aBucketTheAssetStepIsRefusedIsReportedOnceAsRefusedNotAlsoAsForeign() {
+    static void aRowThePlatformRefusesRollsBackEverythingAndIsNamed() {
         Account a = newAccount();
         Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner 438c');
         insert previousOwner;
@@ -1214,24 +1226,100 @@ private without sharing class RLM_AccountResetPlanTest {
             StartDateTime = Datetime.now().addDays(-5), EndDateTime = Datetime.now().addDays(-1),
             DebitedUnits = 0, ConsumptionUnits = 0, OverageUnits = 0, Status = 'New'
         );
+        String heldName = String.valueOf([SELECT Name FROM UsageEntitlementBucket WHERE Id = :held.Id].Name);
+        newOpportunity(a.Id, 'RLM Utilities Refused Run Opp');
 
         Test.startTest();
         RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
         Test.stopTest();
 
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :child.Id],
-            'PRECONDITION: the asset step deleted the child bucket');
-        Assert.areEqual(1, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id = :held.Id],
-            'PRECONDITION: the summary refused the delete of the bucket above it');
-        Assert.isNotNull(result.retainedSummary, 'The kept bucket must be reported');
-        Assert.isFalse(result.retainedSummary.contains('kept: holds, or is above'),
-            'A refused bucket is not also reported as foreign. Got: ' + result.retainedSummary);
-        Assert.areEqual(1, result.retainedSummary.split(
-            UsageEntitlementBucket.SObjectType.getDescribe().getLabelPlural() + ': ').size() - 1,
-            'The bucket must be one row. Got: ' + result.retainedSummary);
-        Assert.isTrue(result.retainedSummary.contains(entry(UsageEntitlementBucket.SObjectType, 1) + ' (could not be deleted: '),
-            'The bucket must be reported as refused. Got: ' + result.retainedSummary);
+        Assert.areEqual(false, result.completed, 'A run with a refused row did not complete');
+        Assert.isTrue(result.reason.startsWith(RLM_AccountResetPlan.ROLLED_BACK)
+            && result.reason.contains('Salesforce refused to delete '
+                + UsageEntitlementBucket.SObjectType.getDescribe().getLabel() + ' ' + heldName + ': '),
+            'The reason must say nothing changed and name the refused bucket. Got: ' + result.reason);
+        Assert.isNull(result.removedSummary, 'Nothing may be reported removed');
+        Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
+            'Both buckets must be there after the rollback');
+        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset must be there');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must be there');
+    }
+
+    // A refusal outside the usage teardown: a case cannot be deleted while a dispute
+    // references it, and the dispute here is another account's, which the plan does not
+    // delete. The plan's deletes are all or nothing, so the run rolls back.
+    @IsTest
+    static void aRefusedCaseRollsBackEverythingAndIsNamed() {
+        Assert.isTrue(available(COLLECTION_OBJECTS), 'PRECONDITION: this org has Collections and disputes');
+        Account a = newAccount();
+        Account bystander = new Account(Name = 'RLM Utilities Dispute Holder');
+        insert bystander;
+        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
+            'AccountId' => a.Id, 'UsageType' => 'Billing'
+        });
+        Case planCase = new Case(AccountId = a.Id, Subject = 'Plan case held by another account\'s dispute');
+        planCase.put('SourceId', plan.Id);
+        insert planCase;
+        SObject othersDispute = newRecord('Dispute', new Map<String, Object>{
+            'AccountId' => bystander.Id, 'CaseId' => planCase.Id, 'ReceivedDate' => Date.today()
+        });
+        String caseNumber = [SELECT CaseNumber FROM Case WHERE Id = :planCase.Id].CaseNumber;
+        RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
+        iv.DeleteCollectionPlans = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'A run with a refused case did not complete');
+        Assert.isTrue(result.reason.startsWith(RLM_AccountResetPlan.ROLLED_BACK)
+            && result.reason.contains('Salesforce refused to delete Case ' + caseNumber + ': '),
+            'The reason must say nothing changed and name the case. Got: ' + result.reason);
+        Assert.isNull(result.removedSummary, 'Nothing may be reported removed');
+        Assert.areEqual(1, countOf('CollectionPlan', plan.Id), 'The collection plan deleted before it must be back');
+        Assert.areEqual(1, countOf('Case', planCase.Id), 'The case stays');
+        Assert.areEqual(1, countOf('Dispute', othersDispute.Id), 'Another account\'s dispute is never touched');
+    }
+
+    @IsTest
+    static void theRollbackAlwaysHasADmlStatementLeft() {
+        Account a = newAccount();
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Quote Opp');
+        Quote q = new Quote(Name = 'RLM Utilities Statements Quote', OpportunityId = o.Id);
+        insert q;
+        newFile('RLM Statements File', q.Id);
+
+        Test.startTest();
+        // Three statements left: the savepoint, then room for the file and the quote but
+        // not the rollback the opportunity's stop then needs, unless two are kept.
+        while (Limits.getLimitDmlStatements() - Limits.getDmlStatements() > 3) {
+            Database.setSavepoint();
+        }
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: a LimitException cannot be caught.
+        Assert.areEqual(false, result.completed, 'A run out of DML statements did not complete');
+        Assert.isTrue(result.reason.startsWith(RLM_AccountResetPlan.ROLLED_BACK)
+            && result.reason.contains('limit on record changes')
+            && result.reason.contains(RLM_AccountResetPlan.TOO_LARGE_FOR_USER),
+            'The run rolls back and says who can run it. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote must be there');
+    }
+
+    @IsTest
+    static void aPlanTooLargeToCheckIsRefused() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Heap Opp');
+        // Heap for less than one planned row's check.
+        RLM_AccountResetPlan.heapLeftForTest = 100;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(RLM_AccountResetPlan.PLAN_TOO_LARGE, result.reason, 'The check must refuse before building its maps');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
     }
 
     @IsTest
@@ -1324,6 +1412,18 @@ private without sharing class RLM_AccountResetPlanTest {
                 OpportunityAccessLevel = 'Read'));
         }
         insert shares;
+    }
+
+    // Read access for `userId` to the account, where account sharing is private: the run
+    // refuses a user who cannot see the account before it plans anything.
+    private static void shareAccountForReading(Id accountId, Id userId) {
+        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Account']
+            .InternalSharingModel;
+        if (model != 'Private') {
+            return;
+        }
+        insert new AccountShare(AccountId = accountId, UserOrGroupId = userId, AccountAccessLevel = 'Read',
+            OpportunityAccessLevel = 'None', CaseAccessLevel = 'None');
     }
 
     private static User newStandardUser() {
@@ -1431,6 +1531,7 @@ private without sharing class RLM_AccountResetPlanTest {
         Account a = seedRefusable();
         Snapshot before = new Snapshot(a.Id);
         User other = newStandardUser();
+        shareAccountForReading(a.Id, other.Id);
         // (b) and (c): the records belong to the admin. A Standard User can see a record
         // under public sharing but not delete it, and cannot see it under private sharing.
         // Which one the opportunity is depends on the org, so the expected entry is read
@@ -1460,6 +1561,7 @@ private without sharing class RLM_AccountResetPlanTest {
         Account a = newAccount();
         Opportunity theirs = newOpportunity(a.Id, 'RLM Utilities Visible Not Deletable');
         User other = newStandardUser();
+        shareAccountForReading(a.Id, other.Id);
         // Shared for reading, whatever the org's opportunity sharing.
         shareForReading(new Set<Id>{ theirs.Id }, other.Id);
         Assert.isTrue([SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id
@@ -1483,6 +1585,7 @@ private without sharing class RLM_AccountResetPlanTest {
         newOpportunity(a.Id, 'RLM Utilities Named Or Not');
         Id opportunityId = [SELECT Id FROM Opportunity WHERE AccountId = :a.Id].Id;
         User other = newStandardUser();
+        shareAccountForReading(a.Id, other.Id);
         UserRecordAccess access = [
             SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id AND RecordId = :opportunityId
         ];
@@ -1584,6 +1687,7 @@ private without sharing class RLM_AccountResetPlanTest {
         Account a = newAccount();
         Opportunity hidden = newOpportunity(a.Id, 'RLM Utilities Hidden Opp');
         User other = newStandardUser();
+        shareAccountForReading(a.Id, other.Id);
         Boolean visible = [SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id
             AND RecordId = :hidden.Id].HasReadAccess;
         RLM_AccountUtilities.Result result;
@@ -1649,6 +1753,7 @@ private without sharing class RLM_AccountResetPlanTest {
         }
         insert opportunities;
         User other = newStandardUser();
+        shareAccountForReading(a.Id, other.Id);
         // Every one visible to the user, whatever the org's sharing: a record with no
         // UserRecordAccess row counts as not visible, so one left out of the reads (the
         // 201st, when the second chunk is not read) would show as not visible.
@@ -1710,7 +1815,7 @@ private without sharing class RLM_AccountResetPlanTest {
 
     @IsTest
     static void aKeptContractOrAssetKeepsItsBindingPolicies() {
-        if (!contractItemPriceAvailable()) return;
+        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
