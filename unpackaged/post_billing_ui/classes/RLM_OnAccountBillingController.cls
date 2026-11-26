@@ -15,10 +15,8 @@ public with sharing class RLM_OnAccountBillingController {
         if (isMultiCurrency) {
             accountCurrency = currencyOf(accountId);
             standardRates = loadStandardRates();
+            // A currency without a dated rate falls back to its standard one (effectiveRate).
             datedRates = loadDatedRates();
-            if (datedRates.isEmpty()) {
-                datedRates = standardRates;
-            }
         }
 
         result.put('currencyIsoCode', accountCurrency);
@@ -418,6 +416,12 @@ public with sharing class RLM_OnAccountBillingController {
     private static final String RATES_UNREADABLE =
         'Unable to read the currency conversion rates, so this account\'s balances are not shown. Contact your administrator.';
 
+    // Today's dated rates (advanced currency management). Without ACM there are none and the map
+    // is empty, so every currency converts at its standard rate. A user refused the read in an org
+    // that HAS dated rates would otherwise get standard-rate figures that look real: when the user
+    // read fails, a system-mode count tells the two apart, and dated rows the user cannot read
+    // refuse with the fixed sentence, as loadStandardRates does.
+    @TestVisible
     private static Map<String, Decimal> loadDatedRates() {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
@@ -429,8 +433,23 @@ public with sharing class RLM_OnAccountBillingController {
                 rates.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
             }
         } catch (Exception e) {
-            // ACM not enabled
+            if (datedRatesExist()) {
+                throw RLM_AuraErrors.failed(RATES_UNREADABLE, 'RLM_OnAccountBillingController.loadDatedRates', e);
+            }
+            System.debug(LoggingLevel.FINE, 'RLM_OnAccountBillingController.loadDatedRates: no dated rates '
+                + '(advanced currency management off): ' + e.getMessage());
         }
         return rates;
+    }
+
+    // Whether the org has any dated rates, read in system mode. False when the object itself is
+    // not available (advanced currency management off).
+    @TestVisible
+    private static Boolean datedRatesExist() {
+        try {
+            return Database.countQuery('SELECT COUNT() FROM DatedConversionRate', AccessLevel.SYSTEM_MODE) > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -128,11 +128,16 @@ private class RLM_InvoiceSummaryControllerTest {
         Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute in a currency with no rate');
         insert openCase;
         newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        RLM_InvoiceSummaryController.InvoiceSummaryData ownCurrency = zeroedSummary();
         RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
         Test.startTest();
+        // The same dispute with its own currency as the target needs no rate: it sums.
+        RLM_InvoiceSummaryController.addDisputes(ownCurrency, new Set<Id>{ openCase.Id }, true,
+            UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
         // Multi-currency, target ZZZ: no rate for either side in an empty map.
         RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, true, 'ZZZ', new Map<String, Decimal>());
         Test.stopTest();
+        Assert.areEqual(40, ownCurrency.disputeAmount, 'PRECONDITION: with its own currency as the target the dispute sums to 40.');
         Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable, not converted at 1.');
         Assert.isNull(data.disputeCount, 'The dispute count is unavailable.');
         Assert.areEqual(0, data.promiseToPayAmount, 'Only the dispute part is unavailable: promises stay as they were.');

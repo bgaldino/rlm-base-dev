@@ -360,6 +360,29 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.isNull(noRate, 'No rate for the payment\'s currency or the target: unavailable, not 100 at rate 1.');
     }
 
+    // Without advanced currency management (no dated rows, as on this org) a user whose dated-rate
+    // read is refused or empty gets an empty map, not an error: every currency then converts at its
+    // standard rate. The ACM-on refusal (dated rows the user cannot read -> fixed sentence) cannot be
+    // set up in a test: dated rates exist only with ACM enabled, an org setting, and Apex cannot
+    // insert DatedConversionRate rows.
+    @isTest
+    static void loadDatedRates_withoutAdvancedCurrencyManagement_isEmptyForAnyUser() {
+        if (RLM_OnAccountBillingController.datedRatesExist()) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has dated rates (advanced currency management on).');
+            return;
+        }
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Map<String, Decimal> adminRates = RLM_OnAccountBillingController.loadDatedRates();
+        Map<String, Decimal> userRates;
+        Test.startTest();
+        System.runAs(noAccess) {
+            userRates = RLM_OnAccountBillingController.loadDatedRates();
+        }
+        Test.stopTest();
+        Assert.isTrue(adminRates.isEmpty(), 'No dated rates for the admin.');
+        Assert.isTrue(userRates.isEmpty(), 'No dated rates, and no error, for a user with no access.');
+    }
+
     // A currency with no rate is never converted at 1: the balance is unavailable (null).
     @isTest
     static void correctConversion_withAMissingRate_isUnavailable() {
