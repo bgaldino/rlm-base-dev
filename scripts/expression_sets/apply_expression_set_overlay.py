@@ -314,6 +314,20 @@ def main(argv=None) -> int:
         return 1
 
     restore_ok = restore_result.get("ok", True)
+    final_active = None
+    if not preview:
+        # Report where the run left the version: a passed lifecycle is not proof it is on.
+        try:
+            rows = [v for v in list_versions(es_id, target_org=args.target_org,
+                                             api_version=args.api_version)
+                    if v.get("Id") == esv.get("Id")]
+            final_active = bool(rows[0].get("IsActive")) if rows else None
+        except (ExpressionSetClientError, ResolveError) as exc:
+            eprint(f"Could not read the version's final IsActive: {exc}")
+        eprint(f"Final ExpressionSetVersion {esv.get('ApiName')} IsActive={final_active}"
+               + ("" if final_active is not False or not activate_after else
+                  "  <-- NOT active although activation was requested; activate it with "
+                  "activate_expression_set.py --activate --confirm."))
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")
     elif restore_ok:
@@ -326,7 +340,10 @@ def main(argv=None) -> int:
     if args.json:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,
+                          "finalIsActive": final_active,
                           "labelRestore": restore_result}, indent=2))
+    if final_active is False and activate_after:
+        return 1
     return 0 if restore_ok else 1
 
 

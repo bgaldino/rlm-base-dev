@@ -255,6 +255,24 @@ restricted to tags at Transaction Item and Transaction Header level; Connect RES
 numbers >= 10,000,000 in plain decimal; the Invocable Headless API returns values below 0.000001
 in scientific notation; stored trailing zeros are returned at full precision.
 
+## Headless pricing inputs and the helper
+
+`runSalesforceHeadlessPricing` prices without a quote. Inputs the run needs [Measured:
+2026-11-26, 264, ent-sb0 harness build; pack 451 run]:
+
+- `Pricebook` and `CurrencyIsoCode` on the header and on every line. Without them `ListPrice` is empty and `NetUnitPrice` is 0.
+- End date = start + term - 1 day. A full-year end date counts one term too many (a term count of 2 for a 1-year term).
+- Date-times, not bare dates; `PeriodBoundary` Anniversary; a per-line `SalesTransactionItemSource`; a root `SalesTransaction` with a `SalesTransactionItem` array and no `id` keys.
+
+`python scripts/expression_sets/run_headless_pricing.py --target-org <sf_alias> --procedure <name> --request <file> --pricebook <id>`
+fills these in, runs one request (nothing saved) and prints each line's `ListPrice`, `NetUnitPrice`
+and `NetTotalPrice` [Repo: `scripts/expression_sets/run_headless_pricing.py`; the helper's output
+shape is tested offline, not yet against a live org: Open]. `--print-request` shows the body.
+
+Pricing adjustment batch data: no retention setting exists, deletes from Apex or Flow hit open
+defects (W-20894282), and Apex that references these objects needs API 63 or later [Open: VOC
+desk analysis, not measured].
+
 ## Open questions
 
 - Help does not list API execution message strings; core keeps them as localized labels keyed

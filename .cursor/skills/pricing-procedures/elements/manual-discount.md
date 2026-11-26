@@ -133,6 +133,16 @@ Snapshot only. Discover: `python scripts/expression_sets/describe_expression_set
 Simulate with the discount tags populated; waterfall shows the manual step. Check
 `NetUnitPrice` on the quote line after entering a line discount.
 
+## Non-discountable lines
+
+Pattern: a custom product flag mapped to a line context tag; the flag on both Manual Discount
+List Group filters; a DDS participating condition on the same flag; a validation rule for the
+manual entry. An excluded line keeps a pass-through DDS waterfall row. Setting `Discount` to 0 in
+a post-propagation step works for the percent only (setting `Discount` and `DiscountAmount`
+together errors). Group discounts always propagate, and a header percent adjustment leaves a zero
+waterfall row on excluded lines unless a List Group runs before DDS [Open: from VOC desk
+analysis, not yet measured on a clean build; the flag on both filters is the part to measure].
+
 ## Troubleshooting
 | Symptom | Cause | Fix |
 |---|---|---|

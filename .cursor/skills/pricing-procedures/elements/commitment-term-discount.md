@@ -337,6 +337,34 @@ Optional criteria measured in the same build:
 
 Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 14)`.
 
+**Number the criteria 1..N with no gaps.** The table above is the full set (14). Without the
+header switch (criteria 12 and 13) there are 12 criteria and the ramp criterion is number 12, not
+14: logic `1 AND 11 AND 2 AND 9 AND 10 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 12)`.
+Keeping the number 14 on a 12-criterion filter fails pricing with `Invalid criteria
+reference 14. Operands list size: 12` [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run].
+A list group's filter criteria cannot be edited in place by the toolkit; fix a bad numbering with
+`updateSteps` or a re-import ([`../../expression-sets/toolkit-quick-start-and-examples.md`](../../expression-sets/toolkit-quick-start-and-examples.md)).
+
+Measured with that 12-criterion clone (formula `ROUND(ROUND(NetUnitPrice,2)*0.94,2)`, headless;
+illustrative amounts, the behaviour is what was measured) [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]:
+
+| Line | Default procedure `NetUnitPrice` | Clone `NetUnitPrice` |
+|---|---|---|
+| Group-ramp segment lines (3 segments) | 855.00 / 990.00 / 855.00 | 803.70 / 930.60 / 803.70 |
+| 1 Annual, no ramp | 855.00 | 855.00 (no discount: criterion 3 needs a longer term) |
+| 4 Annual, no ramp | 855.00 | 803.70 |
+
+Every value matched goldens computed before the run. No context attribute or tag carries the
+ramp's total term, so the group cannot discount only long ramps [Measured: 2026-11-26, 264,
+ent-sb0 harness build; describe of the sales transaction context].
+
+A line with dates but no `SubscriptionTerm` is not keyed (criterion 3 fails), see
+[Line inputs on real quotes](#line-inputs-on-real-quotes).
+
+Stacking with another percentage discount: a 5% volume or manual step followed by this 3% (or
+6%) term step applies each in turn, with no rounding between elements (1,000.05 to 900.045 to
+855.04275 to 803.74) [Measured: 2026-11-26, 264, scratch; Tokyo 403 T2].
+
 - With criterion 11, a One Time line alone, and One Time and Evergreen lines mixed with a matching
   line, priced unchanged with no line error (headless).
 - The header switch was a `Quote` Checkbox mapped into the sales transaction context as a
@@ -365,7 +393,8 @@ Term values in this table are illustrative; the measured runs used a different t
 | A 48-month line is not discounted | Its `SubscriptionTermUnit` is not `Months` or `Annual`, or `PricingTermUnit` is not `Annual` | Check the line's unit; add a criterion pair for the unit you sell in |
 | A 48-month quote line is not discounted | The line has start and end dates but no `SubscriptionTerm` | Set `SubscriptionTerm` in the selling model's unit (4 `Annual`) ([Line inputs on real quotes](#line-inputs-on-real-quotes)) |
 | Line total counts 48 terms | `SubscriptionTerm` 48 `Months` sent on an Annual selling model; Place saved it as 48 `Annual` | Same fix: 4 `Annual` |
-| Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add criterion 14 (`ItemRampIdentifier` IsNotNull) |
+| Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add the `ItemRampIdentifier` IsNotNull criterion (14, or 12 without the header switch) |
+| Pricing fails `Invalid criteria reference 14. Operands list size: 12` | Criteria not numbered 1..N | Renumber contiguously and fix the logic string |
 | A header switch change has no effect | A header-only Place PATCH did not reprice the lines | Reprice All in the line editor |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
 | A 48-month renewal line gets the uplift but not the 6% | Criterion 9 skips lines from a Last Transaction asset, which this repo makes the default source | Expected as built (inferred, not measured); see criterion 9 → renewals |
@@ -373,6 +402,8 @@ Term values in this table are illustrative; the measured runs used a different t
 | Off by a cent | Single `ROUND`, or no `ROUND` | Keep both: `ROUND(ROUND(NetUnitPrice, 2) * 0.94, 2)` |
 
 ## Route (a): Price Adjustment Matrix
+
+[Open: the matrix route was built on a scratch org and applied nothing. The step ran with the term passed and returned no adjustments, with no error; refreshing the table changed nothing [Measured: 2026-11-26, 264, scratch; Tokyo 403 T1]. Candidate causes, untested: the recipe mapping's output columns, a Number vs decimal term match, and a CSV table type the matrix element may not read at runtime. Use the formula route above until this is settled.]
 
 When the bands must be data (for example 12–23 months 3%, 24–47 months 5%, 48+ months 6%), use a
 Price Adjustment Matrix over a custom decision table whose input columns are keyed on the term

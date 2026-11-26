@@ -137,6 +137,14 @@ Snapshot only. Discover live:
 2. Floors: set `HeaderDiscountValue` above what floors allow; the surplus appears in the remainder tag. [Help]
 3. Check each line's `NetUnitPrice` and `ItemNetTotalPrice` and that their sum equals `TotalAmount`.
 
+## Discount fields
+
+`AppliedDiscount` and `AppliedDiscountAmount` on Quote are DDS inputs, not roll-up targets: writing
+to them discounts again. `Quote.Discount` and `Order.DiscountPercent` already hold the total
+percent. A header total-discount roll-up belongs in custom fields, through Aggregate Price after
+DDS [Open: from VOC desk analysis, not measured]. For lines that must not be discounted, see
+[manual-discount.md](./manual-discount.md#non-discountable-lines).
+
 ## Troubleshooting
 
 | Symptom / error | Cause | Fix |

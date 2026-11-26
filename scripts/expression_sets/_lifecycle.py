@@ -49,7 +49,14 @@ class LifecycleEngine(LifecycleCore):
     ):
         super().__init__(dry_run=transport.dry_run)
         self.t = transport
-        self.log = logger or transport.logger
+        base_log = logger or transport.logger
+        if transport.dry_run:
+            # A preview writes nothing, but the shared lifecycle lines read as if
+            # they ran ("Set ... IsActive=False", "PATCHed ..."). Mark each one.
+            def base_log(message, *a, _log=base_log, **kw):  # noqa: F811
+                text = str(message)
+                _log(text if text.startswith("[") else f"[preview] {text}", *a, **kw)
+        self.log = base_log
         self.max_wait = max(0, max_wait_seconds)
         self.poll = max(1, poll_interval_seconds)
 

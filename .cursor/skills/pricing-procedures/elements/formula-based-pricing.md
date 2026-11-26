@@ -116,5 +116,12 @@ Snapshot; refresh with `python scripts/expression_sets/describe_expression_set.p
 ## Help vs core
 - Help vs core: Help says up to five formulas, but its example table lists six rows; core generates five slots, so treat five as the limit. Help also labels the fields "Calculation Formula"/"Output Variable" (older single-formula layout) while metadata uses `formula-section-N-*`. Help's `ItemProductAmount` row is a plain tag copy, not a formula.
 
+## Output to a custom line tag
+
+A Formula-Based Pricing element can write to a custom line tag. With the tag mapped to a
+QuoteLineItem field on an INPUTOUTPUT context attribute, the value persists to the record on save
+[Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]. A new attribute needs its own
+context tag before a procedure can reference it ([`../../context-service/SKILL.md`](../../context-service/SKILL.md)).
+
 ## Open questions
 - `IsRealTime` and `writeBackData` semantics on this element: no handler found in core (searched `writeBackData`); they look inert as shipped. Confirm live only if you need non-default values.

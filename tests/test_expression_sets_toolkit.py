@@ -3142,6 +3142,57 @@ def test_client_auth_hint():
           and relabel_command(target_org="o") is None)
 
 
+def test_pack512_additions():
+    """Headless pricing inputs, group-emptied pre-check, [preview] log prefix."""
+    from scripts.expression_sets.run_headless_pricing import (
+        build_pricing_data, end_date_for_term, line_results)
+    check("end date = start + term - 1 day (Annual)",
+          end_date_for_term("2026-11-26", 1, "Annual") == "2027-11-25")
+    check("end date handles Months and a short month",
+          end_date_for_term("2026-01-31", 1, "Months") == "2026-02-27")
+    data = build_pricing_data(
+        {"lines": [{"Product": "p", "SubscriptionTerm": 3, "SubscriptionTermUnit": "Annual"}]},
+        pricebook="01s", currency="USD", start_date="2026-11-26")
+    st = data["SalesTransaction"]
+    line = st["SalesTransactionItem"][0]
+    check("header and line carry Pricebook and CurrencyIsoCode",
+          st["Pricebook"] == line["Pricebook"] == "01s"
+          and st["CurrencyIsoCode"] == line["CurrencyIsoCode"] == "USD")
+    check("end date is start + term - 1 day, as a date-time",
+          line["EndDate"] == "2029-11-25T00:00:00.000Z"
+          and line["StartDate"] == "2026-11-26T00:00:00.000Z", line)
+    check("period boundary and item source defaulted",
+          line["PeriodBoundary"] == "Anniversary" and line["SalesTransactionItemSource"])
+    res = line_results([{"outputValues": {"pricingResult": json.dumps(
+        {"NetUnitPrice": [{"value": 5, "dataPath": "CTX_QuoteLineItem_2"}]})}}])
+    check("line results read from the JSON string", res and res[0]["NetUnitPrice"] == 5)
+
+    from scripts.expression_sets._schema import validate_overlay_against_definition
+    version = {"apiName": "V1", "steps": [
+        {"name": "G", "stepType": "ListGroup"},
+        {"name": "A", "parentStep": "G"}, {"name": "B", "parentStep": "G"}]}
+    definition = {"versions": [version]}
+    bad = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "A"}, {"name": "B"}]}, definition, "V1")
+    check("removing every child of a group is refused", not bad.passed)
+    ok = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "A"}]}, definition, "V1")
+    check("removing one child is allowed", ok.passed)
+    ok2 = validate_overlay_against_definition(
+        {"removeSteps": [{"name": "G"}, {"name": "A"}, {"name": "B"}]}, definition, "V1")
+    check("removing the group with its children is allowed", ok2.passed)
+
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    class _T:
+        dry_run = True
+        target_org = "o"
+        logger = staticmethod(lambda m, *a, **k: seen.append(m))
+    seen = []
+    LifecycleEngine(_T()).log("PATCHed expression set X.")
+    check("a preview marks lifecycle lines", seen == ["[preview] PATCHed expression set X."], seen)
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
@@ -3152,7 +3203,8 @@ def main():
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
-               test_overlay_multi_version, test_row_lock_retry):
+               test_overlay_multi_version, test_row_lock_retry,
+               test_pack512_additions):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

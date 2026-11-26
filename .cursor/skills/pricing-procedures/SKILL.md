@@ -95,7 +95,7 @@ The neighbouring skills own the mechanics this one builds on:
 | Configure or fix one element (fields, parameters, limits, errors) | Its file in [Element catalog](#element-catalog) |
 | Add, move or remove elements; any ordering error; stale or lagging values | [`procedure-anatomy-and-ordering.md`](procedure-anatomy-and-ordering.md) |
 | Which procedure is configured, Simulate/activate, procedure plans, output resolution, symptoms without an error. Which procedure actually executed: the Operations Console log in [`runtime-and-observability.md`](runtime-and-observability.md) | [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md) |
-| Waterfall, price logs, Operations Console, execution messages, PST order, parallel execution, Apex hooks, limits | [`runtime-and-observability.md`](runtime-and-observability.md) |
+| Headless pricing without a quote (inputs, helper script), waterfall, price logs, Operations Console, execution messages, PST order, parallel execution, Apex hooks, limits | [`runtime-and-observability.md`](runtime-and-observability.md) |
 | Prices shown while browsing products (Product Discovery) | [`discovery-procedures.md`](discovery-procedures.md) |
 | Export/import/overlay/activate mechanics, Connect errors | [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md) |
 | Recipe-table mappings, procedure-plan overlays, build flow order | [`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md) |

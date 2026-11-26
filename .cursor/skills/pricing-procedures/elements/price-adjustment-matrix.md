@@ -128,6 +128,15 @@ Snapshot only. Discover: `python scripts/expression_sets/describe_expression_set
 Simulate with the input tags set (e.g. partner account); inspect the output variable
 and waterfall. Refresh the custom decision table first (`../../decision-tables/SKILL.md`).
 
+## Lookup without a price change
+
+The shipped partner-procedure bundle carries a matrix whose adjustment is zero: it reads a
+decision table to put a value on the line without changing the price, and a List Price-type
+recipe variant exists [Open: cited from a VOC desk review; the matrix and recipe names are not
+re-read here, check `unpackaged/` before relying on it]. The matrix route to a term discount
+built live applied nothing: see the Open note in
+[commitment-term-discount.md](./commitment-term-discount.md#route-a-price-adjustment-matrix).
+
 ## Troubleshooting
 | Symptom | Cause | Fix |
 |---|---|---|

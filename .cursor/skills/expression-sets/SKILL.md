@@ -74,13 +74,19 @@ parameter) — to inspect, author, or manage those tables see
 
 > **Pinned to Release 264 / API v68.0.** Re-verify enums and behavior on the
 > target release at merge time. This `SKILL.md` is the task-level entry point;
-> deep detail lives in three companion files (read on demand):
-> - **`authoring-and-overlays.md`** — building/applying overlays, capturing a
+> deep detail lives in companion files (read on demand):
+> - **`authoring-and-overlays.md`**: building/applying overlays, capturing a
 >   step's three dependency scopes, safe step removal.
-> - **`metadata-vs-connect.md`** — the two authoring paths, the Connect mutation
+> - **`metadata-vs-connect.md`**: the two authoring paths, the Connect mutation
 >   lifecycle, verb-specific field rules, GET serializer gotchas, Metadata API
 >   authoring, create-with-content.
-> - **`docs/references/expression-set-connect-api-reference.md`** — the
+> - **`multi-version-orgs.md`**: which version executes, and editing, re-ranking,
+>   overlaying, importing and deploying on a set with several versions.
+> - **`expression-set-types.md`**: the six Revenue Cloud types, the full enum, and why
+>   Constraint sets (CML) fall outside this skill's tooling.
+> - **`toolkit-quick-start-and-examples.md`**: the worked command sequence, the CCI task
+>   table, run times, running the tools from an agent sandbox, and example overlays.
+> - **`docs/references/expression-set-connect-api-reference.md`**: the
 >   exhaustive object/ID model, OAS-confirmed schema enums, every known error +
 >   resolution, and the verification checklist.
 >
@@ -89,67 +95,10 @@ parameter) — to inspect, author, or manage those tables see
 
 ## <a name="expression-set-types"></a>Expression Set types (Revenue Cloud)
 
-Every Expression Set carries an `interfaceSourceType` (the consuming-cloud
-discriminator, on the runtime `ExpressionSet` object) paired with a `usageType`.
-The engine enum has 11 members (see the [full enum](#the-full-enum) below), but
-**Revenue Cloud uses six** — grounded against the live org
-(`SELECT InterfaceSourceType, UsageType, COUNT(Id) FROM ExpressionSet …`) and the
-Release 262 dev-guide/Help snapshots (not re-checked against 264):
+Revenue Cloud uses **six** `interfaceSourceType` values: PricingProcedure, DiscoveryProcedure, RatingProcedure, RatingDiscoveryProcedure, QualificationProcedure (step graphs, this skill) and Constraint (**CML**, not a step graph: use [`constraint-models`](../constraint-models/SKILL.md); the overlay tooling and the activation rules here do not apply to it). The table, the shipped examples, the full 11-member enum and the two rules that mislead for Constraint sets are in [`expression-set-types.md`](expression-set-types.md).
 
-| `interfaceSourceType` | What it computes / when it runs | Paired `usageType` (live) | Shipped example(s) in this repo | Authoring |
-|---|---|---|---|---|
-| **PricingProcedure** | The pricing waterfall — list price → discounts → derived/rounded net price. Runs on quote/order repricing. | `DefaultPricing` | `RLM_DefaultPricingProcedure`, `RLM_ProductDiscoveryPricingProcedure`, `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | Step graph (this skill); element configuration in `pricing-procedures` |
-| **DiscoveryProcedure** | Product Discovery pricing — computes prices shown while browsing/adding products (pre-quote). | `PricingDiscovery` | `RLM_DefaultPricingDiscoveryProcedure`, `Salesforce_Pricing_Discovery_Procedure` | Step graph (this skill) |
-| **RatingProcedure** | Usage/consumption rating — turns usage into rated amounts. | `DefaultRating` | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure` | Step graph (this skill) |
-| **RatingDiscoveryProcedure** | Rating discovery — the discovery-phase counterpart for rating. | `RatingDiscovery` | `RLM_DefaultRatingDiscoveryProcedure` | Step graph (this skill) |
-| **QualificationProcedure** | Product qualification/disqualification — eligibility gating in Product Discovery. | `ProductQualification` | `RLM_ProductDiscoveryQualificationProcedure` | Step graph (this skill) |
-| **Constraint** ⚠ | Product Configurator constraint rules — compatibility/recommendation logic (GA 262 "Product Discovery with Constraint Rules"). | `Constraint` | *(shipped as constraint models, not `expressionSetDefinition` step XML)* | **CML** — see note |
+<a name="the-full-enum"></a>
 
-> ⚠ **Constraint is CML-based, not a step graph — use
-> [`.cursor/skills/constraint-models/SKILL.md`](../constraint-models/SKILL.md), not this
-> skill.** Constraint expression sets are authored in **CML** (Constraint Modeling
-> Language) and shipped as a plain-text `.ffxblob`, not as a flat `steps[]` graph. The
-> Connect-overlay tooling, the `steps[]`/`parentStep` model, and the script routing in
-> this skill **do not apply** to Constraint sets. They surface in the same
-> `ExpressionSet`/`interfaceSourceType` enum, so they are listed here for completeness.
->
-> **Two rules in this skill are actively misleading for Constraint sets:**
->
-> 1. **Quick Rule 7 / DO NOT (“PATCH on an active version is rejected”).** Constraint
->    models fail the *opposite* way: `import_cml` against an **active** version
->    **succeeds** and simply does not redeploy — no error, stale model still running.
->    You get no signal from the import, and there is no separately readable
->    "deployed" artifact either: `ExpressionSetDefinitionVersion.ConstraintModel` is the
->    field `import_cml` writes, so reading it back only confirms the upload. Verify by
->    exercising the configurator.
-> 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
->    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
->    Constraint models go through `manage_expression_sets` + `import_cml`.
->    `manage_expression_sets` activates and deactivates a constraint model through
->    `/industries/constraints/{setId}/versions/{versionId}`, which deploys it to the solver; a
->    plain `ExpressionSetVersion.IsActive` update never does. `prepare_constraints` deactivates
->    only AFTER importing. See the constraint-models skill.
->
-> Source material: `docs/salesforce/264/dev-guide/` (`cml-*` articles) and the
-> Configurator Help suite.
-
-### <a name="the-full-enum"></a>The full enum vs. Revenue Cloud
-
-The `interfaceSourceType` enum (`INTERFACE_SOURCE_TYPES` in
-`tasks/expression_set_schema.py` — **the single source of truth**) has 11 members.
-The five **not** used by Revenue Cloud belong to other clouds/verticals and are
-listed only so an unexpected value isn't mistaken for RC:
-
-- **Not Revenue Cloud:** `EventOrchestration`, `GpaCalculationProcedure`,
-  `IntelligentDecisionStudio`, `ItServiceManagement`.
-- **Doc/test placeholder (not a real RC type):** `Sample` — appears only as the
-  dev-guide's own "Declarative Metadata Sample Definition" example; **0** live
-  instances. Do not author RC procedures with it (`usageType: sample` also keeps
-  the ES from surfacing in the pricing UI).
-
-Ground truth: the code enum (`tasks/expression_set_schema.py`) →
-`validate_expression_set` errors on an out-of-enum value. The
-`docs/references/expression-set-connect-api-reference.md` enum list mirrors it.
 
 ## DO NOT
 
@@ -197,6 +146,11 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
   PATCH on an **active** version is rejected (`INVALID_ID_FIELD:
   LatestVersionSnapshotId not found …`) — deactivate first, PATCH, reactivate.
 
+- **DO NOT** run an overlay apply, import or step-formula edit in a foreground call
+  with a short timeout: they block for minutes on a large procedure and stop half way
+  when the caller gives up. See *Running the tools* in
+  [`toolkit-quick-start-and-examples.md`](toolkit-quick-start-and-examples.md).
+
 ## Entry Conditions
 
 | Situation | Use |
@@ -216,47 +170,8 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 
 ## <a name="quick-start"></a>Quick Start
 
-Export → trace → slice a validated overlay → apply to a **disposable clone** —
-using the standalone toolkit (`--target-org` is the *SF CLI* alias, never the CCI
-alias):
+Export, trace, slice a validated overlay, preview, apply to a **disposable clone**, verify labels, with the standalone toolkit (`--target-org` is the *SF CLI* alias, never the CCI alias). The command sequence is in [`toolkit-quick-start-and-examples.md`](toolkit-quick-start-and-examples.md); the CCI task table, run times (overlay apply takes minutes on a large procedure: run it in the background) and the shipped example overlays are there too.
 
-```bash
-ORG=rlm-base__beta
-
-# 1. What's in the org, grouped by Revenue Cloud type.
-python scripts/expression_sets/list_expression_sets.py --target-org $ORG
-
-# 2. Export a procedure (import-ready: stripped + HTML-unescaped).
-python scripts/expression_sets/export_expression_set.py --target-org $ORG \
-    --developer-name RLM_DefaultPricingProcedure --for-import --out /tmp/pp.json
-
-# 3. Trace a variable: who produces it, who consumes it (safe-removal view).
-python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
-    --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
-
-# 3b. Or draw it — a kind-shaped Mermaid dependency graph (or --mermaid flow).
-#     --labels titles step nodes with their readable Tooling label (Connect has none).
-python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
-    --developer-name RLM_DefaultPricingProcedure --mermaid deps --labels --out /tmp/pp.deps.mmd
-
-# 4. Slice a step into a validated overlay (three scopes pre-classified).
-python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
-    --developer-name RLM_DefaultPricingProcedure --step "Apply Discount" \
-    --out /tmp/apply_discount.overlay.json
-
-# 5. Preview applying it to a clone (no --confirm = no write), then apply.
-python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
-    --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json
-
-# 6. Apply for real. Wait for "Successfully applied overlay" message — label
-#    restoration runs a second cycle, taking 30-60s for large procedures.
-python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
-    --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
-
-# 7. Verify labels were preserved
-python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
-    --developer-name RLM_MyClone --labels
-```
 
 ## <a name="script-routing"></a>Task + script routing
 
@@ -282,28 +197,11 @@ Full toolkit detail:
 | Change one step's formula on one version (the executing one by default), with read-back | `python scripts/expression_sets/set_step_formula.py --target-org <sf_alias> --expression-set <name> --step <s> \| --parent-step <p> --formula '<text>'` (preview; `--confirm`; `--show` reads only) — see [Multi-version orgs](#multi-version-orgs) |
 | Activate / deactivate a version (+ procedure-plan cascade) | `python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> --expression-set <name> --activate \| --deactivate` (preview; `--confirm`) |
 | Delete a whole ES or one version | `delete_expression_set` (CCI) **or** `python scripts/expression_sets/delete_expression_set.py --target-org <sf_alias> --expression-set <name> [--version <v>] --confirm` (destructive) |
+| Price lines through one procedure with no quote (headless; golden numbers for a clone) | `python scripts/expression_sets/run_headless_pricing.py --target-org <sf_alias> --procedure <name> --request <file> --pricebook <id>` (read-only; adds the Pricebook, currency and end-date inputs pricing needs; see [`../pricing-procedures/runtime-and-observability.md`](../pricing-procedures/runtime-and-observability.md)) |
 | Pre-flight a JSON file offline (no org) | `python scripts/ai/validate_expression_set.py <path> [--definition\|--overlay]` |
 
 ---
 
-## The CCI tasks
-
-`tasks/rlm_expression_set_connect.py` wraps
-`/connect/business-rules/expression-set` and handles the activation lifecycle,
-HTML-entity normalization, version-id rules, and the procedure-plan cascade.
-
-| Task | Verb | Use |
-|---|---|---|
-| `export_expression_set` | GET | Export a definition to JSON (`-o expression_set_api_name <DevName> -o output_file <path>`). |
-| `import_expression_set` | POST create / PATCH replace | Create a new ES or replace an existing one whole (`-o input_file <path>`). Auto-detects create vs replace from whether the ES already exists. |
-| `apply_expression_set_overlay` | declarative PATCH | Add/remove/update/reorder steps & variables without rewriting the whole definition (`-o overlay_file <path>`). |
-| `delete_expression_set` | DELETE | Destructive; requires `-o confirm true`. Whole ES, or one version via `-o version_api_name`. |
-| `validate_expression_set` | — (org-less) | Pre-flight a JSON file offline: `-o file <path> -o kind definition\|overlay`. CLI form: `python scripts/ai/validate_expression_set.py <file> [--definition\|--overlay]`. |
-
-Common options on the mutation tasks: `dry_run` (log without mutating),
-`skip_validation` (bypass the pre-flight — avoid), `normalize_html_entities`
-(default true — leave on), `activate_after_import`/`activate_after_apply`,
-`cascade_deactivate_procedure_plan`, `max_wait_seconds`/`poll_interval_seconds`.
 
 ---
 
@@ -329,92 +227,8 @@ source-controlled edit.
 
 ## <a name="multi-version-orgs"></a>Multi-version orgs
 
-An expression set can hold several versions, several of them **active at once**,
-and the runtime runs one: the **highest Rank** among enabled versions whose start/end
-windows cover the call's effective date [Dev guide:
-`sforce_api_objects_expressionsetversion`] [Measured: 2026-11-24, 264, QB scratch
-build, disposable sets], and among null Ranks the **earliest created** [Measured:
-2026-11-25, 264, QB scratch build, disposable sets]. Equal numeric Ranks cannot be
-set up by deploy ("Assign a unique rank to expression set version …") [Measured:
-2026-11-24, 264, QB scratch build, disposable sets]. [Open: which version runs when
-two active versions share a numeric Rank; settle it by setting an inactive
-version's Rank equal to the active one's with an sObject update, activating it and
-invoking the set, or record that the activation is refused.] The tools resolve it
-with `scripts/expression_sets/_guards.executing_version`, using now as the date. An
-upgraded org can carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, v1,
-v3 and v4 active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3
-and `CompoundUplift` in v4 [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Before any
-edit, list the versions:
-`SELECT ApiName, VersionNumber, IsActive, Rank, StartDateTime, EndDateTime FROM ExpressionSetVersion WHERE ExpressionSetId = '<9QL>'`.
+A set can hold several active versions; the runtime runs the **highest Rank** among enabled versions whose date window covers the call. Edit the executing version (`set_step_formula.py`), give a version a Rank before cycling it, and expect overlays, whole-set imports and deploy read-backs to refuse the shapes that fail on the platform. The measured rules, the version-list query and the open questions are in [`multi-version-orgs.md`](multi-version-orgs.md); toolkit detail in `scripts/expression_sets/README.md` → *Multi-version expression sets*.
 
-- **Edit the executing version.** A constant written into a lower version changed no
-  price; written into the executing one it changed every price [Measured: 2026-09-03,
-  264, upgraded org (ramp264)]. Use
-  `set_step_formula.py`: it targets the executing version unless
-  `--version-api-name` names another (and warns then), selects the step by `--step`
-  or by its version-stable `--parent-step`, runs the deactivate → Tooling
-  `Metadata` PATCH → reactivate lifecycle (reactivating even if the PATCH fails,
-  since a Tooling sObject update is atomic), and exits 1 when the read-back formula,
-  the version state or any referencing `ProcedurePlanDefinitionVersion.IsActive`
-  differs from what it should be.
-- **A version with no Rank cannot be cycled.** The API refuses to activate a version
-  without a Rank ("Enter a valid rank to enable …") [Measured: 2026-11-25, 264, QB
-  scratch build, disposable sets], so the toolkit mutators with activation on
-  (`set_step_formula`, relabel, import, overlay), `activate_expression_set --activate`,
-  the whole-set delete (its rollback reactivates) and the CCI import, overlay and
-  delete tasks refuse a null-Rank version before any write. Give it a Rank first, or
-  run without activation. The CCI `ManageExpressionSets` tasks
-  (`activate_expression_sets`, `activate_prm_expression_sets`,
-  `activate_procedure_plan_expression_sets`, `manage_expression_sets`
-  `activate_version(s)`) do not pre-check: they only set the status, so a null-Rank
-  version fails at the platform's refusal with nothing else written for it. An
-  sObject update of `Rank` works on an inactive version; an active one refuses every
-  update ("An enabled Expression Set Version cannot be
-  updated/deleted."), so deactivate it without cascading, set a numeric Rank (higher
-  than every other active version's if it should execute; equal Ranks are refused)
-  and activate it again without cascading [Measured: 2026-11-25, 264, QB scratch
-  build, disposable sets].
-- **An overlay sends every version.** `apply_expression_set_overlay` PATCHes the
-  whole GET, which succeeded when the versions carried their own labels and was
-  rejected on a version-name collision when the GET returned one name for both; an
-  sObject update of `Name` does not change the name the GET returns [Measured:
-  2026-11-25, 264, QB scratch build, disposable sets]. Both surfaces refuse that
-  before any write, and refuse while any version other than the executing one is
-  active, since the run deactivates only that one. [Open: whether a PATCH that
-  rewrites an active version is accepted; settle it with an overlay on a disposable
-  set with two active own-label versions, guard bypassed.] With no version named,
-  the overlay edits the executing version.
-- **A whole-set import works in one shape only.** On a multi-version set both
-  `import_expression_set` surfaces allow only a payload with exactly one version,
-  the one the import targets, and no other version sharing its label; everything
-  else is refused before any write. Two-version payloads failed (named alike:
-  version-name collision; target first with the other version renamed in the
-  payload: duplicate `CalculationProcedureId`) [Measured: 2026-11-24, 264, QB scratch
-  build, disposable sets], and a one-version payload failed whenever another
-  version's `Name` equalled its label and succeeded otherwise, including on versions
-  deployed with their own labels [Measured: 2026-11-25, 264, QB scratch build,
-  disposable sets]. [Open: the platform's answer to a two-version payload on
-  versions with their own labels; the guard refuses it first, so settle it with a
-  raw Connect PATCH on a disposable set.] Platform version chains share one label.
-- **A deploy is read back.** `activate_and_deploy_expression_sets` fails when a
-  deployed repo version is missing, sits under a different `VersionNumber` than the
-  package, is inactive, or is not the version that executes. The deploy handler
-  matches versions by number, and its code path suggests such a version can be
-  skipped silently [Platform behaviour, traced]; the one construction measured (lower
-  version deleted, `_V1` redeployed at the freed number) failed the deploy loudly
-  instead [Measured: 2026-11-24, 264, QB scratch build, disposable sets]. The
-  read-back reports any mismatch either way. When it fails, the deploy is already
-  applied and the step cannot be re-run on a built org (the redeploy is refused:
-  "You can't update the expression set version … because it's active") [Measured:
-  2026-11-24, 264, QB scratch build]: run the build's remaining steps after it, in
-  order (`cci flow info prepare_rlm_org` lists them; a build-harness `resume` restarts
-  at the failed step, so it would re-run it) and, if the wrong version executes, edit
-  or re-rank the executing version (`set_step_formula.py` for formulas). For future
-  builds on an org whose chain is known, set the check to warn: `-o version_check
-  warn` on `cci task run activate_and_deploy_expression_sets`, or `-o
-  activate_and_deploy_expression_sets__version_check warn` on `cci flow run
-  prepare_rlm_org`. The read-back is not a way to audit a built org. Toolkit detail:
-  `scripts/expression_sets/README.md` → *Multi-version expression sets*.
 
 ## Overlays & dependency capture (summary)
 
@@ -433,7 +247,6 @@ orphaned and silently misbehave. The full slicing table, the three-scope
 classifier, the `externalDependencies` block shape, the local-merge recipe and
 safe-removal guidance live in **`authoring-and-overlays.md`**.
 
----
 
 ## <a name="compound-ramp-uplift"></a>Compound ramp uplift
 
@@ -446,48 +259,9 @@ Moved to the pricing-procedures skill, which owns pricing element configuration:
 
 ---
 
-## Performance Expectations
-
-For reference, a 93-step pricing procedure (live-tested 2026-07-08):
-- **Read operations** (list, describe, export, trace, Mermaid): 3-5 seconds
-- **Import (CREATE):** ~45 seconds
-- **Overlay application (with label preservation):** ~60 seconds
-- **Overlay application (--no-preserve-labels):** ~30 seconds
-
-The bulk of time is spent in version activation polling and large payload
-transmission (129KB+ JSON for 93 steps). Use `--no-preserve-labels` if speed is
-critical, then run a manual `relabel_expression_set.py` batch later.
 
 ---
 
-## Examples
-
-Shipped overlays in `datasets/expression_set_overlays/` are generally
-applicable examples. Environment-specific examples live under
-`docs/references/expression-set-overlay-examples/` so they remain available for
-study without looking like safe default overlays. Capture each from a live GET,
-HTML-unescape, validate, cross-check, then apply to a **disposable clone** before
-any real target.
-
-| Overlay | Shape | Dependency scopes demonstrated |
-|---|---|---|
-| `map_line_item.json` | flat, single step (`actionType: BreakdownLineMapping`; maps `SalesTransactionItem` → `SalesTransactionItemDetail`, 18 `sectionJsonStringN` field-mappings) | standard context only — no `addVariables`, no `externalDependencies` |
-| `discount_distribution.json` | **nested** — 3 `ListGroup` parents (each with an `AdvancedListFilter` + `AssignmentElement` child) feeding a `DiscountDistributionService` element | ships 4 `Constant_DDS_*` constants in `addVariables`; rest standard context (incl. `__std` discount fields) → no `externalDependencies` |
-| `docs/references/expression-set-overlay-examples/facility-quantity.overlay.example.json` | **Environment-specific reference** — 2 `ListGroup` blocks, incl. a `FormulaBasedPricing` child computing `SalesTransaction_Hospitals__c - ItemStartQuantity` | **all three scopes**: `HospitalPrice` in `addVariables`; the custom field `SalesTransaction_Hospitals__c` (mapped into `RLM_SalesTransactionContext`) in `externalDependencies`; `ItemProductCode`/`ItemStartQuantity`/etc. standard context |
-
-The facility-quantity example is intentionally not in
-`datasets/expression_set_overlays/`: it depends on an org-specific custom field,
-context mapping, and procedure-shape anchor. It also shows that a custom field
-can be referenced inside a `Formula` string, not just a `Parameter`, so the
-dependency scan must tokenize formula text, which the validator does.
-
-### Map Line Item — special case
-
-How to configure the Map Line Item element (`BreakdownLineMapping`), where it sits and its
-`sectionJsonStringN` encoding is in
-[`../pricing-procedures/elements/map-line-item.md`](../pricing-procedures/elements/map-line-item.md).
-For the overlay mechanics here: author the `sectionJsonStringN` values **unescaped**, or
-deploy the same shape as an `expressionSetDefinition` `<steps>` block.
 
 ---
 
