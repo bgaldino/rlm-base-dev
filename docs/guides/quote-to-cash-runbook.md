@@ -148,8 +148,7 @@ python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN
 `Type` Unapplied row pointing at the original, which stays Applied and is
 flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
 balances return to what they were before it was applied, and `verify` checks
-the pair (measured at Line Level on 264, the payment unapplied before the
-credit). Rerunning sends nothing for a row already unapplied. Limits:
+the pair (measured at Line Level on 264, in either order). Rerunning sends nothing for a row already unapplied. Limits:
 
 - The run is closed: `cli step` refuses it, and nothing reapplies.
 - The payment and credit memo now carry open balances, and posting the

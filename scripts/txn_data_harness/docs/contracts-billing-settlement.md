@@ -494,9 +494,11 @@ unapply` (todo 490) is built on it.
   same rule as above): that run's credit and payment steps found no open
   balance and wrote nothing.
 - Not measured: header-level unapply (`credit-memo-inv-applications/.../unapply`,
-  payment header rows), the credit unapplied while the payment stays applied
-  (`--only credit`; the measured order was payment, then credit), reapplying
-  after an unapply, voiding a credit memo.
+  payment header rows), reapplying after an unapply, voiding a credit memo.
+- **Either order.** Unapplying the credit while the payment stays applied
+  (`--only credit`, run DEMO-20261126T041707Z) left invoice and line `Balance`
+  49.50 = 495.00 − 445.50 with the payment untouched; the payment's unapply
+  after it restored 495.00, as in the first order.
 
 `cli unapply --org <sf-alias> --manifest <run> [--only payment|credit]`
 reverses the run's own recorded line-level applications, the payment's first.
