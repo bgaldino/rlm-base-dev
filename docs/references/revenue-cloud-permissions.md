@@ -475,7 +475,8 @@ than its org-wide default. Record access the build adds, and the one it delibera
   internal users**, is a member of `DocgenDocumentTemplateLibrary` with the read-only permission
   `RLM DocGen Template Viewer`. Generation reads the template file as the generating user, and only
   library members can read it, so without this only the build admin can generate documents (todo 435).
-  Members can't add, version or delete the files. Details: `docs/guides/docgen-setup.md` →
+  Every library permission is off: a member's new version of a library file is refused
+  (`INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`, measured 2026-11-26 on 264). Details: `docs/guides/docgen-setup.md` →
   Template Library Access.
 - **Not added: `TransactionJournal` (usage records).** Without View All on `TransactionJournal` the
   sales rep persona sees none of its rows, not even the ones it created; Read isn't enough. The object

@@ -14,8 +14,8 @@
 //      lives here: the RLM_ quote, sales proposal and invoice templates, the billing defaults
 //      and the collections notices, plus any template created later in the designer.
 //   2. A read-only library permission, 'RLM DocGen Template Viewer', with every permission
-//      off: members can open and download the files, and cannot add, version, edit or delete
-//      them.
+//      off: members can open and download the files; a member's new version of a file is
+//      refused (INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY).
 //   3. A public group, RLM_DocGen_Template_Users. When the group has no members it gets All
 //      Internal Users. A library takes only users and public groups as members (adding All
 //      Internal Users directly is refused), so the group carries it. Generating any document
