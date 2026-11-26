@@ -104,16 +104,21 @@ def cmd_size(t, args):
     return 1 if any(r["over"] for r in rows) else 0
 
 
+def _set_status(t, path, status):
+    """PATCH the version status; the resource can answer 200 with success false."""
+    res = t.connect("PATCH", path, {"status": status})
+    if isinstance(res, dict) and res.get("success") is False:
+        raise ExpressionSetClientError(f"setting status {status} reported failure: {json.dumps(res)[:400]}")
+
+
 def push_model(t, version, model_bytes):
     """Deactivate if active, store the model, activate. All through the resource."""
     path = f"industries/constraints/{version['ExpressionSetId']}/versions/{version['Id']}"
     if version["IsActive"]:
-        t.connect("PATCH", path, {"status": "Inactive"})
+        _set_status(t, path, "Inactive")
     t.sobject("PATCH", "ExpressionSetDefinitionVersion", version["_esdv"],
               {"ConstraintModel": base64.b64encode(model_bytes).decode()})
-    res = t.connect("PATCH", path, {"status": "Active"})
-    if isinstance(res, dict) and res.get("success") is False:
-        raise ExpressionSetClientError(f"activation reported failure: {json.dumps(res)[:400]}")
+    _set_status(t, path, "Active")
     # Read back: the stored blob must equal the file and the version must be active.
     stored = read_model(t, version)
     active = t.soql(f"SELECT IsActive FROM ExpressionSetVersion WHERE Id = '{version['Id']}'")
@@ -221,8 +226,8 @@ def _build(t, spec, ids, pb, ctx, psm):
                 "PicklistId": pl, "Name": v, "Value": v, "Code": f"{pre}_{dev}_{i}",
                 "DisplayValue": v, "Status": "Active", "Sequence": i + 1})
         ad = _create(t, "AttributeDefinition", {
-            "Name": dev, "Label": a.get("label", dev), "DeveloperName": dev, "DataType": "Picklist",
-            "PicklistId": pl, "IsActive": True, "Code": dev})
+            "Name": f"{pre}_{dev}", "Label": a.get("label", dev), "DeveloperName": f"{pre}_{dev}", "DataType": "Picklist",
+            "PicklistId": pl, "IsActive": True, "Code": f"{pre}_{dev}"})
         pca = {"Name": dev, "ProductClassificationId": cls, "AttributeDefinitionId": ad,
                "Status": "Active", "IsRequired": a.get("required", False), "Sequence": len(ids["attrs"]) + 1}
         if a.get("default"):

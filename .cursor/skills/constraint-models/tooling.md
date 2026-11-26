@@ -24,7 +24,11 @@ python scripts/constraint_models/cml_tool.py scaffold --spec scripts/constraint_
 `example-spec.json` shows the shape: a `prefix` (names, codes and the model ApiName
 `CM_<prefix>` derive from it, so reruns in one org need a new prefix), `attrs` (each with
 a developer name and picklist `values`) and `products` (a name and a tag). Product
-`Code` and picklist value codes are unique per org, which is why they carry the prefix.
+`Code`, the attribute `Name`, `DeveloperName` and `Code`, and picklist value codes are
+unique per org, which is why they carry the prefix (attribute `<prefix>_<dev>`). Two
+scaffolds with the same attributes and different prefixes both completed, and the same
+prefix twice failed with a duplicate `Code`
+`[Measured: 2026-11-27, 264, scratch org]`.
 
 ## What to use it for
 

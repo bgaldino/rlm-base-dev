@@ -46,6 +46,20 @@ def main():
                      "PATCH industries/constraints/E/versions/V"], order
     assert t.calls[0][2] == {"status": "Inactive"} and t.calls[2][2] == {"status": "Active"}
 
+    # A deactivation answered 200 with success false must stop before the blob is written.
+    class Refusing(FakeTransport):
+        def connect(self, method, path, body=None, **kw):
+            super().connect(method, path, body)
+            return {"success": False}
+    r = Refusing()
+    try:
+        cml_tool.push_model(r, version, model)
+    except cml_tool.ExpressionSetClientError:
+        pass
+    else:
+        raise AssertionError("failed deactivation accepted")
+    assert len(r.calls) == 1, r.calls
+
     # A read that comes back HTML-escaped (the Connect GET does this) must fail the push.
     stored["text"] = model.decode().replace("&", "&amp;").replace('"', "&quot;")
     try:
