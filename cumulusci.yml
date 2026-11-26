@@ -1127,8 +1127,13 @@ tasks:
       agent: quoting-assistant
 
   deploy_quantumbit:
-    description: Deploy QuantumBit Metadata
-    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy QuantumBit Metadata. The SalesforceContractsExtCredentials AwsAccountId is a
+      placeholder in the repo: the deploy sets it from the aws_account_id option or the
+      RLM_AWS_ACCOUNT_ID environment variable (12 digits), and leaves the parameter out
+      when neither is set. Repo files are never modified (the value goes into the deploy zip).
+    class_path: tasks.rlm_external_credentials.DeployWithAwsAccountId
     options:
       path: unpackaged/post_quantumbit
 

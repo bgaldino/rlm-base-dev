@@ -875,7 +875,7 @@
 
 ## Revenue Lifecycle Management
 
-*177 task(s)*
+*178 task(s)*
 
 ### `activate_agents`
 
@@ -1955,6 +1955,18 @@
 **Options:**
 
 - `path`: `unpackaged/pre`
+
+---
+
+### `deploy_quantumbit`
+
+**Description:** Deploy QuantumBit Metadata. The SalesforceContractsExtCredentials AwsAccountId is a placeholder in the repo: the deploy sets it from the aws_account_id option or the RLM_AWS_ACCOUNT_ID environment variable (12 digits), and leaves the parameter out when neither is set. Repo files are never modified (the value goes into the deploy zip).
+
+**Class:** `tasks.rlm_external_credentials.DeployWithAwsAccountId`
+
+**Options:**
+
+- `path`: `unpackaged/post_quantumbit`
 
 ---
 
@@ -3208,7 +3220,7 @@
 
 ## Uncategorized
 
-*23 task(s)*
+*22 task(s)*
 
 ### `create_partner_central`
 
@@ -3422,18 +3434,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_utils`
-
----
-
-### `deploy_quantumbit`
-
-**Description:** Deploy QuantumBit Metadata
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_quantumbit`
 
 ---
 
