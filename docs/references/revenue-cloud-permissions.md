@@ -311,7 +311,8 @@ persona user instead. See the persona rows in the flow inventory below.
 > Activated Contracts** (`DeleteActivatedContract`, which depends on Activate Contracts and Delete
 > Contract). Live 264, without it the persona could not delete an activated contract it owned, so its
 > reset of an account with one (the order flow activates the contracts it creates) is refused, naming
-> the contract and the permission.
+> the contract and the permission. Not granted, by owner decision (todo 397, 2026-11-26): an admin, with
+> Modify All Data and View All Data, resets such an account on the reset's original engine.
 >
 > This is the widest non-admin privilege the build grants. It is intentional for a demo
 > org — resetting between demos is the persona's job and the quick action sits on the

@@ -228,7 +228,7 @@
             </defaultValue>
             <fieldText>Preserve Contracts with Contracted Prices</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;When checked, the account&apos;s contracts that have contracted prices are kept, with those prices and the rate card entries bound to them, and its other contracts are still deleted. The usage resource policies bound to the kept contracts are kept too. When unchecked, all of the account&apos;s contracts are deleted.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;When checked, the account&apos;s contracts that have contracted prices are kept, with those prices and the rate card entries bound to them, and its other contracts are still deleted. The usage resource policies bound to the kept contracts are kept too. With Delete Assets, a kept contract&apos;s rate card entry sourced from an asset the reset deletes is deleted with the asset, since it would block the asset&apos;s delete. When unchecked, all of the account&apos;s contracts are deleted.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>

@@ -18,9 +18,10 @@
  * not run and lists why: records in an object the user cannot read, or that the user
  * cannot see, are counted; records the user can see are named, with the reason (no
  * delete permission on the object, no delete access to the record, or a permission
- * the run needs on it: Edit Activated Orders, Access Lifecycle-Managed Assets, Delete
- * Invoice and Invoice Lines, Allow Revenue Records Deletion), and invoices still
- * processing are named too. Live 264 (the salesrep persona, under System.runAs and in
+ * the run needs on it: Edit Activated Orders, Delete Activated Contracts, Access
+ * Lifecycle-Managed Assets, Delete Invoice and Invoice Lines, Allow Revenue Records
+ * Deletion), and invoices still processing are named too, as are an asset or an order
+ * that a usage entitlement the reset keeps still refers to. Live 264 (the salesrep persona, under System.runAs and in
  * a Login As session) a query in a class declared without sharing saw only the records
  * sharing showed that user, and a delete of a record the user could edit but not
  * delete was refused; that is why the plan is read in system mode and checked per
@@ -117,6 +118,9 @@ public without sharing class RLM_AccountResetPlan {
     @TestVisible
     private static final String NEEDS_DELETE_ACTIVATED_CONTRACT = 'activated; deleting them needs the Delete '
         + 'Activated Contracts permission';
+    @TestVisible
+    private static final String ORDER_LINE_ENTITLEMENT_KEPT = 'another account\'s usage entitlement, or one held by '
+        + 'a bucket kept for another account\'s entitlement, refers to one of its order lines, so it cannot be deleted';
     @TestVisible
     private static final String ASSET_ENTITLEMENT_KEPT = 'its usage entitlement is held by a bucket kept for '
         + 'another account\'s entitlement, so it cannot be deleted; run the reset with Delete Assets off';
@@ -1198,6 +1202,33 @@ public without sharing class RLM_AccountResetPlan {
             }
             Set<Id> orderIds = ids(orders);
             binds.put('orderIds', orderIds);
+            // An order line that a usage entitlement refers to (OrderItemId) cannot be
+            // deleted, nor its order (measured live 264: "associated with the following
+            // transaction usage entitlements"), even when the entitlement is another
+            // account's. The account's own entitlements go before the orders; any other is
+            // kept, so its order is named and the run refused.
+            Set<Id> orderItemIds = new Set<Id>();
+            if (!orderIds.isEmpty()) {
+                Map<Id, Id> orderOfLine = new Map<Id, Id>();
+                for (SObject line : query('OrderItem', 'Id, OrderId', 'OrderId IN :orderIds')) {
+                    orderOfLine.put(line.Id, (Id) line.get('OrderId'));
+                }
+                orderItemIds = orderOfLine.keySet();
+                binds.put('orderItemIds', orderItemIds);
+                binds.put('entitlementsFirst', ids(rowsOf(G_ENTITLEMENTS)));
+                Set<Id> blockedOrders = new Set<Id>();
+                if (!orderItemIds.isEmpty()) {
+                    for (SObject entitlement : query('TransactionUsageEntitlement', 'Id, OrderItemId',
+                        'OrderItemId IN :orderItemIds AND Id NOT IN :entitlementsFirst')) {
+                        blockedOrders.add(orderOfLine.get((Id) entitlement.get('OrderItemId')));
+                    }
+                }
+                for (SObject o : orders) {
+                    if (blockedOrders.contains(o.Id)) {
+                        special('Order', ORDER_LINE_ENTITLEMENT_KEPT, o);
+                    }
+                }
+            }
 
             // ---------------------------------------------------- billing
             List<SObject> invoices = new List<SObject>();
@@ -1254,6 +1285,7 @@ public without sharing class RLM_AccountResetPlan {
                 put(G_COLLECTION_PLANS, 'CollectionPlan', plans);
                 Set<Id> planIds = ids(plans);
                 binds.put('planIds', planIds);
+                // A case can be both a plan's and a dispute's; put() keeps it once.
                 List<SObject> collectionCases = new List<SObject>();
                 if (!planIds.isEmpty()) {
                     // Plan items go with their plan; their ids find promise-to-pay schedules.
@@ -1284,7 +1316,6 @@ public without sharing class RLM_AccountResetPlan {
 
             // ---------------------------------------------------- fulfillment
             if (deleteFulfillment) {
-                Set<Id> orderItemIds = ids(query('OrderItem', '', 'OrderId IN :orderIds'));
                 binds.put('orderItemIds', orderItemIds);
                 Set<String> sourceIds = new Set<String>();
                 for (Id sourceId : orderItemIds) {
@@ -1533,8 +1564,19 @@ public without sharing class RLM_AccountResetPlan {
             }
         }
 
+        /**
+         * A group's rows, each once: a delete list with the same Id twice fails every row
+         * of it (measured live 264: DELETE_FAILED "Duplicate id in list"), which would roll
+         * the run back.
+         */
         private void put(String key, String objectName, List<SObject> records) {
-            rows.put(key, records);
+            Map<Id, SObject> unique = new Map<Id, SObject>();
+            for (SObject record : records) {
+                if (!unique.containsKey(record.Id)) {
+                    unique.put(record.Id, record);
+                }
+            }
+            rows.put(key, unique.size() == records.size() ? records : unique.values());
             objectOfGroup.put(key, objectName);
         }
 

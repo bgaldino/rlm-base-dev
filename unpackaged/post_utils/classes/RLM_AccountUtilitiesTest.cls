@@ -1784,10 +1784,29 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     // The 45 is counted from the code with data in every branch (see the constants in
-    // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
+    // RLM_AccountUtilities); this test measures only the empty-data path with one asset (31, held exactly). It holds
     // the reserve against the 45 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
+    // What phase 2 measures on this test's data (an asset and an opportunity, every option on),
+    // and on an account with an opportunity and no asset.
+    private static final Integer PHASE_TWO_EMPTY_PATH_QUERIES = 31;
+    private static final Integer PHASE_TWO_NO_ASSET_QUERIES = 23;
+
+    @IsTest
+    static void phaseTwosAssetStepQueriesNothingForAnAccountWithoutAssets() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities No Asset Opp');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(PHASE_TWO_NO_ASSET_QUERIES, RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'Phase 2\'s queries with no asset changed: the asset step\'s queries must stay guarded on its assets');
+    }
+
     @IsTest
     static void phaseTwosFixedQueriesStayWithinTheReserveKeptForThem() {
         Account a = newAccount();
@@ -1798,6 +1817,10 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        // Exact, so a query added to this path fails here and its count is revisited.
+        Assert.areEqual(PHASE_TWO_EMPTY_PATH_QUERIES, RLM_AccountUtilities.phaseTwoQueriesForTest,
+            'Phase 2\'s queries on empty data with every option on changed: recount PHASE_TWO_FIXED_MAX, '
+                + 'RETRY_TAIL and ASSET_TAIL');
         Assert.isTrue(
             RLM_AccountUtilities.phaseTwoQueriesForTest <= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
             'Phase 2 spent ' + RLM_AccountUtilities.phaseTwoQueriesForTest
@@ -1808,10 +1831,10 @@ private without sharing class RLM_AccountUtilitiesTest {
             RLM_AccountUtilities.QUERY_RESERVE >= RLM_AccountUtilities.PHASE_TWO_FIXED_MAX,
             'The reserve kept for phase 2 must cover its counted worst case'
         );
-        Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 15,
-            'The walk guards must cover the queries counted after them'
-        );
+        // The counts after each guard (see the constants): 27 after the journal guard, 15
+        // after the asset step's last one, each with the spare the constants keep.
+        Assert.areEqual(27 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 27 counted plus three spare');
+        Assert.areEqual(15 + 1, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus one spare');
     }
 
     @IsTest

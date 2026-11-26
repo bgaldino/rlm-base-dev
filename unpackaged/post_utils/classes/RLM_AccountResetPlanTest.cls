@@ -1207,7 +1207,7 @@ private without sharing class RLM_AccountResetPlanTest {
     // A previous owner's usage summary, which the plan does not delete, holds `held`, so
     // the platform refuses that delete. The run is all or nothing: it rolls back, the
     // child bucket and the asset the run had deleted come back, and the reason names
-    // the refused bucket with the platform's message.
+    // the refused bucket with its status code, not the platform's message.
     @IsTest
     static void aRowThePlatformRefusesRollsBackEverythingAndIsNamed() {
         Account a = newAccount();
@@ -1313,6 +1313,67 @@ private without sharing class RLM_AccountResetPlanTest {
         Assert.areEqual(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote is deleted');
     }
 
+    // A case that is both the plan's case and the dispute's is planned once: a delete list
+    // with an Id twice fails every row of it (measured live 264: "Duplicate id in list").
+    @IsTest
+    static void aCaseThatIsThePlansAndTheDisputesIsDeletedOnce() {
+        Assert.isTrue(available(COLLECTION_OBJECTS), 'PRECONDITION: this org has Collections and disputes');
+        Account a = newAccount();
+        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
+            'AccountId' => a.Id, 'UsageType' => 'Billing'
+        });
+        Case shared = new Case(AccountId = a.Id, Subject = 'Plan case and dispute case');
+        shared.put('SourceId', plan.Id);
+        insert shared;
+        SObject dispute = newRecord('Dispute', new Map<String, Object>{
+            'AccountId' => a.Id, 'CaseId' => shared.Id, 'ReceivedDate' => Date.today()
+        });
+        RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
+        iv.DeleteCollectionPlans = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, countOf('Case', shared.Id), 'The case is deleted');
+        Assert.areEqual(0, countOf('Dispute', dispute.Id), 'The dispute is deleted');
+        Assert.isTrue(result.removedSummary.contains(entry(Case.SObjectType, 1)),
+            'The case is counted once. Got: ' + result.removedSummary);
+    }
+
+    // An order whose line another account's entitlement refers to cannot be deleted
+    // (measured live 264), so the plan refuses the run up front and names the order.
+    @IsTest
+    static void anOrderWhoseLineAnotherAccountsEntitlementRefersToRefusesTheReset() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Line Holder');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        Order o = new Order(AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft',
+            Pricebook2Id = Test.getStandardPricebookId());
+        insert o;
+        OrderItem line = new OrderItem(OrderId = o.Id, PricebookEntryId = f.pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        insert line;
+        insert new TransactionUsageEntitlement(
+            AccountId = other.Id, GrantBindingTargetId = other.Id, UsageResourceId = f.resourceId,
+            PricebookEntryId = f.pricebookEntryId, EntitlementUomId = f.uomId,
+            EffectiveStartDateTime = Datetime.now().addDays(-10), TransactionQuantity = 1, EntitlementQuantity = 100,
+            NetQuantity = 100, ValidityPeriodTerm = 1, ActionType = 'New', OrderItemId = line.Id
+        );
+        String orderNumber = [SELECT OrderNumber FROM Order WHERE Id = :o.Id].OrderNumber;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The reset must be refused');
+        Assert.isTrue(result.reason.contains(entry(Order.SObjectType, 1) + ' ('
+            + RLM_AccountResetPlan.ORDER_LINE_ENTITLEMENT_KEPT + ': ' + orderNumber + ')'),
+            'The order is named with the reason. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Order WHERE Id = :o.Id], 'Nothing may change');
+    }
+
     @IsTest
     static void theRollbackAlwaysHasADmlStatementLeft() {
         Account a = newAccount();
@@ -1354,7 +1415,11 @@ private without sharing class RLM_AccountResetPlanTest {
     @IsTest
     static void anActivatedContractNeedsDeleteActivatedContracts() {
         Assert.isNull(RLM_AccountResetPlan.contractBlocker('Draft'), 'A Draft contract needs nothing more');
-        Assert.isNull(RLM_AccountResetPlan.contractBlocker('Activated'), 'The test admin has the permission');
+        // Whatever this org gives its admins: Modify All Data does not imply the permission.
+        Boolean held = [SELECT PermissionsDeleteActivatedContract FROM UserPermissionAccess LIMIT 1]
+            .PermissionsDeleteActivatedContract == true;
+        Assert.areEqual(held ? null : RLM_AccountResetPlan.NEEDS_DELETE_ACTIVATED_CONTRACT,
+            RLM_AccountResetPlan.contractBlocker('Activated'), 'The check follows the running user\'s permission');
         RLM_AccountResetPlan.withoutPermissionForTest.add('PermissionsDeleteActivatedContract');
         Assert.areEqual(RLM_AccountResetPlan.NEEDS_DELETE_ACTIVATED_CONTRACT,
             RLM_AccountResetPlan.contractBlocker('Activated'), 'Without it, an activated contract blocks');

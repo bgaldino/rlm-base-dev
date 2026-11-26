@@ -90,10 +90,10 @@ public without sharing class RLM_AccountUtilities {
     // of entitlements bound to the assets 1 and its other lookups 10 (the asset rate card
     // entries and the rate card entries sourced from the assets among them), quotes and
     // opportunities 5 = 44 on the drained path, plus the journal query, which only the
-    // undrained path runs = 45. 29 is what an account with no such data measures.
+    // undrained path runs = 45. 31 is what an account with one asset and no other such data measures.
     // QUERY_RESERVE covers the 45 and the usage retries. A round starts only while both
     // are left; otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 45.
+    // LimitException. A test holds the measured 31 exactly and the reserve against the 45.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
@@ -541,7 +541,9 @@ public without sharing class RLM_AccountUtilities {
                 // A binding rate card entry sourced from an asset blocks the asset's delete,
                 // whatever it is bound to (measured live 264: "associated with the following
                 // binding object rate card entries"), a contract the run keeps included.
-                deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
+                if (!accountAssetIds.isEmpty()) {
+                    deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
+                }
 
                 deleteAssets();
             }
@@ -716,8 +718,9 @@ public without sharing class RLM_AccountUtilities {
         report.kept.add(new Kept(label, why, count));
     }
 
-    // DML statements no delete may use: phase 2's savepoint and its rollback each count as
-    // one (measured live 264), so phase 1 leaves both and phase 2 leaves the rollback one.
+    // DML statements no delete may use, in either phase (one dmlRowsLeft serves both):
+    // phase 2's savepoint and its rollback each count as one (measured live 264). Phase 1
+    // needs both left for phase 2; phase 2 needs only the rollback's, and keeps one spare.
     @TestVisible
     private static final Integer STATEMENTS_KEPT = 2;
 
@@ -1863,7 +1866,9 @@ public without sharing class RLM_AccountUtilities {
     /**
      * Deletes the BindingObjectRateCardEntry records bound to the Account itself.
      * Those bound to a contract are deleted with the contract (deleteContracts),
-     * so contracts the reset keeps keep their rate card entries.
+     * so contracts the reset keeps keep their rate card entries, except one sourced from
+     * an asset the reset deletes (Delete Assets): it blocks the asset's delete, so the
+     * asset step deletes it too.
      */
     private static void deleteBindingObjRateCardEntries(Id accountId) {
         deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId = :accountId]);
