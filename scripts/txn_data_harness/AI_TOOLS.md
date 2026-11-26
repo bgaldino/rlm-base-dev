@@ -112,6 +112,21 @@ Rebuilds the batch report from manifests already on disk (all `out/*.json` shari
 the `<base_run_id>` prefix). Use it to re-summarize an older batch or to read a
 failure-signature rollup when triaging which scenarios to continue or clean up.
 
+### Quote to cash in one command (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli quote-to-cash --org <sf-alias>
+```
+
+Runs `scenarios/sales_txn_quote/20-quote-to-cash.yaml` (or `--config`, whose
+scenarios must target `payment_applied`) at `--concurrency 1`, then the
+`verify` checks on the run's invoices and payments. Exit 0 only when every
+scenario reached `payment_applied` and at least one balance was checked with
+none failing; 1 for a short stage or a failed or empty check; 2 when the verify
+could not report; the generator's code (2 auth, 3 discovery, 4 config) when the
+run never started. CCI wrapper: `cci task run verify_quote_to_cash --org
+<cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
+
 ### Verify billing (read-only)
 
 ```bash
@@ -136,7 +151,8 @@ on `PATH`, any unexpected error); with `--json` an error also prints
 usage on stderr and, when the command line contains `--json`, one
 `{"ok": false, "error": "usage: ..."}` object on stdout. Abbreviated options
 are refused. Ids may be 15 or 18
-characters. Harness manifests carry no payment ids: payments are found
+characters. A manifest's payment ids are read when it has them (the
+`payment_applied` stage writes `payment_ids`); other payments are found
 through the invoices' application rows, or passed with `--payment-ids`.
 `--latest` checks only the newest manifest: after a batch of several
 scenarios, pass each manifest (`--manifest` repeats) or the ids. Balance checks run only on records

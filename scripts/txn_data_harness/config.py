@@ -603,12 +603,13 @@ def _resolve_settlement(
     """Parse ``settlement:`` and check it against ``stage``.
 
     A block inherited from the config-level ``defaults`` is dropped on a
-    scenario that stops before the settlement stages, and its ``payment``
-    part is dropped on a scenario that stops at ``credit_applied``, so one
-    config can share settlement defaults across scenarios that stop at
-    different stages. A block set on the scenario itself is kept whatever the
-    stage (the steps record only the parts the run's target reaches). Only
-    real contradictions are errors (see :func:`check_settlement_stage`).
+    scenario that stops before the settlement stages, so one config can share
+    settlement defaults across scenarios that stop at different stages. A
+    block set on the scenario itself is kept whatever the stage, and a kept
+    block is kept whole: the first settlement step records all of it, so a
+    run that stops at ``credit_applied`` can be stepped on to
+    ``payment_applied``. Only real contradictions are errors (see
+    :func:`check_settlement_stage`).
 
     ``cli step`` evaluates the block against its ``--to-stage`` instead of the
     file's own ``target_stage`` (``merged["_settlement_stage"]``, set by
@@ -625,15 +626,8 @@ def _resolve_settlement(
     if override and settlement is None:
         return None
     explicit = "settlement" in merged.get("_explicit_keys", set(merged))
-    if not explicit:
-        if stage not in _SETTLEMENT_STAGES:
-            return None
-        if stage == "credit_applied" and settlement is not None:
-            settlement = SettlementSpec(
-                application_level=settlement.application_level,
-                credit=settlement.credit,
-                payment=None,
-            )
+    if not explicit and stage not in _SETTLEMENT_STAGES:
+        return None
     if not override:
         check_settlement_stage(settlement, stage, where)
     return settlement
@@ -649,10 +643,10 @@ def check_settlement_stage(
     stages lie past the target (a ``payment`` part with target
     ``credit_applied``, or any block with an earlier target such as
     ``--target-stage invoice_posted``) is not a contradiction: those parts
-    are simply not reached yet. The manifest records only the parts a run
-    reaches, when its first settlement step starts; a run that stopped before
-    the settlement stages records nothing, and ``cli step`` then takes the
-    block from ``--config``.
+    are simply not reached yet. The manifest records the whole block when
+    its first settlement step starts; a run that stopped before the
+    settlement stages records nothing, and ``cli step`` then takes the block
+    from ``--config``.
     """
     if stage not in _SETTLEMENT_STAGES:
         return

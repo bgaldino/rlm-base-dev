@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import Optional
+from typing import Callable, Optional
 
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_generate_args
@@ -31,7 +31,7 @@ from .models import (
     ResolvedSpec,
 )
 from .report import build_batch_report, write_batch_report
-from .runner import current_run_id, run_batch
+from .runner import BatchResult, current_run_id, run_batch
 
 log = logging.getLogger("txn_data_harness")
 
@@ -256,7 +256,17 @@ def ctx_api(args: argparse.Namespace) -> str:
     return args.api_version if args.api_version != "latest" else "latest"
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(
+    argv: Optional[list[str]] = None,
+    on_batch: Optional[Callable[[BatchResult, list[Manifest]], None]] = None,
+) -> int:
+    """Run the generator; return its exit code.
+
+    ``on_batch``, when given, receives the batch result and every scenario's
+    manifest once a live batch has run (never on ``--dry-run`` or on an error
+    before the batch starts). ``cli quote-to-cash`` uses it to read the run's
+    manifests without parsing this command's output.
+    """
     args = parse_args(argv)
     _setup_logging(args.verbose)
 
@@ -349,6 +359,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     report = build_batch_report(manifests, base_run_id=result.base_run_id)
     json_path, _md_path = write_batch_report(report, result.manifest_dir)
+    if on_batch is not None:
+        on_batch(result, manifests)
 
     print(f"\nDone: {result.total - result.failures}/{result.total} scenario(s) "
           f"succeeded. Manifests in {result.manifest_dir}/")

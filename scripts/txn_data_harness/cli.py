@@ -30,6 +30,7 @@ from .manifests import (
     MANIFEST_DIR,
     list_manifests,
     load_manifest,
+    manifest_path,
     parse_retention,
     prune_old_runs,
     resolve_manifest_path,
@@ -404,10 +405,8 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
         recorded = settlement_from_dict(manifest.settlement)
         if config:
             wanted = _config_settlement(args, manifest, client)
-            diffs = _settlement_diff(
-                _trim(recorded, to_stage).to_dict() if recorded else {},
-                _trim(wanted, to_stage).to_dict(),
-            )
+            diffs = _settlement_diff(recorded.to_dict() if recorded else {},
+                                     wanted.to_dict())
             if diffs:
                 raise SettlementError(
                     "step",
@@ -438,15 +437,6 @@ def _settlement_for_step(args: argparse.Namespace, manifest, client=None):
             f"'{manifest.account_name}' with a 'settlement:' block",
         )
     return _config_settlement(args, manifest, client)
-
-
-def _trim(spec, to_stage: str):
-    """The parts of ``spec`` a run to ``to_stage`` records (see steps)."""
-    from .config import SettlementSpec
-
-    if to_stage == "credit_applied" and spec.payment is not None:
-        return SettlementSpec(spec.application_level, spec.credit, None)
-    return spec
 
 
 def _config_settlement(args: argparse.Namespace, manifest, client):
@@ -579,23 +569,89 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
         # Exit 1 means a check failed, so no error may reach main() (which maps
         # ValueError to 1) or escape as a traceback.
-        if isinstance(exc, billing_verify.VerifyError):
-            message = str(exc)
-        elif isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
-            # RequestException: the --api-version latest lookup.
-            message = f"Salesforce request failed: {exc}"
-        elif isinstance(exc, FileNotFoundError) and exc.filename == "sf":
-            message = "the sf CLI was not found on PATH"
-        elif isinstance(exc, OSError):
-            message = f"could not run a command or read a file: {exc}"
-        else:
-            message = f"unexpected {type(exc).__name__}: {exc}"
+        message = _verify_error_message(exc)
         print(f"ERROR: {message}", file=sys.stderr)
         if args.json:
             _emit(json.dumps({"ok": False, "error": message}, indent=2))
         return 2
     _emit(json.dumps(report, indent=2) if args.json else billing_verify.render_text(report))
     return 0 if report["ok"] else 1
+
+
+def _verify_error_message(exc: Exception) -> str:
+    """The one-line reason a read-only verify could not report."""
+    if isinstance(exc, billing_verify.VerifyError):
+        return str(exc)
+    if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
+        # RequestException: the --api-version latest lookup.
+        return f"Salesforce request failed: {exc}"
+    if isinstance(exc, FileNotFoundError) and exc.filename == "sf":
+        return "the sf CLI was not found on PATH"
+    if isinstance(exc, OSError):
+        return f"could not run a command or read a file: {exc}"
+    return f"unexpected {type(exc).__name__}: {exc}"
+
+
+QUOTE_TO_CASH_CONFIG = (
+    Path(__file__).resolve().parent / "scenarios" / "sales_txn_quote" / "20-quote-to-cash.yaml"
+)
+QUOTE_TO_CASH_STAGE = "payment_applied"
+
+
+def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
+    """Run a quote through to an applied payment, then verify the balances.
+
+    Exit 0 when every scenario reached ``payment_applied`` and the verifier
+    checked at least one balance and failed none; 1 when a scenario fell short
+    or a check failed; 2 (or the generator's own code) when the run or the
+    verify could not start or report. It writes records: Posted invoices are
+    not deletable.
+    """
+    argv = [
+        "--org", args.org, "--config", str(args.config), "--concurrency", "1",
+        "--api-version", args.api_version, "--transport", args.transport,
+        "--poll-timeout", str(args.poll_timeout),
+    ]
+    if args.verbose:
+        argv.append("-" + "v" * args.verbose)
+    batch: list = []
+    code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
+    if not batch:
+        print(f"ERROR: quote-to-cash: the run did not start (exit {code})", file=sys.stderr)
+        return code or 2
+    short = [m for m in batch if m.error or m.reached_stage != QUOTE_TO_CASH_STAGE]
+    for m in short:
+        reason = f": {m.error}" if m.error else ""
+        print(f"FAIL: {m.run_id} reached {m.reached_stage or '(none)'}, "
+              f"not {QUOTE_TO_CASH_STAGE}{reason}")
+    if short or code:
+        print(f"QUOTE-TO-CASH: fail ({len(short)} of {len(batch)} scenario(s) short)")
+        return 1
+    invoice_ids: list[str] = []
+    payment_ids: list[str] = []
+    try:
+        for m in batch:
+            inv, pay = billing_verify.ids_from_manifest(manifest_path(m.run_id))
+            invoice_ids += [i for i in inv if i not in invoice_ids]
+            payment_ids += [p for p in pay if p not in payment_ids]
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
+        report = billing_verify.run_checks(records)
+    except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
+        print(f"ERROR: quote-to-cash verify: {_verify_error_message(exc)}", file=sys.stderr)
+        return 2
+    print(billing_verify.render_text(report))
+    if not report["ok"]:
+        print("QUOTE-TO-CASH: fail (a balance check failed)")
+        return 1
+    if not report["checked"]:
+        print("QUOTE-TO-CASH: fail (no balance was checked)")
+        return 1
+    runs = ", ".join(m.run_id for m in batch)
+    print(f"QUOTE-TO-CASH: pass ({len(batch)} scenario(s) at {QUOTE_TO_CASH_STAGE}: {runs})")
+    return 0
 
 
 def _emit(text: str) -> None:
@@ -731,6 +787,21 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     verify.set_defaults(func=_cmd_verify)
     # The top-level parser has no options but -h, so its first token is the command.
     _json_usage_errors([parser, verify], tokens[:1] == ["verify"] and "--json" in tokens)
+
+    q2c = sub.add_parser(
+        "quote-to-cash",
+        help="Run a quote to an applied payment on one account, then verify the "
+             "balances (writes records; exit 1 on a short stage or failed check).",
+    )
+    add_connection_args(q2c)
+    q2c.add_argument("--config", type=Path, default=QUOTE_TO_CASH_CONFIG,
+                     help="Scenario config whose scenarios target payment_applied "
+                          "(default: scenarios/sales_txn_quote/20-quote-to-cash.yaml).")
+    q2c.add_argument("--poll-timeout", type=int, default=180,
+                     help="Async poll timeout in seconds (default: 180).")
+    q2c.add_argument("-v", "--verbose", action="count", default=0,
+                     help="-v for INFO, -vv for DEBUG.")
+    q2c.set_defaults(func=_cmd_quote_to_cash)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

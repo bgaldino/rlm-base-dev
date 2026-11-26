@@ -161,8 +161,11 @@ A snapshot; the files are the source [Repo]:
   `deploy_post_billing_ui` (its generator script is a one-shot bootstrap; do not re-run it).
   Payments metadata: `deploy_post_payments`.
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
+- Quote to cash, end to end: `cli quote-to-cash` in the Transaction Data Harness and the
+  opt-in `verify_quote_to_cash` CCI task; procedure in `docs/guides/quote-to-cash-runbook.md`.
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
+quote-to-cash chain (quote through an applied credit and payment, Line Level, 2026-11-26), the
 Line Level application, the automatic payment schedule on posting, the Billing Forecast run and the
 invoice PDF fetch
 (*Measured: Line Level application* and *Billing Settings that change behavior* in

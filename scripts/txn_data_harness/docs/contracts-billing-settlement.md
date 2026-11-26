@@ -303,7 +303,7 @@ POST /services/data/v68.0/commerce/billing/payments/0aQWt000000XOefMAG/actions/a
   run's memo and payment read every row: any `Unapplied` row or flag `Yes`
   fails the stage (an application was reversed outside the harness; this run
   cannot settle; start a new run) instead of computing amounts from it.
-- **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
+- **The settlement block is fixed once recorded.** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (the whole block, `payment` included when the run stops at `credit_applied`, so the run can be stepped on to `payment_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. A config
   scenario pinning an account's new name matches the manifest when that name
   resolves to the manifest's `account_id`. The check runs before the
   "already reached" check, so a differing `--config` is never ignored; a

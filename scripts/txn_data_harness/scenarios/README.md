@@ -40,6 +40,7 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | `13-multi-year-terms.yaml` | `invoice_posted` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 | `14-end-date-overrides.yaml` | `order_activated` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence orders. |
 | `17-settlement.yaml` | `payment_applied` | 2 | **Settlement** after the Posted invoice: a 10% credit then an exact payment (fully settled), and a fixed credit then a smaller fixed payment (partially paid). Run with `--concurrency 1` (both scenarios use one account). See [Settlement](#settlement). Both scenarios ran live at Line Level on 264 — see [`../docs/contracts-billing-settlement.md`](../docs/contracts-billing-settlement.md). |
+| `20-quote-to-cash.yaml` | `payment_applied` | 1 | **Quote to cash** on one account: a 10% credit, then a payment for exactly what is left. The default config of `cli quote-to-cash` and the `verify_quote_to_cash` CCI task, which run it and then the verifier. Runbook: [`docs/guides/quote-to-cash-runbook.md`](../../../docs/guides/quote-to-cash-runbook.md). Ran live at Line Level on 264. |
 
 ### `sales_txn_order/`
 
@@ -439,11 +440,11 @@ value (null) means no payment, like leaving the key out.
   has a settlement target on an account with more than one transaction;
   `cli plan` warns. Pass `--concurrency 1`.
 - **Shared `defaults.settlement`:** a block inherited from `defaults` is
-  dropped on scenarios that stop before `credit_applied`, and its `payment`
-  part is dropped on scenarios that stop at `credit_applied`. A block set on
+  dropped on scenarios that stop before `credit_applied`. A block set on
   the scenario itself is kept whatever the target (so `--target-stage
-  invoice_posted` on a settlement config is fine); the manifest records only
-  the parts the run reaches, when its first settlement step starts. Only a
+  invoice_posted` on a settlement config is fine). A kept block is kept
+  whole, and the manifest records all of it when the first settlement step
+  starts. Only a
   settlement target with nothing to do is an error: `credit_applied` without
   `credit:`, or `payment_applied` without `payment:` (for a credit only, stop
   at `credit_applied`). Amounts and percents must be finite numbers (`.nan`
@@ -496,21 +497,24 @@ value (null) means no payment, like leaving the key out.
   payment insert, the recorded application level is checked against the
   invoice's `SettlementLevel` or any application row on it; a mismatch fails
   before inserting.
-- **Resume:** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (only the parts the run's target reaches: no `payment` for `credit_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. The config must hold exactly one
+- **Resume:** The settlement block is fixed once it is recorded on the manifest, which happens when the first settlement step starts (the whole block, `payment` included when the run stops at `credit_applied`, so the run can be stepped on to `payment_applied`). `cli step` then uses the recorded block only; a `--config` that differs from it is refused, naming the keys (changed options = a new run). `--config` supplies the block only when the manifest has none (a run that stopped before the settlement stages), evaluated against `--to-stage`, not the file's own `target_stage`. The config must hold exactly one
   `settlement:` block among the scenarios of the manifest's `kind` and
   account (a renamed account matches by Id). A `--config` identical to the
   recorded block is accepted, even on a manifest that already reached its
   target (which runs nothing and changes nothing: an earlier error stays;
   only a step that runs and succeeds clears it). A recorded block without
-  `payment` refuses `--to-stage payment_applied` before any step runs.
+  `payment` (a credit-only block, or a manifest recorded before 2026-11-26,
+  when a run stopped at `credit_applied` recorded only the credit) refuses
+  `--to-stage payment_applied` before any step runs.
   `--application-level line|header` (`--to-stage payment_applied` only, not on a
   manifest that already reached the target; a value equal to the recorded
   level is ignored) sets the level when it could not be read or was read
   wrong, until the payment is planned; after that it is refused
   (an apply refused with `INVALID_FIELD` on `appliedToId` needs a new run
   with `settlement.application_level` pinned). The recipe is "run to `invoice_posted`, then `cli
-  step --to-stage payment_applied --config <file>`"; a run that stopped at
-  `credit_applied` recorded no payment and cannot be given one.
+  step --to-stage credit_applied --config <file>`, then `cli step --to-stage
+  payment_applied`" (or straight to `payment_applied`); the second step needs
+  no `--config`, because the first recorded the whole block.
 - **At most one credit and one payment per run.** `credit_submitted` (with
   the `NetCreditsApplied` baseline) or `payment_submitted` is recorded
   before the write (memo tagged `<run> credit`, payment `<run>-PAY`). Any

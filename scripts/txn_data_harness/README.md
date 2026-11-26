@@ -97,7 +97,7 @@ python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scrip
 
 The `generate` module is the single-command entry point. The subcommand CLI in
 `cli.py` exposes the same run behavior plus `plan`, `inspect`, `step`, `report`,
-`verify` and `prune` commands for humans and AI agents that need smaller composable
+`verify`, `quote-to-cash` and `prune` commands for humans and AI agents that need smaller composable
 actions:
 
 ```bash
@@ -106,8 +106,12 @@ python -m scripts.txn_data_harness.cli step --org <your-sf-alias> \
   --manifest <run-id-or-path> --account "<account-name>" --to-stage invoice_draft
 python -m scripts.txn_data_harness.cli report <base-run-id>           # batch summary from disk
 python -m scripts.txn_data_harness.cli verify --org <your-sf-alias> --latest   # read-only billing checks, newest manifest only
+python -m scripts.txn_data_harness.cli quote-to-cash --org <your-sf-alias>  # one quote to an applied payment, then verify (writes records)
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
+
+Stage-by-stage procedure and the `verify_quote_to_cash` CCI task:
+[`docs/guides/quote-to-cash-runbook.md`](../../docs/guides/quote-to-cash-runbook.md).
 
 ## ⚠ `--org` takes an *sf CLI* alias, not a CCI alias
 

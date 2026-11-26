@@ -171,6 +171,7 @@ before adding any quote-creation path to either tool.
 | CLI/config reference | `scripts/txn_data_harness/README.md` | Explaining flags, stages, auth, manifests, limitations. |
 | Scenario schema and examples | `scripts/txn_data_harness/scenarios/README.md` | Editing YAML examples or config fields. |
 | Operational guide, verification, cleanup | `docs/guides/txn-data-harness.md` | Giving user-facing runbooks or cleanup steps. |
+| Quote-to-cash procedure, stage by stage | `docs/guides/quote-to-cash-runbook.md` | Walking one transaction from quote to an applied payment, or checking a built org. |
 | Live-verified API contracts | `scripts/txn_data_harness/docs/README.md` | Changing lifecycle payloads, polling, or sequencing. |
 | Open probes and anomalies | `scripts/txn_data_harness/docs/followups.md` | Investigating behavior not yet safe to generalize. |
 | Unit tests | `tests/txn_data_harness/` | Changing code, config parsing, manifests, steps, or docs examples. |
@@ -188,6 +189,7 @@ before adding any quote-creation path to either tool.
 | Prune old local manifests | `python -m scripts.txn_data_harness.cli prune ...` |
 | Start usage rating after `target_stage: usage_upload` | `python -m scripts.txn_data_harness.cli rate ...` |
 | Check invoice, line and payment balances against their applications (read-only) | `python -m scripts.txn_data_harness.cli verify ...` |
+| Prove an org can carry a quote to an applied payment (writes records) | `python -m scripts.txn_data_harness.cli quote-to-cash ...`, or `cci task run verify_quote_to_cash` |
 
 ## Standard Workflow
 

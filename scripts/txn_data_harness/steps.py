@@ -414,22 +414,18 @@ def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
 def _settlement_spec(ctx: StepContext, manifest: Manifest) -> Optional[SettlementSpec]:
     """The settlement block: fixed once it is recorded on the manifest.
 
-    The first settlement step to start records the run's block
-    (``ctx.settlement``), trimmed to the parts the run's target reaches (no
-    ``payment`` when the target is ``credit_applied``), so the manifest never
-    holds options for a stage that is not run. From then on the recorded
-    block is used and ``ctx.settlement`` is not read; ``cli step`` refuses a
-    ``--config`` that differs from it (changed options = a new run).
+    The first settlement step to start records the run's whole block
+    (``ctx.settlement``), ``payment`` included when the run stops at
+    ``credit_applied``, so a later ``cli step --to-stage payment_applied``
+    continues with it. From then on the recorded block is used and
+    ``ctx.settlement`` is not read; ``cli step`` refuses a ``--config`` that
+    differs from it (changed options = a new run).
     """
     if manifest.settlement is not None:
         return settlement_from_dict(manifest.settlement)
     spec = ctx.settlement
     if spec is None:
         return None
-    if ctx.target_stage == "credit_applied" and spec.payment is not None:
-        spec = SettlementSpec(
-            application_level=spec.application_level, credit=spec.credit, payment=None
-        )
     manifest.settlement = spec.to_dict()
     return spec
 
