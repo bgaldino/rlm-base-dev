@@ -40,34 +40,15 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, project_api_version, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
-    from cumulusci.core.utils import process_bool_arg
 except ImportError:  # pragma: no cover - offline import path
     BaseTask = object
     TaskOptionsError = Exception
     CommandException = Exception
-
-    def process_bool_arg(arg):
-        """
-        Offline fallback so this module still imports without CumulusCI.
-
-        Same vocabulary and the same TypeError as
-        ``cumulusci.core.utils.process_bool_arg``.
-        """
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
 # Hosted servers the Revenue Cloud MCP path needs. DeveloperName is the
@@ -145,7 +126,7 @@ class ConfigureMcpServers(BaseTask):
             "description": (
                 "If true, also activate the broad platform servers "
                 f"({', '.join(label for _, label in PLATFORM_HOSTED)}). "
-                "Defaults to false."
+                "Defaults to false; blank is unset, and a list or an unparseable value is refused."
             ),
             "required": False,
         },
@@ -153,7 +134,8 @@ class ConfigureMcpServers(BaseTask):
             "description": (
                 "If false, skip the custom RLMSalesTransactions server and configure "
                 "only the hosted ones. Defaults to the mcp_custom_server feature flag "
-                "(true when the flag is absent)."
+                "(true when the flag is absent); blank is unset. A list or an unparseable "
+                "value is refused."
             ),
             "required": False,
         },
@@ -162,21 +144,27 @@ class ConfigureMcpServers(BaseTask):
             "required": False,
         },
         "dry_run": {
-            "description": "If true, log intended changes without writing to the org.",
+            "description": (
+                "If true, log intended changes without writing to the org. Defaults to false; "
+                "blank is unset, and a list or an unparseable value is refused."
+            ),
             "required": False,
         },
     }
 
     def _run_task(self):
-        operation = (self.options.get("operation") or "ensure").strip().lower()
+        # Every option is read before the first request, so a refused one leaves the org untouched.
+        # None, blank or whitespace is unset; a list, or a boolean that isn't one, is refused by name.
+        operation = (option_text(self.options.get("operation"), "operation", TaskOptionsError) or "ensure").lower()
         if operation not in {"ensure", "list"}:
             raise TaskOptionsError("operation must be 'ensure' or 'list'")
 
-        self.dry_run = process_bool_arg(self.options.get("dry_run") or False)
+        self.dry_run = option_flag(self.options.get("dry_run"), "dry_run", TaskOptionsError)
         self.access_token = self.org_config.access_token
         self.instance_url = self.org_config.instance_url
-        self.api_version = (
-            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
+        self.api_version = project_api_version(
+            self.project_config, TaskOptionsError, "68.0",
+            option_text(self.options.get("api_version"), "api_version", TaskOptionsError),
         )
 
         self.created: List[str] = []
@@ -185,15 +173,17 @@ class ConfigureMcpServers(BaseTask):
         self.warnings: List[str] = []
 
         wanted_hosted = list(CORE_HOSTED)
-        if process_bool_arg(self.options.get("platform_servers") or False):
+        if option_flag(self.options.get("platform_servers"), "platform_servers", TaskOptionsError):
             wanted_hosted.extend(PLATFORM_HOSTED)
 
         # Absent flag counts as on, the historical default. prepare_mcp's `when:` reads an
         # absent flag as off, so the flow relies on mcp_custom_server being declared.
-        want_custom = self.options.get("custom_server")
-        if want_custom is None:
-            want_custom = getattr(self.project_config, "project__custom__mcp_custom_server", None)
-        want_custom = process_bool_arg(True if want_custom is None else want_custom)
+        # A blank custom_server is unset, so it falls back to the flag too.
+        if option_text(self.options.get("custom_server"), "custom_server", TaskOptionsError) is None:
+            flag = getattr(self.project_config, "project__custom__mcp_custom_server", None)
+            want_custom = option_flag(flag, "mcp_custom_server", TaskOptionsError, default=True)
+        else:
+            want_custom = option_flag(self.options.get("custom_server"), "custom_server", TaskOptionsError)
 
         self._preflight()
 

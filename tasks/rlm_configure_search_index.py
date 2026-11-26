@@ -25,18 +25,15 @@ if not __package__:  # run as a script (the offline self-test at the bottom): re
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import option_flag, option_text, project_api_version
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-    from cumulusci.core.exceptions import CumulusCIException
-    from cumulusci.core.utils import process_bool_arg
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 except ImportError:  # allow import without cumulusci (e.g. offline doc tooling)
     BaseSalesforceApiTask = object
     CumulusCIException = Exception
-
-    def process_bool_arg(val):  # type: ignore[misc]
-        return str(val).strip().lower() in ("true", "1", "yes")
+    TaskOptionsError = ValueError
 
 
 PCM_INDEX_CONFIG_PATH = "connect/pcm/index/configurations"
@@ -199,8 +196,9 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
         },
         "raise_on_failure": {
             "description": (
-                "If True (default), raise on error. Set to False to warn and "
-                "continue — useful for standalone exploratory runs."
+                "If True (default, also when blank), raise on error. Set to False to "
+                "warn and continue — useful for standalone exploratory runs. A list or "
+                "an unparseable value is refused."
             ),
             "required": False,
         },
@@ -209,12 +207,18 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
     def _run_task(self):
         import requests
 
-        raise_on_failure = process_bool_arg(
-            self.options.get("raise_on_failure", True)
+        # Options are read before the file or the org: None, blank or whitespace is unset; a list,
+        # or a boolean that isn't one, is a TaskOptionsError naming the option, whatever
+        # raise_on_failure says.
+        raise_on_failure = option_flag(
+            self.options.get("raise_on_failure"), "raise_on_failure", TaskOptionsError, default=True
         )
+        config_path = option_text(self.options.get("path"), "path", TaskOptionsError)
+        if config_path is None:
+            raise TaskOptionsError("path is required: the index configuration JSON file")
+        mode_option = option_text(self.options.get("mode"), "mode", TaskOptionsError)
 
         # --- Load configuration file ---
-        config_path = self.options["path"]
         if not os.path.isabs(config_path):
             config_path = os.path.join(
                 self.project_config.repo_root, config_path
@@ -246,7 +250,7 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
             return self.return_values
 
         # Mode: task option overrides config file value; default additive
-        mode = (self.options.get("mode") or config.get("mode") or "additive").lower()
+        mode = (mode_option or config.get("mode") or "additive").lower()
         if mode not in ("additive", "replace"):
             return self._handle_failure(
                 f"Invalid mode '{mode}'. Must be 'additive' or 'replace'.",

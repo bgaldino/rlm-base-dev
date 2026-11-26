@@ -168,8 +168,78 @@ def test_task_wrapper_declares_org():
     assert EmptyRecycleBin.salesforce_task is True
 
 
+def _run_wrapper(options, run_rc=0, run_error=None):
+    """Run EmptyRecycleBin._run_task with erb.Org and erb.run stubbed; return (error, calls, warnings)."""
+    import types
+    from unittest import mock
+
+    from tasks import rlm_empty_recycle_bin as wrapper
+
+    calls, warnings = [], []
+
+    def fake_run(org, objects, exclude, execute, log):
+        calls.append((objects, exclude, execute))
+        if run_error:
+            raise run_error
+        return run_rc
+
+    task = wrapper.EmptyRecycleBin.__new__(wrapper.EmptyRecycleBin)
+    task.options = options
+    task.org_config = types.SimpleNamespace(instance_url="https://x", access_token="t")
+    task.logger = types.SimpleNamespace(info=lambda *a: None, warning=warnings.append)
+    with mock.patch.object(wrapper.erb, "Org", lambda *a: calls.append("org") or "ORG"), \
+            mock.patch.object(wrapper.erb, "run", fake_run):
+        try:
+            task._run_task()
+            return None, calls, warnings
+        except Exception as exc:
+            return str(exc), calls, warnings
+
+
+def test_task_wrapper_options_blank_padded_and_lists():
+    # todo 488: a list was stringified ("['A', 'B']" split into "['A'" and "'B']"), a padded
+    # " true " read as false, and blank execute turned a purge into a dry run.
+    for options, expected in (
+        ({}, ([], [], True)),
+        ({"objects": "", "exclude": "  ", "execute": "", "fatal": "  "}, ([], [], True)),
+        ({"objects": None, "exclude": None, "execute": None}, ([], [], True)),
+        ({"objects": ["Account", "Contact"], "exclude": ["Case"]}, (["Account", "Contact"], ["Case"], True)),
+        ({"objects": " Account ,, Contact ", "execute": " false "}, (["Account", "Contact"], [], False)),
+        ({"execute": "off"}, ([], [], False)),
+        ({"execute": 0}, ([], [], False)),
+        ({"execute": " TRUE "}, ([], [], True)),
+    ):
+        err, calls, _ = _run_wrapper(options)
+        # Each case expects the purge call: no call fails it.
+        assert err is None and calls == ["org", expected], (options, err, calls)
+
+
+def test_task_wrapper_fatal_padded_and_blank():
+    err, _, warnings = _run_wrapper({"fatal": " true "}, run_rc=1)
+    assert err and "could not be purged" in err, err
+    for blank in ("", "  ", None, "false"):
+        err, calls, warnings = _run_wrapper({"fatal": blank}, run_rc=1)
+        assert err is None and calls and warnings, (blank, err, calls, warnings)
+
+
+def test_task_wrapper_refuses_bad_options_by_name_before_any_request():
+    # Read outside the try, so a refusal fails the task instead of becoming a non-fatal warning.
+    for options, needle in (
+        ({"execute": ["true"]}, "execute must be a single value"),
+        ({"execute": "maybe"}, "execute must be true or false"),
+        ({"fatal": ["true"]}, "fatal must be a single value"),
+        ({"fatal": "maybe"}, "fatal must be true or false"),
+        ({"objects": 0}, "objects must be a comma-separated string"),
+        ({"objects": ["Account", None]}, "objects items must be names"),
+        ({"exclude": [" ", ""]}, "exclude contains no names"),
+    ):
+        err, calls, warnings = _run_wrapper(options)
+        assert err and needle in err, (options, err)
+        assert calls == [] and warnings == [], (options, calls, warnings)
+
+
 def main():
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
+    tests =[(n, f) for n, f in sorted(globals().items()) if n.startswith("test_") and callable(f)]
     failed = 0
     for name, fn in tests:
         try:

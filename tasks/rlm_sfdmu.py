@@ -842,7 +842,12 @@ class DeleteSFDMUData(BaseSalesforceTask):
             named = self.options["sobjects"]
             if isinstance(named, str):
                 named = named.split(",")
-            named_set = {str(n).strip() for n in named} - {""}
+            # An int, a dict or a list item that is not a string (`- ~`) is refused, not stringified.
+            if not isinstance(named, (list, tuple)) or not all(isinstance(n, str) for n in named):
+                raise TaskOptionsError(
+                    f"sobjects must be a comma-separated string or a list of object names, got {named!r}"
+                )
+            named_set = {n.strip() for n in named} - {""}
             # Given but empty must fail: falling back to Insert mode would delete a different
             # set of types than the caller named (all of them, on a still-Insert plan).
             if not named_set:

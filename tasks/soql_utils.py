@@ -33,6 +33,28 @@ def soql_like_prefix(prefix) -> str:
     return "'" + "".join(out) + "%'"
 
 
+# CumulusCI's process_bool_arg vocabulary (cumulusci/core/utils.py), compared case-insensitively.
+# tests/test_soql_option_hardening.py checks it against the installed CumulusCI.
+TRUE_WORDS = ("yes", "y", "true", "on", "1")
+FALSE_WORDS = ("no", "n", "false", "off", "0")
+
+
+def option_flag(value, option: str, exc=ValueError, default: bool = False) -> bool:
+    """A boolean option. None, blank or whitespace is `default`; otherwise `option_text`, then
+    CumulusCI's process_bool_arg vocabulary (true/false, yes/no, y/n, on/off, 1/0, any case).
+
+    A list, tuple, set or dict is refused, and so is any other value ("maybe", 2), naming the option.
+    """
+    text = option_text(value, option, exc)
+    if text is None:
+        return default
+    if text.lower() in TRUE_WORDS:
+        return True
+    if text.lower() in FALSE_WORDS:
+        return False
+    raise exc(f"{option} must be true or false, got {text!r}")
+
+
 def requested_names(value, option: str, exc=ValueError) -> List[str]:
     """`split_names`, except None, blank, whitespace-only or an empty list means no names were asked for."""
     if value is None or value == [] or value == () or (isinstance(value, str) and not value.strip()):
@@ -43,14 +65,17 @@ def requested_names(value, option: str, exc=ValueError) -> List[str]:
 def split_names(value, option: str, exc=ValueError) -> List[str]:
     """Normalize a comma-separated string or a list into a de-duplicated list.
 
-    Raises `exc` when the option is neither, or yields no names.
+    Raises `exc` when the option is neither, when a list item is not a string (a YAML `- ~` or
+    `- [A, B]` would otherwise become the name "None" or "['A', 'B']"), or when it yields no names.
     """
     if isinstance(value, str):
         raw = value.split(",")
     elif isinstance(value, (list, tuple)):
         raw = []
         for item in value:
-            raw.extend(str(item).split(","))
+            if not isinstance(item, str):
+                raise exc(f"{option} items must be names (strings), got {item!r}")
+            raw.extend(item.split(","))
     else:
         raise exc(f"{option} must be a comma-separated string, or a list or tuple of strings")
     names = list(dict.fromkeys(n.strip() for n in raw if n and n.strip()))

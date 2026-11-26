@@ -32,6 +32,9 @@ import re
 import subprocess
 from pathlib import Path
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import option_text, requested_names
+
 try:
     from cumulusci.core.exceptions import CommandException, TaskOptionsError
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -89,7 +92,7 @@ class TestAgents(BaseSalesforceTask):
         },
         "test_files": {
             "description": (
-                "Optional comma-separated subset of YAML specs to run. Accepts "
+                "Optional subset of YAML specs to run, a list or comma-separated. Accepts "
                 "filenames, stems, paths relative to the selected suite, or paths "
                 "relative to the repo root."
             ),
@@ -157,8 +160,9 @@ class TestAgents(BaseSalesforceTask):
     # -- suite selection -----------------------------------------------------
 
     def _resolve_suites(self):
-        custom_path = self.options.get("tests_path")
-        custom_prefix = self.options.get("api_name_prefix")
+        # None, blank or whitespace is unset; a list for a scalar option is refused, naming it.
+        custom_path = option_text(self.options.get("tests_path"), "tests_path", TaskOptionsError)
+        custom_prefix = option_text(self.options.get("api_name_prefix"), "api_name_prefix", TaskOptionsError)
         if custom_path:
             return [{
                 "name": "custom",
@@ -167,7 +171,7 @@ class TestAgents(BaseSalesforceTask):
                 "api_name_prefix": custom_prefix or "RLM_Agent",
             }]
 
-        agent = (self.options.get("agent") or DEFAULT_AGENT).strip().lower()
+        agent = (option_text(self.options.get("agent"), "agent", TaskOptionsError) or DEFAULT_AGENT).lower()
         if agent == "all":
             if custom_prefix:
                 raise TaskOptionsError(
@@ -238,13 +242,9 @@ class TestAgents(BaseSalesforceTask):
 
     @staticmethod
     def _parse_requested_specs(requested_specs):
-        if not requested_specs:
-            return []
-        return [
-            item.strip()
-            for item in str(requested_specs).split(",")
-            if item.strip()
-        ]
+        """test_files as a list: a list or a comma-separated string. None, blank or an empty list is
+        none; an all-blank list, an int, or a list item that is not a string is refused."""
+        return requested_names(requested_specs, "test_files", TaskOptionsError)
 
     @staticmethod
     def _spec_match_keys(spec, tests_root):

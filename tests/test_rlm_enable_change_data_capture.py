@@ -212,6 +212,73 @@ def check_option_parsing(_):
     check("raise_on_failure parsed from 'True'", task.raise_on_failure is True)
 
 
+class RecordingRequests(FakeRequests):
+    """FakeRequests that also records the selection query, so "no request" is checkable."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.gets = []
+
+    def get(self, url, headers=None, params=None, timeout=None):
+        self.gets.append(url)
+        return super().get(url, headers=headers, params=params, timeout=timeout)
+
+
+def run_with_options(options):
+    """Parse `options` the way _init_options does, then run; return (error text or None, fake, task)."""
+    fake = RecordingRequests([], [201, 201, 201])
+    task = make_task(fake)
+    task.options = options
+    try:
+        task._parse_options()
+        task._run_task()
+        return None, fake, task
+    except Exception as exc:
+        return str(exc), fake, task
+
+
+def check_option_blank_padded_and_typed(_):
+    # Each case expects the selection query and one create per entity: no request fails it.
+    for label, options, entities, raise_on_failure in (
+        ("unset options are the defaults", {}, ["Quote", "Order"], False),
+        ("None options are the defaults", {"entities": None, "allocation": None, "raise_on_failure": None},
+         ["Quote", "Order"], False),
+        ("blank options are the defaults (blank entities was the entity '')",
+         {"entities": "", "allocation": "", "raise_on_failure": ""}, ["Quote", "Order"], False),
+        ("whitespace options are the defaults (whitespace raise_on_failure was a raw TypeError)",
+         {"entities": "  ", "allocation": "  ", "raise_on_failure": "  "}, ["Quote", "Order"], False),
+        ("an empty entities list is the default", {"entities": []}, ["Quote", "Order"], False),
+        ("padded values are read", {"entities": " Quote ,, Case ", "allocation": " 7 ", "raise_on_failure": " true "},
+         ["Quote", "Case"], True),
+        ("a list of entities is read", {"entities": ["Quote", "Case"]}, ["Quote", "Case"], False),
+        ("CumulusCI's 'on' is True", {"raise_on_failure": "on"}, ["Quote", "Order"], True),
+        ("int 0 raise_on_failure is a value: False", {"raise_on_failure": 0}, ["Quote", "Order"], False),
+    ):
+        err, fake, task = run_with_options(options)
+        events = [p["Metadata"]["selectedEntity"] for p in fake.posts]
+        check(f"options: {label}",
+              err is None and fake.gets and events == [f"{e}ChangeEvent" for e in entities]
+              and task.raise_on_failure is raise_on_failure,
+              repr((err, fake.gets, events, task.raise_on_failure)))
+
+
+def check_option_refusals(_):
+    for label, options, needle in (
+        ("list raise_on_failure", {"raise_on_failure": [True]}, "raise_on_failure must be a single value"),
+        ("unparseable raise_on_failure", {"raise_on_failure": "maybe"}, "raise_on_failure must be true or false"),
+        ("list allocation", {"allocation": ["5"]}, "allocation must be a single value"),
+        ("non-numeric allocation", {"allocation": "five"}, "allocation must be a positive integer"),
+        ("int 0 allocation", {"allocation": 0}, "allocation must be a positive integer"),
+        ("int entities", {"entities": 0}, "entities must be a comma-separated string"),
+        ("all-blank entities list", {"entities": [" ", ""]}, "entities contains no names"),
+        ("a null entities item", {"entities": ["Quote", None]}, "entities items must be names"),
+    ):
+        err, fake, _ = run_with_options(options)
+        check(f"refused by name before any request: {label}",
+              err is not None and needle in err and not fake.gets and not fake.posts,
+              repr((err, fake.gets, fake.posts)))
+
+
 def main():
     checks = (
         check_change_event_names,
@@ -224,6 +291,8 @@ def main():
         check_create_exception_is_soft,
         check_custom_channel_members_not_counted,
         check_option_parsing,
+        check_option_blank_padded_and_typed,
+        check_option_refusals,
     )
     for fn in checks:
         try:

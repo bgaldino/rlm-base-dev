@@ -585,6 +585,25 @@ for label, option in (("a Readonly type (Product2) is refused, never deleted org
     except TaskOptionsError:
         got = "TaskOptionsError"
     check(f"named: {label}", got, "TaskOptionsError")
+# todo 488: a value that is not a string or a list of strings is refused by name, before any delete,
+# instead of a raw TypeError (int) or the object name "None" (a YAML `- ~` item).
+for label, option in (("int 0", 0), ("a null list item", ["PricebookEntry", None]),
+                      ("a nested list item", [["PricebookEntry"]]), ("a dict", {"PricebookEntry": 1})):
+    _deleted = []
+    _task = rs.DeleteSFDMUData.__new__(rs.DeleteSFDMUData)
+    _task.options = {"pathtoexportjson": str(PRICING), "sobjects": option}
+    _task.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None})()
+    _task._delete_all_records = lambda name: _deleted.append(name) or 0
+    try:
+        _task._run_task()
+        got = "no error"
+    except TaskOptionsError as exc:
+        got = "refused naming sobjects" if "sobjects must be" in str(exc) else str(exc)
+    except Exception as exc:  # noqa: BLE001 - a raw error is the defect under test
+        got = f"{type(exc).__name__}: {exc}"
+    check(f"named: {label} is refused naming the option, nothing deleted", (got, _deleted), ("refused naming sobjects", []))
+_got = run_delete({"sobjects": ["PricebookEntry"]})
+check("named: the valid control does reach the delete (the refusals above are not vacuous)", _got, ["PricebookEntry"])
 
 print("LoadSFDMUData: conditional DRO steps are dropped in a temp copy (todo 419)")
 src_plan = REPO / "datasets/sfdmu/qb/en-US/qb-dro"

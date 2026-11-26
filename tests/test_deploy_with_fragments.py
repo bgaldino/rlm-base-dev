@@ -196,12 +196,65 @@ try:
     out, log, q, ap = run({"quote_est_tax": True, "tax": False}, "off")
     check("quote_est_tax on with tax off deploys off and warns about tax",
           out == "deployed" and ap == [False] and any(l[0] == "warning" and "tax is off" in l[1] for l in log), (out, log))
+    # todo 488: require_on is read through option_text before the query.
+    for blank in ("", "   ", None):
+        out, log, q, ap = run(both, "on", blank)
+        check(f"a blank require_on ({blank!r}) is unset: no query, deployed spliced",
+              out == "deployed" and not q and ap == [True], (out, q, ap))
+    out, log, q, ap = run(both, "on", "  SELECT COUNT() FROM TaxPolicy  ", count=1)
+    check("a padded require_on is queried stripped", out == "deployed" and q == ["SELECT COUNT() FROM TaxPolicy"], (out, q))
+    out, log, q, ap = run(both, "on", ["SELECT COUNT() FROM TaxPolicy"])
+    check("a list require_on is refused, naming the option, before the query",
+          "require_on must be a single value" in out and not q, (out, q))
 finally:
     if _BASE is not object:
         if _saved is None:
             del _BASE._run_task
         else:
             _BASE._run_task = _saved
+
+print("offline process_bool_arg fallback matches CumulusCI's (todo 488)")
+import unittest.mock  # noqa: E402
+
+_blocked = {k: None for k in list(sys.modules) if k == "cumulusci" or k.startswith("cumulusci.")}
+_blocked["cumulusci"] = None
+_fspec = importlib.util.spec_from_file_location("_rlm_test_dwf_no_cci", REPO / "tasks" / "rlm_deploy_with_fragments.py")
+offline = importlib.util.module_from_spec(_fspec)
+with unittest.mock.patch.dict(sys.modules, _blocked):
+    _fspec.loader.exec_module(offline)
+check("the module imports without CumulusCI and uses its fallback", offline.Deploy is object)
+
+
+def _outcome(fn, value):
+    try:
+        return fn(value)
+    except TypeError:
+        return "TypeError"
+
+
+_values = ["true", "True", "y", "Y", "yes", "on", "1", "false", "n", "no", "off", "0",
+           "maybe", " true", "", True, False, 0, 1, 2, None]
+check('the fallback reads "on" and "y" as True', offline.process_bool_arg("on") is True and offline.process_bool_arg("y") is True)
+check('the fallback refuses "maybe" and " true" with a TypeError',
+      _outcome(offline.process_bool_arg, "maybe") == "TypeError" and _outcome(offline.process_bool_arg, " true") == "TypeError")
+try:
+    import warnings
+
+    from cumulusci.core.utils import process_bool_arg as _cci_bool
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)  # CumulusCI deprecates None
+        _drift = [(v, _outcome(_cci_bool, v), _outcome(offline.process_bool_arg, v)) for v in _values
+                  if _outcome(_cci_bool, v) != _outcome(offline.process_bool_arg, v)]
+    check("the fallback agrees with the installed CumulusCI on every value", not _drift, _drift)
+except ImportError:
+    print("  (CumulusCI not installed: the comparison with the real process_bool_arg is skipped)")
+_flags = SimpleNamespace(lookup=lambda key: {"project__custom__odd": "maybe", "project__custom__on": "on"}.get(key))
+_err = raises(lambda: offline.flag_states(_flags, "odd"))
+check("an unparseable flag value is a TaskOptionsError naming the flag, not a raw TypeError",
+      _err is not None and "flag 'odd' must be true or false" in _err, _err)
+check("a flag set to 'on' reads as on (it read as off offline)", offline.flag_states(_flags, "on") == {"on": True})
+_err = raises(lambda: mod.flag_states(_flags, "odd"))
+check("with CumulusCI too, an unparseable flag value names the flag", _err is not None and "flag 'odd'" in _err, _err)
 
 print("quote_est_tax wiring")
 cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())

@@ -236,6 +236,42 @@ def test_run_gating_and_failure_modes():
             check("raise_on_failure chains cause", exc.__cause__ is not None)
 
 
+def test_raise_on_failure_values():
+    """todo 488: `-o raise_on_failure False` arrives as the string "False", which read as truthy
+    and raised. Blank is the default (False); a list or an unparseable value is refused by name."""
+
+    def outcome(value):
+        with tempfile.TemporaryDirectory() as d:
+            bad = pathlib.Path(os.path.join(d, "bad.json"))
+            bad.write_text("not json")
+            task = make_task(
+                options={"raise_on_failure": value},
+                org_config=SimpleNamespace(scratch=True, username="u"),
+            )
+            looked = []
+            task._find_auth_files = lambda username: looked.append(username) or [bad]
+            try:
+                task._run_task()
+                result = "warned"
+            except TaskOptionsError as exc:
+                result = "raised" if "bad.json" in str(exc) or exc.__cause__ is not None else str(exc)
+            # Every case reaches the auth-file lookup; one that never looks fails here.
+            return result if looked else f"never looked: {result}"
+
+    for value in ("False", "false", " false ", "off", "", "  ", None, False, 0):
+        check(f"raise_on_failure={value!r} warns and continues", outcome(value) == "warned")
+    for value in ("True", " true ", "on", True, 1):
+        check(f"raise_on_failure={value!r} raises", outcome(value) == "raised")
+    for value, needle in ((["true"], "raise_on_failure must be a single value"),
+                          ("maybe", "raise_on_failure must be true or false")):
+        task = make_task(options={"raise_on_failure": value}, org_config=None)
+        try:
+            task._raise_on_failure()
+            check(f"raise_on_failure={value!r} is refused, naming the option", False)
+        except TaskOptionsError as exc:
+            check(f"raise_on_failure={value!r} is refused, naming the option", needle in str(exc))
+
+
 def test_dedicated_exception_type():
     # The CumulusCI-absent fallback must be a distinct type, not bare Exception,
     # so `except TaskOptionsError` catches only intended failures.
@@ -323,6 +359,7 @@ def main():
     test_find_auth_files_glob_safe()
     test_run_summary_branches()
     test_run_gating_and_failure_modes()
+    test_raise_on_failure_values()
     test_dedicated_exception_type()
     test_atomic_write_cleanup_on_chmod_failure()
     test_atomic_write_without_fchmod()

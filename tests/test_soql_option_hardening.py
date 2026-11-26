@@ -10,6 +10,8 @@ Covers the pack 457 class sweep of tasks no flow calls: tasks/soql_utils.py, man
 (sort_by / sort_order / limit), export_cml (developer_name, version), manage_transaction_processing_types
 (key value), extend_standard_context (the activate option was accepted and ignored), and the API version
 of manage_transaction_processing_types and manage_fulfillment_scope_cnfg (read from project config).
+Todo 488 adds option_flag (checked against the installed CumulusCI process_bool_arg) and the refusal
+of a list item that is not a string in split_names / requested_names.
 """
 import re
 import sys
@@ -65,6 +67,57 @@ check("require_identifier rejects SOQL fragments", raises(lambda: require_identi
 check("positive_int rejects 0, text and fragments",
       all(raises(lambda v=v: positive_int(v, "limit"), "positive integer") for v in ("0", "x", "5 OFFSET 1", "-1")))
 check("positive_int accepts a number", positive_int(" 7 ", "limit") == 7)
+
+print("soql_utils: option_flag and non-string list items (todo 488)")
+from tasks.soql_utils import FALSE_WORDS, TRUE_WORDS, option_flag, requested_names  # noqa: E402
+
+check("option_flag: None, blank and whitespace are the default",
+      [option_flag(v, "f") for v in (None, "", "  ")] == [False] * 3
+      and [option_flag(v, "f", default=True) for v in (None, "", "  ")] == [True] * 3)
+check("option_flag: padded text, bools and int 0/1 are values",
+      option_flag(" true ", "f") is True and option_flag(" FALSE ", "f", default=True) is False
+      and option_flag(True, "f") is True and option_flag(False, "f", default=True) is False
+      and option_flag(0, "f", default=True) is False and option_flag(1, "f") is True)
+check("option_flag: 'on' and 'y' are True, 'off' and 'n' are False (CumulusCI's vocabulary)",
+      option_flag("on", "f") is True and option_flag("Y", "f") is True
+      and option_flag("off", "f", default=True) is False and option_flag("n", "f", default=True) is False)
+check("option_flag: 'maybe' and 2 are refused, naming the option",
+      raises(lambda: option_flag("maybe", "dry_run"), "dry_run must be true or false")
+      and raises(lambda: option_flag(2, "dry_run"), "dry_run must be true or false"))
+check("option_flag: a list, even of one valid word, is refused, naming the option",
+      raises(lambda: option_flag(["true"], "dry_run"), "dry_run must be a single value")
+      and raises(lambda: option_flag([], "dry_run"), "dry_run must be a single value"))
+from cumulusci.core.utils import process_bool_arg as _cci_bool  # noqa: E402
+
+
+def _cci(value):
+    try:
+        return _cci_bool(value)
+    except TypeError:
+        return "refused"
+
+
+def _ours(value):
+    try:
+        return option_flag(value, "f")
+    except ValueError:
+        return "refused"
+
+
+_words = list(TRUE_WORDS) + list(FALSE_WORDS) + [w.upper() for w in TRUE_WORDS + FALSE_WORDS] + [
+    "maybe", "2", "-1", "t", "f", "enabled", "truee", "nope", True, False, 0, 1]
+_drift = [(w, _cci(w), _ours(w)) for w in _words if _cci(w) != _ours(w)]
+check("option_flag agrees with the installed CumulusCI process_bool_arg on every unpadded value", not _drift, repr(_drift))
+check("requested_names refuses a null list item, naming the option",
+      raises(lambda: requested_names(["A", None], "developer_names"), "developer_names items must be names"))
+check("requested_names refuses a nested list item and an int item",
+      raises(lambda: requested_names([["A", "B"]], "developer_names"), "developer_names items must be names")
+      and raises(lambda: requested_names(["A", 5], "developer_names"), "developer_names items must be names"))
+check("split_names refuses a null item too (it is the shared path)",
+      raises(lambda: split_names([None], "x"), "x items must be names"))
+check("requested_names still splits a list of strings that hold commas, and None/blank/[] are none",
+      requested_names(["A,B", " C "], "x") == ["A", "B", "C"]
+      and [requested_names(v, "x") for v in (None, "", "  ", [])] == [[], [], [], []])
 
 print("manage_decision_tables: sort_by, sort_order and limit are validated")
 ManageDecisionTables = load("rlm_manage_decision_tables").ManageDecisionTables
@@ -656,6 +709,153 @@ met = scs.requirement_met({"namedCredential": NASTY}, lambda q: queries_sent.app
 check("conditional steps: namedCredential value escaped", queries_sent and f"DeveloperName = 'a\\'b\\\\c\\nd' " in queries_sent[0],
       repr(queries_sent))
 check("conditional steps: _soql_text matches soql_quote", f"'{scs._soql_text(NASTY)}'" == LIT)
+
+print("todo 488: currency, test_agents and import_cml read options through the shared helpers")
+_currency = load("rlm_currency")
+
+
+def currency_run(cls, options, csv_text=None):
+    """Run an UpdateCurrencyRates* task with the rates fetch and the org stubbed to record.
+
+    Returns (error text or None, calls, csv text after the run)."""
+    calls = []
+    task = cls.__new__(cls)
+    task.options = dict(options)
+    task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+    tmp = None
+    if csv_text is not None:
+        tmp = tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8")
+        tmp.write(csv_text)
+        tmp.close()
+        task.options.setdefault("csv_path", tmp.name)
+    task.sf = types.SimpleNamespace(
+        query=lambda soql: calls.append(("query", soql)) or {"records": [
+            {"Id": "1", "IsoCode": "EUR", "ConversionRate": 1.0}, {"Id": "2", "IsoCode": "GBP", "ConversionRate": 1.0}]},
+        CurrencyType=types.SimpleNamespace(update=lambda rid, body: calls.append(("update", rid, body))),
+    )
+    with mock.patch.object(_currency, "_fetch_rates", lambda logger: calls.append("fetch") or {"EUR": 0.9, "GBP": 0.8}):
+        try:
+            cls._run_task(task)
+            err = None
+        except Exception as exc:
+            err = str(exc)
+    text = None
+    if tmp is not None:
+        text = Path(tmp.name).read_text(encoding="utf-8")
+        os.unlink(tmp.name)
+    return err, calls, text
+
+
+CSV = "IsoCode,ConversionRate,IsCorporate\nUSD,1,true\nEUR,1,false\nGBP,1,false\n"
+for value in (" true ", "on", "Y", True, 1):
+    err, calls, text = currency_run(_currency.UpdateCurrencyRatesCsv, {"dry_run": value}, CSV)
+    check(f"currency csv: dry_run {value!r} writes nothing (a padded ' true ' used to write)",
+          err is None and "fetch" in calls and text == CSV, repr((err, calls)))
+for value in (None, "", "  ", " false ", 0):
+    err, calls, text = currency_run(_currency.UpdateCurrencyRatesCsv, {"dry_run": value}, CSV)
+    check(f"currency csv: dry_run {value!r} is not a dry run",
+          err is None and "fetch" in calls and "EUR,0.9" in text and "GBP,0.8" in text, repr((err, calls, text)))
+for value, expected in ((["eur"], "EUR,0.9"), (" eur ,, ", "EUR,0.9")):
+    err, calls, text = currency_run(_currency.UpdateCurrencyRatesCsv, {"iso_codes": value}, CSV)
+    check(f"currency csv: iso_codes {value!r} filters to EUR (a list was a raw AttributeError)",
+          err is None and expected in text and "GBP,1," in text, repr((err, text)))
+for value in ("  ", "", []):
+    err, calls, text = currency_run(_currency.UpdateCurrencyRatesCsv, {"iso_codes": value}, CSV)
+    check(f"currency csv: blank iso_codes {value!r} is no filter (whitespace used to match nothing)",
+          err is None and "EUR,0.9" in text and "GBP,0.8" in text, repr((err, text)))
+for cls in (_currency.UpdateCurrencyRatesCsv, _currency.UpdateCurrencyRates):
+    for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"),
+                            ({"dry_run": "maybe"}, "dry_run must be true or false"),
+                            ({"iso_codes": 0}, "iso_codes must be a comma-separated string"),
+                            ({"iso_codes": ["EUR", None]}, "iso_codes items must be names")):
+        err, calls, _ = currency_run(cls, options, CSV if cls is _currency.UpdateCurrencyRatesCsv else None)
+        check(f"currency {cls.__name__}: {options!r} refused by name before any request",
+              err is not None and needle in err and calls == [], repr((err, calls)))
+err, calls, _ = currency_run(_currency.UpdateCurrencyRates, {"dry_run": " true "})
+check("currency org: a padded ' true ' dry run queries but updates nothing",
+      err is None and "fetch" in calls and any(c[0] == "query" for c in calls if isinstance(c, tuple))
+      and not [c for c in calls if isinstance(c, tuple) and c[0] == "update"], repr((err, calls)))
+err, calls, _ = currency_run(_currency.UpdateCurrencyRates, {"iso_codes": ["gbp"]})
+check("currency org: a list iso_codes updates only that currency",
+      err is None and [c[1] for c in calls if isinstance(c, tuple) and c[0] == "update"] == ["2"], repr((err, calls)))
+
+_agents = load("rlm_test_agents")
+
+
+def agents_run(options):
+    """Run TestAgents._run_task over a temp suite with the sf CLI steps stubbed; return (error, specs run)."""
+    ran = []
+    with tempfile.TemporaryDirectory() as d:
+        for name in ("alpha.yaml", "beta.yaml"):
+            Path(d, name).write_text("name: x\n", encoding="utf-8")
+        task = _agents.TestAgents.__new__(_agents.TestAgents)
+        task.options = {"tests_path": d, **options}
+        task.org_config = types.SimpleNamespace(username="u@x")
+        task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None)
+        task._create = lambda spec, api_name, target: ran.append(spec.name)
+        task._run_and_evaluate = lambda spec, api_name, target: []
+        try:
+            task._run_task()
+            return None, ran
+        except Exception as exc:
+            return str(exc), ran
+
+
+for value, expected in ((None, ["alpha.yaml", "beta.yaml"]), ("", ["alpha.yaml", "beta.yaml"]),
+                        ("  ", ["alpha.yaml", "beta.yaml"]), ([], ["alpha.yaml", "beta.yaml"]),
+                        (["alpha", "beta.yaml"], ["alpha.yaml", "beta.yaml"]), (" beta , ", ["beta.yaml"]),
+                        (["beta"], ["beta.yaml"])):
+    err, ran = agents_run({"test_files": value})
+    check(f"test_agents: test_files {value!r} runs {expected} (a list was stringified and matched nothing)",
+          err is None and ran == expected, repr((err, ran)))
+for options, needle in (({"test_files": 0}, "test_files must be a comma-separated string"),
+                        ({"test_files": ["alpha", None]}, "test_files items must be names"),
+                        ({"test_files": [" "]}, "test_files contains no names"),
+                        ({"tests_path": ["x"]}, "tests_path must be a single value"),
+                        ({"api_name_prefix": ["P"]}, "api_name_prefix must be a single value")):
+    err, ran = agents_run(options)
+    check(f"test_agents: {options!r} refused by name before any sf call",
+          err is not None and needle in err and ran == [], repr((err, ran)))
+err, ran = agents_run({"tests_path": "  ", "agent": ["quote"]})
+check("test_agents: a blank tests_path falls back to agent, and a list agent is refused by name",
+      err is not None and "agent must be a single value" in err and ran == [], repr((err, ran)))
+
+_cml = load("rlm_cml")
+
+
+def cml_options(options):
+    """ImportCML._run_task up to its first file read; return (error, dataset_dirs, dry_run) seen there."""
+    seen = {}
+    task = _cml.ImportCML.__new__(_cml.ImportCML)
+    task.options = {"data_dir": "/nonexistent", **options}
+    task.logger = types.SimpleNamespace(info=lambda msg, *a: seen.setdefault("log", msg), warning=lambda *a: None)
+
+    def read_csv(path):
+        raise RuntimeError("stop: options read")
+    task.read_csv = read_csv
+    try:
+        task._run_task()
+    except RuntimeError as exc:
+        if "stop: options read" not in str(exc):
+            return str(exc), seen
+        return None, seen
+    except Exception as exc:
+        return str(exc), seen
+    return "ran past the first read", seen
+
+
+for value, dry in ((None, "False"), ("", "False"), ("  ", "False"), (" true ", "True"), ("on", "True"), (0, "False")):
+    err, seen = cml_options({"dry_run": value})
+    check(f"import_cml: dry_run {value!r} is dry_run={dry} (a padded ' true ' imported for real)",
+          err is None and f"(dry_run={dry})" in seen.get("log", ""), repr((err, seen)))
+for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"),
+                        ({"dry_run": "maybe"}, "dry_run must be true or false"),
+                        ({"dataset_dirs": 5}, "dataset_dirs must be a comma-separated string"),
+                        ({"dataset_dirs": ["a", None]}, "dataset_dirs items must be names")):
+    err, seen = cml_options(options)
+    check(f"import_cml: {options!r} refused by name before any read or request",
+          err is not None and needle in err and "log" not in seen, repr((err, seen)))
+
 
 print()
 if FAILURES:
