@@ -510,7 +510,8 @@ unapply` (todo 490) is built on it.
 `cli unapply --org <sf-alias> --manifest <run> [--only payment|credit]`
 reverses the run's own recorded line-level applications, the payment's first.
 It takes only a finished settlement: no error on the manifest, and
-`payment_applied` reached or a block with no payment, so every application the
+`payment_applied` reached or `credit_applied` with a block that has no payment,
+so every application the
 run made is recorded and no `cli step` can advance it afterwards. It reads each
 row first and unapplies only a line-level Applied row (a run that stopped at
 `credit_applied` records no application level; its rows decide). One already

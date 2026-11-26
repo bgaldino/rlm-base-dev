@@ -245,7 +245,9 @@ def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, cap
     monkeypatch.setattr(cli, "write_manifest", flaky)
     assert _unapply() == 1
     out = capsys.readouterr().out
-    assert f"FAIL: payment {PAY_ROW}:" in out and "rerun to retry" in out
+    assert f"FAIL: payment {PAY_ROW}:" in out
+    assert "unapplied in the org (Unapplied row 1AlNEW000000000001), but the manifest " \
+        "write failed" in out and "rerun to record it" in out
     assert "UNAPPLIED: credit" in out
     # The failed row is not recorded by the next row's write either.
     assert _recorded(path) == ["4sGNEW000000000002"]

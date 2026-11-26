@@ -147,8 +147,9 @@ python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_
 Reverses the run's own recorded line-level applications (payment, then
 credit) with the unapply actions, and records the `Type` Unapplied rows (new,
 or found for a row already unapplied) in the manifest's `unapplied_row_ids`. A row already unapplied is not sent again.
-Only a finished settlement is taken (no error; `payment_applied` reached, or a
-block with no payment). Exit 0 when every selected application is unapplied
+Only a finished settlement is taken (no error; `payment_applied` reached, or
+`credit_applied` with a block that has no payment). A rerun recovers a row
+whose unapply response or manifest write was lost. Exit 0 when every selected application is unapplied
 and recorded, 1 when one could not be or nothing was recorded to unapply, 2
 when the manifest cannot be read, the settlement is not finished, the run is
 recorded at Header Level, or the org cannot be read before any unapply.

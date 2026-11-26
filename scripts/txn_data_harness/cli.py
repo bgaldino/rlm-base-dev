@@ -706,7 +706,8 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
     """Unapply this run's own line-level applications: the payment's, then the credit's.
 
     Only a finished settlement is reversed: no error on the manifest, and
-    ``payment_applied`` reached or a settlement block with no payment (so no
+    ``payment_applied`` reached or ``credit_applied`` with a settlement block that
+    has no payment (so no
     ``cli step`` can advance it afterwards, and every application it made is
     recorded). Reads each recorded application row first; only a line-level
     Applied row is unapplied (measured at Line Level only). A row already
@@ -774,15 +775,17 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
                     manifest.unapplied_row_ids.append(new_id)
                     try:
                         write_manifest(manifest)
-                    except Exception:
+                    except Exception as exc:
                         # Not recorded: drop it so a later row's write does not
                         # save it either; the rerun looks it up.
                         manifest.unapplied_row_ids.remove(new_id)
-                        raise
+                        raise SettlementError(
+                            "unapply", f"{note} in the org (Unapplied row {new_id}), but "
+                            f"the manifest write failed ({_error_message(exc)}); rerun to "
+                            "record it", record_id=row_id) from None
             except Exception as exc:  # noqa: BLE001 - report and go on to the next row
                 failures += 1
-                print(f"FAIL: {kind} {row_id}: {_error_message(exc)} (rerun to retry; a "
-                      "row already unapplied is looked up, not sent again)")
+                print(f"FAIL: {kind} {row_id}: {_error_message(exc)}")
                 continue
             print(f"{note.upper()}: {kind} {row_id} ({row.get('Amount')}) -> "
                   f"Unapplied row {new_id}")

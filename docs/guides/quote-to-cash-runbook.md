@@ -152,11 +152,12 @@ balances return to what they were before it was applied, and `verify` checks
 the pair (measured at Line Level on 264, in either order). Rerunning sends nothing for a row already unapplied. Limits:
 
 - Only a finished settlement is reversed: no error on the run, and
-  `payment_applied` reached (or a settlement with no payment). Nothing
+  `payment_applied` reached (or `credit_applied` for a settlement with no
+  payment). Nothing
   reapplies afterwards.
 - The payment and credit memo now carry open balances, and posting the
   account's next invoice applies what it can of them. When that covers the
-  whole invoice, as in the one measured case (both reversed, a same-sized next
+  whole invoice, as in the measured cases (both reversed, a same-sized next
   invoice), that run has nothing left to credit or pay and `quote-to-cash`
   fails it with no credit memo or payment of its own; rerun until the leftover
   is used up.
