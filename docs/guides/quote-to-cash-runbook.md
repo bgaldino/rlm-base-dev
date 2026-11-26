@@ -140,8 +140,11 @@ or `invoice_posted`), which has two scenarios on one account.
 1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and
    `failure_class` (the text form leaves out `failure_class`).
 2. A transient failure (a timeout, a lock) usually clears on a rerun of the
-   same `cli step`; the steps are safe to resend (at most one credit memo and
-   one payment per run, looked up by tag rather than sent twice).
+   same `cli step`. The invoice and settlement steps are guarded against a
+   second write (at most one credit memo and one payment per run, looked up by
+   tag rather than sent twice). The quote and order steps are not: if a
+   response was lost there, check the org for the record before rerunning, or
+   start a new run.
 3. A deterministic failure names its remedy. Common ones:
    - capped at `order_draft`: the account has no `BillingAccount`;
    - the application level could not be read: rerun the step with

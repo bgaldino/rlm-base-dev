@@ -34,7 +34,7 @@ class VerifyQuoteToCash(BaseTask):
     """Carry one quote to an applied payment and verify the balances."""
 
     # Shells out to the harness, which authenticates through `sf` with the
-    # username; no OAuth refresh is needed, but --org must be accepted.
+    # org's username; the flag makes CumulusCI accept --org.
     salesforce_task = True
 
     task_options = {
