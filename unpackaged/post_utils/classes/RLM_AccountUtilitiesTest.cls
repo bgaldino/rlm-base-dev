@@ -1784,9 +1784,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 46 is counted from the code with data in every branch (see the constants in
+    // The 48 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 46 and the measurement against both, but it cannot catch
+    // the reserve against the 48 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1810,7 +1810,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reserve kept for phase 2 must cover its counted worst case'
         );
         Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 30 && RLM_AccountUtilities.ASSET_TAIL >= 13,
+            RLM_AccountUtilities.RETRY_TAIL >= 31 && RLM_AccountUtilities.ASSET_TAIL >= 15,
             'The walk guards must cover the queries counted after them'
         );
     }
@@ -2017,6 +2017,157 @@ private without sharing class RLM_AccountUtilitiesTest {
             .InternalSharingModel;
         Assert.areEqual(model == 'Private' ? 1 : 0, hidden,
             'A user who cannot see the opportunity must have it counted as hidden (sharing model ' + model + ')');
+    }
+
+    // --------------------------------------------- review round 1 (todo 397)
+
+    private static final String NO_DELETE_PERMISSION = 'the user running the reset does not have permission to '
+        + 'delete this kind of record; they were left unchanged';
+
+    private static User newStandardUser() {
+        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        User u = new User(
+            ProfileId = standard.Id, LastName = 'Reset Standard', Email = 'rlm.reset.standard@example.com',
+            Username = 'rlm.reset.standard.' + Datetime.now().getTime() + '@example.com', Alias = 'rlmstd',
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
+    @IsTest
+    static void anOpportunityTheUserCannotDeleteIsKeptAndTheRunCompletes() {
+        Account a = newAccount();
+        Opportunity theirs = newOpportunity(a.Id, 'RLM Utilities Not Deletable');
+        Opportunity mine = newOpportunity(a.Id, 'RLM Utilities Deletable');
+        Asset keptAsset = new Asset(Name = 'RLM Utilities Kept Asset', AccountId = a.Id);
+        insert keptAsset;
+        // Before this check one opportunity or asset the user could not delete failed the
+        // all-or-nothing delete and rolled back the whole of phase 2.
+        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ mine.Id };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'Kept records must not fail the run. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE Id = :mine.Id], 'The deletable opportunity must go');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE Id = :theirs.Id], 'The other must stay');
+        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE Id = :keptAsset.Id], 'The asset must stay');
+        Assert.isTrue(result.retainedSummary.contains(entry(Schema.Asset.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')')
+            && result.retainedSummary.contains(entry(Opportunity.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')'),
+            'Both kept records must be reported with the reason. Got: ' + result.retainedSummary);
+    }
+
+    @IsTest
+    static void aRecordWhoseObjectTheUserMayNotDeleteIsKeptForThatReason() {
+        Account a = newAccount();
+        User u = newMinimalAccessUser();
+        List<SObject> left;
+        RLM_AccountUtilities.Result result;
+        System.runAs(u) {
+            RLM_AccountUtilities.startRun();
+            // A Minimum Access user has no delete permission on Account at all.
+            left = RLM_AccountUtilities.keepWhatUserCannotDelete(new List<Account>{ a });
+            result = RLM_AccountUtilities.finish(true, null);
+        }
+        Assert.isTrue(left.isEmpty(), 'Nothing may be deleted without delete permission on the object');
+        Assert.areEqual(entry(Account.SObjectType, 1) + ' (' + NO_DELETE_PERMISSION + ')', result.retainedSummary,
+            'The reason must name the missing permission, not sharing');
+    }
+
+    @IsTest
+    static void aSkippedGroupNamesTheReadableObjectsSkippedWithIt() {
+        if (!available(COLLECTION_OBJECTS)) return;
+        Account a = newAccount();
+        // Cases unreadable: plans and disputes need them, so both groups are skipped.
+        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Case' };
+        RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
+        iv.DeleteCollectionPlans = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(
+            notChecked(new List<String>{ 'Case' }) + '; '
+                + Schema.getGlobalDescribe().get('CollectionPlan').getDescribe().getLabelPlural() + ', '
+                + Schema.getGlobalDescribe().get('CollectionPlanItem').getDescribe().getLabelPlural() + ', '
+                + PaymentSchedule.SObjectType.getDescribe().getLabelPlural() + ', '
+                + Schema.getGlobalDescribe().get('Dispute').getDescribe().getLabelPlural()
+                + ': not checked: the step that deletes them also needs records the user running the reset has no access to',
+            result.retainedSummary,
+            'Every object of a skipped group must be named'
+        );
+    }
+
+    @IsTest
+    static void hiddenRecordsAreCountedForAUserWithoutViewAllData() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Owned By The Test User');
+        User other = newStandardUser();
+        RLM_AccountUtilities.Result result;
+        System.runAs(other) {
+            // The real path: no seam, and this user has no View All Data.
+            RLM_AccountUtilities.startRun();
+            RLM_AccountUtilities.reportHiddenRecords(a.Id, new Set<String>{ 'Opportunity' }, false);
+            result = RLM_AccountUtilities.finish(true, null);
+        }
+        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
+            .InternalSharingModel;
+        Assert.areEqual(
+            model == 'Private' ? entry(Opportunity.SObjectType, 1) + ' (' + NOT_VISIBLE + ')' : null,
+            result.retainedSummary,
+            'An opportunity the user cannot see must be reported as kept (sharing model ' + model + ')'
+        );
+    }
+
+    @IsTest
+    static void deleteAccessIsReadInChunksOf200() {
+        List<Account> theirs = new List<Account>();
+        for (Integer i = 0; i < 201; i++) {
+            theirs.add(new Account(Name = 'RLM Utilities Chunk ' + i));
+        }
+        insert theirs;
+        User u = newStandardUser();
+        Set<Id> ids = new Map<Id, Account>(theirs).keySet();
+        Set<Id> allowed;
+        Account own;
+        System.runAs(u) {
+            own = new Account(Name = 'RLM Utilities Owned By The Standard User');
+            insert own;
+            Set<Id> all = new Set<Id>(ids);
+            all.add(own.Id);
+            allowed = RLM_AccountUtilities.deletableByUser(all);
+        }
+        // 202 ids take two reads. The user owns one account, so only that one may go.
+        Assert.areEqual(new Set<Id>{ own.Id }, allowed,
+            'Only the record the user may delete, found across both reads of 200');
+    }
+
+    @IsTest
+    static void tooFewQueriesForTheNextAccessReadStopsWithoutPromisingAnotherRun() {
+        List<Account> theirs = new List<Account>();
+        for (Integer i = 0; i < 201; i++) {
+            theirs.add(new Account(Name = 'RLM Utilities Chunk ' + i));
+        }
+        insert theirs;
+        User u = newStandardUser();
+        String message;
+        System.runAs(u) {
+            Test.startTest();
+            spendQueriesDownTo(RLM_AccountUtilities.RETRY_TAIL, theirs[0].Id);
+            try {
+                RLM_AccountUtilities.deletableByUser(new Map<Id, Account>(theirs).keySet());
+            } catch (Exception e) {
+                message = e.getMessage();
+            }
+            Test.stopTest();
+        }
+        Assert.isNotNull(message, 'A second read without the queries after it must stop the run');
+        Assert.isTrue(message.contains('another run would stop at the same point') && !message.contains('Run the reset again'),
+            'The reason must not promise that another run continues. Got: ' + message);
     }
 
     // ------------------------------------------------------------ scope guard

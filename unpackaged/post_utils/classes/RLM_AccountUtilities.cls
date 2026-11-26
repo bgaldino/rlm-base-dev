@@ -49,10 +49,13 @@
  * Live 264 (todo 397), as the salesrep persona, that is not the whole story: the
  * platform still refused to delete an admin-owned order the persona could edit but
  * not delete ("insufficient access rights on object id"), and an admin-owned renewal
- * opportunity under Private sharing was not found at all. So orders, contracts and
- * credit memos are checked against the user's delete access before anything changes
- * them (keepWhatUserCannotDelete), and kept, untouched, when the user cannot delete
- * them. A record the user cannot see is counted in system mode after a completed run
+ * opportunity under Private sharing was not found at all. So orders, contracts, credit
+ * memos, assets, quotes and opportunities are checked against the user's delete access
+ * before anything changes or deletes them (keepWhatUserCannotDelete), and a record the
+ * user cannot delete is kept and reported, the record itself unchanged. Records that
+ * depend on it may still go: a kept order's fulfillment records and billing schedule
+ * groups, and the usage records and binding policies of a kept asset or contract, are
+ * found through the account, not through the kept record. A record the user cannot see is counted in system mode after a completed run
  * and reported as kept (reportHiddenRecords); only the count is read.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
@@ -87,38 +90,38 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 46 (counted from the code, with every option on and
+    // fixed queries total at most 48 (counted from the code, with every option on and
     // data in every branch): 31 before the asset step (order data 10, collections 5,
     // schedule groups 1, billing 9, fulfillment 2, contracts 3, orders 1; the delete
-    // access reads are one per 200 records, and a chunk after the first is guarded), the
-    // asset step's lookup of entitlements bound to the assets 1 and its other lookups 8,
-    // quotes and opportunities 5 = 45 on the drained path, plus the journal query, which
-    // only the undrained path runs = 46. 29 is what an account with no such data measures.
-    // QUERY_RESERVE covers the 46 and the usage retries. A round starts only while both
+    // access reads are one per 200 records, and a read after the first is guarded), the
+    // asset step's lookup of entitlements bound to the assets 1 and its other lookups 9,
+    // quotes and opportunities 6 = 47 on the drained path, plus the journal query, which
+    // only the undrained path runs = 48. 29 is what an account with no such data measures.
+    // QUERY_RESERVE covers the 48 and the usage retries. A round starts only while both
     // are left; otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 46.
+    // LimitException. A test holds the measured 29 and the reserve against the 48.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 46;
+    private static final Integer PHASE_TWO_FIXED_MAX = 48;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
-    //  - RETRY_TAIL, for the usage retries: at most 30 follow the journal guard (journal 1,
+    //  - RETRY_TAIL, for the usage retries: at most 31 follow the journal guard (journal 1,
     //    collections 5, schedule groups 1, billing 9, fulfillment 2, contracts 3, orders 1,
-    //    the asset step with no assets 3, quotes and opportunities 5). 33 keeps three spare.
-    //  - ASSET_TAIL, for the asset step: at most 13 follow its last guard (other asset
-    //    references 2, resource policies 3, rate card entries 1, assets 2, quotes and
-    //    opportunities 5). 16 keeps three spare.
+    //    the asset step with no assets 3, quotes and opportunities 6). 34 keeps three spare.
+    //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
+    //    references 2, resource policies 3, rate card entries 1, assets 3, quotes and
+    //    opportunities 6). 18 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
     // query added after a guard; the tests cannot catch growth in the data-dependent branches.
     @TestVisible
-    private static final Integer RETRY_TAIL = 33;
+    private static final Integer RETRY_TAIL = 34;
     @TestVisible
-    private static final Integer ASSET_TAIL = 16;
+    private static final Integer ASSET_TAIL = 18;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -143,9 +146,16 @@ public without sharing class RLM_AccountUtilities {
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
     private static final String NO_DELETE_ACCESS = 'the user running the reset cannot delete them: they belong '
         + 'to another user and sharing does not let this user delete them; they were left unchanged';
+    private static final String NO_DELETE_PERMISSION = 'the user running the reset does not have permission to '
+        + 'delete this kind of record; they were left unchanged';
+    private static final String ACCESS_CHECK_TOO_LARGE = 'The account has too many records for one run to check '
+        + 'which of them the user running the reset may delete, and another run would stop at the same point. '
+        + 'A user with Modify All Data skips that check.';
     private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
     private static final String INCOMPLETE_HIDDEN = 'Records not visible to the user running the reset may remain: '
         + 'the query limit was reached while counting them';
+    private static final String SKIPPED_WITH = 'not checked: the step that deletes them also needs records the user '
+        + 'running the reset has no access to';
     private static final String NOT_CHECKED = 'not checked: the user running the reset has no access to them';
 
     /**
@@ -202,6 +212,12 @@ public without sharing class RLM_AccountUtilities {
     private class ResetStoppedException extends Exception {}
 
     /**
+     * Ends a run that has more records than one run can check the user's delete access
+     * on. Not a ResetStoppedException: another run would stop at the same point.
+     */
+    private class AccessCheckTooLargeException extends Exception {}
+
+    /**
      * What the current run removed and kept. Copied before phase 2, so that a
      * rollback can restore what phase 1 actually did.
      */
@@ -221,6 +237,8 @@ public without sharing class RLM_AccountUtilities {
         // Labels of the objects a step skipped because the running user cannot read
         // them, in the order the steps met them.
         public List<String> unchecked = new List<String>();
+        // Labels of readable objects a step skipped with ones the user cannot read.
+        public List<String> skippedWith = new List<String>();
         // True when the count of records hidden from the user stopped before it finished.
         public Boolean incompleteHidden = false;
 
@@ -234,6 +252,7 @@ public without sharing class RLM_AccountUtilities {
             c.incompleteBuckets = incompleteBuckets;
             c.unchecked = unchecked.clone();
             c.incompleteHidden = incompleteHidden;
+            c.skippedWith = skippedWith.clone();
             return c;
         }
     }
@@ -577,10 +596,15 @@ public without sharing class RLM_AccountUtilities {
             List<Quote> accountQuotes = [
                 SELECT Id FROM Quote WHERE QuoteAccountId = :accountId OR AccountId = :accountId
             ];
+            List<Opportunity> accountOpportunities = [SELECT Id FROM Opportunity WHERE AccountId = :accountId];
+            // Those the user cannot delete are kept, rather than failing the deletes below.
+            Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ accountQuotes, accountOpportunities }));
+            accountQuotes = (List<Quote>) keepUndeletable(accountQuotes, allowed);
+            accountOpportunities = (List<Opportunity>) keepUndeletable(accountOpportunities, allowed);
             // Delete quote-linked ContentDocuments before quotes are removed
             deleteQuoteDocuments(accountQuotes);
             deleteAll(accountQuotes);
-            deleteAll([SELECT Id FROM Opportunity WHERE AccountId = :accountId]);
+            deleteAll(accountOpportunities);
 
             if (phaseTwoFailureForTest != null) {
                 throw phaseTwoFailureForTest;
@@ -602,6 +626,7 @@ public without sharing class RLM_AccountUtilities {
         return finish(true, null);
     }
 
+    @TestVisible
     private static void startRun() {
         report = new ResetReport();
         describedTypes = null;
@@ -625,6 +650,7 @@ public without sharing class RLM_AccountUtilities {
         }
     }
 
+    @TestVisible
     private static Result finish(Boolean completed, String reason) {
         // Refusals become retained rows. A refused row that a later attempt deleted
         // was taken back out; one that went with its parent came back as
@@ -662,6 +688,9 @@ public without sharing class RLM_AccountUtilities {
         }
         if (!report.unchecked.isEmpty()) {
             kept.add(String.join(report.unchecked, ', ') + ': ' + NOT_CHECKED);
+        }
+        if (!report.skippedWith.isEmpty()) {
+            kept.add(String.join(report.skippedWith, ', ') + ': ' + SKIPPED_WITH);
         }
 
         Result result = new Result();
@@ -816,6 +845,7 @@ public without sharing class RLM_AccountUtilities {
      * (PHASE_TWO_FIXED_MAX), and spends only what is left: when too few queries remain it
      * stops, and the Result says the count is incomplete.
      */
+    @TestVisible
     private static void reportHiddenRecords(Id accountId, Set<String> scope, Boolean preserveContractsWithPrices) {
         if (hiddenForTest == null && hasUserPermission('PermissionsViewAllData')) {
             return;
@@ -842,7 +872,9 @@ public without sharing class RLM_AccountUtilities {
                 }
                 recordRetained(typeOf(objectName), hiddenCount(objectName, filter, accountId), NOT_VISIBLE);
             }
-        } catch (ResetStoppedException e) {
+        } catch (Exception e) {
+            // After a completed phase 2, so nothing here may fail the run: a throw from
+            // the invocable would roll the whole reset back.
             report.incompleteHidden = true;
         }
     }
@@ -889,36 +921,75 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * The records the running user may delete; the rest are reported as kept and left
-     * untouched. Call it before changing a record on the way to deleting it (an order
-     * set back to Draft, a credit memo canceled): live 264, the salesrep persona's reset
-     * set an activated order it did not own back to Draft, and the delete was then
-     * refused ("insufficient access rights on object id"). Running without sharing does
-     * not lift that: sharing gave the user edit on the order, and edit is not delete.
+     * The records the running user may delete; the rest are reported as kept and the
+     * records themselves are left unchanged. Call it before changing a record on the way
+     * to deleting it (an order set back to Draft, a credit memo canceled), and before an
+     * all-or-nothing delete. Live 264, the salesrep persona's reset set an activated order
+     * it did not own back to Draft, and the delete was then refused ("insufficient access
+     * rights on object id"): running without sharing does not lift that, and sharing gave
+     * the user edit on the order, not delete.
      *
      * @return A list of the same type as `records`
      */
+    @TestVisible
     private static List<SObject> keepWhatUserCannotDelete(List<SObject> records) {
+        return keepUndeletable(records, deletableByUser(idsToCheck(new List<List<SObject>>{ records })));
+    }
+
+    /**
+     * The ids to look up in deletableByUser: those of records whose object the user may
+     * delete at all. Records of an object the user may not delete are kept anyway
+     * (keepUndeletable), so reading their access would spend a query for nothing.
+     */
+    private static Set<Id> idsToCheck(List<List<SObject>> lists) {
+        Set<Id> ids = new Set<Id>();
+        for (List<SObject> records : lists) {
+            if (!records.isEmpty() && objectIsDeletable(records[0].getSObjectType())) {
+                ids.addAll(new Map<Id, SObject>(records).keySet());
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Two checks, as the platform makes them. The object first: a user without delete
+     * permission on it keeps every record, whoever owns them. Live 264 that is also what
+     * reflects Allow Revenue Records Deletion for credit memos: describe's isDeletable()
+     * was false without it and true with it, while UserRecordAccess.HasDeleteAccess did
+     * not change. Then each record, against `allowed` (deletableByUser).
+     */
+    private static List<SObject> keepUndeletable(List<SObject> records, Set<Id> allowed) {
         if (records.isEmpty()) {
             return records;
         }
-        Set<Id> allowed = deletableByUser(new Map<Id, SObject>(records).keySet());
+        Schema.SObjectType type = records[0].getSObjectType();
         List<SObject> deletable = records.clone();
         deletable.clear();
+        if (!objectIsDeletable(type)) {
+            recordRetained(type, records.size(), NO_DELETE_PERMISSION);
+            return deletable;
+        }
         for (SObject record : records) {
             if (allowed.contains(record.Id)) {
                 deletable.add(record);
             }
         }
-        recordRetained(records[0].getSObjectType(), records.size() - deletable.size(), NO_DELETE_ACCESS);
+        recordRetained(type, records.size() - deletable.size(), NO_DELETE_ACCESS);
         return deletable;
+    }
+
+    private static Boolean objectIsDeletable(Schema.SObjectType type) {
+        return deleteAccessForTest != null || type.getDescribe().isDeletable();
     }
 
     /**
      * The ids the running user may delete, from UserRecordAccess.HasDeleteAccess, which
      * holds what the platform enforces on the delete. A user with Modify All Data may
      * delete them all, so that costs no query beyond the permission read. UserRecordAccess
-     * takes 200 ids a query; a chunk after the first is guarded like the usage retries.
+     * takes 200 ids a query. Each call site counts its first read in PHASE_TWO_FIXED_MAX;
+     * a later one needs RETRY_TAIL more queries left, and without them the run stops with
+     * AccessCheckTooLargeException. That stop does not say to run again: phase 2 is all or
+     * nothing, so another run would stop at the same point.
      */
     @TestVisible
     private static Set<Id> deletableByUser(Set<Id> recordIds) {
@@ -934,8 +1005,8 @@ public without sharing class RLM_AccountUtilities {
         List<Id> ids = new List<Id>(recordIds);
         Set<Id> allowed = new Set<Id>();
         for (Integer start = 0; start < ids.size(); start += 200) {
-            if (start > 0) {
-                requireWalkQueries(RETRY_TAIL);
+            if (start > 0 && Limits.getLimitQueries() - Limits.getQueries() < 1 + RETRY_TAIL) {
+                throw new AccessCheckTooLargeException(ACCESS_CHECK_TOO_LARGE);
             }
             List<Id> chunk = new List<Id>();
             for (Integer i = start; i < Math.min(start + 200, ids.size()); i++) {
@@ -952,11 +1023,28 @@ public without sharing class RLM_AccountUtilities {
         return allowed;
     }
 
-    /** readOrNote for each object, so every one the user cannot read is reported. */
+    /**
+     * readOrNote for each object, so every one the user cannot read is reported. When
+     * any of them cannot be read the group is skipped, and the readable ones skipped with
+     * it are reported too (report.skippedWith).
+     */
     private static Boolean readAllOrNote(List<String> objectNames) {
         Boolean all = true;
+        List<String> readable = new List<String>();
         for (String objectName : objectNames) {
-            all = readOrNote(objectName) && all;
+            if (readOrNote(objectName)) {
+                readable.add(objectName);
+            } else {
+                all = false;
+            }
+        }
+        if (!all) {
+            for (String objectName : readable) {
+                String label = labelOf(typeOf(objectName));
+                if (!report.skippedWith.contains(label)) {
+                    report.skippedWith.add(label);
+                }
+            }
         }
         return all;
     }
@@ -1039,30 +1127,18 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Updates with allOrNone=false. A row that refuses is reported as retained,
-     * with `failure` and the error as the reason; pass null when a later delete
-     * reports it instead.
-     *
-     * @return The ids that were updated
+     * All-or-nothing update, for a change made only on the way to a delete (an order set
+     * back to Draft, a credit memo canceled): any refusal throws and rolls back phase 2,
+     * so a record is never left changed but kept.
      */
-    private static Set<Id> updateRows(List<SObject> records, String failure) {
-        Set<Id> updated = new Set<Id>();
+    private static void updateAll(List<SObject> records) {
         if (records.isEmpty()) {
-            return updated;
+            return;
         }
         if (records.size() > dmlRowsLeft()) {
             throw new ResetStoppedException(DML_LIMIT);
         }
-        Database.SaveResult[] results = Database.update(records, false);
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                updated.add(records[i].Id);
-            } else if (failure != null) {
-                recordRetained(records[i].getSObjectType(), 1,
-                    failure + ': ' + results[i].getErrors()[0].getMessage());
-            }
-        }
-        return updated;
+        Database.update(records, true);
     }
 
     /** Stops the run while it still can, instead of letting the next query throw a LimitException. */
@@ -1407,10 +1483,12 @@ public without sharing class RLM_AccountUtilities {
         Set<Id> allowed = new Map<Id, CreditMemo>((List<CreditMemo>) keepWhatUserCannotDelete(candidates)).keySet();
         deletable = onlyIds(deletable, allowed);
         posted = onlyIds(posted, allowed);
-        for (Id canceledId : updateRows(posted, 'could not be canceled')) {
-            deletable.add(new CreditMemo(Id = canceledId));
+        // All or nothing, as for orders: no memo is left canceled but not deleted.
+        updateAll(posted);
+        for (CreditMemo canceled : posted) {
+            deletable.add(new CreditMemo(Id = canceled.Id));
         }
-        deleteQuietly(deletable);
+        deleteAll(deletable);
     }
 
     private static List<CreditMemo> onlyIds(List<CreditMemo> memos, Set<Id> ids) {
@@ -1546,11 +1624,13 @@ public without sharing class RLM_AccountUtilities {
         if (orders.isEmpty()) {
             return;
         }
+        // All or nothing: any refusal now fails the run with the platform's message and
+        // rolls phase 2 back, so no order is left set back to Draft but not deleted.
         for (Order o : orders) {
             o.Status = 'Draft';
         }
-        updateRows(orders, null);
-        deleteQuietly(orders);
+        updateAll(orders);
+        deleteAll(orders);
     }
 
     /**
@@ -2045,8 +2125,23 @@ public without sharing class RLM_AccountUtilities {
         if (accountAssetIds.isEmpty()) {
             return;
         }
-        deleteAll([SELECT Id FROM AssetRelationship WHERE AssetId IN :accountAssetIds]);
-        deleteAll([SELECT Id FROM Asset WHERE Id IN :accountAssetIds]);
+        List<AssetRelationship> relationships = [
+            SELECT Id, AssetId FROM AssetRelationship WHERE AssetId IN :accountAssetIds
+        ];
+        List<Asset> assets = [SELECT Id FROM Asset WHERE Id IN :accountAssetIds];
+        // Those the user cannot delete are kept, rather than failing the deletes below;
+        // a kept asset keeps its relationships. One access read for both.
+        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ relationships, assets }));
+        assets = (List<Asset>) keepUndeletable(assets, allowed);
+        Set<Id> deletableAssets = new Map<Id, Asset>(assets).keySet();
+        List<AssetRelationship> ofDeletableAssets = new List<AssetRelationship>();
+        for (AssetRelationship relationship : relationships) {
+            if (deletableAssets.contains(relationship.AssetId)) {
+                ofDeletableAssets.add(relationship);
+            }
+        }
+        deleteAll(keepUndeletable(ofDeletableAssets, allowed));
+        deleteAll(assets);
     }
 
     /**

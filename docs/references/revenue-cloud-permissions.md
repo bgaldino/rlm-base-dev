@@ -288,8 +288,10 @@ persona user instead. See the persona rows in the flow inventory below.
 > is meant to run unrestricted by sharing, and deletes an account's orders, assets, contracts,
 > quotes, opportunities and usage graph. Live 264 (todo 397) the persona's reset was still held to
 > its record access: an order another user owns, which the persona can edit but not delete, was
-> kept (the class now checks delete access first and leaves such records unchanged, reporting
-> them), and another user's opportunity under Private sharing was not found by its queries. The
+> kept (the class now checks delete permission and access first, for orders, contracts, credit
+> memos, assets, quotes and opportunities, and reports such records as kept without changing them;
+> records found through the account that depend on them, such as a kept order's fulfillment records,
+> may still be deleted), and another user's opportunity under Private sharing was not found by its queries. The
 > class now counts such records in system mode after a completed run and reports them as kept
 > ("not visible to the user running the reset").
 > The set itself grants the object access those deletes need and the persona's other sets
