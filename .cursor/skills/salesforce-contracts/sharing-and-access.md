@@ -46,7 +46,8 @@ Working rule, created through the Tooling API (`POST /services/data/v68.0/toolin
 This JSON (`active` false, record filter on the text field `ContractType`) is the create-then-activate-in-the-UI starting point; the API activation failed (below). Refusals reproduced on this build: a picklist filter (`Status = 'Draft'`) failed with
 "Field Status is a picklist field. Picklist fields are only supported in certain functions." and `Username = '...'` as user criteria
 failed with "You can't create restriction rules with this user criterion" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
-A matching user saw the one contract of two whose type matched; a user outside the department saw both.
+A matching user saw the one contract of two whose type matched; a user outside the department saw both
+[Open: how this rule was activated for that run was not recorded; enforcement with a UI-activated rule is measured below].
 [Help: `ind.sf_contracts_known_limitation_for_salesforce_contracts` says picklist values can be selected in Restriction and
 Scoping Rule record criteria, a single value only.] Resolved: `Status = 'Draft'` is refused, but `ISPICKVAL(Status,'Draft')`,
 the picklist function the error text points to, is accepted [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, created
