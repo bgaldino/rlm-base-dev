@@ -497,25 +497,50 @@ def first_party_imports(suite):
 
     Read from the AST rather than by regex, so a commented-out or string-mentioned import is not
     counted and an aliased one still is.
+
+    Dynamic loads count too (todo 488): `importlib.import_module("tasks.x")`, a suite's own
+    `load("x")` helper (tests/test_soql_option_hardening.py loads `tasks/x.py` that way), and
+    `spec_from_file_location(name, REPO / "tasks" / "x.py")`. Without them a suite that loads its
+    task modules dynamically had triggers no rule protected.
     """
     try:
         tree = ast.parse(pathlib.Path(os.path.join(REPO, suite)).read_text())
     except (OSError, SyntaxError):
         return set()
-    named = set()
+    named, paths = set(), set()
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module and not node.level:
             named.add(node.module)
         elif isinstance(node, ast.Import):
             named |= {a.name for a in node.names}
-    return {m.replace(".", "/") + ".py" for m in named
-            if os.path.exists(os.path.join(REPO, m.replace(".", "/") + ".py"))}
+        elif isinstance(node, ast.Call):
+            func = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", None)
+            first = node.args[0] if node.args else None
+            text = first.value if isinstance(first, ast.Constant) and isinstance(first.value, str) else None
+            if func == "import_module" and text:
+                named.add(text)
+            elif func == "load" and text:
+                named.add(f"tasks.{text}")
+            elif func == "spec_from_file_location" and len(node.args) > 1:
+                # In source order: ast.walk is breadth-first, which puts `"x.py"` before `"tasks"`.
+                consts = [n for n in ast.walk(node.args[1])
+                          if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+                parts = [n.value for n in sorted(consts, key=lambda n: (n.lineno, n.col_offset))]
+                if parts and parts[-1].endswith(".py"):
+                    paths.add("/".join(parts))
+    found = {m.replace(".", "/") + ".py" for m in named}
+    return {p for p in found | paths if os.path.exists(os.path.join(REPO, p))}
 
 
-uncovered = sorted({f"{c['name']} runs {s}, which imports {m}, but triggers on neither"
-                    for c in pr_gate.CHECKS for s in suites_of(c)
-                    for m in first_party_imports(s)
-                    if not any(selects(t, m) for t in c["triggers"])})
+def uncovered_imports(checks):
+    # An `always` check runs on every change, so no change can leave it out.
+    return sorted({f"{c['name']} runs {s}, which imports {m}, but triggers on neither"
+                   for c in checks if not c.get("always") for s in suites_of(c)
+                   for m in first_party_imports(s)
+                   if not any(selects(t, m) for t in c["triggers"])})
+
+
+uncovered = uncovered_imports(pr_gate.CHECKS)
 check("a check triggers on the modules its own suites import, so a change to the code cannot select "
       "a set of checks that excludes the suite testing it",
       uncovered == [], uncovered)
@@ -523,6 +548,16 @@ check("that rule can see an uncovered import, rather than passing because the tr
       "to be complete today",
       first_party_imports("tests/test_expression_set_schema.py")
       >= {"tasks/expression_set_schema.py"})
+check("that rule sees a module a suite loads dynamically: load(\"x\"), import_module and a spec loader",
+      first_party_imports("tests/test_soql_option_hardening.py")
+      >= {"tasks/rlm_currency.py", "tasks/rlm_test_agents.py", "tasks/rlm_validate_setup.py"}
+      and "tasks/rlm_deploy_with_fragments.py" in first_party_imports("tests/test_deploy_with_fragments.py"))
+_dropped = [dict(c, triggers=[t for t in c["triggers"] if t != "tasks/rlm_currency.py"])
+            if c["name"] == "requests_offline_suites" else c for c in pr_gate.CHECKS]
+check("dropping a dynamically loaded module's trigger (tasks/rlm_currency.py from "
+      "requests_offline_suites) fails the rule",
+      any("tasks/rlm_currency.py" in line and line.startswith("requests_offline_suites")
+          for line in uncovered_imports(_dropped)), uncovered_imports(_dropped))
 # The shared SFDMU parser module (pack 191) is executed transitively — the validator delegates its
 # primitives to it, and the two live-tree/synthetic README suites reach it through the validator —
 # but the import-coverage guard above cannot see that: the module lives under scripts/ (which
@@ -6156,7 +6191,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 875
+EXPECTED = 877
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

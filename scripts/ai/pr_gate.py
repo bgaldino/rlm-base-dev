@@ -689,7 +689,8 @@ CHECKS = [
         # cumulusci.tasks.sfdx/cumulusci.core.keychain unconditionally rather than behind a
         # try/except ImportError fallback — the module was never written to be importable without
         # it, and adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
-        triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py"],
+        # tasks/soql_utils.py: the task reads its options through it (todo 488).
+        triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py", "tasks/soql_utils.py"],
         deps=["cumulusci"], gating=True,
     ),
     dict(
@@ -715,6 +716,7 @@ CHECKS = [
         # token, and Ids resolve in a temp copy that leaves the tracked plan untouched. Also
         # DeleteSFDMUData's named-sobjects teardown of the all-Upsert qb-pricing plan.
         triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py", "scripts/sfdmu_export.py",
+                  "tasks/soql_utils.py",  # rlm_sfdmu's boolean and sobjects options (todo 488)
                   "datasets/sfdmu/qb/en-US/qb-rating-entitlements/",
                   "datasets/sfdmu/qb/en-US/qb-rating/",
                   "datasets/sfdmu/qb/en-US/qb-pricing/",
@@ -1055,6 +1057,7 @@ CHECKS = [
         name="ux_tool_suite",
         cmd=["python", "-m", "pytest", "-q", "tests/test_ux_tool.py"],
         triggers=["scripts/ux/", "templates/", "tasks/rlm_ux_assembly.py", "cumulusci.yml",
+                  "tasks/soql_utils.py",  # rlm_ux_assembly's deploy option (todo 488)
                   "tests/test_ux_tool.py", "pyproject.toml", "unpackaged/post_ux/"],
         deps=["pytest", "PyYAML"], gating=True,
     ),

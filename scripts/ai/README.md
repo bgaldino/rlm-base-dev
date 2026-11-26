@@ -653,7 +653,7 @@ The three always-run checks added since: `private_refs` (one `git grep` of the p
 citations) takes under a second, `dockerignore` about three (measured 2026-11-10), and
 `api_version_pins` (`bump_api_version.py --check`) about one (measured 2026-11-24).
 
-Verified by `tests/test_pr_gate.py` (875 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (877 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
