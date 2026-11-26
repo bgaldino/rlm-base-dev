@@ -16,10 +16,12 @@
  * - the set's metadata: exactly Read and View All on the run chain, exactly Read on Product2 and
  *   UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
  *   RLM_Billing_Admin and RLM_Billing_Operations.
- * The Billing Operations run-read, group and DocGen methods are regression checks for
- * RLM_BillingInvoiceDocuments: the managed Operations set already reads the runs, and the View All the
- * set adds is checked only by the metadata test. In both *WithBothDocGenSets* methods the DocGen assertions check the managed DocGen sets
- * assigned next to the group. The Operations one passes with the set emptied, apart from the
+ * The Billing Operations run-read, group and DocGen methods pass without RLM_BillingInvoiceDocuments'
+ * grants: the managed Operations set and the DocGen sets supply that access, and the View All the set
+ * adds is checked only by the metadata test. They trip on the set only if it is deleted (user() asserts
+ * it exists); the group method's Failed-status check is the one assertion there that a change to the
+ * set itself can trip. In both *WithBothDocGenSets* methods the DocGen assertions check the managed
+ * DocGen sets assigned next to the group. The Operations one passes with the set emptied, apart from the
  * set-exists check; the Admin one depends on the set only through its run reads, which
  * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
  * Nothing here fails because Salesforce grants MORE than today.
