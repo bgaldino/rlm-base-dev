@@ -683,20 +683,6 @@ single batch receive the same ContentDocument binary (first alphabetically).
 the correct `.dt` binary for each template. Ensure it runs after
 `deploy_post_docgen` + `activate_docgen_templates`.
 
-### Only the admin can generate documents
-
-**Symptom:** Any other user's generation fails ("The document generation process
-ended with status Failure."); the user's `DocumentGenerationProcess.ResponseText`
-says the contentVersion "is either deleted/non-existent or the user does not have
-access to it."
-
-**Cause:** The template file sits in `DocgenDocumentTemplateLibrary`, and the user
-is not a library member.
-
-**Fix:** Run `create_docgen_library`: it adds the public group
-`RLM_DocGen_Template_Users` (seeded with All Internal Users) to the library with a
-read-only permission. See `docs/guides/docgen-setup.md` → Template Library Access.
-
 ### EmailTemplatePage deploy fails
 
 **Cause:** `EmailTemplatePage` flexipages cannot be deployed via Metadata API
