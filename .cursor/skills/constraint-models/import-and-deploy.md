@@ -182,7 +182,6 @@ Salesforce documents the requirement:
 > **Not yet investigated:** the builder's **Sync** button, which is distinct from
 > activate/deactivate. Its effect is unknown — do not assume it is a no-op.
 
-
 ---
 
 ## Active models and downtime
@@ -191,7 +190,7 @@ An active model cannot take an in-place update: the version must be inactive whe
 model is written, and activation runs the compile and validation checks before it deploys
 to the solver `[Help: deployment-product-configurator-additional-info, 264]`. So the cycle
 above leaves the model inactive between the two calls, and activating one constraint
-model redeploys every active one `[Open: reported from a live check on two models before this split; not re-run]`. No supported
+model redeploys every active one `[Open: reported from one earlier live check on two models; not re-run]`. No supported
 option updates an active model without that window `[Open: no such option found in Help,
 the repo or the resource; not measured]`. To shorten it, script both calls back to back
 for each changed model, one model at a time, and check `success` in the body of each
@@ -235,8 +234,7 @@ repo's tasks use `[Repo: tasks/rlm_cml.py]`: create the `ExpressionSet`
 `ExpressionSetDefinitionVersion.ConstraintModel` while the version is inactive, create the
 `ExpressionSetConstraintObj` rows, then activate through the constraint-version resource.
 The Metadata API does not carry the CML body, and the constraint-version resource and the
-Constraint Studio APIs are not in the 264 developer guide; public documentation is planned
-for a later release `[Open: not in the 264 developer guide]`. `scripts/constraint_models/cml_tool.py push` does this for a single
+Constraint Studio APIs are not in the 264 developer guide `[Open: not in the 264 developer guide]`. `scripts/constraint_models/cml_tool.py push` does this for a single
 model ([tooling.md](tooling.md)).
 
 Writing the field directly does not validate the CML: a sObject write stored an invalid or

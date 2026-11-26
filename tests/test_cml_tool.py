@@ -65,6 +65,21 @@ def main():
     assert cml_tool.save_previous(FakeTransport(), {"IsActive": False}, prev) is None
     assert prev.read_text() == "old model"
 
+    # A full confirmed push: the backup holds the old text because the blob is read before the PATCH.
+    import argparse
+    class T(FakeTransport):
+        def sobject(self, method, sobject, record_id=None, body=None, **kw):
+            stored["text"] = model.decode()
+            return super().sobject(method, sobject, record_id, body)
+    stored["text"] = "old model"
+    cml_tool.constraint_versions = lambda t, api=None: [
+        {"Id": "V", "ExpressionSetId": "E", "ApiName": "A", "VersionNumber": 1, "IsActive": True}]
+    cml_tool.esdv_id = lambda t, v: "D"
+    mf = Path(tempfile.mkdtemp()) / "m.cml"
+    mf.write_bytes(model)
+    cml_tool.cmd_push(T(), argparse.Namespace(api_name="A", file=str(mf), limit=None, confirm=True))
+    assert Path(str(mf) + ".previous").read_text() == "old model"
+
     for bad in ({}, {"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
         try:
             cml_tool.validate_spec(bad)

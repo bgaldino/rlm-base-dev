@@ -76,8 +76,8 @@ line-level after-commit step ([computed-attribute-and-setup.md](computed-attribu
 - The Metadata API carries a shell for a constraint model, not the CML body; the body is
   the `ConstraintModel` field and the constraint-version resource
   ([import-and-deploy.md](import-and-deploy.md)). `[Repo: tasks/rlm_cml.py]`
-- Constraint Studio's own APIs are internal on 264 `[Open: public documentation is
-  planned for a later release]`.
+- Constraint Studio's own APIs are not in the 264 developer guide `[Open: not in the 264
+  developer guide]`.
 - Changing a model without deactivating it, and a no-downtime update, are not available:
   activation runs the checks and redeploys every active model
   ([import-and-deploy.md](import-and-deploy.md#active-models-and-downtime)).

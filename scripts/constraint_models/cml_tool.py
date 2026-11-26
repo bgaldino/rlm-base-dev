@@ -202,7 +202,7 @@ def cmd_scaffold(t, args):
     ids = {"attrs": {}, "products": {}, "esc": {}}
     try:
         _build(t, spec, ids, pb, ctx, psm)
-    finally:  # a failure part-way still leaves the ids created so far
+    finally:  # top-level ids created so far; picklists, attribute rows, selling models and price book entries are not listed
         if args.out:
             Path(args.out).write_text(json.dumps(ids, indent=1))
     print(json.dumps(ids, indent=1))
