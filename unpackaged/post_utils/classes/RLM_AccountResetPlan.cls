@@ -21,7 +21,9 @@
  * the run needs on it: Edit Activated Orders, Delete Activated Contracts, Access
  * Lifecycle-Managed Assets, Delete Invoice and Invoice Lines, Allow Revenue Records
  * Deletion), and invoices still processing are named too, as are an asset or an order
- * that a usage entitlement the reset keeps still refers to. Live 264 (the salesrep persona, under System.runAs and in
+ * that a usage entitlement the reset keeps still refers to. The advice fits the
+ * blocker: another user's permission or access, waiting for the invoices, or, for an
+ * asset or order, Delete Assets off or the entitlement removed first. Live 264 (the salesrep persona, under System.runAs and in
  * a Login As session) a query in a class declared without sharing saw only the records
  * sharing showed that user, and a delete of a record the user could edit but not
  * delete was refused; that is why the plan is read in system mode and checked per
@@ -34,10 +36,11 @@
  * Reaching a bound refuses the run, changing nothing, with a message that a user with
  * Modify All Data and View All Data can run it (they take RLM_AccountUtilities' engine,
  * which converges over several runs). So does a plan whose rows exceed the DML rows
- * left. The deletes then run inside one savepoint, all or nothing: usage first (its
- * constraints are circular, so the planned usage rows are retried round after round
- * until a round removes nothing), then collections, billing, fulfillment, contracts
- * with their rate card entries, orders, assets with theirs, quotes and opportunities.
+ * left. The deletes then run inside one savepoint, all or nothing: every planned usage
+ * row first, the asset-bound ones included (its constraints are circular, so they are
+ * retried round after round until a round removes nothing), so no entitlement is left to
+ * block an order or asset; then collections, billing, fulfillment, contracts with their
+ * rate card entries, orders, assets with theirs, quotes and opportunities.
  * Every delete is all or nothing (a row a parent's delete already took counts as
  * deleted). If the platform refuses any planned row, a usage row is still there when
  * the usage teardown can do no more, anything fails, or a limit is reached part way,
@@ -106,6 +109,17 @@ public without sharing class RLM_AccountResetPlan {
         + 'would delete cannot be deleted yet.';
     @TestVisible
     private static final String NOT_YET_ADVICE = 'Run the reset again once the invoices finish processing.';
+    // Another account's entitlement is not named: it is that account's record, which the user
+    // may not be allowed to see (the same reason a refusal never repeats the platform's message).
+    @TestVisible
+    private static final String ASSET_KEPT_ADVICE = 'No permission or reassignment lets the asset named above go '
+        + 'while its usage entitlement is held by a bucket kept for another account\'s entitlement: run the reset '
+        + 'with Delete Assets off, which keeps the asset, or have the other account\'s entitlement removed first.';
+    @TestVisible
+    private static final String ORDER_KEPT_ADVICE = 'No permission or reassignment lets the order named above go '
+        + 'while a usage entitlement the reset keeps refers to its lines: have the other account\'s entitlement '
+        + 'removed first, or ask a user with Modify All Data and View All Data to run the reset, which deletes the '
+        + 'rest and reports the order as not deleted.';
     @TestVisible
     private static final String NO_PERMISSION = 'no permission to delete this kind of record';
     @TestVisible
@@ -123,7 +137,7 @@ public without sharing class RLM_AccountResetPlan {
         + 'a bucket kept for another account\'s entitlement, refers to one of its order lines, so it cannot be deleted';
     @TestVisible
     private static final String ASSET_ENTITLEMENT_KEPT = 'its usage entitlement is held by a bucket kept for '
-        + 'another account\'s entitlement, so it cannot be deleted; run the reset with Delete Assets off';
+        + 'another account\'s entitlement, so it cannot be deleted';
     private static final String NEEDS_LIFECYCLE = 'lifecycle-managed; deleting them needs the Access '
         + 'Lifecycle-Managed Assets permission';
     private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled; deleting them needs the '
@@ -313,10 +327,11 @@ public without sharing class RLM_AccountResetPlan {
         Savepoint sp = Database.setSavepoint();
         ResetReport beforeDeletes = report.copy();
         try {
-            // The usage graph first: policies, the account's own rate card entries,
-            // summaries, entitlements and their buckets, journals and commitment junctions.
-            // Rows still held by something deleted later are retried at the end.
-            teardown(USAGE_TEARDOWN, false);
+            // The usage graph first, all of it: policies, the account's own rate card
+            // entries, summaries, entitlements and their buckets (those bound to the assets
+            // included), journals and commitment junctions. A row still there when a round
+            // removes nothing rolls the run back.
+            teardown(USAGE_TEARDOWN, true);
             // Before billing: deleting an invoice clears a dispute's link to it.
             if (deleteCollections) {
                 deleteCollectionRecords();
@@ -347,10 +362,6 @@ public without sharing class RLM_AccountResetPlan {
             }
             if (deleteAssets) {
                 deleteAssets();
-            } else {
-                // What the usage teardown could not delete gets one more try, now that
-                // what may have held it is gone; a row still there then rolls the run back.
-                teardown(USAGE_TEARDOWN, true);
             }
             deleteAll(plan.rowsOf(G_QUOTE_DOCUMENTS));
             deleteAll(plan.rowsOf(G_FILES));
@@ -403,11 +414,15 @@ public without sharing class RLM_AccountResetPlan {
         return !access.isEmpty() && access[0].HasReadAccess;
     }
 
-    // The usage objects, deleted first and retried at the end when rows are left.
+    // Every planned usage row, the asset-bound ones included (with Delete Assets), deleted
+    // first in one retried teardown, before any order or asset: an entitlement can refer to
+    // an order line (OrderItemId) or an asset, and blocks its delete while it is there. No
+    // usage row depends on a record deleted later: they refer to orders and assets, not the
+    // reverse.
     private static final List<String> USAGE_TEARDOWN = new List<String>{
-        G_POLICIES, G_ACCOUNT_RATE_CARD_ENTRIES, G_ENTRIES, G_BILLING_PERIOD_ITEMS, G_SUMMARIES,
-        G_RATABLE_SUMMARIES, G_JOURNALS, G_BUCKETS, G_ENTITLEMENTS, G_ENTITLEMENT_ACCOUNTS,
-        G_COMMITMENT_JUNCTIONS
+        G_POLICIES, G_ACCOUNT_RATE_CARD_ENTRIES, G_ENTRIES, G_ASSET_ENTRIES, G_BILLING_PERIOD_ITEMS, G_SUMMARIES,
+        G_RATABLE_SUMMARIES, G_JOURNALS, G_BUCKETS, G_ASSET_BUCKETS, G_ENTITLEMENTS, G_ASSET_ENTITLEMENTS,
+        G_ENTITLEMENT_ACCOUNTS, G_COMMITMENT_JUNCTIONS
     };
 
     /**
@@ -453,11 +468,10 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     /**
-     * Deletes the planned assets: their rate card entries, the entitlements bound to
-     * them and their buckets (another account's entitlement bound to an asset this
-     * reset deletes goes with it), what the usage teardown could not delete, the work orders and
-     * cases that reference them, their relationships (both directions) and then the
-     * assets, all or nothing.
+     * Deletes the planned assets: their rate card entries (and the binding entries sourced
+     * from them), the work orders and cases that reference them, their relationships (both
+     * directions) and then the assets, all or nothing. The entitlements bound to them and
+     * their buckets went in the usage teardown.
      *
      * AssetRateCardEntry rows are generated when the asset is created and are NOT
      * recreated for an existing asset, so they go here, with the assets.
@@ -465,9 +479,6 @@ public without sharing class RLM_AccountResetPlan {
     private static void deleteAssets() {
         deleteAll(plan.rowsOf(G_ASSET_RATE_CARD_ENTRIES));
         deleteAll(plan.rowsOf(G_ASSET_SOURCED_RATE_CARD_ENTRIES));
-        List<String> usage = new List<String>{ G_ASSET_ENTRIES, G_ASSET_BUCKETS, G_ASSET_ENTITLEMENTS };
-        usage.addAll(USAGE_TEARDOWN);
-        teardown(usage, true);
         deleteAll(plan.rowsOf(G_WORK_ORDERS));
         deleteAll(plan.rowsOf(G_ASSET_CASES));
         deleteAll(plan.rowsOf(G_ASSET_RELATIONSHIPS));
@@ -479,7 +490,7 @@ public without sharing class RLM_AccountResetPlan {
      * left or a round removes nothing. The constraints between usage rows are circular, so
      * a row a round refuses may go in a later one. When a round removes nothing and rows
      * are left: on the `last` try the run rolls back, naming the refused row; otherwise
-     * they wait for the last try. Still removing rows when the rounds run out rolls the
+     * they are left for a later try. Still removing rows when the rounds run out rolls the
      * run back too (USAGE_TOO_LARGE).
      */
     private static void teardown(List<String> keys, Boolean last) {
@@ -978,23 +989,44 @@ public without sharing class RLM_AccountResetPlan {
 
     /** The record that blocks the reset for one reason, of one object. */
     /**
-     * The refusal, from the blockers and their description. An invoice still processing is
-     * not about who runs the reset: nobody can delete it until it finishes, so a refusal
-     * for that alone gets its own wording and advice.
+     * The refusal, from the blockers and their description, with the advice that fits each
+     * kind of blocker: a permission or record access another user has (REFUSED_ADVICE); an
+     * invoice still processing, which nobody can delete until it finishes (NOT_YET_ADVICE,
+     * and its own wording when it is the only blocker); an asset or order another account's
+     * entitlement still refers to, which no permission or reassignment fixes.
      */
     @TestVisible
     private static String refusal(List<Blocker> blockers, String described) {
+        Boolean access = false;
         Boolean waiting = false;
-        Boolean waitingOnly = !blockers.isEmpty();
+        Boolean assetKept = false;
+        Boolean orderKept = false;
         for (Blocker b : blockers) {
             if (b.reason == INVOICE_IN_PROGRESS) {
                 waiting = true;
+            } else if (b.reason == ASSET_ENTITLEMENT_KEPT) {
+                assetKept = true;
+            } else if (b.reason == ORDER_LINE_ENTITLEMENT_KEPT) {
+                orderKept = true;
             } else {
-                waitingOnly = false;
+                access = true;
             }
         }
-        return (waitingOnly ? NOT_YET : REFUSED) + ' ' + described + '. '
-            + (waitingOnly ? NOT_YET_ADVICE : REFUSED_ADVICE + (waiting ? ' ' + NOT_YET_ADVICE : ''));
+        Boolean waitingOnly = waiting && !access && !assetKept && !orderKept;
+        List<String> advice = new List<String>();
+        if (access) {
+            advice.add(REFUSED_ADVICE);
+        }
+        if (assetKept) {
+            advice.add(ASSET_KEPT_ADVICE);
+        }
+        if (orderKept) {
+            advice.add(ORDER_KEPT_ADVICE);
+        }
+        if (waiting) {
+            advice.add(NOT_YET_ADVICE);
+        }
+        return (waitingOnly ? NOT_YET : REFUSED) + ' ' + described + '. ' + String.join(advice, ' ');
     }
 
     @TestVisible
@@ -1176,7 +1208,7 @@ public without sharing class RLM_AccountResetPlan {
                     // (measured live 264: "associated with the following binding object rate
                     // card entries"), whatever they are bound to, so they go with it; those
                     // of the account and of deleted contracts are planned already.
-                    Set<Id> plannedEntries = ids(rowsOf(G_ACCOUNT_RATE_CARD_ENTRIES));
+                    Set<Id> plannedEntries = new Set<Id>(ids(rowsOf(G_ACCOUNT_RATE_CARD_ENTRIES)));
                     plannedEntries.addAll(ids(rowsOf(G_CONTRACT_RATE_CARD_ENTRIES)));
                     binds.put('plannedEntries', plannedEntries);
                     put(G_ASSET_SOURCED_RATE_CARD_ENTRIES, 'BindingObjectRateCardEntry', read('BindingObjectRateCardEntry',
@@ -1205,8 +1237,8 @@ public without sharing class RLM_AccountResetPlan {
             // An order line that a usage entitlement refers to (OrderItemId) cannot be
             // deleted, nor its order (measured live 264: "associated with the following
             // transaction usage entitlements"), even when the entitlement is another
-            // account's. The account's own entitlements go before the orders; any other is
-            // kept, so its order is named and the run refused.
+            // account's. Every entitlement the plan deletes goes before the orders (the usage
+            // teardown); any other is kept, so its order is named and the run refused.
             Set<Id> orderItemIds = new Set<Id>();
             if (!orderIds.isEmpty()) {
                 Map<Id, Id> orderOfLine = new Map<Id, Id>();
@@ -1215,7 +1247,9 @@ public without sharing class RLM_AccountResetPlan {
                 }
                 orderItemIds = orderOfLine.keySet();
                 binds.put('orderItemIds', orderItemIds);
-                binds.put('entitlementsFirst', ids(rowsOf(G_ENTITLEMENTS)));
+                Set<Id> entitlementsFirst = new Set<Id>(ids(rowsOf(G_ENTITLEMENTS)));
+                entitlementsFirst.addAll(ids(rowsOf(G_ASSET_ENTITLEMENTS)));
+                binds.put('entitlementsFirst', entitlementsFirst);
                 Set<Id> blockedOrders = new Set<Id>();
                 if (!orderItemIds.isEmpty()) {
                     for (SObject entitlement : query('TransactionUsageEntitlement', 'Id, OrderItemId',

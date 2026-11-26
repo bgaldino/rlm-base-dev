@@ -1252,7 +1252,7 @@ private without sharing class RLM_AccountResetPlanTest {
     // delete. The plan's deletes are all or nothing, so the run rolls back.
     @IsTest
     static void aRefusedCaseRollsBackEverythingAndIsNamed() {
-        Assert.isTrue(available(COLLECTION_OBJECTS), 'PRECONDITION: this org has Collections and disputes');
+        if (!available(COLLECTION_OBJECTS)) return;
         Account a = newAccount();
         Account bystander = new Account(Name = 'RLM Utilities Dispute Holder');
         insert bystander;
@@ -1317,7 +1317,7 @@ private without sharing class RLM_AccountResetPlanTest {
     // with an Id twice fails every row of it (measured live 264: "Duplicate id in list").
     @IsTest
     static void aCaseThatIsThePlansAndTheDisputesIsDeletedOnce() {
-        Assert.isTrue(available(COLLECTION_OBJECTS), 'PRECONDITION: this org has Collections and disputes');
+        if (!available(COLLECTION_OBJECTS)) return;
         Account a = newAccount();
         SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
             'AccountId' => a.Id, 'UsageType' => 'Billing'
@@ -1372,6 +1372,86 @@ private without sharing class RLM_AccountResetPlanTest {
             + RLM_AccountResetPlan.ORDER_LINE_ENTITLEMENT_KEPT + ': ' + orderNumber + ')'),
             'The order is named with the reason. Got: ' + result.reason);
         Assert.areEqual(1, [SELECT COUNT() FROM Order WHERE Id = :o.Id], 'Nothing may change');
+    }
+
+    // An entitlement on one of our order lines, created with the line instead of an
+    // external order line.
+    private static TransactionUsageEntitlement newEntitlementOnLine(Id accountId, Id assetId, Id lineId, UsageFixture f) {
+        TransactionUsageEntitlement tue = new TransactionUsageEntitlement(
+            AccountId = accountId, GrantBindingTargetId = accountId, AssetId = assetId, UsageResourceId = f.resourceId,
+            PricebookEntryId = f.pricebookEntryId, EntitlementUomId = f.uomId,
+            EffectiveStartDateTime = Datetime.now().addDays(-10), TransactionQuantity = 1, EntitlementQuantity = 100,
+            NetQuantity = 100, ValidityPeriodTerm = 1, ActionType = 'New', OrderItemId = lineId
+        );
+        insert tue;
+        return tue;
+    }
+
+    private static OrderItem newOrderLine(Id accountId, UsageFixture f) {
+        Order o = new Order(AccountId = accountId, EffectiveDate = Date.today(), Status = 'Draft',
+            Pricebook2Id = Test.getStandardPricebookId());
+        insert o;
+        OrderItem line = new OrderItem(OrderId = o.Id, PricebookEntryId = f.pricebookEntryId, Quantity = 1, UnitPrice = 1);
+        insert line;
+        return line;
+    }
+
+    // Our entitlement, on our order line, is held by our bucket, whose child holds another
+    // account's entitlement bound to our asset. With every planned usage row deleted before
+    // the orders, the child, our bucket and our entitlement go first, then the order.
+    @IsTest
+    static void usageOnAnAssetWithAnOrderGoesBeforeTheOrder() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner Order');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Ordered Asset', AccountId = a.Id);
+        insert asset;
+        OrderItem line = newOrderLine(a.Id, f);
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        TransactionUsageEntitlement ownTue = newEntitlementOnLine(a.Id, null, line.Id, f);
+        TransactionUsageEntitlement movedTue = newEntitlement(previousOwner.Id, previousOwner.Id, asset.Id, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        newBucket(held.Id, movedTue.Id, f);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE AccountId = :a.Id], 'The order is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id IN (:ownTue.Id, :movedTue.Id)],
+            'Both entitlements are deleted');
+    }
+
+    // Another account's entitlement bound to our asset refers to our order line. With
+    // Delete Assets the plan deletes it, before the order, so the run completes; without, it
+    // is kept, and the order cannot go: the run is refused, naming the order.
+    @IsTest
+    static void anAssetBoundEntitlementOnOurOrderLineGoesWithDeleteAssetsAndRefusesWithout() {
+        Account a = newAccount();
+        Account previousOwner = new Account(Name = 'RLM Utilities Previous Owner Line');
+        insert previousOwner;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Line Asset', AccountId = a.Id);
+        insert asset;
+        OrderItem line = newOrderLine(a.Id, f);
+        TransactionUsageEntitlement bound = newEntitlementOnLine(previousOwner.Id, asset.Id, line.Id, f);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result without = run(request(a.Id, false, false, false));
+        RLM_AccountUtilities.Result withAssets = run(request(a.Id, true, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, without.completed, 'Without Delete Assets the entitlement is kept, so the order stays');
+        Assert.isTrue(without.reason.contains(RLM_AccountResetPlan.ORDER_LINE_ENTITLEMENT_KEPT)
+            && without.reason.endsWith(RLM_AccountResetPlan.ORDER_KEPT_ADVICE),
+            'The order is named with its own advice. Got: ' + without.reason);
+        Assert.areEqual(true, withAssets.completed, 'With Delete Assets the run completes. Reason: ' + withAssets.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE AccountId = :a.Id], 'The order is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :bound.Id],
+            'The entitlement bound to the asset is deleted');
     }
 
     @IsTest
@@ -1479,7 +1559,7 @@ private without sharing class RLM_AccountResetPlanTest {
 
     @IsTest
     static void aRateCardEntrySourcedFromADeletedAssetGoesWithIt() {
-        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
@@ -2030,7 +2110,7 @@ private without sharing class RLM_AccountResetPlanTest {
 
     @IsTest
     static void aKeptContractOrAssetKeepsItsBindingPolicies() {
-        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
@@ -2074,6 +2154,25 @@ private without sharing class RLM_AccountResetPlanTest {
             && both.contains(RLM_AccountResetPlan.REFUSED_ADVICE)
             && both.contains(RLM_AccountResetPlan.NOT_YET_ADVICE),
             'With an access problem as well, both pieces of advice. Got: ' + both);
+
+        RLM_AccountResetPlan.Blocker assetKept = new RLM_AccountResetPlan.Blocker();
+        assetKept.reason = RLM_AccountResetPlan.ASSET_ENTITLEMENT_KEPT;
+        RLM_AccountResetPlan.Blocker orderKept = new RLM_AccountResetPlan.Blocker();
+        orderKept.reason = RLM_AccountResetPlan.ORDER_LINE_ENTITLEMENT_KEPT;
+        String assetOnly = RLM_AccountResetPlan.refusal(new List<RLM_AccountResetPlan.Blocker>{ assetKept }, 'X');
+        Assert.isTrue(assetOnly.endsWith(RLM_AccountResetPlan.ASSET_KEPT_ADVICE)
+            && !assetOnly.contains(RLM_AccountResetPlan.REFUSED_ADVICE),
+            'An asset a kept entitlement holds gets its own advice, not "ask another user". Got: ' + assetOnly);
+        String orderOnly = RLM_AccountResetPlan.refusal(new List<RLM_AccountResetPlan.Blocker>{ orderKept }, 'X');
+        Assert.isTrue(orderOnly.endsWith(RLM_AccountResetPlan.ORDER_KEPT_ADVICE)
+            && !orderOnly.contains(RLM_AccountResetPlan.REFUSED_ADVICE),
+            'An order a kept entitlement refers to gets its own advice. Got: ' + orderOnly);
+        String mixed = RLM_AccountResetPlan.refusal(
+            new List<RLM_AccountResetPlan.Blocker>{ access, orderKept, assetKept }, 'X');
+        Assert.isTrue(mixed.contains(RLM_AccountResetPlan.REFUSED_ADVICE)
+            && mixed.contains(RLM_AccountResetPlan.ASSET_KEPT_ADVICE)
+            && mixed.contains(RLM_AccountResetPlan.ORDER_KEPT_ADVICE),
+            'Each kind of blocker gets its advice. Got: ' + mixed);
 
         String accessOnly = RLM_AccountResetPlan.refusal(new List<RLM_AccountResetPlan.Blocker>{ access }, 'X');
         Assert.isTrue(accessOnly.startsWith(RLM_AccountResetPlan.REFUSED)

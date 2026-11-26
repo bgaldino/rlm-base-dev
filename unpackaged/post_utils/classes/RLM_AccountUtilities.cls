@@ -107,7 +107,8 @@ public without sharing class RLM_AccountUtilities {
     //    step with no assets 3, quotes and opportunities 5). 30 keeps three spare.
     //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
     //    references 2, resource policies 3, rate card entries 3, assets 2, quotes and
-    //    opportunities 5). 16 keeps one spare.
+    //    opportunities 5). 18 keeps three spare, as main's 16 did for its 13: this branch
+    //    added the two rate card entry queries.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
@@ -115,7 +116,7 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static final Integer RETRY_TAIL = 30;
     @TestVisible
-    private static final Integer ASSET_TAIL = 16;
+    private static final Integer ASSET_TAIL = 18;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -289,10 +290,10 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Integer dmlRowLimitForTest;
 
-    // Rows phase 2 tried to delete, by object, so a stop can name the largest groups; null
-    // outside phase 2.
+    // Rows phase 2 tried to delete, by object, each once, so a stop can name the largest
+    // groups; null outside phase 2.
     @TestVisible
-    private static Map<String, Integer> phaseTwoRows;
+    private static Map<String, Set<Id>> phaseTwoRows;
 
     // Lets a test send a user with Modify All Data and View All Data down the plan path,
     // whose rules a test cannot otherwise reach with the usage and billing access it needs.
@@ -471,7 +472,7 @@ public without sharing class RLM_AccountUtilities {
         // Phase 2: inside the savepoint. All of it is kept, or none of it.
         Savepoint sp = Database.setSavepoint();
         phaseTwoQueriesAtStart = Limits.getQueries();
-        phaseTwoRows = new Map<String, Integer>();
+        phaseTwoRows = new Map<String, Set<Id>>();
         ResetReport afterPhaseOne = report.copy();
         try {
             OrderData orderData = new OrderData(accountId, deleteFulfillment);
@@ -598,14 +599,32 @@ public without sharing class RLM_AccountUtilities {
         while (named.size() < GROUPS_NAMED && !labels.isEmpty()) {
             Integer largest = 0;
             for (Integer i = 1; i < labels.size(); i++) {
-                if (phaseTwoRows.get(labels[i]) > phaseTwoRows.get(labels[largest])) {
+                if (phaseTwoRows.get(labels[i]).size() > phaseTwoRows.get(labels[largest]).size()) {
                     largest = i;
                 }
             }
-            named.add(labels[largest] + ': ' + phaseTwoRows.get(labels[largest]));
+            named.add(labels[largest] + ': ' + phaseTwoRows.get(labels[largest]).size());
             labels.remove(largest);
         }
         return ' The largest groups it reached: ' + String.join(named, '; ') + '.';
+    }
+
+    /**
+     * Notes the rows phase 2 tries to delete, by object, each once: the usage retries and
+     * the bucket walks try the same rows again, which would inflate the counts.
+     */
+    @TestVisible
+    private static void notePhaseTwoRows(List<SObject> records) {
+        if (phaseTwoRows == null || records == null || records.isEmpty()) {
+            return;
+        }
+        String label = labelOf(records[0].getSObjectType());
+        if (!phaseTwoRows.containsKey(label)) {
+            phaseTwoRows.put(label, new Set<Id>());
+        }
+        for (SObject record : records) {
+            phaseTwoRows.get(label).add(record.Id);
+        }
     }
 
     private static void startRun() {
@@ -752,10 +771,7 @@ public without sharing class RLM_AccountUtilities {
         if (records == null || records.isEmpty()) {
             return gone;
         }
-        if (phaseTwoRows != null) {
-            String label = labelOf(records[0].getSObjectType());
-            phaseTwoRows.put(label, (phaseTwoRows.containsKey(label) ? phaseTwoRows.get(label) : 0) + records.size());
-        }
+        notePhaseTwoRows(records);
         Integer room = dmlRowsLeft();
         Boolean trimmed = records.size() > room;
         if (trimmed) {

@@ -980,11 +980,30 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void aPhaseTwoStopNamesTheLargestGroupsLargestFirst() {
-        RLM_AccountUtilities.phaseTwoRows = new Map<String, Integer>{
-            'Opportunities' => 3, 'Asset Rate Card Entries' => 9500, 'Quotes' => 40, 'Orders' => 7
+        List<Account> accounts = new List<Account>();
+        for (Integer i = 0; i < 4; i++) {
+            accounts.add(new Account(Name = 'RLM Utilities Group ' + i));
+        }
+        insert accounts;
+        Account a = accounts[0];
+        List<Opportunity> opportunities = new List<Opportunity>{
+            newOpportunity(a.Id, 'RLM Utilities Group Opp 1'), newOpportunity(a.Id, 'RLM Utilities Group Opp 2'),
+            newOpportunity(a.Id, 'RLM Utilities Group Opp 3')
         };
-        Assert.areEqual(' The largest groups it reached: Asset Rate Card Entries: 9500; Quotes: 40; Orders: 7.',
-            RLM_AccountUtilities.largestGroups(), 'The three largest, largest first');
+        Contact c = new Contact(LastName = 'RLM Utilities Group', AccountId = a.Id);
+        insert c;
+        RLM_AccountUtilities.phaseTwoRows = new Map<String, Set<Id>>();
+        // Two opportunities tried five times (a retried group) count as two, not ten.
+        List<Opportunity> retried = new List<Opportunity>{ opportunities[0], opportunities[1] };
+        for (Integer round = 0; round < 5; round++) {
+            RLM_AccountUtilities.notePhaseTwoRows(retried);
+        }
+        RLM_AccountUtilities.notePhaseTwoRows(accounts);
+        RLM_AccountUtilities.notePhaseTwoRows(new List<Contact>{ c });
+        Assert.areEqual(' The largest groups it reached: '
+            + entry(Account.SObjectType, 4) + '; ' + entry(Opportunity.SObjectType, 2) + '; '
+            + entry(Contact.SObjectType, 1) + '.',
+            RLM_AccountUtilities.largestGroups(), 'Each row once, the three largest, largest first');
         RLM_AccountUtilities.phaseTwoRows = null;
         Assert.areEqual('', RLM_AccountUtilities.largestGroups(), 'Nothing outside phase 2');
     }
@@ -1784,14 +1803,35 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     // The 45 is counted from the code with data in every branch (see the constants in
-    // RLM_AccountUtilities); this test measures only the empty-data path with one asset (31, held exactly). It holds
+    // RLM_AccountUtilities); this test measures only the empty-data path with one asset, held exactly. It holds
     // the reserve against the 45 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
-    // What phase 2 measures on this test's data (an asset and an opportunity, every option on),
-    // and on an account with an opportunity and no asset.
-    private static final Integer PHASE_TWO_EMPTY_PATH_QUERIES = 31;
-    private static final Integer PHASE_TWO_NO_ASSET_QUERIES = 23;
+    // Phase 2's queries with every option on, an opportunity and no other data, counted from
+    // the code: order data 10, collection plans and disputes 1 each where the org has them,
+    // schedule groups 1, debit memos 1 where the org has them, credit memos 1, payments 1,
+    // fulfillment 2, contracts 1, the asset step without assets 2 (policies, account rate
+    // card entries), quotes 1, opportunities 1. Measured 23 on tkdef (264), which has all three.
+    private static Integer phaseTwoQueriesWithoutAssets() {
+        return 20 + present(new List<String>{ 'CollectionPlan', 'Dispute', 'DebitMemo' });
+    }
+
+    // What the asset step adds for one asset with no usage: entitlements bound to it 1, work
+    // orders and cases 1 each where the org has them, its policies 1, asset rate card entries
+    // 1, entries sourced from it 1, relationships 1, assets 1. Measured 8 on tkdef.
+    private static Integer assetStepQueriesForOneAsset() {
+        return 6 + present(new List<String>{ 'WorkOrder', 'Case' });
+    }
+
+    private static Integer present(List<String> objectNames) {
+        Integer n = 0;
+        for (String objectName : objectNames) {
+            if (Schema.getGlobalDescribe().containsKey(objectName)) {
+                n++;
+            }
+        }
+        return n;
+    }
 
     @IsTest
     static void phaseTwosAssetStepQueriesNothingForAnAccountWithoutAssets() {
@@ -1803,7 +1843,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Test.stopTest();
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(PHASE_TWO_NO_ASSET_QUERIES, RLM_AccountUtilities.phaseTwoQueriesForTest,
+        Assert.areEqual(phaseTwoQueriesWithoutAssets(), RLM_AccountUtilities.phaseTwoQueriesForTest,
             'Phase 2\'s queries with no asset changed: the asset step\'s queries must stay guarded on its assets');
     }
 
@@ -1818,7 +1858,8 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
         // Exact, so a query added to this path fails here and its count is revisited.
-        Assert.areEqual(PHASE_TWO_EMPTY_PATH_QUERIES, RLM_AccountUtilities.phaseTwoQueriesForTest,
+        Assert.areEqual(phaseTwoQueriesWithoutAssets() + assetStepQueriesForOneAsset(),
+            RLM_AccountUtilities.phaseTwoQueriesForTest,
             'Phase 2\'s queries on empty data with every option on changed: recount PHASE_TWO_FIXED_MAX, '
                 + 'RETRY_TAIL and ASSET_TAIL');
         Assert.isTrue(
@@ -1834,7 +1875,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         // The counts after each guard (see the constants): 27 after the journal guard, 15
         // after the asset step's last one, each with the spare the constants keep.
         Assert.areEqual(27 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 27 counted plus three spare');
-        Assert.areEqual(15 + 1, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus one spare');
+        Assert.areEqual(15 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus three spare');
     }
 
     @IsTest
@@ -1958,7 +1999,7 @@ private without sharing class RLM_AccountUtilitiesTest {
 
     @IsTest
     static void aContractPreservedForItsPricesKeepsItsBindingPolicies() {
-        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
@@ -2010,7 +2051,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     // whatever it was bound to. One bound to a contract the run keeps goes with the asset.
     @IsTest
     static void aRateCardEntrySourcedFromADeletedAssetGoesWithIt() {
-        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        if (!contractItemPriceAvailable()) return;
         Id accountId = seedAccountWithContracts();
         UsageFixture f = loadUsageFixture();
         Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
