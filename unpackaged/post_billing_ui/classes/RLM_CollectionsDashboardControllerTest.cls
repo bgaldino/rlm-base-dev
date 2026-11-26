@@ -1283,7 +1283,7 @@ private class RLM_CollectionsDashboardControllerTest {
     // A Sale payment with a balance is an unapplied payment: it is counted and filtered by account
     // and currency like every card. The payment is in the user's currency, the one shown with none chosen.
     @isTest
-    static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_balancesWhenTheUserCurrencyIsCorporate() {
+    static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_inTheUsersCurrency() {
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
         String paymentCurrency = UserInfo.getDefaultCurrency();
