@@ -75,10 +75,13 @@ class FixScratchOrgIdentity(BaseTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        # Read unconditionally, first: a bad value is refused at init, with or without an org,
+        # before anything looks for an auth file.
+        self._raise = self._raise_on_failure()
         # With the flag set and no org, BaseTask.__call__ raises before _run_task
         # reaches its warn-and-continue branch. Drop it for this instance so the
         # task stays non-fatal by default.
-        if not self.org_config and not self._raise_on_failure():
+        if not self.org_config and not self._raise:
             self.salesforce_task = False
 
     def _raise_on_failure(self) -> bool:
@@ -285,7 +288,7 @@ class FixScratchOrgIdentity(BaseTask):
     # ------------------------------------------------------------------
 
     def _fail_or_warn(self, message, cause=None):
-        if self._raise_on_failure():
+        if self._raise:
             # Chain the originating exception (when there is one) so the
             # traceback/cause is preserved, per the repo's `raise ... from exc`
             # convention. cause=None at non-exception call sites is harmless.

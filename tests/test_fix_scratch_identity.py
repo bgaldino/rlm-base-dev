@@ -59,6 +59,7 @@ def make_task(options=None, org_config=None):
     task.logger = logger
     task.options = options or {}
     task.org_config = org_config
+    task._raise = task._raise_on_failure()  # what _init_options sets
     task._captured = handler.messages
     return task
 
@@ -262,14 +263,28 @@ def test_raise_on_failure_values():
         check(f"raise_on_failure={value!r} warns and continues", outcome(value) == "warned")
     for value in ("True", " true ", "on", True, 1):
         check(f"raise_on_failure={value!r} raises", outcome(value) == "raised")
-    for value, needle in ((["true"], "raise_on_failure must be a single value"),
-                          ("maybe", "raise_on_failure must be true or false")):
-        task = make_task(options={"raise_on_failure": value}, org_config=None)
-        try:
-            task._raise_on_failure()
-            check(f"raise_on_failure={value!r} is refused, naming the option", False)
-        except TaskOptionsError as exc:
-            check(f"raise_on_failure={value!r} is refused, naming the option", needle in str(exc))
+    # Refused at init, with an org as well as without one, before any auth file is looked up.
+    from unittest import mock
+    from tasks import rlm_fix_scratch_identity as mod
+
+    if mod.BaseTask is object:
+        print("  (CumulusCI not installed: the _init_options refusal checks are skipped)")
+        return
+    for org in (SimpleNamespace(scratch=True, username="u"), None):
+        for value, needle in ((["true"], "raise_on_failure must be a single value"),
+                              ("maybe", "raise_on_failure must be true or false")):
+            task = FixScratchOrgIdentity.__new__(FixScratchOrgIdentity)
+            task.options = {"raise_on_failure": value}
+            task.org_config = org
+            looked = []
+            task._find_auth_files = lambda username: looked.append(username) or []
+            label = f"raise_on_failure={value!r} (org={'yes' if org else 'none'}) is refused at init, naming the option"
+            try:
+                with mock.patch.object(mod.BaseTask, "_init_options", lambda self, kwargs: None):
+                    task._init_options({})
+                check(label, False)
+            except TaskOptionsError as exc:
+                check(label, needle in str(exc) and looked == [])
 
 
 def test_dedicated_exception_type():
