@@ -7,7 +7,7 @@
  *
  * Which tests check what:
  * - the group itself: the *GroupReadsInvoiceBatchRuns methods. Inside a deploy that changes the group or
- *   one of its sets it reads Outdated and cannot be assigned, so the test recalculates it
+ *   RLM_BillingInvoiceDocuments (measured) it reads Outdated and cannot be assigned, so the test recalculates it
  *   (Test.calculatePermissionSetGroup), asserts it then reads Updated, and checks it. A Failed group, a
  *   recalculation that throws, or one that does not reach Updated fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
@@ -26,6 +26,8 @@
  * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
  * Nothing here fails because Salesforce grants MORE than today.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
+ * The batch check covers the create only. A Minimum Access user passes it, while its live batch process
+ * stays New (todo 292, open).
  * Batch generation needs two org settings (DocumentGenerationSetting.IsBatchDocGnrnEnabled and
  * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first:
  * - no setting row (e.g. an org where DocGen was never set up): the insert is not attempted, and the
@@ -218,8 +220,8 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             groupName + ' failed to recalculate, so its holders do not get its permissions');
         String status = groups[0].Status;
         if (status != 'Updated') {
-            // Outdated inside a deploy that changes the group or one of its sets (measured). Recalculate it
-            // inside the test so that deploy still checks it; a throw fails the test.
+            // Outdated inside a deploy that changes the group or RLM_BillingInvoiceDocuments (measured).
+            // Recalculate it inside the test so that deploy still checks it; a throw fails the test.
             Test.calculatePermissionSetGroup(groups[0].Id);
             Assert.areEqual('Updated', [SELECT Status FROM PermissionSetGroup WHERE Id = :groups[0].Id].Status,
                 groupName + ' failed to recalculate, so its holders do not get its permissions');

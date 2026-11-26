@@ -561,19 +561,19 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
-- **as the group itself:** the Invoice Batch Run reads. Inside a deploy that changes the group or one of its
-  sets the group reads `Outdated` and cannot be assigned, so the test recalculates it with
+- **as the group itself:** the Invoice Batch Run reads. Inside a deploy that changes the group or
+  `RLM_BillingInvoiceDocuments` (measured) the group reads `Outdated` and cannot be assigned, so the test recalculates it with
   `Test.calculatePermissionSetGroup`, asserts it then reads `Updated`, and assigns and checks it. A group in
   `Failed` status, a recalculation that throws, or one that does not reach `Updated` fails the test; there is
-  no skip. Measured in check-only deploys of a changed set, both groups and this class: a probe test saw both
-  groups `Outdated` inside the deploy transaction, the call succeeded and they then read `Updated`, and the
-  class passed 14/14 [Measured: 2026-11-26, 264, scratch, check-only probe]. That the group methods ran rather
-  than skipped is inferred from their timings (2 to 3 s each against about 100 ms for the earlier skip). (An
+  no skip. A probe test, in a deploy that changed the set, saw both groups `Outdated`; the call succeeded and
+  they then read `Updated` [Measured: 2026-11-26, 264, scratch, check-only probe]. The current class passed
+  14/14 in a check-only deploy that changed only the set's description [Measured: 2026-11-26, 264, scratch,
+  check-only]. (An
   API edit of a group's components also leaves it `Updating` for a while `[seen in the todo 292 log,
   2026-10-28, on RLM_RCB, not on the billing persona groups]`.)
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access
   set): the Invoice Batch Run reads, and with both DocGen sets the batch create, the on-demand create and
-  template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
+  template read. The batch check covers the create only. A Minimum Access user passes it, while its live batch process stays New (todo 292, open). The batch create is a real user-mode insert, the only check that meets the DocGen Designer
   user-permission gate. With batch document generation turned off (an org setting deployed by `docgen`, not
   `personas`) the platform refuses it with `INVALID_INPUT` "Enable the batch document generation setting."
   [Measured: 2026-11-26, 264, scratch, check-only probe]. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
