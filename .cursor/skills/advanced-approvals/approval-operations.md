@@ -43,11 +43,11 @@ from fresh ent-sb0 harness builds on 264; the tag on each fact says which.
   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]. Details of the reviewer grants are in
   [matrix-modeling.md](matrix-modeling.md) §4.
 - **Sharing:** `ApprovalWorkItem` and `ApprovalSubmission` default to Private for internal and external
-  access, and both are Apex-triggerable [Measured: 2026-11-26, 264, ent-sb0 harness build]. A queue member
+  access, and both are Apex-triggerable [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]. A queue member
   seeing work items for records they can't read, and a before-save record-access check to block action on
-  records the approver can't read, are [Open: needs a queue with two members, one without Read on the quote;
-  the Help says an approver "must have access to the record's related object to perform actions" while a field
-  repro showed approval succeeding without it].
+  records the approver can't read, are [Open: needs a queue with two members, one without Read on the quote; check
+  whether the second member can approve]. The Help says an approver "must have access to the record's related object
+  to perform actions" [Help: `ind.approvals_share_records_using_triggers`].
 - **Automation on work items:** Apex triggers are allowed on `ApprovalWorkItem` and `ApprovalSubmission`
   [Measured: same]. Which record-triggered flows fire on them, and how to resolve the polymorphic `AssignedToId`
   for display, are [Open: not run].
@@ -65,18 +65,20 @@ work item routes to the delegate.]
 
 ## Approval screens, notifications and extras
 
-These come from the release's Help; none was run on a build unless tagged.
+Each bullet carries its own source tag; an untagged-source bullet names the check that would settle it.
 
 - **Request Approval component, comment prefill:** a copied submit screen flow can prefill the Comments box from
   a Text Template, and it goes through `RLM_AA_Submit_Approval`; the template must be plain text, since a rich-text
   template leaks HTML [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]. The standard Request Approval
   component's own properties: [Open: not run].
-- **Approval Trace, Work Guide and related lists:** the Quote page's approval UI options, the trace's limits and
-  filtered work-item related lists on Quote are [Open: not run; read the release's Approval Help and the Quote
-  record page in the target org].
-- **Alert templates** render against the recipient and target record, not the work item id; a failed render
-  silently sends the default email; the step screen flow is where to require comments [Open: not run;
-  verify with a deliberately broken template].
+- **Approval Trace, Work Guide and related lists:** Approval Trace shows a record's work items, Orchestration Work Guide
+  shows pending items to assigned users, and Approval Workflow previews the process, each placeable on any record page
+  tied to an approval workflow [Help: `ind.approvals_lightning_components`]. The trace's limits and filtered
+  work-item related lists on Quote are [Open: open the Quote record page in App Builder on the target org].
+- **Alert templates:** a template is mapped to a notification reason through an approval alert content definition
+  [Help: `ind.approvals_email_templates`]. What a template renders against and what a failed render sends are
+  [Open: unsourced; send one alert with a deliberately broken template and read the email received]. Where to require
+  comments is [Open: unsourced; check the step screen flow].
 - **First submissions:** Smart and Rule-Based auto-approval never fire on a first submission. For a policy that
   must skip a step on the first pass, stamp a role or flag on the quote in the submit screen flow (it runs as the
   submitter), skip the step with an entry condition, and give the stage an exit that treats "not triggered" as done.
@@ -84,9 +86,13 @@ These come from the release's Help; none was run on a build unless tagged.
   fails silently. Submitters, and any test user who stamps the quote, need the RLM user permission set license, or
   the flow faults with "can't edit quotes with the Revenue Lifecycle Management ... application usage assignment"
   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
-- **Approval accelerators** (follow-up, auto-escalation) and **mass approval:** [Open: Help names scheduled sample
-  flows for follow-up and auto-escalation; mass approval is not in the 264 build; confirm on the target release before promising either].
-- **Recall:** recall accepts In Progress submissions (the dev guide adds Suspended); a one-click recall quick action is a
-  quick action calling `recallApprovalSubmission` [Dev guide: `actions-obj-recall-approval-submission`; Open: quick action not built].
+- **Approval accelerators** (follow-up, auto-escalation) and **mass approval:** [Open: neither is in the 264 Help
+  snapshot; search the target org's flow templates and Approval Help for each before promising it].
+- **Recall:** the dev guide says recall accepts In Progress and Suspended submissions
+  [Dev guide: `actions-obj-recall-approval-submission`]; the measured recall is in Who can act above.
+
+## Design patterns (not run)
+
+- **One-click recall:** a quick action calling `recallApprovalSubmission` [Open: quick action not built].
 - **Charge-type dimension:** to approve by one-time versus recurring value, compute a level per charge type in the
   approval data flow and treat it as its own chain ([matrix-modeling.md](matrix-modeling.md) §2) [Open: pattern, not run].

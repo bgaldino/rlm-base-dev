@@ -36,7 +36,8 @@ scratch org built by this repo.
    - Smart Approvals: the Help says Number or Text only and no NOT operator
      [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
      (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);
-     treat Number and Text as the documented-safe types.
+     treat Number and Text as the documented-safe types. A roll-up summary, picklist and
+     percent-formula condition passed with equal values ([limitations.md](limitations.md) → Questions settled by a measured run).
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
    when the level is at least N and step N−1 was approved. Give each independent
    dimension its own chain name so it runs in parallel. The repo ships this
@@ -81,7 +82,8 @@ scratch org built by this repo.
   conditions too; both make the flow ineligible [Help: `ind.approvals_smart_approval_limitations`].
 - **DO NOT** hard-code user, group or queue IDs in an orchestration you package or deploy
   between orgs [Help: `ind.approvals_add_an_approval_button_for_sales_reps`]. Assign by group
-  name, as the repo does.
+  name, as the repo does. Flow Builder warns "can't be packaged" on User, Group and Queue steps, so use a Resource-type
+  approver in a packaged flow [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 - **DO NOT** expect to choose the submitter. In one run that started the flow over REST with
   another user's ID in the `submitter` input, `SubmittedById` was still the running user
   [Measured: 2026-11-10, 264]; the repo's Apex bridge always passes the running user.

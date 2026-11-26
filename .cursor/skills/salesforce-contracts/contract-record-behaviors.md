@@ -14,7 +14,7 @@ traced]` come from reading the 264 platform source and were not run.
 - One contact can hold several roles on one contract: each is its own record. Contract, Contact and Role form
   the unique key [Open: the `ContractContactRole` object reference is not in the 264 snapshot; unique key not run].
 - [Open: community users can create role records only through the API; not run.]
-- There is no `ContractContactRelationship` object.
+- There is no `ContractContactRelationship` object: an `EntityDefinition` query for `Contract%Relationship%` and `ContractContact%` returned only `ContractContactRole` [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 
 ## E-signature status mapping
 
@@ -43,6 +43,6 @@ on a 264 org (measured); flow support is not].
 `createContract`, called by the quote-to-contract flow override in Revenue Settings, defaults `StartDate` to the GMT calendar
 date, not the user's or the org's. For a user east of UTC in the early hours the default is yesterday. The start date is the
 earliest line start only when that is earlier than the GMT date. `StartDate` stays editable on a Draft contract and `EndDate`
-recalculates when `ContractTerm` is set [Platform behaviour, traced; the behavior is by design]. To default to local
+recalculates when `ContractTerm` is set [Platform behaviour, traced]. To default to local
 time, clone the quote-to-contract flow and correct the date after the action [Open: not built; whether a before-save flow on
 Contract fires for `createContract` inserts].

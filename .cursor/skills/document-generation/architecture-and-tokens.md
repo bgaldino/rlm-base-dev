@@ -68,7 +68,7 @@ Read when mapping a template token to its Transform output, or tracing a generat
 **Testable at each stage:**
 - Stage 2: `python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
 - Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v68.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
-- Full pipeline: `python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
+- Full pipeline: `docgen_template_generate.py`, examples in [template-lifecycle-and-testing.md](template-lifecycle-and-testing.md)
 
 ---
 
@@ -78,7 +78,7 @@ Read when mapping a template token to its Transform output, or tracing a generat
 |-----------|--------|---------|-----------------|
 | Scalar | `{{Name}}` | `{{InvoiceNumber}}` | `"InvoiceNumber": "INV-001"` |
 | Repeating section | `{{#List}}...{{/List}}` | `{{#InvoiceLines}}{{ProductName}}{{/InvoiceLines}}` | `"InvoiceLines": [{...}, ...]` |
-| Truthy gate | `{{#Field}}...{{/Field}}` | `{{#GrantType}}row content{{/GrantType}}` | Renders when field is non-empty string/object; skips when absent/null/empty |
+| Section as conditional (truthy gate) | `{{#Field}}...{{/Field}}` | `{{#GrantType}}row content{{/GrantType}}` | Same token as a repeating section; see Section-as-conditional in [SKILL.md](SKILL.md) Critical Rules |
 | Condition (boolean) | `{{#IF_x}}...{{/IF_x}}` | `{{#IF_has_discount}}...{{/IF_has_discount}}` | `"IF_has_discount": true` (Boolean only) |
 | Inverse condition | `{{^IF_x}}...{{/IF_x}}` | `{{^IF_no_discount}}...{{/IF_no_discount}}` | Shows when value is `false`; hidden when `true` |
 | Image | `{{IMG_name}}` | `{{IMG_CompanyLogo}}` | `{"src": "069...", "width": "200", "height": "80"}` (see `dynamic-images.md`) |

@@ -68,6 +68,7 @@ For ODT mapper architecture and deep ODT troubleshooting, use
 | Add fields/tokens to an existing template | Yes |
 | Troubleshoot blank output or generation errors | Yes |
 | Add dynamic images to a template | Yes — see `dynamic-images.md` |
+| Print configurator attributes on a quote line, or fix a rep's generation | Yes — see `quote-line-attributes-and-rep-access.md` |
 | Create ODT items programmatically via API | Use `../odt-authoring/SKILL.md` |
 
 ---

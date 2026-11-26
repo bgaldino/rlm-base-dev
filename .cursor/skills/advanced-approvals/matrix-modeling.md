@@ -406,12 +406,8 @@ computes reach the level after it runs (§1, amendments).
   but the work item page said "This page isn't available in Salesforce Lightning Experience or
   mobile app." So Read on Approval Work Item is needed for the page, not for the action
   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
-- Approver types: the step editor offers exactly User, Group, Queue and Resource
-  [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]; the type enum accepts those four
-  and rejected Manager, RoleHierarchy, Role, RelatedUser, UserManager and Hierarchy. There is no
-  manager or role-hierarchy approver. Resource takes a resource holding a username, or the API
-  name of a public group or queue ([approval-operations.md](approval-operations.md) →
-  Approver and step settings). Preview doesn't support Resource
+- Approver types are User, Group, Queue and Resource, with no manager or role-hierarchy approver
+  ([approval-operations.md](approval-operations.md) → Approver and step settings). Preview doesn't support Resource
   [Help: `ind.approvals_preview_feature_limitations`].
 - A manager-of-the-submitter approver therefore needs a background step that resolves the
   manager's **username** into a Text resource [Open: designed from the measured Resource rule,

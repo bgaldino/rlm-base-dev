@@ -16,7 +16,8 @@ shipped quote proposal extract and run for an admin, a rep (three runs) and a 20
 
 1. **Extract:** add an object query on `QuoteLineItemAttribute` filtered on the direct `QuoteLineItemId` under the line node, and a second
    under bundle child lines. Filtering on the direct field avoids the 2,000-row limit that applies to queries filtered through a parent
-   relationship such as `QuoteLineItem.QuoteId` [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
+   relationship such as `QuoteLineItem.QuoteId` [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`]
+   [inferred for QLIA; Open: run the extract on a quote with more than 2,000 attribute rows].
 2. **Picklist labels:** `AttributeValue` holds the code. Add an FK object query on `AttributePicklistValue` (`Id` = the attribute's
    `AttributePicklistValueId`) for `DisplayValue`. Relationship traversal on the virtual QLIA inside a field mapping returned nothing; the FK
    query works.
@@ -27,7 +28,7 @@ shipped quote proposal extract and run for an admin, a rep (three runs) and a 20
 6. **Names:** ODT names must be alphanumeric (a name with underscores failed the deploy).
 
 Limits: two-level nested SOQL (Quote to line to QLIA) fails because QLIA is treated as an external object, so use the object-query
-hierarchy above, not nested SOQL [Open: not re-run in the 2026-11-26 session]. A Context Service template can't print attributes until its context has an attribute node and QLIA
+hierarchy above, not nested SOQL [Open: not re-run; run a nested Quote > line > QLIA query through the extract preview to confirm]. A Context Service template can't print attributes until its context has an attribute node and QLIA
 mapping; the shipped `RLM_QuoteDocGenContext` has only Quote and line nodes [Repo: `datasets/context_plans/DocGen/contexts/quote_docgen.json`].
 Copying attributes onto a line field with Apex is possible but any `QuoteLineItem` update outside the line editors invalidates pricing:
 an API update of a line's `Description` set the quote's `ValidationResult` to `TransactionIncomplete` [Measured: same].
@@ -45,8 +46,8 @@ Two separate access layers apply, and the shipped seeded rep lacks both for the 
 | Generation succeeds but a field prints blank, no error | No field-level security on a printed field | Grant read on every printed field in a permission set. Granting it gave full parity with the admin's output |
 | `DocumentTemplate` not visible, or `DocGenRuntimeUser` can't be granted | The separately licensed DocGen set is missing | See Runtime permissions in [SKILL.md](SKILL.md) |
 
-Which library membership a persona should hold is [Open: tracked as a separate persona-access item].
-Child row order can vary between runs of the same quote [Open: seen once, not isolated].
+Which library membership a persona should hold is [Open: add the rep to the library holding the template, then generate as that rep and confirm no content-access error].
+Child row order can vary between runs of the same quote [Open: generate the same quote three times and diff the child row order].
 
 ## Blank paragraphs and locked sections
 

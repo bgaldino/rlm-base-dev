@@ -184,9 +184,9 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   also needs Read on Approval Work Item [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
   ([matrix-modeling.md](matrix-modeling.md) §4).
 - Which Approval Settings a fresh scratch org has on: settled (see *Setup*).
-- Whether a Resource-type approver works at runtime: it does, with a username or a group or queue API
-  name; there is no manager-hierarchy approver ([approval-operations.md](approval-operations.md))
-  [Measured: same]. [Open: a resource that yields the submitter's manager's username.]
+- Whether a Resource-type approver works at runtime: settled, see
+  [approval-operations.md](approval-operations.md) → Approver and step settings.
+  [Open: a resource that yields the submitter's manager's username.]
 - Whether a roll-up summary, picklist or Percent-formula condition passes the Smart Approvals type
   check: on resubmission after a Director rejection, steps whose condition read a roll-up summary
   (Number), a picklist and a percent formula auto-approved like a Text control, with values equal
@@ -195,6 +195,7 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Whether `ApprovalDelegation` appears once delegation is turned on: it does
   ([approval-operations.md](approval-operations.md) → Delegation) [Measured: same]. [Open: routing
   of a live work item to the delegate.]
+
 ## Open questions (not settled by the docs or a measured run)
 
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`

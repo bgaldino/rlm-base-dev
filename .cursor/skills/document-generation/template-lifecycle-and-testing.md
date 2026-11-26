@@ -117,9 +117,7 @@ python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input ex
 python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
 python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/e.json --org dev-scratch
 
-# Full end-to-end document generation (DGP: Extract → Transform → .docx → PDF)
-python scripts/docgen/docgen_template_generate.py \
-  --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
+# Full end-to-end generation: see the docgen_template_generate.py examples under Helper scripts below
 ```
 
 Use this for:

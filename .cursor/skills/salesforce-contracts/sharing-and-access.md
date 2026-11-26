@@ -58,5 +58,5 @@ two rules matching one user.]
 
 - Confidential contract data that must be private per user: keep it on a custom object or record type with a private default,
   related to Account. The cost is losing standard Contract features and the order and asset linkage [Open: design guidance, not built].
-- Blocking edits by profile or status with a validation rule or trigger is not a sharing control: reads stay open [Platform behaviour, traced].
+- Blocking edits by profile or status with a validation rule or trigger is not a sharing control: reads stay open [inferred: a validation rule runs on write only].
 - Independent Contract default and rules are a platform sharing change, not a repo setting [Open: no platform setting was found in the Help snapshot].
