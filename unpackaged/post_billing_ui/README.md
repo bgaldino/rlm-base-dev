@@ -252,22 +252,36 @@ own amounts, and before this the cards, promises and the High-Value and Disputed
 of several currencies as if they were one, or showed a chosen currency's amounts converted to the
 corporate one. Now every amount is read as a row with its `CurrencyIsoCode` and converted in Apex to
 the page currency, at today's dated rate where advanced currency management has one, else the standard
-rate, as the on-account cards do (pack 452); a currency with no rate makes the figure unavailable,
-never converted at 1. The Critical list's 2000 threshold is 2000 in the page currency (one condition
-per currency, `balanceAtLeast`), progress and the user's plans are shown in the page currency too
-(choosing a currency re-reads them), and on a multi-currency org the page says "Amounts in USD.
-Amounts recorded in another currency are converted at the org's conversion rates." A single-currency
-org reads and shows its amounts as they are, with no note.
+rate, as the on-account cards do (pack 452: the same rate rule, `effectiveRate` in
+`RLM_OnAccountBillingController`). A currency with no rate, or dated rates the user cannot read in an
+org that has them, makes the figure unavailable, never converted at 1, and the page says why rather
+than to refresh: "Amounts in other currencies cannot be converted: the conversion rates could not be
+read. Contact your administrator." (reason `noRates`). The Critical list's 2000 threshold is 2000 in
+the page currency: with no currency chosen, one condition per currency (`balanceAtLeast`); with one
+chosen, the read is filtered to it, so the plain threshold applies and no rate is read. Partly settled
+or not is decided on each invoice's own amounts; only the sums are converted. Progress and the user's
+plans are shown in the page currency too (choosing a currency re-reads them; they still convert any
+plan in another currency). Every section says which currency its answer is in, and the page formats
+its amounts in that currency, not the browser's guess, showing none before the answer arrives. On a
+multi-currency org the page says "Amounts in USD. Amounts recorded in another currency are converted at
+the org's conversion rates." A single-currency org reads and shows its amounts as they are, with no
+note. Measured on 264 (2026-11-26): the collections user (the Billing Collections and Recovery
+Specialist set and `RLM_CollectionsDashboard` only) reads `DatedConversionRate` (none there: advanced
+currency management has no dated rates on that org) and `CurrencyType` in USER_MODE.
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does: when the Account read is refused or fails, and when the account is
 missing from it because sharing hides it from the user (Account.Name is required, so a missing account
 is a hidden one), as plain text with no link to the account, whose page the user could not open. A row
-with no account at all shows "—".
+with no account at all shows "—". The Critical list's bill-to contact follows the same rule: its name,
+read in USER_MODE for the listed rows in one batch, "Not available" as plain text when it is refused,
+fails or the contact is hidden, "—" with no contact. The collection plan is labelled by its name, not
+its record Id. Measured on 264 (2026-11-26): the collections user reads `Contact.Name`, so
+`RLM_CollectionsDashboard` grants nothing more for it.
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
 adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one. Sums are read as rows
-and added in Apex (see the currency paragraph below), which costs the same rows. A SOQL for loop over a list (`for
+and added in Apex (see the currency paragraph above), which costs the same rows. A SOQL for loop over a list (`for
 (List<Case> chunk : ...)`) fetches 200-row chunks and is charged for what it fetched: one that stopped
 after its first chunk of a 500-row result was charged 400 rows, not 500 (measured 2026-11-26); a loop
 over single rows of `Database.query` or `Database.queryWithBinds` was charged all 500. The Disputed

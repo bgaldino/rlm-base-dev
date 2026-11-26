@@ -23,6 +23,10 @@ const FAILED = 'failed';
 // More rows than a bounded read may take (the controller's ROW_CAP, or what is left of the call's query
 // rows): the figure or list would be built from a cut-off read, so narrow the filters instead.
 const TOO_MANY = 'tooMany';
+// Amounts in another currency could not be converted (the conversion rates could not be read): not something a
+// refresh fixes.
+const NO_RATES = 'noRates';
+const NO_RATES_TEXT = 'Amounts in other currencies cannot be converted: the conversion rates could not be read. Contact your administrator.';
 const SUBJECTS = {
     accounts: 'accounts',
     invoices: 'invoices',
@@ -86,6 +90,7 @@ function tooManyText(scope, active) {
 
 function unavailableText(subject, reason, scope, active) {
     if (reason === REFUSED) return `You don't have access to ${subject}.`;
+    if (reason === NO_RATES) return NO_RATES_TEXT;
     if (reason === TOO_MANY) return tooManyText(scope, active);
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
@@ -121,6 +126,11 @@ function noteClauses(scope, active) {
             short: tooManyShort,
             action: narrowing || undefined
         },
+        [NO_RATES]: {
+            alone: 'the conversion rates for their currencies could not be read. Contact your administrator.',
+            short: 'conversion rates could not be read',
+            action: 'Contact your administrator.'
+        },
         [FAILED]: {
             alone: 'they could not be loaded. Refresh the page to try again.',
             short: 'could not be loaded',
@@ -128,7 +138,7 @@ function noteClauses(scope, active) {
         }
     };
 }
-const NOTE_ORDER = [REFUSED, TOO_MANY, FAILED];
+const NOTE_ORDER = [REFUSED, TOO_MANY, NO_RATES, FAILED];
 
 function listNames(names) {
     return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
@@ -150,7 +160,7 @@ const LOADING_TEXT = 'Loading\u2026';
 const NOT_AVAILABLE_CELL = 'Not available';
 
 function knownReason(reason) {
-    return reason === REFUSED || reason === TOO_MANY ? reason : FAILED;
+    return reason === REFUSED || reason === TOO_MANY || reason === NO_RATES ? reason : FAILED;
 }
 
 function unavailableState(reason) {
@@ -384,6 +394,23 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     // Every amount on the page is in one currency (the chosen one, or else the user's); on a multi-currency org,
     // amounts recorded in another currency are converted, and the page says so.
+    // The currency each section's answer says its amounts are in.
+    get cardsCurrency() {
+        return this.dashboardData?.currencyCode;
+    }
+
+    get promisesCurrency() {
+        return this.paymentPromiseState?.currencyCode;
+    }
+
+    get worklistCurrency() {
+        return this.worklistData?.currencyCode;
+    }
+
+    get plansCurrency() {
+        return this.myCollectionPlansState?.currencyCode;
+    }
+
     get currencyNote() {
         const data = this.dashboardData;
         if (!data || !data.multiCurrency || !data.currencyCode) return '';
@@ -643,12 +670,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         );
     }
 
-    formatCurrency(val) {
+    // Formats an amount in the currency its section's answer is in (the server's page currency). A section shows
+    // amounts only once it has answered, so its currency is known; displayCurrency is only a fallback.
+    formatCurrency(val, currencyCode) {
         const n = Number(val);
         if (isNaN(n)) return '0';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: this.displayCurrency || 'USD',
+            currency: currencyCode || this.displayCurrency || 'USD',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(n);
@@ -749,7 +778,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData.totalBalanceBreakdown.map((b) => ({
             ...b,
             amount: b.amount != null ? b.amount : 0,
-            formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0),
+            formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0, this.cardsCurrency),
             title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), this.cardsScope(b.unavailable), this.activeFilters) : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
@@ -766,13 +795,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     get partiallySettledLabel() {
         const c = this.dashboardData?.partiallySettledCount ?? 0;
         const s = this.dashboardData?.partiallySettledSum ?? 0;
-        return `Partially settled: ${c} (${this.formatCurrency(s)})`;
+        return `Partially settled: ${c} (${this.formatCurrency(s, this.cardsCurrency)})`;
     }
 
     get notSettledLabel() {
         const c = this.dashboardData?.notSettledCount ?? 0;
         const s = this.dashboardData?.notSettledSum ?? 0;
-        return `Not settled: ${c} (${this.formatCurrency(s)})`;
+        return `Not settled: ${c} (${this.formatCurrency(s, this.cardsCurrency)})`;
     }
 
     get currentDueValue() {
@@ -798,23 +827,23 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     // Pre-formatted KPI values: LWC templates can't call methods in bindings (LWC1060),
     // so currency formatting is done here and bound as plain properties.
     get receivablesOutstandingFormatted() {
-        return figureText(this.sections.invoices, () => this.formatCurrency(this.receivablesOutstandingValue));
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.receivablesOutstandingValue, this.cardsCurrency));
     }
 
     get currentDueFormatted() {
-        return figureText(this.sections.invoices, () => this.formatCurrency(this.currentDueValue));
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.currentDueValue, this.cardsCurrency));
     }
 
     get overdueFormatted() {
-        return figureText(this.sections.invoices, () => this.formatCurrency(this.overdueValue));
+        return figureText(this.sections.invoices, () => this.formatCurrency(this.overdueValue, this.cardsCurrency));
     }
 
     get unappliedPaymentBalanceFormatted() {
-        return figureText(this.sections.payments, () => this.formatCurrency(this.unappliedPaymentBalanceValue));
+        return figureText(this.sections.payments, () => this.formatCurrency(this.unappliedPaymentBalanceValue, this.cardsCurrency));
     }
 
     get totalBalanceFormatted() {
-        return figureText(this.sections.total, () => this.formatCurrency(this.totalBalanceValue));
+        return figureText(this.sections.total, () => this.formatCurrency(this.totalBalanceValue, this.cardsCurrency));
     }
 
     get agingBuckets() {
@@ -830,7 +859,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return {
                 ...b,
                 amount: amt,
-                formatted: this.formatCurrency(amt),
+                formatted: this.formatCurrency(amt, this.cardsCurrency),
                 widthPercent: width,
                 segmentStyle: `width: ${width}%; background-color: ${bg}; min-width: 2px;`,
                 dotStyle: `background-color: ${bg};`,
@@ -864,11 +893,11 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                     status: b.status,
                     label: b.status,
                     amount: amt,
-                    formatted: this.formatCurrency(amt),
+                    formatted: this.formatCurrency(amt, this.promisesCurrency),
                     itemCount: b.itemCount || 0,
                     segmentStyle: `width: ${width}%; background-color: ${bg}; min-width: 4px;`,
                     dotStyle: `background-color: ${bg};`,
-                    tooltip: `${b.status}: ${this.formatCurrency(amt)} (${b.itemCount || 0} items)`
+                    tooltip: `${b.status}: ${this.formatCurrency(amt, this.promisesCurrency)} (${b.itemCount || 0} items)`
                 };
             });
     }
@@ -902,7 +931,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
 
     get paymentPromisesTotal() {
         const total = this.paymentPromiseData.reduce((sum, b) => sum + (Number(b.totalRequestedAmount) || 0), 0);
-        return this.formatCurrency(total);
+        return this.formatCurrency(total, this.promisesCurrency);
     }
 
     get worklistItems() {
@@ -928,13 +957,16 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return list.map((item, idx) => ({
                 ...item,
                 uniqueKey: `critical-inv-${item.invoiceId || idx}`,
-                balanceFormatted: this.formatCurrency(item.balance),
+                balanceFormatted: this.formatCurrency(item.balance, this.worklistCurrency),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
                 // A name the user may not read (refused, or hidden by sharing) is plain text: its record would
                 // open on an insufficient-privileges page.
                 accountUrl: item.billingAccountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
                 billingAccountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.billingAccountName,
-                contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
+                // The contact's name; one the user may not read (refused, or hidden by sharing) is plain text.
+                contactUrl: item.billToContactId && !item.billToContactNameUnavailable ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
+                billToContactLabel: this.contactLabel(item),
+                collectionPlanLabel: item.collectionPlanName || NOT_AVAILABLE,
                 collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
                 ...this.planCell(item)
             }));
@@ -948,7 +980,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 ...item,
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
                 accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
-                balanceFormatted: this.formatCurrency(item.balance),
+                balanceFormatted: this.formatCurrency(item.balance, this.worklistCurrency),
                 accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
                 invoiceNumber: null,
                 invoiceUrl: null,
@@ -956,10 +988,18 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 disputeReasonShort: disputeReasonShort || '—',
                 disputeReason: disputeReason || '',
                 collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
+                collectionPlanLabel: item.collectionPlanName || NOT_AVAILABLE,
                 caseUrl: item.caseId ? `/lightning/r/Case/${item.caseId}/view` : null,
                 ...this.planCell(item)
             };
         });
+    }
+
+    // The bill-to contact column: the contact's name, "Not available" when it could not be read, "—" for none.
+    contactLabel(item) {
+        if (!item.billToContactId) return NOT_AVAILABLE;
+        if (item.billToContactNameUnavailable || !item.billToContactName) return NOT_AVAILABLE_CELL;
+        return item.billToContactName;
     }
 
     // The plan column of a worklist row: a plan the lookup could not read is "Not available" and offers no
@@ -1104,7 +1144,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
             accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
             dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : '—',
-            toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance)
+            toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance, this.plansCurrency)
         }));
     }
 
@@ -1166,14 +1206,17 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return Number(this.collectionsProgressData.notRecoveredPercent) || 0;
     }
 
+    // No amount before the server has said which currency it is in.
     get progressRecoveredAmount() {
-        if (!this.collectionsProgressData) return this.formatCurrency(0);
-        return this.formatCurrency(this.collectionsProgressData.recoveredAmount);
+        const data = this.collectionsProgressData;
+        if (!data || !data.currencyCode) return '';
+        return this.formatCurrency(data.recoveredAmount, data.currencyCode);
     }
 
     get progressNotRecoveredAmount() {
-        if (!this.collectionsProgressData) return this.formatCurrency(0);
-        return this.formatCurrency(this.collectionsProgressData.notRecoveredAmount);
+        const data = this.collectionsProgressData;
+        if (!data || !data.currencyCode) return '';
+        return this.formatCurrency(data.notRecoveredAmount, data.currencyCode);
     }
 
     get progressAvgDaysToClose() {

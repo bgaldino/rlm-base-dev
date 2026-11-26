@@ -149,9 +149,11 @@ private class RLM_BillingUIAccessTest {
         'PaymentSchedule' => new List<String>{ 'CollectionPlanItemId' },
         'CollectionPlan' => new List<String>{
             'Name', 'AccountId', 'Duedate', 'TotalInvoiceBalance', 'OwnerId', 'ClosedDate',
-            'CreatedDate', 'DaysPastDue'
+            'CreatedDate', 'DaysPastDue', 'CurrencyIsoCode'
         },
-        'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' }
+        'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' },
+        // The Collections Dashboard converts amounts at today's dated rates where there are any (todo 435).
+        'DatedConversionRate' => new List<String>{ 'IsoCode', 'ConversionRate', 'StartDate', 'NextStartDate' }
     };
 
     // What the Collections Dashboard controller reads, for a collections user who holds RLM_CollectionsDashboard
@@ -160,7 +162,11 @@ private class RLM_BillingUIAccessTest {
     // 264); collectionsUserCannotReadDebitMemos pins that.
     private static final Map<String, List<String>> DASHBOARD_READS = new Map<String, List<String>>{
         'Account' => new List<String>{ 'Name' },
+        // The Critical list's bill-to contact names.
+        'Contact' => new List<String>{ 'Name' },
         'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive', 'ConversionRate' },
+        // Today's dated rates, where advanced currency management has the object.
+        'DatedConversionRate' => new List<String>{ 'IsoCode', 'ConversionRate', 'StartDate', 'NextStartDate' },
         'Invoice' => new List<String>{
             'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'BillingAccountId',
             'BillToContactId', 'Status', 'CurrencyIsoCode'
@@ -353,7 +359,7 @@ private class RLM_BillingUIAccessTest {
         Boolean multiCurrency = UserInfo.isMultiCurrencyOrganization();
         List<String> failures = new List<String>();
         for (String obj : manifest.keySet()) {
-            if (obj == 'CurrencyType' && !multiCurrency) {
+            if ((obj == 'CurrencyType' || obj == 'DatedConversionRate') && !multiCurrency) {
                 continue;
             }
             List<String> fields = new List<String>{ 'Id' };

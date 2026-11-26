@@ -179,16 +179,13 @@
                                                 <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
                                                 <td>
                                                     <template if:true={row.contactUrl}>
-                                                        <a href={row.contactUrl} class="customer-name">{row.billToContactId}</a>
+                                                        <a href={row.contactUrl} class="customer-name">{row.billToContactLabel}</a>
                                                     </template>
-                                                    <template if:false={row.contactUrl}>
-                                                        <template if:true={row.billToContactId}>{row.billToContactId}</template>
-                                                        <template if:false={row.billToContactId}>—</template>
-                                                    </template>
+                                                    <template if:false={row.contactUrl}>{row.billToContactLabel}</template>
                                                 </td>
                                                 <td class="num">
                                                     <template if:true={row.collectionPlanUrl}>
-                                                        <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                        <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanLabel}</a>
                                                     </template>
                                                     <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
                                                 </td>
@@ -203,7 +200,12 @@
                                             <template if:false={worklistTabCriticalActive}>
                                                 <td>
                                                     <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
-                                                    <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
+                                                    <template if:true={row.accountUrl}>
+                                                        <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
+                                                    </template>
+                                                    <template if:false={row.accountUrl}>
+                                                        <span>{row.accountName}</span>
+                                                    </template>
                                                 </td>
                                                 <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysOverdue}>{row.daysOverdue}</template><template if:false={row.daysOverdue}>—</template></td>
@@ -212,7 +214,7 @@
                                                 <template if:true={showActionButtons}>
                                                     <td class="num">
                                                         <template if:true={row.collectionPlanUrl}>
-                                                            <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanId}</a>
+                                                            <a href={row.collectionPlanUrl} class="customer-name">{row.collectionPlanLabel}</a>
                                                         </template>
                                                         <template if:false={row.collectionPlanUrl}>{row.planCellText}</template>
                                                     </td>

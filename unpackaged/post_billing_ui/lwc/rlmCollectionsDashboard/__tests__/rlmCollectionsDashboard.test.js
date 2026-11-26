@@ -1029,13 +1029,20 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     await flushPromises();
 
     const accountLinks = () => Array.from(element.shadowRoot.querySelectorAll("a")).filter((a) => (a.getAttribute("href") || "").includes("/Account/"));
+    // No anchor at all for the name, with or without an href (a link-styled anchor with no href still reads as one).
+    const nameAnchors = () => Array.from(element.shadowRoot.querySelectorAll("a.customer-name")).filter((a) => a.textContent.includes("Not available"));
+    const rowAnchors = () => Array.from(element.shadowRoot.querySelectorAll(".worklist-table tbody tr a.customer-name"));
     expect(accountLinks()).toEqual([]);
+    expect(nameAnchors()).toEqual([]);
     expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
     await openTab(element, "highValue");
     expect(accountLinks()).toEqual([]);
+    expect(rowAnchors()).toEqual([]);
     await openTab(element, "disputed");
     expect(accountLinks()).toEqual([]);
+    expect(rowAnchors()).toEqual([]);
     expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
+    expect(nameAnchors()).toEqual([]);
   });
 
   // On a multi-currency org the page says which currency its amounts are in, and that others are converted.
@@ -1069,5 +1076,68 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
 
     expect(text(element, ".progress-empty")).toEqual([]);
     expect(text(element, ".my-cp-empty")).toEqual([]);
+  });
+
+  // Amounts are in the currency the server says each section is in, not the client's default.
+  it("formats the cards in the server's page currency when the default currency call fails", async () => {
+    const element = await mount({ after: () => getOrgDefaultCurrency.mockRejectedValue(new Error("down")) });
+    getDashboardCards.emit({ ...cards(), currencyCode: "EUR", multiCurrency: true });
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-value").textContent).toBe("€1,455.00");
+  });
+
+  it("shows no progress amount before the server says its currency", async () => {
+    const element = await mount();
+    getCollectionsProgress.emit({ totalPlans: 1, recoveredCount: 1, notRecoveredCount: 0, recoveredAmount: 50, notRecoveredAmount: 0,
+      recoveredPercent: 100, notRecoveredPercent: 0, avgDaysToClose: 1, avgDaysPastDue: 1, unavailable: false });
+    await flushPromises();
+    expect(element.shadowRoot.textContent).not.toContain("$50.00");
+
+    getCollectionsProgress.emit({ totalPlans: 1, recoveredCount: 1, notRecoveredCount: 0, recoveredAmount: 50, notRecoveredAmount: 0,
+      recoveredPercent: 100, notRecoveredPercent: 0, avgDaysToClose: 1, avgDaysPastDue: 1, unavailable: false, currencyCode: "GBP" });
+    await flushPromises();
+    expect(element.shadowRoot.textContent).toContain("£50.00");
+  });
+
+  // Conversion rates that cannot be read are named as the cause, not "refresh the page".
+  it("says the conversion rates could not be read, not to refresh", async () => {
+    const element = await mount();
+    getDashboardCards.emit(cards(["invoices"], { invoices: "noRates" }));
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(
+      "Amounts in other currencies cannot be converted: the conversion rates could not be read. Contact your administrator."
+    );
+  });
+
+  // The bill-to contact and the collection plan are labelled by name, not by record Id.
+  it("labels the bill-to contact and the plan by name", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [
+        { invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", billToContactId: "003000000000001AAA", billToContactName: "Pat Lee",
+          collectionPlanId: "0Wn000000000001AAA", collectionPlanName: "CP-0001", collectionPlanUnavailable: false },
+        { invoiceId: "3tt000000000002AAA", invoiceNumber: "INV-2", balance: 2600, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", billToContactId: "003000000000002AAA", billToContactNameUnavailable: true,
+          collectionPlanUnavailable: false },
+        { invoiceId: "3tt000000000003AAA", invoiceNumber: "INV-3", balance: 2700, billingAccountId: "001000000000001AAA",
+          billingAccountName: "Acme", collectionPlanUnavailable: false }
+      ]
+    });
+    await flushPromises();
+
+    const rows = Array.from(element.shadowRoot.querySelectorAll(".worklist-table tbody tr"));
+    const contactLink = (tr) => Array.from(tr.querySelectorAll("a")).find((a) => (a.getAttribute("href") || "").includes("/Contact/"));
+    expect(contactLink(rows[0]).textContent).toBe("Pat Lee");
+    expect(rows[0].textContent).not.toContain("003000000000001AAA");
+    expect(rows[0].textContent).toContain("CP-0001");
+    expect(rows[0].textContent).not.toContain("0Wn000000000001AAA");
+    expect(contactLink(rows[1])).toBeUndefined();
+    expect(rows[1].textContent).toContain("Not available");
+    expect(rows[1].textContent).not.toContain("003000000000002AAA");
+    expect(contactLink(rows[2])).toBeUndefined();
   });
 });

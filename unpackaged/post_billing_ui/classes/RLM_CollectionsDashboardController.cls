@@ -121,8 +121,8 @@ public with sharing class RLM_CollectionsDashboardController {
     /** Payment Promises: total requested amount on PaymentScheduleItem by status (Ready for Processing, Draft, Failed, In Processing). */
     @AuraEnabled(cacheable=true)
     public static PaymentPromiseSummary getPaymentPromiseSummary(Id accountId, String currencyCode) {
-        usePageCurrency(currencyCode);
         PaymentPromiseSummary summary = new PaymentPromiseSummary();
+        summary.currencyCode = usePageCurrency(currencyCode);
         summary.filters = promiseFilters();
         List<PaymentPromiseBucket> buckets = summary.buckets;
         try {
@@ -156,6 +156,7 @@ public with sharing class RLM_CollectionsDashboardController {
             sectionSkipped('getPaymentPromiseSummary', e);
             PaymentPromiseSummary unreadable = new PaymentPromiseSummary();
             unreadable.filters = summary.filters;
+            unreadable.currencyCode = summary.currencyCode;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
@@ -170,6 +171,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // The filters the read applies (FILTER_*): what can narrow it when it has too many records.
         @AuraEnabled public List<String> filters { get; set; }
+        // The currency the amounts are in (usePageCurrency).
+        @AuraEnabled public String currencyCode { get; set; }
         public PaymentPromiseSummary() {
             buckets = new List<PaymentPromiseBucket>();
             unavailable = false;
@@ -348,7 +351,10 @@ public with sharing class RLM_CollectionsDashboardController {
 
         for (Invoice inv : unpaidInvoices) {
             Decimal bal = orZero(amountIn(inv, 'Balance'));
-            Decimal total = orZero(amountIn(inv, 'TotalAmount'));
+            // Partly settled or not is decided on the invoice's own amounts: converted and rounded, a 10,001 JPY
+            // invoice with 10,000 left could round to "nothing paid".
+            Decimal ownBalance = inv.Balance != null ? inv.Balance : 0;
+            Decimal ownTotal = inv.TotalAmount != null ? inv.TotalAmount : 0;
             sumUnpaidInvoiceBalance += bal;
             if (inv.DueDate != null) {
                 if (inv.DueDate >= today) {
@@ -366,7 +372,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 sumCurrentDue += bal;
                 agingCurrent += bal;
             }
-            if (total > 0 && bal > 0 && bal < total) {
+            if (ownTotal > 0 && ownBalance > 0 && ownBalance < ownTotal) {
                 partiallySettledCount++;
                 partiallySettledSum += bal;
             } else {
@@ -394,8 +400,8 @@ public with sharing class RLM_CollectionsDashboardController {
 
     @AuraEnabled(cacheable=true)
     public static WorklistData getWorklist(Id accountId, String currencyCode) {
-        usePageCurrency(currencyCode);
         WorklistData wl = new WorklistData();
+        wl.currencyCode = usePageCurrency(currencyCode);
         // Critical and High-Value read invoices by account and, where Invoice has it, currency. The Disputed
         // tab starts from open cases, which only the account narrows; buildDisputedFromCases switches its
         // entry to the invoice filters when its invoice rollup runs, so a tab with too many records names the
@@ -591,20 +597,30 @@ public with sharing class RLM_CollectionsDashboardController {
             }
         }
         RLM_AccountNames.Result accountNames = getAccountNames(billingAccountIds);
+        Set<Id> contactIds = new Set<Id>();
+        if (hasBillToContact) {
+            for (Invoice inv : invs) {
+                if (inv.get('BillToContactId') != null) contactIds.add((Id) inv.get('BillToContactId'));
+            }
+        }
+        RLM_AccountNames.Result contactNames = getContactNames(contactIds);
 
         Set<Id> invoiceIds = new Set<Id>();
         for (Invoice inv : invs) {
             if (inv.Id != null) invoiceIds.add(inv.Id);
         }
         Map<Id, Id> invoiceToCollectionPlan = new Map<Id, Id>();
+        Map<Id, String> planNames = new Map<Id, String>();
         Boolean planLookupFailed = false;
         if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
             try {
-                for (SObject row : boundedRows('SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null',
+                // The plan's name with it, so the row labels the plan by name, not by its Id.
+                for (SObject row : boundedRows('SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null',
                         new Map<String, Object>{ 'invoiceIds' => invoiceIds }, 'collection plan items')) {
                     CollectionPlanItem cpi = (CollectionPlanItem) row;
                     if (!invoiceToCollectionPlan.containsKey(cpi.InvoiceId)) {
                         invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
+                        if (cpi.CollectionPlan != null) planNames.put(cpi.CollectionPlanId, cpi.CollectionPlan.Name);
                     }
                 }
             } catch (Exception ex) { sectionSkipped('addCriticalFollowUps', ex); planLookupFailed = true; }
@@ -624,7 +640,11 @@ public with sharing class RLM_CollectionsDashboardController {
             );
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             row.collectionPlanUnavailable = planLookupFailed;
+            row.collectionPlanName = planNames.get(collectionPlanId);
             row.accountNameUnavailable = accountNames.unavailable(billingAcctId);
+            // The contact's name, or not available (refused, failed, or hidden by sharing); no contact: a dash.
+            row.billToContactName = billToContactId != null ? contactNames.names.get(billToContactId) : null;
+            row.billToContactNameUnavailable = contactNames.unavailable(billToContactId);
             wl.criticalFollowUpInvoices.add(row);
         }
     }
@@ -637,7 +657,13 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id billingAccountId { get; set; }
         @AuraEnabled public String billingAccountName { get; set; }
         @AuraEnabled public Id billToContactId { get; set; }
+        // The bill-to contact's name; billToContactNameUnavailable when it could not be read or the contact is
+        // hidden from the user (Contact.Name is required, so a contact missing from the read is a hidden one).
+        @AuraEnabled public String billToContactName { get; set; }
+        @AuraEnabled public Boolean billToContactNameUnavailable { get; set; }
         @AuraEnabled public Id collectionPlanId { get; set; }
+        // The plan's name, its label on the row (null when there is no plan or it could not be read).
+        @AuraEnabled public String collectionPlanName { get; set; }
         // True when the plan lookup was refused or failed: collectionPlanId null then is not "no plan".
         @AuraEnabled public Boolean collectionPlanUnavailable { get; set; }
         // True when the account names could not be read: the name is not available, not "none".
@@ -706,14 +732,16 @@ public with sharing class RLM_CollectionsDashboardController {
         }
         RLM_AccountNames.Result accountNames = getAccountNames(listedIds);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
+        Map<Id, String> planNames = new Map<Id, String>();
         Boolean planLookupFailed = false;
         if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
             try {
-                for (SObject cp : boundedRows('SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :listedIds AND AccountId != null',
+                for (SObject cp : boundedRows('SELECT Id, Name, AccountId FROM CollectionPlan WHERE AccountId IN :listedIds AND AccountId != null',
                         new Map<String, Object>{ 'listedIds' => listedIds }, 'collection plans')) {
                     Id planAccountId = (Id) cp.get('AccountId');
                     if (!accountToCollectionPlan.containsKey(planAccountId)) {
                         accountToCollectionPlan.put(planAccountId, (Id) cp.get('Id'));
+                        planNames.put((Id) cp.get('Id'), (String) cp.get('Name'));
                     }
                 }
             } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); planLookupFailed = true; }
@@ -723,6 +751,7 @@ public with sharing class RLM_CollectionsDashboardController {
             item.accountName = name != null ? name : '—';
             item.accountNameUnavailable = accountNames.unavailable(item.accountId);
             item.collectionPlanId = accountToCollectionPlan.get(item.accountId);
+            item.collectionPlanName = planNames.get(item.collectionPlanId);
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             item.collectionPlanUnavailable = planLookupFailed;
             wl.highValueDelinquents.add(item);
@@ -955,6 +984,10 @@ public with sharing class RLM_CollectionsDashboardController {
     @TestVisible private static final String REASON_FAILED = 'failed';
     // More rows than a bounded read may take: narrow the filters (todo 435).
     @TestVisible private static final String REASON_TOO_MANY = 'tooMany';
+    // Amounts in another currency could not be converted: the conversion rates could not be read, or a currency
+    // has none. Not something a refresh fixes; the page says to contact an administrator (as the on-account
+    // cards do, pack 452).
+    @TestVisible private static final String REASON_NO_RATES = 'noRates';
 
     // Bounded reads (todo 435). Every record read in this class goes through boundedRows (sums too, through
     // boundedSum: amounts are added here, see usePageCurrency), except the reads that carry their own small LIMIT (the critical
@@ -1050,6 +1083,8 @@ public with sharing class RLM_CollectionsDashboardController {
     // management has one, else the standard rate, as the on-account cards do (pack 452). A currency with no rate
     // makes the figure unavailable, never converted at 1. A single-currency org shows its amounts as they are.
     private static String pageCurrency;
+    // True when the user chose the page currency: the filtered reads then return only that currency's rows.
+    private static Boolean currencyChosen = false;
     private static Map<String, Decimal> standardRates;
     private static Map<String, Decimal> datedRates;
 
@@ -1059,7 +1094,8 @@ public with sharing class RLM_CollectionsDashboardController {
     // Sets, and returns, the currency this call's amounts are shown in.
     @TestVisible
     private static String usePageCurrency(String currencyCode) {
-        pageCurrency = String.isNotBlank(currencyCode) ? currencyCode : UserInfo.getDefaultCurrency();
+        currencyChosen = String.isNotBlank(currencyCode);
+        pageCurrency = currencyChosen ? currencyCode : UserInfo.getDefaultCurrency();
         return pageCurrency;
     }
 
@@ -1097,7 +1133,8 @@ public with sharing class RLM_CollectionsDashboardController {
     // threshold per currency, each the minimum converted into that currency.
     @TestVisible
     private static String balanceAtLeast(Decimal minimum) {
-        if (!multiCurrency() || pageCurrency == null) return 'Balance >= ' + minimum;
+        // With a currency chosen the read is filtered to it, so its own threshold applies and no rate is read.
+        if (!multiCurrency() || pageCurrency == null || currencyChosen) return 'Balance >= ' + minimum;
         loadRates();
         List<String> perCurrency = new List<String>();
         for (String iso : standardRates.keySet()) {
@@ -1158,6 +1195,9 @@ public with sharing class RLM_CollectionsDashboardController {
         if (e instanceof TooManyRowsException) {
             return REASON_TOO_MANY;
         }
+        if (e instanceof CurrencyConversionException) {
+            return REASON_NO_RATES;
+        }
         String message = e == null || e.getMessage() == null ? '' : e.getMessage();
         if (!(e instanceof QueryException)) {
             return REASON_FAILED;
@@ -1188,6 +1228,24 @@ public with sharing class RLM_CollectionsDashboardController {
     // marked not available (accountNameUnavailable), not "none", as is the name of an account the user cannot
     // see (RLM_AccountNames.Result.unavailable). The read returns at most one row per id, so
     // the ids are checked against the same allowance as a bounded read.
+    // The listed rows' bill-to contact names, read in USER_MODE as one batch (at most the CRITICAL_ROWS ids,
+    // checked against the same allowance as a bounded read). Refused or failed: unreadable, as for account names.
+    @TestVisible
+    private static RLM_AccountNames.Result getContactNames(Set<Id> contactIds) {
+        RLM_AccountNames.Result result = new RLM_AccountNames.Result();
+        if (contactIds == null || contactIds.isEmpty()) return result;
+        requireWithin(contactIds.size(), rowAllowance(), 'contacts');
+        try {
+            for (Contact c : [SELECT Id, Name FROM Contact WHERE Id IN :contactIds WITH USER_MODE]) {
+                result.names.put(c.Id, c.Name);
+            }
+        } catch (QueryException e) {
+            sectionSkipped('getContactNames', e);
+            result.unreadable = true;
+        }
+        return result;
+    }
+
     private static RLM_AccountNames.Result getAccountNames(Set<Id> accountIds) {
         requireWithin(accountIds.size(), rowAllowance(), 'accounts');
         return RLM_AccountNames.read(accountIds);
@@ -1203,6 +1261,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Date ptpDate { get; set; }
         @AuraEnabled public String disputeReason { get; set; }
         @AuraEnabled public Id collectionPlanId { get; set; }
+        // The plan's name, its label on the row (null when there is no plan or it could not be read).
+        @AuraEnabled public String collectionPlanName { get; set; }
         @AuraEnabled public Id caseId { get; set; }
         @AuraEnabled public String caseNumber { get; set; }
         // True when the plan or promise lookup was refused or failed: a null then is not "none".
@@ -1260,6 +1320,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Map<String, List<String>> hasMore { get; set; }
         // The filters each tab's reads apply (FILTER_*): what can narrow a tab with too many records.
         @AuraEnabled public Map<String, List<String>> filtersByTab { get; set; }
+        // The currency the balances are in (usePageCurrency).
+        @AuraEnabled public String currencyCode { get; set; }
         public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); hasMore = new Map<String, List<String>>(); filtersByTab = new Map<String, List<String>>(); }
     }
 
@@ -1434,8 +1496,9 @@ public with sharing class RLM_CollectionsDashboardController {
     // The user's own plans, not filtered by currency: their amounts are shown in the page currency (currencyCode,
     // or else the user's).
     public static MyCollectionPlanList getMyCollectionPlans(String currencyCode) {
-        usePageCurrency(currencyCode);
+        String planCurrency = usePageCurrency(currencyCode);
         MyCollectionPlanList planList = new MyCollectionPlanList();
+        planList.currencyCode = planCurrency;
         List<MyCollectionPlanItem> items = planList.items;
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return planList;
@@ -1459,27 +1522,32 @@ public with sharing class RLM_CollectionsDashboardController {
             for (SObject cp : plans) {
                 if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));
             }
-            RLM_AccountNames.Result planAccountNames = getAccountNames(planAccountIds);
-            for (SObject cp : plans) {
-                Id cpId = (Id) cp.get('Id');
-                String cpName = (String) cp.get('Name');
-                Date dueDate = (Date) cp.get('Duedate');
-                Decimal totalInvBal = orZero(amountIn(cp, 'TotalInvoiceBalance'));
-                Id accountId = (Id) cp.get(acctField);
-                String accountName = accountId != null ? planAccountNames.names.get(accountId) : null;
-                MyCollectionPlanItem item = new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal);
-                item.accountNameUnavailable = planAccountNames.unavailable(accountId);
-                items.add(item);
-            }
+            items.addAll(planItems(plans, acctField, getAccountNames(planAccountIds)));
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
             sectionSkipped('getMyCollectionPlans', e);
             MyCollectionPlanList unreadable = new MyCollectionPlanList();
+            unreadable.currencyCode = planCurrency;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
         }
         return planList;
+    }
+
+    // One row per plan, its amount in the page currency. Takes rows so a test can pass plans in another
+    // currency: TotalInvoiceBalance is computed by the platform and cannot be set on a test record.
+    @TestVisible
+    private static List<MyCollectionPlanItem> planItems(List<SObject> plans, String acctField, RLM_AccountNames.Result names) {
+        List<MyCollectionPlanItem> items = new List<MyCollectionPlanItem>();
+        for (SObject cp : plans) {
+            Id accountId = (Id) cp.get(acctField);
+            MyCollectionPlanItem item = new MyCollectionPlanItem((Id) cp.get('Id'), (String) cp.get('Name'), (Date) cp.get('Duedate'),
+                accountId, accountId != null ? names.names.get(accountId) : null, orZero(amountIn(cp, 'TotalInvoiceBalance')));
+            item.accountNameUnavailable = names.unavailable(accountId);
+            items.add(item);
+        }
+        return items;
     }
 
     // The user's plans, or unavailable (with its reason) when the plans could not be read.
@@ -1491,6 +1559,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Boolean hasMore { get; set; }
         // The filters the read applies (FILTER_*): none, it is the user's own plans.
         @AuraEnabled public List<String> filters { get; set; }
+        // The currency the amounts are in (usePageCurrency).
+        @AuraEnabled public String currencyCode { get; set; }
         public MyCollectionPlanList() {
             items = new List<MyCollectionPlanItem>();
             unavailable = false;
@@ -1503,56 +1573,65 @@ public with sharing class RLM_CollectionsDashboardController {
     // Every plan the user can read, not filtered by currency: the amounts are shown in the page currency
     // (currencyCode, or else the user's).
     public static CollectionsProgressData getCollectionsProgress(String currencyCode) {
-        usePageCurrency(currencyCode);
+        String progressCurrency = usePageCurrency(currencyCode);
         CollectionsProgressData result = new CollectionsProgressData();
+        result.currencyCode = progressCurrency;
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return result;
             List<CollectionPlan> plans = (List<CollectionPlan>) boundedRows(
                 'SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate' + currencySelect() + ' FROM CollectionPlan',
                 new Map<String, Object>(), 'collection plans');
-            if (plans.isEmpty()) return result;
-            Integer totalCount = plans.size();
-            Integer recoveredCount = 0;
-            Decimal recoveredAmount = 0;
-            Decimal notRecoveredAmount = 0;
-            Decimal totalDaysToClose = 0;
-            Integer closedWithDatesCount = 0;
-            Decimal totalDaysPastDue = 0;
-            Integer daysPastDueCount = 0;
-            for (CollectionPlan cp : plans) {
-                if (cp.ClosedDate != null) {
-                    recoveredCount++;
-                    recoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
-                    if (cp.CreatedDate != null) {
-                        totalDaysToClose += cp.CreatedDate.date().daysBetween(cp.ClosedDate);
-                        closedWithDatesCount++;
-                    }
-                } else {
-                    notRecoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
-                }
-                if (cp.DaysPastDue != null) {
-                    totalDaysPastDue += cp.DaysPastDue;
-                    daysPastDueCount++;
-                }
-            }
-            result.totalPlans = totalCount;
-            result.recoveredCount = recoveredCount;
-            result.notRecoveredCount = totalCount - recoveredCount;
-            result.recoveredAmount = recoveredAmount;
-            result.notRecoveredAmount = notRecoveredAmount;
-            result.recoveredPercent = totalCount > 0 ? (Decimal) recoveredCount * 100 / totalCount : 0;
-            result.notRecoveredPercent = totalCount > 0 ? (Decimal) (totalCount - recoveredCount) * 100 / totalCount : 0;
-            result.avgDaysToClose = closedWithDatesCount > 0 ? (totalDaysToClose / closedWithDatesCount).setScale(1) : 0;
-            result.avgDaysPastDue = daysPastDueCount > 0 ? (totalDaysPastDue / daysPastDueCount).setScale(1) : 0;
+            tallyProgress(result, plans);
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
             sectionSkipped('getCollectionsProgress', e);
             CollectionsProgressData unreadable = new CollectionsProgressData();
+            unreadable.currencyCode = progressCurrency;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
         }
         return result;
+    }
+
+    // The progress figures from the plans read, amounts in the page currency. Takes rows so a test can pass
+    // plans in another currency: TotalInvoiceBalance is computed by the platform and cannot be set on a test record.
+    @TestVisible
+    private static void tallyProgress(CollectionsProgressData result, List<CollectionPlan> plans) {
+        if (plans.isEmpty()) return;
+        Integer totalCount = plans.size();
+        Integer recoveredCount = 0;
+        Decimal recoveredAmount = 0;
+        Decimal notRecoveredAmount = 0;
+        Decimal totalDaysToClose = 0;
+        Integer closedWithDatesCount = 0;
+        Decimal totalDaysPastDue = 0;
+        Integer daysPastDueCount = 0;
+        for (CollectionPlan cp : plans) {
+            if (cp.ClosedDate != null) {
+                recoveredCount++;
+                recoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
+                if (cp.CreatedDate != null) {
+                    totalDaysToClose += cp.CreatedDate.date().daysBetween(cp.ClosedDate);
+                    closedWithDatesCount++;
+                }
+            } else {
+                notRecoveredAmount += orZero(amountIn(cp, 'TotalInvoiceBalance'));
+            }
+            if (cp.DaysPastDue != null) {
+                totalDaysPastDue += cp.DaysPastDue;
+                daysPastDueCount++;
+            }
+        }
+        result.totalPlans = totalCount;
+        result.recoveredCount = recoveredCount;
+        result.notRecoveredCount = totalCount - recoveredCount;
+        result.recoveredAmount = recoveredAmount;
+        result.notRecoveredAmount = notRecoveredAmount;
+        result.recoveredPercent = totalCount > 0 ? (Decimal) recoveredCount * 100 / totalCount : 0;
+        result.notRecoveredPercent = totalCount > 0 ? (Decimal) (totalCount - recoveredCount) * 100 / totalCount : 0;
+        result.avgDaysToClose = closedWithDatesCount > 0 ? (totalDaysToClose / closedWithDatesCount).setScale(1) : 0;
+        result.avgDaysPastDue = daysPastDueCount > 0 ? (totalDaysPastDue / daysPastDueCount).setScale(1) : 0;
     }
 
     public class CollectionsProgressData {
@@ -1571,6 +1650,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // The filters the read applies (FILTER_*): none, it covers every plan the user can read.
         @AuraEnabled public List<String> filters { get; set; }
+        // The currency the amounts are in (usePageCurrency).
+        @AuraEnabled public String currencyCode { get; set; }
         public CollectionsProgressData() {
             unavailable = false;
             filters = new List<String>();

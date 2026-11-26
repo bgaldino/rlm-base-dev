@@ -669,6 +669,108 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(highValueByAccount.get(hidden), 'High-Value: the hidden account\'s name is not available');
     }
 
+    // The Critical read on a multi-currency org runs with the threshold in each currency (none chosen), and with
+    // the plain threshold for a chosen currency.
+    @isTest
+    static void criticalRead_carriesTheThresholdInEachCurrency() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.executedSoql.clear();
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        String unchosen = RLM_CollectionsDashboardController.executedSoql.get('critical invoices');
+        RLM_CollectionsDashboardController.getWorklist(null, other);
+        String chosen = RLM_CollectionsDashboardController.executedSoql.get('critical invoices');
+        Test.stopTest();
+
+        Assert.isTrue(unchosen.contains('(CurrencyIsoCode = \'' + other + '\' AND Balance >= '),
+            'No currency chosen: the threshold per currency: ' + unchosen);
+        Assert.isTrue(chosen.contains('Balance >= 2000 ') && !chosen.contains('(CurrencyIsoCode = \''),
+            'A chosen currency: the plain threshold: ' + chosen);
+    }
+
+    // Partly settled or not is decided on the invoice's own amounts, not on converted, rounded ones.
+    @isTest
+    static void tallyInvoices_decidesSettlementOnTheInvoicesOwnAmounts() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String corporate = corporateCurrency();
+        // The currency with the highest rate: there 10,000 and 10,001 can round to the same converted amount.
+        CurrencyType highest = [SELECT IsoCode FROM CurrencyType WHERE IsActive = true ORDER BY ConversionRate DESC LIMIT 1];
+        if (highest.IsoCode == corporate || converted(10000, highest.IsoCode, corporate) != converted(10001, highest.IsoCode, corporate)) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: no currency where 10,000 and 10,001 convert to the same amount');
+            return;
+        }
+        RLM_CollectionsDashboardController.usePageCurrency(corporate);
+        RLM_CollectionsDashboardController.CollectionsDashboardData data = new RLM_CollectionsDashboardController.CollectionsDashboardData();
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 10000, 'TotalAmount' => 10001, 'DueDate' => Date.newInstance(2026, 7, 30),
+                'CurrencyIsoCode' => highest.IsoCode })
+        };
+
+        RLM_CollectionsDashboardController.tallyInvoices(data, invoices, Date.newInstance(2026, 6, 30));
+
+        Assert.areEqual(1, data.partiallySettledCount, 'One unit paid of 10,001: partly settled, though it rounds away converted');
+        assertAmount(converted(10000, highest.IsoCode, corporate), data.receivablesOutstanding, 'The sum is converted');
+    }
+
+    // My Plans and progress amounts are in the page currency. TotalInvoiceBalance is computed by the platform and
+    // cannot be set on a test record, so the plans are built as rows, as the invoices are.
+    @isTest
+    static void planAmountsInAnotherCurrency_areConverted() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
+        String corporate = corporateCurrency();
+        String prefix = CollectionPlan.SObjectType.getDescribe().getKeyPrefix();
+        List<CollectionPlan> plans = (List<CollectionPlan>) JSON.deserialize(JSON.serialize(new List<Map<String, Object>>{
+            new Map<String, Object>{ 'attributes' => new Map<String, Object>{ 'type' => 'CollectionPlan' },
+                'Id' => prefix + '000000000001', 'Name' => 'CP-1', 'TotalInvoiceBalance' => 100, 'CurrencyIsoCode' => other,
+                'ClosedDate' => '2026-06-10', 'CreatedDate' => '2026-06-01T00:00:00.000+0000' },
+            new Map<String, Object>{ 'attributes' => new Map<String, Object>{ 'type' => 'CollectionPlan' },
+                'Id' => prefix + '000000000002', 'Name' => 'CP-2', 'TotalInvoiceBalance' => 100, 'CurrencyIsoCode' => corporate }
+        }), List<CollectionPlan>.class);
+        RLM_CollectionsDashboardController.usePageCurrency(corporate);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = new RLM_CollectionsDashboardController.CollectionsProgressData();
+
+        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> items =
+            RLM_CollectionsDashboardController.planItems(plans, 'AccountId', new RLM_AccountNames.Result());
+        RLM_CollectionsDashboardController.tallyProgress(progress, plans);
+
+        assertAmount(converted(100, other, corporate), items[0].totalInvoiceBalance, 'My Plans: the plan in ' + other + ' converted');
+        assertAmount(100, items[1].totalInvoiceBalance, 'My Plans: the plan in the page currency as it is');
+        assertAmount(converted(100, other, corporate), progress.recoveredAmount, 'Progress: the closed plan converted');
+        assertAmount(100, progress.notRecoveredAmount, 'Progress: the open plan as it is');
+    }
+
+    // The bill-to contact's name, or not available when it cannot be read or is hidden; no contact, nothing.
+    @isTest
+    static void criticalRows_labelTheBillToContactByName() {
+        if (!Invoice.SObjectType.getDescribe().fields.getMap().containsKey('BillToContactId')) return;
+        Account acc = newAccount('RLM CD Contact');
+        Contact pat = new Contact(LastName = 'Lee', FirstName = 'Pat', AccountId = acc.Id);
+        insert pat;
+        Id hidden = Id.valueOf(Contact.SObjectType.getDescribe().getKeyPrefix() + '000000000777');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id, 'BillToContactId' => pat.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id, 'BillToContactId' => hidden }),
+            invoice(new Map<String, Object>{ 'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => acc.Id })
+        };
+        RLM_CollectionsDashboardController.WorklistData wl = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.addCriticalFollowUps(wl, invoices, true, today);
+        Test.stopTest();
+
+        Assert.areEqual('Pat Lee', wl.criticalFollowUpInvoices[0].billToContactName, 'The contact is labelled by name');
+        Assert.isFalse(wl.criticalFollowUpInvoices[0].billToContactNameUnavailable, 'A read name is available');
+        Assert.isTrue(wl.criticalFollowUpInvoices[1].billToContactNameUnavailable, 'A contact missing from the read is not available');
+        Assert.isNull(wl.criticalFollowUpInvoices[2].billToContactName, 'No contact: no name');
+        Assert.isFalse(wl.criticalFollowUpInvoices[2].billToContactNameUnavailable, 'No contact: a dash, not "not available"');
+    }
+
     // ---- High-Value ranking (todo 435) ----
 
     @isTest
@@ -760,9 +862,10 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void cardAmountsInSeveralCurrencies_areShownInOneCurrency() {
         if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
         Account acc = newAccount('RLM CD Currencies');
         String corporate = corporateCurrency();
-        String other = anotherCurrency(corporate);
         insert new List<Payment>{ payment(acc.Id, 100, 'Processed', corporate), payment(acc.Id, 100, 'Processed', other) };
         String userCurrency = UserInfo.getDefaultCurrency();
 
@@ -782,9 +885,10 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void promiseBucketsInSeveralCurrencies_areShownInOneCurrency() {
         if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String other = convertibleCurrency();
+        if (other == null) return;
         Account acc = newAccount('RLM CD Promise Currencies');
         String corporate = corporateCurrency();
-        String other = anotherCurrency(corporate);
         // A schedule item takes its schedule's currency (the platform refuses another): one schedule per currency.
         PaymentSchedule inCorporate = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = corporate);
         PaymentSchedule inOther = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = other);
@@ -815,18 +919,26 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void balanceAtLeast_isTheThresholdInEachCurrency() {
         if (!UserInfo.isMultiCurrencyOrganization()) return;
-        String corporate = corporateCurrency();
-        String other = anotherCurrency(corporate);
-        RLM_CollectionsDashboardController.usePageCurrency(corporate);
-
+        String other = convertibleCurrency();
+        if (other == null) return;
+        // No currency chosen: the page currency is the user's.
+        RLM_CollectionsDashboardController.usePageCurrency(null);
+        String userCurrency = UserInfo.getDefaultCurrency();
         String clause = RLM_CollectionsDashboardController.balanceAtLeast(2000);
+        RLM_CollectionsDashboardController.usePageCurrency(other);
+        String chosen = RLM_CollectionsDashboardController.balanceAtLeast(2000);
 
-        Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + corporate + '\' AND Balance >= 2000.00)'), clause);
-        Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + other + '\' AND Balance >= ' + converted(2000, corporate, other) + ')'),
-            'The threshold converted into ' + other + ': ' + clause);
+        Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + userCurrency + '\' AND Balance >= 2000.00)'), clause);
+        if (other != userCurrency) {
+            Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + other + '\' AND Balance >= ' + converted(2000, userCurrency, other) + ')'),
+                'The threshold converted into ' + other + ': ' + clause);
+        }
+        // A chosen currency: the read is filtered to it, so its own threshold, with no rates needed.
+        Assert.areEqual('Balance >= 2000', chosen, 'A chosen currency needs no conversion');
     }
 
-    // A currency with no rate makes the figure unavailable (a failure), never converted at 1.
+    // A currency with no rate makes the figure unavailable, never converted at 1, for a reason a refresh does
+    // not fix: the conversion rates (noRates).
     @isTest
     static void anAmountInACurrencyWithNoRate_isNotConvertedAtOne() {
         if (!UserInfo.isMultiCurrencyOrganization()) return;
@@ -835,8 +947,8 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.toPageCurrency(100, 'XXX');
             Assert.fail('No rate for XXX: not converted');
         } catch (RLM_CollectionsDashboardController.CurrencyConversionException e) {
-            Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(e),
-                'The figure could not be loaded');
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_NO_RATES, RLM_CollectionsDashboardController.reasonFor(e),
+                'The rates are the cause, not something a refresh fixes');
         }
     }
 
@@ -1136,10 +1248,9 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // PaymentScheduleItem is Apex-createable (unlike Invoice/BillingScheduleGroup), so the
-    // promise-summary aggregation can be exercised with real data. Two Draft items under a Draft
-    // schedule drive the SUM(RequestedAmount)/COUNT(Id) GROUP BY Status path; a third Draft item
-    // on another account shows the account filter leaves it out.
-    // A grouped SUM comes back in the corporate currency, so the items are created in it.
+    // promise-summary grouping can be exercised with real data. Two Draft items under a Draft
+    // schedule are added up and counted by Status; a third Draft item on another account shows the
+    // account filter leaves it out. The items are in the corporate currency, the page currency here.
     @isTest
     static void getPaymentPromiseSummary_withSeededItems_aggregatesByStatus() {
         Account acc = new Account(Name = 'RLM Promise Summary Test');
@@ -1178,8 +1289,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // The currency filter: an item in the corporate currency is summed under that currency and
     // left out under any other; with the account filter too, another account's item in the same
-    // currency is left out. The SUM is grouped by Status, so it comes back in the corporate
-    // currency whoever runs it, and the items are created in it.
+    // currency is left out. The items are in the corporate currency.
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
@@ -1245,10 +1355,9 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // A Sale payment with a balance is an unapplied payment: it is counted and filtered by account
-    // and currency like every card (always checked). The balance checks -- the unapplied balance,
-    // the lower total balance and total outstanding, and the filtered balances -- compare ungrouped
-    // SUMs, so they run only when the running user's currency is the corporate one (see
-    // userCurrencyIsCorporate), and are skipped with a warning otherwise.
+    // and currency like every card. The balances are in the page currency: unfiltered, the user's (the
+    // payment converted from the corporate currency, unchanged when the two are the same); with the payment's
+    // currency chosen, the payment as it is.
     @isTest
     static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_balancesWhenTheUserCurrencyIsCorporate() {
         Account payer = newAccount('RLM CD Payer');
@@ -1306,18 +1415,17 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount,
             'A payment in ' + paymentCurrency + ' is not counted under ' + otherCurrency + '.');
 
-        if (userCurrencyIsCorporate()) {
-            assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
-            assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
-            assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
-            assertAmount(-expected, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
-                'Unapplied payments are shown as a reduction.');
-            assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
-                'The payer\'s own payment balance passes both filters.');
-            assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
-            assertAmount(0, payerElsewhere.unappliedPaymentBalance,
-                'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
-        }
+        Decimal inUserCurrency = converted(expected, paymentCurrency, UserInfo.getDefaultCurrency());
+        assertAmount(inUserCurrency, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
+        assertAmount(-inUserCurrency, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
+        assertAmount(-inUserCurrency, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
+        assertAmount(-inUserCurrency, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
+            'Unapplied payments are shown as a reduction.');
+        assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
+            'The payer\'s own payment balance passes both filters, in its own currency.');
+        assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
+        assertAmount(0, payerElsewhere.unappliedPaymentBalance,
+            'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
     }
 
     // Only a Processed payment's balance is unapplied. A Canceled, Draft, Pending or Failed payment
@@ -1350,9 +1458,8 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(1, cards.unappliedPaymentCount, 'Only the Processed payment is counted');
-        if (userCurrencyIsCorporate()) {
-            assertAmount(expected, cards.unappliedPaymentBalance, 'Only the Processed payment\'s balance is unapplied');
-        }
+        assertAmount(converted(expected, paymentCurrency, UserInfo.getDefaultCurrency()), cards.unappliedPaymentBalance,
+            'Only the Processed payment\'s balance is unapplied');
     }
 
     private static Payment payment(Id accountId, Decimal amount, String status, String currencyCode) {
@@ -1384,10 +1491,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
-        // The controller's own aggregate, in user mode, with Status = 'Draft' in place of
-        // 'Posted': the SUM runs and returns a positive total for the memo, so the controller's
-        // query is not refused and its zero comes from the Status filter, not from a swallowed
-        // error. Only the sign is checked, so the currency the SUM reports in does not matter.
+        // The controller's own filter, in user mode, with Status = 'Draft' in place of 'Posted': the read
+        // returns the memo, so the controller's query is not refused and its zero comes from the Status
+        // filter, not from a swallowed error. Only the sign is checked, so the currency does not matter.
         Id aId = a.Id;
         List<AggregateResult> control = Database.query(
             'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
@@ -2012,23 +2118,26 @@ private class RLM_CollectionsDashboardControllerTest {
         return record;
     }
 
-    // A grouped SUM of a currency field comes back in the corporate currency, so records whose
-    // amounts are summed are created in it.
+    // The org's corporate currency.
     private static String corporateCurrency() {
         return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
     }
 
-    // An ungrouped SUM of a currency field is reported in a currency the platform picks (the
-    // running user's or the corporate one); where the two are the same it reads the records'
-    // own amounts. Logs a visible skip otherwise.
-    private static Boolean userCurrencyIsCorporate() {
-        if (UserInfo.getDefaultCurrency() == corporateCurrency()) {
-            return true;
+    // A second active currency whose rate is far enough from the corporate rate that converting shows, or null
+    // (logged) when the org has none: a multi-currency test then skips rather than passing without converting.
+    private static String convertibleCurrency() {
+        String corporate = corporateCurrency();
+        for (CurrencyType ct : [SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true AND IsCorporate = false ORDER BY IsoCode]) {
+            if (ct.ConversionRate != null && Math.abs(ct.ConversionRate - 1) > 0.05) {
+                return ct.IsoCode;
+            }
         }
-        System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
-            + 'user\'s currency matching the corporate currency');
-        return false;
+        System.debug(LoggingLevel.WARN, SKIP_NO_CONVERTIBLE_CURRENCY + ' (corporate ' + corporate + ')');
+        return null;
     }
+
+    private static final String SKIP_NO_CONVERTIBLE_CURRENCY =
+        'SKIPPED: no second active currency whose rate is far enough from the corporate rate to tell conversion apart';
 
     // An active currency other than the given one; a code no record can carry if there is none.
     // An unknown code returns no rows rather than throwing; verified on a Release 264 org.
