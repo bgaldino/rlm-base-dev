@@ -28,6 +28,11 @@ import sys
 from pathlib import Path
 
 
+def _soql_text(value: str) -> str:
+    """Escape a value for a quoted SOQL literal, like tasks.soql_utils.soql_quote (this script cannot import tasks)."""
+    return value.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r")
+
+
 def _get_running_user_id() -> str:
     """Return the Salesforce Id of the default org's running user."""
     result = subprocess.run(
@@ -40,8 +45,7 @@ def _get_running_user_id() -> str:
         raise RuntimeError(f"sf org display failed: {result.stderr or result.stdout}")
     data = json.loads(result.stdout)
     username = data["result"]["username"]
-    username_escaped = username.replace("'", "''")
-    csv_text = _run_sf_query(f"SELECT Id FROM User WHERE Username = '{username_escaped}' LIMIT 1")
+    csv_text = _run_sf_query(f"SELECT Id FROM User WHERE Username = '{_soql_text(username)}' LIMIT 1")
     rows = _parse_csv(csv_text)
     if not rows:
         raise RuntimeError(f"Could not find User record for username '{username}'")
@@ -94,7 +98,7 @@ def main() -> int:
 
     print("Querying running user's App Launcher order (UserAppMenuCustomization)...")
     custom_csv = _run_sf_query(
-        f"SELECT ApplicationId, SortOrder FROM UserAppMenuCustomization WHERE UserId = '{running_user_id}' ORDER BY SortOrder"
+        f"SELECT ApplicationId, SortOrder FROM UserAppMenuCustomization WHERE UserId = '{_soql_text(running_user_id)}' ORDER BY SortOrder"
     )
     custom_rows = _parse_csv(custom_csv)
     if not custom_rows:

@@ -40,7 +40,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.core.tasks import BaseTask
@@ -342,7 +342,7 @@ class ConfigureMcpServers(BaseTask):
             record["ToolName"]: record["Id"]
             for record in self._tooling_query(
                 "SELECT Id, ToolName FROM McpServerToolDefinition "
-                f"WHERE McpServerId = '{server_id}'"
+                f"WHERE McpServerId = {soql_quote(server_id)}"
             )
         }
         existing_bindings = self._bindings_by_tool(list(existing_tools.values()))
@@ -553,7 +553,7 @@ class ConfigureMcpServers(BaseTask):
         self.logger.info(f"Custom server {CUSTOM_SERVER_DEVELOPER_NAME}  {server_id}")
         tools = self._tooling_query(
             "SELECT Id, ToolName FROM McpServerToolDefinition "
-            f"WHERE McpServerId = '{server_id}'"
+            f"WHERE McpServerId = {soql_quote(server_id)}"
         )
         bindings: Dict[str, List[str]] = {}
         for tool_id, records in self._bindings_by_tool(
@@ -607,7 +607,7 @@ class ConfigureMcpServers(BaseTask):
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         if not tool_ids:
             return grouped
-        id_list = ", ".join(f"'{tool_id}'" for tool_id in tool_ids)
+        id_list = ", ".join(soql_quote(tool_id) for tool_id in tool_ids)
         for record in self._tooling_query(
             "SELECT Id, ToolId, ApiSource, ApiIdentifier, Operation "
             f"FROM McpServerToolApiDefinition WHERE ToolId IN ({id_list})"

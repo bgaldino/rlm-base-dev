@@ -91,13 +91,19 @@ def _write_csv(path: str, header: List[str], rows: List[dict]) -> None:
         writer.writerows(rows)
 
 
+def _soql_text(value) -> str:
+    """`value` escaped for the inside of a single-quoted SOQL literal (backslash, quote, newline, CR)."""
+    return (str(value).replace("\\", "\\\\").replace("'", "\\'")
+            .replace("\n", "\\n").replace("\r", "\\r"))
+
+
 def requirement_met(requires: Dict[str, str], query: Callable[[str], List[dict]]) -> Tuple[bool, str]:
     """`(met, description of what was checked)`. Every listed requirement must exist."""
     for key, value in requires.items():
         if key == "namedCredential":
             # `callout:<name>` resolves the unnamespaced credential, so a managed package's does not count.
             # This checks the record exists, not that its endpoint answers.
-            found = query(f"SELECT DeveloperName FROM NamedCredential WHERE DeveloperName = '{value}' "
+            found = query(f"SELECT DeveloperName FROM NamedCredential WHERE DeveloperName = '{_soql_text(value)}' "
                           f"AND NamespacePrefix = null")
             if not found:
                 return False, f"Named Credential {value!r} does not exist on the target org"
@@ -163,7 +169,7 @@ def apply_conditions(plan_dir: str, query: Callable[[str], List[dict]],
         note = f"; still gated by other steps: {', '.join(gated)}" if gated else ""
         log(f"Conditional step dropped: {name!r} ({what}). Removed {len(dropped)} dependency row(s); "
             f"now without a predecessor: {', '.join(roots) or 'none'}{note}.")
-        quoted = name.replace("\\", "\\\\").replace("'", "\\'")
+        quoted = _soql_text(name)
         if query(f"SELECT Id FROM FulfillmentStepDefinition WHERE Name = '{quoted}'"):
             log(f"WARNING: {name!r} already exists on the target org and this load does not delete "
                 f"it, so it will still run. Remove it (and its dependency rows) to match this load.")

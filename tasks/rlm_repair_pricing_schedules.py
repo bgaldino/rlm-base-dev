@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -51,14 +51,14 @@ class EnsurePricingSchedules(BaseSalesforceTask):
     }
 
     def _run_task(self):
-        schedule_names = self.options.get(
-            "schedule_names",
-            [
-                "Standard Attribute Based Adjustment",
-                "Standard Price Adjustment Tier",
-                "Standard Bundle Based Adjustment",
-            ],
-        )
+        # An unset or blank option means the defaults, not "check nothing".
+        schedule_names = requested_names(
+            self.options.get("schedule_names"), "schedule_names", TaskOptionsError
+        ) or [
+            "Standard Attribute Based Adjustment",
+            "Standard Price Adjustment Tier",
+            "Standard Bundle Based Adjustment",
+        ]
         validate_decision_tables = (
             str(self.options.get("validate_decision_table_lookups", "true")).lower()
             == "true"
@@ -145,6 +145,8 @@ class EnsurePricingSchedules(BaseSalesforceTask):
     def _get_missing_schedules(self, schedule_names: List[str]) -> List[str]:
         if not hasattr(self, "org_config") or not self.org_config:
             raise TaskOptionsError("No org_config available")
+        if not schedule_names:
+            return []
 
         import requests
 
@@ -154,10 +156,10 @@ class EnsurePricingSchedules(BaseSalesforceTask):
             project_api_version(self.project_config, TaskOptionsError, "68.0")
         )
 
-        name_list = "', '".join([n.replace("'", "\\'") for n in schedule_names])
+        name_list = ", ".join(soql_quote(n) for n in schedule_names)
         soql = (
             "SELECT Name FROM PriceAdjustmentSchedule "
-            f"WHERE Name IN ('{name_list}')"
+            f"WHERE Name IN ({name_list})"
         )
         url = f"{instance_url}/services/data/v{api_version}/query"
         headers = {
@@ -252,11 +254,10 @@ class EnsurePricingSchedules(BaseSalesforceTask):
             project_api_version(self.project_config, TaskOptionsError, "68.0")
         )
 
-        escaped = [n.replace("'", "\\'") for n in developer_names]
-        name_list = "', '".join(escaped)
+        name_list = ", ".join(soql_quote(n) for n in developer_names)
         soql = (
             "SELECT DeveloperName FROM DecisionTable "
-            f"WHERE DeveloperName IN ('{name_list}')"
+            f"WHERE DeveloperName IN ({name_list})"
         )
         url = f"{instance_url}/services/data/v{api_version}/query"
         headers = {

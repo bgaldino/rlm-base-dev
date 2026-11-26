@@ -21,6 +21,18 @@ def option_text(value, option: str = "option", exc=ValueError) -> Optional[str]:
     return text or None
 
 
+def soql_like_prefix(prefix) -> str:
+    """A LIKE literal matching values that start with `prefix`: its `\\`, `_` and `%` match themselves.
+
+    Measured live: SOQL reads `\\_` and `\\%` in a string literal as the LIKE escapes (`\\\\_` does not match
+    an underscore), and a backslash takes the ordinary literal escape `\\\\` (LIKE does not unescape it again).
+    """
+    out = []
+    for char in str(prefix):
+        out.append("\\" + char if char in "_%" else soql_quote(char)[1:-1])
+    return "'" + "".join(out) + "%'"
+
+
 def requested_names(value, option: str, exc=ValueError) -> List[str]:
     """`split_names`, except None, blank, whitespace-only or an empty list means no names were asked for."""
     if value is None or value == [] or value == () or (isinstance(value, str) and not value.strip()):

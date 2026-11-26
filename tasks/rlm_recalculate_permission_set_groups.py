@@ -22,7 +22,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -260,7 +260,7 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
         recompute), wait for it to settle, then remove the probe. If the removal fails, the
         group carries a harmless empty component rather than missing a real one."""
         group = self._query(
-            f"SELECT Id FROM PermissionSetGroup WHERE DeveloperName = '{self._escape_soql(name)}' LIMIT 1"
+            f"SELECT Id FROM PermissionSetGroup WHERE DeveloperName = {soql_quote(name)} LIMIT 1"
         )[0]["Id"]
         base = f"{self.org_config.instance_url}/services/data/v{self._api_version()}/sobjects"
         probe = self._probe_permission_set_id(base)
@@ -283,7 +283,7 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
 
         existing = self._query(
             "SELECT Id FROM PermissionSetGroupComponent "
-            f"WHERE PermissionSetGroupId = '{group}' AND PermissionSetId = '{probe}' LIMIT 1")
+            f"WHERE PermissionSetGroupId = {soql_quote(group)} AND PermissionSetId = {soql_quote(probe)} LIMIT 1")
         if existing:
             # Left behind by an earlier interrupted run: remove it, which is itself a component change.
             response = edit("DELETE", f"{base}/PermissionSetGroupComponent/{existing[0]['Id']}")
@@ -327,11 +327,11 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
     def _aggregate_fields(self, name: str, fields: List[str]) -> set:
         """Which of `fields` the group's aggregate grants read on. Filtered to those fields so the
         result can't spill onto a second page, and to Type = 'Group' so a muting set can't count."""
-        wanted = ", ".join(f"'{self._escape_soql(f)}'" for f in fields)
+        wanted = ", ".join(soql_quote(f) for f in fields)
         rows = self._query(
             f"SELECT Field FROM FieldPermissions WHERE PermissionsRead = true AND Field IN ({wanted}) "
             "AND ParentId IN (SELECT Id FROM PermissionSet WHERE Type = 'Group' AND "
-            f"PermissionSetGroup.DeveloperName = '{self._escape_soql(name)}')")
+            f"PermissionSetGroup.DeveloperName = {soql_quote(name)})")
         # Lower-cased: SOQL IN matches case-insensitively, so the comparison must too.
         return {r["Field"].lower() for r in rows}
 
@@ -365,7 +365,7 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
         return names
 
     def _query_groups(self, names: List[str]):
-        quoted = ", ".join(f"'{self._escape_soql(name)}'" for name in names)
+        quoted = ", ".join(soql_quote(name) for name in names)
         soql = (
             "SELECT Id, DeveloperName, Status, Description "
             f"FROM PermissionSetGroup WHERE DeveloperName IN ({quoted})"
@@ -375,7 +375,7 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
     def _touch_group_description(self, name: str):
         rows = self._query(
             "SELECT Id, Description FROM PermissionSetGroup "
-            f"WHERE DeveloperName = '{self._escape_soql(name)}' LIMIT 1"
+            f"WHERE DeveloperName = {soql_quote(name)} LIMIT 1"
         )
         if not rows:
             raise TaskOptionsError(f"PermissionSetGroup not found: {name}")
@@ -389,9 +389,6 @@ class RecalculatePermissionSetGroups(BaseSalesforceTask):
             new_description = f"{description} {marker}".strip()
 
         self._update_permission_set_group(row["Id"], {"Description": new_description})
-
-    def _escape_soql(self, value: str) -> str:
-        return value.replace("'", "\\'")
 
     def _api_version(self) -> str:
         return (

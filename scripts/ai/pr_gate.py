@@ -796,8 +796,18 @@ CHECKS = [
         # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
-                  # tests/test_soql_option_hardening.py covers these task modules (pack 457).
+                  # tests/test_soql_option_hardening.py covers these task modules (pack 457, 467).
                   "tasks/soql_utils.py", "tests/test_soql_option_hardening.py",
+                  "tasks/rlm_docgen.py", "tasks/rlm_context_service.py", "scripts/docgen/",
+                  "tasks/rlm_deactivate_changed_decision_tables.py",
+                  "tasks/rlm_create_persona_user.py",
+                  "tasks/rlm_deploy_expression_sets.py",
+                  "tasks/rlm_refresh_decision_table.py",
+                  "tasks/rlm_billing.py",
+                  "tasks/rlm_create_approval_email_templates.py",
+                  "tasks/rlm_sharing.py",
+                  "tasks/rlm_validate_keys.py",
+                  "scripts/sfdmu_conditional_steps.py", "scripts/sync_appmenu_from_user.py",
                   "tasks/rlm_extend_stdctx.py", "tasks/rlm_manage_decision_tables.py",
                   "tasks/rlm_manage_transaction_processing_types.py",
                   "tasks/rlm_manage_fulfillment_scope_cnfg.py",

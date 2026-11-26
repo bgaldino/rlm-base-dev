@@ -17,7 +17,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -29,10 +29,6 @@ except ImportError:
 
 _REQUEST_TIMEOUT = 30  # seconds — prevents hangs on unstable networks/CI
 
-
-def _soql_escape(value: str) -> str:
-    """Escape a string for use in a SOQL literal (single-quoted value)."""
-    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 class CreateProcedurePlanDefinition(BaseSalesforceTask):
@@ -167,10 +163,10 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _definition_exists(self, developer_name: str) -> bool:
         """Return True if a ProcedurePlanDefinition with this DeveloperName exists."""
-        safe = _soql_escape(developer_name)
+        safe = soql_quote(developer_name)
         records = self._soql_query(
             f"SELECT Id FROM ProcedurePlanDefinition "
-            f"WHERE DeveloperName = '{safe}'"
+            f"WHERE DeveloperName = {safe}"
         )
         return len(records) > 0
 
@@ -178,9 +174,9 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _get_context_definition_id_by_label(self, label: str) -> Optional[str]:
         """Query ContextDefinition by MasterLabel and return its Id."""
-        safe = _soql_escape(label)
+        safe = soql_quote(label)
         records = self._soql_query(
-            f"SELECT Id FROM ContextDefinition WHERE MasterLabel = '{safe}'"
+            f"SELECT Id FROM ContextDefinition WHERE MasterLabel = {safe}"
         )
         if not records:
             self.logger.error(
@@ -324,11 +320,11 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
-        safe_dev_name = _soql_escape(dev_name)
+        safe_dev_name = soql_quote(dev_name)
 
         query = (
             "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = {safe_dev_name} "
             "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
             "LIMIT 1"
         )
@@ -412,13 +408,13 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
-        safe_dev_name = _soql_escape(dev_name)
+        safe_dev_name = soql_quote(dev_name)
         max_wait_seconds = int(self.options.get("max_wait_seconds", 20))
         poll_interval_seconds = int(self.options.get("poll_interval_seconds", 2))
 
         query = (
             "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = {safe_dev_name} "
             "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
             "LIMIT 1"
         )

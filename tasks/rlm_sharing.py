@@ -9,6 +9,10 @@ shapes (TSO vs non-TSO) without the duplicate-listView side effect of the stock
 * ``AssertSObjectOWDs`` — verifies OWD landed and raises if not (the stock
   ``CheckSObjectOWDs`` only returns true/false for MetaDeploy preflight gating).
 """
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import soql_quote
+
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.metadata_etl.sharing import SetOrgWideDefaults
 from cumulusci.tasks.preflight.sobjects import CheckSObjectOWDs
@@ -62,7 +66,7 @@ class SetOrgWideDefaultsSharingOnly(SetOrgWideDefaults):
             # `WHERE QualifiedApiName IN ()` SOQL clause.
             self.api_names = set()
             return
-        object_list = ", ".join(f"'{obj}'" for obj in requested)
+        object_list = ", ".join(soql_quote(obj) for obj in requested)
         existing = {
             rec["QualifiedApiName"]
             for rec in self.sf.query(

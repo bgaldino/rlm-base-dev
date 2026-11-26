@@ -35,7 +35,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import project_api_version
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -420,7 +420,7 @@ class ExportBRE(BaseSalesforceTask):
             all_records: list = []
             for i in range(0, len(rlv_id_list), chunk_size):
                 chunk = rlv_id_list[i : i + chunk_size]
-                id_filter = ",".join(f"'{i}'" for i in chunk)
+                id_filter = ",".join(soql_quote(v) for v in chunk)
                 soql = f"SELECT {fields_csv} FROM Ruleset WHERE {rlv_ref_field} IN ({id_filter})"
                 all_records.extend(self._soql_query(soql))
             self.logger.info(f"  {len(all_records)} Ruleset records fetched")
@@ -470,7 +470,7 @@ class ExportBRE(BaseSalesforceTask):
             "RuleLibraryDefinitionId", "RuleLibraryDefinition.DeveloperName",
             "Status", "UsageType",
         ]
-        rl_where = f"WHERE ApiName = '{api_name.replace(chr(39), chr(92) + chr(39))}'" if api_name else ""
+        rl_where = f"WHERE ApiName = {soql_quote(api_name)}" if api_name else ""
         rl_records = self._export_query(
             soql=f"SELECT {', '.join(rl_fields)} FROM RuleLibrary {rl_where} ORDER BY ApiName",
             fields=rl_fields,
@@ -499,7 +499,7 @@ class ExportBRE(BaseSalesforceTask):
         if not rld_ids:
             self.logger.warning("No RuleLibraryDefinitionId found on any RuleLibrary record. Skipping dependent exports.")
             return
-        rld_id_filter = ",".join(f"'{i}'" for i in rld_ids)
+        rld_id_filter = ",".join(soql_quote(v) for v in rld_ids)
         rld_records = self._export_query(
             soql=f"SELECT {', '.join(rld_fields)} FROM RuleLibraryDefinition WHERE Id IN ({rld_id_filter})",
             fields=rld_fields,
@@ -523,7 +523,7 @@ class ExportBRE(BaseSalesforceTask):
         )
 
         # 4. RuleLibraryVersion
-        rl_id_filter = ",".join(f"'{i}'" for i in rl_ids)
+        rl_id_filter = ",".join(soql_quote(v) for v in rl_ids)
         rlv_fields = [
             "Id", "Name", "ApiName", "ContextDefinitionName", "Description",
             "RuleLibraryId", "RuleLibrary.ApiName",
