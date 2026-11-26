@@ -21,10 +21,14 @@
 //      Internal Users. A library takes only users and public groups as members (adding All
 //      Internal Users directly is refused), so the group carries it. Generating any document
 //      means reading its template, and templates hold no record data, so every internal
-//      user reads them. To narrow it, replace the group's members; a rerun leaves a group that
-//      has members alone.
+//      user reads them. A rerun leaves a group that has members alone.
 //   4. The group's library membership with that permission. An existing membership for the
 //      group is left as it is.
+// A rerun (this task, prepare_docgen or prepare_rlm_org) restores access an admin took away by
+// emptying the group or by removing the group from the library: it re-seeds All Internal Users
+// and re-adds the membership. To narrow access durably, replace the group's members with the
+// users, roles or groups that should read the templates instead of emptying it, or do not rerun
+// this step on that org.
 // Any failure throws, so the CCI task fails instead of leaving a library only the admin can read.
 
 final String LIBRARY_API_NAME = 'DocgenDocumentTemplateLibrary';

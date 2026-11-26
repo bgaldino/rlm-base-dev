@@ -21,22 +21,32 @@ const TIMED_OUT_STATUS = 'TimedOut';
 // process was created, and the screen kept spinning after Success.
 const POLL_INTERVAL_MS = 2000;
 const MAX_WAIT_MS = 300000;
+const NAVIGATION_DELAY_MS = 300;
 
+// Lifecycle, in two methods:
+// - start() begins one "run" for the current processId: it tears down whatever ran before,
+//   resets the run's state, then subscribes to the platform event and polls the status. It does
+//   nothing until the component is on the page and has a processId.
+// - teardown() ends the run: it clears the poll interval and the navigation timer, releases the
+//   subscription, and invalidates a subscription still being set up (it is released when it
+//   resolves).
+// connectedCallback() calls start(), disconnectedCallback() calls teardown(), and a new
+// processId restarts. A component put back on the page after it already moved the flow on
+// starts a fresh run: it re-reads the status and moves the flow on again when the status is
+// final, so the screen never sits empty.
 export default class RlmDocStatusMonitor extends LightningElement {
-    // Use a setter so EMP subscribes even if processId is assigned after connectedCallback
-    // (Flow components can set @api inputs post-lifecycle in some runtimes).
     _processId;
     @api
     get processId() {
         return this._processId;
     }
     set processId(value) {
+        const changed = value !== this._processId;
         this._processId = value;
-        if (value) {
-            this.handleSubscribe();
-        }
-        if (value && this._connected) {
-            this.startPolling();
+        // Flow runtimes can set an input after connectedCallback, and can set it again with the
+        // same value; only a new value starts a new run.
+        if (changed) {
+            this.start();
         }
     }
 
@@ -50,12 +60,12 @@ export default class RlmDocStatusMonitor extends LightningElement {
     set status(value) {
         this._status = value;
     }
+
+    _connected = false;
     hasNavigated = false;
     subscription = {};
-    _connected = false;
-    // Set once the component is removed, so a subscription that resolves afterwards is released.
-    _disconnected = false;
-    _subscribing = false;
+    // Incremented by teardown(): a subscription that resolves for an older run is released.
+    _run = 0;
     pollTimer;
     pollStartedAt;
     navigationTimer;
@@ -66,7 +76,7 @@ export default class RlmDocStatusMonitor extends LightningElement {
         return this._status === PENDING_STATUS;
     }
 
-    // Reads the status when processId is set and again each time startPolling() tells Lightning
+    // Reads the status when processId is set and again each time refreshStatus() tells Lightning
     // Data Service the record may have changed.
     @wire(getRecord, { recordId: '$processId', fields: [STATUS_FIELD] })
     wiredDgp({ data, error }) {
@@ -86,125 +96,93 @@ export default class RlmDocStatusMonitor extends LightningElement {
 
     connectedCallback() {
         this._connected = true;
-        this._disconnected = false;
         if (!empErrorHandlerRegistered) {
             empErrorHandlerRegistered = true;
             onError(error => {
                 console.error('rlmDocStatusMonitor: EMP channel error', error);
             });
         }
-        // The processId setter subscribes and polls when the value arrives after this point.
-        // Here: an id that was set before the component was (re)inserted.
-        if (this.processId) {
-            this.handleSubscribe();
-            this.startPolling();
-        }
+        this.start();
     }
 
     disconnectedCallback() {
         this._connected = false;
-        this._disconnected = true;
-        this.stopPolling();
-        if (this.navigationTimer) {
-            clearTimeout(this.navigationTimer);
-            this.navigationTimer = undefined;
-        }
-        if (this.subscription && this.subscription.channel) {
-            unsubscribe(this.subscription, () => {});
-            this.subscription = {};
-        }
+        this.teardown();
     }
 
-    handleSubscribe() {
-        // One subscription per component: none while one is live or still being set up.
-        if (this._subscribing || (this.subscription && this.subscription.channel)) {
+    start() {
+        this.teardown();
+        this.hasNavigated = false;
+        this._status = PENDING_STATUS;
+        if (!this._connected || !this._processId) {
             return;
         }
-        this._subscribing = true;
-        const messageCallback = (response) => {
-            const eventId = response.data.payload.DocGenProcessIdentifier;
-            const eventStatus = response.data.payload.Status;
-            if (eventId === this.processId) {
-                this.handleStatusChange(eventStatus);
+        const run = this._run;
+        subscribe(this.channelName, -1, response => {
+            const payload = response.data.payload;
+            if (payload.DocGenProcessIdentifier === this._processId) {
+                this.handleStatusChange(payload.Status);
             }
-        };
-
-        subscribe(this.channelName, -1, messageCallback)
-            .then(response => {
-                this._subscribing = false;
-                if (this._disconnected) {
-                    // Removed while subscribing: release the subscription instead of keeping it.
-                    unsubscribe(response, () => {});
+        })
+            .then(subscription => {
+                if (run !== this._run) {
+                    // The run ended while subscribing: release the subscription instead of keeping it.
+                    unsubscribe(subscription, () => {});
                     return;
                 }
-                this.subscription = response;
+                this.subscription = subscription;
                 // An event published before the subscription was live is lost: read the status now.
                 this.refreshStatus();
             })
             .catch(error => {
-                this._subscribing = false;
                 // EMP subscription failed — polling still advances the flow
                 console.error('rlmDocStatusMonitor: EMP subscribe failed', error);
             });
-    }
-
-    startPolling() {
-        if (this.pollTimer || this.hasNavigated) {
-            return;
-        }
         this.pollStartedAt = Date.now();
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS);
     }
 
-    stopPolling() {
-        if (this.pollTimer) {
-            clearInterval(this.pollTimer);
-            this.pollTimer = undefined;
+    teardown() {
+        this._run += 1;
+        clearInterval(this.pollTimer);
+        this.pollTimer = undefined;
+        clearTimeout(this.navigationTimer);
+        this.navigationTimer = undefined;
+        if (this.subscription.channel) {
+            unsubscribe(this.subscription, () => {});
         }
+        this.subscription = {};
     }
 
-    // Runs only while the interval is live: handleStatusChange() clears it before it sets
-    // hasNavigated, and startPolling() starts none after navigation.
     poll() {
         if (Date.now() - this.pollStartedAt >= MAX_WAIT_MS) {
-            this.stopPolling();
             this.handleStatusChange(TIMED_OUT_STATUS);
             return;
         }
         this.refreshStatus();
     }
 
-    // Called by poll() (its interval is cleared on removal and on navigation) and once the EMP
-    // subscription is live (that callback returns early after removal). A subscription can still
-    // resolve after the flow moved on, hence the hasNavigated check.
     refreshStatus() {
-        if (!this.processId || this.hasNavigated) {
-            return;
-        }
-        notifyRecordUpdateAvailable([{ recordId: this.processId }]).catch(error => {
+        notifyRecordUpdateAvailable([{ recordId: this._processId }]).catch(error => {
             // The next poll tries again; the platform event can still advance the flow.
             console.error('rlmDocStatusMonitor: status refresh failed', error);
         });
     }
 
     handleStatusChange(newStatus) {
-        // Nothing to report once the flow has moved on or the screen is gone.
-        if (this.hasNavigated || this._disconnected) return;
+        // A status that arrives after the screen is gone or after the flow moved on is ignored.
+        if (!this._connected || this.hasNavigated) return;
         this._status = newStatus;
         this.dispatchEvent(new FlowAttributeChangeEvent('status', this._status));
         if (this._status !== PENDING_STATUS) {
             this.hasNavigated = true;
-            this.stopPolling();
-            this.handleNext();
+            this.teardown();
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            this.navigationTimer = setTimeout(() => {
+                this.navigationTimer = undefined;
+                this.dispatchEvent(new FlowNavigationNextEvent());
+            }, NAVIGATION_DELAY_MS);
         }
-    }
-
-    handleNext() {
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        this.navigationTimer = setTimeout(() => {
-            this.navigationTimer = undefined;
-            this.dispatchEvent(new FlowNavigationNextEvent());
-        }, 300);
     }
 }

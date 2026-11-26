@@ -298,4 +298,95 @@ describe('rlmDocStatusMonitor', () => {
 
         expect(subscribe).toHaveBeenCalledTimes(2);
     });
+
+    it('moves the flow on once when it is put back after removal during the navigation delay', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        getRecord.emit(statusRecord('Success'));
+        document.body.removeChild(el);
+
+        document.body.appendChild(el);
+        await flushPromises();
+        // Back on the page, it re-reads the status and finds it final.
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(1000);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(el.status).toBe('Success');
+    });
+
+    it('re-reads and moves the flow on again when it is put back after it already did', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(1);
+        document.body.removeChild(el);
+        subscribe.mockClear();
+
+        document.body.appendChild(el);
+        await flushPromises();
+
+        // While it re-reads, the screen shows the waiting state again, not an empty box.
+        expect(el.status).toBe('InProgress');
+        expect(el.shadowRoot.querySelector('lightning-spinner')).not.toBeNull();
+        expect(subscribe).toHaveBeenCalledTimes(1);
+        expect(jest.getTimerCount()).toBe(1);
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps exactly one poll timer when processId is set again', async () => {
+        const { el } = mount();
+        await flushPromises();
+        expect(jest.getTimerCount()).toBe(1);
+
+        el.processId = PROCESS_ID;
+        expect(jest.getTimerCount()).toBe(1);
+
+        el.processId = '0nnWt0000007zzzAAA';
+        await flushPromises();
+        expect(jest.getTimerCount()).toBe(1);
+        notifyRecordUpdateAvailable.mockClear();
+        jest.advanceTimersByTime(POLL_INTERVAL_MS);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledTimes(1);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledWith([{ recordId: '0nnWt0000007zzzAAA' }]);
+    });
+
+    it('starts nothing on an element that was never put on the page', () => {
+        const el = createElement('c-rlm-doc-status-monitor', { is: RlmDocStatusMonitor });
+        el.processId = PROCESS_ID;
+
+        expect(jest.getTimerCount()).toBe(0);
+        expect(subscribe).not.toHaveBeenCalled();
+    });
+
+    it('unsubscribes each live subscription exactly once across removals', async () => {
+        const first = { channel: '/event/DocGenProcStsChgEvent', id: 1 };
+        subscribe.mockResolvedValueOnce(first);
+        const { el } = mount();
+        await flushPromises();
+        document.body.removeChild(el);
+        expect(unsubscribe).toHaveBeenCalledTimes(1);
+        expect(unsubscribe).toHaveBeenLastCalledWith(first, expect.any(Function));
+
+        let resolveSecond;
+        subscribe.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveSecond = resolve;
+                })
+        );
+        document.body.appendChild(el);
+        document.body.removeChild(el);
+        // The first subscription is not released twice.
+        expect(unsubscribe).toHaveBeenCalledTimes(1);
+
+        const second = { channel: '/event/DocGenProcStsChgEvent', id: 2 };
+        resolveSecond(second);
+        await flushPromises();
+        expect(unsubscribe).toHaveBeenCalledTimes(2);
+        expect(unsubscribe).toHaveBeenLastCalledWith(second, expect.any(Function));
+    });
 });
