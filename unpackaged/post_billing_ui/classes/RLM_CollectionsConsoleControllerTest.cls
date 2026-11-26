@@ -37,7 +37,7 @@ private class RLM_CollectionsConsoleControllerTest {
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(
                 new List<Invoice>{ i1, i2 }, ptp, planName, planIds, disputes,
-                new Map<Id, String>{ acctId => 'Acme Corp' });
+                namesOf(new Map<Id, String>{ acctId => 'Acme Corp' }));
         Test.stopTest();
 
         System.assertEquals(2, rows.size(), 'Both invoices should produce a wrapper.');
@@ -73,7 +73,7 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.startTest();
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ inv },
-                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new Map<Id, String>());
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new RLM_AccountNames.Result());
         Test.stopTest();
 
         Assert.areEqual(1, rows.size(), 'One row per invoice.');
@@ -102,8 +102,8 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
-            Map<Id, String> names = RLM_AccountNames.forIds(new Set<Id>{ acctId });
-            Assert.isTrue(names.isEmpty(), 'A refused Account read gives no names, not an exception.');
+            RLM_AccountNames.Result names = RLM_AccountNames.read(new Set<Id>{ acctId });
+            Assert.isTrue(names.names.isEmpty(), 'A refused Account read gives no names, not an exception.');
             rows = RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ i1 },
                 new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), names);
         }
@@ -111,7 +111,29 @@ private class RLM_CollectionsConsoleControllerTest {
 
         Assert.areEqual(1, rows.size(), 'The row is kept.');
         Assert.areEqual('—', rows[0].businessAccount, 'The name shows a dash.');
+        Assert.isTrue(rows[0].accountNameUnavailable, 'A refused name read is not available, not "no account".');
         Assert.areEqual(acctId, rows[0].accountId, 'The row still names its account by id.');
+    }
+
+    // An account missing from the name read (sharing) is flagged not available; a read name is not flagged.
+    // The hidden id belongs to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void buildDelinquents_accountMissingFromTheRead_isNotAvailable() {
+        Account seen = new Account(Name = 'RLM CC Name Seen');
+        insert seen;
+        Id hidden = mintId(Account.SObjectType);
+        Invoice i1 = synthInvoice(mintId(Invoice.SObjectType), seen.Id, 'RLM CC Name Seen', 5000, 45, 'INV-001');
+        Invoice i2 = synthInvoice(mintId(Invoice.SObjectType), hidden, 'Hidden', 4000, 45, 'INV-002');
+
+        Test.startTest();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows = RLM_CollectionsConsoleController.buildDelinquents(
+            new List<Invoice>{ i1, i2 }, new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(),
+            new Map<Id, String>(), RLM_AccountNames.read(new Set<Id>{ seen.Id, hidden }));
+        Test.stopTest();
+
+        Assert.areEqual('RLM CC Name Seen', rows[0].businessAccount, 'A read name is shown.');
+        Assert.isFalse(rows[0].accountNameUnavailable, 'A read name is available.');
+        Assert.isTrue(rows[1].accountNameUnavailable, 'An account missing from the read is not available.');
     }
 
     @isTest
@@ -119,7 +141,7 @@ private class RLM_CollectionsConsoleControllerTest {
         Test.startTest();
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
-                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new Map<Id, String>());
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>(), new RLM_AccountNames.Result());
         Test.stopTest();
 
         Assert.isNotNull(rows, 'A list is returned for no invoices.');
@@ -408,6 +430,12 @@ private class RLM_CollectionsConsoleControllerTest {
     }
 
     private static Integer seq = 0;
+
+    private static RLM_AccountNames.Result namesOf(Map<Id, String> names) {
+        RLM_AccountNames.Result result = new RLM_AccountNames.Result();
+        result.names.putAll(names);
+        return result;
+    }
 
     private static Id mintId(Schema.SObjectType t) {
         seq++;

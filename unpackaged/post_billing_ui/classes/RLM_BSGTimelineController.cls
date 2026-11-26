@@ -14,6 +14,7 @@ public with sharing class RLM_BSGTimelineController {
         @AuraEnabled public String groupNumber;
         @AuraEnabled public String productName;
         @AuraEnabled public String accountName;
+        @AuraEnabled public Boolean accountNameUnavailable;
         @AuraEnabled public String currencyCode;
         @AuraEnabled public Decimal totalBilledAmount;
         @AuraEnabled public Decimal totalPendingAmount;
@@ -113,10 +114,14 @@ public with sharing class RLM_BSGTimelineController {
         }
     }
 
+    // Sets the group's account name, a dash when it is missing, and whether it could not be read
+    // (refused, failed, or hidden by sharing).
     @TestVisible
-    private static String accountNameOf(Id accountId) {
-        String name = accountId != null ? RLM_AccountNames.forIds(new Set<Id>{ accountId }).get(accountId) : null;
-        return name != null ? name : '—';
+    private static void setAccountName(BSGData data, Id accountId) {
+        RLM_AccountNames.Result names = RLM_AccountNames.read(accountId != null ? new Set<Id>{ accountId } : null);
+        String name = names.names.get(accountId);
+        data.accountName = name != null ? name : '—';
+        data.accountNameUnavailable = names.unavailable(accountId);
     }
 
     // The group's data, its schedules, its suspension dates and its milestones, for a queried
@@ -144,7 +149,7 @@ public with sharing class RLM_BSGTimelineController {
         data.productName = bsg.ProductName;
         // Read apart from the group: a BillingAccount.Name relationship in the group query would fail it,
         // and show no group at all, for a user who cannot read Account. A refused read leaves a dash.
-        data.accountName = accountNameOf(bsg.BillingAccountId);
+        setAccountName(data, bsg.BillingAccountId);
         data.currencyCode = bsg.CurrencyIsoCode;
         data.totalBilledAmount = bsg.TotalBilledAmount;
         data.totalPendingAmount = bsg.TotalPendingAmount;

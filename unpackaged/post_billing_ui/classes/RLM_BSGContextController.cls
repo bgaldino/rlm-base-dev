@@ -102,6 +102,7 @@ public with sharing class RLM_BSGContextController {
         @AuraEnabled public String lineId;
         @AuraEnabled public String lineName;
         @AuraEnabled public String accountName;
+        @AuraEnabled public Boolean accountNameUnavailable;
         @AuraEnabled public Decimal billingPercentage;
         @AuraEnabled public Boolean shouldBillRemainder;
     }
@@ -613,7 +614,7 @@ public with sharing class RLM_BSGContextController {
         for (BillingArrangementLine bal : arrangementLines) {
             if (bal.AccountId != null) accountIds.add(bal.AccountId);
         }
-        addArrangementLines(ad.lines, arrangementLines, RLM_AccountNames.forIds(accountIds));
+        addArrangementLines(ad.lines, arrangementLines, RLM_AccountNames.read(accountIds));
 
         return ad;
     }
@@ -621,12 +622,14 @@ public with sharing class RLM_BSGContextController {
     // One row per queried arrangement line, in query order. Takes rows so a test can pass lines,
     // which need a fully set-up billing account to insert.
     @TestVisible
-    private static void addArrangementLines(List<ArrangementLineData> target, List<BillingArrangementLine> lines, Map<Id, String> accountNames) {
+    private static void addArrangementLines(List<ArrangementLineData> target, List<BillingArrangementLine> lines, RLM_AccountNames.Result accountNames) {
         for (BillingArrangementLine bal : lines) {
             ArrangementLineData ald = new ArrangementLineData();
             ald.lineId = bal.Id;
             ald.lineName = bal.BillingArrangementLineName;
-            ald.accountName = bal.AccountId != null && accountNames.containsKey(bal.AccountId) ? accountNames.get(bal.AccountId) : '—';
+            ald.accountName = bal.AccountId != null && accountNames.names.containsKey(bal.AccountId) ? accountNames.names.get(bal.AccountId) : '—';
+            // The account's name could not be read (refused, failed, or hidden by sharing): not "no account".
+            ald.accountNameUnavailable = accountNames.unavailable(bal.AccountId);
             ald.billingPercentage = bal.BillingPercentage;
             ald.shouldBillRemainder = bal.ShouldBillRemainder;
             target.add(ald);

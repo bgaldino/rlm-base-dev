@@ -442,7 +442,8 @@ export default class RlmCollectionsConsole extends NavigationMixin(LightningElem
         if (data) {
             this.delinquentData = data.map(item => ({
                 Id: item.Id,
-                businessAccount: item.businessAccount,
+                // A name that could not be read (refused, failed, or hidden by sharing) is "Not available".
+                businessAccount: item.accountNameUnavailable ? 'Not available' : item.businessAccount,
                 accountUrl: item.accountId ? '/' + item.accountId : '#',
                 invoiceBalance: item.invoiceBalance,
                 balance: item.balance,

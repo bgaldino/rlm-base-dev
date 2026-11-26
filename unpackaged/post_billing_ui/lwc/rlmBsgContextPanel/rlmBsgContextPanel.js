@@ -224,7 +224,8 @@ export default class RlmBsgContextPanel extends NavigationMixin(LightningElement
             return {
                 key: l.lineId || String(idx),
                 pct: `${l.billingPercentage}%${remainder}`,
-                account: l.accountName,
+                // A name that could not be read (refused, failed, or hidden by sharing) is "Not available".
+                account: l.accountNameUnavailable ? 'Not available' : l.accountName,
                 separator
             };
         });

@@ -35,7 +35,7 @@ public with sharing class RLM_CollectionsConsoleController {
         }
         return buildDelinquents(
             invoices, latestPtpByInvoice, collectionPlanByInvoice,
-            collectionPlanIdByInvoice, disputeReasonByInvoice, RLM_AccountNames.forIds(accountIds)
+            collectionPlanIdByInvoice, disputeReasonByInvoice, RLM_AccountNames.read(accountIds)
         );
     }
 
@@ -51,14 +51,16 @@ public with sharing class RLM_CollectionsConsoleController {
         Map<Id, String> collectionPlanByInvoice,
         Map<Id, Id> collectionPlanIdByInvoice,
         Map<Id, String> disputeReasonByInvoice,
-        Map<Id, String> accountNames
+        RLM_AccountNames.Result accountNames
     ) {
         List<DelinquentWrapper> results = new List<DelinquentWrapper>();
         for (Invoice inv : invoices) {
             DelinquentWrapper w = new DelinquentWrapper();
             w.Id = inv.Id;
-            w.businessAccount = inv.BillingAccountId != null && accountNames.containsKey(inv.BillingAccountId) ? accountNames.get(inv.BillingAccountId) : '—';
+            w.businessAccount = inv.BillingAccountId != null && accountNames.names.containsKey(inv.BillingAccountId) ? accountNames.names.get(inv.BillingAccountId) : '—';
             w.accountId = inv.BillingAccountId;
+            // The account's name could not be read (refused, failed, or hidden by sharing): not "no account".
+            w.accountNameUnavailable = accountNames.unavailable(inv.BillingAccountId);
             w.balance = inv.Balance;
             w.overdueDays = inv.DaysInvoiceOverdue;
             w.invoiceBalance = inv.Balance;
@@ -221,6 +223,7 @@ public with sharing class RLM_CollectionsConsoleController {
         @AuraEnabled public Id Id;
         @AuraEnabled public String businessAccount;
         @AuraEnabled public Id accountId;
+        @AuraEnabled public Boolean accountNameUnavailable;
         @AuraEnabled public Decimal balance;
         @AuraEnabled public Integer overdueDays;
         @AuraEnabled public Date ptpDate;

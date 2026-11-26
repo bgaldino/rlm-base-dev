@@ -196,6 +196,7 @@ private class RLM_BSGTimelineControllerTest {
         Assert.areEqual('BSG-0001', data.groupNumber, 'The group number is shown');
         Assert.areEqual('Data Plan', data.productName, 'The product is shown');
         Assert.areEqual('Acme Billing', data.accountName, 'The billing account name is read by account id');
+        Assert.isFalse(data.accountNameUnavailable, 'A read name is available');
         Assert.areEqual(100, data.totalBilledAmount, 'Billed is shown');
         Assert.areEqual(50, data.totalPendingAmount, 'Pending is shown');
         Assert.areEqual('3', data.billingTerm, 'The term is shown as text');
@@ -209,21 +210,43 @@ private class RLM_BSGTimelineControllerTest {
 
     // A user who cannot read Account gets a dash, not an exception, so the group still shows.
     @isTest
-    static void accountNameOf_forAUserWhoCannotReadAccounts_isADash() {
+    static void setAccountName_forAUserWhoCannotReadAccounts_isADash() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account acc = new Account(Name = 'Acme Hidden');
         insert acc;
-        String name = 'unset';
+        RLM_BSGTimelineController.BSGData refused = new RLM_BSGTimelineController.BSGData();
+        RLM_BSGTimelineController.BSGData admin = new RLM_BSGTimelineController.BSGData();
 
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isFalse(Schema.SObjectType.Account.isAccessible(), 'PRECONDITION: the user cannot read Account.');
-            name = RLM_BSGTimelineController.accountNameOf(acc.Id);
+            RLM_BSGTimelineController.setAccountName(refused, acc.Id);
         }
         Test.stopTest();
+        RLM_BSGTimelineController.setAccountName(admin, acc.Id);
 
-        Assert.areEqual('—', name, 'The name shows a dash, not a raw exception.');
-        Assert.areEqual('Acme Hidden', RLM_BSGTimelineController.accountNameOf(acc.Id), 'An admin still gets the name.');
+        Assert.areEqual('—', refused.accountName, 'The name shows a dash, not a raw exception.');
+        Assert.isTrue(refused.accountNameUnavailable, 'A refused name read is not available, not "no account".');
+        Assert.areEqual('Acme Hidden', admin.accountName, 'An admin still gets the name.');
+        Assert.isFalse(admin.accountNameUnavailable, 'A read name is available.');
+    }
+
+    // An account missing from the name read (sharing) is flagged not available; no account is not flagged.
+    // The hidden id belongs to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void setAccountName_accountMissingFromTheRead_isNotAvailable() {
+        RLM_BSGTimelineController.BSGData hidden = new RLM_BSGTimelineController.BSGData();
+        RLM_BSGTimelineController.BSGData none = new RLM_BSGTimelineController.BSGData();
+
+        Test.startTest();
+        RLM_BSGTimelineController.setAccountName(hidden, fakeId(Account.SObjectType, 777));
+        RLM_BSGTimelineController.setAccountName(none, null);
+        Test.stopTest();
+
+        Assert.areEqual('—', hidden.accountName, 'A missing name shows a dash in the name field.');
+        Assert.isTrue(hidden.accountNameUnavailable, 'An account missing from the read is not available.');
+        Assert.areEqual('—', none.accountName, 'No account: a dash.');
+        Assert.isFalse(none.accountNameUnavailable, 'No account: nothing to show as not available.');
     }
 
     // Suspension and resumption dates are taken when set and left blank otherwise.
