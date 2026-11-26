@@ -216,6 +216,7 @@ def cmd_scaffold(t, args):
 
 def _build(t, spec, ids, pb, ctx, psm):
     pre = spec["prefix"]
+    safe = re.sub(r"[^A-Za-z0-9]+", "_", pre).strip("_")  # for API and developer names
     cls = ids["classification"] = _create(t, "ProductClassification", {
         "Name": f"{pre} Class", "Code": f"{pre}_Class", "Status": "Active"})
     for a in spec["attrs"]:
@@ -226,7 +227,7 @@ def _build(t, spec, ids, pb, ctx, psm):
                 "PicklistId": pl, "Name": v, "Value": v, "Code": f"{pre}_{dev}_{i}",
                 "DisplayValue": v, "Status": "Active", "Sequence": i + 1})
         ad = _create(t, "AttributeDefinition", {
-            "Name": f"{pre}_{dev}", "Label": a.get("label", dev), "DeveloperName": f"{pre}_{dev}", "DataType": "Picklist",
+            "Name": f"{pre}_{dev}", "Label": a.get("label", dev), "DeveloperName": f"{safe}_{dev}", "DataType": "Picklist",
             "PicklistId": pl, "IsActive": True, "Code": f"{pre}_{dev}"})
         pca = {"Name": dev, "ProductClassificationId": cls, "AttributeDefinitionId": ad,
                "Status": "Active", "IsRequired": a.get("required", False), "Sequence": len(ids["attrs"]) + 1}
@@ -234,7 +235,7 @@ def _build(t, spec, ids, pb, ctx, psm):
             pca["DefaultValue"] = a["default"]
         ids["attrs"][dev] = {"definition": ad, "classattr": _create(t, "ProductClassificationAttr", pca)}
     for p in spec["products"]:
-        pid = _create(t, "Product2", {"Name": p["name"], "ProductCode": p["name"], "BasedOnId": cls,
+        pid = _create(t, "Product2", {"Name": p["name"], "ProductCode": f"{pre}_{p['name']}", "BasedOnId": cls,
                                       "Type": "Bundle", "ConfigureDuringSale": "Allowed", "IsActive": True})
         for a in spec["attrs"]:
             ov = p.get("overrides", {}).get(a["dev"], {})
@@ -250,7 +251,7 @@ def _build(t, spec, ids, pb, ctx, psm):
         _create(t, "PricebookEntry", {"Product2Id": pid, "Pricebook2Id": pb, "UnitPrice": p.get("price", 100),
                                       "IsActive": True, "ProductSellingModelId": psm})
         ids["products"][p["name"]] = pid
-    api = "CM_" + re.sub(r"[^A-Za-z0-9]+", "_", pre).strip("_")
+    api = "CM_" + safe
     es = ids["expressionset"] = _create(t, "ExpressionSet", {
         "ApiName": api, "Name": f"{pre} CM", "UsageType": "Constraint",
         "InterfaceSourceType": "Constraint", "ResourceInitializationType": "Off"})

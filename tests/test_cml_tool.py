@@ -94,7 +94,24 @@ def main():
     cml_tool.cmd_push(T(), argparse.Namespace(api_name="A", file=str(mf), limit=None, confirm=True))
     assert Path(str(mf) + ".previous").read_text() == "old model"
 
-    for bad in ({}, {"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
+    # Org-unique identifiers carry the prefix, so a second scaffold with a new prefix does not collide.
+    class Recording(FakeTransport):
+        def sobject(self, method, sobject, record_id=None, body=None, **kw):
+            self.calls.append((sobject, body))
+            return {"success": True, "id": "X"}
+
+        def soql(self, query):
+            return [{"Id": "Y"}]
+    rec = Recording()
+    spec = {"prefix": "P 1", "attrs": [{"dev": "Size", "values": ["S"]}],
+            "products": [{"name": "Kit", "tag": "Kit"}]}
+    cml_tool._build(rec, spec, {"attrs": {}, "products": {}, "esc": {}}, "PB", "CTX", "PSM")
+    body = {o: b for o, b in rec.calls}
+    ad = body["AttributeDefinition"]
+    assert (ad["Name"], ad["DeveloperName"], ad["Code"]) == ("P 1_Size", "P_1_Size", "P 1_Size"), ad
+    assert body["Product2"]["ProductCode"] == "P 1_Kit", body["Product2"]
+
+    for bad in ({},{"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
         try:
             cml_tool.validate_spec(bad)
         except cml_tool.ExpressionSetClientError:
