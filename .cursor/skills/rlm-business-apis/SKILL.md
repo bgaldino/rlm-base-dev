@@ -128,6 +128,13 @@ UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are i
 [backdated-asset-lifecycle.md](backdated-asset-lifecycle.md), with the end-to-end verifier
 `scripts/backdated_arc/verify_backdated_billing.py`.
 
+**Amend, renew and cancel inputs beyond the dev guide** [Measured: 2026-11-26, 264, ent-sb0 harness build]:
+`initiateAmendment` accepts `amendOpportunityId` (returns a linked, priced quote in one call) and `amendRecordId` as an
+**input** (adds the selected assets to an open quote; the dev guide lists it as output only, duplicates are refused);
+Generate Renewal Quote on a forecast record links the quote to that Opportunity. A swap of a bundle child, or of a
+usage-based asset, is refused. `initiateCancellation` on a Term Defined asset counts periods from the asset start.
+Numbers, refusals and the stacked-renewal gate: `asset-lifecycle-changes` → `cancel-swap-and-linking.md`.
+
 **Where an ARC line's price lives.** On a renewal, a cancel or a negative-quantity amendment, the
 platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemDetail`** rows
 ("Order Product Detail") and leaves `UnitPrice` and `NetUnitPrice` **null** on the parent

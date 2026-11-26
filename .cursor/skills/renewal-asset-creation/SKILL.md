@@ -114,6 +114,7 @@ skill), adapted to this repo's conventions
 | A usage-rating demo (assets with usage wallets/buckets) | No → `build_quote_to_asset.py` directly (it verifies usage buckets by default — `--verify-usage` is a `build_renewal_buckets.py` flag, not one this script takes); see `usage-consumption/SKILL.md` |
 | Seed transaction/invoice demo data (stops before assets) | No → `txn-data-harness/SKILL.md` |
 | Prep a DF Hands-On workshop clone | No → `df-workshop-setup/SKILL.md` |
+| Renew, amend or cancel the assets once they exist (credits, Opportunity linking, stacked renewals) | No → `asset-lifecycle-changes` → `cancel-swap-and-linking.md` |
 
 ## Workflow
 
@@ -150,6 +151,11 @@ Edit the target selector at the top of `augment_asset_lifecycle.apex`
 ```bash
 sf apex run --file scripts/renewal_assets/augment_asset_lifecycle.apex --target-org <alias>
 ```
+Test the renewals you will demo against the assets this builds: a second renewal of an asset that already has one
+was refused ("already renewed") [Measured: 2026-11-26, 264, ent-sb0 harness build], and renewal timing, Opportunity
+linking and credits are in `asset-lifecycle-changes`. [Open: the shipped auto-renew flow templates and what they pass to
+`initiateRenewal` (including a one-month extension through `renewEndDate`) were desk-researched only.]
+
 Re-running? `reset_augment.apex` (scoped to `ASSET_IDS`) first — augment is additive.
 
 ## Examples

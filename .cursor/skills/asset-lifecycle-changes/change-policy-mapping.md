@@ -23,7 +23,7 @@ usually act on the same assets, so test them as one dated sequence on one build,
 from a fresh asset. These Help rules constrain the order:
 
 - You can't renew an asset that already has a future-dated renewal scheduled
-  [Help: `ind.qocal_future_dated_order_amendments_important_considerations`].
+  [Help: `ind.qocal_future_dated_order_amendments_important_considerations`]. A stacked second renewal was refused live with "already renewed" [Measured: 2026-11-26, 264.12.x, ent-sb0 harness build]; a release control gates it, so don't plan on stacking without testing the target org ([cancel-swap-and-linking.md](cancel-swap-and-linking.md)).
 - A renewal before the scheduled renewal date overrides all future asset state periods,
   amendments and renewals, and a cancellation leaves the asset in a terminal state with no
   further amend, renew or cancel [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`].

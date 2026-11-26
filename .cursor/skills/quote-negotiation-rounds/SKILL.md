@@ -93,7 +93,7 @@ path or consequence was not established (the text says what is missing).
 | Task | Use |
 |---|---|
 | A source runs several pricing rounds per deal and you are mapping them to Revenue Cloud | This skill |
-| Clone a quote, through the UI, the Connect API or the invocable; what carries over | This skill → [deep-clone.md](deep-clone.md) |
+| Clone a quote, through the UI, the Connect API or the invocable; what carries over; what Create quote from deal copies | This skill → [deep-clone.md](deep-clone.md) |
 | A round must never be presented, synced or ordered | This skill → [internal-round.md](internal-round.md) |
 | Edit discounts on many lines, header discounts, Group By, filters | `transaction-line-editor` → `runtime-behavior.md` |
 | Design the approval matrix, submit, recall, Smart Approvals eligibility | `advanced-approvals` |

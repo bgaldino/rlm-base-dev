@@ -182,16 +182,12 @@ its `GrandTotal` equalled the order's (SKILL.md Quick Rule 4).
 
 ## Open: measure before promising
 
-- **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
-  component's reduction to 0 prorated by day (above); the cancellation of a Term Defined
-  top-level asset wasn't measured.
-- **Swap values with constraints in force.**
+- **Measured 2026-11-26, now in [cancel-swap-and-linking.md](cancel-swap-and-linking.md):** the Term Defined top-level cancellation credit, swap values with constraints in force, the evergreen swap and invoice credits, and whether the configurator restores a reset attribute.
 - **Invoice values** for every change: the quote and order values above aren't the
   invoice. The measured invoice route invoices schedules through today, and a request
   holding a schedule billed past its target date is refused, so a replay dated in the future
   has no period due yet: check billing at schedule level (amount, period, start), not invoice
   level `[inferred]` from that route. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
-- **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Changing a bundle component's plan:** a plan held as an attribute on the component's
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
@@ -200,7 +196,7 @@ its `GrandTotal` equalled the order's (SKILL.md Quick Rule 4).
   measured through order and activation, by `Skip` plus a `QuoteAction` edit (2026-11-12)
   and by `Force` on a complete bundle (2026-11-17, above); removal of the whole quantity
   isn't.
-- **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
+- **Evergreen swaps:** measured 2026-11-26 (see above). Evergreen
   reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
   evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
   [change-policy-mapping.md](change-policy-mapping.md).
