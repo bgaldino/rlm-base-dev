@@ -276,11 +276,11 @@
 
                 <lightning-layout-item size="6" class="slds-p-bottom_small slds-p-right_x-small">
                     <lightning-combobox
-                        name="taxTreatment"
-                        label="Tax Treatment"
-                        value={taxTreatmentId}
-                        options={taxTreatmentOptions}
-                        onchange={handleTaxTreatmentChange}
+                        name="legalEntity"
+                        label="Legal Entity"
+                        value={legalEntityId}
+                        options={legalEntityOptions}
+                        onchange={handleLegalEntityChange}
                         required
                     >
                     </lightning-combobox>
@@ -288,11 +288,11 @@
 
                 <lightning-layout-item size="6" class="slds-p-left_x-small">
                     <lightning-combobox
-                        name="legalEntity"
-                        label="Legal Entity"
-                        value={legalEntityId}
-                        options={legalEntityOptions}
-                        onchange={handleLegalEntityChange}
+                        name="taxTreatment"
+                        label="Tax Treatment"
+                        value={taxTreatmentId}
+                        options={taxTreatmentOptions}
+                        onchange={handleTaxTreatmentChange}
                         required
                     >
                     </lightning-combobox>

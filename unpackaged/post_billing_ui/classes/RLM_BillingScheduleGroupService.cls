@@ -972,6 +972,7 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     // The product sent must be one getProducts offers (active, Software family, visible to the user).
+    // getProducts also caps its list at 200 by name; this check has no cap, so it accepts a product past it.
     private static void requirePickerProduct(Id productId) {
         List<Product2> prods;
         try {

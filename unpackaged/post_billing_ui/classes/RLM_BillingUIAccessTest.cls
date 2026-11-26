@@ -103,6 +103,8 @@ private class RLM_BillingUIAccessTest {
         'UsageResource' => new List<String>{ 'Name' },
         'Product2' => new List<String>{ 'Name', 'IsActive', 'Family' },
         'LegalEntity' => new List<String>{ 'Name', 'Status' },
+        // LegalEntityId is filtered on (the picker and create checks) but is not listed: no grant is needed.
+        // Measured on 264: a user with TaxTreatment read and no field grant creates through the check.
         'TaxTreatment' => new List<String>{ 'Name', 'Status' },
         'UnitOfMeasure' => new List<String>{ 'Name' },
         'AssetStatePeriod' => new List<String>{ 'AssetId', 'StartDate' },

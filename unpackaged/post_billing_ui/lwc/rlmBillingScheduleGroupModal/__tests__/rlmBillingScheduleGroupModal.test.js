@@ -424,6 +424,32 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(treatment().options).toHaveLength(0);
   });
 
+  it("asks for the treatments of the chosen legal entity", async () => {
+    const element = await mount();
+    change(element, 'lightning-combobox[name="legalEntity"]', "0le000000000002AAA");
+    await flushPromises();
+
+    expect(getTaxTreatments.getLastConfig()).toEqual({ legalEntityId: "0le000000000002AAA" });
+  });
+
+  it("drops a selected treatment the new options no longer offer", async () => {
+    const element = await mount();
+    const treatment = () =>
+      Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find(
+        (candidate) => candidate.name === "taxTreatment"
+      );
+    change(element, 'lightning-combobox[name="legalEntity"]', "0le000000000001AAA");
+    change(element, 'lightning-combobox[name="taxTreatment"]', "0tt000000000001AAA");
+    await flushPromises();
+    expect(treatment().value).toBe("0tt000000000001AAA");
+
+    getTaxTreatments.emit([{ id: "0tt000000000002AAA", name: "Other TT" }]);
+    await flushPromises();
+
+    expect(treatment().value).toBeFalsy();
+    expect(treatment().options).toEqual([{ label: "Other TT", value: "0tt000000000002AAA" }]);
+  });
+
   it("shows no inline reason when the form can be submitted", async () => {
     const element = await mount();
     await fillRecurring(element, "Evergreen");

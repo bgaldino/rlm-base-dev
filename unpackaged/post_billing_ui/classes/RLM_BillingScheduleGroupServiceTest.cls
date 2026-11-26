@@ -33,8 +33,8 @@
  *
  * Fixed: getAccountBillingInfo picks the account's default billing profile first, then the oldest
  * billing account (ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id), and
- * resolves one linked only through AccountBillingAccount; getLegalEntities/getTaxTreatments
- * offer only Active records; the create path rejects a null total price and a Termed
+ * resolves one linked only through AccountBillingAccount; getLegalEntities offers only Active
+ * records and getTaxTreatments only Active ones of the chosen legal entity; the create path rejects a null total price and a Termed
  * recurring create with no end date.
  */
 @isTest
@@ -1662,7 +1662,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         return null;
     }
 
-    // The picker offers only active treatments; any other id is refused before the action is called.
+    // The picker offers only active treatments of the chosen legal entity; any other id, or one of
+    // another entity, is refused before the action is called.
     @isTest
     static void createViaAPI_taxTreatmentNotOffered_isRefused() {
         Id baId = insertBillingAccount('BSG TT Refused');
@@ -1678,9 +1679,19 @@ private class RLM_BillingScheduleGroupServiceTest {
         inactive.taxTreatmentId = draft.Id;
         CreateArgs missing = new CreateArgs(baId);
         missing.taxTreatmentId = fakeId(TaxTreatment.SObjectType);
+        // An Active treatment, but of another legal entity than the one submitted.
+        LegalEntity leOther = new LegalEntity(Name = 'BSG TT Other LE', Status = 'Active');
+        insert leOther;
+        TaxTreatment otherEntity = new TaxTreatment(
+            Name = 'BSG TT Other Entity', Status = 'Active', LegalEntityId = leOther.Id);
+        insert otherEntity;
+        CreateArgs wrongEntity = new CreateArgs(baId);
+        wrongEntity.taxTreatmentId = otherEntity.Id;
+        Assert.areNotEqual(wrongEntity.legalEntityId, leOther.Id, 'PRECONDITION: the entities differ.');
         Map<String, CreateArgs> cases = new Map<String, CreateArgs>{
             'An inactive tax treatment' => inactive,
-            'A tax treatment that does not exist' => missing
+            'A tax treatment that does not exist' => missing,
+            'An active tax treatment of another legal entity' => wrongEntity
         };
 
         Test.startTest();
