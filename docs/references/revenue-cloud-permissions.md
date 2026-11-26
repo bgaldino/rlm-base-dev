@@ -360,6 +360,7 @@ These permission sets are stored as metadata in this repository but are not assi
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS; read on the Quote and QuoteLineItem estimated-tax fields only with `quote_est_tax` and `tax` |
 | `RLM_BillingInvoiceDocuments` | `unpackaged/post_personas/` | Not assigned to any user by the build: it is a component of the `RLM_Billing_Admin` and `RLM_Billing_Operations` persona groups. Invoice Batch Run read with View All (and its scheduler and run-criteria chain) and Access Libraries, for invoice documents; see [Billing personas and invoice documents](#billing-personas-and-invoice-documents) |
 | `RLM_BillingAccountFieldAccess` | `unpackaged/pre/3_permissionsetgroups/` | A component of `RLM_RCB` and of the billing persona groups (`RLM_Billing_Admin`, `RLM_Billing_Operations`, `RLM_Credit_Memo_Operations`), not assigned on its own; see the `RLM_RCB` table above |
+| `RLM_DeleteInvoices` | `unpackaged/pre/3_permissionsetgroups/` | A component of `RLM_RCB` only, not assigned on its own; see the `RLM_RCB` table above |
 | `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
 
 ### Tableau Permission Sets (`rlm_tableaunext_ps_api_names`) -- Not Assigned by Default
@@ -530,7 +531,10 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 - **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
   `Updating` or `Outdated` (a deploy that changes it leaves it `Updating`) is skipped with a "SKIPPED, NOT
-  CHECKED" WARN debug line, and then proves nothing;
+  CHECKED" WARN debug line, and then proves nothing. Measured on an org whose two groups did not yet contain
+  `RLM_BillingInvoiceDocuments`: in a check-only deploy of the whole bundle with this class's tests, both groups
+  read `Outdated` inside the deploy transaction, with the set already among their components, so the group
+  methods skipped and the deploy passed (0AfWt00000hUVnBKAW, 0AfWt00000hUViLKAW);
 - **as the managed role set plus `RLM_BillingInvoiceDocuments`** (the group's content without its field-access
   set): the Invoice Batch Run reads, and with both DocGen sets the batch create, the on-demand create and
   template read. The batch create is a real user-mode insert, the only check that meets the DocGen Designer
@@ -538,9 +542,12 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   `personas`) the platform refuses it with `INVALID_INPUT` "Enable the batch document generation setting."
   [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4]. With it off, a user without DocGen
   Designer still gets `CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY`: the access check answers before the setting
-  check. So the test reads the setting first (`DocumentGenerationSetting.IsBatchDocGnrnEnabled`): with it on,
-  any refusal fails; with it off or missing, only `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any
-  other status code fails. It decides by status code and setting, never by message text. The Billing
+  check. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
+  "Enable the server-side document generation setting." [Measured: 0AfWt00000hUViMKAW]; batch on with
+  server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
+  (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`): with both on, any refusal fails; otherwise, or
+  with no setting row, only `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code
+  fails. It decides by status code and setting, never by message text. The Billing
   Operations run-read checks are regression checks: the managed Operations set
   already reads the runs, and the View All the set adds is checked only by the metadata test;
 - **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
