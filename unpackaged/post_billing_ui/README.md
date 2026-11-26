@@ -187,24 +187,39 @@ catch block can handle and which would fail the whole call (every card, or every
 once). Each read may take the lesser of `ROW_CAP` (10,000 rows) and what the call has left less
 `ROW_HEADROOM` (1,000 rows); one row more makes its section unavailable as `tooMany`. The page says
 "Too many records to total here." for a figure and "Too many records to list here." for a list, then
-names only the filters that narrow that section: "Choose an account or currency to narrow it." for
-the cards, the total, payment promises and the Critical and High-Value tabs; "Choose an account to
-narrow it." for the Disputed tab (its open cases and 200-account cap follow the account only) and the
-plan tasks (no currency filter); nothing more for progress and the user's own plans, which no filter
-reaches (`SCOPES` in `rlmCollectionsDashboard.js`). A read whose allowance is
+suggests the filters that narrow that section and are not already in use ("Choose an account or
+currency to narrow it.", "Choose an account ...", "Choose a currency ..."), or, when every such filter
+is in use, "Too many records to total here even for this account and currency." Which filters narrow a
+section is what the controller reports its reads applied (`filtersByKey` on the cards, `filtersByTab`
+on the worklist, `filters` on the promises, tasks, plans and progress): a filter is listed only where
+the object read has the field, so a single-currency org, whose Invoice and Payment have no
+`CurrencyIsoCode`, is never told to choose a currency; the Disputed tab's invoice rollup follows the
+currency, so its advice names it; progress and the user's own plans follow no filter. A read whose allowance is
 zero runs no query and is too many at once. The guarantee is per call, not per read: whatever the
 data, a call stays under 49,250 query rows. A bounded read takes at most its allowance plus one row,
 so the bounded reads of a call stop at 49,001 query rows, after which every later bounded read has
 no allowance and is reported as too many without querying; the only fixed reads after them are the
 payment count (one row) and the plan tasks (at most 201 rows). The short lists show a fixed number
 of rows: the 200 most overdue critical follow-up invoices, the 10 largest High-Value balances, the
-200 latest-due plan tasks and the user's 50 soonest-due plans. Each knows when there are more (its
-read goes one row past what it shows; High-Value ranks every qualifying account), and then says
-"Showing the first N of more than N" with its order, with "N+" as the count where the list shows
-one, instead of reading as complete. The reads with their own small `LIMIT` (those short lists, the 500
-account options), the active currencies and the payment count (`COUNT(Id)`) are not bounded
-further; the account names a tab looks up are checked against the same allowance, and the
-High-Value tab looks up names and plans for its ten listed accounts only.
+200 accounts with the newest open cases on the Disputed tab, the 200 latest-due plan tasks and the
+user's 50 soonest-due plans. Each knows when there are more (its read goes one row past what it
+shows; High-Value ranks every qualifying account; Disputed every account with an open case), and
+then says "Showing the first N of more than N" with its order and the filters that narrow which rows
+it lists (only the account, for Disputed), with "N+" as the count where the list shows one, instead
+of reading as complete. The reads with their own small `LIMIT` (those short lists, the account
+options and the account search), the active currencies and the payment count (`COUNT(Id)`) are not
+bounded further; the account names a tab looks up and the Disputed tab's case text
+(`readDisputeReasons`) are checked against the same allowance before they run, and the High-Value tab
+looks up names and plans for its ten listed accounts only.
+
+The account filter lists the first 500 accounts by name (`ACCOUNT_OPTION_ROWS`). With more, it says
+"Showing the first 500 accounts by name. Search for an account to find another." and offers a search:
+the typed text (two characters or more, matched literally) finds accounts whose name contains it,
+the first 50 by name (`searchAccounts`, USER_MODE), and says when there are more matches. The chosen
+account stays in the list whatever a search finds.
+
+An account name the user may not read shows "Not available" on the worklist and plan rows, as an
+unread plan or promise date does, rather than the "—" of an account with no name.
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
 adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
@@ -222,8 +237,15 @@ Heap, measured on the same org against the 6 MB synchronous limit, for these rea
   newest open case is picked from ids, and only those cases' text is read, 50 per query
   (`DESCRIPTION_BATCH`), keeping a 200-character excerpt. Read that way, 200 cases at the maximum
   length peaked at 1.65 MB, and the excerpts kept took 48 KB.
-- **The Disputed tab** lists at most 200 accounts (`DISPUTED_ROWS`), newest open case first. More is
-  `tooMany`, so a list is never cut short and its case text never passes that measured 200.
+- **The Disputed tab** lists the 200 accounts with the newest open cases (`DISPUTED_ROWS`) and says
+  when there are more, so its case text never passes that measured 200.
+- **The High-Value roll-up** at the read cap (10,000 invoice rows on 10,000 accounts, every account
+  qualifying), its structures rebuilt in anonymous Apex from synthetic rows: the rows took 1.12 MB, the
+  rows with its two 10,000-entry per-account maps 1.68 MB (the peak), the maps alone 0.56 MB once the
+  rows are released, and 0.78 MB after the top-10 pick, in 862 ms of CPU including building the rows.
+  The roll-up drops the rows once it has the sums and picks the ten largest in one pass, building a row
+  for those ten only; `addHighValueDelinquents_atTheReadCap_listsTheTenLargest` runs the real method at
+  that size within the test's limits.
 
 Each invoice and case read is released before the next large read in its tab. The payment schedule
 and schedule item reads were not measured; they select two and three short fields.

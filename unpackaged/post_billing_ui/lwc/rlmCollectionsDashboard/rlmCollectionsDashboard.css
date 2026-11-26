@@ -47,6 +47,17 @@
     margin-right: 0.25rem;
 }
 
+/* The account filter when it does not list every account: a search, and what is listed (todo 435). */
+.filter-search {
+    max-width: 24rem;
+}
+
+.filter-notice {
+    font-size: 0.75rem;
+    color: var(--mc-muted);
+    margin: 0;
+}
+
 /* ----- Dashboard body ----- */
 .dashboard-body {
     padding: 1rem;

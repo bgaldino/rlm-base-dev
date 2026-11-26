@@ -13,12 +13,14 @@ import getPaymentPromiseSummary from "@salesforce/apex/RLM_CollectionsDashboardC
 import getCollectionsProgress from "@salesforce/apex/RLM_CollectionsDashboardController.getCollectionsProgress";
 import getCollectionPlanTasks from "@salesforce/apex/RLM_CollectionsDashboardController.getCollectionPlanTasks";
 import getMyCollectionPlans from "@salesforce/apex/RLM_CollectionsDashboardController.getMyCollectionPlans";
+import searchAccounts from "@salesforce/apex/RLM_CollectionsDashboardController.searchAccounts";
 
 // A figure the user cannot read (todo 435) arrives from the controller as unavailable: null, or
 // listed in the cards' `unavailable`. These tests pin that the page says so instead of showing a
 // zero, and that a readable zero still shows as a zero.
 
 jest.mock("@salesforce/apex/RLM_CollectionsDashboardController.getAccountOptions", () => ({ default: jest.fn() }), { virtual: true });
+jest.mock("@salesforce/apex/RLM_CollectionsDashboardController.searchAccounts", () => ({ default: jest.fn() }), { virtual: true });
 jest.mock("@salesforce/apex/RLM_CollectionsDashboardController.getCurrencyOptions", () => ({ default: jest.fn() }), { virtual: true });
 jest.mock("@salesforce/apex/RLM_CollectionsDashboardController.getOrgDefaultCurrency", () => ({ default: jest.fn() }), { virtual: true });
 jest.mock(
@@ -106,9 +108,18 @@ function cards(unavailable = [], reasons = {}) {
       row("Unapplied Payments", has("unappliedPayments") ? null : -20, "red", has("unappliedPayments") && "unappliedPayments")
     ],
     unavailable,
-    unavailableReason
+    unavailableReason,
+    filtersByKey: {
+      invoices: ["account", "currency"],
+      debitMemos: ["account", "currency"],
+      unappliedCredits: ["account", "currency"],
+      unappliedPayments: ["account", "currency"]
+    }
   };
 }
+
+// The filters a multi-currency org's sections apply, as the controller reports them.
+const BOTH = ["account", "currency"];
 
 // The breakdown row of each total component.
 const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied Credits", unappliedPayments: "Unapplied Payments" };
@@ -116,13 +127,17 @@ const EXCLUDED_ROWS = { debitMemos: "Debit Memos", unappliedCredits: "Unapplied 
 const EMPTY_WORKLIST = { criticalFollowUpInvoices: [], highValueDelinquents: [], disputedInvoices: [], unavailable: [] };
 
 // Mounts with the filter options answered and every data section still waiting for its wire.
-async function mount() {
+async function mount({ accountsHaveMore = false } = {}) {
   getOrgDefaultCurrency.mockResolvedValue("USD");
   getCurrencyOptions.mockResolvedValue([{ value: "", label: "All Currencies" }]);
-  getAccountOptions.mockResolvedValue([
-    { value: "", label: "All Accounts" },
-    { value: "001000000000001AAA", label: "Acme" }
-  ]);
+  getAccountOptions.mockResolvedValue({
+    options: [
+      { value: "", label: "All Accounts" },
+      { value: "001000000000001AAA", label: "Acme" }
+    ],
+    hasMore: accountsHaveMore,
+    unavailable: false
+  });
   const element = createElement("c-rlm-collections-dashboard", { is: RlmCollectionsDashboard });
   document.body.appendChild(element);
   await flushPromises();
@@ -142,6 +157,11 @@ async function openTab(element, tab) {
   );
   button.click();
   await flushPromises();
+}
+
+// The account search (shown only when the filter does not list every account), or null.
+function accountSearchInput(element) {
+  return Array.from(element.shadowRoot.querySelectorAll("lightning-input")).find((node) => node.name === "accountSearch") || null;
 }
 
 const text = (element, selector) =>
@@ -581,7 +601,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
   // Each section says what it is (a figure is totalled, a list listed) and which filters narrow it.
   it("says payment promises have too many records to total, narrowed by account or currency", async () => {
     const element = await mount();
-    getPaymentPromiseSummary.emit({ buckets: [], unavailable: true, unavailableReason: "tooMany" });
+    getPaymentPromiseSummary.emit({ buckets: [], unavailable: true, unavailableReason: "tooMany", filters: BOTH });
     await flushPromises();
 
     expect(text(element, ".payment-promises-empty")).toEqual([
@@ -592,11 +612,12 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
   it.each([
     ["critical", "Too many records to list here. Choose an account or currency to narrow it."],
     ["highValue", "Too many records to list here. Choose an account or currency to narrow it."],
-    // Disputed starts from open cases and its account cap: only the account narrows it.
-    ["disputed", "Too many records to list here. Choose an account to narrow it."]
+    // Disputed's invoice rollup follows the currency too.
+    ["disputed", "Too many records to list here. Choose an account or currency to narrow it."]
   ])("says the %s tab has too many records to list, naming the filter that narrows it", async (tab, message) => {
     const element = await mount();
-    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: [tab], unavailableReason: { [tab]: "tooMany" } });
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: [tab], unavailableReason: { [tab]: "tooMany" },
+      filtersByTab: { critical: BOTH, highValue: BOTH, disputed: BOTH } });
     await flushPromises();
     const button = Array.from(element.shadowRoot.querySelectorAll("button.folder-tab")).find(
       (candidate) => candidate.dataset.tab === tab
@@ -609,7 +630,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
 
   it("says plan tasks have too many records to list, narrowed by account only", async () => {
     const element = await mount();
-    getCollectionPlanTasks.emit({ items: [], unavailable: true, unavailableReason: "tooMany" });
+    getCollectionPlanTasks.emit({ items: [], unavailable: true, unavailableReason: "tooMany", filters: ["account"] });
     await flushPromises();
 
     expect(text(element, ".cp-tasks-empty")).toEqual(["Too many records to list here. Choose an account to narrow it."]);
@@ -656,10 +677,12 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     );
   });
 
-  it("says the Disputed tab is too many even for the chosen account, whatever the currency", async () => {
+  // A single-currency org: Invoice has no currency field, so the controller reports the account alone.
+  it("says the Disputed tab is too many even for the chosen account where only the account applies", async () => {
     const element = await mount();
     await selectFilter(element, "account", "001000000000001AAA");
-    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["disputed"], unavailableReason: { disputed: "tooMany" } });
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["disputed"], unavailableReason: { disputed: "tooMany" },
+      filtersByTab: { critical: ["account"], highValue: ["account"], disputed: ["account"] } });
     await flushPromises();
     await openTab(element, "disputed");
 
@@ -684,7 +707,8 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
         { taskId: "00T000000000002AAA", subject: "Email", status: "Open", activityDate: "2026-11-24", collectionPlanId: "0Wn000000000001AAA" }
       ],
       unavailable: false,
-      hasMore: true
+      hasMore: true,
+      filters: ["account"]
     });
     await flushPromises();
 
@@ -700,7 +724,8 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     getCollectionPlanTasks.emit({
       items: [{ taskId: "00T000000000001AAA", subject: "Call", status: "Open", activityDate: "2026-11-25", collectionPlanId: "0Wn000000000001AAA" }],
       unavailable: false,
-      hasMore: true
+      hasMore: true,
+      filters: ["account"]
     });
     await flushPromises();
 
@@ -731,7 +756,7 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
       ...EMPTY_WORKLIST,
       criticalFollowUpInvoices: [{ invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500,
         billingAccountId: "001000000000001AAA", billingAccountName: "Acme", collectionPlanUnavailable: false }],
-      hasMore: []
+      hasMore: {}
     });
     await flushPromises();
 
@@ -751,11 +776,128 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
         billingAccountId: "001000000000001AAA", billingAccountName: "Acme", collectionPlanUnavailable: false }],
       highValueDelinquents: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 5000, daysOverdue: 40,
         collectionPlanUnavailable: false }],
-      hasMore: [tab]
+      hasMore: { [tab]: BOTH }
     });
     await flushPromises();
     await openTab(element, tab);
 
     expect(text(element, ".worklist-more")).toEqual([message]);
+  });
+
+  // Narrowing advice follows what the controller applied: a single-currency org never hears "currency".
+  it("suggests only the account where the card reads apply no currency filter", async () => {
+    const element = await mount();
+    const data = cards(["invoices"], { invoices: "tooMany" });
+    data.filtersByKey = { invoices: ["account"], debitMemos: ["account"], unappliedCredits: ["account"], unappliedPayments: ["account"] };
+    await selectFilter(element, "currency", "USD");
+    getDashboardCards.emit(data);
+    await flushPromises();
+
+    expect(card(element, "Receivables Outstanding").querySelector(".pulse-card-meta").textContent).toBe(
+      "Too many records to total here. Choose an account to narrow it."
+    );
+  });
+
+  it("says the Disputed tab is the first of more, narrowed by account", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      disputedInvoices: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 10 }],
+      hasMore: { disputed: ["account"] }
+    });
+    await flushPromises();
+    await openTab(element, "disputed");
+
+    expect(text(element, ".worklist-more")).toEqual([
+      "Showing the first 1 of more than 1 (newest open case first). Choose an account to narrow it."
+    ]);
+  });
+
+  // An account name the controller could not read is not available, as an unread plan or promise date is.
+  it("shows an unreadable account name as not available on worklist and plan rows", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [{ invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500,
+        billingAccountId: "001000000000001AAA", billingAccountName: "—", accountNameUnavailable: true,
+        collectionPlanUnavailable: false }],
+      highValueDelinquents: [{ accountId: "001000000000001AAA", accountName: "—", accountNameUnavailable: true, balance: 5000 }]
+    });
+    getMyCollectionPlans.emit({
+      items: [{ collectionPlanId: "0Wn000000000001AAA", name: "CP-1", dueDate: "2026-12-01", accountId: "001000000000001AAA",
+        accountName: "—", accountNameUnavailable: true, totalInvoiceBalance: 10 }],
+      unavailable: false,
+      hasMore: false
+    });
+    await flushPromises();
+
+    expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
+    expect(element.shadowRoot.querySelector(".my-cp-table tbody tr").textContent).toContain("Not available");
+    await openTab(element, "highValue");
+    expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
+  });
+
+  it("offers no Send Reminder action on worklist rows", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      highValueDelinquents: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 5000 }],
+      disputedInvoices: [{ accountId: "001000000000001AAA", accountName: "Acme", balance: 10 }]
+    });
+    await flushPromises();
+    await openTab(element, "highValue");
+    expect(element.shadowRoot.querySelector(".worklist-table").textContent).not.toContain("Send Reminder");
+    await openTab(element, "disputed");
+    expect(element.shadowRoot.querySelector(".worklist-table").textContent).not.toContain("Send Reminder");
+  });
+
+  // The account filter: with every account listed, no search and no notice.
+  it("shows no account search or notice when every account is listed", async () => {
+    const element = await mount();
+
+    expect(accountSearchInput(element)).toBeNull();
+    expect(text(element, ".filter-notice")).toEqual([]);
+  });
+
+  // With more accounts than listed: a notice, and a search by name that keeps the chosen account.
+  it("says the account filter lists the first accounts, and searches the rest by name", async () => {
+    const element = await mount({ accountsHaveMore: true });
+    expect(text(element, ".filter-notice")).toEqual([
+      "Showing the first 1 accounts by name. Search for an account to find another."
+    ]);
+    await selectFilter(element, "account", "001000000000001AAA");
+
+    searchAccounts.mockResolvedValue({
+      options: [{ value: "", label: "All Accounts" }, { value: "001000000000002AAA", label: "Zeta" }],
+      hasMore: true,
+      unavailable: false
+    });
+    const search = accountSearchInput(element);
+    search.value = "Ze";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+
+    expect(searchAccounts).toHaveBeenCalledWith({ term: "Ze" });
+    const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Acme", "Zeta"]);
+    expect(text(element, ".filter-notice")).toEqual([
+      "Showing the first 1 matching accounts by name. Type more of the name to narrow it."
+    ]);
+
+    search.value = "Z";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+    expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Acme"]);
+  });
+
+  it("says when the account search could not run", async () => {
+    const element = await mount({ accountsHaveMore: true });
+    searchAccounts.mockRejectedValue(new Error("down"));
+    const search = accountSearchInput(element);
+    search.value = "Acme";
+    search.dispatchEvent(new CustomEvent("commit"));
+    await flushPromises();
+
+    expect(text(element, ".filter-notice")).toEqual(["Accounts could not be searched. Try again."]);
   });
 });

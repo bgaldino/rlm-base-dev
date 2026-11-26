@@ -12,26 +12,111 @@ public with sharing class RLM_CollectionsDashboardController {
         return String.isNotBlank(defaultCurrency) ? defaultCurrency : 'USD';
     }
 
+    // The account filter's options: "All Accounts", then the first ACCOUNT_OPTION_ROWS accounts by name. Read
+    // one row longer, so with more accounts the page says so and offers searchAccounts (todo 435).
     @AuraEnabled(cacheable=true)
-    public static List<Map<String, String>> getAccountOptions() {
-        List<Map<String, String>> options = new List<Map<String, String>>();
-        options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' });
+    public static AccountOptions getAccountOptions() {
+        AccountOptions result = new AccountOptions();
+        Integer readLimit = ACCOUNT_OPTION_ROWS + 1;
         try {
-            for (Account a : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 500]) {
-                options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+            List<Account> accounts = [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT :readLimit];
+            result.hasMore = keepFirst(accounts, ACCOUNT_OPTION_ROWS);
+            for (Account a : accounts) {
+                result.options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
             }
         } catch (QueryException e) {
-            // The user cannot read Account: offer only "All Accounts" so the rest of the
-            // dashboard (currency options, worklist) still loads, as the other sections do.
-            return new List<Map<String, String>>{ options[0] };
+            // The user cannot read Account: offer only "All Accounts" so the rest of the dashboard (currency
+            // options, worklist) still loads, as the other sections do.
+            sectionSkipped('getAccountOptions', e);
+            return new AccountOptions();
         }
-        return options;
+        return result;
+    }
+
+    // Accounts whose name contains the typed text (at least ACCOUNT_SEARCH_MIN characters), first
+    // ACCOUNT_SEARCH_ROWS by name, for an org with more accounts than the options list. The text is matched
+    // literally: LIKE's own wildcards in it are escaped. With too short a text, or an unreadable Account, it
+    // returns only "All Accounts" (unavailable then says the search could not run).
+    @AuraEnabled(cacheable=true)
+    public static AccountOptions searchAccounts(String term) {
+        AccountOptions result = new AccountOptions();
+        String text = term == null ? '' : term.trim();
+        if (text.length() < ACCOUNT_SEARCH_MIN) return result;
+        String pattern = '%' + text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%';
+        Integer readLimit = ACCOUNT_SEARCH_ROWS + 1;
+        try {
+            List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name LIKE :pattern WITH USER_MODE ORDER BY Name LIMIT :readLimit];
+            result.hasMore = keepFirst(accounts, ACCOUNT_SEARCH_ROWS);
+            for (Account a : accounts) {
+                result.options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+            }
+        } catch (QueryException e) {
+            sectionSkipped('searchAccounts', e);
+            AccountOptions unreadable = new AccountOptions();
+            unreadable.unavailable = true;
+            return unreadable;
+        }
+        return result;
+    }
+
+    @TestVisible private static Integer ACCOUNT_OPTION_ROWS = 500;
+    @TestVisible private static Integer ACCOUNT_SEARCH_ROWS = 50;
+    private static final Integer ACCOUNT_SEARCH_MIN = 2;
+
+    // "All Accounts" first, then accounts by name; hasMore when there are more than are listed.
+    public class AccountOptions {
+        @AuraEnabled public List<Map<String, String>> options { get; set; }
+        @AuraEnabled public Boolean hasMore { get; set; }
+        @AuraEnabled public Boolean unavailable { get; set; }
+        public AccountOptions() {
+            options = new List<Map<String, String>>{ new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' } };
+            hasMore = false;
+            unavailable = false;
+        }
+    }
+
+    // The page's filters, as each section reports the ones its reads apply (todo 435): a filter is listed only
+    // where the object read has the field, so the page suggests narrowing only by a filter that narrows.
+    @TestVisible private static final String FILTER_ACCOUNT = 'account';
+    @TestVisible private static final String FILTER_CURRENCY = 'currency';
+
+    private static List<String> filtersApplied(Boolean account, Boolean currencyField) {
+        List<String> applied = new List<String>();
+        if (account) applied.add(FILTER_ACCOUNT);
+        if (currencyField) applied.add(FILTER_CURRENCY);
+        return applied;
+    }
+
+    // Invoice reads filter on BillingAccountId always, and on CurrencyIsoCode where Invoice has it.
+    private static List<String> invoiceFilters() {
+        return filtersApplied(true, invoiceHasCurrencyField());
+    }
+
+    private static List<String> paymentFilters() {
+        return filtersApplied(getPaymentAccountFieldName() != null, paymentHasCurrencyField());
+    }
+
+    private static List<String> debitMemoFilters() {
+        try {
+            if (!Schema.getGlobalDescribe().containsKey('DebitMemo')) return new List<String>();
+            Map<String, Schema.SObjectField> flds = Schema.getGlobalDescribe().get('DebitMemo').getDescribe().fields.getMap();
+            return filtersApplied(flds.containsKey('BillToAccountId') || flds.containsKey('AccountId'), flds.containsKey('CurrencyIsoCode'));
+        } catch (Exception e) { probeSkipped('debitMemoFilters', e); return new List<String>(); }
+    }
+
+    private static List<String> promiseFilters() {
+        try {
+            if (!Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) return new List<String>();
+            Map<String, Schema.SObjectField> flds = Schema.getGlobalDescribe().get('PaymentScheduleItem').getDescribe().fields.getMap();
+            return filtersApplied(flds.containsKey('PaymentAccountId'), paymentScheduleItemHasCurrencyField());
+        } catch (Exception e) { probeSkipped('promiseFilters', e); return new List<String>(); }
     }
 
     /** Payment Promises: total requested amount on PaymentScheduleItem by status (Ready for Processing, Draft, Failed, In Processing). */
     @AuraEnabled(cacheable=true)
     public static PaymentPromiseSummary getPaymentPromiseSummary(Id accountId, String currencyCode) {
         PaymentPromiseSummary summary = new PaymentPromiseSummary();
+        summary.filters = promiseFilters();
         List<PaymentPromiseBucket> buckets = summary.buckets;
         try {
             if (!Schema.getGlobalDescribe().containsKey('PaymentScheduleItem')) return summary;
@@ -65,6 +150,7 @@ public with sharing class RLM_CollectionsDashboardController {
             // Not "no promises": the page says the schedule items could not be read.
             sectionSkipped('getPaymentPromiseSummary', e);
             PaymentPromiseSummary unreadable = new PaymentPromiseSummary();
+            unreadable.filters = summary.filters;
             unreadable.unavailable = true;
             unreadable.unavailableReason = reasonFor(e);
             return unreadable;
@@ -77,9 +163,12 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<PaymentPromiseBucket> buckets { get; set; }
         @AuraEnabled public Boolean unavailable { get; set; }
         @AuraEnabled public String unavailableReason { get; set; }
+        // The filters the read applies (FILTER_*): what can narrow it when it has too many records.
+        @AuraEnabled public List<String> filters { get; set; }
         public PaymentPromiseSummary() {
             buckets = new List<PaymentPromiseBucket>();
             unavailable = false;
+            filters = new List<String>();
         }
     }
 
@@ -115,6 +204,13 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static CollectionsDashboardData getDashboardCards(Id accountId, String currencyCode) {
         CollectionsDashboardData data = new CollectionsDashboardData();
+        List<String> paymentFilterList = paymentFilters();
+        data.filtersByKey = new Map<String, List<String>>{
+            UNAVAILABLE_INVOICES => invoiceFilters(),
+            UNAVAILABLE_DEBIT_MEMOS => debitMemoFilters(),
+            UNAVAILABLE_CREDITS => paymentFilterList,
+            UNAVAILABLE_PAYMENTS => paymentFilterList
+        };
         Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId));
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         String invAccountField = getInvoiceAccountFieldName();
@@ -293,6 +389,14 @@ public with sharing class RLM_CollectionsDashboardController {
     @AuraEnabled(cacheable=true)
     public static WorklistData getWorklist(Id accountId, String currencyCode) {
         WorklistData wl = new WorklistData();
+        // Every tab reads invoices by account and, where Invoice has it, currency (the Disputed tab's rollup
+        // too); the Disputed tab's list of accounts comes from open cases, which only the account narrows.
+        List<String> invoiceFilterList = invoiceFilters();
+        wl.filtersByTab = new Map<String, List<String>>{
+            WORKLIST_CRITICAL => invoiceFilterList,
+            WORKLIST_HIGH_VALUE => invoiceFilterList,
+            WORKLIST_DISPUTED => invoiceFilterList
+        };
         String invAccountField = getInvoiceAccountFieldName();
         Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId));
         Boolean filterCurrency = String.isNotBlank(currencyCode);
@@ -333,8 +437,7 @@ public with sharing class RLM_CollectionsDashboardController {
         if (key == WORKLIST_CRITICAL) wl.criticalFollowUpInvoices.clear();
         if (key == WORKLIST_HIGH_VALUE) wl.highValueDelinquents.clear();
         if (key == WORKLIST_DISPUTED) wl.disputedInvoices.clear();
-        Integer moreAt = wl.hasMore.indexOf(key);
-        if (moreAt >= 0) wl.hasMore.remove(moreAt);
+        wl.hasMore.remove(key);
     }
 
     // Test seam: a test names the steps that throw, to prove a failure there marks its tab rather than
@@ -391,10 +494,13 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // True when there are more tasks than the TASK_ROWS listed (latest due first).
         @AuraEnabled public Boolean hasMore { get; set; }
+        // The filters the read applies (FILTER_*): the plans' account.
+        @AuraEnabled public List<String> filters { get; set; }
         public CpTaskList() {
             items = new List<CpTaskItem>();
             unavailable = false;
             hasMore = false;
+            filters = new List<String>{ FILTER_ACCOUNT };
         }
     }
 
@@ -466,7 +572,7 @@ public with sharing class RLM_CollectionsDashboardController {
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
             List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField
                 + ' LIMIT ' + (CRITICAL_ROWS + 1), AccessLevel.USER_MODE);
-            if (keepFirst(invs, CRITICAL_ROWS)) wl.hasMore.add(WORKLIST_CRITICAL);
+            if (keepFirst(invs, CRITICAL_ROWS)) wl.hasMore.put(WORKLIST_CRITICAL, invoiceFilters());
             addCriticalFollowUps(wl, invs, hasDaysField, hasBillToContact, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildCriticalFollowUpInvoices', e);
@@ -484,7 +590,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 billingAccountIds.add((Id) inv.get('BillingAccountId'));
             }
         }
-        Map<Id, String> accountNames = getAccountNames(billingAccountIds);
+        RLM_AccountNames.Result accountNames = getAccountNames(billingAccountIds);
 
         Set<Id> invoiceIds = new Set<Id>();
         for (Invoice inv : invs) {
@@ -513,7 +619,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
             String invNum = inv.InvoiceNumber != null ? inv.InvoiceNumber : '—';
             Id billingAcctId = inv.get('BillingAccountId') != null ? (Id) inv.get('BillingAccountId') : null;
-            String billingAcctName = billingAcctId != null ? accountNames.get(billingAcctId) : null;
+            String billingAcctName = billingAcctId != null ? accountNames.names.get(billingAcctId) : null;
             Id billToContactId = hasBillToContact && inv.get('BillToContactId') != null ? (Id) inv.get('BillToContactId') : null;
             Id collectionPlanId = invoiceToCollectionPlan.get(inv.Id);
 
@@ -523,6 +629,7 @@ public with sharing class RLM_CollectionsDashboardController {
             );
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             row.collectionPlanUnavailable = planLookupFailed;
+            row.accountNameUnavailable = accountNames.unreadable;
             wl.criticalFollowUpInvoices.add(row);
         }
     }
@@ -538,6 +645,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id collectionPlanId { get; set; }
         // True when the plan lookup was refused or failed: collectionPlanId null then is not "no plan".
         @AuraEnabled public Boolean collectionPlanUnavailable { get; set; }
+        // True when the account names could not be read: the name is not available, not "none".
+        @AuraEnabled public Boolean accountNameUnavailable { get; set; }
         public CriticalFollowUpInvoiceItem(Id invoiceId, String invoiceNumber, Decimal balance, Integer daysInvoiceOverdue, Id billingAccountId, String billingAccountName, Id billToContactId, Id collectionPlanId) {
             this.invoiceId = invoiceId;
             this.invoiceNumber = invoiceNumber != null ? invoiceNumber : '—';
@@ -558,10 +667,10 @@ public with sharing class RLM_CollectionsDashboardController {
         // The read and the rows built from it share one catch, as the Critical and Disputed tabs do: a failure
         // anywhere in the tab marks it unavailable instead of leaving it empty.
         try {
-            List<Invoice> invs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+            // The rows go straight to the roll-up, which drops them once it has the per-account sums.
+            addHighValueDelinquents(wl, (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
                 new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo },
-                'high-value invoices');
-            addHighValueDelinquents(wl, invs, invAccountField, Date.today());
+                'high-value invoices'), invAccountField, Date.today());
         } catch (Exception e) {
             sectionSkipped('buildHighValueDelinquents', e);
             markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e);
@@ -586,29 +695,22 @@ public with sharing class RLM_CollectionsDashboardController {
             Integer existing = accountMaxDays.get(accId);
             if (existing == null || days > existing) accountMaxDays.put(accId, days);
         }
-        // Filter accounts below the $2000 threshold
-        Set<Id> qualifiedAccounts = new Set<Id>();
-        for (Id accId : accountBalance.keySet()) {
-            if (accountBalance.get(accId) >= minBalanceThreshold) {
-                qualifiedAccounts.add(accId);
-            }
+        invs = null;
+        // Only the HIGH_VALUE_ROWS largest balances of 2000 or more are listed: they are picked from the sums
+        // without a row per qualifying account, and only their names and plans are looked up.
+        List<Id> listedOrder = largestBalances(accountBalance, minBalanceThreshold, HIGH_VALUE_ROWS);
+        Integer qualifying = 0;
+        for (Decimal balance : accountBalance.values()) {
+            if (balance >= minBalanceThreshold) qualifying++;
         }
-        if (qualifiedAccounts.isEmpty()) return;
-        // Only the ten largest balances are listed, so only their names and plans are looked up: the reads
-        // stay at ten ids however many accounts qualify.
-        List<WorklistItem> ranked = new List<WorklistItem>();
-        for (Id accId : qualifiedAccounts) {
-            ranked.add(new WorklistItem(accId, null, accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null));
-        }
-        sortByBalance(ranked);
+        if (listedOrder.isEmpty()) return;
+        if (qualifying > HIGH_VALUE_ROWS) wl.hasMore.put(WORKLIST_HIGH_VALUE, invoiceFilters());
+        Set<Id> listedIds = new Set<Id>(listedOrder);
         List<WorklistItem> listed = new List<WorklistItem>();
-        Set<Id> listedIds = new Set<Id>();
-        for (Integer i = 0; i < Math.min(HIGH_VALUE_ROWS, ranked.size()); i++) {
-            listed.add(ranked[i]);
-            listedIds.add(ranked[i].accountId);
+        for (Id accId : listedOrder) {
+            listed.add(new WorklistItem(accId, null, accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null));
         }
-        if (ranked.size() > HIGH_VALUE_ROWS) wl.hasMore.add(WORKLIST_HIGH_VALUE);
-        Map<Id, String> accountNames = getAccountNames(listedIds);
+        RLM_AccountNames.Result accountNames = getAccountNames(listedIds);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
         Boolean planLookupFailed = false;
         if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
@@ -623,8 +725,9 @@ public with sharing class RLM_CollectionsDashboardController {
             } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); planLookupFailed = true; }
         }
         for (WorklistItem item : listed) {
-            String name = accountNames.get(item.accountId);
+            String name = accountNames.names.get(item.accountId);
             item.accountName = name != null ? name : '—';
+            item.accountNameUnavailable = accountNames.unreadable;
             item.collectionPlanId = accountToCollectionPlan.get(item.accountId);
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             item.collectionPlanUnavailable = planLookupFailed;
@@ -662,11 +765,16 @@ public with sharing class RLM_CollectionsDashboardController {
             }
             openCases = null;
             if (disputedAccountOrder.isEmpty()) return;
-            // More disputed accounts than the tab lists is too many (narrow by account), not a list cut short.
-            requireWithin(disputedAccountOrder.size(), DISPUTED_ROWS, 'disputed accounts');
+            // The tab lists the DISPUTED_ROWS accounts with the newest open cases and says when there are more
+            // (only the account filter narrows which accounts have open cases).
+            if (keepFirst(disputedAccountOrder, DISPUTED_ROWS)) {
+                wl.hasMore.put(WORKLIST_DISPUTED, new List<String>{ FILTER_ACCOUNT });
+            }
+            List<Case> shownCases = new List<Case>();
+            for (Id accId : disputedAccountOrder) shownCases.add(shownCaseByAccount.get(accId));
             Set<Id> disputedAccountIds = new Set<Id>(disputedAccountOrder);
-            Map<Id, String> accountDisputeReason = readDisputeReasons(shownCaseByAccount.values());
-            Map<Id, String> accountNames = getAccountNames(disputedAccountIds);
+            Map<Id, String> accountDisputeReason = readDisputeReasons(shownCases);
+            RLM_AccountNames.Result accountNames = getAccountNames(disputedAccountIds);
             Date today = Date.today();
 
             // A refused Invoice read throws here and is caught at the end of this method, which drops the
@@ -707,7 +815,8 @@ public with sharing class RLM_CollectionsDashboardController {
                 Decimal bal = accountBalance.get(accId) != null ? accountBalance.get(accId) : 0;
                 Integer daysOverdue = accountMaxDaysOverdue.get(accId);
                 Date ptpDate = accountPtpDate.get(accId);
-                WorklistItem item = new WorklistItem(accId, accountNames.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
+                WorklistItem item = new WorklistItem(accId, accountNames.names.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
+                item.accountNameUnavailable = accountNames.unreadable;
                 item.caseId = shownCaseByAccount.get(accId).Id;
                 item.caseNumber = shownCaseByAccount.get(accId).CaseNumber;
                 // A promise lookup that was refused, failed or found too many rows is not "no promise".
@@ -754,8 +863,8 @@ public with sharing class RLM_CollectionsDashboardController {
         return accountPtpDate;
     }
 
-    // The Disputed tab lists at most this many accounts (newest open case first). More is too many: the tab
-    // reads each listed account's case text, which only a bounded number of accounts keeps within the heap.
+    // The Disputed tab lists at most this many accounts (newest open case first), and says when there are more:
+    // it reads each listed account's case text, which only a bounded number of accounts keeps within the heap.
     @TestVisible private static Integer DISPUTED_ROWS = 200;
     // Case text is read this many cases at a time, and only a 200-character excerpt is kept. Measured on a 264
     // org (2026-11-26): 200 cases with 32,000-character descriptions (the field's maximum) take 6.4 MB of heap
@@ -831,9 +940,10 @@ public with sharing class RLM_CollectionsDashboardController {
     // Bounded reads (todo 435). Every record read and every summing aggregate in this class goes through
     // boundedRows or boundedAggregate, except the reads that carry their own small LIMIT (the critical
     // follow-up invoices, the tasks and getMyCollectionPlans' plans, each read one row past what it lists so
-    // the page can say there are more (CRITICAL_ROWS, TASK_ROWS, MY_PLAN_ROWS); the 500 account options), the
-    // active currencies, the payment count (COUNT(Id): one query row) and the account names, which
-    // getAccountNames checks against the same allowance. A read that finds more rows
+    // the page can say there are more (CRITICAL_ROWS, TASK_ROWS, MY_PLAN_ROWS), and the account options (ACCOUNT_OPTION_ROWS + 1)), the
+    // active currencies, the account search (ACCOUNT_SEARCH_ROWS + 1), the payment count (COUNT(Id): one
+    // query row), and two reads checked against the same allowance before they run: the account names
+    // (getAccountNames) and the shown cases' text (readDisputeReasons, DESCRIPTION_BATCH cases per query). A read that finds more rows
     // than it may take makes its section unavailable as REASON_TOO_MANY, instead of a figure or list built
     // from a cut-off read, and instead of the 50,000-row query limit of a transaction, whose LimitException
     // no catch block can handle and which would fail the whole call. Each read may take the lesser of:
@@ -942,12 +1052,12 @@ public with sharing class RLM_CollectionsDashboardController {
         System.debug(LoggingLevel.WARN, 'RLM_CollectionsDashboardController.' + context + ' skipped: ' + e.getTypeName() + ': ' + e.getMessage());
     }
 
-    // A refused Account read leaves the rows listed with a dash for the name (see RLM_AccountNames), not
-    // dropped by the caller's catch. The read returns at most one row per id, so the ids are checked against
-    // the same allowance as a bounded read.
-    private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
+    // A refused Account read leaves the rows listed, not dropped by the caller's catch: each row's name is then
+    // marked not available (accountNameUnavailable), not "none". The read returns at most one row per id, so
+    // the ids are checked against the same allowance as a bounded read.
+    private static RLM_AccountNames.Result getAccountNames(Set<Id> accountIds) {
         requireWithin(accountIds.size(), rowAllowance(), 'accounts');
-        return RLM_AccountNames.forIds(accountIds);
+        return RLM_AccountNames.read(accountIds);
     }
 
     public class WorklistItem implements Comparable {
@@ -965,6 +1075,8 @@ public with sharing class RLM_CollectionsDashboardController {
         // True when the plan or promise lookup was refused or failed: a null then is not "none".
         @AuraEnabled public Boolean collectionPlanUnavailable { get; set; }
         @AuraEnabled public Boolean ptpUnavailable { get; set; }
+        // True when the account names could not be read: the name is not available, not "none".
+        @AuraEnabled public Boolean accountNameUnavailable { get; set; }
         public WorklistItem(Id accId, String name, Decimal bal, Integer days, String seg) {
             accountId = accId; accountName = name != null ? name : '—'; balance = bal; daysOverdue = days; segment = seg; healthScore = 'amber'; ptpDate = null; disputeReason = null; collectionPlanId = null; caseId = null; caseNumber = null;
         }
@@ -983,17 +1095,21 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    // Largest balance first. A sort, not pairwise swaps: the roll-up can rank thousands of accounts.
-    private static void sortByBalance(List<WorklistItem> items) {
-        items.sort(new LargestBalanceFirst());
-    }
-
-    private class LargestBalanceFirst implements System.Comparator<WorklistItem> {
-        public Integer compare(WorklistItem a, WorklistItem b) {
-            Decimal balanceA = a.balance != null ? a.balance : 0;
-            Decimal balanceB = b.balance != null ? b.balance : 0;
-            return balanceA == balanceB ? 0 : (balanceB > balanceA ? 1 : -1);
+    // The ids of the `count` largest balances at or over `minimum`, largest first (ties keep the map's order).
+    // One pass with a list of at most `count` ids, so ranking thousands of accounts builds no row per account.
+    @TestVisible
+    private static List<Id> largestBalances(Map<Id, Decimal> balances, Decimal minimum, Integer count) {
+        List<Id> top = new List<Id>();
+        for (Id accId : balances.keySet()) {
+            Decimal balance = balances.get(accId);
+            if (balance < minimum) continue;
+            Integer at = top.size();
+            while (at > 0 && balances.get(top[at - 1]) < balance) at--;
+            if (at >= count) continue;
+            if (at == top.size()) top.add(accId); else top.add(at, accId);
+            if (top.size() > count) top.remove(top.size() - 1);
         }
+        return top;
     }
 
     public class WorklistData {
@@ -1005,9 +1121,13 @@ public with sharing class RLM_CollectionsDashboardController {
         // Each unavailable tab's reason: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY.
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
         // Tabs with more rows than they list (WORKLIST_*): Critical's CRITICAL_ROWS most overdue invoices,
-        // High-Value's HIGH_VALUE_ROWS largest balances. The page says the list is the first of more.
-        @AuraEnabled public List<String> hasMore { get; set; }
-        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); hasMore = new List<String>(); }
+        // High-Value's HIGH_VALUE_ROWS largest balances, Disputed's DISPUTED_ROWS newest disputed accounts.
+        // Each maps to the filters (FILTER_*) that narrow which rows the tab lists. The page says the list is
+        // the first of more.
+        @AuraEnabled public Map<String, List<String>> hasMore { get; set; }
+        // The filters each tab's reads apply (FILTER_*): what can narrow a tab with too many records.
+        @AuraEnabled public Map<String, List<String>> filtersByTab { get; set; }
+        public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); hasMore = new Map<String, List<String>>(); filtersByTab = new Map<String, List<String>>(); }
     }
 
     // Invoice.BillingAccountId always exists where this module deploys: other classes in it
@@ -1151,10 +1271,13 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<String> unavailable { get; set; }
         // Each unavailable key's reason: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY.
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
+        // The filters each component's read applies (FILTER_*), by UNAVAILABLE_* key.
+        @AuraEnabled public Map<String, List<String>> filtersByKey { get; set; }
 
         public CollectionsDashboardData() {
             unavailable = new List<String>();
             unavailableReason = new Map<String, String>();
+            filtersByKey = new Map<String, List<String>>();
             totalBalance = 0;
             totalBalanceBreakdown = new List<Map<String, Object>>();
             receivablesOutstanding = 0;
@@ -1199,15 +1322,17 @@ public with sharing class RLM_CollectionsDashboardController {
             for (SObject cp : plans) {
                 if (cp.get(acctField) != null) planAccountIds.add((Id) cp.get(acctField));
             }
-            Map<Id, String> planAccountNames = getAccountNames(planAccountIds);
+            RLM_AccountNames.Result planAccountNames = getAccountNames(planAccountIds);
             for (SObject cp : plans) {
                 Id cpId = (Id) cp.get('Id');
                 String cpName = (String) cp.get('Name');
                 Date dueDate = (Date) cp.get('Duedate');
                 Decimal totalInvBal = cp.get('TotalInvoiceBalance') != null ? (Decimal) cp.get('TotalInvoiceBalance') : 0;
                 Id accountId = (Id) cp.get(acctField);
-                String accountName = accountId != null ? planAccountNames.get(accountId) : null;
-                items.add(new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal));
+                String accountName = accountId != null ? planAccountNames.names.get(accountId) : null;
+                MyCollectionPlanItem item = new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal);
+                item.accountNameUnavailable = planAccountNames.unreadable;
+                items.add(item);
             }
         } catch (Exception e) {
             // Not "no plans": the page says the collection plans could not be read.
@@ -1227,10 +1352,13 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public String unavailableReason { get; set; }
         // True when the user owns more plans than the MY_PLAN_ROWS listed (soonest due first).
         @AuraEnabled public Boolean hasMore { get; set; }
+        // The filters the read applies (FILTER_*): none, it is the user's own plans.
+        @AuraEnabled public List<String> filters { get; set; }
         public MyCollectionPlanList() {
             items = new List<MyCollectionPlanItem>();
             unavailable = false;
             hasMore = false;
+            filters = new List<String>();
         }
     }
 
@@ -1301,8 +1429,11 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Boolean unavailable { get; set; }
         // Why it is unavailable: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY (null when it is not).
         @AuraEnabled public String unavailableReason { get; set; }
+        // The filters the read applies (FILTER_*): none, it covers every plan the user can read.
+        @AuraEnabled public List<String> filters { get; set; }
         public CollectionsProgressData() {
             unavailable = false;
+            filters = new List<String>();
             totalPlans = 0; recoveredCount = 0; notRecoveredCount = 0;
             recoveredAmount = 0; notRecoveredAmount = 0;
             recoveredPercent = 0; notRecoveredPercent = 0;
@@ -1317,6 +1448,8 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Id accountId { get; set; }
         @AuraEnabled public String accountName { get; set; }
         @AuraEnabled public Decimal totalInvoiceBalance { get; set; }
+        // True when the account names could not be read: the name is not available, not "none".
+        @AuraEnabled public Boolean accountNameUnavailable { get; set; }
         public MyCollectionPlanItem(Id cpId, String cpName, Date dueDate, Id accountId, String accountName, Decimal totalInvBal) {
             this.collectionPlanId = cpId;
             this.name = cpName != null ? cpName : '—';

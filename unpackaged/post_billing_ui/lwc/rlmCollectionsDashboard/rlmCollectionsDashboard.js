@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getAccountOptions from '@salesforce/apex/RLM_CollectionsDashboardController.getAccountOptions';
+import searchAccounts from '@salesforce/apex/RLM_CollectionsDashboardController.searchAccounts';
 import getCurrencyOptions from '@salesforce/apex/RLM_CollectionsDashboardController.getCurrencyOptions';
 import getOrgDefaultCurrency from '@salesforce/apex/RLM_CollectionsDashboardController.getOrgDefaultCurrency';
 import getDashboardCards from '@salesforce/apex/RLM_CollectionsDashboardController.getDashboardCards';
@@ -39,30 +40,31 @@ const EXCLUDED_NAMES = {
     unappliedPayments: 'unapplied payments'
 };
 const WORKLIST_TABS = ['critical', 'highValue', 'disputed'];
+const ALL_ACCOUNTS = Object.freeze({ value: '', label: 'All Accounts' });
+// The account search runs from this many characters (the controller's ACCOUNT_SEARCH_MIN).
+const ACCOUNT_SEARCH_MIN = 2;
 
-// What each section is when it has too many records, and which of the page's filters its reads follow:
-// a figure is totalled and a list is listed; `filters` names the filters that narrow it (none for a
-// section the filters do not reach). Every unavailableText call names its section's scope, and the text
-// suggests only the filters not already in use (`active`, from the page's current selection).
+// What each section is when it has too many records: a figure is totalled and a list is listed. The filters
+// that narrow it are the ones the controller reports its reads applied (a filter is listed only where the
+// object read has the field, so a single-currency org never hears "choose a currency"). A scope is
+// { verb, filters }, built per section by scopeOf; the text suggests only the filters not already in use
+// (`active`, from the page's current selection).
 const ACCOUNT = 'account';
 const CURRENCY = 'currency';
-const SCOPES = {
-    // The card figures and the total: every component follows both filters.
-    cards: { verb: 'total', filters: [ACCOUNT, CURRENCY] },
-    // Payment promise sums: the schedule items' account and currency.
-    promises: { verb: 'total', filters: [ACCOUNT, CURRENCY] },
-    // Progress covers every plan the user can read.
-    progress: { verb: 'total', filters: [] },
-    // Plan tasks follow the account only (the plans carry no currency filter).
-    tasks: { verb: 'list', filters: [ACCOUNT] },
-    // The user's own plans: no filter.
-    plans: { verb: 'list', filters: [] },
-    // The worklist tabs: Critical and High-Value read invoices by account and currency; Disputed starts from
-    // open cases and its account cap, which only the account narrows.
-    critical: { verb: 'list', filters: [ACCOUNT, CURRENCY] },
-    highValue: { verb: 'list', filters: [ACCOUNT, CURRENCY] },
-    disputed: { verb: 'list', filters: [ACCOUNT] }
+const VERBS = {
+    cards: 'total',
+    promises: 'total',
+    progress: 'total',
+    tasks: 'list',
+    plans: 'list',
+    critical: 'list',
+    highValue: 'list',
+    disputed: 'list'
 };
+
+function scopeOf(section, filters) {
+    return { verb: VERBS[section], filters: Array.isArray(filters) ? filters : [] };
+}
 
 // "Choose an account or currency to narrow it." for the scope's filters not yet in use; '' when none is left.
 function narrowingText(scope, active) {
@@ -97,21 +99,25 @@ function moreText(count, order, scope, active) {
 const LIST_ORDER = {
     critical: 'most overdue',
     highValue: 'largest balance',
+    disputed: 'newest open case',
     tasks: 'latest due',
     plans: 'soonest due'
 };
 
 // The total balance note's wording per reason, as the cards and tooltips word it: `alone` when every
 // excluded component has that reason, `short` beside each name when the reasons are mixed, and `action`,
-// said once after a mixed list, for the reasons the user can act on. Too many follows the filters in use.
-function noteClauses(active) {
-    const tooMany = tooManyText(SCOPES.cards, active);
-    const narrowing = narrowingText(SCOPES.cards, active);
+// said once after a mixed list, for the reasons the user can act on. Too many follows the filters the
+// too-many components' reads applied (`scope`) and those in use.
+function noteClauses(scope, active) {
+    const tooMany = tooManyText(scope, active);
+    const narrowing = narrowingText(scope, active);
+    let tooManyShort = 'too many records to total';
+    if (!narrowing && scope.filters.length > 0) tooManyShort += ` even for this ${scope.filters.join(' and ')}`;
     return {
         [REFUSED]: { alone: "you don't have access to them.", short: "you don't have access" },
         [TOO_MANY]: {
             alone: `${tooMany.charAt(0).toLowerCase()}${tooMany.slice(1)}`,
-            short: narrowing ? 'too many records to total' : `too many records to total even for this ${SCOPES.cards.filters.join(' and ')}`,
+            short: tooManyShort,
             action: narrowing || undefined
         },
         [FAILED]: {
@@ -179,6 +185,11 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     @api recordId;
 
     accountOptions = [];
+    // The first page of accounts (getAccountOptions), restored when the search is cleared.
+    listedAccountOptions = [];
+    accountOptionsHaveMore = false;
+    accountSearch;
+    accountSearchTerm = '';
     currencyOptions = [];
     selectedAccountId = '';
     selectedCurrency = '';
@@ -212,7 +223,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             .then(([defaultCode, currencyOpts, accountOpts]) => {
                 this.orgDefaultCurrency = defaultCode || 'USD';
                 this.currencyOptions = Array.isArray(currencyOpts) ? currencyOpts : [];
-                this.accountOptions = Array.isArray(accountOpts) ? accountOpts : [];
+                this.listedAccountOptions = Array.isArray(accountOpts?.options) ? accountOpts.options : [ALL_ACCOUNTS];
+                this.accountOptionsHaveMore = accountOpts?.hasMore === true;
+                this.accountOptions = this.listedAccountOptions;
                 if (!this.selectedCurrency) {
                     this.selectedCurrency = '';
                 }
@@ -223,13 +236,62 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                     { value: '', label: 'All Currencies' },
                     { value: this.orgDefaultCurrency || 'USD', label: this.orgDefaultCurrency || 'USD' }
                 ];
-                this.accountOptions = [{ value: '', label: 'All Accounts' }];
+                this.accountOptions = [ALL_ACCOUNTS];
+                this.listedAccountOptions = this.accountOptions;
                 this.selectedCurrency = '';
                 this.dispatchFilterChange();
             })
             .finally(() => {
                 this.isLoadingOptions = false;
             });
+    }
+
+    // With more accounts than the filter lists, the page offers a search by name (todo 435). Each search answers
+    // with "All Accounts" and its matches; the chosen account stays in the options whatever the search finds.
+    handleAccountSearch(event) {
+        const term = (event.target.value || '').trim();
+        this.accountSearchTerm = term;
+        if (term.length < ACCOUNT_SEARCH_MIN) {
+            this.accountSearch = undefined;
+            this.accountOptions = this.withSelectedAccount(this.listedAccountOptions);
+            return;
+        }
+        searchAccounts({ term })
+            .then((found) => {
+                if (this.accountSearchTerm !== term) return;
+                const options = Array.isArray(found?.options) ? found.options : [ALL_ACCOUNTS];
+                this.accountSearch = {
+                    unavailable: found?.unavailable === true,
+                    hasMore: found?.hasMore === true,
+                    count: options.filter((option) => option.value).length
+                };
+                this.accountOptions = this.withSelectedAccount(options);
+            })
+            .catch(() => {
+                if (this.accountSearchTerm === term) this.accountSearch = { unavailable: true, hasMore: false, count: 0 };
+            });
+    }
+
+    withSelectedAccount(options) {
+        if (!this.selectedAccountId || options.some((option) => option.value === this.selectedAccountId)) return options;
+        const selected = this.accountOptions.find((option) => option.value === this.selectedAccountId);
+        return selected ? [options[0], selected, ...options.slice(1)] : options;
+    }
+
+    get showAccountSearch() {
+        return this.accountOptionsHaveMore;
+    }
+
+    // What the account filter lists, when it is not every account.
+    get accountFilterNotice() {
+        const search = this.accountSearch;
+        if (search?.unavailable) return 'Accounts could not be searched. Try again.';
+        if (search?.hasMore) return `Showing the first ${search.count} matching accounts by name. Type more of the name to narrow it.`;
+        if (search && search.count === 0) return 'No account name contains that text.';
+        if (search) return '';
+        if (!this.accountOptionsHaveMore) return '';
+        const listed = this.listedAccountOptions.filter((option) => option.value).length;
+        return `Showing the first ${listed} accounts by name. Search for an account to find another.`;
     }
 
     get effectiveAccountId() {
@@ -458,12 +520,6 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         }
     }
 
-    handleSendReminder(event) {
-        const accountId = event.currentTarget.dataset.accountId;
-        // Placeholder: navigate to record or fire flow
-        console.log('Send Reminder', accountId);
-    }
-
     handleRaiseDispute(event) {
         const accountId = event.currentTarget.dataset.accountId;
         if (accountId) {
@@ -598,12 +654,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.sections.invoices.status === 'unavailable';
     }
 
+    // A card component's scope: the filters its read applied, as the controller reports them. With several
+    // keys (the total note's too-many components), the filters any of them applied.
+    cardsScope(...keys) {
+        const byKey = this.dashboardData?.filtersByKey || {};
+        const filters = [ACCOUNT, CURRENCY].filter((filter) => keys.some((key) => (byKey[key] || []).includes(filter)));
+        return scopeOf('cards', filters);
+    }
+
     cardReason(key) {
         return knownReason(this.dashboardData?.unavailableReason?.[key]);
     }
 
     get invoicesUnavailableText() {
-        return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason, SCOPES.cards, this.activeFilters);
+        return unavailableText(SUBJECTS.invoices, this.sections.invoices.reason, this.cardsScope('invoices'), this.activeFilters);
     }
 
     // Names the total's components that could not be read, and why, in the cards' words: "Excludes debit
@@ -613,14 +677,15 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     get totalBalanceNote() {
         const total = this.sections.total;
         if (total.status === 'loading' || this.sections.cards !== READY) return '';
-        if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason, SCOPES.cards, this.activeFilters);
+        if (total.status === 'unavailable') return unavailableText(SUBJECTS.invoices, total.reason, this.cardsScope('invoices'), this.activeFilters);
         const excluded = this.unavailableKeys.filter((key) => EXCLUDED_NAMES[key]);
         if (excluded.length === 0) return '';
         const groups = NOTE_ORDER.map((reason) => ({
             reason,
             names: excluded.filter((key) => this.cardReason(key) === reason).map((key) => EXCLUDED_NAMES[key])
         })).filter((group) => group.names.length > 0);
-        const clauses = noteClauses(this.activeFilters);
+        const tooManyKeys = excluded.filter((key) => this.cardReason(key) === TOO_MANY);
+        const clauses = noteClauses(this.cardsScope(...tooManyKeys), this.activeFilters);
         if (groups.length === 1) {
             return `Excludes ${listNames(groups[0].names)}: ${clauses[groups[0].reason].alone}`;
         }
@@ -632,14 +697,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     get invoiceCountLabel() {
         const state = this.sections.invoices;
         if (state.status === 'loading') return LOADING_TEXT;
-        if (state.status === 'unavailable') return unavailableText(SUBJECTS.invoices, state.reason, SCOPES.cards, this.activeFilters);
+        if (state.status === 'unavailable') return unavailableText(SUBJECTS.invoices, state.reason, this.cardsScope('invoices'), this.activeFilters);
         return `${this.invoiceCount} invoices`;
     }
 
     get unappliedPaymentMeta() {
         const { payments, paymentCount } = this.sections;
         if (payments.status === 'loading') return LOADING_TEXT;
-        if (payments.status === 'unavailable') return unavailableText(SUBJECTS.unappliedPayments, payments.reason, SCOPES.cards, this.activeFilters);
+        if (payments.status === 'unavailable') return unavailableText(SUBJECTS.unappliedPayments, payments.reason, this.cardsScope('unappliedPayments'), this.activeFilters);
         return `${figureText(paymentCount, () => String(this.unappliedPaymentCount))} records · Action required`;
     }
 
@@ -653,7 +718,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             ...b,
             amount: b.amount != null ? b.amount : 0,
             formatted: b.unavailable ? NOT_AVAILABLE : this.formatCurrency(b.amount != null ? b.amount : 0),
-            title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), SCOPES.cards, this.activeFilters) : '',
+            title: b.unavailable ? unavailableText(SUBJECTS[b.unavailable] || 'this figure', this.cardReason(b.unavailable), this.cardsScope(b.unavailable), this.activeFilters) : '',
             lineClass: `breakdown-line breakdown-${b.color || 'blue'}`
         }));
     }
@@ -785,7 +850,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get paymentPromisesUnavailableText() {
-        return unavailableText(SUBJECTS.paymentSchedules, this.sections.promises.reason, SCOPES.promises, this.activeFilters);
+        return unavailableText(SUBJECTS.paymentSchedules, this.sections.promises.reason, scopeOf('promises', this.paymentPromiseState?.filters), this.activeFilters);
     }
 
     // "No payment promises." only once the server answered with none.
@@ -834,6 +899,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 balanceFormatted: this.formatCurrency(item.balance),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
                 accountUrl: item.billingAccountId ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
+                billingAccountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.billingAccountName,
                 contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
                 collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
                 ...this.planCell(item)
@@ -847,6 +913,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return {
                 ...item,
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
+                accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
                 balanceFormatted: this.formatCurrency(item.balance),
                 accountUrl: `/lightning/r/Account/${item.accountId}/view`,
                 invoiceNumber: null,
@@ -870,16 +937,22 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         };
     }
 
-    // Critical and High-Value show a fixed number of rows; when there are more, the tab says so.
+    // Each tab shows a fixed number of rows; when there are more, the tab says so. hasMore maps each such tab
+    // to the filters that narrow which rows it lists.
     get worklistTabHasMore() {
-        return this.sections.worklistTab === READY && (this.worklistData?.hasMore || []).includes(this.selectedWorklistTab);
+        const more = this.worklistData?.hasMore || {};
+        return this.sections.worklistTab === READY && Object.prototype.hasOwnProperty.call(more, this.selectedWorklistTab);
     }
 
     // Counts the rows the tab read, not those left after the aging selection, which narrows them on the page.
     get worklistMoreText() {
         const tab = this.selectedWorklistTab;
-        const rows = tab === 'critical' ? this.worklistData.criticalFollowUpInvoices : this.worklistData.highValueDelinquents;
-        return moreText((rows || []).length, LIST_ORDER[tab], SCOPES[tab], this.activeFilters);
+        const rowsByTab = {
+            critical: this.worklistData.criticalFollowUpInvoices,
+            highValue: this.worklistData.highValueDelinquents,
+            disputed: this.worklistData.disputedInvoices
+        };
+        return moreText((rowsByTab[tab] || []).length, LIST_ORDER[tab], scopeOf(tab, this.worklistData.hasMore[tab]), this.activeFilters);
     }
 
     get worklistTabUnavailable() {
@@ -891,7 +964,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get worklistUnavailableText() {
-        return unavailableText(SUBJECTS.worklist, this.sections.worklistTab.reason, SCOPES[this.selectedWorklistTab], this.activeFilters);
+        return unavailableText(SUBJECTS.worklist, this.sections.worklistTab.reason,
+            scopeOf(this.selectedWorklistTab, this.worklistData?.filtersByTab?.[this.selectedWorklistTab]), this.activeFilters);
     }
 
     get loadingText() {
@@ -963,7 +1037,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get cpTasksUnavailableText() {
-        return unavailableText(SUBJECTS.planTasks, this.sections.tasks.reason, SCOPES.tasks, this.activeFilters);
+        return unavailableText(SUBJECTS.planTasks, this.sections.tasks.reason, scopeOf('tasks', this.cpTasksState?.filters), this.activeFilters);
     }
 
     get showNoCpTasks() {
@@ -979,7 +1053,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get cpTasksMoreText() {
-        return moreText(this.cpTasks.length, LIST_ORDER.tasks, SCOPES.tasks, this.activeFilters);
+        return moreText(this.cpTasks.length, LIST_ORDER.tasks, scopeOf('tasks', this.cpTasksState?.filters), this.activeFilters);
     }
 
     get hasCpTasks() {
@@ -993,6 +1067,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             uniqueKey: `mycp-${item.collectionPlanId || idx}`,
             cpUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : '#',
             accountUrl: item.accountId ? `/lightning/r/Account/${item.accountId}/view` : null,
+            accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
             dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : '—',
             toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance)
         }));
@@ -1011,7 +1086,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get myCollectionPlansUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.sections.plans.reason, SCOPES.plans, this.activeFilters);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.plans.reason, scopeOf('plans', this.myCollectionPlansState?.filters), this.activeFilters);
     }
 
     get showNoMyCollectionPlans() {
@@ -1027,7 +1102,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get myCollectionPlansMoreText() {
-        return moreText(this.myCollectionPlans.length, LIST_ORDER.plans, SCOPES.plans, this.activeFilters);
+        return moreText(this.myCollectionPlans.length, LIST_ORDER.plans, scopeOf('plans', this.myCollectionPlansState?.filters), this.activeFilters);
     }
 
     get progressUnavailable() {
@@ -1035,7 +1110,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason, SCOPES.progress, this.activeFilters);
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason, scopeOf('progress', this.collectionsProgressData?.filters), this.activeFilters);
     }
 
     get showNoProgress() {

@@ -347,6 +347,25 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(refreshApex).toHaveBeenCalledTimes(1);
   });
 
+  // refreshApex can throw at once, or return no promise for an errored wire value: the value shown stays.
+  it.each([
+    ["throws", () => { throw new Error("refresh refused"); }],
+    ["returns no promise", () => undefined]
+  ])("keeps the account value shown when refreshApex %s", async (label, behaviour) => {
+    refreshApex.mockImplementationOnce(behaviour);
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    expect(toasts.map((toast) => toast.title)).toEqual(["No Billing Account"]);
+  });
+
   it("does not repeat an account error when the refresh fails the same way", async () => {
     const element = createElement("c-rlm-billing-schedule-group-modal", {
       is: RlmBillingScheduleGroupModal

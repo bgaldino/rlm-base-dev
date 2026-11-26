@@ -159,9 +159,13 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         // returns the same answer does not repeat it.
         if (!this.accountInfoRefreshed && (data || error)) {
             this.accountInfoRefreshed = true;
-            refreshApex(result).catch(() => {
-                // The cached value stays; the service refuses a create the records no longer allow.
-            });
+            // refreshApex can throw at once or return no promise (an errored wire value): either way the value
+            // shown stays, and the service refuses a create the records no longer allow.
+            try {
+                Promise.resolve(refreshApex(result)).catch(() => {});
+            } catch {
+                // As above: the value shown stays.
+            }
         }
         if (data) {
             this.accountName = data.accountName;

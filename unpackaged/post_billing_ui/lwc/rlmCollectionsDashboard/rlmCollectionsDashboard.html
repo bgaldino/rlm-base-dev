@@ -5,6 +5,14 @@
                 <lightning-combobox name="account" label="Account" value={selectedAccountId} options={accountOptions} onchange={handleAccountChange} placeholder="All Accounts" class="filter-input"></lightning-combobox>
                 <lightning-combobox name="currency" label="Currency" value={selectedCurrency} options={currencyOptions} onchange={handleCurrencyChange} placeholder="Currency" class="filter-input"></lightning-combobox>
             </div>
+            <template if:true={showAccountSearch}>
+                <div class="filter-search">
+                    <lightning-input type="search" name="accountSearch" label="Search accounts" placeholder="Type part of an account name, then press Enter" oncommit={handleAccountSearch} class="filter-input"></lightning-input>
+                </div>
+            </template>
+            <template if:true={accountFilterNotice}>
+                <p class="filter-notice">{accountFilterNotice}</p>
+            </template>
             <div class="filter-context"><span class="context-label">Viewing:</span> {selectedAccountLabel} · {selectedCurrencyLabel}</div>
         </header>
 
@@ -216,7 +224,6 @@
                                                 </template>
                                                 <td class="actions-cell">
                                                     <template if:true={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleRaiseDispute}>Raise Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
                                                         <template if:true={row.showCreatePlan}>
@@ -224,7 +231,6 @@
                                                         </template>
                                                     </template>
                                                     <template if:false={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
                                                         <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
                                                     </template>
