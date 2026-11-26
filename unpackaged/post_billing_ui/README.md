@@ -178,11 +178,31 @@ may not read it (a USER_MODE read throws "sObject type ... is not supported" or 
 measured on 264), shown as "You don't have access to ...", or `failed` for any other error, shown as
 "... could not be loaded. Refresh the page to try again.", so a fully granted user hitting a
 transient failure is not sent to an administrator. A failed call (a wire or imperative error) is
-always `failed`. The invoice reads that are totalled or rolled up stop at 10,000 rows
-(`INVOICE_ROW_CAP`, well under the 50,000-row query limit, which no catch can handle); past it the
-section is unavailable as `tooMany`, shown as "Too many records to total here. Choose an account or
-currency to narrow it.", rather than a figure from a cut-off read. Figures: an unread invoice, debit memo, payment or payment schedule amount comes back
-null and listed in the cards' `unavailable` with its `unavailableReason`; the Debit Memos line of the
+always `failed`.
+
+Every read a figure or list is built from is bounded (`boundedRows` and `boundedAggregate` in the
+controller), so a large org gets a section that says it has too many records instead of a figure
+from a cut-off read, or the per-transaction limit of 50,000 query rows, whose `LimitException` no
+catch block can handle and which would fail the whole call (every card, or every worklist tab, at
+once). Each read may take the lesser of `ROW_CAP` (10,000 rows) and what the call has left less
+`ROW_HEADROOM` (1,000 rows); one row more makes its section unavailable as `tooMany`, shown as "Too
+many records to total here. Choose an account or currency to narrow it." (progress, which the
+filters do not narrow, says "Too many collection plans to total here."). The guarantee is per
+call, not per read: whatever the data, a call stays under 49,250 query rows. Its bounded reads stop
+at 49,001 (the first read that would pass that is reported as too many instead), and the only fixed
+reads after them are the payment count (one row) and the plan tasks (at most 200 rows). Measured on 264
+(2026-11-26): a `SUM` aggregate costs a query row for every row it adds up, with or without `GROUP
+BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate counts its rows first and adds
+them up only within the bound; and 10,001 invoice rows with the fields these reads select take about
+1.34 MB of the 6 MB synchronous heap, so the 10,000-row cap needs no lowering for heap. The reads
+with their own small `LIMIT` (the 200 critical follow-up invoices, the 200 plan tasks, the user's 50
+plans, the 500 account options), the active currencies and the payment count (`COUNT(Id)`) are not bounded further; the
+account names a tab looks up are checked against the same allowance, and the High-Value tab looks up
+names and plans for its ten listed accounts only.
+
+Figures: an unread invoice, debit memo or payment amount comes back null and listed in the cards'
+`unavailable` with its `unavailableReason` (unread payment schedule amounts make
+`PaymentPromiseSummary.unavailable` true instead, with its reason); the Debit Memos line of the
 total balance reads "—" and the Total Balance is a partial total that says it excludes debit memos
 and why (likewise for unapplied credits and payments). Unpaid invoices are its main component: when
 they could not be read there is no total at all, and the Total Balance shows "—" with the invoices'

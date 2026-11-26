@@ -40,11 +40,12 @@ public with sharing class RLM_CollectionsDashboardController {
             String accFld = psiFields.containsKey('PaymentAccountId') ? 'PaymentAccountId' : null;
             Boolean filterAccount = accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null;
             Boolean filterCurrency = String.isNotBlank(currencyCode) && paymentScheduleItemHasCurrencyField();
-            String soql = 'SELECT Status, SUM(RequestedAmount) totalAmt, COUNT(Id) cnt FROM PaymentScheduleItem WHERE Status IN (\'Ready for Processing\', \'Draft\', \'Failed\', \'Processing\') ';
-            if (filterAccount) soql += ' AND PaymentAccountId = :accountId ';
-            if (filterCurrency) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            soql += ' GROUP BY Status ';
-            List<AggregateResult> results = Database.query(soql, AccessLevel.USER_MODE);
+            String fromWhere = 'FROM PaymentScheduleItem WHERE Status IN (\'Ready for Processing\', \'Draft\', \'Failed\', \'Processing\') ';
+            if (filterAccount) fromWhere += ' AND PaymentAccountId = :accountId ';
+            if (filterCurrency) fromWhere += ' AND CurrencyIsoCode = :currencyCode ';
+            List<AggregateResult> results = boundedAggregate(fromWhere, 'Status, SUM(RequestedAmount) totalAmt, COUNT(Id) cnt',
+                ' GROUP BY Status', new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode },
+                'payment schedule items');
             Map<String, Decimal> amountByStatus = new Map<String, Decimal>();
             Map<String, Integer> countByStatus = new Map<String, Integer>();
             for (AggregateResult ar : results) {
@@ -129,9 +130,9 @@ public with sharing class RLM_CollectionsDashboardController {
 
         Decimal sumUnpaidInvoiceBalance = null;
         try {
-            List<Invoice> unpaidInvoices = (List<Invoice>) cappedInvoiceRows(
+            List<Invoice> unpaidInvoices = (List<Invoice>) boundedRows(
                 'SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere,
-                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode });
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'unpaid invoices');
             tallyInvoices(data, unpaidInvoices, Date.today());
             sumUnpaidInvoiceBalance = data.receivablesOutstanding;
         } catch (Exception e) {
@@ -141,12 +142,12 @@ public with sharing class RLM_CollectionsDashboardController {
             markInvoicesUnavailable(data, e);
         }
 
-        // Each component is null when its read was refused or failed (the catch blocks of
-        // getUnappliedCreditsSum, getDebitMemoNotInvoicedSum, getUnappliedPaymentBalanceSum and
+        // Each component is null when its read was refused, failed or found too many rows (the catch blocks
+        // of getUnappliedCreditsSum, getDebitMemoNotInvoicedSum, getUnappliedPaymentBalanceSum and
         // getUnappliedPaymentCount, and the Invoice catch above), which list it in data.unavailable with
-        // its reason. The total balance adds only the amounts that were read and the page names what it
-        // leaves out; with nothing read it is null, not zero. The payment count is its own key: a failed
-        // count leaves the payment balance, the total and the note as they are.
+        // its reason. There is no total without the unpaid invoices; without another component it is a
+        // partial total the page labels (totalUp). The payment count is its own key: a failed count leaves
+        // the payment balance, the total and the note as they are.
         Decimal unappliedCredits = getUnappliedCreditsSum(data, accountId, currencyCode);
         Decimal debitMemoNotInvoiced = getDebitMemoNotInvoicedSum(data, accountId, currencyCode);
         Decimal unappliedPaymentBalance = getUnappliedPaymentBalanceSum(data, accountId, currencyCode);
@@ -328,8 +329,10 @@ public with sharing class RLM_CollectionsDashboardController {
             if (accountId != null && String.isNotBlank(String.valueOf(accountId))) {
                 cpWhere += ' AND AccountId = :accountId ';
             }
+            // Every plan in scope, bounded (a cut list of plans would hide their tasks without saying so).
             List<Id> cpIds = new List<Id>();
-            for (SObject cp : Database.query('SELECT Id FROM CollectionPlan WHERE ' + cpWhere + ' LIMIT 2000', AccessLevel.USER_MODE)) {
+            for (SObject cp : boundedRows('SELECT Id FROM CollectionPlan WHERE ' + cpWhere,
+                    new Map<String, Object>{ 'accountId' => accountId }, 'collection plans')) {
                 cpIds.add((Id) cp.get('Id'));
             }
             if (cpIds.isEmpty()) return taskList;
@@ -373,8 +376,6 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
-    // Any unpaid invoice, when nothing older than 30 days was found, under the same account and currency
-    // filters as the primary high-value query: with an account selected it never lists other accounts.
     private static Boolean invoiceHasBillToContactId() {
         try {
             return Schema.SObjectType.Invoice.fields.getMap().containsKey('BillToContactId');
@@ -438,7 +439,9 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean planLookupFailed = false;
         if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
             try {
-                for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null WITH USER_MODE]) {
+                for (SObject row : boundedRows('SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null',
+                        new Map<String, Object>{ 'invoiceIds' => invoiceIds }, 'collection plan items')) {
+                    CollectionPlanItem cpi = (CollectionPlanItem) row;
                     if (!invoiceToCollectionPlan.containsKey(cpi.InvoiceId)) {
                         invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
                     }
@@ -463,7 +466,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 inv.Id, invNum, inv.Balance != null ? inv.Balance : 0,
                 daysOverdue, billingAcctId, billingAcctName, billToContactId, collectionPlanId
             );
-            // A plan lookup that was refused or failed is not "no plan": the page offers no Create.
+            // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             row.collectionPlanUnavailable = planLookupFailed;
             wl.criticalFollowUpInvoices.add(row);
         }
@@ -499,8 +502,9 @@ public with sharing class RLM_CollectionsDashboardController {
         invWhere += getInvoiceNotFullySettledStatusFilter();
         List<Invoice> invs = new List<Invoice>();
         try {
-            invs = (List<Invoice>) cappedInvoiceRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
-                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo });
+            invs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode, 'thirtyDaysAgo' => thirtyDaysAgo },
+                'high-value invoices');
         } catch (Exception e) {
             sectionSkipped('buildHighValueDelinquents', e);
             markWorklistUnavailable(wl, WORKLIST_HIGH_VALUE, e);
@@ -534,30 +538,45 @@ public with sharing class RLM_CollectionsDashboardController {
             }
         }
         if (qualifiedAccounts.isEmpty()) return;
-        List<WorklistItem> highValue = new List<WorklistItem>();
-        Map<Id, String> accountNames = getAccountNames(qualifiedAccounts);
+        // Only the ten largest balances are listed, so only their names and plans are looked up: the reads
+        // stay at ten ids however many accounts qualify.
+        List<WorklistItem> ranked = new List<WorklistItem>();
+        for (Id accId : qualifiedAccounts) {
+            ranked.add(new WorklistItem(accId, null, accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null));
+        }
+        sortByBalance(ranked);
+        List<WorklistItem> listed = new List<WorklistItem>();
+        Set<Id> listedIds = new Set<Id>();
+        for (Integer i = 0; i < Math.min(HIGH_VALUE_ROWS, ranked.size()); i++) {
+            listed.add(ranked[i]);
+            listedIds.add(ranked[i].accountId);
+        }
+        Map<Id, String> accountNames = getAccountNames(listedIds);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
         Boolean planLookupFailed = false;
         if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
             try {
-                Set<Id> accIds = qualifiedAccounts;
-                for (CollectionPlan cp : [SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :accIds AND AccountId != null WITH USER_MODE]) {
-                    if (!accountToCollectionPlan.containsKey(cp.AccountId)) {
-                        accountToCollectionPlan.put(cp.AccountId, cp.Id);
+                for (SObject cp : boundedRows('SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :listedIds AND AccountId != null',
+                        new Map<String, Object>{ 'listedIds' => listedIds }, 'collection plans')) {
+                    Id planAccountId = (Id) cp.get('AccountId');
+                    if (!accountToCollectionPlan.containsKey(planAccountId)) {
+                        accountToCollectionPlan.put(planAccountId, (Id) cp.get('Id'));
                     }
                 }
             } catch (Exception ex) { sectionSkipped('addHighValueDelinquents', ex); planLookupFailed = true; }
         }
-        for (Id accId : qualifiedAccounts) {
-            WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
-            item.collectionPlanId = accountToCollectionPlan.get(accId);
-            // A plan lookup that was refused or failed is not "no plan": the page offers no Create.
+        for (WorklistItem item : listed) {
+            String name = accountNames.get(item.accountId);
+            item.accountName = name != null ? name : '—';
+            item.collectionPlanId = accountToCollectionPlan.get(item.accountId);
+            // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             item.collectionPlanUnavailable = planLookupFailed;
-            highValue.add(item);
+            wl.highValueDelinquents.add(item);
         }
-        sortByBalance(highValue);
-        for (Integer i = 0; i < Math.min(10, highValue.size()); i++) wl.highValueDelinquents.add(highValue[i]);
     }
+
+    // The High-Value tab lists this many accounts, largest balance first.
+    private static final Integer HIGH_VALUE_ROWS = 10;
 
     private static String getInvoiceNotFullySettledStatusFilter() {
         try {
@@ -573,7 +592,8 @@ public with sharing class RLM_CollectionsDashboardController {
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
             String caseFields = 'Id, CaseNumber, AccountId, Subject, Description';
             if (Schema.SObjectType.Case.fields.getMap().containsKey('Reason')) caseFields += ', Reason';
-            List<Case> openCases = Database.query('SELECT ' + caseFields + ' FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC', AccessLevel.USER_MODE);
+            List<Case> openCases = (List<Case>) boundedRows('SELECT ' + caseFields + ' FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC',
+                new Map<String, Object>{ 'accountId' => accountId }, 'open cases');
             Map<Id, String> accountDisputeReason = new Map<Id, String>();
             Map<Id, Id> accountCaseId = new Map<Id, Id>();
             Map<Id, String> accountCaseNumber = new Map<Id, String>();
@@ -603,8 +623,8 @@ public with sharing class RLM_CollectionsDashboardController {
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
             // The page's currency filter applies to the rollup, as it does to every other invoice read.
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> disputedInvs = (List<Invoice>) cappedInvoiceRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
-                new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode });
+            List<Invoice> disputedInvs = (List<Invoice>) boundedRows('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere,
+                new Map<String, Object>{ 'disputedAccountIds' => disputedAccountIds, 'currencyCode' => currencyCode }, 'disputed invoices');
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -629,13 +649,16 @@ public with sharing class RLM_CollectionsDashboardController {
                 try {
                     List<Id> invIdList = new List<Id>(invoiceIds);
                     Map<Id, Id> scheduleToInvoiceId = new Map<Id, Id>();
-                    for (SObject ps : Database.query('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList', AccessLevel.USER_MODE)) {
+                    for (SObject ps : boundedRows('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList',
+                            new Map<String, Object>{ 'invIdList' => invIdList }, 'payment schedules')) {
                         Id refId = (Id) ps.get('ReferenceEntityId');
                         if (refId != null) scheduleToInvoiceId.put((Id) ps.get('Id'), refId);
                     }
                     if (!scheduleToInvoiceId.isEmpty()) {
                         Set<Id> scheduleIds = scheduleToInvoiceId.keySet();
-                        for (PaymentScheduleItem psi : Database.query('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null', AccessLevel.USER_MODE)) {
+                        for (SObject row : boundedRows('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null',
+                                new Map<String, Object>{ 'scheduleIds' => scheduleIds }, 'payment schedule items')) {
+                            PaymentScheduleItem psi = (PaymentScheduleItem) row;
                             Id invId = scheduleToInvoiceId.get(psi.PaymentScheduleId);
                             Id accId = invoiceToAccountId.get(invId);
                             if (accId == null) continue;
@@ -654,7 +677,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 WorklistItem item = new WorklistItem(accId, accountNames.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
                 item.caseId = accountCaseId.get(accId);
                 item.caseNumber = accountCaseNumber.get(accId);
-                // A promise lookup that was refused or failed is not "no promise".
+                // A promise lookup that was refused, failed or found too many rows is not "no promise".
                 item.ptpUnavailable = ptpLookupFailed;
                 wl.disputedInvoices.add(item);
             }
@@ -676,36 +699,88 @@ public with sharing class RLM_CollectionsDashboardController {
     //    returned as unavailable (null, or the wrapper's unavailable flag or list), never as a zero the
     //    page would show as a real amount (todo 435). The lists follow the same rule: the task, plan and
     //    promise wrappers carry an unavailable flag, and a worklist tab whose read was refused or failed is
-    //    listed in WorklistData.unavailable. Each carries its reason (reasonFor: refused or failed).
+    //    listed in WorklistData.unavailable. Each carries its reason (reasonFor: refused, failed or tooMany).
     // Neither throws and neither puts platform exception text in a response.
     private static void probeSkipped(String context, Exception e) {
         System.debug(LoggingLevel.FINE, 'RLM_CollectionsDashboardController.' + context + ' (field or object not present): ' + e.getMessage());
     }
 
     // Why a section is unavailable, so the page can tell the user what to do: 'refused' when the user may
-    // not read it (ask an administrator), 'failed' for anything else (try again). Measured on a 264 org
+    // not read it (ask an administrator), 'tooMany' when a bounded read found more rows than it may take
+    // (narrow the filters), 'failed' for anything else (try again). Measured on a 264 org
     // (2026-11-26, todo 435): a USER_MODE read of an object the user cannot read throws a QueryException
     // "sObject type 'X' is not supported", and of a field the user cannot read "No such column 'F' on
     // entity 'X'". Any other exception (a timeout, a limit, a platform error) is a failure, not a refusal.
     @TestVisible private static final String REASON_REFUSED = 'refused';
     @TestVisible private static final String REASON_FAILED = 'failed';
-    // More rows than a section can total in one transaction: narrow the filters (todo 435).
+    // More rows than a bounded read may take: narrow the filters (todo 435).
     @TestVisible private static final String REASON_TOO_MANY = 'tooMany';
 
-    // The most invoice rows a section reads to total or roll up. One more than this means the read was
-    // cut off, so the figure would be wrong: the section is unavailable (REASON_TOO_MANY) instead, well
-    // before the 50,000-row query limit, which no catch block can handle.
-    @TestVisible private static Integer INVOICE_ROW_CAP = 10000;
+    // Bounded reads (todo 435). Every record read and every summing aggregate in this class goes through
+    // boundedRows or boundedAggregate, except the reads that carry their own small LIMIT (the 200 critical
+    // follow-up invoices, the 200 tasks, the 50 plans of getMyCollectionPlans, the 500 account options), the
+    // active currencies, the payment count (COUNT(Id): one query row) and the account names, which
+    // getAccountNames checks against the same allowance. A read that finds more rows
+    // than it may take makes its section unavailable as REASON_TOO_MANY, instead of a figure or list built
+    // from a cut-off read, and instead of the 50,000-row query limit of a transaction, whose LimitException
+    // no catch block can handle and which would fail the whole call. Each read may take the lesser of:
+    //  - ROW_CAP rows. Heap measured on a 264 org (2026-11-26): 10,001 invoice rows with the five fields these
+    //    reads select take about 1.34 MB of the 6 MB synchronous heap.
+    //  - the rows the transaction has left, less ROW_HEADROOM. So whatever the data, the bounded reads of one
+    //    call stop at 50,000 - ROW_HEADROOM + 1 query rows (the first read that would pass that finds itself
+    //    too many instead), and the only fixed reads after them, the payment count (one row) and the 200 plan
+    //    tasks, keep the call under 49,250.
+    // Query-row costs measured on the same org: a row read costs one per row returned; SUM costs one per row
+    // it adds up, with or without GROUP BY; COUNT() and COUNT(Id) cost one; GROUP BY COUNT(Id) one per group.
+    // So boundedAggregate counts the rows first (one query row) and adds them up only within the bound.
+    @TestVisible private static Integer ROW_CAP = 10000;
+    @TestVisible private static final Integer ROW_HEADROOM = 1000;
+
+    // The bounded reads a call made, by label: read by the tests, so each caller is proven to be bounded.
+    @TestVisible private static Set<String> boundedReads = new Set<String>();
 
     @TestVisible
     private class TooManyRowsException extends Exception {}
 
-    private static List<SObject> cappedInvoiceRows(String soql, Map<String, Object> binds) {
-        List<SObject> rows = Database.queryWithBinds(soql + ' LIMIT ' + (INVOICE_ROW_CAP + 1), binds, AccessLevel.USER_MODE);
-        if (rows.size() > INVOICE_ROW_CAP) {
-            throw new TooManyRowsException('More than ' + INVOICE_ROW_CAP + ' invoices to total.');
+    // How many rows the next read may return: ROW_CAP, or what the transaction has left less ROW_HEADROOM,
+    // whichever is less (never below zero).
+    @TestVisible
+    private static Integer rowAllowance(Integer cap, Integer limitRows, Integer usedRows) {
+        return Math.max(0, Math.min(cap, limitRows - usedRows - ROW_HEADROOM));
+    }
+
+    private static Integer rowAllowance() {
+        return rowAllowance(ROW_CAP, Limits.getLimitQueryRows(), Limits.getQueryRows());
+    }
+
+    // A read that found more rows than it was allowed cannot be summed or listed: anything built from the
+    // rows that were read would be wrong.
+    @TestVisible
+    private static void requireWithin(Integer rowCount, Integer allowed, String what) {
+        if (rowCount > allowed) {
+            throw new TooManyRowsException('More than ' + allowed + ' ' + what + ' to read.');
         }
+    }
+
+    // A record read, bounded: LIMIT one more than allowed, so a read with too many rows is seen as one.
+    private static List<SObject> boundedRows(String soql, Map<String, Object> binds, String what) {
+        boundedReads.add(what);
+        Integer allowed = rowAllowance();
+        List<SObject> rows = Database.queryWithBinds(soql + ' LIMIT ' + (allowed + 1), binds, AccessLevel.USER_MODE);
+        requireWithin(rows.size(), allowed, what);
         return rows;
+    }
+
+    // An aggregate that adds rows up, bounded: COUNT() the rows first (one query row), then aggregate them.
+    private static List<AggregateResult> boundedAggregate(String fromWhere, String selectList, String groupBy,
+            Map<String, Object> binds, String what) {
+        boundedReads.add(what);
+        Integer allowed = rowAllowance();
+        Integer rowCount = Database.countQueryWithBinds('SELECT COUNT() ' + fromWhere + ' LIMIT ' + (allowed + 1), binds,
+            AccessLevel.USER_MODE);
+        requireWithin(rowCount, allowed, what);
+        return (List<AggregateResult>) Database.queryWithBinds('SELECT ' + selectList + ' ' + fromWhere + groupBy, binds,
+            AccessLevel.USER_MODE);
     }
 
     @TestVisible
@@ -743,8 +818,10 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     // A refused Account read leaves the rows listed with a dash for the name (see RLM_AccountNames), not
-    // dropped by the caller's catch.
+    // dropped by the caller's catch. The read returns at most one row per id, so the ids are checked against
+    // the same allowance as a bounded read.
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
+        requireWithin(accountIds.size(), rowAllowance(), 'accounts');
         return RLM_AccountNames.forIds(accountIds);
     }
 
@@ -781,17 +858,16 @@ public with sharing class RLM_CollectionsDashboardController {
         }
     }
 
+    // Largest balance first. A sort, not pairwise swaps: the roll-up can rank thousands of accounts.
     private static void sortByBalance(List<WorklistItem> items) {
-        for (Integer i = 0; i < items.size(); i++) {
-            for (Integer j = i + 1; j < items.size(); j++) {
-                Decimal bi = items[i].balance != null ? items[i].balance : 0;
-                Decimal bj = items[j].balance != null ? items[j].balance : 0;
-                if (bj > bi) {
-                    WorklistItem t = items[i];
-                    items[i] = items[j];
-                    items[j] = t;
-                }
-            }
+        items.sort(new LargestBalanceFirst());
+    }
+
+    private class LargestBalanceFirst implements System.Comparator<WorklistItem> {
+        public Integer compare(WorklistItem a, WorklistItem b) {
+            Decimal balanceA = a.balance != null ? a.balance : 0;
+            Decimal balanceB = b.balance != null ? b.balance : 0;
+            return balanceA == balanceB ? 0 : (balanceB > balanceA ? 1 : -1);
         }
     }
 
@@ -799,9 +875,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public List<CriticalFollowUpInvoiceItem> criticalFollowUpInvoices { get; set; }
         @AuraEnabled public List<WorklistItem> highValueDelinquents { get; set; }
         @AuraEnabled public List<WorklistItem> disputedInvoices { get; set; }
-        // Tabs whose read was refused or failed (WORKLIST_*): their lists are not "none".
+        // Tabs whose read was refused, failed or found too many rows (WORKLIST_*): their lists are not "none".
         @AuraEnabled public List<String> unavailable { get; set; }
-        // Each unavailable tab's reason: REASON_REFUSED or REASON_FAILED.
+        // Each unavailable tab's reason: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY.
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
         public WorklistData() { criticalFollowUpInvoices = new List<CriticalFollowUpInvoiceItem>(); highValueDelinquents = new List<WorklistItem>(); disputedInvoices = new List<WorklistItem>(); unavailable = new List<String>(); unavailableReason = new Map<String, String>(); }
     }
@@ -851,15 +927,16 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
-            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
+            String fromWhere = 'FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
-                soql += ' AND (Type = \'Credit\' OR Type = \'Credit Memo\') ';
+                fromWhere += ' AND (Type = \'Credit\' OR Type = \'Credit Memo\') ';
             }
             if (accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null) {
-                soql += ' AND ' + accFld + ' = :accountId ';
+                fromWhere += ' AND ' + accFld + ' = :accountId ';
             }
-            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
+            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) fromWhere += ' AND CurrencyIsoCode = :currencyCode ';
+            List<AggregateResult> ar = boundedAggregate(fromWhere, 'SUM(Balance) sumBal', '',
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'unapplied credits');
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { sectionSkipped('getUnappliedCreditsSum', e); markUnavailable(data, UNAVAILABLE_CREDITS, e); return null; }
         return sum;
@@ -876,14 +953,15 @@ public with sharing class RLM_CollectionsDashboardController {
             // Posted and not yet on a posted invoice: a Draft or Canceled memo is not owed, and
             // a posted invoice's balance already counts its lines. A draft invoice is in no
             // invoice sum, so a memo on one still counts here.
-            String soql = 'SELECT SUM(TotalAmount) sumAmt FROM DebitMemo WHERE TotalAmount != null'
+            String fromWhere = 'FROM DebitMemo WHERE TotalAmount != null'
                 + ' AND Status = \'Posted\' ';
             if (flds.containsKey('InvoiceGenerationStatus')) {
-                soql += ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' ';
+                fromWhere += ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' ';
             }
-            if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
-            if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
+            if (accountId != null && accFld != null) fromWhere += ' AND ' + accFld + ' = :accountId ';
+            if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) fromWhere += ' AND CurrencyIsoCode = :currencyCode ';
+            List<AggregateResult> ar = boundedAggregate(fromWhere, 'SUM(TotalAmount) sumAmt', '',
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'debit memos');
             if (!ar.isEmpty() && ar[0].get('sumAmt') != null) sum = (Decimal) ar[0].get('sumAmt');
         } catch (Exception e) { sectionSkipped('getDebitMemoNotInvoicedSum', e); markUnavailable(data, UNAVAILABLE_DEBIT_MEMOS, e); return null; }
         return sum;
@@ -893,15 +971,16 @@ public with sharing class RLM_CollectionsDashboardController {
         Decimal sum = 0;
         try {
             String accFld = getPaymentAccountFieldName();
-            String soql = 'SELECT SUM(Balance) sumBal FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
+            String fromWhere = 'FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
-                soql += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
+                fromWhere += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
             }
             if (accountId != null && String.isNotBlank(String.valueOf(accountId)) && accFld != null) {
-                soql += ' AND ' + accFld + ' = :accountId ';
+                fromWhere += ' AND ' + accFld + ' = :accountId ';
             }
-            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
+            if (String.isNotBlank(currencyCode) && paymentHasCurrencyField()) fromWhere += ' AND CurrencyIsoCode = :currencyCode ';
+            List<AggregateResult> ar = boundedAggregate(fromWhere, 'SUM(Balance) sumBal', '',
+                new Map<String, Object>{ 'accountId' => accountId, 'currencyCode' => currencyCode }, 'unapplied payments');
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { sectionSkipped('getUnappliedPaymentBalanceSum', e); markUnavailable(data, UNAVAILABLE_PAYMENTS, e); return null; }
         return sum;
@@ -911,6 +990,7 @@ public with sharing class RLM_CollectionsDashboardController {
         Integer cnt = 0;
         try {
             String accFld = getPaymentAccountFieldName();
+            // COUNT(Id) costs one query row however many it counts (measured): no bound needed.
             String soql = 'SELECT COUNT(Id) cnt FROM Payment WHERE Balance > 0 AND Status = \'' + PROCESSED_PAYMENT + '\' ';
             if (Schema.SObjectType.Payment.fields.getMap().containsKey('Type')) {
                 soql += ' AND (Type != \'Credit\' AND Type != \'Credit Memo\') ';
@@ -939,9 +1019,9 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Decimal unappliedCredits { get; set; }
         @AuraEnabled public Decimal totalOutstanding { get; set; }
         @AuraEnabled public List<Map<String, Object>> agingBuckets { get; set; }
-        // Components whose read was refused or failed (UNAVAILABLE_*); their figures are null.
+        // Components whose read was refused, failed or found too many rows (UNAVAILABLE_*); their figures are null.
         @AuraEnabled public List<String> unavailable { get; set; }
-        // Each unavailable key's reason: REASON_REFUSED or REASON_FAILED.
+        // Each unavailable key's reason: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY.
         @AuraEnabled public Map<String, String> unavailableReason { get; set; }
 
         public CollectionsDashboardData() {
@@ -1026,11 +1106,9 @@ public with sharing class RLM_CollectionsDashboardController {
         CollectionsProgressData result = new CollectionsProgressData();
         try {
             if (!Schema.getGlobalDescribe().containsKey('CollectionPlan')) return result;
-            List<CollectionPlan> plans = [
-                SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate
-                FROM CollectionPlan
-                WITH USER_MODE
-            ];
+            List<CollectionPlan> plans = (List<CollectionPlan>) boundedRows(
+                'SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate FROM CollectionPlan',
+                new Map<String, Object>(), 'collection plans');
             if (plans.isEmpty()) return result;
             Integer totalCount = plans.size();
             Integer recoveredCount = 0;
@@ -1088,7 +1166,7 @@ public with sharing class RLM_CollectionsDashboardController {
         @AuraEnabled public Decimal avgDaysPastDue { get; set; }
         // True when the collection plans could not be read: the figures above are not measurements.
         @AuraEnabled public Boolean unavailable { get; set; }
-        // Why it is unavailable: REASON_REFUSED or REASON_FAILED (null when it is not).
+        // Why it is unavailable: REASON_REFUSED, REASON_FAILED or REASON_TOO_MANY (null when it is not).
         @AuraEnabled public String unavailableReason { get; set; }
         public CollectionsProgressData() {
             unavailable = false;

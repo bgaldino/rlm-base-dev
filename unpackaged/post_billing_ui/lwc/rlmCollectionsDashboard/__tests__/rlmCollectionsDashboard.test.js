@@ -283,7 +283,9 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
 
   it.each([
     ["refused", "You don't have access to collection plans."],
-    ["failed", LOAD_FAILED("Collection plans")]
+    ["failed", LOAD_FAILED("Collection plans")],
+    // Progress does not follow the filters, so its too-many text does not suggest narrowing them.
+    ["tooMany", "Too many collection plans to total here."]
   ])("says the collection plans are unavailable (%s) instead of zero averages", async (reason, message) => {
     const element = await mount();
     getCollectionsProgress.emit({
@@ -522,5 +524,17 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     await flushPromises();
     expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Dec 1, 2026");
     setBrowserTimeZone("UTC");
+  });
+
+  // The filtered sections' too-many text suggests narrowing the filters.
+  it("says payment promises and a worklist tab have too many records to read", async () => {
+    const element = await mount();
+    const message = "Too many records to total here. Choose an account or currency to narrow it.";
+    getPaymentPromiseSummary.emit({ buckets: [], unavailable: true, unavailableReason: "tooMany" });
+    getWorklist.emit({ ...EMPTY_WORKLIST, unavailable: ["critical"], unavailableReason: { critical: "tooMany" } });
+    await flushPromises();
+
+    expect(text(element, ".payment-promises-empty")).toEqual([message]);
+    expect(text(element, ".worklist-empty")).toEqual([message]);
   });
 });

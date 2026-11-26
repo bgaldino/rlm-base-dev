@@ -17,7 +17,8 @@ import getCollectionsProgress from '@salesforce/apex/RLM_CollectionsDashboardCon
 const NOT_AVAILABLE = '\u2014';
 const REFUSED = 'refused';
 const FAILED = 'failed';
-// More rows than the section can total (the controller's INVOICE_ROW_CAP): narrow the filters.
+// More rows than a bounded read may take (the controller's ROW_CAP, or what is left of the call's query
+// rows): the figure or list would be built from a cut-off read, so narrow the filters instead.
 const TOO_MANY = 'tooMany';
 const SUBJECTS = {
     invoices: 'invoices',
@@ -37,9 +38,14 @@ const EXCLUDED_NAMES = {
 };
 const WORKLIST_TABS = ['critical', 'highValue', 'disputed'];
 
-function unavailableText(subject, reason) {
+// `narrowable`: the section follows the account and currency filters, so narrowing them can help.
+function unavailableText(subject, reason, narrowable = true) {
     if (reason === REFUSED) return `You don't have access to ${subject}.`;
-    if (reason === TOO_MANY) return 'Too many records to total here. Choose an account or currency to narrow it.';
+    if (reason === TOO_MANY) {
+        return narrowable
+            ? 'Too many records to total here. Choose an account or currency to narrow it.'
+            : `Too many ${subject} to total here.`;
+    }
     return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} could not be loaded. Refresh the page to try again.`;
 }
 
@@ -917,7 +923,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     get progressUnavailableText() {
-        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason);
+        // Progress covers every plan the user can read: the filters do not narrow it.
+        return unavailableText(SUBJECTS.collectionPlans, this.sections.progress.reason, false);
     }
 
     get showNoProgress() {

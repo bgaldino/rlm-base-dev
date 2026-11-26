@@ -29,6 +29,165 @@ private class RLM_CollectionsDashboardControllerTest {
     private static final String NO_VALUE = '—';
     private static final String SUBJECT_SEPARATOR = ' – ';
 
+    // ---- bounded reads (todo 435) ----
+
+    @isTest
+    static void requireWithin_allowsExactlyTheAllowanceAndNoMore() {
+        RLM_CollectionsDashboardController.requireWithin(10, 10, 'rows');
+        RLM_CollectionsDashboardController.requireWithin(0, 0, 'rows');
+        for (List<Integer> over : new List<List<Integer>>{ new List<Integer>{ 11, 10 }, new List<Integer>{ 1, 0 } }) {
+            try {
+                RLM_CollectionsDashboardController.requireWithin(over[0], over[1], 'rows');
+                Assert.fail(over[0] + ' rows against an allowance of ' + over[1] + ' must be too many');
+            } catch (RLM_CollectionsDashboardController.TooManyRowsException e) {
+                Assert.areEqual(RLM_CollectionsDashboardController.REASON_TOO_MANY,
+                    RLM_CollectionsDashboardController.reasonFor(e), 'Its reason is tooMany');
+            }
+        }
+    }
+
+    @isTest
+    static void rowAllowance_isTheCapOrWhatTheTransactionHasLeftLessTheHeadroom() {
+        Integer headroom = RLM_CollectionsDashboardController.ROW_HEADROOM;
+        Assert.areEqual(10000, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 0), 'The cap, with rows to spare');
+        Assert.areEqual(5, RLM_CollectionsDashboardController.rowAllowance(5, 50000, 0), 'A smaller cap');
+        Assert.areEqual(50000 - 45000 - headroom, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 45000),
+            'What the transaction has left, less the headroom');
+        Assert.areEqual(0, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 50000 - headroom),
+            'Nothing once only the headroom is left');
+        Assert.areEqual(0, RLM_CollectionsDashboardController.rowAllowance(10000, 50000, 49999), 'Never below zero');
+    }
+
+    // Every read a figure or a list is built from goes through the bound. Invoices cannot be inserted, so a
+    // row cap cannot be shown to cut an invoice read: the reads each call made are checked by label instead.
+    @isTest
+    static void everySummedOrListedRead_isBounded() {
+        Account a = newAccount('RLM CD Bounded');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD bounded dispute');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Id' => Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000008'),
+                'Balance' => 2500, 'DueDate' => today.addDays(-40), 'BillingAccountId' => a.Id })
+        };
+        Set<String> cardReads = new Set<String>{ 'unpaid invoices', 'unapplied credits', 'unapplied payments' };
+        if (Schema.getGlobalDescribe().containsKey('DebitMemo')) {
+            cardReads.add('debit memos');
+        }
+
+        Test.startTest();
+        Map<String, Set<String>> readsByCall = new Map<String, Set<String>>();
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        readsByCall.put('cards', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getWorklist(null, null);
+        readsByCall.put('worklist', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.addCriticalFollowUps(new RLM_CollectionsDashboardController.WorklistData(),
+            invoices, false, false, today);
+        readsByCall.put('critical', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.addHighValueDelinquents(new RLM_CollectionsDashboardController.WorklistData(),
+            invoices, 'BillingAccountId', today);
+        readsByCall.put('highValue', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        readsByCall.put('promises', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getCollectionsProgress();
+        readsByCall.put('progress', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        RLM_CollectionsDashboardController.boundedReads.clear();
+        RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        readsByCall.put('tasks', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
+        Test.stopTest();
+
+        Assert.areEqual(cardReads, readsByCall.get('cards'), 'Every card read is bounded');
+        Assert.areEqual(new Set<String>{ 'high-value invoices', 'open cases', 'disputed invoices' }, readsByCall.get('worklist'),
+            'The worklist\'s invoice and case reads are bounded');
+        Assert.areEqual(new Set<String>{ 'collection plan items' }, readsByCall.get('critical'), 'The plan item lookup is bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('highValue'), 'The plan lookup is bounded');
+        Assert.areEqual(new Set<String>{ 'payment schedule items' }, readsByCall.get('promises'), 'The promise sums are bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('progress'), 'The progress read is bounded');
+        Assert.areEqual(new Set<String>{ 'collection plans' }, readsByCall.get('tasks'), 'The task plans read is bounded');
+    }
+
+    // Two records of each kind against a cap of one: each section built from them is unavailable as tooMany,
+    // not a figure or list from the first row alone. The next test reads exactly the cap normally.
+    @isTest
+    static void sectionsWithMoreRowsThanTheCap_sayTooMany() {
+        seedTwoOfEach();
+        RLM_CollectionsDashboardController.ROW_CAP = 1;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        Test.stopTest();
+
+        String tooMany = RLM_CollectionsDashboardController.REASON_TOO_MANY;
+        Assert.areEqual(tooMany, cards.unavailableReason.get(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS),
+            'Two unapplied payments against a cap of one: too many to total');
+        Assert.isNull(cards.unappliedPaymentBalance, 'No payment balance from one of the two');
+        Assert.isFalse(cards.unavailable.contains(RLM_CollectionsDashboardController.UNAVAILABLE_INVOICES),
+            'No invoice rows: within the cap');
+        Assert.areEqual(tooMany, wl.unavailableReason.get(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Two open cases against a cap of one: the disputed tab is too many');
+        Assert.isTrue(wl.disputedInvoices.isEmpty(), 'No rows from the first case alone');
+        Assert.isTrue(promises.unavailable, 'Two schedule items against a cap of one');
+        Assert.areEqual(tooMany, promises.unavailableReason, 'The promise sums are too many');
+        Assert.isTrue(progress.unavailable, 'Two plans against a cap of one');
+        Assert.areEqual(tooMany, progress.unavailableReason, 'Progress is too many');
+        Assert.isTrue(tasks.unavailable, 'Two plans against a cap of one');
+        Assert.areEqual(tooMany, tasks.unavailableReason, 'The task plans are too many');
+    }
+
+    @isTest
+    static void sectionsWithExactlyTheCap_readNormally() {
+        seedTwoOfEach();
+        RLM_CollectionsDashboardController.ROW_CAP = 2;
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
+        RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
+        RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
+        Test.stopTest();
+
+        Assert.isFalse(cards.unavailable.contains(RLM_CollectionsDashboardController.UNAVAILABLE_PAYMENTS),
+            'Two payments against a cap of two are read: ' + cards.unavailableReason);
+        Assert.areEqual(2, cards.unappliedPaymentCount, 'Both payments are counted');
+        Assert.isFalse(wl.unavailable.contains(RLM_CollectionsDashboardController.WORKLIST_DISPUTED),
+            'Two cases against a cap of two are read: ' + wl.unavailableReason);
+        Assert.areEqual(2, wl.disputedInvoices.size(), 'Both disputed accounts are listed');
+        Assert.isFalse(promises.unavailable, 'Two schedule items against a cap of two are read');
+        Assert.isFalse(progress.unavailable, 'Two plans against a cap of two are read');
+        Assert.areEqual(2, progress.totalPlans, 'Both plans are counted');
+        Assert.isFalse(tasks.unavailable, 'Two plans against a cap of two are read');
+    }
+
+    // Two accounts, each with an open case, a Processed (unapplied) payment, a collection plan and a Draft
+    // payment schedule item.
+    private static void seedTwoOfEach() {
+        Account a = newAccount('RLM CD Bound A');
+        Account b = newAccount('RLM CD Bound B');
+        insert new List<Case>{ new Case(AccountId = a.Id, Subject = 'RLM CD bound dispute A'),
+            new Case(AccountId = b.Id, Subject = 'RLM CD bound dispute B') };
+        String corporate = corporateCurrency();
+        insert new List<Payment>{ payment(a.Id, 10, 'Processed', corporate), payment(b.Id, 20, 'Processed', corporate) };
+        insert new List<CollectionPlan>{ newPlan(a.Id, Date.today().addDays(10)), newPlan(b.Id, Date.today().addDays(20)) };
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 30, CurrencyIsoCode = corporate);
+        insert ps;
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = a.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 10, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = b.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 20, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+        };
+    }
+
     // ---- the collections user (todo 435) ----
 
     private static final List<String> COLLECTIONS_LICENSES = new List<String>{
