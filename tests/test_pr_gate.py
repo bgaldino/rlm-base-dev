@@ -552,6 +552,29 @@ check("that rule sees a module a suite loads dynamically: load(\"x\"), import_mo
       first_party_imports("tests/test_soql_option_hardening.py")
       >= {"tasks/rlm_currency.py", "tasks/rlm_test_agents.py", "tasks/rlm_validate_setup.py"}
       and "tasks/rlm_deploy_with_fragments.py" in first_party_imports("tests/test_deploy_with_fragments.py"))
+# Each dynamic-load branch, on a synthetic suite outside the repo (first_party_imports joins an
+# absolute path to REPO as itself), so a branch cannot pass on the strength of another one.
+with tempfile.TemporaryDirectory() as _synth_dir:
+    for _label, _src, _want in (
+        ("importlib.import_module(\"tasks.x\")", "import importlib\nimportlib.import_module('tasks.soql_utils')\n",
+         "tasks/soql_utils.py"),
+        ("load(\"x\")", "load('rlm_currency')\n", "tasks/rlm_currency.py"),
+        ("spec_from_file_location", "import importlib.util\n"
+         "importlib.util.spec_from_file_location('m', REPO / 'tasks' / 'rlm_validate_setup.py')\n",
+         "tasks/rlm_validate_setup.py"),
+    ):
+        _synth = os.path.join(_synth_dir, "test_synthetic.py")
+        pathlib.Path(_synth).write_text(_src)
+        check(f"the import-coverage guard sees a synthetic suite's {_label}", _want in first_party_imports(_synth),
+              sorted(first_party_imports(_synth)))
+    pathlib.Path(_synth).write_text("importlib.import_module('tasks.no_such_module')\n")
+    check("and does not invent a module that is not in the repo", first_party_imports(_synth) == set(),
+          sorted(first_party_imports(_synth)))
+_by_name = {c["name"]: c for c in pr_gate.CHECKS}
+_missing_soql = [n for n in ("extend_stdctx_recovery", "sfdmu_id_lookup_wiring", "ux_tool_suite")
+                 if "tasks/soql_utils.py" not in _by_name[n]["triggers"]]
+check("extend_stdctx_recovery, sfdmu_id_lookup_wiring and ux_tool_suite trigger on tasks/soql_utils.py, "
+      "which the tasks they test read options through (todo 488)", _missing_soql == [], _missing_soql)
 _dropped = [dict(c, triggers=[t for t in c["triggers"] if t != "tasks/rlm_currency.py"])
             if c["name"] == "requests_offline_suites" else c for c in pr_gate.CHECKS]
 check("dropping a dynamically loaded module's trigger (tasks/rlm_currency.py from "
@@ -6191,7 +6214,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 877
+EXPECTED = 882
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

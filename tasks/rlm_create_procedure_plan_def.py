@@ -114,7 +114,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "required": True,
         },
         "versionRank": {
-            "description": "Rank of the procedure plan definition version",
+            "description": "Rank of the procedure plan definition version: a whole number, 0 or more. Required; blank, a list or anything else is refused.",
             "required": True,
         },
         "versionEffectiveTo": {
@@ -285,11 +285,12 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             )
 
     def _version_rank(self) -> int:
-        """versionRank: None, blank or whitespace is 0; otherwise a whole number, 0 or more, or refused by
-        name (it was int() while building the POST body, after the existence query)."""
+        """versionRank (required): a whole number, 0 or more. None, blank or whitespace is refused by name
+        rather than posted as rank 0, and so is anything else; read before the existence query (it was
+        int() while building the POST body)."""
         text = option_text(self.options.get("versionRank"), "versionRank", TaskOptionsError)
         if text is None:
-            return 0
+            raise TaskOptionsError("versionRank is required: the version's rank, a whole number, 0 or more")
         try:
             rank = int(text)
         except ValueError:

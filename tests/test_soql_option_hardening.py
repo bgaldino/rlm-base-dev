@@ -935,7 +935,7 @@ def ppd_run(options):
     """Run CreateProcedurePlanDefinition._run_task; return (error, existence queries, POST bodies)."""
     queries, posts = [], []
     task = _ppd.CreateProcedurePlanDefinition.__new__(_ppd.CreateProcedurePlanDefinition)
-    task.options = {"developerName": "D", "name": "N", "processType": "P", **options}
+    task.options = {"developerName": "D", "name": "N", "processType": "P", "versionRank": 1, **options}
     task.logger = types.SimpleNamespace(info=lambda *a: None, warning=lambda *a: None, error=lambda *a: None)
     task._definition_exists = lambda name: queries.append(name) or False
     task._resolve_context_definition_id = lambda: "CTX"
@@ -959,15 +959,17 @@ for value, want in ((True, True), (" true ", True), ("on", True), (None, False),
           err is None and queries == ["D"] and len(posts) == 1
           and posts[0]["procedurePlanDefinitionVersions"][0]["active"] is want
           if posts and "procedurePlanDefinitionVersions" in posts[0] else False, repr((err, queries, posts)))
-for value, want in ((None, 0), ("", 0), ("  ", 0), (" 3 ", 3), (1, 1), (0, 0)):
+for value, want in ((" 3 ", 3), (1, 1), (0, 0), ("0", 0)):
     err, queries, posts = ppd_run({"versionRank": value})
     check(f"procedure plan: versionRank {value!r} posts rank={want}",
           err is None and len(posts) == 1 and posts[0]["procedurePlanDefinitionVersions"][0]["rank"] == want,
           repr((err, queries, posts)))
-for value in ("abc", -1, ["1"]):
+for value, needle in ((None, "versionRank is required"), ("", "versionRank is required"),
+                      ("  ", "versionRank is required"), ("abc", "versionRank must be a whole number"),
+                      (-1, "versionRank must be a whole number"), (["1"], "versionRank must be a single value")):
     err, queries, posts = ppd_run({"versionRank": value})
-    check(f"procedure plan: versionRank {value!r} refused by name before any query (it was int() mid-build)",
-          err is not None and "versionRank" in err and queries == [] and posts == [], repr((err, queries, posts)))
+    check(f"procedure plan: versionRank {value!r} refused by name before any query (not posted as rank 0)",
+          err is not None and needle in err and queries == [] and posts == [], repr((err, queries, posts)))
 
 
 def deactivate_run(options):
@@ -1013,7 +1015,7 @@ print("todo 488 round 2: context_service, procedure plan overlay, TPT, FSC, reci
 _ctx = load("rlm_context_service")
 
 
-def ctx_run(options, plan):
+def ctx_run(options, plan, resolve_id="CTX"):
     """ManageContextDefinition._run_task on `plan` with every request stubbed; return (error, calls)."""
     calls = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -1023,7 +1025,8 @@ def ctx_run(options, plan):
         t.options = {"plan_file": str(plan_path), **options}
         t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
         t._prep_runtime = lambda: calls.append("prep")
-        t._resolve_context_definition_id = lambda name: calls.append("resolve") or "CTX"
+        t._resolve_context_definition_id = lambda name: calls.append("resolve") or resolve_id
+        t._create_context_definition_record = lambda p, dry_run: calls.append(("create", dry_run)) or "NEW"
         t._validate_plan = lambda cid, p: calls.append("validate")
         t._is_context_active = lambda cid: calls.append("is_active") or True
         t._set_context_active = lambda cid, active, dry_run: calls.append(("deactivate", dry_run))
@@ -1058,6 +1061,16 @@ for options in ({}, {"translate_plan": "  "}, {"translate_plan": None}, {"transl
     err, calls = ctx_run(options, RULES_PLAN)
     check(f"context: translate_plan {options.get('translate_plan', '<unset>')!r} is true (its default): "
           "mappingRules are translated", err is None and "translate" in calls, repr((err, calls)))
+# The create path (_run_create_flow) reads translate_plan too, with the same default.
+CREATE_PLAN = {**RULES_PLAN, "create": True}
+for options in ({}, {"translate_plan": "  "}, {"translate_plan": None}):
+    err, calls = ctx_run(options, CREATE_PLAN, resolve_id=None)
+    check(f"context create: translate_plan {options.get('translate_plan', '<unset>')!r} is true (its default): "
+          "mappingRules are translated", err is None and ("create", False) in calls and "translate" in calls,
+          repr((err, calls)))
+err, calls = ctx_run({"translate_plan": "false"}, CREATE_PLAN, resolve_id=None)
+check("context create: translate_plan 'false' skips translating mappingRules",
+      err is None and ("create", False) in calls and "translate" not in calls, repr((err, calls)))
 for value in ("false", " off ", 0):
     err, calls = ctx_run({"translate_plan": value}, RULES_PLAN)
     check(f"context: translate_plan {value!r} skips translating mappingRules",
@@ -1122,6 +1135,20 @@ _po = _ppo.ApplyProcedurePlanOverlay.__new__(_ppo.ApplyProcedurePlanOverlay)
 _po.options = {"max_wait_seconds": "  ", "poll_interval_seconds": " 4 "}
 check("procedure plan overlay: _wait_options gives the default for blank and reads padded text",
       _po._wait_options() == (45, 4), repr(_po._wait_options()))
+# The late reads themselves: with raw int() back in either method, the blank wait raises here.
+_po = _ppo.ApplyProcedurePlanOverlay.__new__(_ppo.ApplyProcedurePlanOverlay)
+_po.options = {"max_wait_seconds": "  ", "poll_interval_seconds": " 1 "}
+_po.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+_po._query = lambda soql: [{"Id": "V1", "IsActive": True}]
+_po._all_counts_valid = lambda version_id, overlay: True
+for _label, _call in (("_wait_for_active_state", lambda: _po._wait_for_active_state("V1", True)),
+                      ("_verify_overlay", lambda: _po._verify_overlay("V1", {}))):
+    try:
+        _call()
+        _ok, _detail = True, ""
+    except Exception as exc:
+        _ok, _detail = False, f"{type(exc).__name__}: {exc}"
+    check(f"procedure plan overlay: {_label} runs with a blank max_wait and a padded poll", _ok, _detail)
 
 _tpt = load("rlm_manage_transaction_processing_types")
 _fsc = load("rlm_manage_fulfillment_scope_cnfg")
