@@ -220,7 +220,7 @@ All use `RollUpPrice=false`. Snapshot only. Discover live:
 
 An Aggregate Price element with a Where condition writes its output only when at least one line
 matches. With no match it writes nothing, so an output persisted to a custom field keeps its old
-value [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run; traced in core 264].
+value [Measured: 2026-11-26, 264, ent-sb0 harness build; traced in core 264].
 Recipe: a top-level Assignment of 0 to the output tag before the discount step (and before the
 aggregate), plus a before-save Flow on Quote for a quote emptied of lines (line count 0 and
 field not 0 sets the field to 0). The standard header totals reset only because the platform

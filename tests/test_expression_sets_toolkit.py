@@ -1132,7 +1132,7 @@ def test_cli_restore_boundary():
                                ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
                   restores)
 
-            # A version chain (ramp264: the importer targets the executing v40, the
+            # A version chain (an upgraded org: the importer targets the executing v40, the
             # payload is TEST_V1) is refused before ANY write (todo pack 172): no
             # ResourceInitializationType alignment, no mutation, no restore — in
             # preview as well as with --confirm.
@@ -2120,7 +2120,7 @@ def test_failed_mutation_keeps_plans_online():
           not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
 
 
-# ramp264's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
+# An upgraded org's RLM_DefaultPricingProcedure version chain (todo packs 172/175):
 # three versions active at once; the highest-numbered active one (v40) executes.
 RAMP264_VERSIONS = [
     {"Id": "9QM1", "ApiName": "RLM_DefaultPricingProcedure_V1",
@@ -2159,7 +2159,7 @@ def _formula_metadata(child="CompoundUplift", formula="ItemUnitPrice * 1"):
 
 
 def test_import_guards():
-    """_guards: executing_version and import_target_refusal over ramp264's version
+    """_guards: executing_version and import_target_refusal over an upgraded org's version
     chain (refused) and an active+draft set (proceeds when the payload names the
     target) — todo pack 172."""
     print("test_import_guards")
@@ -2326,16 +2326,16 @@ def test_import_guards():
           "TK172_Chain_V1 share the label" in msg and "2026-11-24" in msg
           and "set_step_formula.py" in msg and "Nothing was written" in msg, msg)
 
-    # ramp264: every version carried the same label; the importer targeted v40.
+    # Upgraded org: every version carried the same label; the importer targeted v40.
     ramp = [dict(v, Name="RLM Revenue Management Default Pricing Procedure")
             for v in RAMP264_VERSIONS]
     v1, v40 = ramp[0], ramp[3]
     label = "RLM Revenue Management Default Pricing Procedure"
     msg = import_target_refusal("RLM_DefaultPricingProcedure", ramp, v40,
                                 payload((v1["ApiName"], label))) or ""
-    check("ramp264: a _V1 payload against the executing v40 is refused as a rebind",
+    check("upgraded org: a _V1 payload against the executing v40 is refused as a rebind",
           "rebinding" in msg and "_V1 (v1, active)" in msg and "v20 (v2)" in msg, msg)
-    check("ramp264: a payload for v40 is refused too (its label is shared)",
+    check("upgraded org: a payload for v40 is refused too (its label is shared)",
           "share the label" in (import_target_refusal(
               "RLM_DefaultPricingProcedure", ramp, v40,
               payload((v40["ApiName"], label))) or ""))
@@ -3142,8 +3142,10 @@ def test_client_auth_hint():
           and relabel_command(target_org="o") is None)
 
 
-def test_pack512_additions():
-    """Headless pricing inputs, group-emptied pre-check, [preview] log prefix."""
+def test_headless_pricing_inputs():
+    """build_pricing_data defaults, end dates, and line_results parsing."""
+    print("test_headless_pricing_inputs")
+    from scripts.expression_sets._client import ExpressionSetClientError
     from scripts.expression_sets.run_headless_pricing import (
         build_pricing_data, end_date_for_term, line_results)
     check("end date = start + term - 1 day (Annual)",
@@ -3171,7 +3173,21 @@ def test_pack512_additions():
         {"value": 5, "dataPath": ["CTX_Quote_1", "CTX_QuoteLineItem_2"]}]}}}])
     check("live shape: dataPath is a list; lines come back in payload order",
           [r["NetUnitPrice"] for r in live] == [5, 7], live)
+    try:
+        build_pricing_data(
+            {"lines": [{"Product": "p", "SubscriptionTerm": 1,
+                        "SubscriptionTermUnit": "Weeks"}]},
+            pricebook=None, currency="USD", start_date="2026-11-26")
+        err = None
+    except ExpressionSetClientError as exc:
+        err = str(exc)
+    check("an unsupported term unit is a clear error, not a late proration failure",
+          err and "EndDate" in err and "Weeks" in err, err)
 
+
+def test_overlay_group_emptied_precheck():
+    """An overlay may not remove every child of a group unless the group goes too."""
+    print("test_overlay_group_emptied_precheck")
     from scripts.expression_sets._schema import validate_overlay_against_definition
     version = {"apiName": "V1", "steps": [
         {"name": "G", "stepType": "ListGroup"},
@@ -3187,6 +3203,10 @@ def test_pack512_additions():
         {"removeSteps": [{"name": "G"}, {"name": "A"}, {"name": "B"}]}, definition, "V1")
     check("removing the group with its children is allowed", ok2.passed)
 
+
+def test_preview_log_prefix():
+    """A dry-run transport marks lifecycle log lines with [preview]."""
+    print("test_preview_log_prefix")
     from scripts.expression_sets._lifecycle import LifecycleEngine
 
     class _T:
@@ -3265,7 +3285,8 @@ def main():
                test_shipped_fixtures, test_client_auth_hint,
                test_import_guards, test_set_step_formula, test_null_rank_guard,
                test_overlay_multi_version, test_row_lock_retry,
-               test_pack512_additions, test_import_labels_block):
+               test_headless_pricing_inputs, test_overlay_group_emptied_precheck,
+               test_preview_log_prefix, test_import_labels_block):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

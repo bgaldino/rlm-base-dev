@@ -97,8 +97,12 @@ def build_pricing_data(request: Dict[str, Any], *, pricebook: Optional[str],
                 and line.get("SubscriptionTermUnit")):
             end = end_date_for_term(line["StartDate"], line["SubscriptionTerm"],
                                     line["SubscriptionTermUnit"])
-            if end:
-                line["EndDate"] = end
+            if not end:
+                raise ExpressionSetClientError(
+                    f"Line {n}: cannot derive EndDate for SubscriptionTermUnit "
+                    f"{line['SubscriptionTermUnit']!r} (supported: Annual, Years, Months); "
+                    "set EndDate on the line explicitly.")
+            line["EndDate"] = end
         line["StartDate"] = _datetime(line["StartDate"])
         if line.get("EndDate"):
             line["EndDate"] = _datetime(line["EndDate"])
@@ -110,15 +114,12 @@ def build_pricing_data(request: Dict[str, Any], *, pricebook: Optional[str],
     return {"SalesTransaction": header}
 
 
-def _first_id(rows: List[dict]) -> Optional[str]:
-    return rows[0].get("Id") if rows else None
-
-
 def resolve_context_ids(transport: Transport) -> "tuple[str, str]":
     """The sales transaction context definition id and its QuoteEntitiesMapping id."""
-    cd = _first_id(transport.soql(
+    rows = transport.soql(
         "SELECT Id FROM ContextDefinition WHERE DeveloperName = "
-        f"'{soql_literal(CONTEXT_DEFINITION)}'"))
+        f"'{soql_literal(CONTEXT_DEFINITION)}'")
+    cd = rows[0].get("Id") if rows else None
     if not cd:
         raise ExpressionSetClientError(f"No ContextDefinition {CONTEXT_DEFINITION}.")
     maps = transport.soql(
@@ -179,7 +180,7 @@ def main(argv=None) -> int:
     p.add_argument("--pricebook", help="Pricebook2 Id for the header and every line.")
     p.add_argument("--currency", default="USD", help="CurrencyIsoCode (default USD).")
     p.add_argument("--start-date", default=date.today().isoformat(),
-                   help="Default line StartDate. Use the org's time zone date.")
+                   help="Default line StartDate (default: today, local date; use the org's date if it differs).")
     p.add_argument("--context-definition-id")
     p.add_argument("--context-mapping-id")
     p.add_argument("--api-version", default=DEFAULT_API_VERSION)
@@ -193,8 +194,12 @@ def main(argv=None) -> int:
     except (OSError, ValueError) as exc:
         eprint(f"Error: could not read the request file: {exc}")
         return 2
-    data = build_pricing_data(request, pricebook=args.pricebook, currency=args.currency,
-                              start_date=args.start_date)
+    try:
+        data = build_pricing_data(request, pricebook=args.pricebook,
+                                  currency=args.currency, start_date=args.start_date)
+    except ExpressionSetClientError as exc:
+        eprint(f"Error: {exc}")
+        return 2
     t = Transport(args.target_org, args.api_version)
     try:
         if args.context_definition_id and args.context_mapping_id:

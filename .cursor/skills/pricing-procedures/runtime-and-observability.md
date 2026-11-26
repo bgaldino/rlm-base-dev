@@ -258,7 +258,7 @@ in scientific notation; stored trailing zeros are returned at full precision.
 ## Headless pricing inputs and the helper
 
 `runSalesforceHeadlessPricing` prices without a quote. Inputs the run needs [Measured:
-2026-11-26, 264, ent-sb0 harness build; pack 451 run]:
+2026-11-26, 264, ent-sb0 harness build]:
 
 - `Pricebook` and `CurrencyIsoCode` on the header and on every line. Without them `ListPrice` is empty and `NetUnitPrice` is 0.
 - End date = start + term - 1 day. A full-year end date counts one term too many (a term count of 2 for a 1-year term).

@@ -7,7 +7,7 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
 - **Run times.** Read tools take seconds. `import_expression_set.py`, `set_step_formula.py`
   and `apply_expression_set_overlay.py` take minutes on a large procedure (the overlay
   apply ran past two minutes on a 124-step clone and past 110 seconds on the 121-step
-  default [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]). They block
+  default [Measured: 2026-11-26, 264, ent-sb0 harness build]). They block
   until the version is active again, so run them in the background with a timeout of 600
   seconds or more, then read the output. There is no poll mode; the tools wait themselves.
 - **Check the end state.** `apply_expression_set_overlay.py` reads the version back after
@@ -16,7 +16,7 @@ Progressive-disclosure sub-file of `.cursor/skills/expression-sets/SKILL.md`. Wo
   `scripts/expression_sets/apply_expression_set_overlay.py`]. A structural rejection
   mid-PATCH (for example removing the last step of a group: "<step> can't be the last
   step in a group") leaves the version inactive and recoverable only by a full re-import
-  [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]. The overlay
+  [Measured: 2026-11-26, 264, ent-sb0 harness build]. The overlay
   pre-check now refuses that removal before any write, and `removeSteps` entries are
   objects (`{"name": "<step>"}`), not bare strings [Repo: `scripts/expression_sets/_schema.py`].
   After any run, confirm with `list_expression_sets.py --versions`.

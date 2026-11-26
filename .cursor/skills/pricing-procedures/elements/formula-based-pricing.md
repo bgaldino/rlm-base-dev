@@ -120,7 +120,7 @@ Snapshot; refresh with `python scripts/expression_sets/describe_expression_set.p
 
 A Formula-Based Pricing element can write to a custom line tag. With the tag mapped to a
 QuoteLineItem field on an INPUTOUTPUT context attribute, the value persists to the record on save
-[Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]. A new attribute needs its own
+[Measured: 2026-11-26, 264, ent-sb0 harness build]. A new attribute needs its own
 context tag before a procedure can reference it ([`../../context-service/SKILL.md`](../../context-service/SKILL.md)).
 
 ## Open questions

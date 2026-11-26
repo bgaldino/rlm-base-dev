@@ -18,13 +18,13 @@ invoking the set, or record that the activation is refused.] The tools resolve i
 with `scripts/expression_sets/_guards.executing_version`, using now as the date. An
 upgraded org can carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, v1,
 v3 and v4 active, v4 executing, with the ramp-uplift child named `Uplift` in v1 to v3
-and `CompoundUplift` in v4 [Measured: 2026-09-03, 264, upgraded org (ramp264)]. Before any
+and `CompoundUplift` in v4 [Measured: 2026-09-03, 264, upgraded org]. Before any
 edit, list the versions:
 `SELECT ApiName, VersionNumber, IsActive, Rank, StartDateTime, EndDateTime FROM ExpressionSetVersion WHERE ExpressionSetId = '<9QL>'`.
 
 - **Edit the executing version.** A constant written into a lower version changed no
   price; written into the executing one it changed every price [Measured: 2026-09-03,
-  264, upgraded org (ramp264)]. Use
+  264, upgraded org]. Use
   `set_step_formula.py`: it targets the executing version unless
   `--version-api-name` names another (and warns then), selects the step by `--step`
   or by its version-stable `--parent-step`, runs the deactivate → Tooling

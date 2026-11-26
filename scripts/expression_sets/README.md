@@ -250,7 +250,7 @@ The rules were measured by invoking the sets directly (Connect `POST
 connect/business-rules/expressionSet/{name}`, 3 of 3 calls each). The tools note
 when the version that runs is not the highest-numbered one. An upgraded org can
 carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 ran
-[Measured: 2026-09-03, 264, upgraded org (ramp264)]. Consequences:
+[Measured: 2026-09-03, 264, upgraded org]. Consequences:
 
 - **A whole-set import works on a multi-version set in one shape only.**
   `import_expression_set` (toolkit and CCI) rewrites the payload's first version id
@@ -274,7 +274,7 @@ carry `RLM_DefaultPricingProcedure` as such a chain: v1 to v4, three active, v4 
 - **Edit the version that executes.** A change to any other version changes no
   price: a constant written into `_V1` changed no price, written into the executing
   version, VersionNumber 4 (ApiName `…_v40`), it changed every price [Measured:
-  2026-09-03, 264, upgraded org (ramp264)]. Use
+  2026-09-03, 264, upgraded org]. Use
   `set_step_formula.py` for formula edits; it defaults to the executing version and
   reads the result back.
 - **No tool picks the first version.** A tool given no version works on the

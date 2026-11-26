@@ -341,12 +341,12 @@ Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) O
 header switch (criteria 12 and 13) there are 12 criteria and the ramp criterion is number 12, not
 14: logic `1 AND 11 AND 2 AND 9 AND 10 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 12)`.
 Keeping the number 14 on a 12-criterion filter fails pricing with `Invalid criteria
-reference 14. Operands list size: 12` [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run].
+reference 14. Operands list size: 12` [Measured: 2026-11-26, 264, ent-sb0 harness build].
 A list group's filter criteria cannot be edited in place by the toolkit; fix a bad numbering with
 `updateSteps` or a re-import ([`../../expression-sets/toolkit-quick-start-and-examples.md`](../../expression-sets/toolkit-quick-start-and-examples.md)).
 
 Measured with that 12-criterion clone (formula `ROUND(ROUND(NetUnitPrice,2)*0.94,2)`, headless;
-illustrative amounts, the behaviour is what was measured) [Measured: 2026-11-26, 264, ent-sb0 harness build; pack 451 run]:
+illustrative amounts, the behaviour is what was measured) [Measured: 2026-11-26, 264, ent-sb0 harness build]:
 
 | Line | Default procedure `NetUnitPrice` | Clone `NetUnitPrice` |
 |---|---|---|
@@ -361,9 +361,9 @@ ent-sb0 harness build; describe of the sales transaction context].
 A line with dates but no `SubscriptionTerm` is not keyed (criterion 3 fails), see
 [Line inputs on real quotes](#line-inputs-on-real-quotes).
 
-Stacking with another percentage discount: a 5% volume or manual step followed by this 3% (or
-6%) term step applies each in turn, with no rounding between elements (1,000.05 to 900.045 to
-855.04275 to 803.74) [Measured: 2026-11-26, 264, scratch; Tokyo 403 T2].
+Stacking with other percentage discounts: each step applies in turn to the previous result, with
+no rounding between elements. A 10% step, then a 5% volume or manual step, then this 6% term step
+take 1,000.05 to 900.045 (x0.90) to 855.04275 (x0.95) to 803.74 (x0.94) [Measured: 2026-11-26, 264, scratch org].
 
 - With criterion 11, a One Time line alone, and One Time and Evergreen lines mixed with a matching
   line, priced unchanged with no line error (headless).
@@ -403,7 +403,7 @@ Term values in this table are illustrative; the measured runs used a different t
 
 ## Route (a): Price Adjustment Matrix
 
-[Open: the matrix route was built on a scratch org and applied nothing. The step ran with the term passed and returned no adjustments, with no error; refreshing the table changed nothing [Measured: 2026-11-26, 264, scratch; Tokyo 403 T1]. Candidate causes, untested: the recipe mapping's output columns, a Number vs decimal term match, and a CSV table type the matrix element may not read at runtime. Use the formula route above until this is settled.]
+[Open: the matrix route was built on a scratch org and applied nothing. The step ran with the term passed and returned no adjustments, with no error; refreshing the table changed nothing [Measured: 2026-11-26, 264, scratch org]. Candidate causes, untested: the recipe mapping's output columns, a Number vs decimal term match, and a CSV table type the matrix element may not read at runtime. Use the formula route above until this is settled.]
 
 When the bands must be data (for example 12–23 months 3%, 24–47 months 5%, 48+ months 6%), use a
 Price Adjustment Matrix over a custom decision table whose input columns are keyed on the term
