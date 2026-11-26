@@ -404,3 +404,4 @@ Use tests first for parser, evaluator, cleanup, and resume-safety changes. Mock 
 - `docs/guides/build-harness.md`
 - `scripts/build_harness/tui/README.md`
 - `.cursor/skills/cci-orchestration/SKILL.md`
+- `.cursor/skills/toolchain/sandboxed-agents.md` - verifying on a harness-built org from a sandboxed agent: the `sf` recipe, metadata deploys and `DeployRequest` readback, browser checks (`scripts/ui_check/ui_check.py`)

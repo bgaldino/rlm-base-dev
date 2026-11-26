@@ -85,6 +85,7 @@ for any agent.
 | Corporate CA, proxy, IT-managed shell blocks, `/etc/paths.d` | [`managed-workstations.md`](managed-workstations.md) |
 | Verify the setup on several workstations, or hand the check to someone | [`verification-handoff.md`](verification-handoff.md) |
 | A CCI flow, deploy or data load fails | `troubleshooting` skill instead (it covers toolchain causes such as the CCI token issue) |
+| An agent in the Claude Code sandbox must run `sf`, deploy metadata or drive a browser on a scratch org | [`sandboxed-agents.md`](sandboxed-agents.md) |
 | Containerized toolchain instead of a local one | `docker/README.md` |
 | Build harness or `./tui-cci` | `build-harness` skill |
 
@@ -97,6 +98,9 @@ for any agent.
 - [`managed-workstations.md`](managed-workstations.md) — read this on a machine with
   IT-managed configuration: what to look for, what not to touch, and which guide
   section covers each case.
+- [`sandboxed-agents.md`](sandboxed-agents.md) — read this when Bash runs in the Claude Code
+  sandbox: the `sf` environment and domains, the deploy EPERM and its `DeployRequest`
+  readback, and why a browser needs an unsandboxed call.
 - [`verification-handoff.md`](verification-handoff.md) — read this to verify the
   setup across workstations: the procedure, the report format, and how to brief
   another person or agent.

@@ -1138,6 +1138,7 @@ STDLIB_SUITES = [
     "tests/test_snapshot_help.py",
     "tests/test_snapshot_site_guide.py",
     "tests/test_toolchain_audit.py",
+    "tests/test_ui_check.py",
     "tests/test_update_toolchain_sf.py",
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",

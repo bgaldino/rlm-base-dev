@@ -141,6 +141,15 @@ nonzero `--version` exit (FAIL).
 
 ---
 
+## Live UI checks outside a suite
+
+To look at a page once, check it as a test user, or test a FlexiPage in a shared org, read
+`.cursor/skills/robot-testing/live-ui-checks.md` (the `scripts/ui_check/ui_check.py` helper:
+frontdoor login, screenshot, shadow-DOM text, REST test-user password, test-app page
+assignment). A sandboxed agent also needs `toolchain/sandboxed-agents.md`.
+
+---
+
 ## Related Skills
 
 - **CCI Orchestration** — `.cursor/skills/cci-orchestration/SKILL.md`
