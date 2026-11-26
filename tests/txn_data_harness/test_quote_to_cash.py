@@ -114,7 +114,7 @@ def test_a_verify_error_is_exit_2(harness, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "quote-to-cash verify: Salesforce request failed" in err
     # The run completed: the error names its runs and the verify, not a new run.
-    assert "Run(s) DEMO-1 reached payment_applied" in err and "cli verify --manifest" in err
+    assert "run(s) DEMO-1 passed the stage checks" in err
 
 
 def test_ids_are_deduplicated_across_scenarios(harness):

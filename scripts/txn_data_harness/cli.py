@@ -680,9 +680,9 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
         runs = ", ".join(m.run_id for m in batch)
-        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}. Run(s) {runs} reached "
-              f"{QUOTE_TO_CASH_STAGE} with their own credit and payment: check them with "
-              "`cli verify --manifest <run>` rather than a new run", file=sys.stderr)
+        print(f"ERROR: quote-to-cash verify: {_error_message(exc)} (run(s) {runs} passed "
+              "the stage checks; verify them again rather than starting a new run)",
+              file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:

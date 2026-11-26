@@ -128,7 +128,8 @@ check (always on a Header Level org, where the balance checks skip; a request
 refused mid-run is a short stage); 2 when the command could not finish (no
 `sf` or no token, the verify read refused, an unreadable manifest; records may
 exist if the run had started, and when only the verify failed the `ERROR:`
-line names the runs, to check with `cli verify --manifest`); 3 when discovery
+line names the runs, to check with `cli verify --org <sf-alias> --manifest
+<run>`, a pass only when it checked at least one balance); 3 when discovery
 fails (including an expired session); 4 for
 an unreadable config or one with a scenario not targeting `payment_applied`
 (refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org

@@ -53,7 +53,7 @@ or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
 |------|---------|
 | 0 | Every scenario reached `payment_applied`, at least one balance was checked, none failed. |
 | 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or it created no credit memo or payment of its own, or a balance check failed, or nothing was checked. |
-| 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. Records may already exist if the run had started: its run ids are in the `run base` and per-scenario `[n/N]` lines above. When only the verify failed, the `ERROR:` line names the runs, which reached `payment_applied` with their own credit and payment: check them with `cli verify --manifest <run>` rather than starting a new run. |
+| 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. Records may already exist if the run had started: its run ids are in the `run base` and per-scenario `[n/N]` lines above. When only the verify failed, the `ERROR:` line names the runs, which passed the stage and own-records checks: check them with `cli verify --org $ORG --manifest <run>` rather than a new run, and count it a pass only when it checked at least one balance. |
 | 3 | Discovery failed before any write: an unknown account or product, or a refused discovery query such as an expired session. |
 | 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |
 
@@ -119,15 +119,20 @@ The run, the six steps and every check above passed on a 264 scratch org on
 2026-11-26.
 
 A `--config` on a later step must match the recorded block exactly; changing
-settlement options means a new run. A manifest recorded before 2026-11-26 that
-stopped at `credit_applied` holds only the credit: rerun its credit step
-without `--config` (the file's payment part no longer matches the recorded
-block), and start a new run for the payment.
+settlement options means a new run. A manifest recorded before 2026-11-26 holds
+only the parts its target reached, so one stopped at `credit_applied` cannot be
+given a payment (start a new run), and one whose credit step did not finish
+resumes it without `--config` (the file's payment part no longer matches the
+recorded block).
 
-The same steps apply to other scenarios. For `invoice_ingestion` (an invoice
-minted directly, no quote or order), start at `invoice_draft` or
-`invoice_posted` with
-[`invoice_ingestion/17-settlement.yaml`](../../scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml).
+These steps assume a config with one scenario, like `20-quote-to-cash.yaml`.
+With several, the run ids are `<run base>-001`, `-002`, and so on, and
+`--config` on a settlement step must hold exactly one settlement block per
+kind and account: copy one scenario into its own file first. That applies to
+the `invoice_ingestion` settlement example
+([`invoice_ingestion/17-settlement.yaml`](../../scripts/txn_data_harness/scenarios/invoice_ingestion/17-settlement.yaml),
+an invoice minted directly with no quote or order, started at `invoice_draft`
+or `invoice_posted`), which has two scenarios on one account.
 
 ## When a stage fails
 
@@ -156,9 +161,9 @@ Drive any cleanup from the manifest ids
 - **Credit memos, payments and their applications**: no unapply, void or
   cancel path was measured.
 
-Assets, the activated order (revert to Draft first) and the quote can be
-deleted, child first (and the opportunity, for a config that sets
-`with_opportunity: true`; the shipped one does not).
+The harness guide's recipes for assets, the order and the quote were written
+for runs that stop before an invoice; deleting them once the order has a
+Posted, settled invoice was not tried.
 
 ## Related procedures
 
