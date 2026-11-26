@@ -10,7 +10,25 @@ import saveApprovedAmounts from '@salesforce/apex/RLM_DisputeDetailsController.s
  * with editable approved amounts on dispute items.
  */
 export default class RlmDisputeDetails extends NavigationMixin(LightningElement) {
-    @api recordId;
+    _recordId;
+
+    // A new record (Case) starts a new load: the previous dispute, its items and any error are
+    // cleared, so nothing of it shows while the next one loads or if that load fails.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this.disputeData = null;
+            this.disputeItems = [];
+            this._disputeId = null;
+            this.error = undefined;
+            this.errorMessage = '';
+            this._disputeLoaded = false;
+            this._itemsLoaded = false;
+            this.isLoading = true;
+        }
+        this._recordId = value;
+    }
 
     @track isLoading = true;
     @track isSaving = false;
@@ -52,6 +70,9 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
         if (errors && errors.length) {
             this.error = errors;
             this.errorMessage = this.readableError(errors[0]);
+            this.disputeData = null;
+            this.disputeItems = [];
+            this._disputeId = null;
             this._disputeLoaded = true;
             this._itemsLoaded = true;
             this.checkLoadingComplete();
@@ -266,6 +287,8 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
                 })
                 .catch(() => { /* keep existing data */ })
                 .finally(() => {
+                    // A reply for a dispute no longer shown does not touch the current load.
+                    if (this._disputeId !== disputeId) return;
                     this._itemsLoaded = true;
                     this.checkLoadingComplete();
                 });

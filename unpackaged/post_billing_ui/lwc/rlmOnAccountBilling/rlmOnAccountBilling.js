@@ -4,6 +4,10 @@ import getBillingSummary from '@salesforce/apex/RLM_OnAccountBillingController.g
 // A status count the server could not read comes back null; it stays null rather than reading as 0.
 const countOrNull = (value) => (value == null ? null : Number(value));
 
+// Every balance part read and zero: a zero net alone could be a debit memo offset by a payment.
+const BALANCE_PARTS = ['invoiceBalance', 'debitMemoBalance', 'creditMemoBalance', 'paymentBalance', 'refundBalance'];
+const allBalancesZero = (summary) => BALANCE_PARTS.every((key) => summary[key] != null && Number(summary[key]) === 0);
+
 // Shown for a balance whose read was refused (null from the server), never a zero.
 const UNAVAILABLE = 'Unavailable';
 
@@ -141,7 +145,7 @@ export default class RlmOnAccountBilling extends LightningElement {
 
         // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either:
         // only when each of them is known to be none.
-        if (totalInvoices === 0 && net === 0 && inCollections === false && writtenOff === 0 && disputeCount === 0) {
+        if (totalInvoices === 0 && allBalancesZero(d) && inCollections === false && writtenOff === 0 && disputeCount === 0) {
             return {
                 label: 'No Billing Activity',
                 cssClass: 'status-pill status-no-activity',

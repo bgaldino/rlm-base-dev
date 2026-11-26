@@ -282,6 +282,58 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.areEqual(0, (Integer) result.get('disputeCount'), 'The persona\'s other status reads still run.');
     }
 
+    // The persona reads a plan another user owns: CollectionPlan's internal org-wide default is
+    // Public Read/Write (EntityDefinition.InternalSharingModel = ReadWrite, measured 2026-11-26 on
+    // this 264 org and, by the orchestrator, on both build orgs), so the admin-owned plan counts.
+    @isTest
+    static void getBillingSummary_billingOperationsPersona_readsAPlanItDoesNotOwn() {
+        User u = RLM_BillingUITestUsers.billingOperationsPersonaWithCollections();
+        if (u == null) {
+            return;
+        }
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Persona Shared Plan', null);
+        insert new CollectionPlan(AccountId = acc.Id);
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(u) {
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(UserInfo.getUserId(), [SELECT OwnerId FROM CollectionPlan WHERE AccountId = :acc.Id].OwnerId,
+            'PRECONDITION: the admin, not the persona, owns the plan.');
+        Assert.areEqual(true, (Boolean) result.get('inCollections'), 'The persona sees the admin\'s plan: in collections.');
+    }
+
+    // The persona group carries its collections set: without it the persona cannot read
+    // collection plans and every account's pill reads "Status Unavailable".
+    @isTest
+    static void billingOperationsPersonaGroup_includesTheCollectionsSet() {
+        if ([SELECT COUNT() FROM PermissionSetGroup WHERE DeveloperName = :RLM_BillingUITestUsers.PERSONA_GROUP] == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: the persona group is not deployed (personas off).');
+            return;
+        }
+        Assert.areEqual(1, [
+            SELECT COUNT() FROM PermissionSetGroupComponent
+            WHERE PermissionSetGroup.DeveloperName = :RLM_BillingUITestUsers.PERSONA_GROUP
+              AND PermissionSet.Name = :RLM_BillingUITestUsers.PERSONA_COLLECTIONS_SET
+        ], RLM_BillingUITestUsers.PERSONA_GROUP + ' includes ' + RLM_BillingUITestUsers.PERSONA_COLLECTIONS_SET + '.');
+    }
+
+    // A currency with no rate is never converted at 1: the balance is unavailable (null).
+    @isTest
+    static void correctConversion_withAMissingRate_isUnavailable() {
+        Map<String, Decimal> rates = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 };
+        Assert.areEqual(100, RLM_OnAccountBillingController.correctConversion(100, 'EUR', 'EUR', rates, rates),
+            'Same currency is returned as is.');
+        Assert.areEqual(50, RLM_OnAccountBillingController.correctConversion(100, 'USD', 'EUR', rates, rates),
+            'With both rates present: 100 * 1 (undo USD) / 1 * 0.5 (EUR) = 50.');
+        Assert.isNull(RLM_OnAccountBillingController.correctConversion(100, 'GBP', 'USD', rates, rates),
+            'No rate for the source currency: unavailable, not converted at 1.');
+        Assert.isNull(RLM_OnAccountBillingController.correctConversion(100, 'USD', 'GBP', rates, rates),
+            'No rate for the target currency: unavailable, not converted at 1.');
+    }
+
     private static final String COLLECTION_PLAN_READ = 'SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1';
     private static final String PAYMENT_READ =
         'SELECT Id, Balance, AccountId, Status, CurrencyIsoCode FROM Payment LIMIT 1';

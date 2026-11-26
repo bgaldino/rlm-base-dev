@@ -57,7 +57,8 @@ public with sharing class RLM_InvoiceSummaryController {
 
         if (isMultiCurrency) {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                // Every currency, active or not: a record keeps the currency it was created in.
+                'SELECT IsoCode, ConversionRate FROM CurrencyType',
                 AccessLevel.USER_MODE
             )) {
                 convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
@@ -135,6 +136,11 @@ public with sharing class RLM_InvoiceSummaryController {
         return data;
     }
 
+    // The Dispute fields the dispute query reads (CurrencyIsoCode is added in a multi-currency org).
+    // Not final, so a test can name a field the org lacks.
+    @TestVisible
+    private static Set<String> disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount' };
+
     // Disputes on the given open cases, summed into the running user's default currency (the
     // summary's target currency). An org without the billing dispute feature (no Dispute object, or
     // none of the fields this query reads) has no disputes: a real zero. A refused
@@ -143,7 +149,7 @@ public with sharing class RLM_InvoiceSummaryController {
     @TestVisible
     private static void addDisputes(InvoiceSummaryData data, Set<Id> caseIds, Boolean isMultiCurrency,
             String targetCurrency, Map<String, Decimal> convRates) {
-        Set<String> readFields = new Set<String>{ 'CaseId', 'DisputedAmount' };
+        Set<String> readFields = new Set<String>(disputeReadFields);
         if (isMultiCurrency) {
             readFields.add('CurrencyIsoCode');
         }
@@ -258,13 +264,24 @@ public with sharing class RLM_InvoiceSummaryController {
         data.periodEnd = maxDate != null ? maxDate : today;
     }
 
+    // A currency with no rate is never converted at 1, which would show a foreign amount as if it
+    // were in the user's currency. Inside the dispute, debit memo and promise-to-pay steps the
+    // throw makes that part unavailable (their catch); for the invoices it fails the summary with
+    // this fixed sentence.
     @TestVisible
     private static Decimal convertCurrency(Decimal amount, String fromCurr, String toCurr, Map<String, Decimal> rates) {
         if (fromCurr == toCurr || amount == 0) return amount;
-        Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;
-        Decimal toRate = rates.containsKey(toCurr) ? rates.get(toCurr) : 1;
+        Decimal fromRate = rates.get(fromCurr);
+        Decimal toRate = rates.get(toCurr);
+        if (fromRate == null || toRate == null) {
+            throw RLM_AuraErrors.handled(RATE_MISSING);
+        }
         return amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate;
     }
+
+    @TestVisible
+    private static final String RATE_MISSING =
+        'Unable to convert this account\'s amounts: a currency has no conversion rate. Contact your administrator.';
 
     // Whether the org has the collections objects and the two link fields the promise-to-pay
     // query filters on, whatever the running user can read.

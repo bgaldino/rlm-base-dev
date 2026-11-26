@@ -106,6 +106,56 @@ private class RLM_InvoiceSummaryControllerTest {
             '100 EUR @0.5 -> 200 USD @1.0.');
     }
 
+    // A currency with no rate is never converted at 1 (pack 452): the conversion refuses with a
+    // fixed sentence, which the dispute, debit memo and promise-to-pay steps turn into unavailable.
+    @isTest
+    static void convertCurrency_withAMissingRate_refusesWithAFixedSentence() {
+        Map<String, Decimal> rates = new Map<String, Decimal>{ 'USD' => 1 };
+        String message;
+        try {
+            RLM_InvoiceSummaryController.convertCurrency(100, 'EUR', 'USD', rates);
+        } catch (AuraHandledException e) {
+            message = e.getMessage();
+        }
+        Assert.areEqual(RLM_InvoiceSummaryController.RATE_MISSING, message, 'No EUR rate: refused, not converted at 1.');
+    }
+
+    // A dispute step whose amounts are in a currency with no rate leaves the disputes unavailable.
+    @isTest
+    static void addDisputes_withAMissingRate_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Dispute No Rate');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute in a currency with no rate');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        // Multi-currency, target ZZZ: no rate for either side in an empty map.
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, true, 'ZZZ', new Map<String, Decimal>());
+        Test.stopTest();
+        Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable, not converted at 1.');
+        Assert.isNull(data.disputeCount, 'The dispute count is unavailable.');
+    }
+
+    // An org without the fields the dispute query reads has no disputes: a real zero, not
+    // unavailable. Simulated by naming a field this org's Dispute lacks.
+    @isTest
+    static void addDisputes_withoutTheDisputeFields_countsZeroDisputes() {
+        Account acc = new Account(Name = 'RLM Invoice Summary No Dispute Fields');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute without its fields');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        RLM_InvoiceSummaryController.disputeReadFields = new Set<String>{ 'CaseId', 'DisputedAmount', 'RLM_NoSuchField__c' };
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+            UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        Test.stopTest();
+        Assert.areEqual(0, data.disputeCount, 'Without the fields there are no disputes: a real zero.');
+        Assert.areEqual(0, data.disputeAmount, 'And a real zero amount.');
+    }
+
     // Disputes are counted through the account's open cases. Dispute is Apex-createable with
     // an account, a case and a received date. A dispute with an amount on an open case counts
     // toward the disputed total; one without an amount is skipped, not counted as zero; and

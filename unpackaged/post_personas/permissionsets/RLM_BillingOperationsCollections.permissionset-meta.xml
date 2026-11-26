@@ -5,7 +5,10 @@
          promises to pay. CollectionPlan is readable only with the Collections and Recovery Specialist
          user permission, which the user license allows only with the Billing Advanced permission set
          license (measured on a 264 org): a user assigned this set must also hold BillingAdvancedPsl.
-         Read only; the collections role's write access stays with BillingCollectionsAndRecoverySpecialist. -->
+         Read only; the collections role's write access stays with BillingCollectionsAndRecoverySpecialist.
+         The object grants are here, not left to RLM_BillingUI, because the group's holders need not hold
+         RLM_BillingUI (the build assigns it to the running user only). Measured: deploying the group with
+         this set fails while any holder lacks BillingAdvancedPsl, and the group keeps its old content. -->
     <description>Lets the RLM Billing Operations persona read collection plans and their items (read only). The assignee needs the Billing Advanced permission set license.</description>
     <fieldPermissions>
         <editable>false</editable>

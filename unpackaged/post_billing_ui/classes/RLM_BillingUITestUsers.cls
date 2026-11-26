@@ -13,25 +13,32 @@ public class RLM_BillingUITestUsers {
     public static final String BILLING_PSL = 'RevLifecycleMgmtBillingPsl';
     public static final String BILLING_ADVANCED_PSL = 'BillingAdvancedPsl';
 
-    // The RLM Billing Operations persona group's own collections set (unpackaged/post_personas).
+    // The RLM Billing Operations persona group (unpackaged/post_personas) and its own collections set.
+    public static final String PERSONA_GROUP = 'RLM_Billing_Operations';
     public static final String PERSONA_COLLECTIONS_SET = 'RLM_BillingOperationsCollections';
 
     /**
-     * A Billing Operations persona user who reads collection plans, as the build defines the persona:
-     * the managed role set and the group's RLM_BillingOperationsCollections set, with RLM_BillingUI,
-     * the Billing and Billing Advanced licenses (the set's Collections and Recovery Specialist user
-     * permission needs Billing Advanced). Returns null, with a visible skip, where the personas
-     * bundle is not deployed (personas off), so callers skip rather than fail.
+     * A Billing Operations persona user who reads collection plans, built as the persona is: the
+     * RLM_Billing_Operations permission set group itself (so dropping the collections set from the
+     * group fails the tests that use this), RLM_BillingUI, and the Billing and Billing Advanced
+     * licenses (the group's Collections and Recovery Specialist user permission needs Billing
+     * Advanced). Returns null, with a visible skip, where the personas bundle is not deployed
+     * (personas off), so callers skip rather than fail.
      */
     public static User billingOperationsPersonaWithCollections() {
-        if ([SELECT COUNT() FROM PermissionSet WHERE Name = :PERSONA_COLLECTIONS_SET] == 0) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + PERSONA_COLLECTIONS_SET
+        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :PERSONA_GROUP];
+        if (groups.isEmpty() || [SELECT COUNT() FROM PermissionSet WHERE Name = :PERSONA_COLLECTIONS_SET] == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + PERSONA_GROUP + ' or ' + PERSONA_COLLECTIONS_SET
                 + ' is not deployed (personas off), so the persona\'s collections read is not tested.');
             return null;
         }
-        return create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', PERSONA_COLLECTIONS_SET },
-            new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
+        Assert.areEqual('Updated', groups[0].Status,
+            'PRECONDITION: the ' + PERSONA_GROUP + ' group is recalculated, so it can be assigned.');
+        User u = create(new List<String>{ 'RLM_BillingUI' }, new List<String>{ BILLING_PSL, BILLING_ADVANCED_PSL });
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetGroupId = groups[0].Id);
+        }
+        return u;
     }
 
     public static User create(List<String> permissionSets, List<String> licenses) {

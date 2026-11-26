@@ -329,6 +329,12 @@ public with sharing class RLM_OnAccountBillingController {
                         amount, sourceCurrency, targetCurrency,
                         standardRates, datedRates
                     );
+                    if (amount == null) {
+                        // A currency with no rate: the balance is unavailable, never converted at 1.
+                        System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.queryAggregate ' + objectName
+                            + ' unavailable: no conversion rate for ' + sourceCurrency + ' or ' + targetCurrency);
+                        return null;
+                    }
                 }
                 total += amount;
             }
@@ -352,7 +358,12 @@ public with sharing class RLM_OnAccountBillingController {
      * share a non-corporate currency, each such balance (and the net balance) shows the
      * corporate-converted figure labelled in the account currency (pinned for payments by
      * RLM_OnAccountBillingControllerTest). Revisit only if a customer reports a mismatch.
+     *
+     * Returns null when a rate it needs is missing, never a rate of 1, which would show a foreign
+     * balance unconverted as if it were real. The standard rates include inactive currencies (see
+     * loadStandardRates), so a record in a since-deactivated currency still has its rate.
      */
+    @TestVisible
     private static Decimal correctConversion(
         Decimal autoConverted, String fromCurrency, String toCurrency,
         Map<String, Decimal> standardRates, Map<String, Decimal> datedRates
@@ -360,9 +371,12 @@ public with sharing class RLM_OnAccountBillingController {
         if (fromCurrency == toCurrency || autoConverted == 0) {
             return autoConverted;
         }
-        Decimal stdFromRate   = standardRates.containsKey(fromCurrency) ? standardRates.get(fromCurrency) : 1;
-        Decimal datedFromRate = datedRates.containsKey(fromCurrency) ? datedRates.get(fromCurrency) : 1;
-        Decimal datedToRate   = datedRates.containsKey(toCurrency)   ? datedRates.get(toCurrency)   : 1;
+        Decimal stdFromRate   = standardRates.get(fromCurrency);
+        Decimal datedFromRate = datedRates.get(fromCurrency);
+        Decimal datedToRate   = datedRates.get(toCurrency);
+        if (stdFromRate == null || datedFromRate == null || datedToRate == null) {
+            return null;
+        }
 
         Decimal rawAmount = autoConverted * stdFromRate;
         return rawAmount.divide(datedFromRate, 10, RoundingMode.HALF_UP) * datedToRate;
@@ -373,7 +387,10 @@ public with sharing class RLM_OnAccountBillingController {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                // Every currency, active or not: a record keeps the currency it was created in, so a
+                // since-deactivated currency still needs its rate (none is inactive on the 264 org
+                // measured, so whether a deactivated currency keeps its rate is not measured).
+                'SELECT IsoCode, ConversionRate FROM CurrencyType',
                 AccessLevel.USER_MODE
             )) {
                 rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));

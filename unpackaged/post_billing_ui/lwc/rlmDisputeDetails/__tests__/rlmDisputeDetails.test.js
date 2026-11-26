@@ -113,3 +113,83 @@ describe('rlmDisputeDetails record change', () => {
         expect(invoiceLink(el)).toBe('INV-B');
     });
 });
+
+// Pack 452 (review 3): what a record change and a failed read leave on screen.
+describe('rlmDisputeDetails stale state', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        jest.clearAllMocks();
+    });
+
+    const INVOICE_B = '3tt000000000002AAA';
+    const DISPUTE_B = '0Xd000000000002AAA';
+    const payloadFor = (disputeId, invoiceId, withLine) => ({ uiapi: { query: {
+        Dispute: { edges: [{ node: {
+            Id: disputeId, Name: { value: 'D-' + disputeId.slice(-4) }, InvoiceId: { value: invoiceId },
+            DisputedAmount: { value: 10 }, ReceivedDate: { value: null }
+        } }] },
+        DisputeItem: { edges: withLine ? [{ node: {
+            Id: 'a00' + disputeId.slice(-15), InvoiceLineId: { value: LINE_ID },
+            DisputedAmount: { value: 10 }, ApprovedAmount: { value: 0 }, InvoiceLine: null
+        } }] : [] }
+    } } });
+    const errorText = (el) => el.shadowRoot.querySelector('.slds-text-color_error')?.textContent;
+
+    function mountOn(caseId) {
+        const el = createElement('c-rlm-dispute-details', { is: RlmDisputeDetails });
+        el.recordId = caseId;
+        document.body.appendChild(el);
+        return el;
+    }
+
+    beforeEach(() => {
+        getRelatedNames.mockImplementation(({ invoiceIds }) => Promise.resolve(
+            invoiceIds.length ? { invoiceNames: { [INVOICE_ID]: 'INV-A', [INVOICE_B]: 'INV-B' } } : { lineNames: {}, lineBalances: {} }
+        ));
+    });
+
+    it('shows no previous dispute after a record change whose read fails', async () => {
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, false));
+        await flush();
+        expect(invoiceLink(el)).toBe('INV-A');
+        el.recordId = '500000000000002AAA';
+        await flush();
+        expect(invoiceLink(el)).toBeUndefined();
+        graphql.emitErrors([{ message: 'Dispute read failed.' }]);
+        await flush();
+        expect(invoiceLink(el)).toBeUndefined();
+        expect(errorText(el)).toBe('Dispute read failed.');
+    });
+
+    it('shows no dispute when a read of the same record fails after a success', async () => {
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, false));
+        await flush();
+        expect(invoiceLink(el)).toBe('INV-A');
+        graphql.emitErrors([{ message: 'Dispute read failed.' }]);
+        await flush();
+        expect(invoiceLink(el)).toBeUndefined();
+    });
+
+    it('ignores a late line-name reply for the previous dispute', async () => {
+        let resolveFirstLines;
+        let lineCalls = 0;
+        getRelatedNames.mockImplementation(({ invoiceIds }) => {
+            if (invoiceIds.length) return Promise.resolve({ invoiceNames: {} });
+            lineCalls++;
+            if (lineCalls === 1) return new Promise((resolve) => { resolveFirstLines = resolve; });
+            return Promise.resolve({ lineNames: { [LINE_ID]: 'Line B' }, lineBalances: {} });
+        });
+        const el = mountOn(CASE_ID);
+        graphql.emit(payloadFor(DISPUTE_ID, INVOICE_ID, true));
+        await flush();
+        el.recordId = '500000000000002AAA';
+        graphql.emit(payloadFor(DISPUTE_B, INVOICE_B, true));
+        await flush();
+        expect(lineLink(el)).toBe('Line B');
+        resolveFirstLines({ lineNames: { [LINE_ID]: 'Line A' }, lineBalances: {} });
+        await flush();
+        expect(lineLink(el)).toBe('Line B');
+    });
+});

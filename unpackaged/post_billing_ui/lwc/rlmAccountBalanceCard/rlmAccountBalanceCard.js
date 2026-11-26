@@ -16,6 +16,10 @@ const SEG_COLORS = {
 // A status count the server could not read comes back null; it stays null rather than reading as 0.
 const countOrNull = (value) => (value == null ? null : Number(value));
 
+// Every balance part read and zero: a zero net alone could be a debit memo offset by a payment.
+const BALANCE_PARTS = ['invoiceBalance', 'debitMemoBalance', 'creditMemoBalance', 'paymentBalance', 'refundBalance'];
+const allBalancesZero = (summary) => BALANCE_PARTS.every((key) => summary[key] != null && Number(summary[key]) === 0);
+
 // Shown for a balance whose read was refused (null from the server), never a zero.
 const UNAVAILABLE = 'Unavailable';
 
@@ -134,7 +138,7 @@ export default class RlmAccountBalanceCard extends LightningElement {
 
         // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either:
         // only when each of them is known to be none.
-        if (totalInvoices === 0 && net === 0 && inCollections === false && writtenOff === 0 && disputeCount === 0) return { label: 'No Billing Activity', cssClass: 'abc-pill abc-pill-gray', description: 'No invoices, payments, or billing records exist for this account.' };
+        if (totalInvoices === 0 && allBalancesZero(b) && inCollections === false && writtenOff === 0 && disputeCount === 0) return { label: 'No Billing Activity', cssClass: 'abc-pill abc-pill-gray', description: 'No invoices, payments, or billing records exist for this account.' };
         if (inCollections == null) return statusUnavailable;
         if (inCollections) return { label: 'In Collections', cssClass: 'abc-pill abc-pill-darkred', description: 'This account has been escalated to collections.' };
         if (writtenOff == null) return statusUnavailable;

@@ -179,7 +179,8 @@ describe('status pill with an unavailable count', () => {
         }
     );
 
-    const NO_INVOICES = { ...ALL_READ, totalInvoices: 0, openWithBalance: 0, netAccountBalance: 0 };
+    const NO_INVOICES = { ...ALL_READ, totalInvoices: 0, openWithBalance: 0, netAccountBalance: 0,
+        invoiceBalance: 0, debitMemoBalance: 0, creditMemoBalance: 0, paymentBalance: 0, refundBalance: 0 };
 
     it('claims no billing activity only when everything it covers is known to be none', async () => {
         expect(await pillFor(NO_INVOICES)).toBe('No Billing Activity');
@@ -187,10 +188,12 @@ describe('status pill with an unavailable count', () => {
 
     it.each([
         ['only written-off invoices', { writtenOffCount: 1 }, 'Written Off'],
-        ['an unapplied payment', { netAccountBalance: -500 }, 'Credit Balance'],
+        ['an unapplied payment', { paymentBalance: 500, netAccountBalance: -500 }, 'Credit Balance'],
         ['an open dispute', { disputeCount: 1 }, 'In Dispute'],
         ['a collection plan', { inCollections: true }, 'In Collections'],
-        ['a debit memo balance', { netAccountBalance: 40 }, 'Good Standing']
+        ['a debit memo balance', { debitMemoBalance: 40, netAccountBalance: 40 }, 'Good Standing'],
+        ['a debit memo offset by an unapplied payment', { debitMemoBalance: 50, paymentBalance: 50 }, 'Fully Settled'],
+        ['a credit memo offset by a refund', { creditMemoBalance: 30, refundBalance: 30 }, 'Fully Settled']
     ])('does not claim no billing activity for an account with %s', async (_label, change, expected) => {
         expect(await pillFor({ ...NO_INVOICES, ...change })).toBe(expected);
     });
