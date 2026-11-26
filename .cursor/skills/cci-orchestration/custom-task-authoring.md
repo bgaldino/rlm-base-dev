@@ -425,7 +425,7 @@ tasks:
 | `rlm_manage_decision_tables.py` | `ManageDecisionTables` | Comprehensive DT management |
 | `rlm_manage_expression_sets.py` | `ManageExpressionSets` | Expression set version management |
 | `rlm_deploy_expression_sets.py` | `DeployExpressionSets` | `Deploy` subclass behind `activate_and_deploy_expression_sets`: reads back that each deployed version exists under its VersionNumber and is the one that executes (`version_check` fail/warn) |
-| `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
+| `rlm_manage_flows.py` | `ManageFlows` | Flow management: list/query versions; activate/deactivate by `developer_names` (PATCHes FlowDefinition `activeVersionNumber`) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
 | `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
 | `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Thin CCI wrapper over `scripts/ux/` (UX assembly + deploy; drift tooling is `scripts/ux/ux_tool.py`, not a task) |
@@ -453,12 +453,12 @@ tasks:
 | `rlm_deploy_with_fragments.py` | `DeployWithFragments`, `SpliceFragmentsTransform` | Deploy a bundle with text spliced in at markers when a project flag is on (flag-dependent permission set grants and settings) |
 | `rlm_deactivate_changed_decision_tables.py` | `DeactivateChangedDecisionTables` | Check-only deploy active repo DTs; deactivate and deploy only those a structural change blocks |
 | `rlm_cml.py` | `ExportCML`, `ImportCML`, `ValidateCML` | Constraint Model Language operations |
+| `rlm_clm_clause_sets.py` | `LoadClmClauseSets` | Load the qb-clm DocumentClauseSet rows (`insert_clm_clause_sets`) |
 | `rlm_bre.py` | `ExportBRE` | BRE Rule Library export (SOQL → CSV + metadata retrieve) |
 | `rlm_manage_fulfillment_scope_cnfg.py` | `ManageFulfillmentScopeCnfg` | CustomFulfillmentScopeCnfg CRUD via Tooling API |
 | `rlm_billing.py` | `CreateSequencePolicies` | Create/configure billing sequence policies via Connect API |
 | `rlm_currency.py` | `UpdateCurrencyRatesCsv`, `UpdateCurrencyRates` | Fetch live USD rates and update the qb-pricing `CurrencyType.csv`, or patch `CurrencyType.ConversionRate` in a running org |
 | `rlm_enable_timeline.py` | `EnableTimeline` | Enable Timeline for RLM objects |
-| `rlm_modify_context.py` | `ModifyContextDefinition` | Context definition modification; no task in `cumulusci.yml` registers it |
 | `rlm_expression_set_connect.py` | `ExportExpressionSet`, `ApplyExpressionSetOverlay`, `ImportExpressionSet`, `DeleteExpressionSet`, `ValidateExpressionSet` | Expression set export, overlay, import, delete and validation via the BRE Connect API (`expression_set_schema.py` holds the validation types) |
 | `rlm_activate_agents.py`, `rlm_deactivate_agents.py`, `rlm_publish_agents.py`, `rlm_test_agents.py`, `rlm_agents_common.py` | `ActivateAgents`, `DeactivateAgents`, `PublishAgents`, `TestAgents` | Agentforce agent publish, activate, deactivate and CLI Testing Center runs through `sf agent`; `rlm_agents_common.py` holds the shared discovery and JSON-envelope helpers |
 | `rlm_activate_rates.py` | `ActivateRateCardEntries` | Activate rate card entries |
@@ -470,6 +470,7 @@ tasks:
 | `rlm_mcp.py` | `ConfigureMcpServers` | Activate hosted MCP servers and build the custom sales-transactions server |
 | `rlm_sharing.py` | `SetOrgWideDefaultsSharingOnly`, `AssertSObjectOWDs` | Set the sharing-only org-wide defaults, and assert sObject OWDs |
 | `rlm_validate_keys.py` | `ValidateSourceDataKeys` | Pre-extraction check of a plan's externalId key fields |
+| `soql_utils.py` | (utilities) | `soql_quote`, `split_names`, `require_identifier`, `positive_int`: use them for every option that reaches SOQL |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
 
 ---

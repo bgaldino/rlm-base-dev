@@ -1665,8 +1665,9 @@ check("verdict: no flow uses the list -> unexpected", _list_verdict([], [])[0] =
 check("verdict: any step runs -> unexpected", _list_verdict(_g, [False, True])[0] == _manage.UNEXPECTED)
 check("verdict: every step off -> expected", _list_verdict(_g, [False, False])[0] == _manage.EXPECTED)
 check("verdict: off plus can't-tell -> unknown", _list_verdict(_g, [False, None])[0] == _manage.UNKNOWN)
-check("SOQL quoting escapes backslash before quote",
-      _manage._soql_quote("O'Brien\\x") == "'O\\'Brien\\\\x'", _manage._soql_quote("O'Brien\\x"))
+import tasks.soql_utils as _soql_utils  # noqa: E402
+check("SOQL quoting is the shared tasks.soql_utils helper (its escaping cases are tested there)",
+      _manage.soql_quote is _soql_utils.soql_quote)
 
 
 def validate_lists_run(org_rows, when_values, strict=True):

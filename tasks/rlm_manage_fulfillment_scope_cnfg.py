@@ -21,12 +21,17 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
+
 
 OBJECT_NAME = "CustomFulfillmentScopeCnfg"
 DEFAULT_OUTPUT_FILE = "datasets/tooling/CustomFulfillmentScopeCnfg.json"
@@ -163,13 +168,12 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
 
-        api_version = (
-            self.options.get("api_version")
-            or getattr(self.org_config, "api_version", None)
-            or getattr(
-                self.project_config, "project__package__api_version", "68.0"
-            )
-        )
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR).
+        api_version = self.options.get("api_version") or self.project_config.project__package__api_version
+        if not api_version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        api_version = str(api_version).lstrip("v")
         # Enforce minimum version
         try:
             if float(api_version) < float(MIN_API_VERSION):
@@ -368,8 +372,7 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         chunk_size = 50
         for i in range(0, len(key_values), chunk_size):
             chunk = key_values[i : i + chunk_size]
-            escaped = [str(v).replace(chr(39), chr(92) + chr(39)) for v in chunk]
-            in_clause = ", ".join(f"'{v}'" for v in escaped)
+            in_clause = ", ".join(soql_quote(v) for v in chunk)
             records = self._query(
                 access_token,
                 instance_url,
@@ -617,15 +620,12 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         whether the tolerance fires. Reporting the disagreement instead turns a silent
         coin-flip into something an operator can act on.
         """
-        # Escape backslash first, then quote: reversing the order would double-escape
-        # the backslashes this very call introduces and terminate the literal early.
-        escaped = str(tag_title).replace("\\", "\\\\").replace("'", "\\'")
         records = self._data_query(
             access_token,
             instance_url,
             api_version,
             "SELECT ContextAttribute.DataType FROM ContextTag "
-            f"WHERE Title = '{escaped}'",
+            f"WHERE Title = {soql_quote(tag_title)}",
         )
         if not records:
             return ("missing", None)

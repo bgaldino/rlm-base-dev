@@ -24,6 +24,10 @@ import json
 from typing import List, Dict, Optional, Set
 from datetime import datetime
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import positive_int, require_identifier, soql_quote
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -133,11 +137,6 @@ def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
     if all(v is False for v in verdicts):
         return EXPECTED, "every step that uses this list is off for this project's flags"
     return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
-
-
-def _soql_quote(value: str) -> str:
-    """A SOQL string literal: backslash first, then the quote."""
-    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 def _as_name_list(value, option_name: str) -> List[str]:
@@ -379,13 +378,13 @@ class ManageDecisionTables(BaseTask):
         if developer_names:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-            names_str = ", ".join(_soql_quote(name) for name in developer_names)
+            names_str = ", ".join(soql_quote(name) for name in developer_names)
             where_clauses.append(f"DeveloperName IN ({names_str})")
         
         # Filter by status
         status = self.options.get("status", "Active")
         if status:
-            where_clauses.append(f"Status = {_soql_quote(status)}")
+            where_clauses.append(f"Status = {soql_quote(status)}")
         
         # Build query
         soql = f"SELECT {', '.join(fields)} FROM DecisionTable"
@@ -394,14 +393,18 @@ class ManageDecisionTables(BaseTask):
             soql += " WHERE " + " AND ".join(where_clauses)
         
         # Add sorting
-        sort_by = self.options.get("sort_by", "LastSyncDate")
-        sort_order = self.options.get("sort_order", "Desc")
+        sort_by = require_identifier(
+            str(self.options.get("sort_by") or "").strip() or "LastSyncDate", "sort_by", TaskOptionsError
+        )
+        sort_order = (str(self.options.get("sort_order") or "").strip() or "Desc").capitalize()
+        if sort_order not in ("Asc", "Desc"):
+            raise TaskOptionsError(f"sort_order must be 'Asc' or 'Desc', got {self.options.get('sort_order')!r}")
         soql += f" ORDER BY {sort_by} {sort_order}"
         
         # Add limit if specified
         limit = self.options.get("limit")
-        if limit:
-            soql += f" LIMIT {limit}"
+        if limit not in (None, ""):
+            soql += f" LIMIT {positive_int(limit, 'limit', TaskOptionsError)}"
         
         return soql
     
@@ -615,7 +618,7 @@ class ManageDecisionTables(BaseTask):
         """{DeveloperName: Status} for those of `names` that exist in the org, in any status."""
         if not names:
             return {}
-        quoted = ", ".join(_soql_quote(n) for n in names)
+        quoted = ", ".join(soql_quote(n) for n in names)
         result = self._sf.query(f"SELECT DeveloperName, Status FROM DecisionTable WHERE DeveloperName IN ({quoted})")
         return {r["DeveloperName"]: r["Status"] for r in (result or {}).get("records") or []}
 
@@ -675,7 +678,7 @@ class ManageDecisionTables(BaseTask):
 
         developer_names = _as_name_list(developer_names, "developer_names")
 
-        names_str = ", ".join(_soql_quote(name) for name in developer_names)
+        names_str = ", ".join(soql_quote(name) for name in developer_names)
         soql = (
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
             f"WHERE DeveloperName IN ({names_str})"

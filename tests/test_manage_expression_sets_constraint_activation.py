@@ -88,12 +88,12 @@ WARNINGS = []
 def run(record, status, patch_response=None):
     """Call _update_version_status against the stub; return (stub, result_or_exception)."""
     fake = FakeRequests(record, patch_response or FakeResponse(204))
+    saved = sys.modules.get("requests")
     sys.modules["requests"] = fake
     WARNINGS.clear()
     task = ManageExpressionSets.__new__(ManageExpressionSets)
-    task.org_config = types.SimpleNamespace(
-        access_token="t", instance_url="https://example.my.salesforce.com", api_version="68.0")
-    task.project_config = None
+    task.org_config = types.SimpleNamespace(access_token="t", instance_url="https://example.my.salesforce.com")
+    task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
     task.options = {}
     task.logger = types.SimpleNamespace(
         info=lambda *a, **k: None, error=lambda *a, **k: None,
@@ -102,6 +102,11 @@ def run(record, status, patch_response=None):
         return fake, task._update_version_status(record and "Model_V1" or "Missing_V1", status)
     except Exception as exc:  # TaskOptionsError, or Exception when CumulusCI is absent
         return fake, exc
+    finally:
+        if saved is None:
+            sys.modules.pop("requests", None)
+        else:
+            sys.modules["requests"] = saved
 
 
 def constraint_record(active):

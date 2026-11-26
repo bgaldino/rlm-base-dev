@@ -783,6 +783,11 @@ CHECKS = [
         # gap survived — so the suite now asserts import coverage too, and the sweep behind that rule
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
+                  # tests/test_soql_option_hardening.py covers these task modules (pack 457).
+                  "tasks/soql_utils.py", "tests/test_soql_option_hardening.py",
+                  "tasks/rlm_extend_stdctx.py", "tasks/rlm_manage_decision_tables.py",
+                  "tasks/rlm_manage_transaction_processing_types.py",
+                  "tasks/rlm_manage_fulfillment_scope_cnfg.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
                   "scripts/expression_sets/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
                   "scripts/sf_token.py",
@@ -795,7 +800,9 @@ CHECKS = [
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],
-        deps=["requests"], gating=True,
+        # cumulusci too: tests/test_soql_option_hardening.py imports tasks/rlm_extend_stdctx.py,
+        # which subclasses CumulusCI's base classes with no fallback.
+        deps=["cumulusci", "requests"], gating=True,
     ),
     dict(
         name="yaml_offline_suites",
@@ -1032,6 +1039,8 @@ STDLIB_SUITES = [
     "tests/test_fix_scratch_identity.py",
     "tests/test_implementation_planning_ledger.py",
     "tests/test_manage_expression_sets_constraint_activation.py",
+    "tests/test_manage_expression_sets_filters.py",
+    "tests/test_manage_flows.py",
     "tests/test_mcp_scripts_security.py",
     "tests/test_org_cleanup.py",
     "tests/test_post_process_extraction.py",
@@ -1069,6 +1078,7 @@ REQUESTS_SUITES = [
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
     "tests/test_rlm_mcp_configure.py",
+    "tests/test_soql_option_hardening.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and

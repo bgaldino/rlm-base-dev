@@ -8,6 +8,10 @@ from typing import Dict, Any, List
 import json
 import os
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -54,9 +58,12 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             raise TaskOptionsError("No org_config available")
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        api_version = self.options.get("api_version") or getattr(
-            self.org_config, "api_version", None
-        ) or getattr(self.project_config, "project__package__api_version", "68.0")
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR).
+        api_version = self.options.get("api_version") or self.project_config.project__package__api_version
+        if not api_version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        api_version = str(api_version).lstrip("v")
         return access_token, instance_url, api_version
 
     def _tooling_headers(self, access_token: str) -> Dict[str, str]:
@@ -137,7 +144,7 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
                 access_token,
                 instance_url,
                 api_version,
-                f"SELECT Id FROM TransactionProcessingType WHERE {key_field} = '{key_value}'",
+                f"SELECT Id FROM TransactionProcessingType WHERE {key_field} = {soql_quote(key_value)}",
             )
             if existing:
                 record_id = existing[0]["Id"]

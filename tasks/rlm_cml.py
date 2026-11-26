@@ -16,6 +16,10 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import soql_quote
+
 try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -243,12 +247,12 @@ class CMLBaseTask(BaseSalesforceTask):
 
     @property
     def _api_version(self) -> str:
-        if self.options.get("api_version"):
-            return str(self.options["api_version"])
-        return (
-            getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "68.0")
-        )
+        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
+        # raises AssertionError under STRICT_GETATTR).
+        version = self.options.get("api_version") or self.project_config.project__package__api_version
+        if not version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        return str(version).lstrip("v")
 
     @property
     def _headers(self) -> Dict[str, str]:
@@ -342,14 +346,9 @@ class CMLBaseTask(BaseSalesforceTask):
         """Query an sObject by Name and return a Name->Id mapping."""
         if not names:
             return {}
-        name_filter = ",".join(f"'{self._soql_escape(n)}'" for n in names)
+        name_filter = ",".join(soql_quote(n) for n in names)
         records = self.soql_query(f"SELECT Id, Name FROM {obj_name} WHERE Name IN ({name_filter})")
         return {r["Name"]: r["Id"] for r in records}
-
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        """Escape a string for safe inclusion in a SOQL literal."""
-        return value.replace("\\", "\\\\").replace("'", "\\'")
 
     # -- CSV helpers ---------------------------------------------------
 
@@ -432,7 +431,10 @@ class ExportCML(CMLBaseTask):
 
     def _run_task(self):
         dev_name = self.options["developer_name"]
-        version = str(self.options.get("version", "1"))
+        version = str(self.options.get("version", "1")).strip()
+        if not (version.isascii() and version.isdigit() and int(version) > 0):
+            raise TaskOptionsError(f"version must be a whole number, got {version!r}")
+        version = str(int(version))  # "01" -> "1": the SOQL and the X_V<n> DeveloperName must agree
         output_dir = self.options["output_dir"]
         api_name_versioned = f"{dev_name}_V{version}"
 
@@ -448,7 +450,7 @@ class ExportCML(CMLBaseTask):
                 SELECT ContextDefinitionApiName, ContextDefinitionId,
                        ExpressionSetApiName, ExpressionSetDefinitionId
                 FROM ExpressionSetDefinitionContextDefinition
-                WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
+                WHERE ExpressionSetDefinition.DeveloperName = {soql_quote(dev_name)}
             """,
             fields=["ContextDefinitionApiName", "ContextDefinitionId",
                      "ExpressionSetApiName", "ExpressionSetDefinitionId"],
@@ -461,7 +463,7 @@ class ExportCML(CMLBaseTask):
                 SELECT ApiName, Description, ExpressionSetDefinitionId, Id,
                        InterfaceSourceType, Name, ResourceInitializationType, UsageType
                 FROM ExpressionSet
-                WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
+                WHERE ExpressionSetDefinition.DeveloperName = {soql_quote(dev_name)}
             """,
             fields=["ApiName", "Description", "ExpressionSetDefinitionId", "Id",
                      "InterfaceSourceType", "Name", "ResourceInitializationType", "UsageType"],
@@ -474,7 +476,7 @@ class ExportCML(CMLBaseTask):
                 SELECT Name, ExpressionSetId, ExpressionSet.ApiName,
                        ReferenceObjectId, ConstraintModelTag, ConstraintModelTagType
                 FROM ExpressionSetConstraintObj
-                WHERE ExpressionSet.ApiName = '{dev_name}'
+                WHERE ExpressionSet.ApiName = {soql_quote(dev_name)}
             """,
             fields=["Name", "ExpressionSetId", "ExpressionSet.ApiName",
                      "ReferenceObjectId", "ConstraintModelTag", "ConstraintModelTagType"],
@@ -501,7 +503,7 @@ class ExportCML(CMLBaseTask):
         primary_soql = f"""
             SELECT {', '.join(primary_fields)}
             FROM ExpressionSetDefinitionVersion
-            WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
+            WHERE ExpressionSetDefinition.DeveloperName = {soql_quote(dev_name)}
               AND VersionNumber = {version}
         """
         dest = os.path.join(output_dir, "ExpressionSetDefinitionVersion.csv")
@@ -513,7 +515,7 @@ class ExportCML(CMLBaseTask):
         fallback_soql = f"""
             SELECT {', '.join(fallback_fields)}
             FROM ExpressionSetDefinitionVersion
-            WHERE ExpressionSetDefinition.DeveloperName = '{dev_name}'
+            WHERE ExpressionSetDefinition.DeveloperName = {soql_quote(dev_name)}
               AND VersionNumber = {version}
         """
         self._export_query(soql=fallback_soql, fields=fallback_fields, dest=dest)
@@ -563,7 +565,7 @@ class ExportCML(CMLBaseTask):
             "ProductRelationshipTypeId", "ProductRelationshipType.Name", "Sequence",
         ]
         if component_ids:
-            id_filter = ",".join(f"'{i}'" for i in component_ids)
+            id_filter = ",".join(soql_quote(str(i)) for i in component_ids)
             prc_soql = f"SELECT {', '.join(prc_fields)} FROM ProductRelatedComponent WHERE Id IN ({id_filter})"
         else:
             prc_soql = f"SELECT Id, Name FROM ProductRelatedComponent WHERE Id = '000000000000000AAA'"
@@ -615,7 +617,7 @@ class ExportCML(CMLBaseTask):
         field_str = ", ".join(fields)
         if not ids:
             return f"SELECT {field_str} FROM {obj_name} WHERE Id = '000000000000000AAA'"
-        id_filter = ",".join(f"'{i}'" for i in ids)
+        id_filter = ",".join(soql_quote(str(i)) for i in ids)
         return f"SELECT {field_str} FROM {obj_name} WHERE Id IN ({id_filter})"
 
 
@@ -697,7 +699,7 @@ class ImportCML(CMLBaseTask):
         # Step 2: Resolve ESDV (auto-provisioned by the ExpressionSet upsert in Step 1).
         devname = esdv["DeveloperName"]
         esdv_records = self.soql_query(
-            f"SELECT Id FROM ExpressionSetDefinitionVersion WHERE DeveloperName = '{devname}'"
+            f"SELECT Id FROM ExpressionSetDefinitionVersion WHERE DeveloperName = {soql_quote(devname)}"
         )
         if not esdv_records:
             self.logger.error(f"Could not find ExpressionSetDefinitionVersion for {devname}")
@@ -725,7 +727,7 @@ class ImportCML(CMLBaseTask):
 
         # Step 5: Create ESC records
         existing_esc = self.soql_query(
-            f"SELECT Id FROM ExpressionSetConstraintObj WHERE ExpressionSetId = '{ess_id}'"
+            f"SELECT Id FROM ExpressionSetConstraintObj WHERE ExpressionSetId = {soql_quote(ess_id)}"
         )
         existing_esc_ids = [r["Id"] for r in existing_esc]
         self.logger.info(f"Found {len(existing_esc_ids)} existing ESC records to replace")
@@ -872,7 +874,7 @@ class ImportCML(CMLBaseTask):
             self.logger.error("ExpressionSet record missing ApiName")
             return None
 
-        existing = self.soql_query(f"SELECT Id FROM ExpressionSet WHERE ApiName = '{api_name}'")
+        existing = self.soql_query(f"SELECT Id FROM ExpressionSet WHERE ApiName = {soql_quote(api_name)}")
         record.pop("ExpressionSetDefinitionId", None)
 
         if existing:
@@ -900,14 +902,14 @@ class ImportCML(CMLBaseTask):
             return
 
         # Resolve ContextDefinition by DeveloperName
-        cd_records = self.soql_query(f"SELECT Id FROM ContextDefinition WHERE DeveloperName = '{cd_apiname}'")
+        cd_records = self.soql_query(f"SELECT Id FROM ContextDefinition WHERE DeveloperName = {soql_quote(cd_apiname)}")
         if not cd_records:
             self.logger.error(f"Could not find ContextDefinition for '{cd_apiname}'")
             return
         cd_id = cd_records[0]["Id"]
 
         # Resolve ExpressionSetDefinition by DeveloperName
-        esd_records = self.soql_query(f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = '{api_name}'")
+        esd_records = self.soql_query(f"SELECT Id FROM ExpressionSetDefinition WHERE DeveloperName = {soql_quote(api_name)}")
         if not esd_records:
             self.logger.error(f"Could not find ExpressionSetDefinition for '{api_name}'")
             return
@@ -915,7 +917,7 @@ class ImportCML(CMLBaseTask):
 
         # Check if ESDCD already exists
         existing = self.soql_query(
-            f"SELECT Id FROM ExpressionSetDefinitionContextDefinition WHERE ExpressionSetDefinitionId = '{esd_id}'"
+            f"SELECT Id FROM ExpressionSetDefinitionContextDefinition WHERE ExpressionSetDefinitionId = {soql_quote(esd_id)}"
         )
 
         if existing:
@@ -1005,7 +1007,7 @@ class ImportCML(CMLBaseTask):
         """Query target org for ProductRelatedComponent records and build composite UK -> Id map."""
         if not prc_parent_names:
             return {}
-        name_filter = ",".join(f"'{self._soql_escape(n)}'" for n in prc_parent_names)
+        name_filter = ",".join(soql_quote(n) for n in prc_parent_names)
         records = self.soql_query(f"""
             SELECT Id, Name, ParentProduct.Name, ChildProduct.Name,
                    ChildProductClassification.Name, ProductRelationshipType.Name, Sequence

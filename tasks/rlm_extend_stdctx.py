@@ -4,6 +4,7 @@ import time
 import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -62,7 +63,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             "required": True,
         },
         "activate": {
-            "description": "Whether the context definition should be activated",
+            "description": "Whether to activate the context definition after the plan is applied (true or false; false does not activate it)",
             "required": True,
         }
         ,
@@ -81,7 +82,20 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
     # Initialize the task options and environment variables
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        self._validate_task_options()  # reject bad options before any change is made
         self.env = self._get_env()
+
+    # The options that go into the create request: without them the platform rejects the POST.
+    _REQUIRED_VALUES = ("name", "developerName", "baseReference")
+
+    def _validate_task_options(self):
+        missing = [o for o in self._REQUIRED_VALUES if not self.options.get(o)]
+        if missing:
+            raise TaskOptionsError(
+                "extend_standard_context needs a value for: " + ", ".join(missing)
+                + ". The extend_context_* tasks supply them; set them with -o when running this one directly."
+            )
+        self._activate_requested()
 
     # Load keychain with either the current keychain or generate a new one based on environment configuration
     def _load_keychain(self):
@@ -160,6 +174,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                     f"Recovering ID to continue configuration..."
                 )
                 recovery_reason = "duplicate_value"
+                self._existing_definition = True
                 self.context_id = self._recover_context_id(developer_name)
             elif self._last_response_status is not None:
                 # Non-recoverable API error (auth, validation, etc.) — fail loudly
@@ -348,6 +363,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             self.logger.info(f"      Found {len(version_list)} version(s)")
             if version_list:
                 self._process_version_list(version_list)
+            else:
+                self.logger.warning(
+                    "      No versions listed: skipped setting the default mapping, applying plan_file and activation."
+                )
 
     # Process the version list obtained from context definitions to obtain context mappings
     def _process_version_list(self, version_list):
@@ -362,6 +381,11 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 )
                 self._update_context_mappings()
                 break
+        else:
+            self.logger.warning(
+                f"      No mapping named '{default_mapping}' found: skipped setting the default "
+                "mapping, applying plan_file and activation."
+            )
 
     # Update context mappings, typically for marking certain context mappings the default
     def _update_context_mappings(self):
@@ -380,7 +404,30 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
         }
         self._make_request("patch", url, headers=headers, json=payload)
         self._apply_plan_if_present()
-        self._activate_context_id()
+        if self._activate_requested():
+            self._activate_context_id()
+        else:
+            if getattr(self, "_existing_definition", False):
+                self.logger.info(
+                    "      activate is false: not activating. The existing context definition keeps its current active state."
+                )
+            else:
+                self.logger.info("      activate is false: leaving the new context definition inactive.")
+
+    def _activate_requested(self) -> bool:
+        value = self.options.get("activate")
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return True
+        if isinstance(value, str):
+            text = value.strip().lower()
+            if text in ("true", "yes", "y", "1", "on"):
+                return True
+            if text in ("false", "no", "n", "0", "off"):
+                return False
+            raise TaskOptionsError(f"activate must be true or false, got {value!r}")
+        if isinstance(value, bool):
+            return value
+        raise TaskOptionsError(f"activate must be true or false, got {value!r}")
 
     def _apply_plan_if_present(self):
         plan_file = self.options.get("plan_file")
@@ -502,7 +549,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
-        url = f"{self.instance_url}/services/data/v{self.project_config.project__package__api_version}/{endpoint}"
+        api_version = self.project_config.project__package__api_version
+        if not api_version:
+            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
+        url = f"{self.instance_url}/services/data/v{str(api_version).lstrip('v')}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
