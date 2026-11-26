@@ -137,7 +137,7 @@ browser override with no driver set (WARN: webdriver-manager sizes its driver fo
 and an override that exists but does not run cleanly, e.g. a wrong-architecture build or a
 nonzero `--version` exit (FAIL).
 
-**Chrome 158 breaks Setup XPath lookups (2026-11).** Stock Chrome and chromedriver 158.0.8127.x make every WebDriver XPath element lookup on Setup pages raise `StaleElementReferenceException`, so Setup suites fail on a machine that auto-updated. CSS lookups and in-page `Execute JavaScript` still work. Pin Chrome for Testing 157.0.8103.78 through `CHROME_BINARY` and `CHROMEDRIVER_PATH` (commands and `.env.local` lines: `docs/guides/local-installation.md` → Chrome for Testing) before any live Robot run or build.
+**ChromeDriver 158+ and LWC synthetic shadow (2026-11).** ChromeDriver 158 (verified through 159) checks element reachability against its own saved copy of `window.ShadowRoot`; Lightning replaces that global with LWC's synthetic shadow, so every element inside a synthetic shadow tree reads as detached and any WebDriver XPath lookup (or script return) that includes one raises `StaleElementReferenceException`. The browser version does not matter, and no 158 or 159 driver fixes it. Every browser the resources open calls `Allow Synthetic Shadow Element References` (`ChromeOptionsHelper.py`) right after `Create Webdriver`; it registers a script for each new document that points ChromeDriver back at the page's `window.ShadowRoot`. A new browser-open keyword must call it too (`tests/test_validate_setup_chrome.py` sweeps `E2ECommon.robot` and `SetupToggles.robot` for it). No Chrome pin is needed.
 
 ---
 

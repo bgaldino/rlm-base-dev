@@ -27,9 +27,10 @@ robot/rlm-base/
 │   ├── E2ECommon.robot               # main E2E keywords
 │   ├── SetupToggles.robot            # ~320 lines — setup toggle keywords
 │   ├── SalesforceAPI.py              # REST API keywords (SOQL, DML)
-│   ├── ChromeOptionsHelper.py        # Headless Chrome options
+│   ├── ChromeOptionsHelper.py        # Headless Chrome options; ChromeDriver 158+ synthetic shadow fix
 │   ├── ChromeDebugHelper.py          # Headed Chrome + CDP
 │   ├── AnalyticsSetupHelper.py       # Enable CRM Analytics button (JS only, no WebDriver lookups)
+│   ├── RecordActionHelper.py         # Record page actions ribbon click (JS only, settle then click)
 │   └── WebDriverManager.py           # ChromeDriver path resolution
 ├── variables/
 │   ├── E2EVariables.robot            # Test data + feature flags

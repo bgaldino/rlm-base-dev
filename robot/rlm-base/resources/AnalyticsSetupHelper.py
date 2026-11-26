@@ -9,8 +9,9 @@ Everything here runs as in-page JavaScript that walks shadow roots. No WebDriver
 element lookup (``find_element``, ``WebDriverWait``, XPath) is used, on purpose:
 on Release 264 orgs Lightning Setup is served from ``*.my.salesforce-setup.com``
 and the Getting Started content is out of XPath's reach (``document.evaluate``
-finds no button there), and under Chrome/ChromeDriver 158 a WebDriver XPath
-lookup on Setup pages either misses or raises ``StaleElementReferenceException``.
+finds no button there), and under ChromeDriver 158 (before the synthetic shadow
+fix in ChromeOptionsHelper.py) a WebDriver XPath lookup on Setup pages either
+misses or raises ``StaleElementReferenceException``.
 ``WebDriverWait`` ignores only ``NoSuchElementException``, so an XPath wait
 aborted before any fallback ran (measured 2026-11-24 on a fresh 264 scratch
 org; tests/test_analytics_setup_helper.py pins the behaviour).

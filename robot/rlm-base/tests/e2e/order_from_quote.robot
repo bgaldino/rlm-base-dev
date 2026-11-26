@@ -33,9 +33,11 @@ Order From Quote
     [Tags]    e2e    requires_qb
     Skip If    "${QB}" == "false"    Requires qb=true for QuantumBit product catalog
 
+    # The Quote and Order actions (Create Order, Activate) are on the Revenue Cloud app's
+    # record pages; a record URL opened outside it uses another app's page (pack 431).
+    Navigate To App    Revenue Cloud
     # If no Quote was passed in, create one (reset + opp + quote)
     IF    "${QUOTE_ID}" == "${EMPTY}"
-        Navigate To App    Revenue Cloud
         Reset Test Account    ${ACCOUNT_ID}
         ${opp_id}=    Create Opportunity From Account    ${ACCOUNT_ID}
         ${q_id}=    Create Quote From Opportunity    ${opp_id}

@@ -19,7 +19,7 @@ Enable CRM Analytics
     [Documentation]    Click the "Enable CRM Analytics" button on the CRM Analytics Getting
     ...    Started page. Idempotent: if Launch CRM Analytics is shown (already enabled), returns
     ...    'already_enabled' without clicking. No VF iframe; the page is read with in-page JS
-    ...    that walks shadow roots (Chrome 158 breaks WebDriver XPath lookups on Setup).
+    ...    that walks shadow roots (ChromeDriver 158+ broke WebDriver XPath lookups on Setup; see ChromeOptionsHelper.py).
     Open Setup Page    ${ANALYTICS_SETUP_PATH}
     ${result}=    Enable CRM Analytics Via Getting Started Page
     Log    Enable CRM Analytics: ${result}

@@ -12,6 +12,7 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 Library           ${EXECDIR}/robot/rlm-base/resources/ChromeDebugHelper.py
 Library           ${EXECDIR}/robot/rlm-base/resources/SalesforceAPI.py    WITH NAME    SalesforceAPI
 Library           ${EXECDIR}/robot/rlm-base/resources/SessionUrlGuard.py
+Library           ${EXECDIR}/robot/rlm-base/resources/RecordActionHelper.py
 
 *** Variables ***
 ${ORG_ALIAS}                ${EMPTY}
@@ -53,6 +54,7 @@ _Open Chrome Headed
     ELSE
         Create Webdriver    Chrome    options=${options}
     END
+    Allow Synthetic Shadow Element References
     Go To    about:blank
 
 _Open Chrome Headless
@@ -65,6 +67,7 @@ _Open Chrome Headless
     ELSE
         Create Webdriver    Chrome    options=${options}
     END
+    Allow Synthetic Shadow Element References
     Go To    about:blank
 
 Close Browser For E2E
@@ -172,89 +175,20 @@ Click Record Page Tab
 # ── QuickAction / Highlights Panel ──────────────────────────────────
 
 Click Highlights Panel Action
-    [Documentation]    Clicks an action button in the Lightning record page highlights
-    ...    panel or actions menu. Tries the visible button first, then falls back
-    ...    to the overflow "More Actions" menu, then to shadow DOM JS traversal.
+    [Documentation]    Clicks a record page action (highlights-panel actions ribbon, then its
+    ...    "Show more actions" menu) once the ribbon has settled: the same button nodes and
+    ...    labels for 1.5 s, re-checked in the same JavaScript call that clicks
+    ...    (RecordActionHelper.py). An action not there yet is looked for again for up to 60 s.
+    ...    The ribbon renders late on a new browser's first visit and can re-render, so a fixed
+    ...    wait either ran out or clicked a replaced node (pack 431). Fails naming what the
+    ...    ribbon and menu showed.
     [Arguments]    ${action_label}
-    # Try direct button in highlights panel
-    ${btn}=    Set Variable    xpath=//runtime_platform_actions-actions-ribbon//button[normalize-space(.)='${action_label}'] | //runtime_platform_actions-action-renderer//a[@title='${action_label}'] | //li[contains(@class,'oneActionsRibbon')]//a[@title='${action_label}']
-    ${found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${btn}    timeout=10s
-    IF    ${found}
-        Scroll Element Into View    ${btn}
-        Click Element    ${btn}
-        Sleep    2s    reason=Allow action modal/flow to open
-        RETURN
+    ${where}=    Run Keyword And Ignore Error    Click Record Action    ${action_label}
+    IF    "${where}[0]" == "FAIL"
+        Run Keyword And Ignore Error    Capture Step Screenshot    action_not_found_${action_label}
+        Fail    msg=${where}[1]
     END
-    # Try overflow menu
-    ${more_btn}=    Set Variable    xpath=//runtime_platform_actions-actions-ribbon//button[contains(@class,'slds-button_icon-border') or @title='More Actions' or contains(normalize-space(.),'more actions')] | //lightning-button-menu[contains(@class,'action')]//button
-    ${more_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${more_btn}    timeout=5s
-    IF    ${more_found}
-        Click Element    ${more_btn}
-        Sleep    1s    reason=Allow dropdown to render
-        ${menu_item}=    Set Variable    xpath=//lightning-menu-item[contains(@data-target-selection-name,'${action_label}') or .//span[normalize-space(.)='${action_label}']] | //a[@title='${action_label}']
-        Wait Until Element Is Visible    ${menu_item}    timeout=10s
-        Click Element    ${menu_item}
-        Sleep    2s    reason=Allow action modal/flow to open
-        RETURN
-    END
-    # Fallback: shadow DOM JS traversal for LWC action buttons
-    ${js_result}=    Execute JavaScript
-    ...    return (function(label){
-    ...        function findAll(root, tag) {
-    ...            var found = [];
-    ...            var all = root.querySelectorAll('*');
-    ...            for (var i = 0; i < all.length; i++) {
-    ...                if (all[i].tagName === tag) found.push(all[i]);
-    ...                if (all[i].shadowRoot) found = found.concat(findAll(all[i].shadowRoot, tag));
-    ...            }
-    ...            return found;
-    ...        }
-    ...        /* Try to find and click the overflow menu button via shadow DOM first */
-    ...        var ribbon = document.querySelector('runtime_platform_actions-actions-ribbon');
-    ...        if (ribbon) {
-    ...            var ribbonRoot = ribbon.shadowRoot || ribbon;
-    ...            var btns = findAll(ribbonRoot, 'BUTTON');
-    ...            /* First try direct action button */
-    ...            for (var i = 0; i < btns.length; i++) {
-    ...                if (btns[i].textContent.trim() === label) { btns[i].click(); return 'clicked_direct'; }
-    ...            }
-    ...            /* Try overflow/more actions menu button */
-    ...            for (var i = 0; i < btns.length; i++) {
-    ...                if (btns[i].title === 'More Actions' || btns[i].getAttribute('aria-label') === 'More Actions') {
-    ...                    btns[i].click(); return 'opened_overflow';
-    ...                }
-    ...            }
-    ...        }
-    ...        /* Broad search: find any visible button matching label text or name across entire DOM */
-    ...        var allBtns = findAll(document, 'BUTTON');
-    ...        for (var i = 0; i < allBtns.length; i++) {
-    ...            if (allBtns[i].offsetParent === null) continue;
-    ...            var txt = allBtns[i].textContent.trim();
-    ...            var nm = allBtns[i].getAttribute('name') || '';
-    ...            if (txt === label || nm === label + 'Order' || nm === label) {
-    ...                allBtns[i].click(); return 'clicked_broad';
-    ...            }
-    ...        }
-    ...        return 'not_found';
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${action_label}
-    Log    Highlights Panel JS result: ${js_result}
-    IF    "${js_result}" == "clicked_direct" or "${js_result}" == "clicked_broad"
-        Sleep    2s    reason=Allow action modal/flow to open
-        RETURN
-    END
-    IF    "${js_result}" == "opened_overflow"
-        Sleep    1s    reason=Allow dropdown to render
-        ${menu_item}=    Set Variable    xpath=//lightning-menu-item[contains(@data-target-selection-name,'${action_label}') or .//span[normalize-space(.)='${action_label}']] | //a[@title='${action_label}']
-        ${menu_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${menu_item}    timeout=10s
-        IF    ${menu_found}
-            Click Element    ${menu_item}
-            Sleep    2s    reason=Allow action modal/flow to open
-            RETURN
-        END
-    END
-    Capture Step Screenshot    action_not_found_${action_label}
-    Fail    msg=Action button "${action_label}" not found in highlights panel or overflow menu.
+    Log    Clicked "${action_label}" (${where}[1]).
 
 Wait For Modal
     [Documentation]    Waits for a Lightning modal dialog to appear.
