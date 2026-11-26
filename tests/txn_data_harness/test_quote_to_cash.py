@@ -111,7 +111,10 @@ def test_a_verify_error_is_exit_2(harness, monkeypatch, capsys):
         raise cli.SfApiError(401, '[{"errorCode": "INVALID_SESSION_ID"}]', "GET", "/query")
     monkeypatch.setattr(cli.billing_verify, "fetch_records", refused)
     assert cli.main(["quote-to-cash", "--org", "x"]) == 2
-    assert "quote-to-cash verify: Salesforce request failed" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "quote-to-cash verify: Salesforce request failed" in err
+    # The run completed: the error names the verify to rerun, not a new run.
+    assert "`cli verify --org x --manifest DEMO-1`" in err
 
 
 def test_ids_are_deduplicated_across_scenarios(harness):
@@ -241,3 +244,41 @@ def test_task_raises_on_a_nonzero_exit(monkeypatch, returncode):
         task._run_task()
     cmd, cwd = calls[0]
     assert cwd == "/repo" and cmd[-2:] == ["--org", "u@example.com"]
+
+
+def test_settlement_warnings_are_printed(harness, capsys):
+    m = _manifest()
+    m.settlement_warnings = ["invoice already had applications before settlement"]
+    harness["batch"] = [m]
+    assert cli.main(["quote-to-cash", "--org", "x"]) == 0
+    assert "WARNING: DEMO-1: invoice already had applications" in capsys.readouterr().out
+
+
+def test_connection_options_reach_the_run(harness):
+    assert cli.main(["quote-to-cash", "--org", "x", "--api-version", "67.0",
+                     "--transport", "cli", "--poll-timeout", "30", "-vv"]) == 0
+    argv = harness["argv"]
+    for flag, value in (("--api-version", "67.0"), ("--transport", "cli"),
+                        ("--poll-timeout", "30")):
+        assert argv[argv.index(flag) + 1] == value
+    assert "-vv" in argv
+
+
+@pytest.mark.parametrize("stage, credit_later, payment_later", [
+    ("payment_applied", False, False),
+    ("credit_applied", False, True),
+    ("invoice_posted", True, True),
+])
+def test_plan_marks_settlement_parts_the_run_does_not_reach(
+        capsys, stage, credit_later, payment_later):
+    from scripts.txn_data_harness import generate
+    from scripts.txn_data_harness.config import CreditSpec, PaymentSpec, SettlementSpec
+
+    generate._print_settlement(
+        SettlementSpec(application_level="auto", credit=CreditSpec(amount=5.0),
+                       payment=PaymentSpec()), stage)
+    out = capsys.readouterr().out.splitlines()
+    credit = next(line for line in out if "credit   :" in line)
+    payment = next(line for line in out if "payment  :" in line)
+    assert ("not this run" in credit) is credit_later
+    assert ("not this run" in payment) is payment_later

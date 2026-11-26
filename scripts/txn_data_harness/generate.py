@@ -126,7 +126,7 @@ def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
         print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
               f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
     print(f"  Stages       : {' → '.join(stages_run)}")
-    _print_settlement(getattr(r.spec, "settlement", None))
+    _print_settlement(getattr(r.spec, "settlement", None), r.effective_stage)
     return r.spec.count
 
 
@@ -172,7 +172,7 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
         print(f"  Invoice ov   : {', '.join(bits)}")
     steps = SCENARIO_HANDLERS["invoice_ingestion"].stage_sequence(target, False)
     print(f"  Steps        : {' → '.join(steps)}")
-    _print_settlement(getattr(spec, "settlement", None))
+    _print_settlement(getattr(spec, "settlement", None), target)
     return spec.count
 
 
@@ -198,10 +198,15 @@ def settlement_concurrency_conflicts(resolved: list) -> list[str]:
     return sorted(names[a] for a in settles if totals[a] > 1)
 
 
-def _print_settlement(settlement) -> None:
-    """Render a scenario's ``settlement:`` block (credit/payment options)."""
+def _print_settlement(settlement, stage: str) -> None:
+    """Render a scenario's ``settlement:`` block (credit/payment options).
+
+    A part the run's ``stage`` does not reach is marked: it is written only by
+    a later ``cli step`` to that stage.
+    """
     if settlement is None:
         return
+    later = "; not this run (a later `cli step --to-stage {}`)"
     print(f"  Settlement   : application_level={settlement.application_level}"
           + (" (read from Billing Settings at run time)"
              if settlement.application_level == "auto" else " (pinned)"))
@@ -211,7 +216,8 @@ def _print_settlement(settlement) -> None:
         how = (f"{c.amount:g}" if c.amount is not None
                else f"{c.percent:g}% of the creditable pre-tax amount")
         print(f"    • credit   : {how} on {lines_of(c.lines)} "
-              f"(tax_strategy={c.tax_strategy})")
+              f"(tax_strategy={c.tax_strategy})"
+              + ("" if stage in STAGES_SETTLEMENT else later.format("credit_applied")))
     if settlement.payment is not None:
         pm = settlement.payment
         if pm.is_exact:
@@ -221,7 +227,8 @@ def _print_settlement(settlement) -> None:
         else:
             how = f"{pm.percent:g}% of open balance"
         print(f"    • payment  : {how} on {lines_of(pm.lines)}; created after the "
-              f"invoice posts, then applied explicitly")
+              f"invoice posts, then applied explicitly"
+              + ("" if stage == "payment_applied" else later.format("payment_applied")))
         if pm.percent is not None and pm.percent > 100:
             print("      ⚠  over-payment: the unapplied rest may settle the "
                   "account's next posted invoice")

@@ -52,10 +52,14 @@ or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
 | Exit | Meaning |
 |------|---------|
 | 0 | Every scenario reached `payment_applied`, at least one balance was checked, none failed. |
-| 1 | A scenario stopped short (its `FAIL:` line names the run and the stage it reached), or a balance check failed, or nothing was checked. |
-| 2 | An error, not a verdict: authentication failed, `sf` is not on `PATH`, a Salesforce request was refused, or a manifest could not be read. |
-| 3 | Discovery failed before any write, for example an unknown account or product. |
+| 1 | A scenario stopped short (its `FAIL:` line names the run, the stage it reached and the error, such as a request refused mid-run), or a balance check failed, or nothing was checked. |
+| 2 | The command could not finish: `sf` is not on `PATH` or could not produce a token, the verify read was refused, a manifest could not be read, or another error. Records may already exist: the `ERROR:` line says what to run next (`cli verify --manifest <run>` after a completed run), so do not start a new run just to retry. |
+| 3 | Discovery failed before any write: an unknown account or product, or a refused discovery query such as an expired session. |
 | 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |
+
+A `WARNING:` line means the platform applied something to the invoice that
+this run did not, for example an earlier run's unapplied payment on the same
+account when the invoice posted; the balances can still pass.
 
 `--config <file>` runs another config; its scenarios must target
 `payment_applied`. Measured on a 264 scratch org (2026-11-26, Line Level): a

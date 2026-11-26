@@ -632,11 +632,15 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     try:
         code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
     except Exception as exc:  # noqa: BLE001 - exit 1 means short or failed, never an error
-        print(f"ERROR: quote-to-cash run: {_error_message(exc)}", file=sys.stderr)
+        print(f"ERROR: quote-to-cash run: {_error_message(exc)}. Records may already "
+              "exist: check `cli inspect --latest` before running it again.", file=sys.stderr)
         return 2
     if not batch:
         print(f"ERROR: quote-to-cash: the run did not start (exit {code})", file=sys.stderr)
         return code or 2
+    for m in batch:
+        for warning in m.settlement_warnings:
+            print(f"WARNING: {m.run_id}: {warning}")
     short = [m for m in batch if m.error or m.reached_stage != QUOTE_TO_CASH_STAGE]
     for m in short:
         reason = f": {m.error}" if m.error else ""
@@ -658,7 +662,10 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
-        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}", file=sys.stderr)
+        runs = " ".join(f"--manifest {m.run_id}" for m in batch)
+        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}. The run reached "
+              f"{QUOTE_TO_CASH_STAGE}; check it again without a new run: "
+              f"`cli verify --org {args.org} {runs}`.", file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:

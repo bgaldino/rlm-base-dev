@@ -123,8 +123,11 @@ scenarios must target `payment_applied`) at `--concurrency 1`, then the
 `verify` checks on the run's invoices and payments. Exit 0 only when every
 scenario reached `payment_applied` and at least one balance was checked with
 none failing; 1 for a short stage or a failed or empty check (always on a
-Header Level org, where the balance checks skip); 2 for an error (auth, no
-`sf`, a refused request, an unreadable manifest); 3 when discovery fails; 4 for
+Header Level org, where the balance checks skip; a request refused mid-run is a
+short stage); 2 when the command could not finish (no `sf` or no token, the
+verify read refused, an unreadable manifest; records may exist, and the
+`ERROR:` line names the `cli verify --manifest` to rerun); 3 when discovery
+fails (including an expired session); 4 for
 an unreadable config or one with a scenario not targeting `payment_applied`
 (refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
 <cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
