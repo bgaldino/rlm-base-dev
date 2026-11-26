@@ -20,9 +20,8 @@ simple product to a bundle product [Help: `ind.product_catalog_create_simple_pro
 `ind.product_catalog_conversion_of_bundle_products.htm`]; a separate 264 article
 [Help: `ind.product_catalog_convert_simple_product_to_bundle_product.htm`] describes one
 exception, a one-way conversion of a product with no type to Bundle that "can't be undone"
-and can affect configuration, quotes, orders and assets. Plan as if `Type` is fixed; the
-conflict is **Open, needs live verification** (edit a test product's `Type` from blank to
-`Bundle` in the Product Catalog Management app, then try the reverse).
+and can affect configuration, quotes, orders and assets. Plan as if `Type` is fixed: through the API a blank `Type` was updated to Bundle [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and Bundle back to blank was
+refused ("You can only update a product from Type simple to bundle.") [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 A static bundle can become configurable and back.
 Configurable → static needs every attribute defaulted, every child Not Allowed/None,
 every child included by default with quantity locked, and no classification components.
@@ -52,12 +51,13 @@ subscription that must renew or bill on its own model) is not settled by the rul
   child is quoted on. In the 2026-11-24 static test bundle (Evergreen Monthly root), Place quoted a Term Defined
   (Term Annual) child
   on the child selling model its component row set, which was the child's only option
-  [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). An
-  Evergreen child, a root other than Evergreen, a row with no model or a child with several
-  options, and whether the child
-  then renews and bills on that model: **Open, needs live verification.**
+  [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). A row with no
+  selling models added no child line under Term, One-Time or Evergreen roots [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]; billing schedules followed each
+  line's own model [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]; and renewals were root 1 (Term), root 0 (One-Time), root 0 with Evergreen child 0 (Evergreen)
+  [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org] ([details](selling-models-and-lifecycle.md#measured-component-selling-model-rules)). A child with several options, and invoices
+  for each child: [Open: not run].
 
-Until the open cases above are measured, the shape to test against a static kit is a **locked configurable
+Until a child with several options and invoices for each child are measured, the shape to test against a static kit is a **locked configurable
 bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
 *Require this component* and *Include component by default* on and *Allow quantity changes*
 (`IsQuantityEditable`) off, and group limits that pass
@@ -65,7 +65,7 @@ bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child w
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 Measured on a locked configurable bundle with a Term Defined root and four children (two One
 Time, one Term Defined, one Evergreen), each required, default, quantity 1, not editable and
-`Proportional` [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+`Proportional` [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]:
 
 | Where | What happened |
 |---|---|
@@ -78,7 +78,7 @@ So test the lock at order creation, or read the error log, not the save's result
 `bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
 quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
 whether either blocks the order, how locked children amend, and whether the lock holds on the
-renewal quote: **Open, needs live verification.** Renewal rules by selling model are in
+renewal quote: [Open: not run]. Renewal rules by selling model are in
 [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 
 ## Structure rules
@@ -128,7 +128,7 @@ CML must name each member.
 bounds how many components a buyer may pick from the group. Help says it counts distinct
 components [Help: `ind.product_catalog_group_cardinality.htm`], but at run time it counted
 lines: a 1..1 group holding one product on two lines drew a `bundlevalidation` range
-message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] So keep each component on one line
+message. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] So keep each component on one line
 ([CML-sized default components](#cml-sized-default-components)). The validator counts lines per group, not distinct products [Platform behaviour, traced]. Separately, the solver makes a `split = true` type one line per unit, so a line of quantity N counts N there and 1 when its CML type has `split = false` [Platform behaviour, traced].
 A group minimum of 1 with zero selected lines is reported by bundle validation as a count mismatch; a minimum of 0 never is. The count is of lines, not quantity. The trace also shows a missing-node message for a product-class node it treats as required; which PCM setting produces that is not established (a classification component cannot be marked required). [Platform behaviour, traced] Whether the message blocks anything depends on the caller: a placement that runs configuration and allows errors (Force, System) logs it as an error-log row, and quote-to-order refuses on any such row; a "run and block errors" placement refuses the save (traced for Place, unmeasured for this check; the trace does not separate Error from Warning messages, so whether a warning alone refuses the save is not established, and the severity of the group count-mismatch message was not traced); Skip, or catalog validation off, runs no check. [Platform behaviour, traced in part] The live behaviour of a min-1 group with no lines through order, amend and assetization is not established. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
@@ -150,7 +150,7 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 
 Save-time check on the component row [Platform behaviour, traced]: `IsComponentRequired` needs `IsDefaultComponent` (not applied to a set product or a classification component; a classification component needs both off). On the component **group** (`ProductComponentGroup`), `MinBundleComponents` is only validated: not negative, and not above `MaxBundleComponents` when given. No defaulting was found in the save checks (entity defaults not read), so what a load that omits them stores is not established; an invalid combination is refused, not defaulted. [Platform behaviour, traced in part] The lowering seen on an Upsert is not explained.
 
-Writing component rows by API [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+Writing component rows by API [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]:
 
 - `ParentProductRole` and `ChildProductRole` are not writable; the platform sets them from
   the `ProductRelationshipType`. Leave them out of a hand-written insert. (The shipped PCM
@@ -203,7 +203,7 @@ In the 264 API the picklist holds only `Constant` and `Proportional`; writing `N
 rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). An editable row is left blank for None,
 but a locked row inserted blank through the API was stored `Proportional`, so give new locked
 rows a method. (The QuantumBit plan has locked rows with a blank method; what a load stores
-for them was not checked.) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
+for them was not checked.) [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] A locked
 child's quantity edit still saved in the line editor; see
 [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur).
 
@@ -226,11 +226,11 @@ line keeps its PCM quantity and the solver adds a second line for the rest. Seen
 configurator and on Place with `addDefaultConfiguration: true`; a hand edit below the rule's
 quantity split the same way instead of being rejected. The second line counts against the
 group's max (above), and in a group ramp the later segments kept the split. A non-default
-component gave one line. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+component gave one line. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]
 
 Fix it in the model: `@(split = false)` on the component's CML type keeps one instance
 [Dev guide: `cml-annotation-example-split.md`], so the default line takes the rule's
-quantity and a hand edit to another quantity is rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+quantity and a hand edit to another quantity is rejected with the rule's message. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]
 Dropping `IsDefaultComponent` also avoids the split, but loses the pre-selection, and a
 required child must stay a default. [Help: `ind.product_catalog_local_cardinality.htm`]
 `constraint-models` covers the CML; its run M14 (one line) doesn't say whether the component

@@ -2,7 +2,7 @@
 
 > Sub-file of [`SKILL.md`](SKILL.md). Read it before rehearsing or debugging a demo in the line
 > editor or the configurator. Source tags are defined in the parent. Items tagged `[Measured]` were
-> observed on 264 demo orgs in early November 2026, or on a fresh 264 `ent-sb0` scratch org where the
+> observed on 264 demo orgs in early November 2026, or on a fresh scratch org where the
 > tag says so, and are not in the Help.
 
 ## 1. Adding products
@@ -37,7 +37,7 @@ Measured traps:
 - **A top-level category whose products sit only in subcategories shows no products** until a
   subcategory is picked [Measured: early Nov 2026, 264, demo orgs].
 - On a group ramp, Browse Catalogs from a segment row asked for the **catalog first**, then **Select
-  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; an earlier fresh
+  Segments to Add Products** [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]; an earlier fresh
   build (2026-10-29) recorded the segment prompt first, and the cause of the difference isn't
   established. Check which prompt comes first before a demo. Ramp steps: `ramped-quotes/ui-group-ramp.md`
   [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
@@ -54,7 +54,7 @@ Measured traps:
   **Measured in the STLE: bundle children can be selected and bulk edited.** Each child row has its
   own checkbox; with four children of one bundle ticked (root unticked), an Adjustment Type edit on one
   of them went to all four, with no "apply to selected" prompt, and Save stored it on each child (repo
-  quote page, Instant Pricing on; off wasn't measured) [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Move Selected Items on child lines, and the
+  quote page, Instant Pricing on; off wasn't measured) [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. Move Selected Items on child lines, and the
   legacy TLE, weren't measured. For automation: a pointer click on the checkbox ticked it; a click on
   the element reference didn't.
   **Bulk Delete** can't be used on a quote or order with a group ramp schedule
@@ -64,8 +64,7 @@ Measured traps:
   the unit of measure's scale.
 - The **Adjustment Type** cell editor is a value box plus a type picklist; on the repo's quote page it
   offers **Discount (Percentage)** and **Discount (Amount)**, the two fields the page selects for that
-  column [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org; Repo:
-  `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml` `adjustmentTypeFields`].
+  column [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] [Repo: templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml, adjustmentTypeFields].
 - If the editor won't switch a line between Discount (Percentage) and Discount (Amount), clear the value
   on the line record, then enter the new type in the editor.
 - Hover **Net Unit Price** for the price waterfall (bundle, tier, attribute, derived and contract
@@ -131,7 +130,7 @@ STLE, and the others are unconfirmed:
   edit the Adjustment Type cell on one of them (for example Discount (Percentage) 10), Save. The value
   went to every selected child and priced each one; the other children and the root were untouched,
   and no error log was written. The result matched the same discount set on those lines through the
-  Place API [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. With many children the rep ticks
+  Place API [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. With many children the rep ticks
   each one by hand.
 
 Whether Move Selected Items, Group By or the STLE filters reach bundle child lines, whether a
@@ -171,7 +170,7 @@ Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
-[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System
+[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. The rule behind it: under System
 pricing a graph-style Place request is priced only when it includes at least one quote or order
 line record, or line attribute record (a create, update or unchanged-value PATCH counts; a
 request that only deletes lines is priced only if the transaction still has lines). A

@@ -31,8 +31,8 @@ longer being enhanced" [Help: `ind.qocal_customize_transaction_line_editor`]. He
 `docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` and
 `[Release notes: <article>]` are the sibling `dev-guide/` and `release-notes/` snapshots.
 `[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is behaviour observed on a 264
-demo org; `[Measured: <date>, fresh 264 ent-sb0 scratch org]` on a scratch org freshly built from
-this repo with the `ent-sb0` shape. **Open, needs live verification** marks anything only a live org can settle.
+demo org; `[Measured: <date>, 264, fresh ent-sb0 scratch org]` on a scratch org freshly built from
+this repo with the `ent-sb0` shape; `[Measured: <date>, 264.12, ent-sb0 harness build]` on a scratch org built by the build harness on that shape, with the release detail recorded. **Open, needs live verification** marks anything only a live org can settle.
 Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 
 ## Quick Rules
@@ -56,8 +56,7 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder, trigger
    and manual field updates invalidate the pricing status and need Reprice All [Help:
    `ind.qocal_limitations_for_using_quote_and_order_capture`]. A header-only Place PATCH, even of a
-   field pricing reads, left the line prices unchanged until Reprice All [Measured: 2026-11-11,
-   fresh 264 `ent-sb0` scratch org]. Under System pricing, a graph-style Place request is priced
+   field pricing reads, left the line prices unchanged until Reprice All [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]. Under System pricing, a graph-style Place request is priced
    only if it includes a line (or line attribute) record; a request carrying a context id is priced
    whenever lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes [Help:
@@ -156,46 +155,32 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
 
 | File | Read when |
 |------|-----------|
-| [`page-configuration.md`](page-configuration.md) | Changing columns, the Adjustment Type column, side panel or ramp fields, action buttons, the Transaction Summary, the settings the editor depends on, or auto-refresh, in Lightning App Builder or in this repo's templates |
+| [`page-configuration.md`](page-configuration.md) | Changing columns, custom group-field columns, the Adjustment Type column, side panel or ramp fields, action buttons, the Transaction Summary, the settings the editor depends on, or auto-refresh, in Lightning App Builder or in this repo's templates |
+| [`import-lines-and-refresh.md`](import-lines-and-refresh.md) | Lines arrive outside the editor's save: Import Lines (what it skips), the refresh banner and Hide Price Refresh Notification, defaulting header dates or term to lines, read-only side-panel attributes, summary totals |
 | [`runtime-behavior.md`](runtime-behavior.md) | Using the editor: Browse Catalogs, groups, Instant Pricing, Reprice All, header adjustments, configuring a bundle from a line, amendment, renewal and cancellation lines, filters, bulk edit, a product-line discount inside a bundle, and the measured demo traps |
 
 ## Open, needs live verification
 
-1. Whether a 264 org's Lightning App Builder shows the **text box** for action buttons, the
-   **visual button-group UI**, or both, and the flexipage property each writes.
-   `ind.qocal_configure_placement_of_action_buttons` gives text-box steps and, in the same
-   article, button groups and an action picker; the release note
-   `release-notes.rn_transaction_management_stle_enhance_button_groups` says the visual UI
-   replaces the text box.
-2. What the 10-item runtime limit counts: **10 actions** (`ind.qocal_action_button_group_important_considerations`),
-   **10 visible action slots across all groups** (`ind.qocal_configure_placement_of_action_buttons`),
-   or **10 groups** with the rest in an overflow menu (release note). Traced for the STLE component: a
-   global cap of 10 inline actions across groups, 2 below a width breakpoint, rest under More
-   [Platform behaviour, traced]; which UI a 264 org has stays Open.
-3. The API name for Manage Header Adjustment. Traced in part: the STLE component names it `HeaderAdjustment`
-   with `QuoteAdjustment` / `OrderAdjustment` aliases; Help's table also lists `ManageHeaderAdjustment`, and
-   whether that string is accepted was not traced. The repo's quote highlights panel uses `QuoteAdjustment`.
-4. Whether Browse Catalogs can be placed or removed through the line editor's action-button
-   configuration; it is not in the Help's list of supported action API names. The repo places it
-   as a record-page highlights-panel action (`BrowseCatalog`) instead.
-5. Whether Reprice All validates configuration on 264. Help says it skips configuration, and its request shape
+1. The run-time action cap (10 actions, 10 slots or 10 groups): the App Builder UI, stored names and
+   header adjustment name are measured in `page-configuration.md` section 4; only the cap needs an org
+   where 11 or more actions apply.
+2. Whether Reprice All validates configuration on 264. Help says it skips configuration, and its request shape
    is Force pricing with configuration skipped [Platform behaviour, traced]; the success toast read "The prices
    were refreshed and the configuration was validated." [Measured: early Nov 2026, 264, demo orgs] and its origin was not traced.
-6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
+3. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
    scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't
    document that field. A header discount did work on a fresh 264 build with the plan inactive
    [Repo: `datasets/sfdmu/procedure-plans/README.md`].
-7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
+4. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
-8. Whether bundle child lines can be moved with **Move Selected Items** (either editor), and whether
+5. Whether bundle child lines can be moved with **Move Selected Items** (either editor), and whether
    the legacy TLE lets them be selected or bulk edited at all. In the STLE, selecting children and bulk editing them is
-   measured: an Adjustment Type edit went to every selected child [Measured: 2026-11-11, fresh 264
-   `ent-sb0` scratch org; see `runtime-behavior.md` section 2].
-9. How **Group By** (TLE) places bundle child lines, which columns count as groupable, and whether
+   measured: an Adjustment Type edit went to every selected child [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] (see `runtime-behavior.md` section 2).
+6. How **Group By** (TLE) places bundle child lines, which columns count as groupable, and whether
    the STLE's predefined and advanced filters include child lines
    (`ind.qocal_filter_line_items_with_standard_and_advanced_filters` doesn't say).
-10. Whether a discount entered on a group row reaches bundle child lines in that group, and whether
+7. Whether a discount entered on a group row reaches bundle child lines in that group, and whether
     a bundle's children can sit in a different group from their root. Group rows can carry Adjustment
     Type fields (`ind.qocal_adjustment_type_column`), and the group-ramp articles show a rep entering
     a discount on a group (`ind.qocal_basic_example_ramp_deals_for_groups`,

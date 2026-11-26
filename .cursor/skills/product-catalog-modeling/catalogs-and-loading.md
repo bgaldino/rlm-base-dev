@@ -43,8 +43,8 @@ points at itself.
 Rules:
 
 - Make every category code unique across **all levels and all catalogs** the plan loads.
-  Whether the platform enforces uniqueness per org or per catalog is **Open, needs live verification**;
-  do not rely on either.
+  The platform enforces it per org, case-insensitively: the same code was refused in the same catalog, a sibling
+  root, another catalog and as a lower-case variant (`DUPLICATE_VALUE`) [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. The describe shows the field unique and not case sensitive [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org], and an update to a colliding code was refused too [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
 - Derive generated codes from the full path (`<catalog>-<parent>-<name>`), not the name.
   Name-as-code (`GPU`, `PCIe`) reads well but collides as soon as a subcategory shares a
   name with an ancestor.
@@ -85,7 +85,7 @@ Family blank on a product that has none.
 **Add new Family and unit values to their picklists as part of the load, or map the
 source's values onto existing ones.** The `Family` picklist is unrestricted, so a load stores any value
 through the API, but a value that is not one of the org's picklist values is not offered in
-the UI's Family picklist. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+the UI's Family picklist. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]
 `QuantityUnitOfMeasure` likewise stored units that are not among its picklist values (the UI
 wasn't checked). [Measured: same org] A clean load is therefore no check on these values;
 compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the org's
@@ -96,7 +96,7 @@ it lists the values the QuantumBit plan uses and no `None` value; the q3 and mfg
 not list. Deploying the set without `None` took it out of what the org offers: the value left
 `Product2.Family`'s picklist values and a retrieve of the set no longer listed it, while a
 product holding it kept the stored value `None`. Whether the value is deleted or only made
-inactive was not checked. [Measured: 2026-11-24, fresh 264 ent-sb0 scratch org] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
+inactive was not checked. [Measured: 2026-11-24, 264, fresh ent-sb0 scratch org] [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `datasets/sfdmu/mfg/en-US/mfg-pcm/Product2.csv`]
 
 ## From model to plan
 
@@ -139,9 +139,9 @@ cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, the
 | **(c)** Without `useSeparatedCSVFiles: true`, repeating an object across object sets gives pass 2 the plan-root CSV again. [Measured: 2026-11, 264] Owned by [`sfdmu-data-plans`](../sfdmu-data-plans/SKILL.md) -> *Where a plan's CSVs live*. | For fact (a)'s second pass, run the whole plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
-| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the index build had finished, minutes later. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After a load that adds products, run both, then retry Place until the error stops. The message is raised when the product lookup in the configurator step does not return the product; qualification procedures that read decision tables run there unless the recipe is the transaction recipe, so a stale table is plausible, not shown. No search-index dependence was found. [Platform behaviour, traced in part] The measured wait for both stays. `check_search_index_readiness` can't confirm this rebuild on an org that already had one: it reads Ready once any build has completed since the org was created (`tasks/rlm_rebuild_search_index.py`). |
-| **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
-| **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable, `MinQuantity` must be at least 1 when given, and `QuantityScaleMethod` rejects the string `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Carry `QuantityScaleMethod` in the CSV for rows that must keep it: an Upsert with it blank cleared `Proportional` on editable rows [Measured: 2026-11-16, 264, scratch]. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality) and [quantity scaling](bundles-and-cardinality.md#quantity-scaling-and-lifecycle). |
+| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the index build had finished, minutes later. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] | After a load that adds products, run both, then retry Place until the error stops. The message is raised when the product lookup in the configurator step does not return the product; qualification procedures that read decision tables run there unless the recipe is the transaction recipe, so a stale table is plausible, not shown. No search-index dependence was found. [Platform behaviour, traced in part] The measured wait for both stays. `check_search_index_readiness` can't confirm this rebuild on an org that already had one: it reads Ready once any build has completed since the org was created (`tasks/rlm_rebuild_search_index.py`). |
+| **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
+| **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable, `MinQuantity` must be at least 1 when given, and `QuantityScaleMethod` rejects the string `None`. [Measured: 2026-11-11, 264, fresh ent-sb0 scratch org] | Carry `QuantityScaleMethod` in the CSV for rows that must keep it: an Upsert with it blank cleared `Proportional` on editable rows [Measured: 2026-11-16, 264, scratch]. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality) and [quantity scaling](bundles-and-cardinality.md#quantity-scaling-and-lifecycle). |
 
 In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once.
 `test_qb_pcm_idempotency` loads the plan once, extracts the org, reloads the extraction and
@@ -151,7 +151,7 @@ The QuantumBit plan needs no second load: on a fresh one-pass build all 36 class
 matched the CSV (0 missing, 0 differences; `scripts/check_classification_attrs.py`), because each CSV
 `AttributeNameOverride` and `IsRequired` already equals its attribute definition's value, and
 `DefaultValue`, `Description` and `HelpText` match wherever the definition sets one.
-[Measured: 2026-11-23, fresh 264 ent-sb0 scratch org]
+[Measured: 2026-11-23, 264, fresh ent-sb0 scratch org]
 
 Other load constraints: `ProrationPolicy` is create-only and platform-seeded, so its insert
 is rejected as a duplicate and tolerated (`ignore_row_errors_for`); several PCM lookups are

@@ -7,7 +7,7 @@
 ## 1. Where the editor lives on the page
 
 Admin path: Setup > Lightning App Builder > the Quote (or Order) Record Page > Edit. Help's
-steps [Help: `ind.qocal_customize_transaction_line_editor`]:
+steps [Help: ind.qocal_customize_transaction_line_editor]:
 
 1. Add a tab (label **Lines**) to the Tabs component and drag the line editor into it. Put it on
    the **default** tab so it loads with the page rather than when the rep switches tabs.
@@ -22,15 +22,15 @@ steps [Help: `ind.qocal_customize_transaction_line_editor`]:
 
 The editor shows as **Quote Line Items** on a quote and **Order Products** on an order. Users need a
 Revenue Cloud permission set such as Assetize Order or Price and Tax Calculation for Quoting
-[Help: `ind.qocal_customize_transaction_line_editor`]. To use it on a quote they need Manage Revenue
+[Help: ind.qocal_customize_transaction_line_editor]. To use it on a quote they need Manage Revenue
 Cloud, the Create Orders from Quotes permission set and Price and Tax Calculation for Quoting
-[Help: `ind.qocal_view_and_edit_quotes`]. On an order the profile also needs read access to
+[Help: ind.qocal_view_and_edit_quotes]. On an order the profile also needs read access to
 `OrderItem.ValidationResult`, `PriceWaterfallIdentifier`, `ParentOrderItemId`, `OrderActionId` and
 `OrderItemRelationship.AssociatedOrderItemPricing`, `AssociatedQuantScaleMethod`
-[Help: `ind.qocal_configure_placement_of_action_buttons`].
+[Help: ind.qocal_configure_placement_of_action_buttons].
 
 The side panel shows up to 200 product attributes per line, alphabetically by definition name, and
-skips attributes marked hidden in Product Catalog Management [Help: `ind.qocal_customize_transaction_line_editor`].
+skips attributes marked hidden in Product Catalog Management [Help: ind.qocal_customize_transaction_line_editor].
 
 ### In this repo
 
@@ -39,19 +39,19 @@ The pages are generated from templates; App Builder edits in an org are drift un
 | Concern | Where | Notes |
 |---------|-------|-------|
 | Always-on columns and properties | `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`, `RLM_Order_Record_Page.flexipage-meta.xml` | Edit the `runtime_rca:salesTxnLineTable` component's `componentInstanceProperties` [Repo] |
-| Columns that need a feature flag | `templates/flexipages/patches/<feature>/RLM_{Quote,Order}_Record_Page.yml` | Patch type `add_sales_txn_line_editor_field`, or `add_display_field` (the approvals patch uses it) [Repo: `docs/features/dynamic-ux-assembly.md`] |
+| Columns that need a feature flag | `templates/flexipages/patches/<feature>/RLM_{Quote,Order}_Record_Page.yml` | Patch type `add_sales_txn_line_editor_field`, or `add_display_field` (the approvals patch uses it) [Repo: docs/features/dynamic-ux-assembly.md] |
 | Patch gate and order | `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER`, `UX_KNOWN_FLAGS` | A patch directory not listed in the order is never applied, and a gate flag missing from `UX_KNOWN_FLAGS` always reads as off [Repo] |
-| Component identifier the patch targets | `scripts/ux/_flags.py::SALES_TXN_LINE_EDITOR_IDENTIFIER` (`runtime_rca_salesTxnLineTable`) | Override with `component_identifier:` in the patch [Repo: `scripts/ux/_patch_ops.py`] |
+| Component identifier the patch targets | `scripts/ux/_flags.py::SALES_TXN_LINE_EDITOR_IDENTIFIER` (`runtime_rca_salesTxnLineTable`) | Override with `component_identifier:` in the patch [Repo: scripts/ux/_patch_ops.py] |
 | Generated output | `unpackaged/post_ux/flexipages/` | Never hand-edit (AGENTS.md DO NOT 1) |
-| Org edits back to templates | `ux_tool.py capture-drift`, then `apply-drift` | [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`] |
+| Org edits back to templates | `ux_tool.py capture-drift`, then `apply-drift` | [Repo: .cursor/skills/repo-integration/ux-assembly-retrieve.md] |
 
 `add_sales_txn_line_editor_field` takes `property` (default `displayFields`; any list property such
 as `sidepanelDetailFields`, `viewRampDetailFields` or `adjustmentTypeFields`), an optional `after`
 anchor, and `field` or `fields`. It skips values already present, so it is idempotent; if the
-property list or the anchor is missing it logs a warning and adds nothing [Repo: `scripts/ux/_patch_ops.py`].
+property list or the anchor is missing it logs a warning and adds nothing [Repo: scripts/ux/_patch_ops.py].
 `add_display_field` takes one `field`, no `property` or `after`, and appends it to the first
 `displayFields` list on the page, which on the quote page is the line editor's; it skips a value
-already present and warns if there is no list [Repo: `scripts/ux/_patch_ops.py`]. The order page
+already present and warns if there is no list [Repo: scripts/ux/_patch_ops.py]. The order page
 sets no `displayFields`, so a `displayFields` patch of either type has no list to add to there:
 add the property to the order template first. There is no patch type that removes a column or
 changes a scalar property; change the base template. `insert_after_xml` only inserts an XML fragment
@@ -68,7 +68,7 @@ after an anchor, so at most it can add a property the template lacks.
 
 ## 2. Display columns
 
-[Help: `ind.qocal_select_fields_for_the_line_editor`]
+[Help: ind.qocal_select_fields_for_the_line_editor]
 
 - **Line fields** (Quantity, Description, Total Price) are columns.
 - **Group fields** ([Quote Line Group] Subtotal) appear only when the transaction has groups.
@@ -92,15 +92,15 @@ after an anchor, so at most it can add a property the template lacks.
 - If a field qualifies for both a group/line merge and the Adjustment Type column, the Adjustment
   Type column wins.
 - Swap, upgrade and downgrade amendments need the **Type** and **Subtype** columns
-  [Help: `ind.qocal_swap_upgrade_downgrade_amendments`].
+  [Help: ind.qocal_swap_upgrade_downgrade_amendments].
 - Unit Price Uplift belongs in the quote line editor columns when price revision policies are used
-  [Help: `ind.qocal_consumer_price_index_and_price_uplifts`; Repo: `.cursor/skills/pricing-setup/price-revision-policies.md`].
+  [Help: ind.qocal_consumer_price_index_and_price_uplifts; Repo: .cursor/skills/pricing-setup/price-revision-policies.md].
 - Advanced filters can only use fields that are columns, from the line or one relationship away
-  [Help: `ind.qocal_filter_line_items_with_standard_and_advanced_filters`].
+  [Help: ind.qocal_filter_line_items_with_standard_and_advanced_filters].
 
 ## 3. Adjustment Type column (STLE)
 
-[Help: `ind.qocal_adjustment_type_column`]
+[Help: ind.qocal_adjustment_type_column]
 
 One column that merges several adjustment fields; the rep picks the type and enters a value.
 
@@ -116,7 +116,7 @@ One column that merges several adjustment fields; the rep picks the type and ent
 
 ## 4. Header action buttons
 
-[Help: `ind.qocal_configure_placement_of_action_buttons`, `ind.qocal_action_button_group_important_considerations`]
+[Help: ind.qocal_configure_placement_of_action_buttons, ind.qocal_action_button_group_important_considerations]
 
 Prerequisites: **Enable Groups** on for group actions; **Header Adjustments** on for the quote or
 order adjustment action. Permission to configure: Customize Application and the Manage Revenue
@@ -135,48 +135,61 @@ Supported actions (API names are case-sensitive):
 | Estimate Taxes | `EstimateTaxes` | Tax estimate for the transaction |
 | Import Lines | `ImportQuoteLineItems` | Upload lines from an external source |
 | Create Ramp Schedule | `CreateRampSchedule` | Create a group ramp schedule |
-| Manage Header Adjustment | Help's *Action API Name* column lists `ManageHeaderAdjustment`; the STLE component names the action `HeaderAdjustment`, with `QuoteAdjustment` and `OrderAdjustment` as aliases of it [Platform behaviour, traced]. Whether `ManageHeaderAdjustment` is accepted was not traced | Header discount or override |
+| Manage Header Adjustment | Help's *Action API Name* column lists `ManageHeaderAdjustment`; the STLE component names the action `HeaderAdjustment`, with `QuoteAdjustment` and `OrderAdjustment` as aliases of it [Platform behaviour, traced]. `ManageHeaderAdjustment` is silently dropped on 264 (measured, below); use `QuoteAdjustment` | Header discount or override |
 
 The table has two API-name columns (*Action API Name* and *API Name*); they differ only for Manage
 Header Adjustment. Help also names `ExpandAllGroups` and `CollapseAllGroups` in a syntax example.
-Browse Catalogs is not in the list; whether it can be moved is Open.
+Browse Catalogs is not in the list or the 264 picker (measured, below).
 
-**Text-box syntax** (Help), one entry per line in the **Action Buttons** field:
+**Button groups** (Help, both articles above). Up to 10 groups of up to 10 actions; an action belongs to one group;
+only built-in actions are in the picker. Help states the run-time cap three ways (first 10 actions, 10 visible
+slots, 10 groups); in the STLE component the cap is global, 10 inline actions across all groups combined, the rest
+under a More menu, and below a width breakpoint only 2 inline [Platform behaviour, traced]. The measured bullets
+below are what the 264 editor does.
 
-| Want | Enter |
-|------|-------|
-| A standalone button | `AddGroup` |
-| Buttons separated by a divider | `AddGroup, Ungroup` |
-| Menu items under a main button | `MoveSelectedLines, (AddGroup), (Ungroup)` |
-| A dropdown of actions | `(AddGroup, ExpandAllGroups, CollapseAllGroups, Ungroup)` |
+**Header actions, measured.** Each bullet carries its own tag.
 
-**Button groups** (Help, both articles above). Up to 10 groups of up to 10 actions; an action belongs
-to one group; actions reorder within a group but groups can't be dragged into a new order. Only
-built-in actions are in the action picker. With nothing configured, the default is four groups:
-`QuoteAdjustment`, `AddAssets`, `ImportQuoteLineItems`, then the rest with four visible. The run-time
-limit is stated three ways in Help: the considerations article says only the first 10 actions show, the
-configuration article says 10 visible action slots across all groups, and the release note says 10
-**groups** show and the rest go to an overflow menu. In the STLE component the cap is global: 10 inline actions across
-all groups combined, the rest under a More menu, and below a width breakpoint only 2 inline. It caps
-rendering, not configured actions [Platform behaviour, traced]. That disagrees with the release note's
-"groups" wording; the considerations article's "first 10 actions" is consistent if "show" means inline. The release note also says the visual UI replaces
-the text box, that existing text-box values carry over, and that the header hides actions a rep can't
-use and shows the next one in the group
-[Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Help gives the
-text-box steps and the button-group model side by side. Which UI a 264 org has is Open.
+- **Which UI:** on both RLM Quote and RLM Order record pages, selecting the line editor in Lightning App Builder
+  shows the visual **Header Actions Configuration** editor (Add Button Group; each group has Desktop Action
+  Buttons Count and Add Action, which opens a dual-list Display Actions picker). There is no text box. An
+  action can sit in only one group; once used it leaves the picker [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+- **What it writes:** the property `displayActions` on `runtime_rca:salesTxnLineTable`, a value list with one
+  JSON string per group, for example `{"actionList":["QuoteAdjustment"],"visibleActions":1}`. A page without
+  `displayActions` renders the default set [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. The picker lists 14 entries (label, stored name): Manage Header
+  Adjustment `QuoteAdjustment`, Add Assets `AddAssets`, Import Lines `ImportQuoteLineItems`, Move Selected
+  Items `MoveSelectedLines`, Generate Clauses `GenerateClauses`, Estimate Taxes `EstimateTaxes`, Reprice All
+  `RepriceAll`, Add Group `AddGroup`, Ungroup `Ungroup`, Bulk Delete `BulkDelete`, Collapse All
+  `CollapseAllGroups`, Expand All `ExpandAllGroups`, a second Reprice All `InsuranceRepriceAll`, and Create
+  Ramp Schedule `CreateRampSchedule` [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+- **Header adjustment name:** deploying `QuoteAdjustment` and `HeaderAdjustment` each rendered Manage Header
+  Adjustment and opened the same action. `ManageHeaderAdjustment` (the Help table's name) and an invented name
+  deployed without error and were silently dropped: no button, no message. Use `QuoteAdjustment` (quote) as
+  the repo does [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+- **Browse Catalogs** is not in the picker [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. The repo's placement on the record-page highlights panel stands.
+- **Limits:** App Builder clamps a group's count to the number of actions in it (11 typed in a 6-action group
+  became 6) and saved two groups with 14 visible slots without a warning [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. At run time only actions that apply
+  render: 6 inline with no groups, 8 in group-edit mode; Expand All and Collapse All render as links under
+  the title, not as header buttons; Import Lines, Generate Clauses, Estimate Taxes and the insurance Reprice
+  All never rendered on that build [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. At window width 1033 px or more all applicable actions were inline; at
+  1025 px or less only the first group's first two stayed inline and the rest moved into menus [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org].
+  [Open: whether the run time caps at 10 needs an org where 11 or more actions apply]
+- **Cache trap:** after deploying a changed page, Lightning served the old layout even after a hard reload;
+  the new layout showed only after clearing the org origin's IndexedDB and local storage [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]. Clear it before
+  concluding a deployed change did nothing. A builder save also added `isAutoAdvanceToNextWorkItem=false` to
+  the Work Guide component [Measured: 2026-11-26, 264, fresh ent-sb0 scratch org]: diff a builder save before committing it to a template.
 
-**In this repo** neither page template sets a line editor action-button property, so both editors
+**In this repo** neither page template sets `displayActions`, so both editors
 show the default layout [Repo: both page templates]. Don't confuse it with the record page's
 highlights panel (`force_highlightsPanel` `actionNames`), which lists `BrowseCatalog` on both pages
 and `CreateRampSchedule` and `QuoteAdjustment` on the quote page; those are page-header actions,
 configured separately. Create Ramp Schedule appears as a header button and Browse
-Catalogs as a ramp-segment row action on a measured 264 org [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
+Catalogs as a ramp-segment row action on a measured 264 org [Repo: .cursor/skills/ramped-quotes/ui-group-ramp.md].
 Before writing an action layout into a template, configure it once in App Builder on a scratch org
 and capture the property with `ux_tool.py capture-drift`, so the template matches what the org writes.
 
 ## 5. Transaction Summary
 
-[Help: `ind.qocal_customize_transaction_summary`]
+[Help: ind.qocal_customize_transaction_summary]
 
 - Place it in the **same tab** as the line editor; Help says it always renders at the bottom of
   the page in the live view, wherever it is dropped in App Builder.
@@ -191,34 +204,65 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 
 | Setting | Effect on the editor | Repo build |
 |---------|----------------------|------------|
-| Enable Groups | Group actions and group columns | `groupsEnabled` true [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`] |
+| Enable Groups | Group actions and group columns | `groupsEnabled` true [Repo: unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml] |
 | Ramp deals for groups | Create Ramp Schedule, ramp columns; STLE only | `enableGroupRampPref`, `enableGroupRampMultiSchedulePref`, `enableGroupRampTrialSegmentPref` true [Repo: same file] |
-| Instant Pricing | Reprices price-impacting edits immediately | Toggled by `configure_revenue_settings` (Robot), flow `prepare_revenue_settings` [Repo: `cumulusci.yml`] |
-| Instant Pricing Active by Default | Starts each quote with Instant Pricing on; STLE only [Help: `ind.qocal_turn_on_quote_and_order_capture`] | `enableRevInstPricingDefaultPref` true; label mapping Open |
-| Delta Pricing | Help: click Reprice All after a header adjustment [Help: `ind.qocal_header_adjustments_use`]; the action itself runs a full reprice (quote action [Platform behaviour, traced]; order variant not traced); for header edits made by other means, use Force or Reprice All: a graph-style System request with only the header doesn't price [Platform behaviour, traced]; a System request with a line record may not reprice every line where Delta Pricing applies (header-change case not measured), and whether Delta Pricing applies to the context-id path is not traced (runtime-behavior.md section 4); UI edits aren't established | `enableDeltaPricing` true [Repo] |
-| Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: `ind.qocal_header_adjustments_overview`] | Probably `enableRevenueAdjustment` true, unconfirmed (Open) [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]; `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
+| Instant Pricing | Reprices price-impacting edits immediately | Toggled by `configure_revenue_settings` (Robot), flow `prepare_revenue_settings` [Repo: cumulusci.yml] |
+| Instant Pricing Active by Default | Starts each quote with Instant Pricing on; STLE only [Help: ind.qocal_turn_on_quote_and_order_capture] | `enableRevInstPricingDefaultPref` true; label mapping Open |
+| Delta Pricing | Help: click Reprice All after a header adjustment [Help: ind.qocal_header_adjustments_use]; the action itself runs a full reprice (quote action [Platform behaviour, traced]; order variant not traced); for header edits made by other means, use Force or Reprice All: a graph-style System request with only the header doesn't price [Platform behaviour, traced]; a System request with a line record may not reprice every line where Delta Pricing applies (header-change case not measured), and whether Delta Pricing applies to the context-id path is not traced (runtime-behavior.md section 4); UI edits aren't established | `enableDeltaPricing` true [Repo] |
+| Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: ind.qocal_header_adjustments_overview] | Probably `enableRevenueAdjustment` true, unconfirmed (Open) [Repo: unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml]; `RLM_DefaultPricingProcedure` has the DDS step [Repo: .cursor/skills/pricing-procedures/elements/discount-distribution-service.md] |
 | Sales Price Amendments | Credit and charge detail lines on amended prices | `enableSalesPriceAmendments` true [Repo] |
-| Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan: on, a header discount is distributed twice; off, the Revenue Settings procedure re-runs after the plan and a price revision doubles (section in `runtime-behavior.md`) [Repo: `datasets/sfdmu/procedure-plans/README.md`] | false [Repo] |
+| Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan: on, a header discount is distributed twice; off, the Revenue Settings procedure re-runs after the plan and a price revision doubles (section in `runtime-behavior.md`) [Repo: datasets/sfdmu/procedure-plans/README.md] | false [Repo] |
 
 The configurator the editor opens is the product's assigned Product Configuration Flow, or the org's
 default flow for products and classifications without one
-[Help: `ind.product_configurator_create_a_product_configuration_flow`]. The build
+[Help: ind.product_configurator_create_a_product_configuration_flow]. The build
 registers `RLM_Product_Configurator_Flow` (non-blocking, instant pricing on) as the org default through
-`insert_default_configurator_flow` [Repo: `cumulusci.yml`].
+`insert_default_configurator_flow` [Repo: cumulusci.yml].
 
 ## 7. Auto-refresh (STLE and Transaction Summary)
 
-[Help: `ind.qocal_auto_refresh_stle_transaction_summary_help`, `ind.qocal_auto_refresh_stle_transaction_summary_considerations`]
+[Help: ind.qocal_auto_refresh_stle_transaction_summary_help, ind.qocal_auto_refresh_stle_transaction_summary_considerations]
 
 - **Setup:** Setup > Change Data Capture > select **Quote** and **Order**. Don't select child
   objects; the parents cover lines, groups, line details and line attributes. Selecting only one
   object limits auto-refresh to that object. No new permission is needed.
 - **In this repo** the `enable_change_data_capture` task does this, adding only what is missing and
   warning instead of failing if the org's CDC allocation is used up; it is step 17 of `prepare_core`
-  [Repo: `cumulusci.yml`].
+  [Repo: cumulusci.yml].
 - **Scope:** only the user whose action (flow, Apex trigger, Agentforce action, record-page edit)
   changed the record sees the refresh. Edits by another user need **Refresh** from the editor's
   dropdown.
 - **Unsaved edits:** the STLE asks Save, Discard or Cancel before refreshing; with no unsaved edits it
   refetches after a short loading state. It holds changes while a save is running. The Transaction
   Summary is read-only and refreshes without a prompt.
+
+## 8. Custom Quote Line Group fields as STLE columns
+
+Steps to show and edit a custom field of Quote Line Group (or Order Line Group) in the STLE. The Help article says
+group fields are selectable Display Columns and a custom field needs a context mapping
+[Help: ind.qocal_select_fields_for_the_line_editor].
+
+1. Create the field on Quote Line Group and give the editing profile or permission set field-level security
+   (edit, for an editable cell). Don't reuse a line field's API name on the group: the editor can fail to detect
+   Save when the group and the line share a custom field name [Open: untested risk; to settle it, give a group field and a line field the same API name and see whether Save is detected].
+2. Map the field in the sales transaction context definition (`context-service`). On an active version this is an
+   insert-only addition: it applied in place [Measured: 2026-11-26, 264.12, ent-sb0 harness build]. A describe diff confirmed the mapping [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+   Modifying or deleting an existing mapping needs the version deactivated first.
+3. In Lightning App Builder (or the page template) add `[Quote Line Group] <Field Label>` to Display Columns
+   (template value syntax `QuoteLineItem.QuoteLineGroup.<Field>[QuoteLineGroup]`, section 1). Without the context
+   mapping the field is not persisted or read [Help: ind.qocal_select_fields_for_the_line_editor].
+4. Open a quote that has groups. Group-level custom columns show only when groups exist.
+
+Measured result of this recipe, text and picklist group fields:
+
+- Both rendered as columns after the standard ones and as Editable cells on group rows [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+- A text edit (double-click the cell, type, Enter) and a picklist edit (Enter opens the options) were saved with
+  Save and read back by SOQL [Measured: 2026-11-26, 264.12, ent-sb0 harness build]. Renaming a group on the same grid was a working positive control [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+- Clearing the text and choosing None on the picklist both saved as null [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+- A Place Sales Transaction patch of a group with both fields also persisted them [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
+- The legacy editor and the side panel were not tested [Open: legacy TLE and the side panel for custom group fields].
+- Whether a custom group field merges with a same-named line field into one column was not run; section 2 lists the
+  standard pairs [Open: custom pair merge not run].
+
+A line Quantity edit used as a positive control fails on Save when the line's product is not set up for product
+discovery; use a group name edit instead [Measured: 2026-11-26, 264.12, ent-sb0 harness build].
