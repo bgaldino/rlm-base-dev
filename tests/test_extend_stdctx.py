@@ -213,6 +213,138 @@ def test_failure_messages_are_distinct_and_carry_the_right_guidance():
     )
 
 
+class _Resp:
+    pass
+
+
+def _extend_task(responses, **options):
+    """Task with a scripted _make_request; records every request made."""
+    t = _new_task()
+    t.options = {"developerName": "Dev", "baseReference": "Base", "defaultMapping": "Map", **options}
+    t.context_id = "CTX"
+    t._last_response_status = 404
+    t.calls = []
+
+    def fake(method, url, **kw):
+        t.calls.append((method, url))
+        return responses.pop(0) if responses else {}
+
+    t._make_request = fake
+    return t
+
+
+def _raises(fn, exc, *needles):
+    try:
+        fn()
+    except exc as e:
+        return all(n in str(e) for n in needles)
+    except Exception:
+        return False
+    return False
+
+
+def test_nothing_to_extend_paths_fail_without_further_requests():
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+    t = _extend_task([None])
+    check("unreadable definition raises", _raises(t._process_context_id, CumulusCIException, "Nothing was extended"))
+    check("  and makes only the one GET", len(t.calls) == 1)
+    t = _extend_task([{"contextDefinitionVersionList": []}])
+    check("no version raises", _raises(t._process_context_id, CumulusCIException, "has no versions", "baseReference"))
+    check("  and makes only the one GET", len(t.calls) == 1)
+    t = _extend_task([{"contextDefinitionVersionList": [{"contextMappings": [{"name": "Other", "contextMappingId": "1"}]}]}])
+    check("missing default mapping raises naming what exists",
+          _raises(t._process_context_id, CumulusCIException, "'Map'", "Other"))
+    check("  and no PATCH/activation follows", all(c[0] == "get" for c in t.calls) and len(t.calls) == 1)
+    t = _extend_task([], plan_file="/nonexistent/plan.json", name="N")
+    check("unreadable plan_file raises", _raises(t._apply_plan_if_present, TaskOptionsError, "plan_file"))
+    check("  and makes no request", t.calls == [])
+    check("unreadable plan_file is rejected before any request, with the other options",
+          _raises(t._validate_task_options, TaskOptionsError, "plan_file"))
+    import json, tempfile
+    for body, needle in (('[]', "JSON object"), ('{"contextTagsByName": {"name": "T"}}', "contextTagsByName"),
+                         ('{"contextNodes": [], "contextTagsByName": {}}', "contextTagsByName")):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+            handle.write(body)
+        t = _extend_task([], plan_file=handle.name, name="N")
+        check(f"plan_file {body[:30]} is refused by validation, before any request",
+              _raises(t._validate_task_options, TaskOptionsError, needle) and t.calls == [])
+        os.unlink(handle.name)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+        json.dump({"contextTagsByName": [], "contextNodes": []}, handle)
+    t = _extend_task([], plan_file=handle.name, name="N")
+    t._validate_task_options()
+    check("a well-formed plan_file passes validation", t.calls == [])
+    os.unlink(handle.name)
+
+
+def test_existing_definition_with_a_mapping_not_yet_default_is_patched():
+    t = _extend_task([{"contextDefinitionVersionList": [{"contextMappings": [{"name": "Map", "contextMappingId": "M1"}]}]}],
+                     activate="false")
+    t._existing_definition = True
+    t._process_context_id()
+    check("mapping found, not default: PATCH issued, no raise", [c[0] for c in t.calls] == ["get", "patch"])
+
+
+_MAPPING_VERSION = {"contextDefinitionVersionList": [{"contextMappings": [{"name": "Map", "contextMappingId": "M1"}]}]}
+
+
+def test_failed_writes_raise_instead_of_passing():
+    from cumulusci.core.exceptions import CumulusCIException
+    t = _extend_task([_MAPPING_VERSION, None], activate="false")
+    t._last_response_status = 400
+    check("failed default-mapping PATCH raises", _raises(t._process_context_id, CumulusCIException, "default context mapping", "HTTP 400"))
+    t = _extend_task([_MAPPING_VERSION, {}, None], activate="true")
+    t._last_response_status = None
+    check("failed activation PATCH raises", _raises(t._process_context_id, CumulusCIException, "activate", "no response from the server"))
+    for fn, arg in (("_post_context_nodes", []), ("_post_context_mappings", []),
+                    ("_patch_context_mappings", []), ("_post_context_tags", {})):
+        t = _extend_task([None])
+        check(f"failed {fn} raises", _raises(lambda: getattr(t, fn)(arg), CumulusCIException, "plan's"))
+    t = _extend_task([{"isSuccess": False, "errors": ["bad tag"]}])
+    check("a 2xx reporting isSuccess false raises", _raises(lambda: t._post_context_tags({}), CumulusCIException, "bad tag"))
+
+
+def test_tags_by_name_fail_when_they_cannot_resolve():
+    from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+    t = _extend_task([None])
+    check("failed definition GET raises", _raises(lambda: t._resolve_tags_by_name([{"name": "T", "nodeName": "N"}]),
+                                                  CumulusCIException, "resolve the plan's tags"))
+    tree = {"contextDefinitionVersionList": [{"contextNodes": [{"name": "N", "contextNodeId": "N1", "attributes": {
+        "contextAttributes": [{"name": "A", "contextAttributeId": "A1"}]}}]}]}
+    t = _extend_task([tree])
+    check("resolvable specs resolve", t._resolve_tags_by_name([{"name": "T", "nodeName": "N"},
+                                                               {"name": "U", "nodeName": "N", "attributeName": "A"}])
+          == [{"contextNodeId": "N1", "name": "T"}, {"contextAttributeId": "A1", "name": "U"}])
+    t = _extend_task([tree])
+    check("unresolvable and malformed specs raise naming each",
+          _raises(lambda: t._resolve_tags_by_name([{"name": "T", "nodeName": "Nope"},
+                                                   {"name": "U", "nodeName": "N", "attributeName": "Nope"}, "bad"]),
+                  CumulusCIException, "T (Nope)", "U (N.Nope)", "'bad'"))
+    t = _extend_task([])
+    check("non-list contextTagsByName raises", _raises(lambda: t._resolve_tags_by_name({}), TaskOptionsError, "list"))
+
+
+def test_rerun_on_an_existing_definition_runs_end_to_end():
+    default_version = {"contextDefinitionVersionList": [{"contextMappings": [
+        {"name": "Map", "contextMappingId": "M1", "isDefault": True}]}]}
+    t = _extend_task([None, default_version, {}], activate="true")
+    scripted = t._make_request
+
+    def make_request(method, url, **kw):
+        response = scripted(method, url, **kw)
+        if response is None:  # the failed create, as _make_request records it
+            t._last_response_status = 400
+            t._last_response_body = '[{"errorCode":"DUPLICATE_VALUE","message":"Definition Name already exists"}]'
+        return response
+
+    t._make_request = make_request
+    t._recover_context_id = lambda developer_name: "CTX"
+    t._extend_context_definition()
+    check("duplicate create, definition read, then only the activation PATCH (mapping already default)",
+          [c[0] for c in t.calls] == ["post", "get", "patch"] and not t.calls[-1][1].endswith("context-mappings"))
+    check("  the definition is flagged existing", t._existing_definition is True)
+
+
 def main():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]

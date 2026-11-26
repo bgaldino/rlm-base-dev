@@ -103,7 +103,8 @@ class ManageExpressionSets(BaseSalesforceTask):
         if operation == "list":
             self._list_expression_sets()
         elif operation == "query":
-            self._query_expression_sets()
+            expression_sets = self._query_expression_sets()
+            self.return_values = {"expression_sets": expression_sets}
         elif operation == "list_versions":
             self._list_versions()
         elif operation == "activate_version":

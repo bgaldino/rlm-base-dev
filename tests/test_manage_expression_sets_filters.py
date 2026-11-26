@@ -79,6 +79,7 @@ class FakeTooling(types.ModuleType):
 from tasks.rlm_manage_expression_sets import ManageExpressionSets  # noqa: E402
 
 LOGS = []
+LAST = {}
 
 
 def run(options):
@@ -90,6 +91,7 @@ def run(options):
     task.org_config = types.SimpleNamespace(access_token="t", instance_url="https://example.my.salesforce.com")
     task.project_config = types.SimpleNamespace(project__package__api_version="68.0")
     task.options = options
+    LAST["task"] = task
     log = lambda msg, *a, **k: LOGS.append(msg)  # noqa: E731
     task.logger = types.SimpleNamespace(info=log, error=log, warning=log, debug=lambda *a, **k: None)
     try:
@@ -232,6 +234,22 @@ check("a version query was sent", bool(vq), repr(fake.queries))
 check("no Rank / StartDate / Label / Description", not any(f in vq for f in ("Rank", "StartDate", ", Label", "Description")), vq)
 check("selects VersionNumber and Status", "VersionNumber" in vq and "Status" in vq, vq)
 check("prints the version row", "Pricing_One_V1" in JOINED(LOGS), JOINED(LOGS))
+
+print("query returns its rows; operation is stripped and cased")
+for op in ("query", "  QUERY ", "Query\n"):
+    fake, err = run({"operation": op})
+    check(f"operation {op!r} runs query", err is None and any("FROM ExpressionSetDefinition" in q for q in fake.queries), repr(err))
+fake, err = run({"operation": " query ", "limit": "2"})
+rv = getattr(LAST["task"], "return_values", None)
+check("query sets return_values['expression_sets'] with the rows",
+      err is None and isinstance(rv, dict) and [r["DeveloperName"] for r in rv.get("expression_sets", [])] == ["Pricing_One", "Rating_One", "Pricing_Two"],
+      repr(rv))
+check("rows carry no 'attributes'", all("attributes" not in r for r in rv["expression_sets"]), repr(rv))
+check("query still logs the count", "Query returned 3 expression set(s)." in JOINED(LOGS), JOINED(LOGS))
+_, err = run({"operation": None})
+check("operation None is refused as unknown", err is not None and "Unknown operation" in str(err), repr(err))
+_, err = run({"operation": "   "})
+check("blank operation is refused as unknown", err is not None and "Unknown operation" in str(err), repr(err))
 
 print()
 if FAILURES:
