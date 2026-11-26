@@ -17,7 +17,7 @@ import requests
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_flag, project_api_version, soql_quote
+from tasks.soql_utils import option_flag, option_text, positive_int, project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -29,6 +29,11 @@ except ImportError:
 
 _REQUEST_TIMEOUT = 30  # seconds — prevents hangs on unstable networks/CI
 
+
+def _positive_option(options, name: str, default: int) -> int:
+    """A positive integer option: None, blank or whitespace is `default`; anything else is refused by name."""
+    text = option_text(options.get(name), name, TaskOptionsError)
+    return default if text is None else positive_int(text, name, TaskOptionsError)
 
 
 class CreateProcedurePlanDefinition(BaseSalesforceTask):
@@ -208,7 +213,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             "saveContextMapping": self.options.get("versionSaveContextMapping"),
             "effectiveFrom": self.options.get("versionEffectiveFrom"),
             "developerName": self.options.get("versionDeveloperName"),
-            "rank": int(self.options.get("versionRank", 0)),
+            "rank": self._version_rank(),
         }
         effective_to = self.options.get("versionEffectiveTo")
         if effective_to:
@@ -238,6 +243,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
     def _run_task(self):
         dev_name = self.options["developerName"]
         self._version_active()  # refuse a bad value before the existence query
+        self._version_rank()
 
         if self._definition_exists(dev_name):
             self.logger.info(
@@ -277,6 +283,20 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
                 f"Failed to create ProcedurePlanDefinition '{dev_name}': "
                 f"{resp.status_code} {resp.text}"
             )
+
+    def _version_rank(self) -> int:
+        """versionRank: None, blank or whitespace is 0; otherwise a whole number, 0 or more, or refused by
+        name (it was int() while building the POST body, after the existence query)."""
+        text = option_text(self.options.get("versionRank"), "versionRank", TaskOptionsError)
+        if text is None:
+            return 0
+        try:
+            rank = int(text)
+        except ValueError:
+            rank = -1
+        if rank < 0:
+            raise TaskOptionsError(f"versionRank must be a whole number, 0 or more, got {self.options.get('versionRank')!r}")
+        return rank
 
     def _version_active(self) -> bool:
         """versionActive through soql_utils.option_flag: None, blank or whitespace is False, padded
@@ -378,11 +398,11 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
             "required": True,
         },
         "max_wait_seconds": {
-            "description": "Maximum seconds to wait for IsActive=false confirmation",
+            "description": "Maximum seconds to wait for IsActive=false confirmation. Default 20, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
         "poll_interval_seconds": {
-            "description": "Polling interval in seconds while waiting for deactivation",
+            "description": "Polling interval in seconds while waiting for deactivation. Default 2, also when blank; anything but a positive integer is refused.",
             "required": False,
         },
     }
@@ -407,8 +427,10 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
     def _run_task(self):
         dev_name = self.options["developerName"]
         safe_dev_name = soql_quote(dev_name)
-        max_wait_seconds = int(self.options.get("max_wait_seconds", 20))
-        poll_interval_seconds = int(self.options.get("poll_interval_seconds", 2))
+        # Before the first query: None, blank or whitespace is the default (20, 2); anything but a
+        # positive integer ("abc", 0, a list) is refused by name. They were int() after the PATCH.
+        max_wait_seconds = _positive_option(self.options, "max_wait_seconds", 20)
+        poll_interval_seconds = _positive_option(self.options, "poll_interval_seconds", 2)
 
         query = (
             "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "

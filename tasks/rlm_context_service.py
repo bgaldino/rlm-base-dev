@@ -51,27 +51,27 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
             "required": True,
         },
         "activate": {
-            "description": "If true, activate the context definition after updates.",
+            "description": "If true, activate the context definition after updates. Blank or unset falls back to the plan's activate field (false when absent); a list or a value that isn't true or false is refused.",
             "required": False,
         },
         "dry_run": {
-            "description": "If true, only logs intended API calls.",
+            "description": "If true, only logs intended API calls. Blank or unset is the default (false); a list or a value that isn't true or false is refused.",
             "required": False,
         },
         "deactivate_before": {
-            "description": "If true, deactivate context definition before updates.",
+            "description": "If true, deactivate context definition before updates. Blank or unset falls back to the plan's deactivateBefore field (false when absent); a list or a value that isn't true or false is refused.",
             "required": False,
         },
         "validate_only": {
-            "description": "If true, only validates the plan against the context definition.",
+            "description": "If true, only validates the plan against the context definition. Blank or unset is the default (false); a list or a value that isn't true or false is refused.",
             "required": False,
         },
         "translate_plan": {
-            "description": "If true, translate mappingRules into contextMappingUpdates.",
+            "description": "If true, translate mappingRules into contextMappingUpdates. Blank or unset is the default (true); a list or a value that isn't true or false is refused.",
             "required": False,
         },
         "verify": {
-            "description": "If true, log verification details after updates.",
+            "description": "If true, log verification details after updates. Blank or unset is the default (false); a list or a value that isn't true or false is refused.",
             "required": False,
         },
     }

@@ -959,6 +959,49 @@ for value, want in ((True, True), (" true ", True), ("on", True), (None, False),
           err is None and queries == ["D"] and len(posts) == 1
           and posts[0]["procedurePlanDefinitionVersions"][0]["active"] is want
           if posts and "procedurePlanDefinitionVersions" in posts[0] else False, repr((err, queries, posts)))
+for value, want in ((None, 0), ("", 0), ("  ", 0), (" 3 ", 3), (1, 1), (0, 0)):
+    err, queries, posts = ppd_run({"versionRank": value})
+    check(f"procedure plan: versionRank {value!r} posts rank={want}",
+          err is None and len(posts) == 1 and posts[0]["procedurePlanDefinitionVersions"][0]["rank"] == want,
+          repr((err, queries, posts)))
+for value in ("abc", -1, ["1"]):
+    err, queries, posts = ppd_run({"versionRank": value})
+    check(f"procedure plan: versionRank {value!r} refused by name before any query (it was int() mid-build)",
+          err is not None and "versionRank" in err and queries == [] and posts == [], repr((err, queries, posts)))
+
+
+def deactivate_run(options):
+    calls = []
+    t = _ppd.DeactivateProcedurePlanVersion.__new__(_ppd.DeactivateProcedurePlanVersion)
+    t.options = {"developerName": "D", **options}
+    t.logger = types.SimpleNamespace(info=lambda *a, **k: None, warning=lambda *a, **k: None)
+
+    def get(*a, **k):
+        calls.append("get")
+        raise RuntimeError("stop: first request")
+    with mock.patch.object(_ppd.DeactivateProcedurePlanVersion, "_base_url", "https://x", create=True), \
+            mock.patch.object(_ppd.DeactivateProcedurePlanVersion, "_headers", {}, create=True), \
+            mock.patch.object(_ppd.requests, "get", get), \
+            mock.patch.object(_ppd.requests, "patch", lambda *a, **k: calls.append("patch")):
+        try:
+            t._run_task()
+            return "no error", calls
+        except RuntimeError:
+            return "reached", calls
+        except Exception as exc:
+            return str(exc), calls
+
+
+for name in ("max_wait_seconds", "poll_interval_seconds"):
+    for value, needle in (("abc", "must be a positive integer"), (0, "must be a positive integer"),
+                          (["5"], "must be a single value")):
+        err, calls = deactivate_run({name: value})
+        check(f"deactivate procedure plan version: {name} {value!r} refused by name before any request",
+              f"{name} {needle}" in err and calls == [], repr((err, calls)))
+    for value in (None, "", "  ", " 5 "):
+        err, calls = deactivate_run({name: value})
+        check(f"deactivate procedure plan version: {name} {value!r} is accepted and the query is sent",
+              err == "reached" and calls == ["get"], repr((err, calls)))
 for value, needle in ((["false"], "versionActive must be a single value"),
                       ("maybe", "versionActive must be true or false")):
     err, queries, posts = ppd_run({"versionActive": value})
@@ -988,6 +1031,7 @@ def ctx_run(options, plan):
         t._post_context_tags = lambda cid, payload, dry_run: calls.append(("tags", dry_run))
         t._log_verification = lambda detail, p: calls.append("verify")
         t._activate_context_definition = lambda cid, dry_run: calls.append(("activate", dry_run))
+        t._translate_mapping_rules = lambda rules, detail, developer_name=None: calls.append("translate") or None
         try:
             t._run_task()
             return None, calls
@@ -1009,9 +1053,15 @@ check("context: a blank activate / deactivate_before falls back to the plan's ow
       err is None and ("activate", False) in calls and ("deactivate", False) in calls, repr((err, calls)))
 err, calls = ctx_run({"validate_only": " true "}, PLAN)
 check("context: a padded validate_only validates and stops", err is None and calls[-1] == "validate", repr((err, calls)))
-err, calls = ctx_run({"translate_plan": "  "}, PLAN)
-check("context: a blank translate_plan is its default (true) and the run completes", err is None and "fetch" in calls,
-      repr((err, calls)))
+RULES_PLAN = {**PLAN, "mappingRules": [{"mappingType": "SOBJECT", "contextNode": "N"}]}
+for options in ({}, {"translate_plan": "  "}, {"translate_plan": None}, {"translate_plan": " on "}):
+    err, calls = ctx_run(options, RULES_PLAN)
+    check(f"context: translate_plan {options.get('translate_plan', '<unset>')!r} is true (its default): "
+          "mappingRules are translated", err is None and "translate" in calls, repr((err, calls)))
+for value in ("false", " off ", 0):
+    err, calls = ctx_run({"translate_plan": value}, RULES_PLAN)
+    check(f"context: translate_plan {value!r} skips translating mappingRules",
+          err is None and "fetch" in calls and "translate" not in calls, repr((err, calls)))
 for options, needle in (({"dry_run": ["true"]}, "dry_run must be a single value"),
                         ({"verify": "maybe"}, "verify must be true or false"),
                         ({"translate_plan": "maybe"}, "translate_plan must be true or false"),
@@ -1057,6 +1107,22 @@ for name in ("dry_run", "verify", "activate_after_apply"):
         check(f"procedure plan overlay: {name} {value!r} refused by name before the overlay or any request",
               f"{name} {needle}" in err and calls == [], repr((err, calls)))
 
+# max_wait_seconds / poll_interval_seconds were int() after the deactivation and the writes.
+for name in ("max_wait_seconds", "poll_interval_seconds"):
+    for value, needle in (("abc", "must be a positive integer"), (0, "must be a positive integer"),
+                          (["5"], "must be a single value")):
+        err, calls = ppo_run({name: value})
+        check(f"procedure plan overlay: {name} {value!r} refused by name before the overlay or any request",
+              f"{name} {needle}" in err and calls == [], repr((err, calls)))
+    for value in (None, "", "  ", " 7 "):
+        err, calls = ppo_run({name: value})
+        check(f"procedure plan overlay: {name} {value!r} is accepted (blank is the default) and the run reaches the org",
+              err == "reached" and calls == ["overlay", "get_version"], repr((err, calls)))
+_po = _ppo.ApplyProcedurePlanOverlay.__new__(_ppo.ApplyProcedurePlanOverlay)
+_po.options = {"max_wait_seconds": "  ", "poll_interval_seconds": " 4 "}
+check("procedure plan overlay: _wait_options gives the default for blank and reads padded text",
+      _po._wait_options() == (45, 4), repr(_po._wait_options()))
+
 _tpt = load("rlm_manage_transaction_processing_types")
 _fsc = load("rlm_manage_fulfillment_scope_cnfg")
 
@@ -1094,6 +1160,14 @@ for module, cls, label in ((_tpt, "ManageTransactionProcessingTypes", "transacti
         err, calls = upsert_run(module, cls, {"dry_run": value}, [{"DeveloperName": "A"}])
         check(f"{label}: dry_run {value!r} refused by name before any request",
               err is not None and needle in err and calls == [], repr((err, calls)))
+
+# The up-front dry_run read in _run_task covers every operation, not only upsert.
+for module, cls, label, ops in ((_tpt, "ManageTransactionProcessingTypes", "transaction processing types", ("list",)),
+                                (_fsc, "ManageFulfillmentScopeCnfg", "fulfillment scope cnfg", ("list", "extract"))):
+    for op in ops:
+        err, calls = upsert_run(module, cls, {"operation": op, "dry_run": "maybe"}, [])
+        check(f"{label}: operation {op} with dry_run 'maybe' is refused naming dry_run, before any file or request",
+              err is not None and "dry_run must be true or false" in err and calls == [], repr((err, calls)))
 
 _prtm = load("rlm_configure_pricing_recipe_table_mappings")
 
