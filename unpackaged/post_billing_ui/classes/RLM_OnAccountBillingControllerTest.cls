@@ -11,10 +11,10 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // Checks that, as the admin, the summary for an account with no billing records returns
-    // zero balances and clean status flags. Most reads (the aggregate balances and the
-    // partially-paid, written-off, dispute and collection reads) are swallowed into zeros when
-    // they fail, so this does not prove they run; the four Invoice counts and the account
-    // currency read would throw instead. See
+    // zero balances and clean status flags. A refused aggregate balance read returns null, not
+    // zero (see the refused-read tests below), so these zeros show the balance reads ran; the
+    // partially-paid, written-off, dispute and collection reads are still swallowed into zeros
+    // when they fail, so this does not prove they run. See
     // getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans: the probes
     // there show this role can run the reads.
     @isTest
@@ -190,9 +190,9 @@ private class RLM_OnAccountBillingControllerTest {
             'An account with a collection plan is in collections.');
     }
 
-    // The aggregate balance reads, and the partially-paid, written-off, dispute and collections
-    // reads, swallow a query the user may not run and report zero, so a zero proves nothing by
-    // itself. For a billing operations user holding RLM_BillingUI this runs, in USER_MODE, a
+    // The partially-paid, written-off, dispute and collections reads swallow a query the user may
+    // not run and report zero, so a zero there proves nothing by itself (a refused balance read is
+    // null, not zero). For a billing operations user holding RLM_BillingUI this runs, in USER_MODE, a
     // probe of each read the summary makes (account currency, standard rates, and each object
     // it sums or counts, with the fields it uses); those probes are the evidence that this role
     // can run the summary's reads. Dated rates are left out: that table exists only with
@@ -462,5 +462,119 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.isNotNull(message, 'The refused read is reported.');
         Assert.areEqual('Unable to read the account\'s currency, so its balances are not shown. Contact your administrator.',
             message, 'The user-facing sentence is fixed; no platform text is echoed.');
+    }
+
+    // ---- Refused reads (pack 452): a refused balance is unavailable (null), never counted as zero ----
+
+    @isTest
+    static void netOf_isUnavailableWhenAnyBalanceIs() {
+        Assert.areEqual(100 + 20 - 5 - 30 + 2, RLM_OnAccountBillingController.netOf(100, 20, 5, 30, 2),
+            'All balances read: invoices + debit memos - credit memos - payments + refunds.');
+        Assert.isNull(RLM_OnAccountBillingController.netOf(null, 20, 5, 30, 2), 'Invoices refused: no net balance.');
+        Assert.isNull(RLM_OnAccountBillingController.netOf(100, null, 5, 30, 2), 'Debit memos refused: no net balance.');
+        Assert.isNull(RLM_OnAccountBillingController.netOf(100, 20, null, 30, 2), 'Credit memos refused: no net balance.');
+        Assert.isNull(RLM_OnAccountBillingController.netOf(100, 20, 5, null, 2), 'Payments refused: no net balance.');
+        Assert.isNull(RLM_OnAccountBillingController.netOf(100, 20, 5, 30, null), 'Refunds refused: no net balance.');
+    }
+
+    // A billing user who reads the account and its invoices but none of the other balance objects:
+    // each of those balances, and the net balance, is unavailable; the invoice balance is a real zero.
+    @isTest
+    static void getBillingSummary_forAUserWhoReadsOnlyInvoices_showsTheOtherBalancesAndTheNetUnavailable() {
+        User u = billingUserReading(new List<String>{ 'Account', 'Invoice' });
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Invoices Only', null);
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(u) {
+            assertReads(new List<String>{ ACCOUNT_READ, INVOICE_READ },
+                new List<String>{ DEBIT_MEMO_READ, CREDIT_MEMO_READ, PAYMENT_SUM_READ, REFUND_READ });
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(0, (Decimal) result.get('invoiceBalance'), 'The readable invoice balance is a real zero.');
+        for (String key : new List<String>{ 'debitMemoBalance', 'creditMemoBalance', 'paymentBalance', 'refundBalance' }) {
+            Assert.isTrue(result.containsKey(key), key + ' is returned.');
+            Assert.isNull(result.get(key), key + ' is unavailable (null), not zero, when its read is refused.');
+        }
+        Assert.isNull(result.get('netAccountBalance'), 'The net balance includes the refused parts, so it is unavailable.');
+        Assert.areEqual(0, (Integer) result.get('totalInvoices'), 'The invoice counts still run.');
+    }
+
+    // Per balance: with Payment also readable, the payment balance is a real zero while the
+    // refused debit memo, credit memo and refund balances, and the net balance, are unavailable.
+    @isTest
+    static void getBillingSummary_forAUserWhoReadsInvoicesAndPayments_showsOnlyTheRefusedBalancesUnavailable() {
+        User u = billingUserReading(new List<String>{ 'Account', 'Invoice', 'Payment' });
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Invoices And Payments', null);
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(u) {
+            assertReads(new List<String>{ ACCOUNT_READ, INVOICE_READ, PAYMENT_SUM_READ },
+                new List<String>{ DEBIT_MEMO_READ, CREDIT_MEMO_READ, REFUND_READ });
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.areEqual(0, (Decimal) result.get('invoiceBalance'), 'The invoice balance is read, so its zero is real.');
+        Assert.areEqual(0, (Decimal) result.get('paymentBalance'), 'The payment balance is read, so its zero is real.');
+        for (String key : new List<String>{ 'debitMemoBalance', 'creditMemoBalance', 'refundBalance' }) {
+            Assert.isNull(result.get(key), key + ' is unavailable (null), not zero, when its read is refused.');
+        }
+        Assert.isNull(result.get('netAccountBalance'), 'The net balance includes refused parts, so it is unavailable.');
+    }
+
+    // Without Invoice the summary cannot show the balances or the status: a fixed sentence, not the
+    // platform's query error and not invoice counts of zero ("no billing activity").
+    @isTest
+    static void getBillingSummary_forAUserWhoCannotReadInvoices_throwsAFixedSentence() {
+        User u = billingUserReading(new List<String>{ 'Account', 'DebitMemo', 'CreditMemo', 'Payment', 'Refund' });
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account No Invoices', null);
+        String message;
+        Test.startTest();
+        System.runAs(u) {
+            assertReads(new List<String>{ ACCOUNT_READ }, new List<String>{ INVOICE_READ });
+            try {
+                RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+            } catch (AuraHandledException e) {
+                message = e.getMessage();
+            }
+        }
+        Test.stopTest();
+
+        Assert.areEqual('Unable to read this account\'s invoices, so its balances are not shown. Contact your administrator.',
+            message, 'The user-facing sentence is fixed; no platform text is echoed.');
+    }
+
+    // The summary's reads, as the controller makes them (multi-currency: grouped by currency).
+    private static final String ACCOUNT_READ = 'SELECT Id, CurrencyIsoCode FROM Account LIMIT 1';
+    private static final String INVOICE_READ =
+        'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM Invoice WHERE BillingAccountId != null AND Status = \'Posted\' AND Balance != 0 GROUP BY CurrencyIsoCode';
+    private static final String DEBIT_MEMO_READ =
+        'SELECT SUM(TotalChargeAmount) total, CurrencyIsoCode curr FROM DebitMemo WHERE AccountId != null AND Status = \'Posted\' AND TotalChargeAmount != 0 AND InvoiceGenerationStatus != \'Posted Invoice Generated\' GROUP BY CurrencyIsoCode';
+    private static final String CREDIT_MEMO_READ =
+        'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM CreditMemo WHERE BillingAccountId != null AND Status = \'Posted\' AND Balance != 0 GROUP BY CurrencyIsoCode';
+    private static final String PAYMENT_SUM_READ =
+        'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM Payment WHERE AccountId != null AND Status = \'Processed\' AND Balance != 0 GROUP BY CurrencyIsoCode';
+    private static final String REFUND_READ =
+        'SELECT SUM(Balance) total, CurrencyIsoCode curr FROM Refund WHERE AccountId != null AND Status = \'Processed\' AND Balance != 0 GROUP BY CurrencyIsoCode';
+
+    // A billing user (Billing license and access permission) that reads and sees all records of
+    // exactly the given objects, and nothing else.
+    private static User billingUserReading(List<String> objects) {
+        return RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), objects);
+    }
+
+    // PRECONDITION for the running user: each of the first queries runs in user mode, and each of
+    // the second is refused, so the result shows the controller's handling of that refusal.
+    private static void assertReads(List<String> granted, List<String> refused) {
+        for (String soql : granted) {
+            String error = userModeError(soql);
+            Assert.isNull(error, 'PRECONDITION: the user can run ' + soql + ': ' + error);
+        }
+        for (String soql : refused) {
+            Assert.isNotNull(userModeError(soql), 'PRECONDITION: the user cannot run ' + soql);
+        }
     }
 }

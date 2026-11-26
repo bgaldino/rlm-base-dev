@@ -95,3 +95,75 @@ describe('rlmInvoiceSummaryBar wires', () => {
         expect(el.shadowRoot.querySelector('.summary-container')).toBeNull();
     });
 });
+
+// Pack 452: a balance the server could not read comes back null and shows as unavailable, never
+// as $0.00; a wire is ready only on data or an error; a new recordId starts a new load.
+const ALL_READ = {
+    totalInvoices: 2, invoiceBalance: 100, debitMemoBalance: 20,
+    creditMemoBalance: 5, paymentBalance: 30, refundBalance: 0, netAccountBalance: 85
+};
+const PAYMENTS_REFUSED = { ...ALL_READ, paymentBalance: null, netAccountBalance: null };
+const spinner = (el) => el.shadowRoot.querySelector('lightning-spinner');
+const metricTexts = (el) => [...el.shadowRoot.querySelectorAll('.metric-value')].map((n) => n.textContent);
+
+describe('rlmInvoiceSummaryBar unavailable balances and loading', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+    });
+
+    it('shows the figures when every balance is read', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(el.shadowRoot.querySelector('.total-amount').textContent).toBe('$85.00');
+        expect(metricTexts(el)).toEqual(['$120.00', '$35.00']);
+    });
+
+    it('shows a refused balance, and every total that includes it, as unavailable, not $0.00', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit(PAYMENTS_REFUSED);
+        await flush();
+        expect(el.shadowRoot.querySelector('.total-amount').textContent).toBe('Unavailable');
+        expect(metricTexts(el)).toEqual(['$120.00', 'Unavailable']);
+        expect(el.shadowRoot.querySelector('.status-pill').textContent).toBe('Balance Unavailable');
+    });
+
+    it('keeps the spinner through the empty first delivery and until both wires answer', async () => {
+        const el = mount();
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        getInvoiceSummary.emit(INVOICE);
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(spinner(el)).toBeNull();
+    });
+
+    it('stops the spinner on an error too', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.error(REFUSED);
+        await flush();
+        expect(spinner(el)).toBeNull();
+    });
+
+    it('hides the previous record and shows the spinner when the recordId changes', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(el.shadowRoot.querySelector('.total-amount')).not.toBeNull();
+        el.recordId = '001000000000002AAA';
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        expect(el.shadowRoot.querySelector('.total-amount')).toBeNull();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.emit({ ...ALL_READ, netAccountBalance: 10, invoiceBalance: 25, debitMemoBalance: 20 });
+        await flush();
+        expect(spinner(el)).toBeNull();
+        expect(el.shadowRoot.querySelector('.total-amount').textContent).toBe('$10.00');
+    });
+});

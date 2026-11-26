@@ -1,22 +1,39 @@
 import { LightningElement, api, wire } from 'lwc';
 import getBillingSummary from '@salesforce/apex/RLM_OnAccountBillingController.getBillingSummary';
 
+// Shown for a balance whose read was refused (null from the server), never a zero.
+const UNAVAILABLE = 'Unavailable';
+
 export default class RlmOnAccountBilling extends LightningElement {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: the spinner shows, and the previous record's figures are
+    // hidden, until the new result lands.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this.isLoading = true;
+        }
+        this._recordId = value;
+    }
 
     isLoading = true;
     data = null;
     errorMessage = '';
 
+    // Ready only on data or an error: the empty delivery a wire can make before the first server
+    // result does not stop the spinner.
     @wire(getBillingSummary, { accountId: '$recordId' })
     wiredSummary({ data, error }) {
-        this.isLoading = false;
         if (data) {
             this.data = data;
             this.errorMessage = '';
+            this.isLoading = false;
         } else if (error) {
             this.data = null;
             this.errorMessage = this.extractError(error);
+            this.isLoading = false;
         }
     }
 
@@ -44,17 +61,19 @@ export default class RlmOnAccountBilling extends LightningElement {
         return `All values converted to account currency (${this.currencyIsoCode})`;
     }
 
-    // Due Amount = Invoice + Debit Memo
+    // Due Amount = Invoice + Debit Memo. Null (shown as unavailable) when either part is: the
+    // server returns null for a balance whose read was refused, never counted as zero.
     get dueAmount() {
-        return Number(this.data?.invoiceBalance || 0)
-             + Number(this.data?.debitMemoBalance || 0);
+        const d = this.data;
+        if (d?.invoiceBalance == null || d?.debitMemoBalance == null) return null;
+        return Number(d.invoiceBalance) + Number(d.debitMemoBalance);
     }
 
-    // Adjusted Amount = Payment + Credit Memo - Refund
+    // Adjusted Amount = Payment + Credit Memo - Refund; null when any part is.
     get adjustedAmount() {
-        return Number(this.data?.paymentBalance || 0)
-             + Number(this.data?.creditMemoBalance || 0)
-             - Number(this.data?.refundBalance || 0);
+        const d = this.data;
+        if (d?.paymentBalance == null || d?.creditMemoBalance == null || d?.refundBalance == null) return null;
+        return Number(d.paymentBalance) + Number(d.creditMemoBalance) - Number(d.refundBalance);
     }
 
     get formattedDueAmount() {
@@ -81,8 +100,10 @@ export default class RlmOnAccountBilling extends LightningElement {
         return this.formatAmount(this.data?.paymentBalance);
     }
 
-    get formattedRefundBalance() {
-        return this.formatAmount(this.data?.refundBalance);
+    // The refund shown as a deduction; no minus sign in front of "Unavailable".
+    get formattedRefundDeduction() {
+        const refund = this.data?.refundBalance;
+        return refund == null ? UNAVAILABLE : '-' + this.formatAmount(refund);
     }
 
     get formattedNetBalance() {
@@ -90,8 +111,8 @@ export default class RlmOnAccountBilling extends LightningElement {
     }
 
     get netAmountClass() {
-        const net = Number(this.data?.netAccountBalance || 0);
-        return net < 0 ? 'net-amount net-positive' : 'net-amount';
+        const net = this.data?.netAccountBalance;
+        return net != null && Number(net) < 0 ? 'net-amount net-positive' : 'net-amount';
     }
 
     get rlmBillingStatus() {
@@ -105,7 +126,7 @@ export default class RlmOnAccountBilling extends LightningElement {
         const writtenOff = Number(d.writtenOffCount || 0);
         const disputeCount = Number(d.disputeCount || 0);
         const inCollections = d.inCollections === true;
-        const net = Number(d.netAccountBalance || 0);
+        const net = d.netAccountBalance == null ? null : Number(d.netAccountBalance);
 
         if (totalInvoices === 0) {
             return {
@@ -156,6 +177,13 @@ export default class RlmOnAccountBilling extends LightningElement {
                 description: `${overdueCount} invoice(s) are past their due date with outstanding balance.`
             };
         }
+        if (net == null) {
+            return {
+                label: 'Balance Unavailable',
+                cssClass: 'status-pill status-no-activity',
+                description: 'Some balances on this account could not be read, so its standing is not shown.'
+            };
+        }
         if (net < 0) {
             return {
                 label: 'Credit Balance',
@@ -203,7 +231,8 @@ export default class RlmOnAccountBilling extends LightningElement {
     }
 
     formatAmount(value) {
-        const amount = Number(value || 0);
+        if (value == null) return UNAVAILABLE;
+        const amount = Number(value);
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: this.currencyIsoCode,

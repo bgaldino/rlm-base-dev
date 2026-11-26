@@ -177,7 +177,8 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             id,
             name,
             invoiceId,
-            invoiceDisplayName: invoiceId || '—',
+            // The invoice's document number once resolved; a dash until then, never the record Id.
+            invoiceDisplayName: '—',
             hasInvoice: !!invoiceId,
             formattedDisputedAmount: this.formatCurrency(disputedAmount),
             formattedReceivedDate,
@@ -199,7 +200,7 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
                         };
                     }
                 })
-                .catch(() => { /* keep ID as fallback */ });
+                .catch(() => { /* keep the dash */ });
         }
     }
 
@@ -224,7 +225,8 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             return {
                 id: node.Id,
                 invoiceLineId,
-                invoiceLineName: gqlName || invoiceLineId || '—',
+                // A dash, never the record Id, until a name is resolved.
+                invoiceLineName: gqlName || '—',
                 hasInvoiceLine: !!invoiceLineId,
                 invoiceLineUrl: invoiceLineId ? this.buildRecordUrl(invoiceLineId) : null,
                 formattedDisputedAmount: this.formatCurrency(disputedAmt),

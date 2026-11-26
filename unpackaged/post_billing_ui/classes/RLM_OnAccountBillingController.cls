@@ -61,9 +61,9 @@ public with sharing class RLM_OnAccountBillingController {
         );
         result.put('refundBalance', refundBalance);
 
-        Decimal netBalance = invoiceBalance + debitMemoBalance
-            - creditMemoBalance - paymentBalance + refundBalance;
-        result.put('netAccountBalance', netBalance);
+        // A balance whose read was refused is null (shown as unavailable), and so is the net
+        // balance: a refused part is never counted as zero (owner rule, pack 445).
+        result.put('netAccountBalance', netOf(invoiceBalance, debitMemoBalance, creditMemoBalance, paymentBalance, refundBalance));
 
         // Status-related queries
         Map<String, Object> statusInfo = queryBillingStatus(accountId);
@@ -71,6 +71,19 @@ public with sharing class RLM_OnAccountBillingController {
 
         return result;
     }
+
+    @TestVisible
+    private static Decimal netOf(Decimal invoiceBalance, Decimal debitMemoBalance, Decimal creditMemoBalance,
+            Decimal paymentBalance, Decimal refundBalance) {
+        if (invoiceBalance == null || debitMemoBalance == null || creditMemoBalance == null
+                || paymentBalance == null || refundBalance == null) {
+            return null;
+        }
+        return invoiceBalance + debitMemoBalance - creditMemoBalance - paymentBalance + refundBalance;
+    }
+
+    private static final String INVOICES_UNREADABLE =
+        'Unable to read this account\'s invoices, so its balances are not shown. Contact your administrator.';
 
     // The account's currency, which every balance below is converted into. A refused Account read
     // must not fall back to USD: the balances would then show in the wrong currency as if real.
@@ -94,7 +107,21 @@ public with sharing class RLM_OnAccountBillingController {
         return 'USD';
     }
 
+    // The invoice counts drive the status pill, and every card needs them: a refused Invoice read
+    // reports a fixed sentence (the platform text goes to the debug log), as the currency read does,
+    // instead of a raw query error or counts of zero that would read as "no billing activity".
     private static Map<String, Object> queryBillingStatus(Id accountId) {
+        try {
+            return queryInvoiceStatus(accountId);
+        } catch (QueryException e) {
+            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
+        } catch (SecurityException e) {
+            // WITH USER_MODE raises this, not a QueryException, when the object itself is refused.
+            throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
+        }
+    }
+
+    private static Map<String, Object> queryInvoiceStatus(Id accountId) {
         Map<String, Object> info = new Map<String, Object>();
         Date today = Date.today();
         Date delinquentThreshold = today.addDays(-60);
@@ -213,6 +240,9 @@ public with sharing class RLM_OnAccountBillingController {
      * Salesforce auto-converts SUM amounts in multi-currency orgs using standard
      * CurrencyType rates, even with GROUP BY CurrencyIsoCode. To use dated rates
      * instead, we reverse the standard conversion and re-apply the dated rate.
+     * Returns null, not zero, when the read is refused or fails, so the caller shows the balance
+     * (and the net balance) as unavailable. An org without the object has none of its records,
+     * so that balance is a real zero.
      */
     private static Decimal queryAggregate(
         String objectName, String sumField, String accountField,
@@ -230,6 +260,9 @@ public with sharing class RLM_OnAccountBillingController {
             query += ' GROUP BY CurrencyIsoCode';
         }
 
+        if (!Schema.getGlobalDescribe().containsKey(objectName)) {
+            return 0;
+        }
         Decimal total = 0;
         try {
             for (AggregateResult ar : Database.query(query, AccessLevel.USER_MODE)) {
@@ -244,7 +277,9 @@ public with sharing class RLM_OnAccountBillingController {
                 total += amount;
             }
         } catch (Exception e) {
-            // Object may not exist or user may lack permissions
+            System.debug(LoggingLevel.WARN, 'RLM_OnAccountBillingController.queryAggregate ' + objectName
+                + ' unavailable: ' + e.getTypeName() + ': ' + e.getMessage());
+            return null;
         }
         return total;
     }

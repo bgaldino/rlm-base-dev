@@ -4,8 +4,25 @@ import getBillingSummary from '@salesforce/apex/RLM_OnAccountBillingController.g
 
 const ARROW_TIP = 18;
 
+// Shown for a balance whose read was refused (null from the server), never a zero.
+const UNAVAILABLE = 'Unavailable';
+
 export default class RlmInvoiceSummaryBar extends LightningElement {
-    @api recordId;
+    _recordId;
+
+    // A new record starts a new load: both wires count as pending again, so the spinner shows and
+    // the previous record's figures are hidden until the new results land.
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        if (value !== this._recordId) {
+            this._invoiceReady = false;
+            this._billingReady = false;
+            this.isLoading = true;
+        }
+        this._recordId = value;
+    }
+
     data;
     billing;
     isLoading = true;
@@ -15,31 +32,35 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     _billingReady = false;
 
     // One error state per wire: a success on a rerun (new recordId, refresh) clears its own error and
-    // an error drops its own stale data, so neither leaves the previous result on screen.
+    // an error drops its own stale data, so neither leaves the previous result on screen. A wire is
+    // ready only once it delivers data or an error: the empty delivery a wire can make before the
+    // first server result does not stop the spinner.
     @wire(getInvoiceSummary, { accountId: '$recordId' })
     wiredInvoice(result) {
-        this._invoiceReady = true;
         if (result.data) {
             this.data = result.data;
             this.invoiceError = undefined;
+            this._invoiceReady = true;
         } else if (result.error) {
             this.data = undefined;
             this.invoiceError = result.error.body?.message || 'Error loading data';
+            this._invoiceReady = true;
         }
         this._checkReady();
     }
 
     @wire(getBillingSummary, { accountId: '$recordId' })
     wiredBilling(result) {
-        this._billingReady = true;
         if (result.data) {
             this.billing = result.data;
             this.billingError = undefined;
+            this._billingReady = true;
         } else if (result.error) {
             // No balances without the billing summary (e.g. its currency read was refused): show the
             // fixed message and hide the figures rather than a $0.00 that reads as a real balance.
             this.billing = undefined;
             this.billingError = result.error.body?.message || 'Error loading billing data';
+            this._billingReady = true;
         }
         this._checkReady();
     }
@@ -71,7 +92,7 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         const writtenOff = Number(b.writtenOffCount || 0);
         const disputeCount = Number(b.disputeCount || 0);
         const inCollections = b.inCollections === true;
-        const net = Number(b.netAccountBalance || 0);
+        const net = b.netAccountBalance == null ? null : Number(b.netAccountBalance);
 
         if (totalInvoices === 0) return { label: 'No Billing Activity', cssClass: 'status-pill status-no-activity', description: 'No invoices, payments, or billing records exist for this account.' };
         if (inCollections) return { label: 'In Collections', cssClass: 'status-pill status-collections', description: 'This account has been escalated to collections for significantly overdue balances.' };
@@ -80,6 +101,7 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
         if (disputeCount > 0) return { label: 'In Dispute', cssClass: 'status-pill status-dispute', description: `${disputeCount} open dispute(s) on this account's invoices.` };
         if (partiallyPaidOverdue > 0) return { label: 'Partially Paid', cssClass: 'status-pill status-partial', description: `${partiallyPaidOverdue} overdue invoice(s) have partial payments.` };
         if (overdueCount > 0) return { label: 'Overdue', cssClass: 'status-pill status-overdue', description: `${overdueCount} invoice(s) are past their due date.` };
+        if (net == null) return { label: 'Balance Unavailable', cssClass: 'status-pill status-no-activity', description: 'Some balances on this account could not be read, so its standing is not shown.' };
         if (net < 0) return { label: 'Credit Balance', cssClass: 'status-pill status-credit', description: 'Unapplied payments exceed outstanding receivables.' };
         if (openWithBalance === 0 && net <= 0) return { label: 'Fully Settled', cssClass: 'status-pill status-settled', description: 'All invoices paid in full with zero balance.' };
         return { label: 'Good Standing', cssClass: 'status-pill status-good', description: 'All invoices within payment terms.' };
@@ -159,32 +181,42 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     }
 
     // ── Bottom balance metrics ──────────────────────────────
+    // Each total is null (shown as unavailable) when any of its parts is: the server returns null for
+    // a balance whose read was refused, and a refused part is never counted as zero.
     get totalReceivables() {
-        return Number(this.billing?.invoiceBalance || 0) + Number(this.billing?.debitMemoBalance || 0);
+        const b = this.billing;
+        if (b?.invoiceBalance == null || b?.debitMemoBalance == null) return null;
+        return Number(b.invoiceBalance) + Number(b.debitMemoBalance);
     }
     get totalPayables() {
-        return Number(this.billing?.paymentBalance || 0) + Number(this.billing?.creditMemoBalance || 0) - Number(this.billing?.refundBalance || 0);
+        const b = this.billing;
+        if (b?.paymentBalance == null || b?.creditMemoBalance == null || b?.refundBalance == null) return null;
+        return Number(b.paymentBalance) + Number(b.creditMemoBalance) - Number(b.refundBalance);
     }
-    get netBalance() { return this.totalReceivables - this.totalPayables; }
+    get netBalance() {
+        const receivables = this.totalReceivables;
+        const payables = this.totalPayables;
+        return receivables == null || payables == null ? null : receivables - payables;
+    }
 
     get formattedReceivables() { return this._fmtFull(this.totalReceivables); }
     get formattedPayables() { return this._fmtFull(this.totalPayables); }
     get formattedNetBalance() { return this._fmtFull(this.netBalance); }
-    get netMetricClass() { return this.netBalance <= 0 ? 'metric-value metric-net-positive' : 'metric-value'; }
+    get netMetricClass() { return this.netBalance != null && this.netBalance <= 0 ? 'metric-value metric-net-positive' : 'metric-value'; }
 
     // Tooltip content
     get receivablesTooltip() {
         const b = this.billing;
         if (!b) return '';
-        return `Posted Invoices: ${this._fmtFull(b.invoiceBalance || 0)}\nDebit Memo Balance: ${this._fmtFull(b.debitMemoBalance || 0)}`;
+        return `Posted Invoices: ${this._fmtFull(b.invoiceBalance)}\nDebit Memo Balance: ${this._fmtFull(b.debitMemoBalance)}`;
     }
     get payablesTooltip() {
         const b = this.billing;
         if (!b) return '';
-        return `Payments: ${this._fmtFull(b.paymentBalance || 0)}\nCredits: ${this._fmtFull(b.creditMemoBalance || 0)}\nRefunds: -${this._fmtFull(b.refundBalance || 0)}`;
+        return `Payments: ${this._fmtFull(b.paymentBalance)}\nCredits: ${this._fmtFull(b.creditMemoBalance)}\nRefunds: ${this._fmtDeduction(b.refundBalance)}`;
     }
     get netTooltip() {
-        return `Total Receivables: ${this.formattedReceivables}\nTotal Payables: -${this.formattedPayables}`;
+        return `Total Receivables: ${this.formattedReceivables}\nTotal Payables: ${this._fmtDeduction(this.totalPayables)}`;
     }
 
     _activeTooltip = null;
@@ -219,7 +251,11 @@ export default class RlmInvoiceSummaryBar extends LightningElement {
     }
 
     _fmtFull(val) {
-        if (val == null) return '$0.00';
+        if (val == null) return UNAVAILABLE;
         return '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    }
+
+    _fmtDeduction(val) {
+        return val == null ? UNAVAILABLE : '-' + this._fmtFull(val);
     }
 }
