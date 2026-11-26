@@ -280,6 +280,10 @@ for name in ("dynamic_assigned_to_user", "sync_objectset_source_to_source", "sim
         error, steps = prep_runtime_steps({name: value})
         check(f"_prep_runtime: {name} {value!r} is refused before the keychain, the lookups or the export.json rewrite",
               (type(error).__name__, name in str(error), steps), ("TaskOptionsError", True, []))
+for value, applied in ((" true ", True), ("on", True), ("y", True), ("", False), (None, False), ("false", False)):
+    error, steps = prep_runtime_steps({"dynamic_assigned_to_user": value})
+    check(f"_prep_runtime: dynamic_assigned_to_user {value!r} applies the user Name: {applied}",
+          (error, "_apply_dynamic_assigned_to_user" in steps), (None, applied))
 error, steps = prep_runtime_steps({"simulation": " true ", "sync_objectset_source_to_source": "on"})
 check("_prep_runtime: valid values run every step (the refusals above are not vacuous)",
       (error, steps), (None, ["_load_keychain", "_apply_parent_id_lookups", "_apply_conditional_steps",
@@ -405,7 +409,9 @@ def extract_options(options):
     t._resolve_reference_plan_dir = lambda plan_dir: logs.append("resolve-reference") or None
     saved_run, saved_post = rs.subprocess.run, rs.run_post_process_script
     rs.subprocess.run = lambda *a, **k: runs.append(a) or _Done()
-    rs.run_post_process_script = lambda *a, **k: logs.append("post-process")
+    copy_to_plan_seen = []
+    rs.run_post_process_script = lambda *a, **k: logs.append("post-process") or copy_to_plan_seen.append(k.get("copy_to_plan"))
+    t._build_code_backfill_map = lambda plan_dir, output_dir: {}
     try:
         t._run_task()
         err = None
@@ -414,6 +420,7 @@ def extract_options(options):
     finally:
         rs.subprocess.run, rs.run_post_process_script = saved_run, saved_post
         shutil.rmtree(t.options["extractions_base_dir"], ignore_errors=True)
+    extract_options.copy_to_plan_seen = copy_to_plan_seen
     return err, runs, "post-process" in logs
 
 
@@ -422,6 +429,12 @@ for value, post in ((" off ", False), ("n", False), (0, False), ("  ", True), (N
     err, runs, post_processed = extract_options({"run_post_process": value})
     check(f"extract: run_post_process {value!r} post-processes={post}, and the extract ran",
           (err, bool(runs), post_processed), (None, True, post))
+# copy_to_plan's parsed value is what reaches run_post_process_script: the old
+# `in {"1", "true", "yes"}` read "on", "y" and " true " as false and silently skipped the sync.
+for value, want in ((" true ", True), ("on", True), ("y", True), ("", False), (None, False), ("false", False)):
+    err, runs, post_processed = extract_options({"copy_to_plan": value})
+    check(f"extract: copy_to_plan {value!r} reaches run_post_process_script as {want}",
+          (err, post_processed, extract_options.copy_to_plan_seen), (None, True, [want]))
 for options, needle in (({"run_post_process": ["false"]}, "run_post_process must be a single value"),
                         ({"run_post_process": "maybe"}, "run_post_process must be true or false"),
                         ({"copy_to_plan": ["true"]}, "copy_to_plan must be a single value"),
@@ -685,6 +698,67 @@ def idem_options(options):
 for value in (" true ", "on", True, "", None, "false"):
     check(f"idempotency: use_extraction_roundtrip {value!r} is accepted and the first load runs",
           idem_options({"use_extraction_roundtrip": value, "persist_extraction_output": value}), ("stopped", ["load"]))
+def idem_branch(options):
+    """TestSFDMUIdempotency._run_task past its first load: 'persist', 'temp' (the roundtrip branch, kept
+    or in a temp dir) or 'plain' (a second load from source). Nothing is written: the roundtrip
+    branch stops at its first file copy, the plain branch at its second load."""
+    seen = []
+
+    class _Stop(Exception):
+        pass
+
+    t = rs.TestSFDMUIdempotency.__new__(rs.TestSFDMUIdempotency)
+    t.options = {"pathtoexportjson": str(PLAIN), **options}
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None,
+                              "error": lambda *_a, **_k: None})()
+    t._load_keychain = lambda: None
+    loads = []
+
+    def load(*a, **k):
+        loads.append(a)
+        if len(loads) > 1:
+            seen.append("plain")
+            raise _Stop()
+    t._run_load_once = load
+    t._run_post_load_apex_if_configured = lambda: None
+    t._get_record_counts = lambda sobjects: {}
+
+    def makedirs(path, exist_ok=False):
+        seen.append("persist")
+        raise _Stop()
+
+    def mkdtemp(prefix=""):
+        seen.append("temp")
+        return "/nonexistent/sfdmu_idem_extract_probe"
+
+    def copy2(src, dst):
+        raise _Stop()
+    saved = (rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2)
+    rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2 = makedirs, mkdtemp, copy2
+    try:
+        t._run_task()
+    except _Stop:
+        pass
+    except Exception as exc:  # noqa: BLE001 - reported as the outcome
+        seen.append(f"{type(exc).__name__}: {exc}")
+    finally:
+        rs.os.makedirs, rs.tempfile.mkdtemp, rs.shutil.copy2 = saved
+    return seen
+
+
+# todo 488: the parsed values must decide the branch. The old `in {"1", "true", "yes"}` read
+# " true ", "on" and "y" as false and silently skipped the roundtrip (and the persisted output).
+for value in (" true ", "on", "y"):
+    check(f"idempotency: use_extraction_roundtrip {value!r} takes the roundtrip branch (temp dir)",
+          idem_branch({"use_extraction_roundtrip": value}), ["temp"])
+    check(f"idempotency: persist_extraction_output {value!r} keeps the roundtrip output",
+          idem_branch({"use_extraction_roundtrip": "true", "persist_extraction_output": value}), ["persist"])
+for value in ("false", "", None):
+    check(f"idempotency: use_extraction_roundtrip {value!r} re-runs from source",
+          idem_branch({"use_extraction_roundtrip": value}), ["plain"])
+    check(f"idempotency: persist_extraction_output {value!r} uses a temp dir",
+          idem_branch({"use_extraction_roundtrip": "true", "persist_extraction_output": value}), ["temp"])
 for options, needle in (({"use_extraction_roundtrip": ["true"]}, "use_extraction_roundtrip must be a single value"),
                         ({"persist_extraction_output": "maybe"}, "persist_extraction_output must be true or false"),
                         ({"dynamic_assigned_to_user": ["true"]}, "dynamic_assigned_to_user must be a single value")):
