@@ -550,9 +550,10 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   "Enable the server-side document generation setting." [Measured: 0AfWt00000hUViMKAW]; batch on with
   server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
   (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`). With no setting row (batch document generation
-  not configured; the row exists only where `docgen` deployed it) the insert is not attempted and the test logs
+  not configured, e.g. an org where DocGen was never set up `[inferred: no measured org lacked a row]`) the insert is not attempted and the test logs
   "SKIPPED, NOT CHECKED". With a row and both flags on, any refusal fails; with a row and either flag off, only
-  `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code fails. With both flags on, the other settings do not stop the insert: it succeeds with the client-side
+  `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code fails. An attempted and
+  asserted insert logs "CHECKED: <role> batch process create asserted (setting <state>)". With both flags on, the other settings do not stop the insert: it succeeds with the client-side
   generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 (0AfWt00000hUW89KAG). It decides by status code and setting, never by message text. The Billing
   Operations methods are regression checks for the set: the managed Operations set already reads the runs,
   the View All the set adds is checked only by the metadata test, and the Operations DocGen method's DocGen

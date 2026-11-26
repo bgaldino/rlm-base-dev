@@ -38,7 +38,7 @@
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
  * Batch generation needs two org settings (DocumentGenerationSetting.IsBatchDocGnrnEnabled and
  * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first:
- * - no setting row (batch document generation not configured, as on an org without docgen): the
+ * - no setting row (e.g. an org where DocGen was never set up; inferred, no measured org lacked a row): the
  *   insert is not attempted, and the test logs "SKIPPED, NOT CHECKED";
  * - a row with both flags on: any refusal of the insert fails;
  * - a row with either flag off: only INVALID_INPUT is a "SKIPPED, NOT CHECKED" WARN line, and any
@@ -51,8 +51,9 @@
  * generation mechanism and with an hourly batch percentage limit (batchDocGnrnPctLimitPerHour) of 0.
  * The measured org has one setting row and Help speaks of "a Document Generation Setting record"; one
  * row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
- * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWithBatchOff pin the split
- * by setting and status code, not by message text.
+ * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWithBatchOff are self-tests of
+ * that classifier (by setting state and status code, never by message text); they pass regardless of
+ * RLM_BillingInvoiceDocuments.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
@@ -192,11 +193,11 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
              ORDER BY CreatedDate LIMIT 1]);
         List<String> failures = new List<String>();
         System.runAs(u) {
-            if (state == BatchGeneration.NOT_CONFIGURED) {
+            if (attemptsBatchCreate(state)) {
+                failures.addAll(batchCreateFailures(roleSet, state));
+            } else {
                 System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
                     + ' no DocumentGenerationSetting row (batch document generation not configured).');
-            } else {
-                failures.addAll(batchCreateFailures(roleSet, state == BatchGeneration.ENABLED));
             }
             if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
                 failures.add('Document Generation Process create (on-demand generation)');
@@ -211,30 +212,32 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     // A real insert, because only it meets the DocGen Designer user-permission gate (describe does not
-    // show it). With batch or server-side generation off it is refused for configuration (see
-    // skipsBatchRefusal); those settings deploy with docgen, this class with personas.
-    private static List<String> batchCreateFailures(String roleSet, Boolean batchEnabled) {
+    // show it). With either flag off (DISABLED) it is refused for configuration (see skipsBatchRefusal);
+    // those settings deploy with docgen, this class with personas.
+    private static List<String> batchCreateFailures(String roleSet, BatchGeneration state) {
         Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
-        if (batch.isSuccess()) {
-            return new List<String>();
+        if (!batch.isSuccess()) {
+            Database.Error error = batch.getErrors()[0];
+            String statusCode = String.valueOf(error.getStatusCode());
+            if (skipsBatchRefusal(state, statusCode)) {
+                System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                    + ' either flag off, DISABLED (' + statusCode + ': ' + error.getMessage() + ').'
+                    + ' The access checks run before that one, so the DocGen Designer gate already passed;'
+                    + ' the create itself was not checked.');
+                return new List<String>();
+            }
+            System.debug(LoggingLevel.WARN, 'CHECKED: ' + roleSet + ' batch process create asserted (setting ' + state + ')');
+            return new List<String>{ 'batch process create (setting ' + state + '): ' + statusCode + ': '
+                + error.getMessage() };
         }
-        Database.Error error = batch.getErrors()[0];
-        String statusCode = String.valueOf(error.getStatusCode());
-        if (skipsBatchRefusal(batchEnabled, statusCode)) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
-                + ' batch or server-side document generation is off (' + statusCode + ': ' + error.getMessage() + ').'
-                + ' The access checks run before that one, so the DocGen Designer gate already passed;'
-                + ' the create itself was not checked.');
-            return new List<String>();
-        }
-        return new List<String>{ 'batch process create (batch generation settings '
-            + (batchEnabled ? 'on' : 'off') + '): ' + statusCode + ': ' + error.getMessage() };
+        System.debug(LoggingLevel.WARN, 'CHECKED: ' + roleSet + ' batch process create asserted (setting ' + state + ')');
+        return new List<String>();
     }
 
     private enum BatchGeneration { NOT_CONFIGURED, ENABLED, DISABLED }
 
-    // No setting row: not configured (the row exists only where docgen deployed it), so the insert is
-    // not attempted. A row: enabled only with both batch and server-side generation on. Measured on a
+    // No setting row (e.g. an org where DocGen was never set up; inferred, no measured org lacked a
+    // row): not configured, so the insert is not attempted. A row: enabled only with both batch and server-side generation on. Measured on a
     // 264 org: either one off makes the persona's insert INVALID_INPUT. (Batch on with server-side off
     // and the server-side mechanism is refused at deploy: "To select Server-Side for the Generation
     // Mechanism, you must select the ServerSide Docgen Enabled option.")
@@ -247,16 +250,25 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             ? BatchGeneration.ENABLED : BatchGeneration.DISABLED;
     }
 
+    // Whether the batch process insert is attempted: always, except with no setting row.
+    @TestVisible
+    private static Boolean attemptsBatchCreate(BatchGeneration state) {
+        return state != BatchGeneration.NOT_CONFIGURED;
+    }
+
     @IsTest
     static void batchGenerationNeedsBothSettings() {
+        Assert.isFalse(attemptsBatchCreate(BatchGeneration.NOT_CONFIGURED), 'no setting row: insert not attempted');
+        Assert.isTrue(attemptsBatchCreate(BatchGeneration.DISABLED), 'DISABLED: insert attempted');
+        Assert.isTrue(attemptsBatchCreate(BatchGeneration.ENABLED), 'ENABLED: insert attempted');
         Assert.areEqual(BatchGeneration.NOT_CONFIGURED, batchGeneration(new List<DocumentGenerationSetting>()),
             'no setting row: the insert is skipped, not attempted');
         Assert.areEqual(BatchGeneration.ENABLED,
-            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, true) }), 'both on');
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, true) }), 'state ENABLED: both flags on');
         Assert.areEqual(BatchGeneration.DISABLED,
-            batchGeneration(new List<DocumentGenerationSetting>{ setting(false, true) }), 'batch off (measured)');
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(false, true) }), 'state DISABLED: batch flag off (measured)');
         Assert.areEqual(BatchGeneration.DISABLED,
-            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, false) }), 'server-side off (measured)');
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, false) }), 'state DISABLED: server-side flag off (measured)');
     }
 
     // An in-memory row, as the query would return it (never inserted).
@@ -265,27 +277,34 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     }
 
     // Whether a refused batch process insert is a visible skip rather than a failure: only INVALID_INPUT
-    // with a setting row whose batch generation is off (see batchGeneration). Measured on a 264 org with the setting
-    // off: a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY (the access
-    // check answers first), and the persona with DocGen Designer gets INVALID_INPUT "Enable the batch
-    // document generation setting.". With the setting on the persona's insert succeeds, so any refusal
-    // then is a regression. Decided by status code and setting only, never by message text.
+    // in state DISABLED (a setting row with either flag off; see batchGeneration). Measured on a 264 org
+    // in that state: a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY (the
+    // access check answers first), and the persona with DocGen Designer gets INVALID_INPUT ("Enable the
+    // batch document generation setting." or "Enable the server-side document generation setting.").
+    // In state ENABLED the persona's insert succeeds, so any refusal then is a regression. Decided by
+    // state and status code only, never by message text.
     @TestVisible
-    private static Boolean skipsBatchRefusal(Boolean batchEnabled, String statusCode) {
-        return batchEnabled != true && statusCode == 'INVALID_INPUT';
+    private static Boolean skipsBatchRefusal(BatchGeneration state, String statusCode) {
+        return state == BatchGeneration.DISABLED && statusCode == 'INVALID_INPUT';
     }
 
     @IsTest
     static void batchRefusalSkipsOnlyForInvalidInputWithBatchOff() {
-        // Measured on a 264 org: batch off, or server-side off, persona with DocGen Designer.
-        Assert.isTrue(skipsBatchRefusal(false, 'INVALID_INPUT'), 'batch generation off is configuration');
-        // Measured on a 264 org: access refusals, setting on or off.
-        Assert.isFalse(skipsBatchRefusal(false, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'), 'access refusal with the setting off');
-        Assert.isFalse(skipsBatchRefusal(true, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'), 'access refusal with the setting on');
-        // Not measured (synthetic): with the setting on nothing skips, and other codes never skip.
-        Assert.isFalse(skipsBatchRefusal(true, 'INVALID_INPUT'), 'setting on: any refusal fails');
-        Assert.isFalse(skipsBatchRefusal(false, 'INSUFFICIENT_ACCESS_OR_READONLY'), 'synthetic access code');
-        Assert.isFalse(skipsBatchRefusal(false, 'UNKNOWN_EXCEPTION'), 'synthetic unknown error');
+        // Measured on a 264 org: state DISABLED (batch off, or server-side off), persona with DocGen Designer.
+        Assert.isTrue(skipsBatchRefusal(BatchGeneration.DISABLED, 'INVALID_INPUT'), 'state DISABLED: configuration');
+        // Measured on a 264 org: access refusals, state DISABLED or ENABLED.
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'),
+            'access refusal in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.ENABLED, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'),
+            'access refusal in state ENABLED');
+        // Not measured (synthetic): in state ENABLED nothing skips, and other codes never skip.
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.ENABLED, 'INVALID_INPUT'), 'state ENABLED: any refusal fails');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'INSUFFICIENT_ACCESS_OR_READONLY'),
+            'synthetic access code in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'UNKNOWN_EXCEPTION'),
+            'synthetic unknown error in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.NOT_CONFIGURED, 'INVALID_INPUT'),
+            'state NOT_CONFIGURED never reaches the insert, and never skips a refusal');
     }
 
     // Metadata only, no user: a note if DocGen User starts carrying the DocGen Designer permission.
