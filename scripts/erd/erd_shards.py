@@ -108,7 +108,7 @@ def save(erd: dict, path: Path = ERD_PATH, verified: dict = None) -> None:
         DATA_DIR.mkdir(exist_ok=True)
         old = read_shards() if (DATA_DIR / META).exists() else {}
         new = split(erd, {n: s for n, s in old.items() if n not in RESERVED}, verified)
-        for stale in set(old) - set(new) - {n for n in old if n.startswith("overlay-")}:
+        for stale in set(old) - set(new):
             (DATA_DIR / stale).unlink()
         for fname, content in new.items():
             (DATA_DIR / fname).write_text(dumps(content), encoding="utf-8")
