@@ -321,6 +321,48 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     ]);
   });
 
+  it("asks the server once and does not repeat a warning when the refresh brings the same answer", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    // The first value (from the cache or the server: the wire does not say), then the refresh's answer.
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+    expect(toasts.map((toast) => toast.title)).toEqual(["No Billing Account"]);
+
+    // A different answer is news, and is shown.
+    getAccountBillingInfo.emit({ accountName: "Acme", billingLinkUnreadable: true });
+    await flushPromises();
+    expect(toasts.map((toast) => toast.title)).toEqual([
+      "No Billing Account",
+      "Billing Account Unavailable"
+    ]);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not repeat an account error when the refresh fails the same way", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.error();
+    await flushPromises();
+    getAccountBillingInfo.error();
+    await flushPromises();
+
+    expect(toasts.map((toast) => [toast.title, toast.variant])).toEqual([["Error loading Account", "error"]]);
+    expect(refreshApex).toHaveBeenCalledTimes(1);
+  });
+
   it("says the billing account could not be read, not that there is none, when the link read is refused", async () => {
     const element = createElement("c-rlm-billing-schedule-group-modal", {
       is: RlmBillingScheduleGroupModal

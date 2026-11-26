@@ -21,6 +21,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     billingLinkUnreadable = false; // a billing account may exist but the user cannot read it
     billToContactMissing = false; // the billing account has no bill-to contact, which the create action requires
     accountInfoRefreshed = false; // the cacheable account info has been asked of the server once this opening
+    accountNoticeShown; // the account warning or error last toasted, so a refresh with the same answer is quiet
 
     isLoading = true; // Start as loading while we fetch account data
     legalEntityOptions = [];
@@ -151,8 +152,11 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     wiredAccountInfo(result) {
         const { error, data } = result;
         // getAccountBillingInfo is cacheable, so the first value can be a cached one from before an
-        // edit made since (a bill-to contact or Billing City added to clear a blocker). It is shown at
-        // once, and the server is asked once per opening; a different answer re-provisions this wire.
+        // edit made since (a bill-to contact or Billing City added to clear a blocker). The wire does not
+        // say whether a value came from the cache, so it is shown at once and the server is asked once per
+        // opening (one extra call when it was fresh); a different answer re-provisions this wire. A
+        // warning or error is toasted once per distinct answer (showAccountNotice), so a refresh that
+        // returns the same answer does not repeat it.
         if (!this.accountInfoRefreshed && (data || error)) {
             this.accountInfoRefreshed = true;
             refreshApex(result).catch(() => {
@@ -168,21 +172,19 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billToContactMissing = data.billToContactMissing === true;
 
             if (this.billingLinkUnreadable) {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Billing Account Unavailable',
-                        message: 'The billing account for this Account could not be read. Ask your administrator for access.',
-                        variant: 'warning'
-                    })
+                this.showAccountNotice(
+                    'Billing Account Unavailable',
+                    'The billing account for this Account could not be read. Ask your administrator for access.',
+                    'warning'
                 );
             } else if (!this.billingAccountId) {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'No Billing Account',
-                        message: 'This Account does not have an associated Billing Account.',
-                        variant: 'warning'
-                    })
+                this.showAccountNotice(
+                    'No Billing Account',
+                    'This Account does not have an associated Billing Account.',
+                    'warning'
                 );
+            } else {
+                this.accountNoticeShown = undefined;
             }
             this.isLoading = false;
         } else if (error) {
@@ -194,15 +196,19 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
             this.billingCity = undefined;
             this.billingLinkUnreadable = false;
             this.billToContactMissing = false;
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error loading Account',
-                    message: this.reduceError(error),
-                    variant: 'error'
-                })
-            );
+            this.showAccountNotice('Error loading Account', this.reduceError(error), 'error');
             this.isLoading = false;
         }
+    }
+
+    // Toasts an account warning or error unless the same one was the last shown.
+    showAccountNotice(title, message, variant) {
+        const key = `${variant}|${title}|${message}`;
+        if (this.accountNoticeShown === key) {
+            return;
+        }
+        this.accountNoticeShown = key;
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
     @wire(getLegalEntities)

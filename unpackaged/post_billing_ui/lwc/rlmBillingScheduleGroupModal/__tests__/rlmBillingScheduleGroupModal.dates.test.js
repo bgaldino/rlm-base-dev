@@ -240,9 +240,23 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
 
   // A day the end month lacks is clamped to that month's last day before the day is taken off, as
   // Salesforce Pricing anchors a period (Help: ind.pricing_monthly_proration_examples_for_leap_years,
-  // 31-Jan-2025 to 27-Feb-2025; ind.pricing_annual_proration_examples_for_leap_years, 29-Feb-2024
-  // to 27-Feb-2025). The old Date.setMonth overflow ran Jan 31 + 1 Month into March.
+  // 31-Jan-2025 to 27-Feb-2025 and 28-Feb-2027 to 27-Mar-2027). A whole-year term from the last day of a
+  // month ends the day before that month's last day (ind.pricing_annual_proration_examples_for_leap_years:
+  // 28-Feb-2027 to 28-Feb-2028, 29-Feb-2024 to 27-Feb-2025). The old Date.setMonth overflow ran
+  // Jan 31 + 1 Month into March.
   const TERMS = [
+    // The Help article's own examples, then the same rules across leap years.
+    ["2025-01-31", "1", "Month", "2025-02-27"],
+    ["2027-02-28", "1", "Month", "2027-03-27"],
+    ["2027-02-28", "1", "Year", "2028-02-28"],
+    ["2024-02-29", "1", "Year", "2025-02-27"],
+    ["2027-02-28", "12", "Month", "2028-02-28"],
+    ["2027-02-28", "2", "Year", "2029-02-27"],
+    ["2026-02-28", "1", "Year", "2027-02-27"],
+    ["2028-02-28", "1", "Year", "2029-02-27"],
+    ["2031-02-28", "1", "Year", "2032-02-28"],
+    ["2027-02-28", "1", "Quarter", "2027-05-27"],
+    ["2026-04-30", "1", "Year", "2027-04-29"],
     ["2027-01-31", "1", "Month", "2027-02-27"],
     ["2028-01-31", "1", "Month", "2028-02-28"],
     ["2028-02-29", "1", "Year", "2029-02-27"],

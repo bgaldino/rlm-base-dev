@@ -82,14 +82,27 @@ function previousDay(date) {
     return { year, month, day: daysInMonth(year, month) };
 }
 
-// The last day of a term of `months` whole months starting on `startYmd`: the day before the start
-// date `months` later. Salesforce Pricing ends its periods the same way (Help: a 31-Jan-2025 monthly
-// period ends 27-Feb-2025, a 29-Feb-2024 annual period ends 27-Feb-2025). Null when the start is not
-// a valid date or `months` is not a positive whole number.
+// The last day of a term of `months` whole months starting on `startYmd`: the day before the term's
+// anniversary. This follows Salesforce Pricing's period convention as its 264 Help states it:
+// - The anniversary keeps the start's day of the month, moved to the last day of a month that lacks
+//   it, and the period ends the day before (ind.pricing_monthly_proration_examples_for_leap_years:
+//   31-Jan-2025 monthly ends 27-Feb-2025; 28-Feb-2027 monthly ends 27-Mar-2027, so a month-end
+//   start keeps its day on a monthly term).
+// - A whole-year term that starts on the last day of a month anniversaries on the last day of that
+//   month instead: "a full period ends one day before the next month-end"
+//   (ind.pricing_annual_proration_examples_for_leap_years: 28-Feb-2027 ends 28-Feb-2028, and
+//   29-Feb-2024 ends 27-Feb-2025). Within a single month this differs from the first rule only for a
+//   February start next to a leap year. Help gives no example for a month-end start on a quarterly
+//   or semi-annual term, so those keep the first rule.
+// Null when the start is not a valid date or `months` is not a positive whole number.
 export function termEndDate(startYmd, months) {
     const start = parseYmd(startYmd);
     if (!start || !Number.isInteger(months) || months <= 0) {
         return null;
     }
-    return formatYmd(previousDay(addMonths(start, months)));
+    const anniversary = addMonths(start, months);
+    if (months % 12 === 0 && start.day === daysInMonth(start.year, start.month)) {
+        anniversary.day = daysInMonth(anniversary.year, anniversary.month);
+    }
+    return formatYmd(previousDay(anniversary));
 }
