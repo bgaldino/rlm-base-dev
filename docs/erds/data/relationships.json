@@ -4067,6 +4067,18 @@
       "target": "Account",
       "field": "ServiceAccountId",
       "type": "lookup"
+    },
+    {
+      "source": "QuoteLineItem",
+      "target": "QuoteLineItemRecipient",
+      "field": "QuoteLineItemRecipientId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItem",
+      "target": "OrderItemRecipient",
+      "field": "OrderItemRecipientId",
+      "type": "lookup"
     }
   ]
 }

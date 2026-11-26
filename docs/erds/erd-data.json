@@ -12,7 +12,7 @@
   },
   "stats": {
     "totalObjects": 265,
-    "totalRelationships": 678,
+    "totalRelationships": 680,
     "totalFields": 4292,
     "domains": [
       "Advanced Approvals",
@@ -27032,6 +27032,18 @@
       "source": "OrderItemRecipient",
       "target": "Account",
       "field": "ServiceAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineItem",
+      "target": "QuoteLineItemRecipient",
+      "field": "QuoteLineItemRecipientId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItem",
+      "target": "OrderItemRecipient",
+      "field": "OrderItemRecipientId",
       "type": "lookup"
     }
   ]

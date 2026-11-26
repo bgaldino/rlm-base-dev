@@ -220,6 +220,25 @@ def diff_object(
     return diff
 
 
+def link_new_objects(erd_data: dict, new_names: set) -> int:
+    """Add the relationship rows touching `new_names` that are missing: the new objects' own
+    reference fields and existing objects' fields that point at them. Returns rows added."""
+    objects, rels = erd_data["objects"], erd_data["relationships"]
+    seen = {(r["source"], r["target"], r.get("field", "")) for r in rels}
+    added = 0
+    for name, obj in objects.items():
+        for fname, f in obj["fields"].items():
+            targets = f.get("refersTo") or []
+            for target in [targets] if isinstance(targets, str) else targets:
+                if (name in new_names or target in new_names) and target in objects \
+                        and (name, target, fname) not in seen:
+                    seen.add((name, target, fname))
+                    rels.append({"source": name, "target": target, "field": fname,
+                                 "type": f.get("relationshipType", "lookup").lower()})
+                    added += 1
+    return added
+
+
 def build_object_entries(erd_data: dict, describes: Dict[str, dict], domain: str,
                          skip_custom: bool = True) -> Tuple[int, int]:
     """Add whole objects, from org describes, to `erd_data`. Returns (objects, relationships).
@@ -249,15 +268,7 @@ def build_object_entries(erd_data: dict, describes: Dict[str, dict], domain: str
         entries[name] = {"domain": domain, "domainShort": short,
                          "isStandard": "(Core Object)" in domain, "fields": fields}
     objects.update(entries)
-    added_rels = 0
-    for name, entry in entries.items():
-        for fname, f in entry["fields"].items():
-            target = f.get("refersTo")
-            if target in objects:
-                rels.append({"source": name, "target": target, "field": fname,
-                             "type": f["relationshipType"].lower()})
-                added_rels += 1
-    return len(entries), added_rels
+    return len(entries), link_new_objects(erd_data, set(entries))
 
 
 def patch_erd(erd_data: dict, diffs: List[ObjectDiff]) -> Tuple[int, int, int]:

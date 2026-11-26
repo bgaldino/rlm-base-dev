@@ -177,7 +177,7 @@ have caught that. Full account:
 [`doc-consistency/erd-count-drift.md`](../doc-consistency/erd-count-drift.md).
 
 All four docs above are covered, `scripts/ai/README.md` included — its citation wraps
-mid-phrase (`263` / `objects, 4,292 platform fields, 678 verified relationship edges`),
+mid-phrase (`263` / `objects, 4,292 platform fields, 680 verified relationship edges`),
 so the check matches over a sliding window rather than per line, and **each site must
 still state a triple**: asking only whether *any* site matched let that file carry wrong
 numbers behind a reworded phrase and still pass. The Statistics bullet block in
@@ -310,7 +310,7 @@ The pattern `*CnvAmount` / `*CnvRate` / `*CnvDate` / `*IsoCode` IS canonical RC 
 ## What Was Verified
 
 **264 (2026-08-15).** `erd-data.json` is a 264 capture: 265 objects, 4,292 fields,
-678 relationships. Cross-validated across `rlm-base__264merged` and
+680 relationships. Cross-validated across `rlm-base__264merged` and
 `rlm-base__264fresh` (both `ent`), which agreed field-for-field — 254 describable
 objects, 3,913 platform fields each. 264 had no Core UDD branch or Metadata Coverage
 Report at this refresh (a `core-264-public` `p4/264-patch` branch was listed in code

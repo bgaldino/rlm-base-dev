@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 115
+EXPECTED_CHECKS = 116
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -370,15 +370,23 @@ def main():
         {"name": "ServiceAddress", "type": "address", "label": "Addr", "referenceTo": []},
         {"name": "Note__c", "type": "string", "label": "Custom", "referenceTo": []},
         {"name": "Kind", "type": "picklist", "label": "Kind", "referenceTo": []}]}
-    sample = {"objects": {"Quote": {"domain": "x", "domainShort": "x", "fields": {}}}, "relationships": []}
+    # Quote already has a field pointing at the new object: its incoming edge must be added too.
+    sample = {"objects": {"Quote": {"domain": "x", "domainShort": "x", "fields": {
+        "ZzId": {"refersTo": "ZzRecipient", "relationshipType": "Lookup"}}}}, "relationships": []}
     n_obj, n_rel = validator.build_object_entries(
         sample, {"zzrecipient": fake}, "Transaction Management (Core Object)")
     entry = sample["objects"]["ZzRecipient"]
     check("add_objects_builds_entries_and_edges",
-          (n_obj, n_rel) == (1, 1) and set(entry["fields"]) == {"QuoteId", "ServiceAddress", "Kind"}
+          (n_obj, n_rel) == (1, 2) and set(entry["fields"]) == {"QuoteId", "ServiceAddress", "Kind"}
           and entry["fields"]["QuoteId"]["relationshipType"] == "Master-Detail"
-          and sample["relationships"][0]["type"] == "master-detail"
+          and {(r["source"], r["target"], r["field"]) for r in sample["relationships"]}
+          == {("ZzRecipient", "Quote", "QuoteId"), ("Quote", "ZzRecipient", "ZzId")}
           and entry["domainShort"] == "Transactions")
+
+    rel_keys = {(r["source"], r["target"], r.get("field")) for r in erd["relationships"]}
+    missing = [(n, f) for n, o in erd["objects"].items() for f, x in o["fields"].items()
+               if x.get("refersTo") in ("QuoteLineItemRecipient", "OrderItemRecipient", "ServiceAddress") and (n, x["refersTo"], f) not in rel_keys]
+    check("recipient_fields_have_relationship_rows", not missing, f"no edge for {missing}")
 
     real_describe = validator.describe_sobject
     validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}

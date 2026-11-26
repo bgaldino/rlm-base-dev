@@ -683,7 +683,7 @@ foundations:
       query_cli: scripts/ai/query_erd.py
       object_count: 265
       field_count: 4292
-      relationship_count: 678
+      relationship_count: 680
       api_version: v68.0
       release: "264"
 
