@@ -308,6 +308,11 @@
         <field>Quote.ExpirationDate</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.GrandTotal</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <!--
         Quote.IsLargeDeal is a STANDARD field that is read-only (not editable,
         so editable FLS can't be granted) unless
@@ -478,6 +483,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>QuoteLineItem.RLM_Contract_Applied_Unit_Price__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>QuoteLineItem.RLM_ProductName__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
