@@ -403,8 +403,14 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         this.calculateEndDate();
     }
 
+    // A term duration is a whole number of periods, 1 or more, as the Term Duration input and the
+    // submit blocker say: 0.5 Year or 1.5 Year has no end date and blocks Create.
+    get hasValidTermDuration() {
+        return Number.isInteger(this.termDuration) && this.termDuration >= 1;
+    }
+
     calculateEndDate() {
-        if (!this.startDate || !this.termDuration || !this.termDurationUnit || !this.isTermed) {
+        if (!this.startDate || !this.hasValidTermDuration || !this.termDurationUnit || !this.isTermed) {
             this.endDate = null;
             this.numberOfBillingPeriods = 0;
             return;
@@ -430,8 +436,7 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         }
 
         // Calendar math on the 'YYYY-MM-DD' value (the day before the start date monthsToAdd months
-        // later). A term that is not a whole number of months has no end date, and submitBlocker
-        // says so.
+        // later). termEndDate also refuses a month count that is not a positive whole number.
         this.endDate = termEndDate(this.startDate, monthsToAdd);
         if (!this.endDate) {
             this.numberOfBillingPeriods = 0;

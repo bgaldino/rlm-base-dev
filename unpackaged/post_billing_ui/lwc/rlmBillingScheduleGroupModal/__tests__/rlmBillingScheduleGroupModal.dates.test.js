@@ -291,18 +291,37 @@ describe("c-rlm-billing-schedule-group-modal dates", () => {
     }
   );
 
-  it("blocks a termed charge whose term is not a whole number of months", async () => {
+  // The Term Duration must be a whole number of periods, 1 or more, whatever the period: 0.5 Year is a
+  // whole number of months (6) but not of years, and is refused like 1.5 Month.
+  it.each([
+    ["1.5", "Month"],
+    ["0.5", "Year"],
+    ["1.5", "Year"],
+    ["0.5", "Semi-Annual"],
+    ["0", "Year"],
+    ["-1", "Month"]
+  ])("blocks a termed charge whose term duration is %s %s", async (duration, unit) => {
     const { element, create } = await open({
       now: "2026-11-25T12:00:00Z",
       browserTimeZone: "UTC",
       userTimeZone: "UTC"
     });
-    await fillTermed(element, { duration: "1.5", unit: "Month" });
+    await fillTermed(element, { duration, unit });
+    // A disabled button cannot be clicked; the click handler is the backstop for one that is.
+    Array.from(element.shadowRoot.querySelectorAll("lightning-button"))
+      .find((button) => button.variant === "brand")
+      .dispatchEvent(new CustomEvent("click"));
+    await flushPromises();
 
     expect(field(element, "lightning-input", "endDate").value).toBeFalsy();
     expect(element.shadowRoot.querySelector('[role="alert"]').textContent).toContain(
-      "End Date"
+      "whole-number Term Duration of at least 1"
     );
+    expect(
+      Array.from(element.shadowRoot.querySelectorAll("lightning-button")).find(
+        (button) => button.variant === "brand"
+      ).disabled
+    ).toBe(true);
     expect(create).not.toHaveBeenCalled();
   });
 });
