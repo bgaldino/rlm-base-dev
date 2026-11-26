@@ -58,10 +58,9 @@ python scripts/ui_check/ui_check.py user-shot --org <o> --username <u> \
 ```
 
 `user-shot` opens the org's my-domain login page, enters the username, continues to
-the password step if the page is identity-first, signs in, then opens `--path`. It stops with "login did not complete" if the final page is
-the login or change-password page. `--app-path
-/lightning/app/c__<AppDeveloperName>` opens an app first (record pages render under
-the last-used app).
+the password step if the page is identity-first, signs in, then opens `--path`. It stops
+with "login did not complete" if the final page is the login or change-password page. `--app-path /lightning/app/c__<AppDeveloperName>`
+opens an app first (record pages render under the last-used app).
 
 [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build] A Standard User created
 over the API and given a REST password signed in and landed on the forced
@@ -70,6 +69,12 @@ change-password page (`/_ui/system/security/ChangePassword`) after every
 skipped the page without changing the password, and the user's own app menu showed
 (not the sf user's). Submitting the change form did not leave the page in the helper's
 runs, so the helper does not use it.
+
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build] `shot` (with `--text`),
+`set-password`, `user-shot` and `--app-path` all ran live. So did the identity-first
+step (the password field is absent until the first Login click) and the
+"login did not complete" guard, which fired on the change-password page. The guard's
+pass path ran on the final successful runs.
 
 ## Test a FlexiPage in a shared org without changing anyone's pages
 

@@ -50,10 +50,12 @@ read the outcome from the org.
    records `Failed` with 0 components) and submit it:
    `sf project deploy start --metadata-dir <dir> --target-org <o> --wait 5`.
    [Open: `--source-dir` deploys were reported to hit the same EPERM; not re-measured.]
-2. Find the request: `sf data query --use-tooling-api -q "SELECT Id,Status,NumberComponentsDeployed,NumberComponentErrors FROM DeployRequest WHERE CreatedBy.Username = '<the target-org user>' ORDER BY CreatedDate DESC LIMIT 1" --target-org <o>`
-   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build: the filter works on Tooling `DeployRequest`.]
-   (other sessions deploying to a shared org would otherwise be picked up; the `--json`
-   output of the deploy, when it prints one, also carries the id). Wait until `Status` is `Succeeded` or `Failed`.
+2. Find the request, filtered to your own deploys (other sessions deploying to a shared
+   org would otherwise be picked up; the deploy's `--json` output, when it prints one,
+   also carries the id):
+   `sf data query --use-tooling-api -q "SELECT Id,Status,NumberComponentsDeployed,NumberComponentErrors FROM DeployRequest WHERE CreatedBy.Username = '<the target-org user>' ORDER BY CreatedDate DESC LIMIT 1" --target-org <o>`.
+   [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build: the filter works on
+   Tooling `DeployRequest`.] Wait until `Status` is `Succeeded` or `Failed`.
 3. Read the failures: `sf api request rest "/services/data/v68.0/metadata/deployRequest/<id>?includeDetails=true" --target-org <o> 2>/dev/null | jq '.deployResult.details.componentFailures'`.
 4. Confirm the artefact exists with a query (for example Tooling `ApexClass`).
 

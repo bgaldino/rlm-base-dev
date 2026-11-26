@@ -162,11 +162,11 @@ def _rest(instance, token, method, path, body=None):
             raw = resp.read()
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as exc:
-        raise SystemExit("REST %s %s failed: HTTP %s %s" % (method, path, exc.code, exc.read()[:300]))
+        raise SystemExit("REST %s %s failed: HTTP %s %s" % (method, path, exc.code, _scrub(exc.read()[:300])))
 
 
 def _password(args):
-    value = os.environ.pop(args.password_env, None)
+    value = os.environ.get(args.password_env)
     if not value:
         raise SystemExit("set the password in the environment variable %s" % args.password_env)
     return value

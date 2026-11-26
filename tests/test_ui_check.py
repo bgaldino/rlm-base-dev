@@ -46,11 +46,12 @@ class UiCheckTest(unittest.TestCase):
                 ui_check._require_logged_in(driver)
         ui_check._require_logged_in(mock.Mock(current_url="https://x.my.salesforce.com/lightning/page/home"))
 
-    def test_password_is_read_from_the_environment_and_removed(self):
+    def test_password_is_read_from_the_environment(self):
         args = mock.Mock(password_env="UI_CHECK_TEST_PW")
         with mock.patch.dict(ui_check.os.environ, {"UI_CHECK_TEST_PW": "pw"}):
             self.assertEqual(ui_check._password(args), "pw")
-            self.assertNotIn("UI_CHECK_TEST_PW", ui_check.os.environ)
+        with mock.patch.dict(ui_check.os.environ, {}, clear=False):
+            ui_check.os.environ.pop("UI_CHECK_TEST_PW", None)
             with self.assertRaises(SystemExit):
                 ui_check._password(args)
 
