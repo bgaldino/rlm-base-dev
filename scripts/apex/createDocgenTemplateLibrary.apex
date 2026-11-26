@@ -51,7 +51,8 @@ final String GROUP_LABEL = 'RLM DocGen Template Users';
 // error is the same for either (measured: same name with another unique name, another name with the
 // same unique name, and both, each fail with that message and no field). So on DUPLICATE_VALUE the
 // script looks for a visible library with the same name: found, it is a library under another
-// unique name; not found, it is one the running admin cannot see. It stops with what to do.
+// unique name (and possibly also a hidden one holding the unique name, which the message covers);
+// not found, it is one the running admin cannot see. It stops with what to do.
 List<ContentWorkspace> libraries = [
     SELECT Id FROM ContentWorkspace WHERE DeveloperName = :LIBRARY_API_NAME LIMIT 1
 ];
@@ -70,7 +71,10 @@ if (libraries.isEmpty()) {
                     + sameName[0].DeveloperName + '. Document generation needs the unique name ' + LIBRARY_API_NAME
                     + '. In Salesforce Classic, Libraries (/sfc/#workspaces), either set that library\'s unique name'
                     + ' to ' + LIBRARY_API_NAME + ' (if it holds the document templates) or rename it, then run'
-                    + ' this step again.');
+                    + ' this step again. If setting the unique name fails because it is taken, another library that '
+                    + UserInfo.getUserName() + ' cannot see already holds ' + LIBRARY_API_NAME + ': have a member'
+                    + ' of that library add ' + UserInfo.getUserName() + ' as a Library Administrator (and rename'
+                    + ' the visible one), or rename that other library, then run this step again.');
             }
             throw new DmlException('A library named "' + LIBRARY_LABEL + '" or with the unique name '
                 + LIBRARY_API_NAME + ' already exists, but ' + UserInfo.getUserName() + ' is not a member, so it'

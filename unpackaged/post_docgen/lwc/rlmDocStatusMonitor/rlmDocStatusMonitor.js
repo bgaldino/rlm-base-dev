@@ -128,13 +128,24 @@ export default class RlmDocStatusMonitor extends LightningElement {
             this.finish(this._finalStatus);
             return;
         }
+        // Poll first: the wait is bounded and the status is read even if subscribing fails, including
+        // a subscribe() that throws instead of rejecting.
+        this.pollStartedAt = Date.now();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS);
         const run = this._run;
-        subscribe(this.channelName, -1, response => {
-            const payload = response.data.payload;
-            if (payload.DocGenProcessIdentifier === this._processId) {
-                this.handleStatusChange(payload.Status);
-            }
-        })
+        let subscribing;
+        try {
+            subscribing = subscribe(this.channelName, -1, response => {
+                const payload = response.data.payload;
+                if (payload.DocGenProcessIdentifier === this._processId) {
+                    this.handleStatusChange(payload.Status);
+                }
+            });
+        } catch (error) {
+            subscribing = Promise.reject(error);
+        }
+        subscribing
             .then(subscription => {
                 if (run !== this._run) {
                     // The run ended while subscribing: release the subscription instead of keeping it.
@@ -149,9 +160,6 @@ export default class RlmDocStatusMonitor extends LightningElement {
                 // EMP subscription failed — polling still advances the flow
                 console.error('rlmDocStatusMonitor: EMP subscribe failed', error);
             });
-        this.pollStartedAt = Date.now();
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS);
     }
 
     teardown() {

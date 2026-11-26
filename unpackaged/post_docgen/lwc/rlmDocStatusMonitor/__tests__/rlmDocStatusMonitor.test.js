@@ -484,4 +484,22 @@ describe('rlmDocStatusMonitor', () => {
         expect(unsubscribe).toHaveBeenCalledTimes(2);
         expect(unsubscribe).toHaveBeenLastCalledWith(second, expect.any(Function));
     });
+
+    it('still polls and still times out when subscribing throws instead of rejecting', async () => {
+        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        subscribe.mockImplementation(() => {
+            throw new Error('EMP is not available here');
+        });
+        const { el, next } = mount();
+        await flushPromises();
+
+        expect(consoleError).toHaveBeenCalledWith('rlmDocStatusMonitor: EMP subscribe failed', expect.any(Error));
+        expect(jest.getTimerCount()).toBe(1);
+        jest.advanceTimersByTime(POLL_INTERVAL_MS);
+        expect(notifyRecordUpdateAvailable).toHaveBeenCalledWith([{ recordId: PROCESS_ID }]);
+
+        jest.advanceTimersByTime(MAX_WAIT_MS + 300);
+        expect(el.status).toBe('TimedOut');
+        expect(next).toHaveBeenCalledTimes(1);
+    });
 });
