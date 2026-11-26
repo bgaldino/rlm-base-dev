@@ -293,12 +293,14 @@ def test_string_error_items_are_printed(monkeypatch, capsys):
     assert "plain text error" in capsys.readouterr().out
 
 
-def test_a_row_without_an_invoice_is_listed_but_not_sent_to_verify(monkeypatch, capsys):
+def test_a_row_without_an_invoice_is_listed_and_counted_as_skipped(monkeypatch, capsys):
     orphan = _row("4sGNOINV", "credit", MEMO, None, 1)
     org = Org(monkeypatch, after=[OLD, NEW_PAY, orphan])
     assert _apply_rules() == 0
     assert ("fetch", [INVOICE_A], [PAYMENT]) in org.calls
-    assert "4sGNOINV" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "SKIP: credit 50gMEMO000000001AA (CreditMemoLineInvoiceLine 4sGNOINV)" in out
+    assert "2 balance(s) checked, 2 skipped)" in out
 
 
 def test_credit_rows_without_an_invoice_fail_as_nothing_checked(monkeypatch, capsys):
@@ -371,9 +373,10 @@ def test_no_eligible_invoice_with_nothing_applied_fails(monkeypatch, capsys):
     assert "APPLY-RULES: fail" in out
 
 
-def test_passes_the_target_date(monkeypatch):
+@pytest.mark.parametrize("given", ["2026-11-25", "20261125"])
+def test_passes_the_target_date_normalised(monkeypatch, given):
     org = Org(monkeypatch)
-    assert _apply_rules("--target-date", "2026-11-25") == 0
+    assert _apply_rules("--target-date", given) == 0
     assert ("apply", ACCOUNT, "2026-11-25") in org.calls
 
 
@@ -387,14 +390,15 @@ def test_refuses_a_target_date_that_is_not_a_date(monkeypatch, capsys):
 
 
 def test_nothing_applied_passes_without_verify(monkeypatch, capsys):
-    result = dict(OK, rulesApplicationSummary=dict(
+    result = dict(OK, appliedRules=[], rulesApplicationSummary=dict(
         OK["rulesApplicationSummary"], totalPaymentApplications=0,
         totalCreditMemoApplications=0))
     org = Org(monkeypatch, after=[OLD], result=result)
     assert _apply_rules() == 0
     assert "fetch" not in org.names()
-    assert "APPLY-RULES: pass (account 001ACCT000000001AA: nothing applied)" in \
-        capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "RULES: none;" in out
+    assert "APPLY-RULES: pass (account 001ACCT000000001AA: nothing applied)" in out
 
 
 @pytest.mark.parametrize("result", [

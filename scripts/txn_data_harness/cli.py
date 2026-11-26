@@ -897,12 +897,19 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               f"{len(new)} row(s), listed above)", file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
+    # A credit row's only check is on its invoice; one with no readable invoice
+    # is not checked at all.
+    unchecked = [r for r in new if r["kind"] == "credit" and not r["invoice_id"]]
+    for r in unchecked:
+        print(f"SKIP: credit {r['source_id']} ({r['object']} {r['id']}) names no readable "
+              "invoice; not checked")
+    skipped = report["skipped"] + len(unchecked)
     if not report["ok"] or not report["checked"]:
         reason = "a check failed" if not report["ok"] else "no balance was checked"
         print(f"APPLY-RULES: fail ({label}: {reason})")
         return 1
     print(f"APPLY-RULES: pass ({label}: {len(new)} application(s) made; "
-          f"{report['checked']} balance(s) checked, {report['skipped']} skipped)")
+          f"{report['checked']} balance(s) checked, {skipped} skipped)")
     return 0
 
 

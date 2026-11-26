@@ -171,7 +171,7 @@ application row on the account's payments and credit memos before and after,
 prints each new row (`APPLIED:`) and the rules the response names (`RULES:`, as
 Help names, e.g. Match Balance), then runs the `verify` checks on the invoices
 and payments the new rows touch; the pass line gives the checked and skipped
-counts. Without `--target-date`, one measured evening's calls considered only
+counts (a credit row naming no readable invoice is a `SKIP:`). Without `--target-date`, one measured evening's calls considered only
 invoices posted that UTC day. Exit 0 when the platform reports success and
 nothing was applied or the checks passed with a balance checked, 1 when it
 reports failure (no eligible invoice included), a check fails, nothing could
