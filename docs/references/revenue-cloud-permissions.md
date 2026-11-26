@@ -470,6 +470,13 @@ than its org-wide default. Record access the build adds, and the one it delibera
   **all internal users**. On a cold constraint solver, the first configuration-rules run redeploys
   the models as the running user, so a non-admin needs to see these rows. Pricing procedures and
   other Expression Sets stay Private, as does access for external (Experience Cloud) users.
+- The Docgen Document Template Library membership (`create_docgen_library`, `prepare_docgen`
+  step 1, when `docgen` is on): the public group `RLM_DocGen_Template_Users`, seeded with **all
+  internal users**, is a member of `DocgenDocumentTemplateLibrary` with the read-only permission
+  `RLM DocGen Template Viewer`. Generation reads the template file as the generating user, and only
+  library members can read it, so without this only the build admin can generate documents (todo 435).
+  Members can't add, version or delete the files. Details: `docs/guides/docgen-setup.md` →
+  Template Library Access.
 - **Not added: `TransactionJournal` (usage records).** Without View All on `TransactionJournal` the
   sales rep persona sees none of its rows, not even the ones it created; Read isn't enough. The object
   has no owner field, `UserRecordAccess` still reports Read, and a direct retrieve by Id returns

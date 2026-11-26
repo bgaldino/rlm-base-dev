@@ -23,7 +23,8 @@ Both Quote templates above use the same Quick Action (`Quote.RLM_Create_Proposal
 ## Deployment Flow: `prepare_docgen`
 
 ```
-1.  create_docgen_library            → Creates "Docgen Document Template Library" ContentWorkspace
+1.  create_docgen_library            → Creates "Docgen Document Template Library" ContentWorkspace and
+                                        gives runtime users read-only access to it (see below)
 2.  enable_document_builder_toggle   → Enables Document Builder in Revenue Settings (Robot task)
 3.  deploy_docgen_seller_fields      → Pre-deploys Quote formula fields (RLM_Seller_*__c,
                                         RLM_Account_Name__c, RLM_Sales_Rep_Name__c) before ODTs
@@ -39,6 +40,35 @@ Both Quote templates above use the same Quick Action (`Quote.RLM_Create_Proposal
 All steps are gated by `project_config.project__custom__docgen`.
 
 **Steps 3–5** exist to work around two Salesforce platform bugs on fresh orgs: the ODT deploy validates that formula fields referenced in `inputFieldName` exist at INSERT time (steps 3–4 pre-deploy them), and the platform rejects ODT INSERT when those fields are present (`-692085439`), requiring stub records to exist so the full deploy runs as UPDATE (step 5). All three steps are idempotent.
+
+---
+
+## Template Library Access
+
+Document generation reads the template's file, a ContentVersion in the `DocgenDocumentTemplateLibrary` library, **as the user who generates**. Library files are visible only to library members, and the build admin who creates the library is its only member. Without more, every other user's generation fails, for every template in the library: the Create Proposal flow shows "The document generation process ended with status Failure." and the user's `DocumentGenerationProcess.ResponseText` reads:
+
+```
+Could not generate document: Could not Enqueue to Kafka for Generate And Convert. The contentVersion with ID : {0} is either deleted/non-existent or the user does not have access to it.
+```
+
+Salesforce Help ("Create a Document Template Library", `docs/salesforce/264/help/articles/ind.sf_contracts_create_and_add_users_to_document_template_library.htm.md`) says to add the users as library members, or grant access to a group and add the users to the group. `create_docgen_library` (`scripts/apex/createDocgenTemplateLibrary.apex`) does the group form, each part find-or-create:
+
+| Record | Value |
+|---|---|
+| Library | `DocgenDocumentTemplateLibrary` (ContentWorkspace) |
+| Library permission | `RLM DocGen Template Viewer` (ContentWorkspacePermission, every permission off: open and download only) |
+| Public group | `RLM_DocGen_Template_Users`, seeded with **All Internal Users** while it has no members |
+| Library member | the group, with that permission |
+
+Why this shape:
+
+- **A library takes only users and public groups as members.** Adding All Internal Users directly is refused ("You can only add individual users or public groups as library members"), so the public group carries it.
+- **All internal users, read-only.** Everyone who generates a document (quotes, sales proposals, invoices, collections notices, and any template created later in the designer) must read its template, and templates hold no record data. Holding the template file does not let a user generate: that still needs the DocGen permissions and access to the record.
+- **One membership covers every template.** Every DocumentTemplate file lives in this library, including the billing defaults and collections notices that other flows deploy, so new templates and new template versions need nothing more.
+
+To narrow access, replace the group's members (for example with specific users or roles). A rerun leaves a group that has members, and an existing library membership, as they are. On an org built before this fix, run `cci task run create_docgen_library --org <alias>` once.
+
+Partner (community) users are not internal users, so the seed does not cover them. Add them to the group if they generate documents.
 
 ---
 
@@ -355,6 +385,7 @@ This works because `community_content-file-previewer` (the inner renderer used b
 cci flow run prepare_docgen --org beta
 
 # Individual steps
+cci task run create_docgen_library --org beta      # library + read access for runtime users
 cci task run deploy_post_docgen --org beta
 cci task run activate_docgen_templates --org beta
 cci task run fix_document_template_binaries --org beta
@@ -378,6 +409,7 @@ python scripts/docgen/docgen_template_generate.py \
 
 | Issue | Detail |
 |---|---|
+| Template files are read as the generating user | Users outside the `RLM_DocGen_Template_Users` group cannot read the template files and their generation fails (see [Template Library Access](#template-library-access)). |
 | Template binary bug | Salesforce Metadata API batch deploy assigns the same ContentDocument binary to all templates. `fix_document_template_binaries` corrects this automatically. |
 | Template versions accumulate | Each deploy creates a new DocumentTemplate version. `activateDocgenTemplates.apex` activates the highest version. Old versions remain as Archived but do not cause issues. |
 | `enable_document_builder_toggle` | Uses Robot Framework; requires Robot deps. May fail if the Revenue Settings page is slow. Run `validate_setup` to check Robot deps. |

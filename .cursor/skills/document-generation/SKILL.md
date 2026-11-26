@@ -37,6 +37,11 @@ For ODT mapper architecture and deep ODT troubleshooting, use
    filter semantics, and array-depth debugging live in `../odt-authoring/SKILL.md`.
 9. **Dynamic image contract is strict** — `IMG_*:src` must resolve to
    ContentDocument (`069`) plus width/height; see `dynamic-images.md`.
+10. **Template files are read as the generating user** — every user who generates
+   must be a member of `DocgenDocumentTemplateLibrary`, directly or through a public
+   group. `create_docgen_library` adds `RLM_DocGen_Template_Users` (seeded with All
+   Internal Users) as a read-only member; see `docs/guides/docgen-setup.md` →
+   Template Library Access.
 
 
 ## DO NOT
@@ -508,6 +513,7 @@ After a formula builds an array, map it to the template:
 | `getOutputObjectName() is null` | Item missing OutputObjectName | Set `OutputObjectName: "json"` on all items |
 | "mandatory details missing" in UI | Same as above, or missing InputFieldName on object queries | Add required fields |
 | `[object Object]` for images | Org below Release 256 (DocGen 1.0) `[inferred: threshold not in the 264 snapshot]` | Upgrade org; or use RTB_ with HTML `<img>` as fallback |
+| `Could not Enqueue to Kafka for Generate And Convert. The contentVersion with ID : {0} is either deleted/non-existent or the user does not have access to it.` in DGP `ResponseText` (admin generates fine) | The generating user is not a member of `DocgenDocumentTemplateLibrary`, so cannot read the template file | Run `create_docgen_library` (adds `RLM_DocGen_Template_Users` as a read-only member), and make sure the user is in that group |
 | IMG_ token consumed, no image | Missing `width`/`height`, or Integration User can't access file | Add both dimensions + add Integration User to Content Library |
 | Engine crash: `Cannot read properties of undefined (reading '0')` | `src` has ContentVersion ID (`068`) or file Title | Use ContentDocument ID (`069`) only |
 | HYP_ shows red "URL is invalid" error | Wrong field name (`src` instead of `url`) or token formatted as Word hyperlink | Use `"url"` field (not `"src"`); ensure token is plain text in template |
@@ -630,6 +636,9 @@ For the full deployment guide, see **`docs/guides/docgen-setup.md`**.
   formula fields and seed stub ODT records as a workaround.
 - **Binary fix**: `fix_document_template_binaries` uploads correct `.docx` binary
   after metadata deploy (Metadata API drops binary content on deploy).
+- **Library access**: `create_docgen_library` (step 1) also gives runtime users
+  read-only access to the template library; without it only the build admin can
+  generate documents.
 - **Feature gate**: All steps gated by `project_config.project__custom__docgen`.
 - **Context Service alternative**: `RLM_QuoteProposal_CS` uses Context Service
   instead of ODTs — see the setup guide for that path.
