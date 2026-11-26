@@ -372,12 +372,17 @@ public with sharing class RLM_BillingScheduleGroupService {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<TaxTreatmentOption> getTaxTreatments() {
+    public static List<TaxTreatmentOption> getTaxTreatments(Id legalEntityId) {
         List<TaxTreatmentOption> results = new List<TaxTreatmentOption>();
+        // Treatments belong to a legal entity: none is offered until one is chosen, and create refuses
+        // any that is not the chosen entity's (requirePickerTaxTreatment).
+        if (legalEntityId == null) {
+            return results;
+        }
         // TaxTreatment.Status is not permissionable (measured on a 264 org), so no field grant applies;
         // object read on TaxTreatment is what gates this query.
         try {
-            for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
+            for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' AND LegalEntityId = :legalEntityId WITH USER_MODE ORDER BY Name]) {
                 results.add(new TaxTreatmentOption(tt.Id, tt.Name));
             }
         } catch (QueryException qe) {
@@ -946,8 +951,8 @@ public with sharing class RLM_BillingScheduleGroupService {
         return les[0].Name;
     }
 
-    // The tax treatment sent must be one getTaxTreatments offers (active, visible to the user) and
-    // belong to the chosen legal entity, so an id from elsewhere is refused before any action call.
+    // The tax treatment sent must be one getTaxTreatments offers for the chosen legal entity (active,
+    // visible to the user), so an id from elsewhere is refused before any action call.
     private static void requirePickerTaxTreatment(Id taxTreatmentId, Id legalEntityId) {
         List<TaxTreatment> tts;
         try {

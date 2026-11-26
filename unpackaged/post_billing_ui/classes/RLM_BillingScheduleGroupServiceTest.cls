@@ -561,7 +561,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void getTaxTreatments_returnsActiveSortedByName() {
+    static void getTaxTreatments_returnsActiveOfTheChosenEntity() {
         // Two treatments on one legal entity with no tax policy or product code collided on
         // TaxTreatment's unique key, so each gets its own legal entity.
         // The Active treatment is the control; the Draft ones must be filtered out.
@@ -576,9 +576,15 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         Test.startTest();
         List<RLM_BillingScheduleGroupService.TaxTreatmentOption> options =
-            RLM_BillingScheduleGroupService.getTaxTreatments();
+            RLM_BillingScheduleGroupService.getTaxTreatments(le3.Id);
+        List<RLM_BillingScheduleGroupService.TaxTreatmentOption> draftEntity =
+            RLM_BillingScheduleGroupService.getTaxTreatments(le1.Id);
+        List<RLM_BillingScheduleGroupService.TaxTreatmentOption> noEntity =
+            RLM_BillingScheduleGroupService.getTaxTreatments(null);
         Test.stopTest();
 
+        Assert.isTrue(draftEntity.isEmpty(), 'An entity whose only treatment is Draft offers none.');
+        Assert.isTrue(noEntity.isEmpty(), 'No legal entity chosen offers no treatment.');
         Set<Id> returned = new Set<Id>();
         for (RLM_BillingScheduleGroupService.TaxTreatmentOption o : options) {
             returned.add(o.id);
@@ -595,7 +601,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         List<RLM_BillingScheduleGroupService.LegalEntityOption> les =
             RLM_BillingScheduleGroupService.getLegalEntities();
         List<RLM_BillingScheduleGroupService.TaxTreatmentOption> tts =
-            RLM_BillingScheduleGroupService.getTaxTreatments();
+            RLM_BillingScheduleGroupService.getTaxTreatments(fakeId(LegalEntity.SObjectType));
         List<RLM_BillingScheduleGroupService.ProductOption> prods =
             RLM_BillingScheduleGroupService.getProducts();
         Test.stopTest();
@@ -1552,6 +1558,18 @@ private class RLM_BillingScheduleGroupServiceTest {
             + 'entity read test relies on it and does not check the hidden case here.');
     }
 
+    // The tax treatment read test branches on this org-wide default, so a build where tax treatments are
+    // not private would pass without checking the hidden case: fail loudly instead.
+    @isTest
+    static void taxTreatmentsArePrivateByDefault() {
+        String sharingModel = [
+            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'TaxTreatment'
+        ].InternalSharingModel;
+        Assert.areEqual('Private', sharingModel,
+            'The org-wide default for tax treatments is ' + sharingModel + ', not Private: the tax '
+            + 'treatment read test does not check the hidden case on such a build.');
+    }
+
     // The legal entity read runs as the user, on an entity the admin owns. With no LegalEntity read it
     // is refused and named. With read but no sharing it is refused as not visible where legal entities
     // are private (else it passes; see legalEntitiesArePrivateByDefault). With view-all it passes and
@@ -1572,13 +1590,13 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ 'LegalEntity' },
             new List<String>{ 'BillingAccount', 'Account', 'TaxTreatment', 'Product2' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-                'Product2.IsActive', 'Product2.Family' });
+                'Product2.Family' });
         User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
             new List<String>(),
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment', 'Product2' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-                'Product2.IsActive', 'Product2.Family' });
+                'Product2.Family' });
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-LE' };
 
@@ -1641,8 +1659,8 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     private static final String TT_REFUSAL =
-        'The tax treatment was not found, is not active, is not visible to you, or is not '
-        + 'a tax treatment of the chosen legal entity. Choose another tax treatment.';
+        'The tax treatment was not found, is not active, or is not visible to you. '
+        + 'Choose another tax treatment.';
     private static final String PRODUCT_REFUSAL =
         'The product was not found, is not active, is not offered for billing schedules, or is not '
         + 'visible to you. Choose another product.';
@@ -1656,8 +1674,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         return null;
     }
 
-    // The picker offers only active treatments of the chosen legal entity; any other id is refused
-    // before the action is called.
+    // The picker offers only active treatments; any other id is refused before the action is called.
     @isTest
     static void createViaAPI_taxTreatmentNotOffered_isRefused() {
         Id baId = insertBillingAccount('BSG TT Refused');
@@ -1667,21 +1684,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert leDraft;
         TaxTreatment draft = new TaxTreatment(Name = 'BSG TT Draft', Status = 'Draft', LegalEntityId = leDraft.Id);
         insert draft;
-        Id otherEntityTreatment = activeTaxTreatmentId();
-        LegalEntity leChosen = new LegalEntity(Name = 'BSG TT Chosen LE', Status = 'Active');
-        insert leChosen;
 
         CreateArgs inactive = new CreateArgs(baId);
         inactive.legalEntityId = leDraft.Id;
         inactive.taxTreatmentId = draft.Id;
-        CreateArgs otherEntity = new CreateArgs(baId);
-        otherEntity.legalEntityId = leChosen.Id;
-        otherEntity.taxTreatmentId = otherEntityTreatment;
         CreateArgs missing = new CreateArgs(baId);
         missing.taxTreatmentId = fakeId(TaxTreatment.SObjectType);
         Map<String, CreateArgs> cases = new Map<String, CreateArgs>{
             'An inactive tax treatment' => inactive,
-            'A tax treatment of another legal entity' => otherEntity,
             'A tax treatment that does not exist' => missing
         };
 
@@ -1735,7 +1745,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert ba;
         List<String> fields = new List<String>{
             'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
-            'Product2.IsActive', 'Product2.Family' };
+            'Product2.Family' };
         List<String> psl = new List<String>{ RLM_BillingUITestUsers.BILLING_PSL };
         User noTaxTreatmentRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'Product2' }, fields);

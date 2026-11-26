@@ -199,13 +199,20 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         }
     }
 
-    @wire(getTaxTreatments)
+    @wire(getTaxTreatments, { legalEntityId: '$legalEntityId' })
     wiredTaxTreatments({ error, data }) {
         if (data) {
             this.taxTreatmentOptions = data.map((tt) => ({
                 label: tt.name,
                 value: tt.id
             }));
+            // A treatment chosen for another legal entity is no longer offered.
+            if (
+                this.taxTreatmentId &&
+                !this.taxTreatmentOptions.some((o) => o.value === this.taxTreatmentId)
+            ) {
+                this.taxTreatmentId = undefined;
+            }
         } else if (error) {
             this.taxTreatmentOptions = [];
             this.dispatchEvent(
@@ -481,7 +488,13 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
     }
 
     handleLegalEntityChange(event) {
+        const previous = this.legalEntityId;
         this.legalEntityId = event.detail.value;
+        if (previous && previous !== this.legalEntityId) {
+            // The options belong to the previous entity until the wire re-provisions.
+            this.taxTreatmentId = undefined;
+            this.taxTreatmentOptions = [];
+        }
     }
 
     handleTaxTreatmentChange(event) {

@@ -406,6 +406,24 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     expect(toasts[0].message).toContain("Billing City");
   });
 
+  it("drops the tax treatment when the legal entity changes", async () => {
+    const element = await mount();
+    const treatment = () =>
+      Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find(
+        (candidate) => candidate.name === "taxTreatment"
+      );
+    change(element, 'lightning-combobox[name="legalEntity"]', "0le000000000001AAA");
+    change(element, 'lightning-combobox[name="taxTreatment"]', "0tt000000000001AAA");
+    await flushPromises();
+    expect(treatment().value).toBe("0tt000000000001AAA");
+
+    change(element, 'lightning-combobox[name="legalEntity"]', "0le000000000002AAA");
+    await flushPromises();
+
+    expect(treatment().value).toBeFalsy();
+    expect(treatment().options).toHaveLength(0);
+  });
+
   it("shows no inline reason when the form can be submitted", async () => {
     const element = await mount();
     await fillRecurring(element, "Evergreen");
