@@ -1863,7 +1863,7 @@
 
 ### `deploy_post_personas`
 
-**Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+**Description:** Deploy persona metadata (profiles, permission set groups, permission sets) and an Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas. A deploy that runs local tests (production) runs that class.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

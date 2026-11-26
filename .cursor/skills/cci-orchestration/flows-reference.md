@@ -478,7 +478,7 @@ Stand up the org-side MCP surface: deploy the ECA, then (with the mcp_custom_ser
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
+Deploy persona metadata (profiles, permission set groups, permission sets) and an Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 

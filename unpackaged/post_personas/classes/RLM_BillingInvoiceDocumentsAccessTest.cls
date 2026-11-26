@@ -1,29 +1,40 @@
 /**
  * What a billing persona (RLM Billing Admin, RLM Billing Operations) needs to generate invoice
  * documents, batch (Generate Invoice Documents on an Invoice Batch Run) and on demand (Generate
- * Invoice Document on an Invoice), proved as that persona (todo 292).
- *
- * Measured on a 264 org as Minimum Access users holding the Billing license and a persona group:
+ * Invoice Document on an Invoice), checked as that persona (todo 292). Measured on a 264 org as
+ * Minimum Access users holding the Billing license and a persona group:
  * - Neither group reaches Document Template, Document Generation Process or Document Generation
- *   Batch Process ("Access to entity ... denied"): the managed billing role sets carry no DocGen
- *   access. The DocGen sets need the DocGen Designer permission set license, so they are assigned
- *   next to the group, never put in it (a group containing a licensed set fails to deploy while a
- *   holder lacks the license: measured for Billing Advanced in todo 452, assumed for this one).
+ *   Batch Process ("Access to entity ... denied"). The DocGen sets need the DocGen Designer
+ *   permission set license, so they are assigned next to the group, not put in it: existing holders
+ *   of the billing groups may lack that license, and the build creates no billing persona user with it.
  * - With DocGen User the persona reads templates and may create a Document Generation Process (on
  *   demand) but not a Document Generation Batch Process ("DML operation INSERT not allowed on
- *   DocGenerationBatchProcess"), the create behind batch generation. DocGen Designer grants it;
- *   object create on that object in a custom set does not (measured: the insert is still refused).
+ *   DocGenerationBatchProcess"), the create behind batch generation. DocGen Designer opens it.
  * - The managed Billing Admin set has no access to Invoice Batch Run, the record the batch action
  *   runs from; the managed Billing Operations set reads it. RLM_BillingInvoiceDocuments, in both
  *   groups, grants it with View All (the object is Private).
  * - The invoice template's file is in the Docgen Document Template Library and is read as the
- *   generating user. A persona reads it as a library member (create_docgen_library makes every
- *   internal user one, through the RLM_DocGen_Template_Users group) that also has Access Libraries
+ *   generating user. A persona reads it as a library member (create_docgen_library adds every
+ *   internal user, through the RLM_DocGen_Template_Users group) that also has Access Libraries
  *   (ContentWorkspaces), which the Minimum Access profile lacks; RLM_BillingInvoiceDocuments grants it.
  *
- * Admin tests prove nothing here: System Administrator bypasses object access. Each user takes a
- * seat of every license it is given, so an org with no free Billing or DocGen Designer seat fails
- * these tests on the license, not on access.
+ * Which tests check what:
+ * - the group itself: every*Group* methods. A group that is not Updated cannot be assigned, and a
+ *   deploy that changes a group leaves it Updating, so these skip (with a WARN debug line) rather
+ *   than fail; a skip proves nothing.
+ * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
+ *   field-access set): the Invoice Batch Run reads, the DocGen access and the template file read.
+ * - library membership: the build's own group membership. The file read skips when that group is
+ *   not a library member (docgen off, or an org built before create_docgen_library added it).
+ * Checks that would fail only because Salesforce grants MORE than today (the Billing Admin role
+ * alone reading the runs, DocGen User alone creating a batch process, a member without Access
+ * Libraries reading the file) are WARN debug lines, not assertions, so a platform change cannot
+ * block a deploy that runs local tests.
+ *
+ * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
+ * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
+ * DocGen Designer for the DocGen checks); no method holds more than two users at once. An org with no
+ * free seat fails on the license, not on access.
  */
 @IsTest
 private class RLM_BillingInvoiceDocumentsAccessTest {
@@ -34,44 +45,20 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     private static final String DOCGEN_USER = 'DocGenUser';
     private static final String DOCGEN_DESIGNER = 'DocGenDesigner';
     private static final String TEMPLATE_LIBRARY = 'DocgenDocumentTemplateLibrary';
+    private static final String TEMPLATE_USERS_GROUP = 'RLM_DocGen_Template_Users';
     private static final String DEFAULT_INVOICE_TEMPLATE = 'DefaultInvoiceTemplate';
 
-    // Each persona group and the managed role set it is built on.
-    private static final Map<String, String> ROLE_SET_BY_GROUP = new Map<String, String>{
-        'RLM_Billing_Admin' => 'RevenueLifecycleManagementBillingAdmin',
-        'RLM_Billing_Operations' => 'RevenueLifecycleManagementBillingOperations'
-    };
+    private static final String ADMIN_GROUP = 'RLM_Billing_Admin';
+    private static final String OPERATIONS_GROUP = 'RLM_Billing_Operations';
+    private static final String ADMIN_ROLE = 'RevenueLifecycleManagementBillingAdmin';
+    private static final String OPERATIONS_ROLE = 'RevenueLifecycleManagementBillingOperations';
     // Read on Invoice Batch Run needs read on the scheduler, and that needs read on a run-criteria
     // object (deploy-enforced), so all three are checked.
     private static final List<String> BATCH_RUN_OBJECTS = new List<String>{
         'InvoiceBatchRun', 'BillingBatchScheduler', 'InvoiceBatchRunCriteria'
     };
 
-    // ---- Invoice Batch Run read -------------------------------------------------------------
-
-    @IsTest
-    static void billingAdminRoleAloneCannotReadInvoiceBatchRuns() {
-        User u = user(new List<String>{ ROLE_SET_BY_GROUP.get('RLM_Billing_Admin') }, null,
-            new List<String>{ BILLING_PSL });
-        System.runAs(u) {
-            Assert.isFalse(unreadable(BATCH_RUN_OBJECTS).isEmpty(),
-                'The managed Billing Admin set now reads Invoice Batch Run; RLM_BillingInvoiceDocuments may no longer be needed for it');
-        }
-    }
-
-    @IsTest
-    static void invoiceDocumentsSetGivesEachBillingRoleTheRunReads() {
-        List<String> failures = new List<String>();
-        for (String roleSet : ROLE_SET_BY_GROUP.values()) {
-            User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
-            System.runAs(u) {
-                for (String failure : unreadable(BATCH_RUN_OBJECTS)) {
-                    failures.add(roleSet + ' + ' + INVOICE_DOCS_SET + ': ' + failure);
-                }
-            }
-        }
-        Assert.isTrue(failures.isEmpty(), 'Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
-    }
+    // ---- The set and the groups (metadata) ---------------------------------------------------
 
     @IsTest
     static void invoiceDocumentsSetGrantsViewAllOnTheRunChain() {
@@ -109,81 +96,140 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         ]) {
             groupsWithSet.add(c.PermissionSetGroup.DeveloperName);
         }
-        Assert.isTrue(groupsWithSet.containsAll(ROLE_SET_BY_GROUP.keySet()),
+        Assert.isTrue(groupsWithSet.containsAll(new Set<String>{ ADMIN_GROUP, OPERATIONS_GROUP }),
             'Each billing persona group contains ' + INVOICE_DOCS_SET + '; found in: ' + groupsWithSet);
     }
 
-    @IsTest
-    static void everyBillingPersonaGroupReadsInvoiceBatchRuns() {
-        List<String> failures = new List<String>();
-        for (String groupName : ROLE_SET_BY_GROUP.keySet()) {
-            PermissionSetGroup g = assignableGroup(groupName);
-            if (g == null) {
-                continue;
-            }
-            System.runAs(user(new List<String>(), g.Id, new List<String>{ BILLING_PSL })) {
-                for (String failure : unreadable(BATCH_RUN_OBJECTS)) {
-                    failures.add(groupName + ': ' + failure);
-                }
-            }
-        }
-        Assert.isTrue(failures.isEmpty(), 'Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
-    }
-
-    // ---- Document generation ----------------------------------------------------------------
+    // ---- Invoice Batch Run read --------------------------------------------------------------
 
     @IsTest
-    static void docGenUserAloneCannotStartBatchGeneration() {
-        for (String roleSet : ROLE_SET_BY_GROUP.values()) {
-            System.runAs(persona(roleSet, new List<String>{ DOCGEN_USER })) {
-                Database.SaveResult result = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
-                Assert.isFalse(result.isSuccess(),
-                    roleSet + ' with DocGen User created a batch process; DocGen Designer may no longer be needed');
+    static void billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns() {
+        assertReadsRuns(ADMIN_ROLE);
+        // Only a note: the role alone is expected to be refused today, and the set is why the persona reads.
+        User roleOnly = user(new List<String>{ ADMIN_ROLE }, null, new List<String>{ BILLING_PSL });
+        System.runAs(roleOnly) {
+            if (unreadable(BATCH_RUN_OBJECTS).isEmpty()) {
+                System.debug(LoggingLevel.WARN, 'NOTE: the managed Billing Admin set now reads Invoice Batch Run;'
+                    + ' ' + INVOICE_DOCS_SET + ' may no longer be needed for that read.');
             }
         }
     }
 
     @IsTest
-    static void billingPersonaWithBothDocGenSetsHasBatchAndOnDemandAccess() {
-        List<String> failures = new List<String>();
-        for (String roleSet : ROLE_SET_BY_GROUP.values()) {
-            System.runAs(persona(roleSet, new List<String>{ DOCGEN_USER, DOCGEN_DESIGNER })) {
-                Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
-                if (!batch.isSuccess()) {
-                    failures.add(roleSet + ': batch process create: ' + batch.getErrors()[0].getMessage());
-                }
-                if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
-                    failures.add(roleSet + ': Document Generation Process create (on-demand generation)');
-                }
-                if (!Schema.SObjectType.DocumentTemplate.isAccessible()) {
-                    failures.add(roleSet + ': Document Template read');
-                }
-                failures.addAll(prefixed(roleSet + ': ', unreadable(BATCH_RUN_OBJECTS)));
-            }
-        }
-        Assert.isTrue(failures.isEmpty(), 'Invoice document generation access missing:\n' + String.join(failures, '\n'));
+    static void billingOperationsRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns() {
+        assertReadsRuns(OPERATIONS_ROLE);
     }
 
-    // The default invoice template's file is read as the generating user, and it sits in the template
-    // library, so a persona reads it as a library member with Access Libraries. The build makes every
-    // internal user a member through the RLM_DocGen_Template_Users group (create_docgen_library); in a
-    // test that membership does not reach a user created in the same test (measured on a 264 org: such
-    // a user read none of the files through a group holding All Internal Users, while an existing user
-    // read them), so the test makes each user a direct read-only member. The control user is the same
-    // persona without RLM_BillingInvoiceDocuments: as a member it still reads nothing, so the set's
-    // Access Libraries is what opens the file. SeeAllData: the template, its file and the library are
-    // org data.
+    @IsTest
+    static void billingAdminGroupReadsInvoiceBatchRuns() {
+        assertGroupReadsRuns(ADMIN_GROUP);
+    }
+
+    @IsTest
+    static void billingOperationsGroupReadsInvoiceBatchRuns() {
+        assertGroupReadsRuns(OPERATIONS_GROUP);
+    }
+
+    // ---- Document generation -----------------------------------------------------------------
+
+    @IsTest
+    static void billingAdminWithBothDocGenSetsHasBatchAndOnDemandAccess() {
+        assertDocGenAccess(ADMIN_ROLE);
+    }
+
+    @IsTest
+    static void billingOperationsWithBothDocGenSetsHasBatchAndOnDemandAccess() {
+        assertDocGenAccess(OPERATIONS_ROLE);
+    }
+
+    // ---- Template file -----------------------------------------------------------------------
+    // SeeAllData: the template, its file, the library and its group membership are org data.
+
     @IsTest(SeeAllData=true)
-    static void billingPersonaReadsTheInvoiceTemplateFileAsALibraryMember() {
+    static void billingAdminReadsTheInvoiceTemplateFile() {
+        assertReadsTemplateFile(ADMIN_ROLE);
+    }
+
+    @IsTest(SeeAllData=true)
+    static void billingOperationsReadsTheInvoiceTemplateFile() {
+        assertReadsTemplateFile(OPERATIONS_ROLE);
+    }
+
+    // ---- helpers -----------------------------------------------------------------------------
+
+    private static void assertReadsRuns(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(BATCH_RUN_OBJECTS);
+            Assert.isTrue(failures.isEmpty(), roleSet + ' + ' + INVOICE_DOCS_SET
+                + ': Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
+
+    private static void assertGroupReadsRuns(String groupName) {
+        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :groupName];
+        Assert.areEqual(1, groups.size(), groupName + ' is deployed with this class (unpackaged/post_personas)');
+        if (groups[0].Status != 'Updated') {
+            System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + groupName + ' is ' + groups[0].Status
+                + ', not Updated, so it cannot be assigned. A deploy that changes the group leaves it Updating;'
+                + ' rerun this test once the group is Updated.');
+            return;
+        }
+        User u = user(new List<String>(), groups[0].Id, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(BATCH_RUN_OBJECTS);
+            Assert.isTrue(failures.isEmpty(), groupName + ': Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
+
+    private static void assertDocGenAccess(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER, DOCGEN_DESIGNER }, null,
+            new List<String>{ BILLING_PSL, DOCGEN_PSL });
+        List<String> failures = new List<String>();
+        System.runAs(u) {
+            Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
+            if (!batch.isSuccess()) {
+                failures.add('batch process create: ' + batch.getErrors()[0].getMessage());
+            }
+            if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
+                failures.add('Document Generation Process create (on-demand generation)');
+            }
+            if (!Schema.SObjectType.DocumentTemplate.isAccessible()) {
+                failures.add('Document Template read');
+            }
+            failures.addAll(unreadable(BATCH_RUN_OBJECTS));
+        }
+        Assert.isTrue(failures.isEmpty(), roleSet + ': invoice document generation access missing:\n'
+            + String.join(failures, '\n'));
+
+        // Only a note: DocGen User alone is expected to be refused the batch create today.
+        User docGenUserOnly = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER }, null,
+            new List<String>{ BILLING_PSL, DOCGEN_PSL });
+        System.runAs(docGenUserOnly) {
+            if (Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE).isSuccess()) {
+                System.debug(LoggingLevel.WARN, 'NOTE: ' + roleSet + ' with DocGen User alone created a batch process;'
+                    + ' DocGen Designer may no longer be needed.');
+            }
+        }
+    }
+
+    // The persona reads the default invoice template's file through the build's own library
+    // membership (RLM_DocGen_Template_Users, which holds All Internal Users). Measured on a 264 org: a
+    // user created in a test reads the file through such a group once it has Access Libraries.
+    private static void assertReadsTemplateFile(String roleSet) {
         List<DocumentTemplate> templates = [
             SELECT Id FROM DocumentTemplate WHERE Name = :DEFAULT_INVOICE_TEMPLATE AND IsActive = true LIMIT 1
         ];
         List<ContentWorkspace> libraries = [SELECT Id FROM ContentWorkspace WHERE DeveloperName = :TEMPLATE_LIBRARY LIMIT 1];
-        if (templates.isEmpty() || libraries.isEmpty()) {
-            // Billing document generation off, or the running user is not a library member (only
-            // members see a library): nothing on this org to check.
-            System.debug(LoggingLevel.WARN, 'SKIPPED: no active ' + DEFAULT_INVOICE_TEMPLATE + ' or no visible '
-                + TEMPLATE_LIBRARY + ', so the invoice template file read is not tested.');
+        Integer groupMemberships = libraries.isEmpty() ? 0 : [
+            SELECT COUNT() FROM ContentWorkspaceMember
+            WHERE ContentWorkspaceId = :libraries[0].Id AND MemberId IN (
+                SELECT Id FROM Group WHERE DeveloperName = :TEMPLATE_USERS_GROUP AND Type = 'Regular')
+        ];
+        if (templates.isEmpty() || groupMemberships == 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: no active ' + DEFAULT_INVOICE_TEMPLATE
+                + ', or ' + TEMPLATE_USERS_GROUP + ' is not a member of ' + TEMPLATE_LIBRARY
+                + ' (docgen off, or create_docgen_library has not added it on this org).');
             return;
         }
         Set<Id> fileIds = new Set<Id>();
@@ -197,53 +243,23 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         }
         Assert.isFalse(fileIds.isEmpty(), DEFAULT_INVOICE_TEMPLATE + ' has a template file');
 
-        List<String> failures = new List<String>();
-        for (String roleSet : ROLE_SET_BY_GROUP.values()) {
-            User u = persona(roleSet, new List<String>{ DOCGEN_USER, DOCGEN_DESIGNER });
-            User control = user(new List<String>{ roleSet, DOCGEN_USER, DOCGEN_DESIGNER }, null,
-                new List<String>{ BILLING_PSL, DOCGEN_PSL });
-            makeLibraryReaders(libraries[0].Id, new List<Id>{ u.Id, control.Id });
-            System.runAs(u) {
-                Integer files = templateFilesRead(fileIds);
-                if (files != fileIds.size()) {
-                    failures.add(roleSet + ': read ' + files + ' of ' + fileIds.size() + ' template file(s)');
-                }
-                if ([SELECT COUNT() FROM DocumentTemplate WHERE Id = :templates[0].Id WITH USER_MODE] != 1) {
-                    failures.add(roleSet + ': ' + DEFAULT_INVOICE_TEMPLATE + ' not readable');
-                }
-            }
-            System.runAs(control) {
-                Integer files = templateFilesRead(fileIds);
-                if (files != 0) {
-                    failures.add(roleSet + ' without ' + INVOICE_DOCS_SET + ': read ' + files
-                        + ' template file(s); Access Libraries may no longer be needed');
-                }
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            Assert.areEqual(fileIds.size(), templateFilesRead(fileIds),
+                roleSet + ' + ' + INVOICE_DOCS_SET + ' reads the default invoice template file');
+        }
+        // Only a note: without Access Libraries the member is expected to read none of the files today.
+        User control = user(new List<String>{ roleSet }, null, new List<String>{ BILLING_PSL });
+        System.runAs(control) {
+            if (templateFilesRead(fileIds) > 0) {
+                System.debug(LoggingLevel.WARN, 'NOTE: ' + roleSet + ' without ' + INVOICE_DOCS_SET
+                    + ' read the template file; Access Libraries may no longer be needed.');
             }
         }
-        Assert.isTrue(failures.isEmpty(), 'Invoice template access:\n' + String.join(failures, '\n'));
     }
 
-    // ---- helpers ----------------------------------------------------------------------------
-
-    // A persona as the groups make it (the role set plus RLM_BillingInvoiceDocuments; the group's
-    // field-access set is not involved here), with the DocGen sets assigned next to it.
-    private static User persona(String roleSet, List<String> docGenSets) {
-        List<String> sets = new List<String>{ roleSet, INVOICE_DOCS_SET };
-        sets.addAll(docGenSets);
-        return user(sets, null, new List<String>{ BILLING_PSL, DOCGEN_PSL });
-    }
-
-    // The group, or null (with a visible skip) when it cannot be assigned: a release or deploy can
-    // leave a group Outdated or Updating until it is recalculated.
-    private static PermissionSetGroup assignableGroup(String groupName) {
-        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :groupName];
-        Assert.areEqual(1, groups.size(), groupName + ' is deployed with this class (unpackaged/post_personas)');
-        if (groups[0].Status != 'Updated') {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: ' + groupName + ' is ' + groups[0].Status
-                + ', not Updated, so it cannot be assigned; recalculate it to run this check.');
-            return null;
-        }
-        return groups[0];
+    private static Integer templateFilesRead(Set<Id> fileIds) {
+        return [SELECT COUNT() FROM ContentVersion WHERE ContentDocumentId IN :fileIds AND IsLatest = true WITH USER_MODE];
     }
 
     private static List<String> unreadable(List<String> objectNames) {
@@ -256,41 +272,6 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             }
         }
         return failures;
-    }
-
-    private static List<String> prefixed(String prefix, List<String> lines) {
-        List<String> out = new List<String>();
-        for (String line : lines) {
-            out.add(prefix + line);
-        }
-        return out;
-    }
-
-    private static Integer templateFilesRead(Set<Id> fileIds) {
-        return [SELECT COUNT() FROM ContentVersion WHERE ContentDocumentId IN :fileIds AND IsLatest = true WITH USER_MODE];
-    }
-
-    // Read-only library membership: a library permission with every flag off, as create_docgen_library
-    // gives its group.
-    private static void makeLibraryReaders(Id libraryId, List<Id> userIds) {
-        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            ContentWorkspacePermission viewer = new ContentWorkspacePermission(
-                Name = 'RLM Test Template Viewer ' + stamp,
-                PermissionsManageWorkspace = false, PermissionsAddContent = false, PermissionsAddContentOBO = false,
-                PermissionsArchiveContent = false, PermissionsDeleteContent = false, PermissionsFeatureContent = false,
-                PermissionsViewComments = false, PermissionsAddComment = false, PermissionsModifyComments = false,
-                PermissionsTagContent = false, PermissionsDeliverContent = false, PermissionsChatterSharing = false,
-                PermissionsOrganizeFileAndFolder = false
-            );
-            insert viewer;
-            List<ContentWorkspaceMember> members = new List<ContentWorkspaceMember>();
-            for (Id userId : userIds) {
-                members.add(new ContentWorkspaceMember(
-                    ContentWorkspaceId = libraryId, MemberId = userId, ContentWorkspacePermissionId = viewer.Id));
-            }
-            insert members;
-        }
     }
 
     // A Minimum Access user holding the given licenses, permission sets and (optionally) group.

@@ -19,7 +19,9 @@
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
  * Left out on purpose: Task (access follows the related record; no object permission
  * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
- * batch monitor's page, which the role grants), and DisputeItem (the write check covers it).
+ * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
+ * set does not, and the billing persona groups grant it through RLM_BillingInvoiceDocuments,
+ * todo 292), and DisputeItem (the write check covers it).
  */
 @IsTest
 private class RLM_BillingUIAccessTest {
@@ -131,8 +133,9 @@ private class RLM_BillingUIAccessTest {
         }
     };
     // Invoice Batch Run Monitor: it sits on the InvoiceBatchRun page, which Billing Operations
-    // reads. RLM_BillingUI doesn't grant InvoiceBatchRun: its read pulls in the batch
-    // scheduler and run-criteria objects.
+    // reads (Billing Admin does not; its persona group gets the read from RLM_BillingInvoiceDocuments).
+    // RLM_BillingUI doesn't grant InvoiceBatchRun: its read pulls in the batch scheduler and
+    // run-criteria objects.
     private static final Map<String, List<String>> BATCH_RUN_READS = new Map<String, List<String>>{
         'Invoice' => new List<String>{ 'InvoiceBatchRunId' }
     };

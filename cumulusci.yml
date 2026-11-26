@@ -1408,7 +1408,7 @@ tasks:
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
-    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) and an Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas. A deploy that runs local tests (production) runs that class.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_personas
@@ -4846,8 +4846,9 @@ flows:
   prepare_personas:
     group: Revenue Lifecycle Management
     description: >
-      Deploy persona metadata (profiles, permission set groups, permission sets) from
-      unpackaged/post_personas and create the Sales Rep persona user (scratch and
+      Deploy persona metadata (profiles, permission set groups, permission sets) and an
+      Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas
+      and create the Sales Rep persona user (scratch and
       non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
       prepare_rlm_org, before prepare_ux
       (step 30), so that persona profile templates are assembled and deployed by
