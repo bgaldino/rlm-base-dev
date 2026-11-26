@@ -16,8 +16,8 @@ pipeline and work with any AI coding agent.
 CLI tool for querying the integrated Revenue Cloud and Contracts CLM model.
 It combines `docs/erds/erd-data.json` with the separately sourced
 `docs/erds/contracts-erd-data.json` — Release 264 (Winter '27, API v68.0):
-303 objects, 4,698 platform fields, 729 verified relationship edges across
-10 domains (custom fields excluded). The combined view also exposes 1,220
+305 objects, 4,738 platform fields, 733 verified relationship edges across
+10 domains (custom fields excluded). The combined view also exposes 1,224
 reference fields — see the "Reference Fields" line in `query_erd.py stats`.
 Avoids loading the schema JSON files directly into AI context.
 

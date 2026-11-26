@@ -43,6 +43,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 | `scripts/erd/schema_diff/diff_schemas.py` | Diff two schema JSONs (one release against the next) with optional SFDMU plan impact analysis; reports carry an auto-generated banner, so regenerate rather than hand-edit them. Exception: `262-vs-264-diff.md` carries manual corrections that regeneration destroys; re-apply them from git history (see its caveat) | `scripts/erd/schema_diff/<old>-vs-<new>-diff.md` |
 | `scripts/erd/cleanup_orphan_erd_fields.py` | Classify orphans (pdf_artifact / documented / documented_rel) and optionally remove | `docs/erds/orphan-candidates*.md` |
 | `scripts/erd/cleanup_erd_data.py` | Fix data-quality issues in ERD (typos, wrong types, missing domainShort) | In-place patch |
+| `scripts/erd/erd_shards.py` | `docs/erds/data/` holds per-domain shards (objects plus a provenance stamp, schema in `erd-shard.schema.json`), `relationships.json` and `_meta.json`; `erd-data.json` is their composition and stays committed so `query_erd.py` and `build_erds.py` read it unchanged. `check` fails when they disagree, a stamp is missing, or an `overlay-*.json` shard redefines a public key. Every ERD writer (`--patch`, `--add-objects`, the cleanup scripts) calls its `save()`; after a hand edit run `split`. The Contracts extension stays a separate file: it has its own metadata, is merged at load time and is verified from its own snapshot | `docs/erds/data/*.json` |
 | `scripts/erd/build_erds.py` | Regenerate interactive HTML from `erd-data.json` | `docs/erds/revenue-cloud-erd.html` |
 | `scripts/erd/orphan_batch_helper.py` | Batch workflow helper (prepare/apply/validate cycles) | Multiple |
 | `scripts/ai/query_erd.py` | Query ERD content (describe/relationships/domain/path/search) | Stdout |
@@ -116,6 +117,19 @@ python scripts/erd/schema_diff/diff_schemas.py \
 python scripts/erd/validate_erd_against_org.py --org rlm-base__264merged --patch \
   --report docs/erds/validation-report.md
 
+# 4a'. New objects: the ERD only ever gains objects through this, never by hand.
+#     Find candidates offline: `diff_schemas.py` lists `objects_discovered_added` (names
+#     other objects point at via `referenceTo` in the target snapshot and not in the
+#     baseline; a lower bound). Confirm the object in the live org, then:
+python scripts/erd/validate_erd_against_org.py --org <sf username> \
+  --add-objects QuoteLineItemRecipient,OrderItemRecipient \
+  --add-domain "Transaction Management (Core Object)"
+#     It describes the objects, writes entries and edges in the ERD's shape and keys
+#     them by the platform's own spelling. Run the --patch pass over them afterwards
+#     (a compound address field is picked up that way), then build_erds.py and the
+#     count test. Scope is the owner's call: an object that belongs to an adjacent
+#     cloud is recorded in the diff report, not added.
+
 # 4b. Removals: --patch will NOT do these. Take the diff's `removed` list, delete
 #     those fields AND their `relationships` rows, and recompute `stats`.
 #     Back up first — `docs/erds/erd-data.json.bak*` is gitignored.
@@ -163,7 +177,7 @@ have caught that. Full account:
 [`doc-consistency/erd-count-drift.md`](../doc-consistency/erd-count-drift.md).
 
 All four docs above are covered, `scripts/ai/README.md` included — its citation wraps
-mid-phrase (`263` / `objects, 4,252 platform fields, 674 verified relationship edges`),
+mid-phrase (`263` / `objects, 4,292 platform fields, 678 verified relationship edges`),
 so the check matches over a sliding window rather than per line, and **each site must
 still state a triple**: asking only whether *any* site matched let that file carry wrong
 numbers behind a reworded phrase and still pass. The Statistics bullet block in
@@ -206,10 +220,17 @@ assuming:
   worse than a uniformly wrong one: the untouched ones still read as authoritative,
   and `relationshipName` is the SOQL parent-traversal token, so a stale one is a hard
   `INVALID_FIELD`. Sweep all four against the org describe together.
+- **Casing is now checked.** Object describe is case-insensitive, so a wrong-cased
+  ERD key used to read as present. `validate_erd_against_org.py` now reports a key whose
+  describe name differs and exits non-zero; the three keys the 264 refresh carried
+  wrong (`PriceBook2`, `PriceBookEntry`, `PricingAPIExecution`) were renamed with their
+  edges, diagrams and snapshots. Newer Revenue Cloud objects really are `PriceBookRateCard`
+  and `PriceBookEntryDerivedPrice` (capital B); the legacy `Pricebook2`/`PricebookEntry` are
+  lowercase, so never normalise by pattern.
 - **`refersTo` must match an ERD node key exactly.** `query_erd.build_relationship_index`
   tests `ref in erd["objects"]`, which is case-sensitive, so a target that is right in
-  API terms but spelled differently from the node key (`PricebookEntry` vs the node
-  `PriceBookEntry`) makes traversal stop silently rather than error. The same applies to
+  API terms but spelled differently from the node key (a `PricebookEntry` target against a node keyed
+  `PriceBookEntry`, as the ERD once had) makes traversal stop silently rather than error. The same applies to
   a target carrying a parenthetical like `Invoice (the master object)`.
 
 ### B. Verify a single field's ownership against Core source
@@ -288,8 +309,8 @@ The pattern `*CnvAmount` / `*CnvRate` / `*CnvDate` / `*IsoCode` IS canonical RC 
 
 ## What Was Verified
 
-**264 (2026-08-15).** `erd-data.json` is a 264 capture: 263 objects, 4,252 fields,
-674 relationships. Cross-validated across `rlm-base__264merged` and
+**264 (2026-08-15).** `erd-data.json` is a 264 capture: 265 objects, 4,292 fields,
+678 relationships. Cross-validated across `rlm-base__264merged` and
 `rlm-base__264fresh` (both `ent`), which agreed field-for-field — 254 describable
 objects, 3,913 platform fields each. 264 had no Core UDD branch or Metadata Coverage
 Report at this refresh (a `core-264-public` `p4/264-patch` branch was listed in code
@@ -307,7 +328,7 @@ policy that `UsageResourcePolicy.UsageAggregationPolicyId` also binds, at resour
 rather than product-and-resource level, so neither is the sole binding site);
 94 reference fields with a null `refersTo`;
 and 10 `refersTo` values whose casing matched no ERD node, which silently broke
-traversal (`PricebookEntry` vs the ERD's `PriceBookEntry`).
+traversal (`PricebookEntry` vs the ERD's then-key `PriceBookEntry`, since renamed).
 
 **262 (2026-05-27).** 127 entities individually verified against canonical Core UDD
 source in `core-262-public` at `p4/262-patch` (internal code search).

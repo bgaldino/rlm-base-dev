@@ -11,9 +11,9 @@
     "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/262-vs-264-diff.md for the 262->264 delta. The two 264 orgs agreed field-for-field (254 objects / 3913 fields each), so nothing here rests on a single org. 264 retired 8 fields and moved the usage policy bindings onto ProductUsageResourcePolicy, the product-and-resource-specific binding site -- UsageResourcePolicy still carries the same four policy lookups at resource level, so PURP is the new site, not the only one; 58 ERD fields remain absent from the org and are the feature-gated / cross-cloud set carried forward from the 262 pass, not 264 removals."
   },
   "stats": {
-    "totalObjects": 263,
-    "totalRelationships": 674,
-    "totalFields": 4252,
+    "totalObjects": 265,
+    "totalRelationships": 678,
+    "totalFields": 4292,
     "domains": [
       "Advanced Approvals",
       "Approvals",
@@ -4108,7 +4108,7 @@
       "domainShort": "Billing",
       "isStandard": false
     },
-    "PricingAPIExecution": {
+    "PricingApiExecution": {
       "domain": "Salesforce Pricing",
       "fields": {
         "ApiEndpoint": {
@@ -7716,9 +7716,9 @@
           "type": "string"
         },
         "PriceBookId": {
-          "description": "Reference to PriceBook2",
+          "description": "Reference to Pricebook2",
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "relationshipType": "lookup"
         },
         "RateCardId": {
@@ -8775,7 +8775,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "relationshipType": "lookup"
         },
         "ProductId": {
@@ -9768,7 +9768,7 @@
       "domainShort": "Pricing",
       "isStandard": false
     },
-    "PriceBookEntry": {
+    "PricebookEntry": {
       "domain": "Salesforce Pricing",
       "description": "Represents a product entry (an association between a Pricebook2 and Product2) in a price book.",
       "fields": {
@@ -9790,7 +9790,7 @@
         },
         "Pricebook2Id": {
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "description": "Required. ID of the Pricebook2 record with which this record is associated."
         },
         "Product2Id": {
@@ -9905,7 +9905,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "relationshipType": "lookup"
         }
       },
@@ -12220,7 +12220,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "relationshipType": "lookup"
         },
         "OriginalOrderId": {
@@ -12603,12 +12603,12 @@
         },
         "PricebookEntryId": {
           "type": "reference",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "description": "Price book entry associated with the source product."
         },
         "PricebookId": {
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "description": "Price book associated with the source product."
         },
         "PricingSource": {
@@ -13510,7 +13510,7 @@
         },
         "Pricebook2Id": {
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "description": "The price book associated with this price adjustment schedule record."
         },
         "ScheduleType": {
@@ -13630,7 +13630,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "relationshipType": "lookup"
         },
         "ContactId": {
@@ -14120,7 +14120,7 @@
       "domainShort": "Rates",
       "isStandard": false
     },
-    "PriceBook2": {
+    "Pricebook2": {
       "domain": "Salesforce Pricing",
       "fields": {
         "CurrencyIsoCode": {
@@ -14135,7 +14135,7 @@
         },
         "IsArchived": {
           "properties": "Defaulted on create, Filter, Group, Sort",
-          "description": "Indicates whether the price book has been archived (true) or not (false). This field is read only. The default value is false. 622 PriceBook2 Salesforce Pricing",
+          "description": "Indicates whether the price book has been archived (true) or not (false). This field is read only. The default value is false. 622 Pricebook2 Salesforce Pricing",
           "type": "boolean"
         },
         "IsStandard": {
@@ -17569,7 +17569,7 @@
         },
         "ListPrice": {
           "properties": "Creatable, Filter, Nillable, Sort, Updateable",
-          "description": "List price for the order product. Value is inherited from the associated PriceBookEntry upon order product creation.",
+          "description": "List price for the order product. Value is inherited from the associated PricebookEntry upon order product creation.",
           "type": "currency"
         },
         "NetUnitPrice": {
@@ -17608,7 +17608,7 @@
           "properties": "Createable, Filter, Group, Nillable, Sort, Updateable",
           "description": "PricebookEntry is used as a lookup for price information in order to pre-populate OrderItem's ListPrice and UnitPrice.",
           "type": "reference",
-          "refersTo": "PriceBookEntry"
+          "refersTo": "PricebookEntry"
         },
         "PricingTermCount": {
           "properties": "Createable, Filter, Nillable, Sort, Updateable",
@@ -18551,7 +18551,7 @@
           "description": "ID of the PricebookEntry for this line item.",
           "relationshipName": "PricebookEntry",
           "relationshipType": "Lookup",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "type": "reference"
         },
         "Quantity": {
@@ -18964,7 +18964,7 @@
           "description": "ID of the PricebookEntry for this line item.",
           "relationshipName": "PricebookEntry",
           "relationshipType": "Lookup",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "type": "reference"
         },
         "Quantity": {
@@ -19856,7 +19856,7 @@
         "Pricebook2Id": {
           "description": "Price Book ID",
           "type": "reference",
-          "refersTo": "PriceBook2",
+          "refersTo": "Pricebook2",
           "relationshipType": "lookup"
         },
         "CompanySignedId": {
@@ -20529,7 +20529,7 @@
         "PricebookEntryId": {
           "description": "Price Book Entry ID",
           "type": "reference",
-          "refersTo": "PriceBookEntry",
+          "refersTo": "PricebookEntry",
           "relationshipType": "lookup"
         },
         "ParentContractLineItemId": {
@@ -22777,6 +22777,192 @@
       },
       "relationships": [],
       "domainShort": "Approvals"
+    },
+    "QuoteLineItemRecipient": {
+      "domain": "Transaction Management (Core Object)",
+      "domainShort": "Transactions",
+      "isStandard": true,
+      "fields": {
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "QuoteId": {
+          "description": "Quote ID",
+          "type": "reference",
+          "refersTo": "Quote",
+          "relationshipName": "Quote",
+          "relationshipType": "Lookup"
+        },
+        "ServiceStreet": {
+          "description": "Service Street",
+          "type": "textarea"
+        },
+        "ServiceCity": {
+          "description": "Service City",
+          "type": "string"
+        },
+        "ServiceState": {
+          "description": "Service State",
+          "type": "string"
+        },
+        "ServicePostalCode": {
+          "description": "Service Postal Code",
+          "type": "string"
+        },
+        "ServiceCountry": {
+          "description": "Service Country",
+          "type": "string"
+        },
+        "ServiceLatitude": {
+          "description": "Service Latitude",
+          "type": "double"
+        },
+        "ServiceLongitude": {
+          "description": "Service Longitude",
+          "type": "double"
+        },
+        "ServiceGeocodeAccuracy": {
+          "description": "Service Geocode Accuracy",
+          "type": "picklist"
+        },
+        "ServiceAddrValidationDate": {
+          "description": "Service Address Validation Date",
+          "type": "datetime"
+        },
+        "ServiceAddrValidationMsg": {
+          "description": "Service Address Validation Message",
+          "type": "string"
+        },
+        "ServiceabilityData": {
+          "description": "Serviceability Data",
+          "type": "textarea"
+        },
+        "ServiceabilityCheckDate": {
+          "description": "Serviceability Check Date",
+          "type": "datetime"
+        },
+        "ServiceAddrValidationResult": {
+          "description": "Service Address Validation Result",
+          "type": "picklist"
+        },
+        "RecipientType": {
+          "description": "Recipient Type",
+          "type": "picklist"
+        },
+        "ServiceAccountId": {
+          "description": "Account ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipName": "ServiceAccount",
+          "relationshipType": "Lookup"
+        },
+        "ServiceAddress": {
+          "description": "Service Address",
+          "type": "address"
+        }
+      }
+    },
+    "OrderItemRecipient": {
+      "domain": "Transaction Management (Core Object)",
+      "domainShort": "Transactions",
+      "isStandard": true,
+      "fields": {
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "OrderId": {
+          "description": "Order ID",
+          "type": "reference",
+          "refersTo": "Order",
+          "relationshipName": "Order",
+          "relationshipType": "Lookup"
+        },
+        "ServiceStreet": {
+          "description": "Service Street",
+          "type": "textarea"
+        },
+        "ServiceCity": {
+          "description": "Service City",
+          "type": "string"
+        },
+        "ServiceState": {
+          "description": "Service State",
+          "type": "string"
+        },
+        "ServicePostalCode": {
+          "description": "Service Postal Code",
+          "type": "string"
+        },
+        "ServiceCountry": {
+          "description": "Service Country",
+          "type": "string"
+        },
+        "ServiceLatitude": {
+          "description": "Service Latitude",
+          "type": "double"
+        },
+        "ServiceLongitude": {
+          "description": "Service Longitude",
+          "type": "double"
+        },
+        "ServiceGeocodeAccuracy": {
+          "description": "Service Geocode Accuracy",
+          "type": "picklist"
+        },
+        "ServiceAddrValidationDate": {
+          "description": "Service Address Validation Date",
+          "type": "datetime"
+        },
+        "ServiceAddrValidationMsg": {
+          "description": "Service Address Validation Message",
+          "type": "string"
+        },
+        "ServiceabilityData": {
+          "description": "Serviceability Data",
+          "type": "textarea"
+        },
+        "ServiceabilityCheckDate": {
+          "description": "Serviceability Check Date",
+          "type": "datetime"
+        },
+        "ServiceAddrValidationResult": {
+          "description": "Service Address Validation Result",
+          "type": "picklist"
+        },
+        "RecipientType": {
+          "description": "Recipient Type",
+          "type": "picklist"
+        },
+        "ServiceAccountId": {
+          "description": "Account ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipName": "ServiceAccount",
+          "relationshipType": "Lookup"
+        },
+        "ServiceAddress": {
+          "description": "Service Address",
+          "type": "address"
+        }
+      }
     }
   },
   "relationships": [
@@ -23825,13 +24011,13 @@
       "type": "lookup"
     },
     {
-      "source": "PriceBookEntry",
+      "source": "PricebookEntry",
       "target": "Product2",
       "field": "Product2Id",
       "type": "lookup"
     },
     {
-      "source": "PriceBookEntry",
+      "source": "PricebookEntry",
       "target": "ProductSellingModel",
       "field": "ProductSellingModelId",
       "type": "lookup"
@@ -24516,7 +24702,7 @@
     },
     {
       "source": "QuoteLineItem",
-      "target": "PriceBookEntry",
+      "target": "PricebookEntry",
       "field": "PricebookEntryId",
       "type": "lookup"
     },
@@ -24552,7 +24738,7 @@
     },
     {
       "source": "OrderItem",
-      "target": "PriceBookEntry",
+      "target": "PricebookEntry",
       "field": "PricebookEntryId",
       "type": "lookup"
     },
@@ -24654,13 +24840,13 @@
     },
     {
       "source": "Order",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "Pricebook2Id",
       "type": "lookup"
     },
     {
       "source": "Quote",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "Pricebook2Id",
       "type": "lookup"
     },
@@ -24803,8 +24989,8 @@
       "type": "lookup"
     },
     {
-      "source": "PriceBookEntry",
-      "target": "PriceBook2",
+      "source": "PricebookEntry",
+      "target": "Pricebook2",
       "field": "Pricebook2Id",
       "type": "lookup"
     },
@@ -25236,13 +25422,13 @@
     },
     {
       "source": "PriceBookEntryDerivedPrice",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "PricebookId",
       "type": "lookup"
     },
     {
       "source": "PriceBookEntryDerivedPrice",
-      "target": "PriceBookEntry",
+      "target": "PricebookEntry",
       "field": "PricebookEntryId",
       "type": "lookup"
     },
@@ -25290,7 +25476,7 @@
     },
     {
       "source": "PriceAdjustmentSchedule",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "Pricebook2Id",
       "type": "lookup"
     },
@@ -25319,7 +25505,7 @@
       "type": "lookup"
     },
     {
-      "source": "PriceBook2",
+      "source": "Pricebook2",
       "target": "CostBook",
       "field": "CostBookId",
       "type": "lookup"
@@ -25356,7 +25542,7 @@
     },
     {
       "source": "PriceBookRateCard",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "PriceBookId",
       "type": "lookup"
     },
@@ -26823,6 +27009,30 @@
       "target": "QuoteLineItem",
       "field": "QuoteLineItemId",
       "type": "master-detail"
+    },
+    {
+      "source": "QuoteLineItemRecipient",
+      "target": "Quote",
+      "field": "QuoteId",
+      "type": "lookup"
+    },
+    {
+      "source": "QuoteLineItemRecipient",
+      "target": "Account",
+      "field": "ServiceAccountId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRecipient",
+      "target": "Order",
+      "field": "OrderId",
+      "type": "lookup"
+    },
+    {
+      "source": "OrderItemRecipient",
+      "target": "Account",
+      "field": "ServiceAccountId",
+      "type": "lookup"
     }
   ]
 }

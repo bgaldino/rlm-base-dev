@@ -6,8 +6,8 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `PriceBook2` | Price book container | Name, IsStandard, CostBookId |
-| `PriceBookEntry` | Price for a product+selling model in a price book | Product2Id, Pricebook2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode |
+| `Pricebook2` | Price book container | Name, IsStandard, CostBookId |
+| `PricebookEntry` | Price for a product+selling model in a price book | Product2Id, Pricebook2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode |
 | `PriceAdjustmentSchedule` | Named adjustment schedule (discounts, surcharges) | Name, Pricebook2Id, CurrencyIsoCode, ScheduleType, AdjustmentMethod |
 | `PriceAdjustmentTier` | Tier within an adjustment schedule | PriceAdjustmentScheduleId, Product2Id, ProductSellingModelId, LowerBound, UpperBound |
 | `ProductSellingModel` | Selling model type (One-Time, Evergreen, Term-Defined) | Name, SellingModelType |
@@ -39,7 +39,7 @@
 | `ContractItemPrice` | Price at contract-item level |
 | `IndexRate` | Index-based rate data |
 | `PriceRevisionPolicy` | Policy for price revisions |
-| `PricingAPIExecution` | API execution logs |
+| `PricingApiExecution` | API execution logs |
 | `PricingAdjBatchJob` / `PricingAdjBatchJobLog` | Batch adjustment processing |
 | `PricingProcedureResolution` | Procedure plan resolution |
 | `PricingProcessExecution` | Process execution tracking |
@@ -51,9 +51,9 @@
 ## Key Relationships
 
 ```
-PriceBook2 ← PriceBookEntry (Pricebook2Id)
-Product2 ← PriceBookEntry (Product2Id)
-ProductSellingModel ← PriceBookEntry (ProductSellingModelId)
+Pricebook2 ← PricebookEntry (Pricebook2Id)
+Product2 ← PricebookEntry (Product2Id)
+ProductSellingModel ← PricebookEntry (ProductSellingModelId)
 PriceAdjustmentSchedule ← PriceAdjustmentTier (PriceAdjustmentScheduleId)
 Product2 ← PriceAdjustmentTier (Product2Id)
 ProductSellingModel ← PriceAdjustmentTier (ProductSellingModelId)

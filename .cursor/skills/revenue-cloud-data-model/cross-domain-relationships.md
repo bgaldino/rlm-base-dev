@@ -8,7 +8,7 @@ Product2 (PCM) is referenced by objects in every other domain:
 
 | Target Object | Field | Domain |
 |--------------|-------|--------|
-| PriceBookEntry | Product2Id | Pricing |
+| PricebookEntry | Product2Id | Pricing |
 | PriceAdjustmentTier | Product2Id | Pricing |
 | PriceBookEntryDerivedPrice | ProductId, ContributingProductId | Pricing |
 | AttributeAdjustmentCondition | ProductId | Pricing |
@@ -36,7 +36,7 @@ ProductSellingModel (Pricing) is referenced across Pricing, Transactions, Rates,
 
 | Target Object | Field | Domain |
 |--------------|-------|--------|
-| PriceBookEntry | ProductSellingModelId | Pricing |
+| PricebookEntry | ProductSellingModelId | Pricing |
 | PriceAdjustmentTier | ProductSellingModelId | Pricing |
 | PriceBookEntryDerivedPrice | ProductSellingModelId | Pricing |
 | ContractItemPrice | ProductSellingModelId | Pricing |
@@ -63,11 +63,11 @@ Account (Transactions) is referenced by most transactional and billing objects:
 | CreditMemo | BillingAccountId (→ Account) | Billing |
 | Payment | AccountId | Billing |
 
-## PriceBook2 Cross-Domain Links
+## Pricebook2 Cross-Domain Links
 
 | Target Object | Field | Domain |
 |--------------|-------|--------|
-| PriceBookEntry | Pricebook2Id | Pricing |
+| PricebookEntry | Pricebook2Id | Pricing |
 | Order | Pricebook2Id | Transactions |
 | Quote | Pricebook2Id | Transactions |
 | PriceBookRateCard | PriceBookId | Rates |
@@ -122,13 +122,13 @@ The full lifecycle chain with cross-object references:
 Quote.AccountId → Account
 QuoteLineItem.QuoteId → Quote
 QuoteLineItem.Product2Id → Product2
-QuoteLineItem.PricebookEntryId → PriceBookEntry
+QuoteLineItem.PricebookEntryId → PricebookEntry
 QuoteLineItem.ProductSellingModelId → ProductSellingModel
 
 Order.QuoteId → Quote
 Order.AccountId → Account
 Order.ContractId → Contract
-Order.Pricebook2Id → PriceBook2
+Order.Pricebook2Id → Pricebook2
 
 OrderItem.OrderId → Order
 OrderItem.QuoteLineItemId → QuoteLineItem
@@ -159,7 +159,7 @@ FulfillmentOrderLineItem.Product2Id → Product2
 ```
 scratch_data (Account, Contact)
     └→ qb-pcm (Product2, attributes, bundles, categories — ROOT)
-        ├→ qb-pricing (PriceBook2, PriceBookEntry, adjustments)
+        ├→ qb-pricing (Pricebook2, PricebookEntry, adjustments)
         │   └→ qb-price-revision (IndexRate, PriceRevisionPolicy; no product dependency; flow order only: step 3 of prepare_pricing_data, after qb-pricing)
         ├→ qb-billing (BillingPolicy, treatments, PaymentTerm, LegalEntity)
         │   └→ qb-accounting (GL accounts and rules)

@@ -1,7 +1,7 @@
 ---
 name: revenue-cloud-data-model
 description: >-
-  Revenue Cloud (RLM) data model reference covering 263 objects across 9 domains.
+  Revenue Cloud (RLM) data model reference covering 265 objects across 9 domains.
   Use when working with Revenue Cloud objects, understanding object relationships,
   writing SOQL queries, or answering questions about the RLM schema (for data
   plan authoring, use sfdmu-data-plans). Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v68.0 (Winter '27 / Release 264) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
+Revenue Cloud v68.0 (Winter '27 / Release 264) — **265 objects, 4,292 platform fields, 678 relationships** across 9 domains.
 `tests/test_erd_doc_counts.py` holds these totals to `docs/erds/erd-data.json`.
 
 The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
@@ -92,10 +92,10 @@ only `Name`, `RatingDelayDuration` and `RatingPeriod`. Full diff at
 | Domain | Objects | Key Entities | Purpose |
 |--------|---------|-------------|---------|
 | **PCM** | 33 | Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent | Product catalog: products, bundles, attributes, classifications, categories |
-| **Pricing** | 27 | PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
+| **Pricing** | 27 | Pricebook2, PricebookEntry, PriceAdjustmentSchedule, ProductSellingModel | Price books, price entries, adjustments, selling models, proration |
 | **Rate Management** | 11 | RateCard, RateCardEntry, RateAdjustmentByTier, PriceBookRateCard | Rate cards for usage-based pricing, tiered adjustments |
 | **Configurator** | 4 | ProductConfigurationFlow, ProductConfigurationRule | Product configuration rules and flow assignments |
-| **Transaction Mgmt** | 58 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
+| **Transaction Mgmt** | 60 | Account, Quote, QuoteLineItem, Order, OrderItem, Asset, Contract | Core commercial objects: quote-to-cash lifecycle |
 | **DRO** | 32 | FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule | Dynamic Revenue Orchestration: fulfillment plans, decomposition, orchestration |
 | **Usage Mgmt** | 23 | ProductUsageResource (PUR), ProductUsageResourcePolicy (PURP), ProductUsageGrant (PUG), UsageResource, UsageSummary | Usage entitlements, grants, rating, metering |
 | **Billing** | 72 | BillingSchedule, Invoice, InvoiceLine, CreditMemo, Payment, TaxPolicy, LegalEntity | Invoicing, payments, tax, GL, collections |
@@ -114,7 +114,7 @@ before it existed, so refresh the data and rerun rather than editing a cell.
 `Product2` is the hub of the entire Revenue Cloud data model. Nearly every domain connects back to it:
 
 - **PCM**: ProductAttributeDefinition, ProductCategoryProduct, ProductRelatedComponent, ProductSellingModelOption all reference Product2
-- **Pricing**: PriceBookEntry, PriceAdjustmentTier, BundleBasedAdjustment link products to price books and adjustments
+- **Pricing**: PricebookEntry, PriceAdjustmentTier, BundleBasedAdjustment link products to price books and adjustments
 - **Rates**: RateCardEntry links Product2 to rate cards via UsageResource
 - **Configurator**: ProductConfigFlowAssignment binds a flow to Product2 (or a classification); ExpressionSetConstraintObj binds an expression set to Product2, a classification, a component group (`ProductComponentGroup`) or a related component (`ProductRelatedComponent`) via a polymorphic `ReferenceObjectId`. ProductConfigurationFlow and ProductConfigurationRule carry no Product2 lookup
 - **Transactions**: QuoteLineItem, OrderItem, Asset, FulfillmentOrderLineItem, InvoiceLine all carry Product2Id
@@ -126,9 +126,9 @@ before it existed, so refresh the data and rerun rather than editing a cell.
 
 ```
 Account ←── Quote, Order, Contract, Asset, BillingAccount, FulfillmentOrder, Invoice, CreditMemo, Payment
-Product2 ←── PriceBookEntry, QuoteLineItem, OrderItem, Asset, RateCardEntry, ProductUsageResource
-PriceBook2 ←── PriceBookEntry, Order, Quote, PriceBookRateCard
-ProductSellingModel ←── PriceBookEntry, QuoteLineItem, OrderItem, PriceAdjustmentTier, RateCardEntry, ProductUsageGrant
+Product2 ←── PricebookEntry, QuoteLineItem, OrderItem, Asset, RateCardEntry, ProductUsageResource
+Pricebook2 ←── PricebookEntry, Order, Quote, PriceBookRateCard
+ProductSellingModel ←── PricebookEntry, QuoteLineItem, OrderItem, PriceAdjustmentTier, RateCardEntry, ProductUsageGrant
 Order ←── OrderItem, FulfillmentOrder, BillingSchedule, Invoice (via ReferenceEntityId)
 Quote ←── QuoteLineItem; Order.QuoteId links to originating Quote
 OrderItem ←── FulfillmentOrderLineItem, AssetActionSource, OrderItemDetail, OrderItemAttribute
@@ -141,7 +141,7 @@ BillingSchedule ←── InvoiceLine, BillingPeriodItem, BillingMilestonePlanIt
 ## Quote-to-Cash Flow (Object Lifecycle)
 
 ```
-Product2 + PriceBookEntry
+Product2 + PricebookEntry
         ↓
     Quote → QuoteLineItem
         ↓ (Place Order)
@@ -166,7 +166,7 @@ Product2 + PriceBookEntry
 | PCM | Product Catalog Management | PCM |
 | PSM | ProductSellingModel | Pricing |
 | PSMO | ProductSellingModelOption | PCM/Pricing |
-| PBE | PriceBookEntry | Pricing |
+| PBE | PricebookEntry | Pricing |
 | PAS | PriceAdjustmentSchedule | Pricing |
 | PAT | PriceAdjustmentTier | Pricing |
 | PUR | ProductUsageResource | Usage |
@@ -211,7 +211,7 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,252 fields, 674 relationships, custom fields excluded)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (265 objects, 4,292 fields, 678 relationships, custom fields excluded)
 - `docs/erds/contracts-erd-data.json` — separately sourced Contracts CLM viewer extension; see its 264 schema provenance before treating feature-gated visibility as universal
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer

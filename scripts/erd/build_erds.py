@@ -79,8 +79,8 @@ def erd_data_to_html_nodes(erd_data: dict) -> list:
         fields = obj.get("fields", {})
         is_standard = "(Core Object)" in raw_domain or name in (
             "Account", "Contact", "Contract", "Quote", "QuoteLineItem",
-            "Order", "OrderItem", "Asset", "Product2", "PriceBook2",
-            "PriceBookEntry", "FulfillmentOrder", "FulfillmentOrderLineItem",
+            "Order", "OrderItem", "Asset", "Product2", "Pricebook2",
+            "PricebookEntry", "FulfillmentOrder", "FulfillmentOrderLineItem",
         )
 
         # Separate relationship fields from data fields
@@ -288,7 +288,7 @@ def verify(html_path: str):
 
     critical = [
         "QuoteLineItem", "OrderItem", "Account", "Quote", "Order",
-        "Asset", "Product2", "PriceBookEntry", "Invoice", "BillingSchedule",
+        "Asset", "Product2", "PricebookEntry", "Invoice", "BillingSchedule",
     ]
     print("\nCritical objects:")
     for name in critical:

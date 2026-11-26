@@ -1593,7 +1593,7 @@
             "PriceRevisionPolicy",
             "PricingAdjBatchJob",
             "PricingAdjBatchJobLog",
-            "PricingAPIExecution",
+            "PricingApiExecution",
             "PricingProcessExecution",
             "ProdtAttrMappedScope",
             "ProdtAttrScope",
@@ -2861,7 +2861,7 @@
     },
     {
       "source": "Contract",
-      "target": "PriceBook2",
+      "target": "Pricebook2",
       "field": "Pricebook2Id",
       "type": "reference"
     },

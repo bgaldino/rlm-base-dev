@@ -2,7 +2,7 @@
 
 This directory contains the canonical Revenue Cloud ERD dataset and its domain diagrams. The interactive viewer combines that baseline with a separately sourced Contracts CLM extension.
 
-**Current baseline:** Release 264 (Winter '27, API v68.0) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
+**Current baseline:** Release 264 (Winter '27, API v68.0) — **265 objects, 4,292 platform fields, 678 relationships** across 9 domains.
 
 The release/apiVersion values here and in `erd-data.json` are *provenance*: they
 record which orgs the schema was extracted from, not a version the file is pinned
@@ -90,7 +90,7 @@ object count see the Domain Overview table in
 ### Interactive HTML Viewer
 
 - **revenue-cloud-erd.html** — Force-directed graph with full field detail
-  - Combines the core Revenue Cloud baseline (263 objects) with the Contracts CLM extension (40 new objects). The integrated viewer displays 303 nodes, 4,698 fields, and 729 relationship edges across 10 domains.
+  - Combines the core Revenue Cloud baseline (265 objects) with the Contracts CLM extension (40 new objects). The integrated viewer displays 305 nodes, 4,738 fields, and 733 relationship edges across 10 domains.
   - **Features:**
     - Click any object node to see all fields (type, description, refersTo links)
     - Fields grouped into Relationship Fields, Data Fields, and Related Objects sections
@@ -111,7 +111,7 @@ object count see the Domain Overview table in
   - `scripts/erd/schema_diff/clm-object-list.txt` preserves the explicit selection for future release-aligned extracts
   - Four Developer Guide object pages were absent from the primary org's object inventory and failed direct describe in all four prepared orgs; two included generation status-event objects are marked not SOQL-queryable
 
-- **erd-data.json** — Complete machine-readable schema (263 objects, 4,252 fields, 674 relationships)
+- **erd-data.json** — Complete machine-readable schema (265 objects, 4,292 fields, 678 relationships)
   - Custom fields excluded by design (project-deployed `RLM_*__c` and managed-package fields)
   - Fields include type, description, and refersTo metadata
   - Regenerate via `scripts/erd/validate_erd_against_org.py --org <alias> --patch` after schema changes
@@ -161,9 +161,9 @@ Mermaid files can be viewed in several ways:
 
 ## Revenue Cloud Baseline Statistics
 
-- **Total Objects:** 263
-- **Total Fields:** 4,252 (canonical platform fields only; custom fields excluded)
-- **Total Relationships:** 674 (unique cross-object lookups)
+- **Total Objects:** 265
+- **Total Fields:** 4,292 (canonical platform fields only; custom fields excluded)
+- **Total Relationships:** 678 (unique cross-object lookups)
 - **Total Domains:** 9 (PCM, Pricing, Rates, Configurator, Transactions, Approvals, DRO, Usage, Billing)
 - **Last verified:** 2026-08-15 (two 264 orgs cross-validated; 127-entity Core UDD check carried forward from the 262 pass)
 
@@ -211,6 +211,11 @@ To refresh after a schema change or new release:
 6. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias> --report docs/erds/validation-report.md` and confirm only the **expected feature-gated gaps** remain (diff against the committed `validation-report.md`; the current expected baseline is 9 feature-gated objects unfindable in a default RLM scratch profile — `AssetDowntimePeriod`, `AssetOwnerSharingRule`, `AssetShare`, `AssetTag`, `AssetWarranty`, `PricingProcedureResolution`, `ProductPriceHistoryLog`, `ProductPriceRange`, `ProductSellingModelDataTranslation` — plus **0** objects with field gaps and **58** ERD-side fields that don't surface in a stock org, which are the feature-gated / cross-cloud set carried forward from the 262 pass). A clean refresh produces **zero NEW gaps** vs the committed baseline, not zero gaps absolute.
 
 > The 262 baseline was 33 objects with field gaps and 822 ERD-side fields; at 264 the report reads 0 and 58. The two moved for different reasons, and only one of them is `--patch`: patching **adds**, so it can close org-side gaps (33 → 0) but can never lower the ERD-side count. That fell through deliberate removal — the orphan-cleanup batches, plus this refresh's 8 retired fields — which is why step 3 exists and why `--patch` is not a substitute for it. Quote the report rather than these numbers if they disagree; `validation-report.md` is generated, this line is not.
+
+`erd-data.json` is composed from the per-domain shards in `docs/erds/data/` (each with a
+provenance stamp; see `scripts/erd/erd_shards.py`). The scripts above write both together;
+`python scripts/erd/erd_shards.py check` verifies them. New objects enter with
+`validate_erd_against_org.py --add-objects ... --add-domain ...`, not by hand.
 
 Detailed workflow at `.cursor/skills/schema-validation/SKILL.md`.
 

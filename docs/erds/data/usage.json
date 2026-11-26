@@ -1,0 +1,1768 @@
+{
+  "provenance": {
+    "release": "264",
+    "apiVersion": "68.0",
+    "verifiedOn": "2026-08-15",
+    "method": "describe extraction from fresh ent-shape orgs; custom fields excluded",
+    "coreSourceValidated": false
+  },
+  "objects": {
+    "UsageGrantRenewalPolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "Code": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "A unique user-defined string for the usage grant renewal policy.",
+          "type": "boolean"
+        },
+        "IsRenewalAllowed": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the policy renewal is allowed (true) or not (false). If true, then the policy can be renewed. The default value is false.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the renewal policy record.",
+          "type": "int"
+        },
+        "RenewalFrequency": {},
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "RenewalFrequencyUnit": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "TransactionJournal": {
+      "domain": "Usage Management (Core Object)",
+      "fields": {
+        "UsageResource": {},
+        "UsageSummary": {},
+        "UsageResourceId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage resource that's associated with the transaction journal. This field is a relationship field.",
+          "relationshipName": "UsageResource",
+          "refersTo": "UsageResource",
+          "type": "reference"
+        },
+        "UsageSummaryId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage summary that's associated with the transaction journal. Available in API version 64.0 and later. This field is a relationship field.",
+          "relationshipName": "UsageSummary",
+          "type": "reference",
+          "refersTo": "UsageSummary"
+        },
+        "UsageType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "The type of usage. Valid value is UsageManagement. Usage Management Standard Invocable Actions Learn more about the standard invocable actions available with Usage Management. Invoke Summary Creation Action Invoke the service that creates various summaries, such as usage, ratable, and liable summaries where the usage amount is zero. The service also checks and updates the billing period of the usage entitlement account if the billing period is expired. Process Consumption Overages Action Process consumption overages for the usage summary records with SummaryComplete status. This action uses the entitlement service to process the overages. Refresh Usage Entitlement Bucket Action Refresh entitlements by evaluating the usage entitlement bucket records and creating a new usage entitlement entry. Retrigger Entitlement Creation Process Action Retrigger entitlement creation process for failed or unprocessed assets.",
+          "type": "picklist"
+        },
+        "StartDate": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The date from when the tax rate is valid.",
+          "type": "string"
+        },
+        "ActivityDate": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when a billing transaction record is posted or processed.",
+          "type": "currency"
+        },
+        "Credit": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The transaction record amount when a credit general ledger account is specified.",
+          "type": "reference"
+        },
+        "CreditGeneralLedgerAccountId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The ID of the general ledger account for a debit transaction that's related to the transaction journal. This field is a relationship field.",
+          "relationshipName": "CreditGeneralLedgerAccount",
+          "refersTo": "GeneralLedgerAccount",
+          "type": "currency"
+        },
+        "Debit": {
+          "properties": "Create, Filter, Nillable, Sort, Update"
+        },
+        "DebitGeneralLedgerAccountId": {
+          "description": "The ID of the General Ledger (GL) Treatment based on which transaction journals must be generated for the billing transaction. This field is a relationship field.",
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "relationshipName": "DebitGeneralLedgerAccount",
+          "refersTo": "GeneralLedgerAccount",
+          "type": "picklist"
+        },
+        "ForeignExchangeGainOrLossType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies the type of foreign exchange gain or loss for the transaction journal. This field is available in API version 65.0 and later. Valid values are: • Realized • Unrealized",
+          "type": "picklist"
+        },
+        "GeneralLedgerAcctAsgntRuleId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The general ledger account assignment rule used to assign general ledger accounts to transaction journals that’s created for billing transactions. This field is a relationship field.",
+          "relationshipName": "GeneralLedgerAcctAsgntRule",
+          "refersTo": "GeneralLedgerAcctAsgntRule",
+          "type": "reference"
+        },
+        "AccountId": {
+          "description": "Account ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "QuantityUnitOfMeasureId": {
+          "description": "Quantity Unit ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "ReferenceRecordId": {
+          "description": "Reference Record ID",
+          "type": "reference",
+          "refersTo": "Asset",
+          "relationshipType": "lookup"
+        },
+        "LegalEntityId": {
+          "description": "Legal Entity ID",
+          "type": "reference",
+          "refersTo": "LegalEntity",
+          "relationshipType": "lookup"
+        },
+        "ReferenceTransactionRecordId": {
+          "description": "Reference Transaction Record ID",
+          "type": "reference",
+          "refersTo": "CreditMemo",
+          "relationshipType": "lookup"
+        },
+        "LegalEntyAccountingPeriodId": {
+          "description": "Legal Entity Accounting Period ID",
+          "type": "reference",
+          "refersTo": "LegalEntyAccountingPeriod",
+          "relationshipType": "lookup"
+        },
+        "GenlLdgrJournalEntryRuleId": {
+          "description": "General Ledger Account Assignment Rule ID",
+          "type": "reference",
+          "refersTo": "GeneralLedgerJrnlEntryRule",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "EndDate": {
+          "description": "End Date",
+          "type": "datetime"
+        },
+        "Quantity": {
+          "description": "Quantity",
+          "type": "double"
+        },
+        "TransactionType": {
+          "description": "Transaction Type",
+          "type": "picklist"
+        },
+        "UniqueIdentifier": {
+          "description": "Unique Identifier",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "CreationSourceType": {
+          "description": "Creation Source Type",
+          "type": "picklist"
+        }
+      },
+      "is_standard": true,
+      "domainShort": "Usage",
+      "isStandard": true
+    },
+    "UnitOfMeasureClass": {
+      "domain": "Usage Management",
+      "fields": {
+        "BaseUnitOfMeasureId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The base unit of measure that's used to calculate and display quantities. This field is a relationship field.",
+          "relationshipName": "BaseUnitOfMeasure",
+          "refersTo": "UnitOfMeasure",
+          "type": "string"
+        },
+        "Code": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The unique user-defined string for the unit of measure class.",
+          "type": "reference"
+        },
+        "DefaultUnitOfMeasureId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The description of the unit of measure class.",
+          "relationshipName": "DefaultUnitOfMeasure",
+          "refersTo": "UnitOfMeasure",
+          "type": "string"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Autogenerated identifier for the unit of measure class record.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The status of the unit of measure class. Valid values are: • Active • Draft",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageCmtAssetRelatedObj": {
+      "domain": "Usage Management",
+      "fields": {
+        "AssetId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The asset associated with the commitment-based usage product. This field is a relationship field.",
+          "relationshipName": "Asset",
+          "refersTo": "Asset",
+          "type": "reference"
+        },
+        "EffectiveEndDateTime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time until when the commitment for the related asset remains effective.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the commitment for the related asset becomes effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "type": "dateTime"
+        },
+        "RelatedObjectId": {
+          "description": "Related Object ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "UsageCmtAssetRelatedObjNumber": {
+          "description": "Name",
+          "type": "string"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "ProductUsageResource": {
+      "domain": "Usage Management",
+      "fields": {
+        "EffectiveEndDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the relationship between the product and the usage resource stops being active, and any usage tracking or billing related to this relationship ends.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDate": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the relationship between the product and the usage resource becomes active or effective, and any usage tracking or billing related to this relationship begins.",
+          "type": "boolean"
+        },
+        "IsOptional": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the product usage resource is optional when the associated product is one of the commitment usage model types (true) or not (false). The default value is false. This field is available in API version 65.0 and later.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "type": "dateTime"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "ProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "TokenResourceId": {
+          "description": "Reference to UsageResource",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "UsageResourceId": {
+          "description": "Reference to UsageResource",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "ProductUsageResourceNum": {
+          "description": "Name",
+          "type": "string"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageGrantRolloverPolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "Code": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "A unique user-defined string for the usage grant rollover policy.",
+          "type": "boolean"
+        },
+        "IsRolloverAllowed": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the policy allows the rollover of the usage grant. The default value is false.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "int"
+        },
+        "MaximumRolloverCount": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The maximum number of times that the usage grant can roll over.",
+          "type": "int"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the rollover policy record.",
+          "type": "boolean"
+        },
+        "ShouldAllowRolloverExpiry": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the rollover for the associated usage grant is allowed to expire. The default value is false.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Specifies the status of the rollover policy. Possible values are: • Active • Draft • Inactive",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageEntitlementEntry": {
+      "domain": "Usage Management",
+      "fields": {
+        "ClosingBalance": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The quantity of the entitlement after adjusting the transaction quantity for the current entitlement validity period.",
+          "type": "dateTime"
+        },
+        "EffectiveEndDateTime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the usage entitlement entry ends.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the usage entitlement entry starts.",
+          "type": "dateTime"
+        },
+        "EntitlementBucketId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The usage entitlement bucket that's associated with the entitlement entry. This field is a relationship field.",
+          "relationshipName": "EntitlementBucket",
+          "relationshipType": "Master-detail",
+          "refersTo": "UsageEntitlementBucket",
+          "type": "reference"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Autogenerated identifier for the usage entitlement entry record.",
+          "type": "double"
+        },
+        "OpeningBalance": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The starting quantity of the entitlement for the current entitlement validity period.",
+          "type": "reference"
+        },
+        "ParentEntitlementBucketId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The parent usage entitlement bucket record that's associated with the entitlement entry. This field is a relationship field.",
+          "relationshipName": "ParentEntitlementBucket",
+          "refersTo": "UsageEntitlementBucket",
+          "type": "dateTime"
+        },
+        "TransactionDate": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date when the transaction usage entitlement entry was updated.",
+          "type": "double"
+        },
+        "TransactionQuantity": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The quantity of the entitlement used during the current entitlement validity period.",
+          "type": "picklist"
+        },
+        "TransactionReason": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The reason for the usage entitlement entry. Valid values are: • Amend • Cancel • Consumption • Original • Refresh • Renew"
+        },
+        "TransactionUsageEntitlementId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The transaction usage entitlement that's associated with this usage entitlement entry. This field is a relationship field.",
+          "relationshipName": "TransactionUsageEntitlement",
+          "refersTo": "TransactionUsageEntitlement",
+          "type": "reference"
+        },
+        "TransactionalBucketId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage entitlement bucket that's used to debit the consumption of entitlements. This field is a relationship field.",
+          "relationshipName": "TransactionalBucket",
+          "refersTo": "UsageEntitlementBucket",
+          "type": "reference"
+        },
+        "UomId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The unit of measure that's associated with the usage entitlement. This field is a relationship field.",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure"
+        },
+        "UsageSummaryId": {
+          "description": "Usage Summary ID",
+          "type": "reference",
+          "refersTo": "UsageSummary",
+          "relationshipType": "lookup"
+        },
+        "TransactionType": {
+          "description": "Transaction Type",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        1884,
+        1887
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageResourcePolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record.",
+          "type": "dateTime"
+        },
+        "RatingFrequencyPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The rating frequency policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "RatingFrequencyPolicy",
+          "refersTo": "RatingFrequencyPolicy",
+          "type": "reference"
+        },
+        "UsageAggregationPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage aggregation policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "UsageAggregationPolicy",
+          "refersTo": "UsageResourceBillingPolicy",
+          "type": "reference"
+        },
+        "UsageCommitmentPolicyId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The usage commitment policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "UsageCommitmentPolicy",
+          "refersTo": "UsageCommitmentPolicy",
+          "type": "reference"
+        },
+        "UsageOveragePolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage overage policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "UsageOveragePolicy",
+          "refersTo": "UsageOveragePolicy",
+          "type": "reference"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "UsageResourcePolicyNum": {
+          "description": "Name",
+          "type": "string"
+        }
+      },
+      "pages": [
+        1909,
+        1910
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageResourceBillingPolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "Code": {
+          "type": "string"
+        },
+        "Status": {
+          "description": "",
+          "type": "picklist"
+        },
+        "UsageAccumulationMethod": {
+          "description": "",
+          "type": "string"
+        },
+        "UsageAccumulationPeriod": {
+          "description": "",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageBillingPeriodItem": {
+      "domain": "Usage Management",
+      "fields": {
+        "AccountId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The account that's associated with the billing period item. This field is a relationship field.",
+          "relationshipName": "Account",
+          "refersTo": "Account",
+          "type": "reference"
+        },
+        "UsageEntitlementBucketId": {
+          "description": "Usage Entitlement Bucket ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementBucket",
+          "relationshipType": "lookup"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "UsageEntitlementAccountId": {
+          "description": "Usage Entitlement Account ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementAccount",
+          "relationshipType": "lookup"
+        },
+        "UoMId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "AssetId": {
+          "description": "Asset ID",
+          "type": "reference",
+          "refersTo": "Asset",
+          "relationshipType": "lookup"
+        },
+        "GrantBindingTargetId": {
+          "description": "Grant Binding Target ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "UsageBillingPeriodItemNum": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "StartDateTime": {
+          "description": "Start Date Time",
+          "type": "datetime"
+        },
+        "EndDateTime": {
+          "description": "End Date Time",
+          "type": "datetime"
+        },
+        "OverageQuantity": {
+          "description": "Overage Quantity",
+          "type": "double"
+        },
+        "OverageAmount": {
+          "description": "Overage Amount",
+          "type": "currency"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "ErrorCode": {
+          "description": "Error Code",
+          "type": "picklist"
+        },
+        "ErrorDescription": {
+          "description": "Error Description",
+          "type": "string"
+        },
+        "TotalUsedQuantity": {
+          "description": "Total Used Quantity",
+          "type": "double"
+        },
+        "OverageAmountDerived": {
+          "description": "Overage Amount Derived",
+          "type": "double"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsagePrdGrantBindingPolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "GrantBindingTargetType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The type of binding instance to which the grant is added. Valid values are: • Custom • Product • Contract",
+          "type": "picklist"
+        },
+        "GrantBindingType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of binding that indicates where the grant is added. Valid values are: • Self",
+          "type": "picklist"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Autogenerated identifier for the usage product grant binding policy.",
+          "type": "reference"
+        },
+        "Product2Id": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The sellable product associated with the usage product grant binding policy. This field is a relationship field.",
+          "relationshipName": "Product2",
+          "refersTo": "Product2",
+          "type": "reference"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "TransactionUsageEntitlement": {
+      "domain": "Usage Management",
+      "fields": {
+        "AccountId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The account that's associated with the usage entitlement. This field is a relationship field.",
+          "relationshipName": "Account",
+          "refersTo": "Account",
+          "type": "picklist"
+        },
+        "ActionType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of action that resulted in the transaction usage entitlement. Valid values are: • Amend • Cancellation • New • Ramp",
+          "type": "picklist"
+        },
+        "AssetId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "type": "reference",
+          "refersTo": "Asset"
+        },
+        "GrantBindingTargetId": {
+          "description": "Grant Binding Target ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "OrderItemId": {
+          "description": "Order Item ID",
+          "type": "reference",
+          "refersTo": "OrderItem",
+          "relationshipType": "lookup"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "PricebookEntryId": {
+          "description": "Price Book Entry ID",
+          "type": "reference",
+          "refersTo": "PricebookEntry",
+          "relationshipType": "lookup"
+        },
+        "ProductId": {
+          "description": "Product ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "EntitlementUomId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "EntitlementUomClassId": {
+          "description": "Unit of Measure Class ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasureClass",
+          "relationshipType": "lookup"
+        },
+        "UsageGrantRefreshPolicyId": {
+          "description": "Usage Grant Refresh Policy ID",
+          "type": "reference",
+          "refersTo": "UsageGrantRenewalPolicy",
+          "relationshipType": "lookup"
+        },
+        "UsageGrantRolloverPolicyId": {
+          "description": "Usage Grant Rollover Policy ID",
+          "type": "reference",
+          "refersTo": "UsageGrantRolloverPolicy",
+          "relationshipType": "lookup"
+        },
+        "TokenResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "EffectiveStartDateTime": {
+          "description": "Effective Start Date Time",
+          "type": "datetime"
+        },
+        "EffectiveEndDateTime": {
+          "description": "Effective End Date Time",
+          "type": "datetime"
+        },
+        "TransactionQuantity": {
+          "description": "Transaction Quantity",
+          "type": "double"
+        },
+        "EntitlementQuantity": {
+          "description": "Entitlement Quantity",
+          "type": "double"
+        },
+        "ValidityPeriodTerm": {
+          "description": "Validity Period Term",
+          "type": "int"
+        },
+        "ValidityPeriodUnit": {
+          "description": "Validity Period Unit",
+          "type": "picklist"
+        },
+        "NetQuantity": {
+          "description": "Net Quantity",
+          "type": "double"
+        },
+        "ExternalOrderItem": {
+          "description": "External Order Item",
+          "type": "string"
+        },
+        "UsageModelType": {
+          "description": "Usage Model Type",
+          "type": "picklist"
+        },
+        "EntitlementProcessingStatus": {
+          "description": "Entitlement Processing Status",
+          "type": "picklist"
+        },
+        "GrantType": {
+          "description": "Grant Type",
+          "type": "picklist"
+        },
+        "OriginalEndDate": {
+          "description": "Sell Operation End Date",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageCommitmentPolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "CommitmentRate": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The rate that’s applicable to the usage resource’s units consumed post the commitment is utilized, but the commitment period is still active. Valid values are: • Bounded Object Rate • Lowest Commitment Rate The default value is Lowest Commitment Rate.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record.",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Autogenerated identifier for the usage commitment asset related object record.",
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "type": "reference"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageEntitlementAccount": {
+      "domain": "Usage Management",
+      "fields": {
+        "AccountId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The account that's associated with the usage entitlement. This field is a relationship field.",
+          "relationshipName": "Account",
+          "refersTo": "Account",
+          "type": "int"
+        },
+        "BillDayOfMonth": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The day of the month that the bill is generated on and that ends the billing period.",
+          "type": "dateTime"
+        },
+        "BillingPeriodEndDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the billing period of the usage entitlements ends.",
+          "type": "dateTime"
+        },
+        "BillingPeriodStartDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the billing period of the usage entitlements starts.",
+          "type": "int"
+        },
+        "BillingPeriodTerm": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The frequency at which the bill is generated.",
+          "type": "picklist"
+        },
+        "BillingPeriodUnit": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The unit to measure the billing frequency. Valid value is:"
+        },
+        "EffectiveEndDateTime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the usage entitlement account ends.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the usage entitlement account starts.",
+          "type": "dateTime"
+        },
+        "GrantBindingTargetId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The target that's associated with the usage entitlement account. This field is a relationship field.",
+          "relationshipName": "GrantBindingTarget",
+          "refersTo": "Account, Asset, BindingObjectCustomExt, Contract",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Autogenerated identifier for the usage entitlement account record.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the owner of the usage entitlement account. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "ProductId": {
+          "description": "Product ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "PricebookEntryId": {
+          "description": "Price Book Entry ID",
+          "type": "reference",
+          "refersTo": "PricebookEntry",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        1876,
+        1878
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "ProductUsageGrant": {
+      "domain": "Usage Management",
+      "fields": {
+        "DrawdownOrder": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The order that's used to debit entitlement consumption from the usage entitlement bucket. Valid values are: • ExpiringFirst • GrantedFirst • GrantedLast This field is deprecated and will be retired in a future version.",
+          "type": "dateTime"
+        },
+        "EffectiveEndDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time until when the grant remains effective.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDate": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the grant becomes effective.",
+          "type": "string"
+        },
+        "Label": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The identifying label for the product usage grant.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "picklist"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the owner of the product usage grant. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The product selling model associated with the product usage grant. This field is available in API version 65.0 and later. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "refersTo": "ProductSellingModel",
+          "type": "string"
+        },
+        "ProductUsageGrantNum": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The number of each resource grant map that starts with one and is consecutive.",
+          "type": "reference"
+        },
+        "ProductUsageResourceId": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The quantity of the granted resource.",
+          "relationshipName": "ProductUsageResource",
+          "refersTo": "ProductUsageResource",
+          "type": "reference"
+        },
+        "RenewalPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The grant renewal policy associated with the product usage grant. This field is a relationship field.",
+          "relationshipName": "RenewalPolicy",
+          "refersTo": "UsageGrantRenewalPolicy",
+          "type": "reference"
+        },
+        "RolloverPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The grant rollover policy associated with the product usage grant. This field is a relationship field.",
+          "relationshipName": "RolloverPolicy",
+          "refersTo": "UsageGrantRolloverPolicy",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of model that defines how the usage resource is consumed. Valid values are: • Commit • Grant The default value is Grant. Available in API version 64.0 and later.",
+          "type": "reference"
+        },
+        "UnitOfMeasureClassId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The unit of measure class associated with the product usage grant. This field is a relationship field.",
+          "relationshipName": "UnitOfMeasureClass",
+          "refersTo": "UnitOfMeasureClass",
+          "type": "reference"
+        },
+        "UnitOfMeasureId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The unit of measure for the quantity granted by the product usage grant. This field is a relationship field.",
+          "relationshipName": "UnitOfMeasure",
+          "refersTo": "UnitOfMeasure",
+          "type": "reference"
+        },
+        "UsageModelType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The ID of the unit of measure associated with the product. The type of usage model for a product or service. Anchor is the main subscription product or service. Pack is the add-on product or service that grants additional usage resources for consumption. Commit is the product or service with a specific committed quantity of consumption. Valid values are: • Anchor • Pack • Token Commitment • Quantity Commitment • Monetary Commitment This field is available in API version 65.0 and later.",
+          "type": "reference"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "ValidityPeriodUnit": {
+          "description": "",
+          "type": "string"
+        },
+        "ValidityPeriodTerm": {
+          "description": "",
+          "type": "string"
+        },
+        "Quantity": {
+          "description": "",
+          "type": "string"
+        },
+        "UsageDefinitionProductId": {
+          "description": "Reference to Product2",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "UsageRsrcId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "ProductId": {
+          "description": "Product ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        1839,
+        1845
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageRatableSummary": {
+      "domain": "Usage Management",
+      "fields": {
+        "AccountId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The account that's associated with the ratable summary. This field is a relationship field.",
+          "relationshipName": "Account",
+          "refersTo": "Account",
+          "type": "reference"
+        },
+        "AssetId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The asset that's associated with the ratable summary. This field is a relationship field.",
+          "relationshipName": "Asset",
+          "refersTo": "Asset",
+          "type": "dateTime"
+        },
+        "EndDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The end date and time of the ratable period.",
+          "type": "picklist"
+        },
+        "ErrorCode": {
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Autogenerated identifier for the usage product grant binding policy.",
+          "type": "reference"
+        },
+        "UsageEntitlementBucketId": {
+          "description": "Usage Entitlement Bucket ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementBucket",
+          "relationshipType": "lookup"
+        },
+        "UsageEntitlementAccountId": {
+          "description": "Usage Entitlement Account ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementAccount",
+          "relationshipType": "lookup"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "OverageQuantityUomId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "TierQuantityUomId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "NetUnitRateUomId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "RatingRequestId": {
+          "description": "Rating Request ID",
+          "type": "reference",
+          "refersTo": "RatingRequest",
+          "relationshipType": "lookup"
+        },
+        "GrantBindingTargetId": {
+          "description": "Binding Object ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "SourceUsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "StartDateTime": {
+          "description": "Start Date Time",
+          "type": "datetime"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "OverageQuantity": {
+          "description": "Overage Quantity",
+          "type": "double"
+        },
+        "TierQuantity": {
+          "description": "Tier Quantity",
+          "type": "double"
+        },
+        "RatingDecisionDateTime": {
+          "description": "Rating Decision Date Time",
+          "type": "datetime"
+        },
+        "NetUnitRate": {
+          "description": "Net Unit Rate",
+          "type": "double"
+        },
+        "TotalAmount": {
+          "description": "Total Amount",
+          "type": "double"
+        },
+        "ErrorDescription": {
+          "description": "Error Description",
+          "type": "string"
+        },
+        "RatingExecutionIdentifier": {
+          "description": "Rating Execution Identifier",
+          "type": "string"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UnitOfMeasure": {
+      "domain": "Usage Management",
+      "fields": {
+        "ConversionFactor": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The factor or rate that's used to convert this unit of measurement to the base unit.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "Autogenerated identifier for the unit of measure record.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the owner of the unit of measure record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "int"
+        },
+        "Sequence": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The sequence number assigned to the unit of measure.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The status of the unit of measure. Valid values are: • Active • Draft",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "Scale": {
+          "description": "",
+          "type": "string"
+        },
+        "CurrencyIsoCode": {
+          "description": "",
+          "type": "string"
+        },
+        "RoundingMethod": {
+          "description": "",
+          "type": "string"
+        },
+        "UnitCode": {
+          "description": "",
+          "type": "string"
+        },
+        "UnitOfMeasureClassId": {
+          "description": "Reference to UnitOfMeasureClass",
+          "type": "reference",
+          "refersTo": "UnitOfMeasureClass",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        1862,
+        1863
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageOveragePolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the rollover policy record.",
+          "type": "boolean"
+        },
+        "OverageChargeable": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "Specifies whether the overconsumption beyond the granted quantity is to be charged."
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "ProductUsageResourcePolicy": {
+      "domain": "Usage Management",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record, a record related to this record, or a list view.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "Date and time when the current user last viewed or modified this record.",
+          "type": "dateTime"
+        },
+        "ProductSellingModelId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The product selling model associated with this policy. This field is a relationship field.",
+          "relationshipName": "ProductSellingModel",
+          "refersTo": "ProductSellingModel",
+          "type": "reference"
+        },
+        "ProductUsageResourceId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The product usage resource associated with this policy. This field is a relationship field.",
+          "relationshipName": "ProductUsageResource",
+          "relationshipType": "Master-detail",
+          "refersTo": "ProductUsageResource",
+          "type": "reference"
+        },
+        "RatingFrequencyPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The rating frequency policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "RatingFrequencyPolicy",
+          "refersTo": "RatingFrequencyPolicy",
+          "type": "reference"
+        },
+        "UsageAggregationPolicyId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage aggregation policy associated with the usage resource. This field is a relationship field.",
+          "relationshipName": "UsageAggregationPolicy",
+          "type": "reference",
+          "refersTo": "UsageResourceBillingPolicy"
+        },
+        "UsageCommitmentPolicyId": {
+          "description": "Reference to UsageCommitmentPolicy",
+          "type": "reference",
+          "refersTo": "UsageCommitmentPolicy",
+          "relationshipType": "lookup"
+        },
+        "UsageOveragePolicyId": {
+          "description": "Reference to UsageOveragePolicy",
+          "type": "reference",
+          "refersTo": "UsageOveragePolicy",
+          "relationshipType": "lookup"
+        },
+        "ProductUsageResourcePolicyNum": {
+          "description": "Name",
+          "type": "string"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageResource": {
+      "domain": "Usage Management",
+      "fields": {
+        "Category": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The category of the usage resource that's used to organize and understand the product grant maps. Valid values are: • Currency—Available in API version 65.0 and later. • Usage • Token—Available in API version 64.0 and later.",
+          "type": "string"
+        },
+        "Code": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The unique user-defined string for the usage resource.",
+          "type": "reference"
+        },
+        "DefaultUnitOfMeasureId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The default unit of measure for the given resource. The default value can be overridden with an alternate default unit of measure for a given resource. This field is a relationship field.",
+          "relationshipName": "DefaultUnitOfMeasure",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the usage resource record.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the owner of the usage resource record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The status of the usage resource. Valid values are: • Active • Draft",
+          "type": "picklist"
+        },
+        "TokenResourceId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage resource of Category Token that’s used to charge this usage resource. For example, you can select a usage resource Credits (Token category) to rate the usage resource Data (Usage category). This field is available in API version 65.0 and later.",
+          "relationshipName": "TokenResource",
+          "refersTo": "UsageResource",
+          "type": "reference"
+        },
+        "UnitOfMeasureClassId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The unit of measure class that's used with the resource to define the units in which this resource is measured. This field is a relationship field.",
+          "relationshipName": "UnitOfMeasureClass",
+          "refersTo": "UnitOfMeasureClass",
+          "type": "reference"
+        },
+        "UsageDefinitionProductId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The product associated with the usage resource to retrieve tax policy, calculate rating during overages, and other invoicing actions. This field is a relationship field.",
+          "relationshipName": "UsageDefinitionProduct",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        }
+      },
+      "pages": [
+        1905,
+        1908
+      ],
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageSummary": {
+      "domain": "Usage Management",
+      "fields": {
+        "AccountId": {
+          "type": "reference",
+          "refersTo": "Account"
+        },
+        "UsageResourceId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The usage resource that's associated with the transaction journal. This field is a relationship field.",
+          "relationshipName": "UsageResource",
+          "refersTo": "UsageResource",
+          "type": "reference"
+        },
+        "UsageEntitlementBucketId": {
+          "description": "Usage Entitlement Bucket ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementBucket",
+          "relationshipType": "lookup"
+        },
+        "AssetId": {
+          "description": "Asset ID",
+          "type": "reference",
+          "refersTo": "Asset",
+          "relationshipType": "lookup"
+        },
+        "UsageEntitlementAccountId": {
+          "description": "Usage Entitlement Account ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementAccount",
+          "relationshipType": "lookup"
+        },
+        "UomId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "RatableSummaryId": {
+          "description": "Usage Ratable Summary ID",
+          "type": "reference",
+          "refersTo": "UsageRatableSummary",
+          "relationshipType": "lookup"
+        },
+        "LiableSummaryId": {
+          "description": "Liable Summary ID",
+          "type": "reference",
+          "refersTo": "UsageBillingPeriodItem",
+          "relationshipType": "lookup"
+        },
+        "GrantBindingTargetId": {
+          "description": "Binding Object ID",
+          "type": "reference",
+          "refersTo": "Account",
+          "relationshipType": "lookup"
+        },
+        "ParentUsageSummaryId": {
+          "description": "Usage Summary ID",
+          "type": "reference",
+          "refersTo": "UsageSummary",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "DebitedUnits": {
+          "description": "Debited Units",
+          "type": "double"
+        },
+        "StartDateTime": {
+          "description": "Start Date Time",
+          "type": "datetime"
+        },
+        "EndDateTime": {
+          "description": "End Date Time",
+          "type": "datetime"
+        },
+        "ConsumptionUnits": {
+          "description": "Consumption Units",
+          "type": "double"
+        },
+        "OverageUnits": {
+          "description": "Overage Units",
+          "type": "double"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageEntitlementBucket": {
+      "domain": "Usage Management",
+      "fields": {
+        "BucketBalance": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The balance of the usage entitlement bucket after each transaction.",
+          "type": "reference"
+        },
+        "BucketBalanceUomId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The unit that's used to measure the usage entitlement bucket balance. This field is a relationship field.",
+          "relationshipName": "BucketBalanceUom",
+          "refersTo": "UnitOfMeasure",
+          "type": "int"
+        },
+        "CompletedRollovers": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The number of rollovers that were completed for the entitlements.",
+          "type": "double"
+        },
+        "ConsumedEntitlement": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The entitlements that have been consumed from this bucket.",
+          "type": "dateTime"
+        },
+        "EffectiveEndDateTime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the usage entitlement bucket period ends.",
+          "type": "dateTime"
+        },
+        "EffectiveStartDateTime": {
+          "properties": "Create, Filter, Sort, Update",
+          "description": "The date and time when the usage entitlement bucket becomes effective.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The timestamp for when the current user last viewed a record related to this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "Autogenerated identifier for the usage entitlement bucket record.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the owner of the usage entitlement bucket. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "UsageResourceId": {
+          "description": "Usage Resource ID",
+          "type": "reference",
+          "refersTo": "UsageResource",
+          "relationshipType": "lookup"
+        },
+        "ParentId": {
+          "description": "Parent ID",
+          "type": "reference",
+          "refersTo": "UsageEntitlementAccount",
+          "relationshipType": "lookup"
+        },
+        "TransactionUsageEntitlementId": {
+          "description": "Transaction Usage Entitlement ID",
+          "type": "reference",
+          "refersTo": "TransactionUsageEntitlement",
+          "relationshipType": "lookup"
+        },
+        "TotalAsOfBalance": {
+          "description": "Total As Of Balance",
+          "type": "double"
+        },
+        "TotalConsumedEntitlement": {
+          "description": "Total Consumed Entitlement",
+          "type": "double"
+        },
+        "ProvisionalBucketBalance": {
+          "description": "Provisional Bucket Balance",
+          "type": "double"
+        },
+        "TotalProvisionalBalance": {
+          "description": "Total Provisional Balance",
+          "type": "double"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    },
+    "UsageRatableSumCmtAssetRt": {
+      "domain": "Usage Management",
+      "fields": {
+        "CommitmentAssetId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The asset ID associated with the Usage Ratable Summary. This field is a relationship field.",
+          "relationshipName": "CommitmentAsset",
+          "refersTo": "Asset",
+          "type": "picklist"
+        },
+        "ErrorCode": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies the unique code generated when an error occurs. Valid value is INTERNAL_ERROR.",
+          "type": "string"
+        },
+        "ErrorDescription": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Specifies the description of the error that occurred.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The date when this record was last referenced.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "type": "dateTime"
+        },
+        "UsageRatableSummaryId": {
+          "description": "Usage Ratable Summary ID",
+          "type": "reference",
+          "refersTo": "UsageRatableSummary",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "NetUnitRate": {
+          "description": "Net Unit Rate",
+          "type": "double"
+        },
+        "RatingDecisionDateTime": {
+          "description": "Rating Decision Date Time",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "Usage",
+      "isStandard": false
+    }
+  }
+}

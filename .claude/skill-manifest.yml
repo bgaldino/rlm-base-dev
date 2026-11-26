@@ -677,17 +677,15 @@ foundations:
       api_version: v68.0
 
     erd_data:
-      # ⚠ Still a 262 / v67.0 capture — deliberately NOT bumped with the branch.
-      # release/apiVersion here are provenance of the source org, not a version
-      # pin. Regenerate only from a verified 264 org (see docs/erds/README.md).
+      # Counts are gated against docs/erds/erd-data.json by tests/test_erd_doc_counts.py;
+      # change them only by regenerating the ERD (docs/erds/README.md).
       path: docs/erds/erd-data.json
       query_cli: scripts/ai/query_erd.py
-      object_count: 263
-      field_count: 4190
-      relationship_count: 674
-      api_version: v67.0
-      release: "262"
-      refresh_pr: "feat/262-erd-refresh-and-schema-diff-tooling (PR #179)"
+      object_count: 265
+      field_count: 4292
+      relationship_count: 678
+      api_version: v68.0
+      release: "264"
 
     qb_scenario:
       path: docs/enablement/master/qb-scenario-reference.md

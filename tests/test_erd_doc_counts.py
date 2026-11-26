@@ -129,7 +129,7 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 107
+EXPECTED_CHECKS = 119
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
 CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
@@ -325,6 +325,90 @@ def main():
         )
 
     print()
+    print("erd-data.json is the composition of docs/erds/data/ shards")
+    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd"))
+    import erd_shards
+    problems = erd_shards.check()
+    check("shards_compose_to_erd_data", not problems, "; ".join(problems[:3]))
+
+    # The shard layer's own behaviour, on copies: a dropped key, a missing stamp and an
+    # overlay redefining a public key must each fail; an overlay adding a key must not.
+    import copy
+    shards = erd_shards.read_shards()
+    dom = next(n for n in shards if n not in erd_shards.RESERVED)
+    monolith = json.loads(open(erd_shards.ERD_PATH, encoding="utf-8").read())
+    schema = json.loads(open(erd_shards.SCHEMA_PATH, encoding="utf-8").read())["definitions"]["domain"]
+    check("shards_compose_deep_equals_monolith", erd_shards.compose(shards) == monolith
+          and list(erd_shards.compose(shards)["objects"]) == list(monolith["objects"]))
+    broken = copy.deepcopy(shards)
+    del broken[dom]["objects"][next(iter(broken[dom]["objects"]))]
+    check("shards_dropped_object_is_caught", erd_shards.compose(broken) != monolith)
+    broken = copy.deepcopy(shards)
+    del broken[dom]["provenance"]["verifiedOn"]
+    check("shards_missing_stamp_fails_schema", bool(erd_shards.validate(broken[dom], schema)))
+    obj, body = next(iter(shards[dom]["objects"].items()))
+    broken = copy.deepcopy(shards)
+    broken["overlay-internal.json"] = {"provenance": {}, "objects": {obj: {**body, "domain": "Contradiction"}}}
+    try:
+        erd_shards.compose(broken)
+        refused = False
+    except ValueError:
+        refused = True
+    check("shards_overlay_redefining_public_key_is_refused", refused)
+    broken["overlay-internal.json"] = {"provenance": {}, "objects": {
+        "ZzNewObject": {"domain": "Billing", "domainShort": "Billing", "fields": {"X": {}}}}}
+    check("shards_overlay_may_add_a_new_object", "ZzNewObject" in erd_shards.compose(broken)["objects"])
+
+    print("object discovery from committed snapshots")
+    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff"))
+    import diff_schemas
+    sd = os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff")
+    snap = {n: json.loads(open(os.path.join(sd, f"{n}-schema.json"), encoding="utf-8").read())
+            for n in ("262", "264")}
+    found = diff_schemas.discovered_objects(snap["262"], snap["264"])
+    committed = json.loads(open(os.path.join(sd, "262-vs-264-diff.json"), encoding="utf-8").read())
+    check("object_discovery_matches_committed_diff",
+          found["added"] == committed["objects_discovered_added"]
+          and found["removed"] == committed["objects_discovered_removed"],
+          f"recomputed +{len(found['added'])}/-{len(found['removed'])}; regenerate the diff")
+
+    print("skill-manifest erd_data block")
+    mtxt = open(os.path.join(REPO_ROOT, ".claude", "skill-manifest.yml"), encoding="utf-8").read()
+    block = mtxt[mtxt.index("    erd_data:"):mtxt.index("    qb_scenario:")]
+    for key, want in (("object_count", totals["objects"]), ("field_count", totals["fields"]),
+                      ("relationship_count", totals["relationships"])):
+        got = re.search(rf"^\s+{key}:\s*(\d+)", block, re.M)
+        check(f"manifest_erd_{key}", bool(got) and int(got.group(1)) == want,
+              f"manifest says {got.group(1) if got else 'nothing'}, erd-data.json has {want}")
+
+    print("adding whole objects from a describe")
+    import validate_erd_against_org as validator
+    fake = {"name": "ZzRecipient", "fields": [
+        {"name": "Id", "type": "id", "label": "Id", "referenceTo": []},
+        {"name": "QuoteId", "type": "reference", "label": "Quote ID", "referenceTo": ["Quote"],
+         "relationshipName": "Quote", "cascadeDelete": True},
+        {"name": "ServiceAddress", "type": "address", "label": "Addr", "referenceTo": []},
+        {"name": "Note__c", "type": "string", "label": "Custom", "referenceTo": []},
+        {"name": "Kind", "type": "picklist", "label": "Kind", "referenceTo": []}]}
+    sample = {"objects": {"Quote": {"domain": "x", "domainShort": "x", "fields": {}}}, "relationships": []}
+    n_obj, n_rel = validator.build_object_entries(
+        sample, {"zzrecipient": fake}, "Transaction Management (Core Object)")
+    entry = sample["objects"]["ZzRecipient"]
+    check("add_objects_builds_entries_and_edges",
+          (n_obj, n_rel) == (1, 1) and set(entry["fields"]) == {"QuoteId", "ServiceAddress", "Kind"}
+          and entry["fields"]["QuoteId"]["relationshipType"] == "Master-Detail"
+          and sample["relationships"][0]["type"] == "master-detail"
+          and entry["domainShort"] == "Transactions")
+
+    real_describe = validator.describe_sobject
+    validator.describe_sobject = lambda org, name: {"name": "PricebookEntry", "fields": []}
+    try:
+        d = validator.diff_object("PriceBookEntry", {"domain": "x", "fields": {}}, "o", [])
+    finally:
+        validator.describe_sobject = real_describe
+    check("validator_reports_wrong_cased_erd_key",
+          d.org_exists and d.canonical_name == "PricebookEntry")
+
     print("domain color mappings")
     maps = []
     for script in ("scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"):

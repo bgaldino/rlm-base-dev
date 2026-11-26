@@ -1,0 +1,2540 @@
+{
+  "provenance": {
+    "release": "264",
+    "apiVersion": "68.0",
+    "verifiedOn": "2026-08-15",
+    "method": "describe extraction from fresh ent-shape orgs; custom fields excluded",
+    "coreSourceValidated": false
+  },
+  "objects": {
+    "SalesTrxnDeleteEvent": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ReferenceObjectIdentifier": {},
+        "ReplayId": {
+          "description": "Replay ID",
+          "type": "string"
+        },
+        "EventUuid": {
+          "description": "Event UUID",
+          "type": "string"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentAssetRelationship": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AssociatedFulfillAssetRole": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The role of the associated fulfillment asset. Valid values are: • BundleComponent • ClassificationComponent—Product Classification Component"
+        },
+        "AssociatedFulfillmentAssetId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The name of the associated fulfillment asset. This field is a relationship field.",
+          "relationshipName": "AssociatedFulfillmentAsset",
+          "refersTo": "FulfillmentAsset",
+          "type": "reference"
+        },
+        "MainFulfillmentAssetId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The name of the primary fulfillment asset. This field is a relationship field.",
+          "relationshipName": "MainFulfillmentAsset",
+          "relationshipType": "Master-detail",
+          "refersTo": "FulfillmentAsset",
+          "type": "reference"
+        },
+        "MainFulfillmentAssetRole": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The role of the primary fulfillment asset. Valid value is Bundle Parent.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the fulfillment asset relationship.",
+          "type": "string"
+        },
+        "ProductRelationshipTypeId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The type of relationship between two assets. This field is a relationship field.",
+          "relationshipName": "ProductRelationshipType",
+          "refersTo": "ProductRelationshipType",
+          "type": "reference"
+        },
+        "StartTime": {
+          "description": "Start Time",
+          "type": "datetime"
+        },
+        "EndTime": {
+          "description": "End Time",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ProdtDecompEnrchVarMap": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AttributeDefinitionId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The attribute definition the expression set variable is mapped to when creating the enrichment rule. This field is a relationship field.",
+          "relationshipName": "AttributeDefinition",
+          "refersTo": "AttributeDefinition",
+          "type": "string"
+        },
+        "ExpressionSetVarName": {
+          "properties": "Filter, Group, Sort",
+          "description": "The name of the variable that's mapped to the expression set defined in the enrichment rule.",
+          "type": "string"
+        },
+        "FieldContextTagName": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The name of the field context tag to which the expression set variable is mapped when creating the enrichment rule.",
+          "type": "string"
+        },
+        "ProductAttributeIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The product attribute from an internal or external catalog, used by DRO to copy data during the enrichment process. This field is available in API version 65.0 and later.",
+          "type": "reference"
+        },
+        "ProductDecompEnrichmentRuleId": {
+          "type": "reference",
+          "refersTo": "ProductDecompEnrichmentRule"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "VariableType": {
+          "description": "Variable Type",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        1751,
+        1752
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentAssetAttribute": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AttributeDefinitionId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The attribute definition in the catalog. This field is a relationship field.",
+          "relationshipName": "AttributeDefinition",
+          "type": "reference",
+          "refersTo": "AttributeDefinition"
+        },
+        "FulfillmentAssetId": {
+          "description": "Fulfillment Asset ID",
+          "type": "reference",
+          "refersTo": "FulfillmentAsset",
+          "relationshipType": "lookup"
+        },
+        "AttributePicklistValueId": {
+          "description": "Attribute Picklist Value ID",
+          "type": "reference",
+          "refersTo": "AttributePicklistValue",
+          "relationshipType": "lookup"
+        },
+        "ExternalId": {
+          "description": "External ID",
+          "type": "string"
+        },
+        "AttributeName": {
+          "description": "Attribute Name",
+          "type": "string"
+        },
+        "AttributeValue": {
+          "description": "Attribute Value",
+          "type": "string"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStep": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ActualCompletionDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the fulfillment step state changed to Completed or Skipped.",
+          "type": "dateTime"
+        },
+        "ActualStartDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the fulfillment step state changed to Ready.",
+          "type": "dateTime"
+        },
+        "AssignedToId": {
+          "properties": "Create, Filter, Group, Nillable, Sort",
+          "description": "The user or group the fulfillment step is assigned to. This field is a relationship field.",
+          "relationshipName": "AssignedTo",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "CompensatedStepId": {
+          "type": "reference",
+          "refersTo": "FulfillmentStep"
+        },
+        "DelayOf": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The value of the delay. This field is available in API version 63.0 and later.",
+          "type": "picklist"
+        },
+        "DelayUnit": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The unit for the delay of the fulfillment step. This field is available in API version 63.0 and later. Valid values are: • Days • Hours"
+        },
+        "ExecuteOn": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies when to execute the fulfillment step. This field is available in API version 63.0 and later. Valid values are: • PreviousStepExecutionDate • SourceLineStartDate",
+          "type": "reference"
+        },
+        "ExecuteOnRuleId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the expression set. The fulfillment step is executed only when its corresponding expression set returns the value true. This field is a polymorphic relationship field.",
+          "relationshipName": "ExecuteOnRule",
+          "relationshipType": "Lookup",
+          "refersTo": "ExpressionSet",
+          "type": "string"
+        },
+        "ExecutionMessage": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only.",
+          "type": "reference"
+        },
+        "FalloutQueueId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The fallout queue that's associated with the fallout task. This field is available in API version 62.0 and later. This field is a relationship field.",
+          "relationshipName": "FalloutQueue",
+          "refersTo": "Group",
+          "type": "string"
+        },
+        "FlowDefinitionName": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step. This field is available in API version 62.0 and later.",
+          "type": "reference"
+        },
+        "FlowInterviewId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The flow interview associated with the fulfillment step. This field is a relationship field.",
+          "relationshipName": "FlowInterview",
+          "relationshipType": "Lookup",
+          "refersTo": "FlowInterview",
+          "type": "picklist"
+        },
+        "ForcePlanFreezeDuringExecution": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies whether to freeze the plan while the step is in progress. If enabled, specifies how to complete the step before resuming the plan. This field is available in API version 63.0 and later. Valid values are: • Never • YesButWaitForStepCompletion The default value is Never.",
+          "type": "reference"
+        },
+        "FulfillmentPlanId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The fulfillment plan associated with the fulfillment step. This field is a relationship field.",
+          "relationshipName": "FulfillmentPlan",
+          "relationshipType": "Lookup",
+          "refersTo": "FulfillmentPlan",
+          "type": "reference"
+        },
+        "FulfillmentStepDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The fulfillment step definition associated with the fulfillment step. This field is a relationship field.",
+          "relationshipName": "FulfillmentStepDefinition",
+          "relationshipType": "Lookup",
+          "refersTo": "FulfillmentStepDefinition",
+          "type": "reference"
+        },
+        "IntegrationDefinitionNameId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only. This field is a relationship field.",
+          "relationshipName": "IntegrationDefinitionName",
+          "relationshipType": "Lookup",
+          "refersTo": "IntegrationProviderDef",
+          "type": "boolean"
+        },
+        "IsSkipBranch": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the remaining steps in the fulfillment step group are skipped from execution when the Execute On Rule condition is set (true) or not (false). This field is available in API version 62.0 and later. The default value is false.",
+          "type": "string"
+        },
+        "JeopardyStatus": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The jeopardy status of the fulfillment step. This field is a calculated field.",
+          "type": "int"
+        },
+        "JeopardyThreshold": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The number of days, hours, minutes, or seconds, counting back from the expected duration, before a fulfillment step is in jeopardy.",
+          "type": "picklist"
+        },
+        "JeopardyThresholdUnit": {
+          "properties": "Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The time unit of the jeopardy threshold. Valid values are: • Days • Hours • Minutes • Seconds The default value is Minutes.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the fulfillment step.",
+          "type": "dateTime"
+        },
+        "NextEarliestRunTime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The next available time for the process execution. This field is available in API version 62.0 and later.",
+          "type": "string"
+        },
+        "OmniscriptName": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For inyternal use only.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "dateTime"
+        },
+        "PlannedCompletionDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time Dynamic Revenue Orchestrator estimates that the fulfillment step will complete.",
+          "type": "dateTime"
+        },
+        "PlannedStartDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The date and time when the Dynamic Revenue Orchestrator calculates the fulfillment step state change to Ready.",
+          "type": "multipicklist"
+        },
+        "PointOfNoReturn": {
+          "properties": "Create, Filter, Nillable",
+          "description": "The type of source change applied to the line item. This field is available in API version 62.0 and later. Valid value is: • Changes Denied",
+          "type": "dateTime"
+        },
+        "RequestedCompletionDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The planned completion date and time of the fulfillment step.",
+          "type": "dateTime"
+        },
+        "RequestedStartDate": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The planned start date and time of the fulfillment step.",
+          "type": "dateTime"
+        },
+        "ResumeOnRuleId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The rule set or expression set for the fulfillment step. The step is completed only when the corresponding expression set returns the isExecuteStep output as true. This field is a polymorphic relationship field.",
+          "relationshipName": "ResumeOnRule",
+          "relationshipType": "Lookup",
+          "refersTo": "ExpressionSet",
+          "type": "int"
+        },
+        "RetryAttempts": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The number of attempts allowed for retry as set up in the Fallout Qualification Rule table.",
+          "type": "reference"
+        },
+        "RunAsUserId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Overrides user context for an automated step. The default user context is AutomatedProc user. This field is a relationship field.",
+          "relationshipName": "RunAsUser",
+          "relationshipType": "Lookup",
+          "refersTo": "User",
+          "type": "picklist"
+        },
+        "State": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The state of the fulfillment step. For example, In Progress or Completed. Valid values are: • Completed • Failed • FatallyFailed • InProgress • Pending • Ready • Scheduled"
+        },
+        "StepType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The fulfillment step type associated with the fulfillment step. Valid values are: • AutoTask • Callout • ManualTask • Milestone • Pause • StagedAssetize—Available in API version 63.0 and later.",
+          "type": "picklist"
+        },
+        "TaskAllocationType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The method of assigning the manual step. This field is available in API version 63.0 and later. Valid values are: • ContextBased • LeastLoaded",
+          "type": "picklist"
+        },
+        "TaskId": {
+          "description": "Activity ID",
+          "type": "reference",
+          "refersTo": "Task",
+          "relationshipType": "lookup"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        },
+        "StepDefIdentifier": {
+          "description": "Step Definition Identifier",
+          "type": "string"
+        },
+        "CustomBaseExecutionDate": {
+          "description": "Custom Date",
+          "type": "string"
+        },
+        "IsVisibleByExternalUsers": {
+          "description": "Visible By External Users",
+          "type": "boolean"
+        },
+        "CustomConfigParameter": {
+          "description": "Custom Configuration Parameter",
+          "type": "string"
+        },
+        "ScopeIdentifierText": {
+          "description": "Scope Identifier",
+          "type": "string"
+        }
+      },
+      "pages": [
+        1712,
+        1721
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepJeopardyRule": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "EstimatedDuration": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The estimated time to complete the fulfillment step.",
+          "type": "picklist"
+        },
+        "EstimatedDurationUnit": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The unit of measurement that applies to the estimated time to complete the fulfillment step. Valid values are: • Days • Hours • Minutes • Seconds The default value is Minutes."
+        },
+        "FlowDefinition": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The flow definition that's associated with the AutoTask type of the fulfillment step.",
+          "type": "reference"
+        },
+        "IntegrationDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The integration definition that's associated with the Callout type of the fulfillment step. This field is a relationship field.",
+          "relationshipName": "IntegrationDefinition",
+          "relationshipType": "Lookup",
+          "refersTo": "IntegrationProviderDef",
+          "type": "int"
+        },
+        "JeopardyThreshold": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The value indicating the threshold after which the fulfillment step is in jeopardy.",
+          "type": "picklist"
+        },
+        "JeopardyThresholdUnit": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The unit of measurement that applies to the jeopardy threshold value. Valid values are: • Days • Hours • Minutes • Seconds The default value is Minutes."
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "For internal use only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "For internal use only.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "For internal use only.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "For internal use only. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "StepType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of fulfillment step that's affected by the jeopardy rule.",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentFalloutRule": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ErrorCode": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The failure error code of the fulfillment step that's associated with the rule.",
+          "type": "reference"
+        },
+        "FalloutQueueId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The fallout queue that's associated with the fallout task. This field is available in API version 62.0 and later. This field is a relationship field.",
+          "relationshipName": "FalloutQueue",
+          "refersTo": "Group",
+          "type": "string"
+        },
+        "FlowDefinitionName": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step.",
+          "type": "reference"
+        },
+        "IntegrationDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The integration definition that's associated with the Callout type of fulfillment step. This field is a relationship field.",
+          "relationshipName": "IntegrationDefinition",
+          "relationshipType": "Lookup",
+          "refersTo": "IntegrationProviderDef",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "dateTime"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the flow definition that's associated with the AutoTask type of fulfillment step.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the fulfillment record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "int"
+        },
+        "RetriesAllowed": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The maximum number of times a retry policy is run before the fulfillment step is considered failed.",
+          "type": "string"
+        },
+        "RetryIntervals": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The interval after which the selected retry policy is run when the fulfillment step fails. This field is available in API version 62.0 and later.",
+          "type": "picklist"
+        },
+        "RetryPolicy": {},
+        "StepType": {
+          "description": "",
+          "type": "string"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepDefinition": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AmendGroupId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The fulfillment step group that's added to the fulfillment plan when the step is amended. This field is available in API version 62.0 and later. This field is a relationship field.",
+          "relationshipName": "AmendGroup",
+          "refersTo": "FulfillmentStepDefinitionGroup",
+          "type": "reference"
+        },
+        "AssignedToId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The user or queue associated with the fulfillment step definition. This field is a polymorphic relationship field.",
+          "relationshipName": "AssignedTo",
+          "type": "reference",
+          "refersTo": "Group, User"
+        },
+        "CancelledGroupId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "type": "reference",
+          "refersTo": "FulfillmentStepDefinitionGroup"
+        },
+        "UsageType": {
+          "description": "The details about the business that uses Fulfillment Orchestration. Some examples of UsageBy include Financial Services Cloud and CPQ. Valid values are: • Fulfillment • InsuranceRuleAction • IntegrationOrchestrator • OrderFulfillment • StageManagement",
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "type": "picklist"
+        },
+        "StepType": {
+          "description": "",
+          "type": "string"
+        },
+        "IsSkipBranch": {
+          "description": "",
+          "type": "boolean"
+        },
+        "Scope": {
+          "description": "",
+          "type": "string"
+        },
+        "CustomFulfillmentScope": {
+          "description": "",
+          "type": "string"
+        },
+        "FlowDefinitionName": {
+          "description": "",
+          "type": "string"
+        },
+        "ExecuteOn": {
+          "description": "",
+          "type": "string"
+        },
+        "OmniscriptName": {
+          "description": "",
+          "type": "string"
+        },
+        "PointOfNoReturn": {
+          "description": "",
+          "type": "string"
+        },
+        "TaskAllocationType": {
+          "description": "",
+          "type": "string"
+        },
+        "DelayOf": {
+          "description": "",
+          "type": "string"
+        },
+        "DelayUnit": {
+          "description": "",
+          "type": "string"
+        },
+        "CustomBaseExecutionDate": {
+          "description": "",
+          "type": "dateTime"
+        },
+        "ForcePlanFreezeDuringExecution": {
+          "description": "",
+          "type": "string"
+        },
+        "IntegrationDefinitionNameId": {
+          "description": "Reference to IntegrationProviderDef",
+          "type": "reference",
+          "refersTo": "IntegrationProviderDef",
+          "relationshipType": "lookup"
+        },
+        "ResumeOnRuleId": {
+          "description": "Reference to FulfillmentFalloutRule",
+          "type": "reference",
+          "refersTo": "ExpressionSet, Ruleset",
+          "relationshipType": "lookup"
+        },
+        "StepDefinitionGroupId": {
+          "description": "Reference to FulfillmentStepDefinitionGroup",
+          "type": "reference",
+          "refersTo": "FulfillmentStepDefinitionGroup",
+          "relationshipType": "lookup"
+        },
+        "ExecuteOnRuleId": {
+          "description": "Execute On Rule ID",
+          "type": "reference",
+          "refersTo": "ExpressionSet",
+          "relationshipType": "lookup"
+        },
+        "RunAsUserId": {
+          "description": "User ID",
+          "type": "reference",
+          "refersTo": "User",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Fulfillment Step Definition Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "ExecuteOnConditionData": {
+          "description": "Execute On Condition",
+          "type": "textarea"
+        },
+        "ResumeOnConditionData": {
+          "description": "Resume On Condition",
+          "type": "textarea"
+        },
+        "CustomConfigParameter": {
+          "description": "Custom Configuration Parameter",
+          "type": "string"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepDependency": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "DependencyDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the fulfillment step dependency definition. This field is a relationship field.",
+          "relationshipName": "DependencyDefinition",
+          "refersTo": "FulfillmentStepDependencyDef",
+          "type": "reference"
+        },
+        "DependentStepId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The name of a fulfillment step that depends on this step. This field is a relationship field.",
+          "type": "reference",
+          "refersTo": "FulfillmentStep"
+        },
+        "DependsOnStepId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the fulfillment step that this step depends on. That is, the name of the step that must be executed before this one can run. This field is a relationship field.",
+          "relationshipName": "DependsOnStep",
+          "refersTo": "FulfillmentStep",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "An automatically generated name for the fulfillment step dependency. FulfillmentStepDependencyDef Represents a dependency that must be created between two fulfillment step records. This object is available in API version 62.0 and later. Important:  Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations. Supported Calls create(), delete(), describeLayout(), describeSObjects(), getDeleted(), getUpdated(), query(), retrieve(), undelete(), update(), upsert()",
+          "type": "string"
+        },
+        "PropagateStateToDependentStep": {
+          "description": "Propagate State To Dependent Step",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "AssetFulfillmentDecomp": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "FulfillmentSourceAssetId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The identifier of the relationship between an asset and a fulfillment asset. This field is a polymorphic relationship field.",
+          "relationshipName": "FulfillmentSourceAsset",
+          "refersTo": "Asset, FulfillmentAsset",
+          "type": "reference"
+        },
+        "FulfillmentTargetAssetId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The identifier of the target asset that's being fulfilled. This field is a relationship field.",
+          "relationshipName": "FulfillmentTargetAsset",
+          "refersTo": "FulfillmentAsset",
+          "type": "boolean"
+        },
+        "IsUsedForFulfmtAssetActivation": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates if internal jobs are allowed to activate the related fulfillment asset. The default value is true. This field is available in API version 6.0 and later.",
+          "type": "boolean"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the asset that's being fulfilled.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the request record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "RelationshipType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of relationship between an asset and a fulfillment asset. Valid values are: • SourceBundleRoot",
+          "type": "picklist"
+        },
+        "SegmentIdentifier": {
+          "properties": "Create, Group, Nillable, Sort,",
+          "description": "The ID of the ramp segment associated with the asset state period. This field is available in API version 63.0 and later in orgs that have Revenue Cloud when the Ramp Deals setting is enabled.",
+          "type": "picklist"
+        },
+        "Status": {
+          "type": "picklist"
+        },
+        "StartTime": {
+          "description": "Start Time",
+          "type": "datetime"
+        },
+        "EndTime": {
+          "description": "End Time",
+          "type": "datetime"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ProductFulfillmentScenario": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "Action": {
+          "properties": "Create, Filter, Nillable, Update",
+          "description": "For internal use only. Valid values are: • Add • Amend • Cancel • NoChange"
+        },
+        "ConditionData": {
+          "properties": "Create, Nillable, Update",
+          "description": "The condition for executing the product fulfillment scenario. The condition is defined as a rule or a set of rules in JSON format. This field is available in API version 66.0 and later.",
+          "type": "reference"
+        },
+        "FulfillmentStepDefnGroupId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The fulfillment step definition group associated with the product fulfillment scenario. This field is a relationship field.",
+          "relationshipName": "FulfillmentStepDefnGroup",
+          "relationshipType": "Lookup",
+          "refersTo": "FulfillmentStepDefinitionGroup",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "For internal use only.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "For internal use only.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the product fulfillment scenario.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "For internal use only. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "reference"
+        },
+        "ProductClassificationId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The product classification associated with the product fulfillment scenario. This field is a relationship field.",
+          "relationshipName": "ProductClassification",
+          "relationshipType": "Lookup",
+          "refersTo": "ProductClassification",
+          "type": "reference"
+        },
+        "ProductId": {
+          "properties": "Create, Filter, Group, Sort, Update, Nillable (Available in API version 64.0 and later)",
+          "description": "The product associated with the product fulfillment scenario. This field is a relationship field.",
+          "relationshipName": "Product",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "string"
+        },
+        "SourceClassIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The source classification entity in the product fulfillment scenario. This field can store a Salesforce Product Class ID or an external identifier. This field is available in API version 65.0 and later.",
+          "type": "string"
+        },
+        "SourceIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update"
+        },
+        "Type": {
+          "description": "",
+          "type": "picklist"
+        },
+        "FulfillmentProcessId": {
+          "description": "Reference to FlowOrchestration",
+          "type": "reference",
+          "refersTo": "FlowOrchestration",
+          "relationshipType": "lookup"
+        },
+        "ScenarioRuleId": {
+          "description": "ScenarioRule ID",
+          "type": "reference",
+          "refersTo": "Ruleset",
+          "relationshipType": "lookup"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        }
+      },
+      "pages": [
+        1757,
+        1759
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentTaskAssignmentRule": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ConditionData": {
+          "properties": "Create, Nillable, Update",
+          "description": "The condition for executing the fulfillment task assignment rule. The condition is defined as a rule or a set of rules in JSON format. This field is available in API version 66.0 and later.",
+          "type": "reference"
+        },
+        "ConditionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "Condition ID that's used to determine the task assignment. This field is a polymorphic relationship field.",
+          "relationshipName": "Condition",
+          "refersTo": "ExpressionSet",
+          "type": "reference"
+        },
+        "DestinationId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "Destination ID of the task assignment such as, Queue or User. This field is a polymorphic relationship field.",
+          "relationshipName": "Destination",
+          "refersTo": "Group, User",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "type": "dateTime"
+        },
+        "SourceId": {
+          "description": "Queue ID",
+          "type": "reference",
+          "refersTo": "Group",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "TaskAllocationType": {
+          "description": "Step Assignment Method",
+          "type": "picklist"
+        },
+        "Priority": {
+          "description": "Priority",
+          "type": "int"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentLineAttribute": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AttributeDefinitionId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "A unique identifier for the attribute definition in the catalog. This field is a relationship field.",
+          "relationshipName": "AttributeDefinition",
+          "refersTo": "AttributeDefinition",
+          "type": "string"
+        },
+        "AttributeName": {
+          "properties": "Filter, Group, idLookup, Nillable, Sort",
+          "description": "The name of the attribute.",
+          "type": "reference"
+        },
+        "AttributePicklistValueId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only. This field is a relationship field.",
+          "relationshipName": "AttributePicklistValue",
+          "refersTo": "AttributePicklistValue",
+          "type": "string"
+        },
+        "AttributeValue": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The value of the attribute."
+        },
+        "ExternalId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The ID that uniquely identifies the relationship in an external data source.",
+          "type": "reference"
+        },
+        "FulfillmentOrderLineItemId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "A unique identifier for the fulfillment order line item. This field is a relationship field.",
+          "relationshipName": "FulfillmentOrderLineItem",
+          "refersTo": "FulfillmentOrderLineItem",
+          "type": "reference"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepDependencyDef": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the fulfillment step dependency definition.",
+          "type": "picklist"
+        },
+        "DependencyScope": {
+          "properties": "Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The scope of the fulfillment step dependency definition. For example, Order or Order Item. Valid values are: • Bundle • LineItem • Plan • CrossPlan • Custom The default value is Plan.",
+          "type": "reference"
+        },
+        "DependsOnStepDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The fulfillment step definition that must be executed before this step. This field is a relationship field.",
+          "relationshipName": "DependsOnStepDefinition",
+          "refersTo": "FulfillmentStepDefinition",
+          "type": "reference"
+        },
+        "FulfillmentStepDefinitionId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The identifier of the fulfillment step definition. This field is a relationship field.",
+          "relationshipName": "FulfillmentStepDefinition",
+          "relationshipType": "Master-detail",
+          "refersTo": "FulfillmentStepDefinition",
+          "type": "reference"
+        },
+        "IsCompensateInReverse": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the order to insert the compensated group steps is reversed when a fulfillment step is canceled (true) or not (false). The default value is false. This field is available in API version 63.0 and later.",
+          "type": "string"
+        },
+        "PropagateStateToDependentStep": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The state that’s propagated to the dependent fulfillment step when the source fulfillment step is amended or canceled in the fulfillment plan. Valid values are: • Amended • Both • Canceled • None This field is available in API version 63.0 and later."
+        },
+        "CustomScope": {
+          "description": "Custom Scope",
+          "type": "string"
+        }
+      },
+      "pages": [
+        1733,
+        1735
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepSource": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "An automatically generated name for the fulfillment step source.",
+          "type": "string"
+        },
+        "SourceIdentifier": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The identifier of the source order line item (order item or fulfillment order line).",
+          "type": "reference"
+        },
+        "SourceLineItemId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "type": "reference",
+          "refersTo": "DisputeItem, FulfillmentOrderLineItem, OrderItem"
+        },
+        "StepId": {
+          "description": "Fulfillment Step ID",
+          "type": "reference",
+          "refersTo": "FulfillmentStep",
+          "relationshipType": "lookup"
+        },
+        "VersionGroupIdentifier": {
+          "description": "Version Group Identifier",
+          "type": "string"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentAsset": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AccountId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The identifier of the account. This field is a relationship field.",
+          "relationshipName": "Account",
+          "type": "reference",
+          "refersTo": "Account"
+        },
+        "ProductId": {
+          "description": "Product ID",
+          "type": "reference",
+          "refersTo": "Product2",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "Quantity": {
+          "description": "Quantity",
+          "type": "double"
+        },
+        "ScopeIdentifierText": {
+          "description": "Scope Identifier",
+          "type": "string"
+        },
+        "StateStartTime": {
+          "description": "State Start Time",
+          "type": "datetime"
+        },
+        "StateEndTime": {
+          "description": "State End Time",
+          "type": "datetime"
+        },
+        "IsTimeAware": {
+          "description": "Is Time Aware",
+          "type": "boolean"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentStepDefinitionGroup": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the fulfillment step definition group.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "UsageType": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "The business that uses Fulfillment Orchestration. Possible values are: • IntegrationOrchestrator • OrderFulfillment • StageManagement • InsuranceRuleAction",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ValTfrmGrp": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "DestinationPrimitiveType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The data type of the output value. Valid values are: • Boolean • Currency • Date • Datetime • Number • Percent—Picklist Value • Picklist",
+          "type": "picklist"
+        },
+        "IsDestinationEnumerated": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the output is a list of values (true) or not (false). The default value is false.",
+          "type": "boolean"
+        },
+        "IsSourceEnumerated": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates whether the input is from a list of values (true) or not (false). The default value is false.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who owns this record. This field is a polymorphic relationship field.",
+          "type": "picklist",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User"
+        },
+        "OwnerId": {
+          "type": "reference",
+          "refersTo": "Group, User"
+        },
+        "SourcePrimitiveType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The data type of the input value. Valid values are: • Boolean • Currency • Date • Datetime • Number • Percent—Picklist Value • Picklist",
+          "type": "picklist"
+        },
+        "UsageType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The data mapping feature that uses this value transformation group. Valid value is DFOListMapping.",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentLineRel": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AssociatedFoItemInventory": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Inventory level for the associated fulfillment order item. Valid values are: • Included in Main Inventory • Not Included in Main Inventory This field is available in API version 63.0 and later.",
+          "type": "reference"
+        },
+        "AssociatedFulfillOrderItemId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The identifier of the associated fulfillment order line item. This field is a relationship field.",
+          "relationshipName": "AssociatedFulfillOrderItem",
+          "refersTo": "FulfillmentOrderLineItem",
+          "type": "picklist"
+        },
+        "AssociatedLineRole": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The role of the associated fulfillment order line item. Valid values are: • BundleComponent • ClassificationComponent—Product Classification Component",
+          "type": "picklist"
+        },
+        "AssociatedQuanScaleMethod": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Method used to scale the quantity of the associated order item summary relative to the main fulfillment order item. Valid values are: • Constant • Proportional The default value is Proportional. This field is available in API version 63.0 and later.",
+          "type": "reference"
+        },
+        "FulfillmentOrderId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The ID of the parent fulfillment order. This field is a relationship field.",
+          "relationshipName": "FulfillmentOrder",
+          "refersTo": "FulfillmentOrder",
+          "type": "picklist"
+        },
+        "MainFulfillOrderItemRole": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The role of the primary fulfillment order line item. Valid value is Bundle.",
+          "type": "reference"
+        },
+        "MainFulfillmentOrderItemId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the associated fulfillment order line item. This field is a relationship field.",
+          "relationshipName": "MainFulfillmentOrderItem",
+          "relationshipType": "Master-detail",
+          "refersTo": "FulfillmentOrderLineItem",
+          "type": "reference"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "type": "string"
+        },
+        "ProductRelationshipTypeId": {
+          "description": "Product Relationship Type ID",
+          "type": "reference",
+          "refersTo": "ProductRelationshipType",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        1703,
+        1705
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ProductFulfillmentDecompRule": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ConditionData": {},
+        "DestinationProductId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The destination product for the decomposition rule. This field is a relationship field.",
+          "relationshipName": "DestinationProduct",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "string"
+        },
+        "DestinationIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The destination entity in the product fulfillment decomposition rule. This field can store a Salesforce product ID or an external identifier. This field is available in API version 65.0 and later.",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, idLookup, Sort, Update",
+          "description": "The name of the decomposition rule.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "relationshipType": "Lookup",
+          "refersTo": "Group, User",
+          "type": "int"
+        },
+        "Priority": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The priority of the decomposition rule. Decomposition rules are executed in order of priority.",
+          "type": "reference"
+        },
+        "SourceProductClassificationId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The classification of the source product that's used for decomposition. This field is available in API version 62.0 and later. This field is a relationship field.",
+          "relationshipName": "SourceProductClassification",
+          "refersTo": "ProductClassification",
+          "type": "string"
+        },
+        "SourceClassIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The source classification entity in the product fulfillment decomposition rule. This field can store a Salesforce product ID or an external identifier. This field is available in API version 65.0 and later.",
+          "type": "string"
+        },
+        "SourceIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The source entity in the product fulfillment decomposition rule. This field can store a Salesforce product ID or an external identifier. This field is available in API version 65.0 and later.",
+          "type": "reference"
+        },
+        "SourceProductId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "Source product for the decomposition rule. This field is a relationship field.",
+          "relationshipName": "SourceProduct",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "ExecuteOnRuleId": {
+          "description": "Ruleset ID",
+          "type": "reference",
+          "refersTo": "Ruleset",
+          "relationshipType": "lookup"
+        }
+      },
+      "pages": [
+        1753,
+        1756
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentLineSourceRel": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "Action": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "Specifies the action to be performed on the asset fulfillment decomposition record. This field is available in API version 66.0 and later. Possible values are: • Add • Cancel • NoChange—No Change"
+        },
+        "FulfilmentOrderLineId": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The ID of the fulfillment order line. This field is a relationship field.",
+          "relationshipName": "FulfilmentOrderLine",
+          "refersTo": "FulfillmentOrderLineItem",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The relation between the two order line sources.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the relationship record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "string"
+        },
+        "SourceItemIdentifier": {
+          "properties": "Create, Filter, Group, Sort, Update",
+          "description": "The ID of the source line item. This field is a polymorphic relationship field.",
+          "type": "picklist",
+          "relationshipName": "SourceLineItem",
+          "refersTo": "FulfillmentOrderLineItem, OrderItem"
+        },
+        "SourceLineItemId": {
+          "type": "reference",
+          "refersTo": "FulfillmentOrderLineItem, OrderItem, OrderItemSummary"
+        },
+        "SourceType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of source for the line item. Valid values are: • SourceBundleRoot",
+          "type": "picklist"
+        },
+        "SourceLineItem": {
+          "type": "picklist"
+        },
+        "SupplementalAction": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "The supplemental action that's applied to the line item based on the run-time changes made to the original fulfillment request. This field is available in API version 62.0 and later. Valid values are: • Add • Amend • Cancel"
+        },
+        "UniqueIdentifier": {
+          "properties": "Create, Filter, Group, Nillable, Sort",
+          "description": "For internal use only."
+        }
+      },
+      "pages": [
+        1706,
+        1708
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ProductDecompEnrichmentRule": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "CalculationDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "An expression set or a decision matrix that calculates the destination value. This field is a polymorphic relationship field.",
+          "relationshipName": "CalculationDefinition",
+          "refersTo": "DecisionMatrixDefinition, ExpressionSet",
+          "type": "picklist"
+        },
+        "CalculationMethod": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The type of enrichment rule. Valid values are: • Ad-verbatim—As Is • Static-Lookup—List Lookup • Expression-Set—Available in API version 64.0 and later",
+          "type": "reference"
+        },
+        "DecompositionRuleId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The identifier of the decomposition rule. This field is a relationship field.",
+          "relationshipName": "DecompositionRule",
+          "relationshipType": "Parent-child",
+          "refersTo": "ProductFulfillmentDecompRule",
+          "type": "reference"
+        },
+        "DestinationApiName": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The API name of the destination field or attribute code of an attribute.",
+          "type": "reference"
+        },
+        "DestinationAttributeDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only. This field is a relationship field.",
+          "relationshipName": "DestinationAttributeDefinition",
+          "refersTo": "AttributeDefinition",
+          "type": "string"
+        },
+        "DestinationAttributeIdentifier": {
+          "properties": "Create, Filter, Group, idLookup, Nillable, Sort, Update",
+          "description": "The destination entity attribute that is mapped from the source entity attribute. This field can store a Salesforce AttributeDefinition ID or an external identifier. This field is available in API version 65.0 and later.",
+          "type": "string"
+        },
+        "DestinationContextTag": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The name of the destination context definition.",
+          "type": "picklist"
+        },
+        "DestinationType": {
+          "properties": "Create, Filter, Group, Restricted picklist, Sort, Update",
+          "description": "The destination type for mapping. Valid values are: • Attribute",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record",
+          "type": "dateTime"
+        },
+        "ListMappingGroupId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only. This field is a relationship field.",
+          "relationshipName": "ListMappingGroup",
+          "refersTo": "ValTfrmGrp",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the decomposition rule.",
+          "type": "picklist"
+        },
+        "RuleEnforcement": {
+          "properties": "Create, Filter, Group, Nillable, Restricted picklist, Sort, Update",
+          "description": "Specifies whether the rule applies to all fulfillment requests or only to specific ones. Valid values are: • AllFulfillmentRequests • InitialFulfillmentRequest This field is available in API version 63.0 and later.",
+          "type": "string"
+        },
+        "SourceApiName": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The API name of the source field or attribute code of an attribute.",
+          "type": "reference"
+        },
+        "SourceAttributeDefinitionId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only. This field is a relationship field.",
+          "type": "reference",
+          "refersTo": "AttributeDefinition"
+        },
+        "SourceType": {
+          "description": "Source Type",
+          "type": "picklist"
+        },
+        "SourceContextTag": {
+          "description": "Source Context Tag ID",
+          "type": "string"
+        },
+        "SourceAttributeIdentifier": {
+          "description": "Source Attribute Identifier",
+          "type": "string"
+        }
+      },
+      "pages": [
+        1747,
+        1750
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "ValTfrm": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "InputDate": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The date of value entry.",
+          "type": "dateTime"
+        },
+        "InputDatetime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The time of value entry.",
+          "type": "double"
+        },
+        "InputNumber": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The value of input number.",
+          "type": "reference"
+        },
+        "InputPicklistValueId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The identifier of the input list of values. This field is a relationship field.",
+          "relationshipName": "InputPicklistValue",
+          "refersTo": "AttributePicklistValue",
+          "type": "string"
+        },
+        "InputString": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The value of input text.",
+          "type": "boolean"
+        },
+        "IsInputBoolean": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates if a value was entered (true) or not (false). The default value is false.",
+          "type": "boolean"
+        },
+        "IsOutputBoolean": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "Indicates if there was an output value (true) or not (false). The default value is false.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The date of matched output.",
+          "type": "dateTime"
+        },
+        "OutputDatetime": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The time of matched output.",
+          "type": "double"
+        },
+        "OutputNumber": {
+          "properties": "Create, Filter, Nillable, Sort, Update",
+          "description": "The value of output number.",
+          "type": "reference"
+        },
+        "OutputPicklistValueId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The identifier of the output list of values. This field is a relationship field.",
+          "relationshipName": "OutputPicklistValue",
+          "refersTo": "AttributePicklistValue",
+          "type": "string"
+        },
+        "OutputString": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "The value of output text.",
+          "type": "reference"
+        },
+        "ValueTransformGroupId": {
+          "description": "Value Transformation Groups ID",
+          "type": "reference",
+          "refersTo": "ValTfrmGrp",
+          "relationshipType": "lookup"
+        },
+        "OutputDate": {
+          "description": "Output Date",
+          "type": "date"
+        }
+      },
+      "pages": [
+        1765,
+        1767
+      ],
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentPlan": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ExecutionUserId": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update",
+          "description": "For internal use only.",
+          "relationshipName": "ExecutionUser",
+          "refersTo": "User",
+          "type": "dateTime"
+        },
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "dateTime"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the fulfillment plan.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "description": "The ID of the user who created the record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "Priority": {
+          "properties": "Filter, Group, Nillable, Restricted picklist, Sort",
+          "description": "The priority of the fulfillment plan execution. This field is available in API version 63.0 and later. Valid values are: • Default • High"
+        },
+        "SourceIdentifier": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update, idLookup (Available in API version 64.0 and later)",
+          "description": "For internal use only.",
+          "type": "string"
+        },
+        "SourceType": {
+          "type": "picklist"
+        },
+        "State": {
+          "description": "State",
+          "type": "picklist"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "SalesTransactionFulfillReq": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "AssetizationStatus": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Specifies the status of the assetization. Valid values are: • Completed • Failed • InProgress • NotStarted • Rejected • NotApplicable- Available in API version 64.0 and later.",
+          "type": "picklist"
+        },
+        "DecompositionStatus": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Specifies the status of the decomposition. Valid values are: • Completed • Failed • InProgress • NotStarted • Rejected • NotApplicable- Available in API version 64.0 and later.",
+          "type": "string"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the sales transaction fulfillment request.",
+          "type": "string"
+        },
+        "OrchestrationGroupKey": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The identifier of the group of sales transactions that require synchronization before processing. This field is available in API version 63.0 and later.",
+          "type": "reference"
+        },
+        "OwnerId": {
+          "properties": "Filter, Group, Sort",
+          "description": "The ID of the user who created the request record. This field is a polymorphic relationship field.",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "picklist"
+        },
+        "PlanCompositionStatus": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "For internal use only. Valid values are: • Completed • Failed • InProgress • NotStarted • Rejected • NotApplicable - Available in API version 64.0 and later.",
+          "type": "picklist"
+        },
+        "PlanExecutionStatus": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "Specifies the status of the plan execution. Valid values are: • InProgress • Frozen",
+          "type": "picklist"
+        },
+        "PlanId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The identifier of the plan. This field is a relationship field.",
+          "relationshipName": "Plan",
+          "refersTo": "FulfillmentPlan",
+          "type": "reference"
+        },
+        "PreviousRequestId": {
+          "properties": "Filter, Group, Nillable, Sort",
+          "description": "The identifier of the previous fulfillment request. This field is a relationship field.",
+          "relationshipName": "PreviousRequest",
+          "refersTo": "SalesTransactionFulfillReq",
+          "type": "reference"
+        },
+        "ReferenceObjectIdentifier": {
+          "properties": "Filter, Group, idLookup, Nillable, Sort",
+          "description": "The ID of the sales transaction record. This field is available in API version 64.0 and later.",
+          "type": "picklist"
+        },
+        "SalesTransactionType": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Specifies the type of sales transaction that's processed by the fulfillment request. Valid values are: • StandardOrder • GenericAdapter—Available in API version 64.0 and later.",
+          "type": "picklist"
+        },
+        "Status": {
+          "properties": "Filter, Group, Restricted picklist, Sort",
+          "description": "Specifies the overall status of the fulfillment. Valid values are: • Created • Freezing • Frozen • Fulfilled • Fulfilling • Rejected • Superseded",
+          "type": "picklist"
+        },
+        "ReferenceObjectId": {
+          "description": "Reference Object ID",
+          "type": "reference",
+          "refersTo": "Order",
+          "relationshipType": "lookup"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentWorkspaceItem": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "FulfillmentStepDefinitionGroupId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "For internal use only. This field is a relationship field.",
+          "relationshipName": "FulfillmentStepDefinitionGroup",
+          "refersTo": "FulfillmentStepDefinitionGroup",
+          "type": "reference"
+        },
+        "FulfillmentWorkspaceId": {
+          "properties": "Create, Filter, Group, Sort",
+          "description": "The ID of the parent fulfillment workspace that's related to this record. This field is a relationship field.",
+          "relationshipName": "FulfillmentWorkspace",
+          "refersTo": "FulfillmentWorkspace",
+          "type": "reference"
+        },
+        "Name": {
+          "properties": "Autonumber, Defaulted on create, Filter, idLookup, Sort",
+          "description": "The name of the fulfillment workspace item.",
+          "type": "int"
+        },
+        "ShowOrder": {
+          "properties": "Create, Filter, Group, Nillable, Sort, Update"
+        },
+        "OwnerId": {
+          "description": "The ID of the user who owns this record. This field is a polymorphic relationship field.",
+          "properties": "Create, Defaulted on create, Filter, Group, Sort, Update",
+          "relationshipName": "Owner",
+          "refersTo": "Group, User",
+          "type": "reference"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentWorkspace": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "LastReferencedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user referenced this record.",
+          "type": "dateTime"
+        },
+        "LastViewedDate": {
+          "properties": "Filter, Nillable, Sort",
+          "description": "The most recent date when a user viewed this record.",
+          "type": "string"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Description": {
+          "description": "",
+          "type": "textarea"
+        }
+      },
+      "domainShort": "DRO",
+      "isStandard": false
+    },
+    "FulfillmentOrder": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "FulfilledToName": {
+          "description": "Name of the entity receiving the fulfillment.",
+          "type": "string"
+        },
+        "OrderId": {
+          "description": "ID of the parent Order.",
+          "relationshipName": "Order",
+          "relationshipType": "Lookup",
+          "refersTo": "Order",
+          "type": "reference"
+        },
+        "AccountId": {
+          "description": "ID of the Account.",
+          "relationshipName": "Account",
+          "relationshipType": "Lookup",
+          "refersTo": "Account",
+          "type": "reference"
+        },
+        "Status": {
+          "description": "Status of the fulfillment order.",
+          "type": "picklist"
+        },
+        "FulfillmentOrderNumber": {
+          "description": "Auto-generated number.",
+          "type": "string"
+        },
+        "Type": {
+          "description": "Type of fulfillment.",
+          "type": "picklist"
+        },
+        "TotalAmount": {
+          "description": "Total amount of the fulfillment order.",
+          "type": "currency"
+        },
+        "DeliveryMethodId": {
+          "description": "Delivery Method ID",
+          "type": "reference",
+          "refersTo": "OrderDeliveryMethod",
+          "relationshipType": "lookup"
+        },
+        "FulfilledFromLocationId": {
+          "description": "Fulfilled From Location ID",
+          "type": "reference",
+          "refersTo": "Location",
+          "relationshipType": "lookup"
+        },
+        "OrderSummaryId": {
+          "description": "Order Summary ID",
+          "type": "reference",
+          "refersTo": "OrderSummary",
+          "relationshipType": "lookup"
+        },
+        "InvoiceId": {
+          "description": "Invoice ID",
+          "type": "reference",
+          "refersTo": "Invoice",
+          "relationshipType": "lookup"
+        },
+        "BillToContactId": {
+          "description": "Contact ID",
+          "type": "reference",
+          "refersTo": "Contact",
+          "relationshipType": "lookup"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "FulfilledToStreet": {
+          "description": "Address",
+          "type": "textarea"
+        },
+        "FulfilledToCity": {
+          "description": "City",
+          "type": "string"
+        },
+        "FulfilledToState": {
+          "description": "State/Province",
+          "type": "string"
+        },
+        "FulfilledToPostalCode": {
+          "description": "Zip",
+          "type": "string"
+        },
+        "FulfilledToCountry": {
+          "description": "Country",
+          "type": "string"
+        },
+        "FulfilledToLatitude": {
+          "description": "Latitude",
+          "type": "double"
+        },
+        "FulfilledToLongitude": {
+          "description": "Longitude",
+          "type": "double"
+        },
+        "FulfilledToGeocodeAccuracy": {
+          "description": "Fulfilled To Geocode Accuracy",
+          "type": "picklist"
+        },
+        "FulfilledToAddress": {
+          "description": "Fulfilled To Address",
+          "type": "address"
+        },
+        "FulfilledToEmailAddress": {
+          "description": "Fulfilled To Email Address",
+          "type": "email"
+        },
+        "FulfilledToPhone": {
+          "description": "Fulfilled To Phone",
+          "type": "phone"
+        },
+        "ItemCount": {
+          "description": "Total Quantity",
+          "type": "double"
+        },
+        "StatusCategory": {
+          "description": "Status Category",
+          "type": "picklist"
+        },
+        "TypeCategory": {
+          "description": "Type Category",
+          "type": "picklist"
+        },
+        "TotalProductAmount": {
+          "description": "Product Subtotal",
+          "type": "currency"
+        },
+        "TotalAdjustmentAmount": {
+          "description": "Product Adjustments",
+          "type": "currency"
+        },
+        "TotalDeliveryAmount": {
+          "description": "Shipping Subtotal",
+          "type": "currency"
+        },
+        "TotalProductTaxAmount": {
+          "description": "Product Subtotal Tax",
+          "type": "currency"
+        },
+        "TotalAdjustmentTaxAmount": {
+          "description": "Product Adjustments Tax",
+          "type": "currency"
+        },
+        "TotalDeliveryTaxAmount": {
+          "description": "Shipping Subtotal Tax",
+          "type": "currency"
+        },
+        "TotalFeeAmount": {
+          "description": "Fee Subtotal",
+          "type": "currency"
+        },
+        "TotalFeeTaxAmount": {
+          "description": "Fee Subtotal Tax",
+          "type": "currency"
+        },
+        "TotalTaxAmount": {
+          "description": "Tax",
+          "type": "currency"
+        },
+        "GrandTotalAmount": {
+          "description": "Total with Tax",
+          "type": "currency"
+        },
+        "IsSuspended": {
+          "description": "Is Suspended",
+          "type": "boolean"
+        },
+        "TotalDeliveryAdjustAmount": {
+          "description": "Shipping Adjustments",
+          "type": "currency"
+        },
+        "TotalDeliveryAdjustTaxAmount": {
+          "description": "Shipping Adjustments Tax",
+          "type": "currency"
+        },
+        "TotalFeeAdjustAmount": {
+          "description": "Fee Adjustments",
+          "type": "currency"
+        },
+        "TotalFeeAdjustTaxAmount": {
+          "description": "Fee Adjustments Tax",
+          "type": "currency"
+        },
+        "TaxLocaleType": {
+          "description": "Tax Locale Type",
+          "type": "picklist"
+        },
+        "TotalProductAmtWithTax": {
+          "description": "Product Subtotal with Tax",
+          "type": "currency"
+        },
+        "TotalAdjustmentAmtWithTax": {
+          "description": "Product Adjustments with Tax",
+          "type": "currency"
+        },
+        "TotalDeliveryAmtWithTax": {
+          "description": "Shipping Subtotal with Tax",
+          "type": "currency"
+        },
+        "TotalDeliveryAdjustAmtWithTax": {
+          "description": "Shipping Adjustments with Tax",
+          "type": "currency"
+        },
+        "TotalFeeAmtWithTax": {
+          "description": "Fee Subtotal with Tax",
+          "type": "currency"
+        },
+        "TotalFeeAdjustAmtWithTax": {
+          "description": "Fee Adjustments with Tax",
+          "type": "currency"
+        },
+        "IsReship": {
+          "description": "Reship",
+          "type": "boolean"
+        },
+        "ActivatedDate": {
+          "description": "Activated Date",
+          "type": "datetime"
+        },
+        "ClosedDate": {
+          "description": "Closed Date",
+          "type": "datetime"
+        },
+        "DeliveryDate": {
+          "description": "Delivery Date",
+          "type": "datetime"
+        },
+        "ProcessingTimeInMinutes": {
+          "description": "Processing Time In Minutes",
+          "type": "int"
+        },
+        "StartFulfillmentDate": {
+          "description": "Start Fulfillment Date",
+          "type": "datetime"
+        },
+        "RoutingReference": {
+          "description": "Routing Reference",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "DRO"
+    },
+    "FulfillmentOrderLineItem": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "FulfillmentOrderId": {
+          "description": "ID of the parent FulfillmentOrder.",
+          "relationshipName": "FulfillmentOrder",
+          "relationshipType": "Master-Detail",
+          "refersTo": "FulfillmentOrder",
+          "type": "reference"
+        },
+        "OrderItemId": {
+          "description": "ID of the related OrderItem.",
+          "relationshipName": "OrderItem",
+          "relationshipType": "Lookup",
+          "refersTo": "OrderItem",
+          "type": "reference"
+        },
+        "Product2Id": {
+          "description": "ID of the Product.",
+          "relationshipName": "Product2",
+          "relationshipType": "Lookup",
+          "refersTo": "Product2",
+          "type": "reference"
+        },
+        "Quantity": {
+          "description": "Quantity being fulfilled.",
+          "type": "double"
+        },
+        "TotalPrice": {
+          "description": "Total price for this fulfillment line.",
+          "type": "currency"
+        },
+        "Type": {
+          "description": "Type of fulfillment line.",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description of the fulfillment line.",
+          "type": "textarea"
+        },
+        "OrderItemSummaryId": {
+          "description": "Order Product Summary ID",
+          "type": "reference",
+          "refersTo": "OrderItemSummary",
+          "relationshipType": "lookup"
+        },
+        "FulfillmentAssetId": {
+          "description": "Fulfillment Asset ID",
+          "type": "reference",
+          "refersTo": "FulfillmentAsset",
+          "relationshipType": "lookup"
+        },
+        "PrevFulfilOrderLineItemId": {
+          "description": "Fulfillment Order Product ID",
+          "type": "reference",
+          "refersTo": "FulfillmentOrderLineItem",
+          "relationshipType": "lookup"
+        },
+        "MainFulfillmentOrderLineItemId": {
+          "description": "Fulfillment Order Product ID",
+          "type": "reference",
+          "refersTo": "FulfillmentOrderLineItem",
+          "relationshipType": "lookup"
+        },
+        "UnitOfMeasureId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": "UnitOfMeasure",
+          "relationshipType": "lookup"
+        },
+        "FulfillmentOrderLineItemNumber": {
+          "description": "Fulfillment Order Product Number",
+          "type": "string"
+        },
+        "OriginalQuantity": {
+          "description": "Quantity on the Original Order",
+          "type": "double"
+        },
+        "QuantityUnitOfMeasure": {
+          "description": "Quantity Unit Of Measure",
+          "type": "string"
+        },
+        "TotalLineAmount": {
+          "description": "Line Subtotal",
+          "type": "currency"
+        },
+        "TotalAdjustmentAmount": {
+          "description": "Adjustments",
+          "type": "currency"
+        },
+        "TotalAdjustmentTaxAmount": {
+          "description": "Adjustments Tax",
+          "type": "currency"
+        },
+        "TotalLineTaxAmount": {
+          "description": "Line Subtotal Tax",
+          "type": "currency"
+        },
+        "TotalTaxAmount": {
+          "description": "Tax",
+          "type": "currency"
+        },
+        "TotalAmount": {
+          "description": "Total with Tax",
+          "type": "currency"
+        },
+        "TypeCode": {
+          "description": "Type Code",
+          "type": "picklist"
+        },
+        "UnitPrice": {
+          "description": "Unit Price",
+          "type": "currency"
+        },
+        "ServiceDate": {
+          "description": "Start Date",
+          "type": "datetime"
+        },
+        "EndDate": {
+          "description": "End Date",
+          "type": "datetime"
+        },
+        "GrossUnitPrice": {
+          "description": "Gross Unit Price",
+          "type": "currency"
+        },
+        "TotalLineAmountWithTax": {
+          "description": "Line Subtotal with Tax",
+          "type": "currency"
+        },
+        "TotalAdjustmentAmountWithTax": {
+          "description": "Adjustments with Tax",
+          "type": "currency"
+        },
+        "IsReship": {
+          "description": "Reship",
+          "type": "boolean"
+        },
+        "ReshipReason": {
+          "description": "Reship Reason",
+          "type": "picklist"
+        },
+        "RejectReason": {
+          "description": "Reject Reason",
+          "type": "picklist"
+        },
+        "RejectedQuantity": {
+          "description": "Rejected Quantity",
+          "type": "double"
+        },
+        "Action": {
+          "description": "Action",
+          "type": "picklist"
+        },
+        "SupplementalAction": {
+          "description": "Supplemental Action",
+          "type": "picklist"
+        },
+        "FulfmtOrdItmVerGrpIdentifier": {
+          "description": "Fulfillment Order Item Version Group Identifier",
+          "type": "string"
+        },
+        "ScopeIdentifierText": {
+          "description": "Scope Identifier",
+          "type": "string"
+        },
+        "FulfillmentAssetReference": {
+          "description": "Fulfillment Asset Reference",
+          "type": "string"
+        },
+        "FulfillmentAssetStartQuantity": {
+          "description": "Fulfillment Asset Start Quantity",
+          "type": "double"
+        },
+        "FulfillmentAssetEndQuantity": {
+          "description": "Fulfillment Asset End Quantity",
+          "type": "double"
+        },
+        "InvoiceId": {
+          "description": "Invoice ID",
+          "type": "reference",
+          "refersTo": "Invoice",
+          "relationshipType": "lookup"
+        },
+        "SubAction": {
+          "description": "Sub Action",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "DRO"
+    },
+    "FlowOrchestration": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "ActiveVersionId": {
+          "description": "Orchestration Version ID",
+          "type": "reference",
+          "refersTo": "FlowOrchestrationVersion",
+          "relationshipType": "lookup"
+        },
+        "SourceTemplateId": {
+          "description": "Orchestration ID",
+          "type": "reference",
+          "refersTo": "FlowOrchestration",
+          "relationshipType": "lookup"
+        },
+        "OverriddenById": {
+          "description": "Orchestration ID",
+          "type": "reference",
+          "refersTo": "FlowOrchestration",
+          "relationshipType": "lookup"
+        },
+        "OverriddenOrchestrationId": {
+          "description": "Orchestration ID",
+          "type": "reference",
+          "refersTo": "FlowOrchestration",
+          "relationshipType": "lookup"
+        },
+        "Name": {
+          "description": "Orchestration Label",
+          "type": "string"
+        },
+        "LastViewedDate": {
+          "description": "Last Viewed Date",
+          "type": "datetime"
+        },
+        "LastReferencedDate": {
+          "description": "Last Referenced Date",
+          "type": "datetime"
+        },
+        "OrchestrationDefinition": {
+          "description": "Orchestration Definition",
+          "type": "string"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "TriggerType": {
+          "description": "Trigger Type",
+          "type": "picklist"
+        },
+        "OrchestrationType": {
+          "description": "Orchestration Type",
+          "type": "picklist"
+        },
+        "NamespacePrefix": {
+          "description": "Orchestration Namespace",
+          "type": "string"
+        },
+        "ManageableState": {
+          "description": "Package State",
+          "type": "picklist"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "IsCitizenEnabled": {
+          "description": "Citizen Enabled",
+          "type": "boolean"
+        },
+        "OrchestrationLabel": {
+          "description": "Orchestration Label",
+          "type": "string"
+        },
+        "ApiName": {
+          "description": "API Name",
+          "type": "string"
+        },
+        "InstalledPackageName": {
+          "description": "Package Name",
+          "type": "string"
+        },
+        "RunCount": {
+          "description": "Run Count",
+          "type": "int"
+        },
+        "CompletionRate": {
+          "description": "Completion Rate",
+          "type": "percent"
+        },
+        "AverageRunTime": {
+          "description": "Average Run Time",
+          "type": "int"
+        },
+        "FailedRunCount": {
+          "description": "Failed Run Count",
+          "type": "int"
+        },
+        "ApiVersion": {
+          "description": "API Version",
+          "type": "int"
+        },
+        "IsTemplate": {
+          "description": "Template",
+          "type": "boolean"
+        },
+        "IsOverridable": {
+          "description": "Overridable",
+          "type": "boolean"
+        }
+      },
+      "relationships": [],
+      "domainShort": "DRO"
+    },
+    "IntegrationProviderDef": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "ApexClassId": {
+          "description": "Class ID",
+          "type": "reference",
+          "refersTo": "ApexClass",
+          "relationshipType": "lookup"
+        },
+        "InputDataProcessorId": {
+          "description": "Omni Integration Procedure Configuration ID",
+          "type": "reference",
+          "refersTo": "OmniIntegrationProcConfig",
+          "relationshipType": "lookup"
+        },
+        "OutputDataProcessorId": {
+          "description": "Omni Integration Procedure Configuration ID",
+          "type": "reference",
+          "refersTo": "OmniIntegrationProcConfig",
+          "relationshipType": "lookup"
+        },
+        "OmniUiCardConfigId": {
+          "description": "Omni Ui Card Config ID",
+          "type": "reference",
+          "refersTo": "OmniUiCardConfig",
+          "relationshipType": "lookup"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "FileBasedApexClass": {
+          "description": "File Based Apex Class",
+          "type": "string"
+        },
+        "IsActive": {
+          "description": "Active",
+          "type": "boolean"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "Type": {
+          "description": "Type",
+          "type": "picklist"
+        },
+        "ExternalServiceOperationName": {
+          "description": "External Service Operation Name",
+          "type": "string"
+        },
+        "JavaClassName": {
+          "description": "Java Class Name",
+          "type": "string"
+        },
+        "CanUseInIntegrationOrch": {
+          "description": "Use In Integration Orchestration",
+          "type": "boolean"
+        },
+        "IsManual": {
+          "description": "Manual",
+          "type": "boolean"
+        },
+        "StorePayload": {
+          "description": "Store Payload",
+          "type": "picklist"
+        },
+        "IsServiceTypeIntegration": {
+          "description": "Service Type Integration",
+          "type": "boolean"
+        },
+        "FileBasedExternalService": {
+          "description": "File Based External Service",
+          "type": "string"
+        },
+        "FileBasedInputDataProcessor": {
+          "description": "File Based Input Data Processor",
+          "type": "string"
+        },
+        "FileBasedOutputDataProcessor": {
+          "description": "File Based Output Data Processor",
+          "type": "string"
+        },
+        "FileBasedOmniUiCard": {
+          "description": "File Based Omni UI Card",
+          "type": "string"
+        }
+      },
+      "relationships": [],
+      "domainShort": "DRO"
+    },
+    "NamedCredential": {
+      "domain": "Dynamic Revenue Orchestrator",
+      "fields": {
+        "DeveloperName": {
+          "description": "",
+          "type": "string"
+        },
+        "AuthProviderId": {
+          "description": "Auth. Provider ID",
+          "type": "reference",
+          "refersTo": "AuthProvider",
+          "relationshipType": "lookup"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "Endpoint": {
+          "description": "URL",
+          "type": "textarea"
+        },
+        "PrincipalType": {
+          "description": "Identity Type",
+          "type": "picklist"
+        },
+        "CalloutOptionsGenerateAuthorizationHeader": {
+          "description": "GenerateAuthorizationHeader",
+          "type": "boolean"
+        },
+        "CalloutOptionsAllowMergeFieldsInHeader": {
+          "description": "AllowMergeFieldsInHeader",
+          "type": "boolean"
+        },
+        "CalloutOptionsAllowMergeFieldsInBody": {
+          "description": "AllowMergeFieldsInBody",
+          "type": "boolean"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "JwtIssuer": {
+          "description": "JWT Issuer",
+          "type": "string"
+        },
+        "JwtFormulaSubject": {
+          "description": "JWT Formula Subject",
+          "type": "string"
+        },
+        "JwtTextSubject": {
+          "description": "JWT Text Subject",
+          "type": "string"
+        },
+        "JwtValidityPeriodSeconds": {
+          "description": "JWT Validity Period in Seconds",
+          "type": "int"
+        },
+        "JwtAudience": {
+          "description": "JWT Audience(s)",
+          "type": "textarea"
+        },
+        "AuthTokenEndpointUrl": {
+          "description": "Auth Token Endpoint URL",
+          "type": "textarea"
+        }
+      },
+      "relationships": [],
+      "domainShort": "DRO"
+    }
+  }
+}

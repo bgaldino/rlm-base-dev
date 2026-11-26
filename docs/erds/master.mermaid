@@ -3,8 +3,8 @@ erDiagram
     ProductCategory
     ProductCategoryProduct
     ProductAttributeDefinition
-    PriceBook2
-    PriceBookEntry
+    Pricebook2
+    PricebookEntry
     PriceAdjustmentSchedule
     PriceAdjustmentTier
     ProductSellingModel
@@ -42,8 +42,8 @@ erDiagram
     Invoice }o--|| Order : ReferenceEntityId
     FulfillmentStep }o--|| FulfillmentPlan : FulfillmentPlanId
     CreditMemo }o--|| Order : ReferenceEntityId
-    PriceBookEntry }o--|| Product2 : Product2Id
-    PriceBookEntry }o--|| ProductSellingModel : ProductSellingModelId
+    PricebookEntry }o--|| Product2 : Product2Id
+    PricebookEntry }o--|| ProductSellingModel : ProductSellingModelId
     RateCardEntry }o--|| Product2 : ProductId
     RateCardEntry }o--|| ProductSellingModel : ProductSellingModelId
     RateCardEntry }o--|| RateCard : RateCardId
@@ -77,11 +77,11 @@ erDiagram
     ProductCategoryProduct }o--|| Product2 : ProductId
     QuoteLineItem ||--o{ Quote : QuoteId
     QuoteLineItem }o--|| Product2 : Product2Id
-    QuoteLineItem }o--|| PriceBookEntry : PricebookEntryId
+    QuoteLineItem }o--|| PricebookEntry : PricebookEntryId
     QuoteLineItem }o--|| ProductSellingModel : ProductSellingModelId
     OrderItem ||--o{ Order : OrderId
     OrderItem }o--|| Product2 : Product2Id
-    OrderItem }o--|| PriceBookEntry : PricebookEntryId
+    OrderItem }o--|| PricebookEntry : PricebookEntryId
     OrderItem }o--|| ProductSellingModel : ProductSellingModelId
     OrderItem }o--|| QuoteLineItem : QuoteLineItemId
     OrderItem }o--|| OrderItem : OriginalOrderItemId
@@ -96,8 +96,8 @@ erDiagram
     Quote }o--|| Contact : ContactId
     Order }o--|| Contract : ContractId
     Order }o--|| Quote : QuoteId
-    Order }o--|| PriceBook2 : Pricebook2Id
-    Quote }o--|| PriceBook2 : Pricebook2Id
+    Order }o--|| Pricebook2 : Pricebook2Id
+    Quote }o--|| Pricebook2 : Pricebook2Id
     FulfillmentOrder }o--|| Order : OrderId
     FulfillmentOrderLineItem ||--o{ FulfillmentOrder : FulfillmentOrderId
     FulfillmentOrderLineItem }o--|| OrderItem : OrderItemId
@@ -109,5 +109,5 @@ erDiagram
     InvoiceLine ||--o{ Invoice : InvoiceId
     CreditMemo }o--|| Account : AccountId
     Payment }o--|| Account : AccountId
-    PriceBookEntry }o--|| PriceBook2 : Pricebook2Id
+    PricebookEntry }o--|| Pricebook2 : Pricebook2Id
     ProductUsageGrant }o--|| Asset : AssetId

@@ -1,6 +1,6 @@
 # Transaction Management Domain
 
-58 objects covering the core commercial lifecycle: accounts, quotes, orders, assets, contracts, and their detail/attribute records.
+60 objects covering the core commercial lifecycle: accounts, quotes, orders, assets, contracts, and their detail/attribute records.
 
 ## Core Objects
 
@@ -38,6 +38,7 @@
 | `QuoteLineRateCardEntry` | Rate card entries on a quote line |
 | `QuotLineItmUsageRsrcPlcy` | Usage resource policy on a quote line |
 | `QuotLineItmUseRsrcGrant` | Usage resource grant on a quote line |
+| `QuoteLineItemRecipient` | Service recipient (address, serviceability result, recipient type) for a quote; see the note below |
 | `QuoteAction` | Actions on a quote (sourced from assets) |
 
 ## Order Detail Objects
@@ -60,15 +61,33 @@
 | `FulfillmentOrder` | Fulfillment order (from Order) | AccountId, OrderId |
 | `FulfillmentOrderLineItem` | Line items being fulfilled | FulfillmentOrderId, OrderItemId, Product2Id |
 
+## Recipient objects (service address)
+
+`QuoteLineItemRecipient` and `OrderItemRecipient` hold a service address and its serviceability
+result. `RecipientType` is a picklist (`Location`, `Subscriber`, `Site`); the address fields are
+the `Service*` set (street, city, state, postal code, country, geocode, validation date,
+message and result, `ServiceabilityData`, `ServiceabilityCheckDate`) plus a `ServiceAccountId`
+lookup to Account. Despite the names, the required parent is the **header**, not a line:
+`QuoteLineItemRecipient.QuoteId` points at Quote and `OrderItemRecipient.OrderId` at Order, and
+neither object has a line-item or Location lookup on 264. Both are createable, updateable and
+deletable.
+[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
+
+The 264 developer-guide snapshot (`docs/salesforce/264/dev-guide/`) has no article for either
+object, so these fields come from a describe, not the guide. [Open: confirm the org gate that
+exposes them; the describe worked on a full ent build, and which feature or edition setting
+turns them on was not isolated.]
+
 ## Key Relationships
 
 ```
 Account ← Quote, Order, Contract, Asset, Contact, FulfillmentOrder (AccountId)
 Account ← Account (ParentId, self-ref)
 Quote ← QuoteLineItem (QuoteId, master-detail)
+Quote ← QuoteLineItemRecipient (QuoteId); Order ← OrderItemRecipient (OrderId); Account ← both (ServiceAccountId)
 Order ← OrderItem (OrderId, master-detail)
 Product2 ← QuoteLineItem, OrderItem, Asset, FulfillmentOrderLineItem (Product2Id)
-PriceBookEntry ← QuoteLineItem, OrderItem (PricebookEntryId)
+PricebookEntry ← QuoteLineItem, OrderItem (PricebookEntryId)
 ProductSellingModel ← QuoteLineItem, OrderItem (ProductSellingModelId)
 Quote ← Order (QuoteId)
 Contract ← Order (ContractId)
