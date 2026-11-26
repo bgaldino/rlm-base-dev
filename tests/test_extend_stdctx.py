@@ -259,7 +259,22 @@ def test_nothing_to_extend_paths_fail_without_further_requests():
     check("unreadable plan_file raises", _raises(t._apply_plan_if_present, TaskOptionsError, "plan_file"))
     check("  and makes no request", t.calls == [])
     check("unreadable plan_file is rejected before any request, with the other options",
-          _raises(t._validate_task_options, TaskOptionsError, "plan_file") and t.calls == [])
+          _raises(t._validate_task_options, TaskOptionsError, "plan_file"))
+    import json, tempfile
+    for body, needle in (('[]', "JSON object"), ('{"contextTagsByName": {"name": "T"}}', "contextTagsByName"),
+                         ('{"contextNodes": [], "contextTagsByName": {}}', "contextTagsByName")):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+            handle.write(body)
+        t = _extend_task([], plan_file=handle.name, name="N")
+        check(f"plan_file {body[:30]} is refused by validation, before any request",
+              _raises(t._validate_task_options, TaskOptionsError, needle) and t.calls == [])
+        os.unlink(handle.name)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
+        json.dump({"contextTagsByName": [], "contextNodes": []}, handle)
+    t = _extend_task([], plan_file=handle.name, name="N")
+    t._validate_task_options()
+    check("a well-formed plan_file passes validation", t.calls == [])
+    os.unlink(handle.name)
 
 
 def test_existing_definition_with_a_mapping_not_yet_default_is_patched():

@@ -476,6 +476,10 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             raise TaskOptionsError(f"Could not load plan_file {plan_file}: {exc}") from exc
         if not isinstance(plan, dict):
             raise TaskOptionsError(f"plan_file {plan_file} must hold a JSON object, got {type(plan).__name__}")
+        if plan.get("contextTagsByName") is not None and not isinstance(plan["contextTagsByName"], list):
+            raise TaskOptionsError(
+                f"plan_file {plan_file}: contextTagsByName must be a list of {{name, nodeName[, attributeName]}}"
+            )
         return plan
 
     def _apply_plan_if_present(self):

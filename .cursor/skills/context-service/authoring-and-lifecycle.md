@@ -117,14 +117,16 @@ exists, the task **fails** (it does not log and pass) when it cannot read the
 definition, finds no version, or finds no mapping named `defaultMapping` (the message
 names the mappings it found), and when a write fails, including a 2xx whose body says
 `isSuccess: false`: the default-mapping PATCH, the activation PATCH, a plan node,
-mapping or tag post, or a plan tag name that does not resolve. A failed write's message
-names the step and the cause (HTTP status, no response, or the `isSuccess: false`
-errors); it leaves the definition partly extended, so re-run once the cause is fixed.
-A `plan_file` that cannot be read, is not a JSON object, or
-whose `contextTagsByName` is not a list is refused before any request. On a rerun
-(`DUPLICATE_VALUE`) the task skips the mapping PATCH when the mapping is already
-default, then re-sends the activation PATCH, which an active definition accepts
-[Measured: 2026-11-26, 264, scratch: `extend_context_definitions` rerun on a built org].
+mapping, mapping-update or tag write, or a plan tag name that does not resolve. A failed
+write's message names the step and the cause (HTTP status, no response, or the
+`isSuccess: false` errors); it leaves the definition partly extended, so re-run once the
+cause is fixed. A `plan_file` that cannot be read, is not a JSON object, or whose
+`contextTagsByName` is present and not a list is refused before any request. A reachable mapping
+that the version read already shows as default is not PATCHed again. On a rerun
+(`DUPLICATE_VALUE`) the task re-sends the activation PATCH when `activate` is true, which
+an active definition accepts [Measured: 2026-11-26, 264, scratch:
+`extend_context_definitions` rerun on a built org, no `plan_file`]; a set `plan_file` is
+applied again on every rerun, and no shipped `extend_context_*` task sets one.
 
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most
 `extend_context_*` tasks set `allow_skip_if_unavailable: true` so they no-op
