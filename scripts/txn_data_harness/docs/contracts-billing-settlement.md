@@ -542,10 +542,12 @@ Each then called:
   No `errors` key came back on success.
 - **Rows.** Ordinary line-level rows: `PaymentLineInvoiceLine` /
   `CreditMemoLineInvoiceLine`, `Type` Applied, `UnappliedStatus` No; the
-  invoice's `SettlementLevel` became InvoiceLine. Probe 5 ran through `cli
-  apply-rules` (run DEMO-20261126T061653Z unapplied first): it listed both new
-  rows, `cli verify` passed on them (4 balances checked, 0 skipped) and it
-  exited 0.
+  invoice's `SettlementLevel` became InvoiceLine. Probe 5 ran through an
+  earlier `cli apply-rules` that read rows by payment and memo Id. The current
+  one, which reads every row on the account, ran end to end at 07:38Z: run
+  DEMO-20261126T073706Z through `quote-to-cash`, `unapply`, then `apply-rules`
+  listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35),
+  `cli verify` passed on them (3 balances checked, 0 skipped) and it exited 0.
 - **Rule names.** `appliedRules` gives Help names, not the settings codes.
   Calls that reported Match Balance alone (probes 1 and 4) put the payment on
   the invoice with that balance, so **EA is Match Balance**. The other name
@@ -612,7 +614,9 @@ writes on the account meanwhile is listed and checked too. Exit 0 when the
 platform reports `isSuccess` true and either nothing was applied or the checks
 passed with at least one balance checked (the pass line gives the checked and
 skipped counts); 1 when the platform reports failure (no eligible invoice
-included), a check fails or no balance could be checked; 2 when the account
+included), a check fails, no balance could be checked, or the response
+counts applications and no new row was found (any application writes at
+least one row of its kind); 2 when the account
 cannot be resolved (none or several by that name, or an Id not found), the org
 cannot be read, or the call, its response (not the measured shape) or a later
 read fails. A failed call may or may not have applied anything: read the

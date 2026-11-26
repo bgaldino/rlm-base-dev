@@ -825,8 +825,9 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     again, lists each new row, then runs the ``cli verify`` checks on the
     invoices and payments the new rows touch. Exit 0 when the platform reports
     success and either nothing was applied or the checks passed with at least
-    one balance checked; 1 when the platform reports failure, a check fails or
-    nothing could be checked; 2 when the account or the org cannot be read, or
+    one balance checked; 1 when the platform reports failure, a check fails,
+    nothing could be checked, or it counts applications of a kind and no new
+    row of that kind was found; 2 when the account or the org cannot be read, or
     the call, its response or a later read fails.
     """
     try:
@@ -861,6 +862,16 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         print("WARNING: the platform did not consider every invoice "
               "(areAllInvoicesConsidered false)")
     label = f"account {account_id}"
+    # Any application writes at least one row of its kind on the account.
+    unseen = [f"{count} {kind}" for kind, key in (("payment", "totalPaymentApplications"),
+                                                  ("credit", "totalCreditMemoApplications"))
+              if isinstance(count := summary.get(key), int) and count > 0
+              and not any(r["kind"] == kind for r in new)]
+    if unseen:
+        print(f"FAIL: the response counts {' and '.join(unseen)} application(s), but no "
+              "new row of that kind was found on the account's payments and credit memos")
+        print(f"APPLY-RULES: fail ({label})")
+        return 1
     if result.get("isSuccess") is not True or result.get("errors"):
         messages = [html.unescape(str(e.get("message"))) if isinstance(e, dict) else str(e)
                     for e in result.get("errors") or []]

@@ -243,6 +243,41 @@ def test_verifies_the_invoices_of_credit_rows_too(monkeypatch):
     assert ("fetch", [INVOICE_A, INVOICE_B], [PAYMENT]) in org.calls
 
 
+@pytest.mark.parametrize("after, key, kind", [
+    ([OLD], "totalPaymentApplications", "payment"),
+    ([OLD], "totalCreditMemoApplications", "credit"),
+    ([OLD, NEW_CREDIT], "totalPaymentApplications", "payment"),
+    ([OLD, NEW_PAY], "totalCreditMemoApplications", "credit"),
+])
+def test_a_counted_kind_with_no_new_row_of_it_fails(monkeypatch, capsys, after, key, kind):
+    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": 0,
+                                               "totalCreditMemoApplications": 0, key: 2})
+    org = Org(monkeypatch, after=after, result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert f"the response counts 2 {kind} application(s), but no new row of that kind" in \
+        capsys.readouterr().out
+
+
+def test_non_integer_counts_with_no_new_row_pass_as_nothing_applied(monkeypatch, capsys):
+    result = dict(OK, rulesApplicationSummary={"totalPaymentApplications": "2"})
+    Org(monkeypatch, after=[OLD], result=result)
+    assert _apply_rules() == 0
+    assert "nothing applied" in capsys.readouterr().out
+
+
+def test_no_eligible_invoice_with_nothing_applied_fails(monkeypatch, capsys):
+    result = {"errors": [{"message": "We couldn&#39;t find eligible invoices to apply "
+                                     "rules-based credits and payments. "}],
+              "isSuccess": False}
+    org = Org(monkeypatch, after=[OLD], result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    out = capsys.readouterr().out
+    assert "We couldn't find eligible invoices" in out
+    assert "APPLY-RULES: fail" in out
+
+
 def test_passes_the_target_date(monkeypatch):
     org = Org(monkeypatch)
     assert _apply_rules("--target-date", "2026-11-25") == 0
