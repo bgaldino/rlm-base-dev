@@ -359,7 +359,10 @@ computes reach the level after it runs (§1, amendments).
       with the step's Use Smart Approval off or on, and the direction rule for which resubmissions
       auto-approve, are in [limitations.md](limitations.md) → Smart Approvals.
     - After a full approval, any later submission is a new request, so the chain restarts
-      whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
+      whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`]. Rule-Based
+      Auto-Approval shares that basis, so flag true after a full approval still goes to review
+      [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
+      ([rule-based-auto-approvals.md](rule-based-auto-approvals.md)).
 
 ## 4. Approvers
 
@@ -394,11 +397,24 @@ computes reach the level after it runs (§1, amendments).
 
   The repo ships neither grant ([SKILL.md](SKILL.md) → What the repo ships). To review as a
   test user who has no password, use Login As from an admin session (Setup → Users → Login).
-  A rejection by such a user, and the `reviewApprovalWorkItem` action run as one, were not
-  tested ([limitations.md](limitations.md) → Open questions).
-- Documented approver types: user, group and queue. A "Resource" type exists, but Preview
-  doesn't support it [Help: `ind.approvals_preview_feature_limitations`].
-- The docs don't describe a manager or role-hierarchy approver type ([limitations.md](limitations.md)).
+  Reviewer actions need no Approval Admin. A group member holding Run Flows, Read on Approval
+  Submission and Read on Approval Work Item rejected from the Review button (item, submission
+  and quote all Rejected), and ran the standard `reviewApprovalWorkItem` action in their own
+  session. A member holding only Run Flows and Read on Approval Submission, the Help personas
+  grant, could run `reviewApprovalWorkItem` (the Director item was approved, `ReviewedById` set),
+  but the work item page said "This page isn't available in Salesforce Lightning Experience or
+  mobile app." So Read on Approval Work Item is needed for the page, not for the action
+  [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
+- Approver types: the step editor offers exactly User, Group, Queue and Resource
+  [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]; the type enum accepts those four
+  and rejected Manager, RoleHierarchy, Role, RelatedUser, UserManager and Hierarchy. There is no
+  manager or role-hierarchy approver. Resource takes a resource holding a username, or the API
+  name of a public group or queue ([approval-operations.md](approval-operations.md) →
+  Approver and step settings). Preview doesn't support Resource
+  [Help: `ind.approvals_preview_feature_limitations`].
+- A manager-of-the-submitter approver therefore needs a background step that resolves the
+  manager's **username** into a Text resource [Open: designed from the measured Resource rule,
+  not run].
 
 ## 5. Worked example (fictional)
 

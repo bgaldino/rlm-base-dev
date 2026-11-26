@@ -104,6 +104,8 @@ scratch org built by this repo.
 | Approvals across negotiation rounds (each round a cloned quote) | `quote-negotiation-rounds` |
 | Submit, approve, reject, recall or inspect a submission; test headlessly | This skill → [actions-and-objects.md](actions-and-objects.md) |
 | Smart Approvals, preview, email, delegation limits; what's still unknown | This skill → [limitations.md](limitations.md) |
+| Rule-Based Auto-Approvals (Auto-Approve Step) | This skill → [rule-based-auto-approvals.md](rule-based-auto-approvals.md) |
+| Approver types, unanimous approval, delegation, who can act or see | This skill → [approval-operations.md](approval-operations.md) |
 | Change how the line approval level is computed | `pricing-procedures` and `expression-sets` (the `approval_flags.json` overlay) |
 | Map a field into the pricing context | `context-service` (`datasets/context_plans/Approvals`) |
 | Load or change alert definitions | `sfdmu-data-plans` (`datasets/sfdmu/qb/en-US/qb-approvals`) |
@@ -158,6 +160,11 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
   permissions and the measured behaviour.
 - [limitations.md](limitations.md): read before relying on Smart Approvals, Preview, email,
   delegation or Slack. It also lists the questions the docs leave open.
+- [rule-based-auto-approvals.md](rule-based-auto-approvals.md): read when a step should
+  auto-approve on a flow-computed Boolean, or a "true" flag still goes to review.
+- [approval-operations.md](approval-operations.md): read when setting approver types, unanimous
+  approval or delegation, deciding who can act and see, or diagnosing screens, notifications and
+  Flow Builder saves.
 
 ## Examples
 
@@ -219,7 +226,7 @@ items:
   as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
   deploy as Draft and activate separately [Platform behaviour, traced; production gating is
   not measured]. In a scratch org built by this repo the setting read off (Metadata API field
-  `enableFlowDeployAsActiveEnabled` in FlowSettings; a fresh org was not read separately); a changed approval orchestration
+  `enableFlowDeployAsActiveEnabled` in FlowSettings; false on a fresh never-built org too [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]); a changed approval orchestration
   deployed as Active still became the new Active version and the old one became Obsolete, and
   an unchanged redeploy as Active created no version. A redeploy with only the status changed
   to Draft over an Active flow also created no version and did not deactivate the flow

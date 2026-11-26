@@ -56,6 +56,8 @@ in Salesforce orgs and the Revenue Cloud Foundations repository.
 | Use this skill when… | Also read… |
 |---|---|
 | Enabling CLM or diagnosing missing setup | `setup-and-diagnostics.md` |
+| Who can see or edit a contract (sharing, Restriction Rules, read-only) | `sharing-and-access.md` |
+| Contact roles, signature status, quote-to-contract start date | `contract-record-behaviors.md` |
 | Querying contract, state, clause, or template configuration | `data-model-and-queries.md` and `revenue-cloud-data-model` |
 | Creating or changing clauses or templates | `content-and-migration.md` |
 | Editing document templates, tokens, or ODTs | `document-generation` and/or `odt-authoring` |
@@ -138,3 +140,7 @@ The `clm_data` flag is separate from the `clm` feature flag.
   template workflows.
 - Read [`data-model-and-queries.md`](data-model-and-queries.md) for schema
   discovery and safe, reusable SOQL examples.
+- Read [`sharing-and-access.md`](sharing-and-access.md) for Contract sharing, the
+  Contract-only permission-set and Restriction Rule controls, and their limits.
+- Read [`contract-record-behaviors.md`](contract-record-behaviors.md) for
+  `ContractContactRole`, e-signature status mapping and the quote-to-contract start date.

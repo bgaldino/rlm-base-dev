@@ -2,7 +2,8 @@
 
 Read this before relying on Smart Approvals, Preview, email, delegation or Slack, and
 before telling anyone how approvals behave where the docs are unclear. Parent:
-[advanced-approvals](SKILL.md).
+[advanced-approvals](SKILL.md). Rule-Based Auto-Approvals:
+[rule-based-auto-approvals.md](rule-based-auto-approvals.md).
 
 ## Setup
 
@@ -22,8 +23,13 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
   Notifications off; Notify Approvers in Slack and Notify Submitters in Slack both Don't Send;
   Send approval work item emails only to queue members off. Its setup audit trail's only
   approval-setting entry was Use Advanced Approvals switched on at org creation, before any build
-  step [Measured: 2026-11-18, 264, scratch, one org], so these read as the provisioned states
-  [inferred].
+  step [Measured: 2026-11-18, 264, scratch, one org]. The same nine states were read on a bare,
+  never-built ent-sb0 org, read-only, and its audit trail's only approval row was likewise
+  `advancedApprovalsEnabledOffOn` seconds after creation, so Flow Approval Processes and the two email
+  settings are org defaults, not build changes [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
+  The page is `/lightning/setup/ApprovalSetup/home`. No Metadata API Settings type held any of them
+  (219 Settings retrieved), and `FlowSettings.enableFlowDeployAsActiveEnabled` read false on a fresh org
+  [Measured: same].
 - **Personas:**
     - Designer: Manage Flow, Approval Designer, Read on Approval Submission.
     - Submitter, reviewer, delegate: Run Flows plus Read on Approval Submission.
@@ -59,7 +65,8 @@ A step is eligible only if all of these hold [Help: `ind.approvals_smart_approva
 - the active flow version hasn't changed since;
 - no work item was reassigned during the original submission.
 
-After a full approval, the next submission is a new request, not a resubmission.
+After a full approval, the next submission is a new request, not a resubmission. Smart Approvals
+never fire on a first submission [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 
 Smart Approval is switched on per approval step by its Use Smart Approval checkbox, which writes
 `ActionInput__CanUseSmartApproval`; Flow Builder shows a Smart Approval Skip Conditions field once it
@@ -168,23 +175,26 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 
 ## Open questions (not settled by the docs or a measured run)
 
-- Where "First Response" vs "All Must Approve" is configured for a group or queue step.
-- Whether recalling needs Approval Admin, or only Run Flows plus Read. The dev guide
-  requires Approval Admin plus being the submitter, while the Help personas table gives
-  submitters Run Flows plus Read. Measured recalls used an admin holding Approval Admin
-  (through its profile and `RLM_CLM`). Approving doesn't need it: a group member without it
-  approved from the Review button [Measured: 2026-11-18, 264, scratch, one org]
-  ([matrix-modeling.md](matrix-modeling.md) §4). [Open: as a reviewer without Approval Admin,
-  reject from the Review button and approve through `reviewApprovalWorkItem`; and grant Read
-  on Approval Submission alone, without Approval Work Item, to see whether the personas
-  table's grant is enough]
-- Which Approval Settings a fresh scratch org has on. [Open: read Setup > Approval Settings on a
-  fresh org, before any build step, and compare with the built-org states under *Setup*]
-- Whether a Resource-type approver works at runtime, and whether there is a
-  manager-hierarchy approver.
-- Whether a roll-up summary or Percent condition passes the Smart Approvals type check
-  [inferred: the flow resolves it to Number or Currency; not verified].
-- Whether `ApprovalDelegation` appears once delegation is turned on.
+- Where "First Response" vs "All Must Approve" is configured: settled, a per-step "Require unanimous
+  approval" checkbox ([approval-operations.md](approval-operations.md) → Approver and step settings)
+  [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
+- Whether recalling or approving needs Approval Admin: settled for both. A reviewer without it rejected
+  and approved (Review button and `reviewApprovalWorkItem`), and a submitter without it recalled from the
+  Approval Submission record. `reviewApprovalWorkItem` needs only the personas grant; the work item page
+  also needs Read on Approval Work Item [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]
+  ([matrix-modeling.md](matrix-modeling.md) §4).
+- Which Approval Settings a fresh scratch org has on: settled (see *Setup*).
+- Whether a Resource-type approver works at runtime: it does, with a username or a group or queue API
+  name; there is no manager-hierarchy approver ([approval-operations.md](approval-operations.md))
+  [Measured: same]. [Open: a resource that yields the submitter's manager's username.]
+- Whether a roll-up summary, picklist or Percent-formula condition passes the Smart Approvals type
+  check: on resubmission after a Director rejection, steps whose condition read a roll-up summary
+  (Number), a picklist and a percent formula auto-approved like a Text control, with values equal
+  across submissions [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]. [Open: range
+  comparison on those types; only equal values were run.]
+- Whether `ApprovalDelegation` appears once delegation is turned on: it does
+  ([approval-operations.md](approval-operations.md) → Delegation) [Measured: same]. [Open: routing
+  of a live work item to the delegate.]
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be

@@ -75,6 +75,8 @@ python scripts/docgen/docgen_odt_inspect_hierarchy.py RLMQuoteProposalExtract --
 - `document-generation/data-mapper-authoring.md` — programmatic ODT creation via
   REST API, cloning patterns, shell escaping pitfalls
 - `document-generation/dynamic-images.md` — dynamic image rendering contract
+- `document-generation/quote-line-attributes-and-rep-access.md` — extracting the virtual
+  `QuoteLineItemAttribute` object, picklist labels, and why a rep's output is blank
 
 ## Examples
 
