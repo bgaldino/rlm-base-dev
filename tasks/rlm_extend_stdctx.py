@@ -389,7 +389,7 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.info(
                     f"      Context Mapping ID: {self.default_context_mapping_id}"
                 )
-                self._update_context_mappings()
+                self._update_context_mappings(already_default=str(mapping.get("isDefault")).lower() == "true")
                 break
         else:
             available = ", ".join(sorted(str(m.get("name")) for m in context_mappings)) or "none"
@@ -400,21 +400,25 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
             )
 
     # Update context mappings, typically for marking certain context mappings the default
-    def _update_context_mappings(self):
-        self.logger.info(f"      Setting '{self.options.get('defaultMapping')}' as the default context mapping...")
-        url, headers = self._build_url_and_headers(
-            f"connect/context-definitions/{self.context_id}/context-mappings"
-        )
-        payload = {
-            "contextMappings": [
-                {
-                    "contextMappingId": self.default_context_mapping_id,
-                    "isDefault": "true",
-                    "name": self.options.get("defaultMapping"),
-                }
-            ]
-        }
-        self._write("patch", url, headers, payload, "set the default context mapping")
+    def _update_context_mappings(self, already_default=False):
+        if already_default:
+            # A rerun: nothing to change, and a mapping PATCH on an active version can be refused.
+            self.logger.info(f"      '{self.options.get('defaultMapping')}' is already the default context mapping.")
+        else:
+            self.logger.info(f"      Setting '{self.options.get('defaultMapping')}' as the default context mapping...")
+            url, headers = self._build_url_and_headers(
+                f"connect/context-definitions/{self.context_id}/context-mappings"
+            )
+            payload = {
+                "contextMappings": [
+                    {
+                        "contextMappingId": self.default_context_mapping_id,
+                        "isDefault": "true",
+                        "name": self.options.get("defaultMapping"),
+                    }
+                ]
+            }
+            self._write("patch", url, headers, payload, "set the default context mapping")
         self._apply_plan_if_present()
         if self._activate_requested():
             self._activate_context_id()
@@ -447,11 +451,18 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
 
     def _write(self, method, url, headers, payload, what):
         """Send a write; a failed one raises, so the build does not pass on a half-applied definition."""
-        if self._make_request(method, url, headers=headers, json=payload) is None:
-            raise CumulusCIException(
-                f"Could not {what} on context definition {self.context_id} ({self._status_text()}). "
-                "The definition is left partly extended. Re-run once the cause above is fixed."
-            )
+        response = self._make_request(method, url, headers=headers, json=payload)
+        if response is None:
+            cause = self._status_text()
+        elif isinstance(response, dict) and response.get("isSuccess") is False:
+            # Connect can answer 2xx and report the failure in the body.
+            cause = f"isSuccess false: {str(response.get('errors') or response)[:300]}"
+        else:
+            return response
+        raise CumulusCIException(
+            f"Could not {what} on context definition {self.context_id} ({cause}). "
+            "The definition is left partly extended. Re-run once the cause is fixed."
+        )
 
     def _load_plan(self):
         """The parsed plan_file, or None when the option is unset; raises on a plan that cannot be read."""

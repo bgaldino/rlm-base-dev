@@ -114,13 +114,17 @@ edition and skip. Confirm what a given org actually provisioned with
 
 Only an absent base with `allow_skip_if_unavailable` is a skip. Once the definition
 exists, the task **fails** (it does not log and pass) when it cannot read the
-definition, finds no version, finds no mapping named `defaultMapping`, cannot load
-`plan_file` (checked before any request), or a write fails: the default-mapping
-PATCH, the activation PATCH, a plan node, mapping or tag post, or a plan tag name that
-does not resolve. Each message says what was not found; a failed write leaves the
-definition partly extended, so re-run once the cause is fixed. A rerun on an already
-extended definition (`DUPLICATE_VALUE`, mapping already default) still succeeds,
-measured on a completed org.
+definition, finds no version, or finds no mapping named `defaultMapping` (the message
+names the mappings it found), and when a write fails, including a 2xx whose body says
+`isSuccess: false`: the default-mapping PATCH, the activation PATCH, a plan node,
+mapping or tag post, or a plan tag name that does not resolve. A failed write's message
+names the step and the cause (HTTP status, no response, or the `isSuccess: false`
+errors); it leaves the definition partly extended, so re-run once the cause is fixed.
+A `plan_file` that cannot be read, is not a JSON object, or
+whose `contextTagsByName` is not a list is refused before any request. On a rerun
+(`DUPLICATE_VALUE`) the task skips the mapping PATCH when the mapping is already
+default, then re-sends the activation PATCH, which an active definition accepts
+[Measured: 2026-11-26, 264, scratch: `extend_context_definitions` rerun on a built org].
 
 **Edition-optional vs. always-present (`allow_skip_if_unavailable`).** Most
 `extend_context_*` tasks set `allow_skip_if_unavailable: true` so they no-op

@@ -262,12 +262,12 @@ def test_nothing_to_extend_paths_fail_without_further_requests():
           _raises(t._validate_task_options, TaskOptionsError, "plan_file") and t.calls == [])
 
 
-def test_existing_default_mapping_is_still_success():
+def test_existing_definition_with_a_mapping_not_yet_default_is_patched():
     t = _extend_task([{"contextDefinitionVersionList": [{"contextMappings": [{"name": "Map", "contextMappingId": "M1"}]}]}],
                      activate="false")
     t._existing_definition = True
     t._process_context_id()
-    check("mapping found: PATCH issued, no raise", [c[0] for c in t.calls] == ["get", "patch"])
+    check("mapping found, not default: PATCH issued, no raise", [c[0] for c in t.calls] == ["get", "patch"])
 
 
 _MAPPING_VERSION = {"contextDefinitionVersionList": [{"contextMappings": [{"name": "Map", "contextMappingId": "M1"}]}]}
@@ -285,6 +285,8 @@ def test_failed_writes_raise_instead_of_passing():
                     ("_patch_context_mappings", []), ("_post_context_tags", {})):
         t = _extend_task([None])
         check(f"failed {fn} raises", _raises(lambda: getattr(t, fn)(arg), CumulusCIException, "plan's"))
+    t = _extend_task([{"isSuccess": False, "errors": ["bad tag"]}])
+    check("a 2xx reporting isSuccess false raises", _raises(lambda: t._post_context_tags({}), CumulusCIException, "bad tag"))
 
 
 def test_tags_by_name_fail_when_they_cannot_resolve():
@@ -308,7 +310,9 @@ def test_tags_by_name_fail_when_they_cannot_resolve():
 
 
 def test_rerun_on_an_existing_definition_runs_end_to_end():
-    t = _extend_task([None, _MAPPING_VERSION, {}, {}], activate="true")
+    default_version = {"contextDefinitionVersionList": [{"contextMappings": [
+        {"name": "Map", "contextMappingId": "M1", "isDefault": True}]}]}
+    t = _extend_task([None, default_version, {}], activate="true")
     scripted = t._make_request
 
     def make_request(method, url, **kw):
@@ -321,8 +325,8 @@ def test_rerun_on_an_existing_definition_runs_end_to_end():
     t._make_request = make_request
     t._recover_context_id = lambda developer_name: "CTX"
     t._extend_context_definition()
-    check("duplicate create, definition read, mapping PATCH and activation PATCH, in order",
-          [c[0] for c in t.calls] == ["post", "get", "patch", "patch"])
+    check("duplicate create, definition read, then only the activation PATCH (mapping already default)",
+          [c[0] for c in t.calls] == ["post", "get", "patch"] and not t.calls[-1][1].endswith("context-mappings"))
     check("  the definition is flagged existing", t._existing_definition is True)
 
 
