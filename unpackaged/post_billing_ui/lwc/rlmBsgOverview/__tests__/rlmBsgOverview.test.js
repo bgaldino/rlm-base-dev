@@ -73,3 +73,55 @@ describe('rlmBsgOverview period table schedule links', () => {
         labels.forEach((label) => expect(label).toBe('—'));
     });
 });
+
+describe('rlmBsgOverview schedule links without numbers', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        jest.restoreAllMocks();
+    });
+
+    async function render(data) {
+        const el = createElement('c-rlm-bsg-overview', { is: RlmBsgOverview });
+        el.recordId = '1Bg000000000001AAA';
+        document.body.appendChild(el);
+        getBillingScheduleGroupData.emit(data);
+        getConsolidatedTimeline.emit(segments(null));
+        await flush();
+        return el;
+    }
+
+    // Pack 452: a milestone-billed group links its schedule by number; a missing number shows a
+    // dash, never the record Id.
+    it('labels a milestone period\'s schedule link with a dash, not the Id, when the number is missing', async () => {
+        const el = await render({
+            totalBilledAmount: 0, totalPendingAmount: 100,
+            billingSchedules: [{
+                id: SCHEDULE_ID, scheduleNumber: null, startDate: '2026-01-01', endDate: '2026-03-31',
+                billingTermUnit: 'BillingMilestonePlan', billingTerm: 1, billingPeriodAmount: 100, billedAmount: 0, quantity: 1
+            }],
+            milestoneItems: [{ id: 'm1', name: 'Kickoff', completionDate: '2026-02-01', amount: 100, status: 'Pending' }]
+        });
+        const labels = periodScheduleLabels(el);
+        expect(labels).toEqual(['—']);
+        expect(el.shadowRoot.textContent).not.toContain(SCHEDULE_ID);
+    });
+
+    // Two schedules without numbers active in one period: both links render, keyed by their ids
+    // (a dash for both labels would otherwise give both the same key).
+    it('renders a link per schedule when two schedules in one period have no number', async () => {
+        const errors = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const schedule = (id) => ({
+            id, scheduleNumber: null, startDate: '2026-01-01', endDate: '2026-01-31',
+            billingTermUnit: 'Month', billingTerm: 1, billingPeriodAmount: 100, billedAmount: 0, quantity: 1
+        });
+        const el = await render({
+            totalBilledAmount: 0, totalPendingAmount: 200,
+            billingSchedules: [schedule('0iB000000000001AAA'), schedule('0iB000000000002AAA')]
+        });
+        const firstRowLinks = el.shadowRoot.querySelector('.segments-table tbody tr').querySelectorAll('.schedule-table-link');
+        expect([...firstRowLinks].map((n) => n.textContent)).toEqual(['—', '—']);
+        // LWC reports a repeated for:each key as '[LWC error]: Duplicated "key" attribute value ...'.
+        const duplicateKeyErrors = errors.mock.calls.filter((call) => String(call[0]).includes('Duplicated "key"'));
+        expect(duplicateKeyErrors).toEqual([]);
+    });
+});

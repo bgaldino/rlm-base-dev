@@ -65,8 +65,8 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // SUM() with GROUP BY CurrencyIsoCode returns the corporate-currency total; the controller
-    // converts it into the account's currency at the dated rate (the standard rate when there
-    // are no dated rates). A corporate-currency payment on an account in another currency must
+    // converts it into the account's currency at each currency's dated rate (its standard rate
+    // when it has no dated rate: the controller's effectiveRate rule). A corporate-currency payment on an account in another currency must
     // come back in the account's currency at that rate.
     // A second active currency with an effective rate different from the corporate one comes
     // from a pricing data plan (qb, q3 or mfg); without one the test is skipped, visibly,
@@ -503,8 +503,8 @@ private class RLM_OnAccountBillingControllerTest {
         return rates;
     }
 
-    // The effective rates as the given user reads them in USER_MODE: dated rates for today if
-    // there are any, else the standard rates (the controller's rule). Only QueryException is
+    // The effective rates as the given user reads them in USER_MODE: each currency's dated rate for
+    // today, else its standard rate (the controller's effectiveRate rule). Only QueryException is
     // caught. Dated rates the user cannot read are skipped visibly by the FX test; differing
     // standard rates, or a partial read, fail userRatesMatchingAdmin's precondition.
     private static Map<String, Decimal> effectiveRatesAs(User u) {
