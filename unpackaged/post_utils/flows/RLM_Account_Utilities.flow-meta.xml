@@ -269,7 +269,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Result_Cleared</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Everything was deleted.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Everything the selected options cover was deleted.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>

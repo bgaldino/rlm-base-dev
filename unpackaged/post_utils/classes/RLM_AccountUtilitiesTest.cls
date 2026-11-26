@@ -909,6 +909,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assert(
             result.reason.contains('limit on record changes')
                 && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS)
+                && result.reason.contains('The largest groups it reached: ' + entry(Opportunity.SObjectType, 2))
                 && !result.reason.contains('continues from where this run stopped'),
             'The reason must name the limit and say a rerun stops at the same point. Got: ' + result.reason
         );
@@ -964,7 +965,8 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // Two statements left: deleting the policy in phase 1 would leave phase 2's
-        // savepoint the last one, and its rollback none.
+        // savepoint the last one, and its rollback none. With only one kept, this run ends
+        // in a LimitException.
         spendDmlStatementsDownTo(2);
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
@@ -977,26 +979,40 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void phaseTwoLeavesItsRollbackAStatement() {
+    static void aPhaseTwoStopNamesTheLargestGroupsLargestFirst() {
+        RLM_AccountUtilities.phaseTwoRows = new Map<String, Integer>{
+            'Opportunities' => 3, 'Asset Rate Card Entries' => 9500, 'Quotes' => 40, 'Orders' => 7
+        };
+        Assert.areEqual(' The largest groups it reached: Asset Rate Card Entries: 9500; Quotes: 40; Orders: 7.',
+            RLM_AccountUtilities.largestGroups(), 'The three largest, largest first');
+        RLM_AccountUtilities.phaseTwoRows = null;
+        Assert.areEqual('', RLM_AccountUtilities.largestGroups(), 'Nothing outside phase 2');
+    }
+
+    // Exactly two statements kept: with seven left, the run needs every one but the two.
+    // Phase 1's policy delete, phase 2's savepoint, then the file, the quote and the
+    // opportunity: the last leaves two. Keeping three would stop the run there (the
+    // phase-1 test above fails if only one is kept).
+    @IsTest
+    static void aRunWithExactlyTheStatementsItNeedsCompletes() {
         Account a = newAccount();
+        UsageFixture f = loadUsageFixture();
+        insert new BindingObjUsageRsrcPlcy(BindingObjectId = a.Id, UsageResourceId = f.resourceId,
+            EffectiveStartDate = Datetime.now().addDays(-10));
         Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Quote Opp');
         Quote q = new Quote(Name = 'RLM Utilities Statements Quote', OpportunityId = o.Id);
         insert q;
         newFile('RLM Statements File', q.Id);
 
         Test.startTest();
-        // Three statements left: phase 2's savepoint, then room for the file and the quote
-        // but not the rollback the opportunity's stop then needs, unless two are kept.
-        spendDmlStatementsDownTo(3);
+        spendDmlStatementsDownTo(7);
         RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Integer left = Limits.getLimitDmlStatements() - Limits.getDmlStatements();
         Test.stopTest();
 
-        // Reaching this line is part of the assertion: a LimitException cannot be caught.
-        Assert.areEqual(false, result.completed, 'A run out of DML statements did not complete');
-        Assert.isTrue(result.reason.contains('limit on record changes')
-            && result.reason.contains(RLM_AccountUtilities.PHASE_TWO_STOPPED_NO_PROGRESS),
-            'Phase 2 stops and rolls back. Got: ' + result.reason);
-        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'Phase 2 rolled back');
+        Assert.areEqual(true, result.completed, 'The run has the statements it needs. Reason: ' + result.reason);
+        Assert.areEqual(RLM_AccountUtilities.STATEMENTS_KEPT, left, 'It used all but the ones kept');
+        Assert.areEqual(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote is deleted');
     }
 
     @IsTest
@@ -1767,9 +1783,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 44 is counted from the code with data in every branch (see the constants in
+    // The 45 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 44 and the measurement against both, but it cannot catch
+    // the reserve against the 45 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1793,7 +1809,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reserve kept for phase 2 must cover its counted worst case'
         );
         Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 13,
+            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 15,
             'The walk guards must cover the queries counted after them'
         );
     }
@@ -1938,6 +1954,59 @@ private without sharing class RLM_AccountUtilitiesTest {
         Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'PRECONDITION: the contract is kept');
         Assert.areEqual(1, [SELECT COUNT() FROM BindingObjUsageRsrcPlcy WHERE Id = :policy.Id],
             'A contract kept for its prices keeps its binding policy');
+    }
+
+    // A binding rate card entry, bound to `bindingId`, sourced from `assetId`.
+    private static BindingObjectRateCardEntry newSourcedRateCardEntry(Id bindingId, Id assetId, UsageFixture f) {
+        Datetime start = Datetime.now().addDays(-10);
+        // A rate's unit must be of a Token or Currency class (platform validation, 264).
+        UnitOfMeasureClass currencyClass = new UnitOfMeasureClass(Name = 'RLM Reset Currency',
+            Code = 'RLM_AU_TEST_CUR', Type = 'Currency', Status = 'Draft');
+        insert currencyClass;
+        currencyClass.Status = 'Active';
+        update currencyClass;
+        UnitOfMeasure currencyUnit = new UnitOfMeasure(Name = 'RLM Reset Currency Unit', UnitCode = 'RLMAUCU',
+            Type = 'Currency', UnitOfMeasureClassId = currencyClass.Id, Status = 'Draft');
+        insert currencyUnit;
+        currencyUnit.Status = 'Active';
+        update currencyUnit;
+        RateCard card = new RateCard(Name = 'RLM Utilities Rate Card', Type = 'Base', EffectiveFrom = start);
+        insert card;
+        RateCardEntry cardEntry = new RateCardEntry(RateCardId = card.Id, EffectiveFrom = start,
+            RateUnitOfMeasureId = currencyUnit.Id, UsageResourceId = f.resourceId, Rate = 1);
+        insert cardEntry;
+        // A binding entry needs an active rate card entry, which is created as Draft.
+        update new RateCardEntry(Id = cardEntry.Id, Status = 'Active');
+        BindingObjectRateCardEntry entry = new BindingObjectRateCardEntry(BindingObjectId = bindingId,
+            RateCardEntryId = cardEntry.Id, EffectiveFrom = start, SourceAssetId = assetId);
+        insert entry;
+        return entry;
+    }
+
+    // Live 264, a binding rate card entry sourced from an asset blocked the asset's delete,
+    // whatever it was bound to. One bound to a contract the run keeps goes with the asset.
+    @IsTest
+    static void aRateCardEntrySourcedFromADeletedAssetGoesWithIt() {
+        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        Id accountId = seedAccountWithContracts();
+        UsageFixture f = loadUsageFixture();
+        Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
+            AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
+        Asset asset = new Asset(Name = 'RLM Utilities Sourced Asset', AccountId = accountId);
+        insert asset;
+        BindingObjectRateCardEntry sourced = newSourcedRateCardEntry(priced.Id, asset.Id, f);
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, false, false);
+        iv.PreserveContractsWithContractedPrices = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The asset can go. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjectRateCardEntry WHERE Id = :sourced.Id],
+            'The entry sourced from it goes with it');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'The priced contract is kept');
     }
 
     // ------------------------------------------------------------ which path

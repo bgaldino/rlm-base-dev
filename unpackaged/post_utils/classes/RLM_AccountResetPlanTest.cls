@@ -1238,6 +1238,8 @@ private without sharing class RLM_AccountResetPlanTest {
             && result.reason.contains('Salesforce refused to delete '
                 + UsageEntitlementBucket.SObjectType.getDescribe().getLabel() + ' ' + heldName + ': '),
             'The reason must say nothing changed and name the refused bucket. Got: ' + result.reason);
+        Assert.isFalse(result.reason.contains('Your attempt to delete'),
+            'The platform\'s message, which names the blocking records, is not repeated. Got: ' + result.reason);
         Assert.isNull(result.removedSummary, 'Nothing may be reported removed');
         Assert.areEqual(2, [SELECT COUNT() FROM UsageEntitlementBucket WHERE Id IN (:held.Id, :child.Id)],
             'Both buckets must be there after the rollback');
@@ -1264,6 +1266,8 @@ private without sharing class RLM_AccountResetPlanTest {
             'AccountId' => bystander.Id, 'CaseId' => planCase.Id, 'ReceivedDate' => Date.today()
         });
         String caseNumber = [SELECT CaseNumber FROM Case WHERE Id = :planCase.Id].CaseNumber;
+        String disputeName = String.valueOf(Database.query('SELECT Name FROM Dispute WHERE Id = \'' + othersDispute.Id
+            + '\'')[0].get('Name'));
         RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
         iv.DeleteCollectionPlans = true;
 
@@ -1275,10 +1279,38 @@ private without sharing class RLM_AccountResetPlanTest {
         Assert.isTrue(result.reason.startsWith(RLM_AccountResetPlan.ROLLED_BACK)
             && result.reason.contains('Salesforce refused to delete Case ' + caseNumber + ': '),
             'The reason must say nothing changed and name the case. Got: ' + result.reason);
+        // The platform's message names the dispute that blocks the delete, another
+        // account's record: it is not repeated, only the status code and our description.
+        Assert.isFalse(result.reason.contains(disputeName),
+            'Another account\'s record must not be named. Got: ' + result.reason);
+        Assert.isTrue(result.reason.contains('(DELETE_FAILED).'), 'The status code is given. Got: ' + result.reason);
         Assert.isNull(result.removedSummary, 'Nothing may be reported removed');
         Assert.areEqual(1, countOf('CollectionPlan', plan.Id), 'The collection plan deleted before it must be back');
         Assert.areEqual(1, countOf('Case', planCase.Id), 'The case stays');
         Assert.areEqual(1, countOf('Dispute', othersDispute.Id), 'Another account\'s dispute is never touched');
+    }
+
+    // Exactly one statement kept: with five left, the savepoint, the file, the quote and
+    // the opportunity leave one. Keeping two would stop the run at the opportunity.
+    @IsTest
+    static void aRunWithExactlyTheStatementsItNeedsCompletes() {
+        Account a = newAccount();
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Statements Quote Opp');
+        Quote q = new Quote(Name = 'RLM Utilities Statements Quote', OpportunityId = o.Id);
+        insert q;
+        newFile('RLM Statements File', q.Id);
+
+        Test.startTest();
+        while (Limits.getLimitDmlStatements() - Limits.getDmlStatements() > 5) {
+            Database.setSavepoint();
+        }
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Integer left = Limits.getLimitDmlStatements() - Limits.getDmlStatements();
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The run has the statements it needs. Reason: ' + result.reason);
+        Assert.areEqual(RLM_AccountResetPlan.STATEMENTS_KEPT, left, 'It used all but the one kept');
+        Assert.areEqual(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote is deleted');
     }
 
     @IsTest
@@ -1290,8 +1322,9 @@ private without sharing class RLM_AccountResetPlanTest {
         newFile('RLM Statements File', q.Id);
 
         Test.startTest();
-        // Three statements left: the savepoint, then room for the file and the quote but
-        // not the rollback the opportunity's stop then needs, unless two are kept.
+        // Three statements left: the savepoint, the file, then the quote's delete stops the
+        // run with one left, for the rollback. With none kept, the quote and the opportunity
+        // would take the last two and the rollback would end in a LimitException.
         while (Limits.getLimitDmlStatements() - Limits.getDmlStatements() > 3) {
             Database.setSavepoint();
         }
@@ -1305,6 +1338,123 @@ private without sharing class RLM_AccountResetPlanTest {
             && result.reason.contains(RLM_AccountResetPlan.TOO_LARGE_FOR_USER),
             'The run rolls back and says who can run it. Got: ' + result.reason);
         Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote must be there');
+    }
+
+    @IsTest
+    static void aRefusalIsDescribedFromItsStatusCode() {
+        Assert.areEqual('another record still refers to it', RLM_AccountResetPlan.describeRefusal('DELETE_FAILED'));
+        Assert.areEqual('the user running the reset does not have the access it needs',
+            RLM_AccountResetPlan.describeRefusal('INSUFFICIENT_ACCESS_OR_READONLY'));
+        Assert.areEqual('it is locked, for example by an approval', RLM_AccountResetPlan.describeRefusal('ENTITY_IS_LOCKED'));
+        Assert.areEqual('the platform refused the delete', RLM_AccountResetPlan.describeRefusal('ANYTHING_ELSE'));
+    }
+
+    // ------------------------------------------------------------ activated contracts
+
+    @IsTest
+    static void anActivatedContractNeedsDeleteActivatedContracts() {
+        Assert.isNull(RLM_AccountResetPlan.contractBlocker('Draft'), 'A Draft contract needs nothing more');
+        Assert.isNull(RLM_AccountResetPlan.contractBlocker('Activated'), 'The test admin has the permission');
+        RLM_AccountResetPlan.withoutPermissionForTest.add('PermissionsDeleteActivatedContract');
+        Assert.areEqual(RLM_AccountResetPlan.NEEDS_DELETE_ACTIVATED_CONTRACT,
+            RLM_AccountResetPlan.contractBlocker('Activated'), 'Without it, an activated contract blocks');
+
+        Account a = newAccount();
+        Contract c = new Contract(AccountId = a.Id, StartDate = Date.today().addDays(-7), ContractTerm = 12,
+            Status = 'Draft');
+        insert c;
+        c.Status = 'Activated';
+        update c;
+        String contractNumber = [SELECT ContractNumber FROM Contract WHERE Id = :c.Id].ContractNumber;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, result.completed, 'The reset must be refused');
+        Assert.isTrue(result.reason.contains(entry(Contract.SObjectType, 1) + ' ('
+            + RLM_AccountResetPlan.NEEDS_DELETE_ACTIVATED_CONTRACT + ': ' + contractNumber + ')'),
+            'The contract is named with the permission it needs. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :c.Id], 'Nothing may change');
+    }
+
+    // ------------------------------------------------------------ an asset a kept entitlement is bound to
+
+    @IsTest
+    static void anAssetWhoseEntitlementAKeptBucketHoldsRefusesDeleteAssets() {
+        Account a = newAccount();
+        Account other = new Account(Name = 'RLM Utilities Other Account 2');
+        insert other;
+        UsageFixture f = loadUsageFixture();
+        Asset asset = new Asset(Name = 'RLM Utilities Held Asset', AccountId = a.Id);
+        insert asset;
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        // Our entitlement, bound to the asset, is held by a bucket above another account's:
+        // that chain is kept, so the entitlement is kept, and the asset cannot go.
+        TransactionUsageEntitlement ownTue = newEntitlement(a.Id, a.Id, asset.Id, f);
+        UsageEntitlementBucket held = newBucket(uea.Id, ownTue.Id, f);
+        newBucket(held.Id, newEntitlement(other.Id, other.Id, null, f).Id, f);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result withAssets = run(request(a.Id, true, false, false));
+        RLM_AccountUtilities.Result withoutAssets = run(request(a.Id, false, false, false));
+        Test.stopTest();
+
+        Assert.areEqual(false, withAssets.completed, 'With Delete Assets the run is refused up front');
+        Assert.isTrue(withAssets.reason.contains(entry(Schema.Asset.SObjectType, 1) + ' ('
+            + RLM_AccountResetPlan.ASSET_ENTITLEMENT_KEPT + ': RLM Utilities Held Asset)'),
+            'The asset is named with the reason. Got: ' + withAssets.reason);
+        Assert.areEqual(true, withoutAssets.completed, 'Without it the run completes. Reason: ' + withoutAssets.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset is kept');
+        Assert.areEqual(1, [SELECT COUNT() FROM TransactionUsageEntitlement WHERE Id = :ownTue.Id],
+            'The held entitlement is kept');
+    }
+
+    // ------------------------------------------------------------ rate card entries sourced from an asset
+
+    @IsTest
+    static void aRateCardEntrySourcedFromADeletedAssetGoesWithIt() {
+        Assert.isTrue(contractItemPriceAvailable(), 'PRECONDITION: this org has Contract Pricing');
+        Id accountId = seedAccountWithContracts();
+        UsageFixture f = loadUsageFixture();
+        Contract priced = [SELECT Id FROM Contract WHERE AccountId = :accountId
+            AND Id IN (SELECT ContractId FROM ContractItemPrice) LIMIT 1];
+        Asset asset = new Asset(Name = 'RLM Utilities Sourced Asset', AccountId = accountId);
+        insert asset;
+        Datetime start = Datetime.now().addDays(-10);
+        // A rate's unit must be of a Token or Currency class (platform validation, 264).
+        UnitOfMeasureClass currencyClass = new UnitOfMeasureClass(Name = 'RLM Reset Currency',
+            Code = 'RLM_AU_TEST_CUR', Type = 'Currency', Status = 'Draft');
+        insert currencyClass;
+        currencyClass.Status = 'Active';
+        update currencyClass;
+        UnitOfMeasure currencyUnit = new UnitOfMeasure(Name = 'RLM Reset Currency Unit', UnitCode = 'RLMAUCU',
+            Type = 'Currency', UnitOfMeasureClassId = currencyClass.Id, Status = 'Draft');
+        insert currencyUnit;
+        currencyUnit.Status = 'Active';
+        update currencyUnit;
+        RateCard card = new RateCard(Name = 'RLM Utilities Rate Card', Type = 'Base', EffectiveFrom = start);
+        insert card;
+        RateCardEntry cardEntry = new RateCardEntry(RateCardId = card.Id, EffectiveFrom = start,
+            RateUnitOfMeasureId = currencyUnit.Id, UsageResourceId = f.resourceId, Rate = 1);
+        insert cardEntry;
+        // A binding entry needs an active rate card entry, which is created as Draft.
+        update new RateCardEntry(Id = cardEntry.Id, Status = 'Active');
+        BindingObjectRateCardEntry sourced = new BindingObjectRateCardEntry(BindingObjectId = priced.Id,
+            RateCardEntryId = cardEntry.Id, EffectiveFrom = start, SourceAssetId = asset.Id);
+        insert sourced;
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, false, false);
+        iv.PreserveContractsWithContractedPrices = true;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        Assert.areEqual(true, result.completed, 'The asset can go. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :asset.Id], 'The asset is deleted');
+        Assert.areEqual(0, [SELECT COUNT() FROM BindingObjectRateCardEntry WHERE Id = :sourced.Id],
+            'The entry sourced from it goes with it');
+        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :priced.Id], 'The priced contract is kept');
     }
 
     @IsTest

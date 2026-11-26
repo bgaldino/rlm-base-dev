@@ -41,8 +41,8 @@
  * deleted). If the platform refuses any planned row, a usage row is still there when
  * the usage teardown can do no more, anything fails, or a limit is reached part way,
  * all of it rolls back and the Result says nothing was changed and why, naming the
- * refused record. DML statements are kept for the rollback (STATEMENTS_KEPT), which
- * counts as one.
+ * refused record. One DML statement is kept for the rollback (STATEMENTS_KEPT), which
+ * counts as one; the savepoint is set before any delete, so it needs no more.
  *
  * Sharing: `without sharing`, deliberately: the plan must see records sharing hides
  * from the user, so a refusal can count them. Nothing is deleted that the check has
@@ -63,9 +63,10 @@ public without sharing class RLM_AccountResetPlan {
     @TestVisible
     private static final Integer REFRESH_RESERVE = 5;
     // DML statements no delete may use: the rollback counts as one (measured live 264:
-    // setSavepoint and rollback each added one), and one more is spare.
+    // setSavepoint and rollback each added one). The savepoint is set before any delete,
+    // so the rollback is all that needs one.
     @TestVisible
-    private static final Integer STATEMENTS_KEPT = 2;
+    private static final Integer STATEMENTS_KEPT = 1;
     // Heap the check needs per planned row for its maps (ids, names, access), so a plan
     // too large to check is refused before they are built.
     private static final Integer CHECK_BYTES_PER_ROW = 500;
@@ -113,6 +114,12 @@ public without sharing class RLM_AccountResetPlan {
     private static final String CANNOT_READ = 'the user running the reset cannot read this kind of record';
     private static final String NEEDS_EDIT_ACTIVATED = 'activated; setting them back to Draft needs the Edit '
         + 'Activated Orders permission';
+    @TestVisible
+    private static final String NEEDS_DELETE_ACTIVATED_CONTRACT = 'activated; deleting them needs the Delete '
+        + 'Activated Contracts permission';
+    @TestVisible
+    private static final String ASSET_ENTITLEMENT_KEPT = 'its usage entitlement is held by a bucket kept for '
+        + 'another account\'s entitlement, so it cannot be deleted; run the reset with Delete Assets off';
     private static final String NEEDS_LIFECYCLE = 'lifecycle-managed; deleting them needs the Access '
         + 'Lifecycle-Managed Assets permission';
     private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled; deleting them needs the '
@@ -137,9 +144,10 @@ public without sharing class RLM_AccountResetPlan {
         public List<String> removedLabels = new List<String>();
         public Map<String, Integer> removed = new Map<String, Integer>();
         public List<Kept> kept = new List<Kept>();
-        // Rows a delete refused, with the error. A later attempt that removes the
-        // row takes it back out.
+        // Rows a delete refused, with the error and its status code. A later attempt that
+        // removes the row takes it back out.
         public Map<Id, String> refused = new Map<Id, String>();
+        public Map<Id, String> refusedCode = new Map<Id, String>();
 
         public ResetReport copy() {
             ResetReport c = new ResetReport();
@@ -147,6 +155,7 @@ public without sharing class RLM_AccountResetPlan {
             c.removed = removed.clone();
             c.kept = kept.clone();
             c.refused = refused.clone();
+            c.refusedCode = refusedCode.clone();
             return c;
         }
     }
@@ -178,6 +187,7 @@ public without sharing class RLM_AccountResetPlan {
     private static final String G_COMMITMENT_JUNCTIONS = 'commitmentJunctions';
     private static final String G_ASSETS = 'assets';
     private static final String G_ASSET_RATE_CARD_ENTRIES = 'assetRateCardEntries';
+    private static final String G_ASSET_SOURCED_RATE_CARD_ENTRIES = 'assetSourcedRateCardEntries';
     private static final String G_ASSET_RELATIONSHIPS = 'assetRelationships';
     private static final String G_ASSET_ENTITLEMENTS = 'assetEntitlements';
     private static final String G_ASSET_ENTRIES = 'assetEntries';
@@ -361,6 +371,19 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     /**
+     * A failed update (an order set back to Draft, a credit memo canceled), described from
+     * its status code: the platform's message can name other records.
+     */
+    private static String dmlFailure(DmlException e) {
+        Id rowId = e.getDmlId(0);
+        String label = rowId == null ? 'a record' : rowId.getSObjectType().getDescribe().getLabel();
+        String name = rowId != null && plan != null && plan.visibleNames.containsKey(rowId)
+            ? ' ' + plan.visibleNames.get(rowId) : '';
+        String code = String.valueOf(e.getDmlType(0));
+        return 'Salesforce refused to change ' + label + name + ': ' + describeRefusal(code) + ' (' + code + ').';
+    }
+
+    /**
      * True when the running user can read accounts and this one. Read before the plan, so a
      * user who cannot see the account is refused with no counts of what is on it.
      */
@@ -437,6 +460,7 @@ public without sharing class RLM_AccountResetPlan {
      */
     private static void deleteAssets() {
         deleteAll(plan.rowsOf(G_ASSET_RATE_CARD_ENTRIES));
+        deleteAll(plan.rowsOf(G_ASSET_SOURCED_RATE_CARD_ENTRIES));
         List<String> usage = new List<String>{ G_ASSET_ENTRIES, G_ASSET_BUCKETS, G_ASSET_ENTITLEMENTS };
         usage.addAll(USAGE_TEARDOWN);
         teardown(usage, true);
@@ -486,17 +510,35 @@ public without sharing class RLM_AccountResetPlan {
     }
 
     /**
-     * "Salesforce refused to delete Usage Entitlement Bucket UEB-0001: <the platform's
-     * message>". Every planned record passed the check, so the user can see it; one the
-     * user could not see would be described, not named.
+     * "Salesforce refused to delete Usage Entitlement Bucket UEB-0001: another record still
+     * refers to it (DELETE_FAILED)." The platform's own message is not repeated: it can name
+     * the records that block the delete, which the user may not be allowed to see. Every
+     * planned record passed the check, so the user can see it; one the user could not see
+     * would be described, not named.
      */
     @TestVisible
     private static String refusalOf(Id rowId) {
         String label = rowId.getSObjectType().getDescribe().getLabel();
         String name = plan != null && plan.visibleNames.containsKey(rowId)
             ? plan.visibleNames.get(rowId) : 'a record the user cannot see';
-        String message = report.refused.containsKey(rowId) ? report.refused.get(rowId) : 'no reason given';
-        return 'Salesforce refused to delete ' + label + ' ' + name + ': ' + message;
+        String code = report.refusedCode.containsKey(rowId) ? report.refusedCode.get(rowId) : null;
+        return 'Salesforce refused to delete ' + label + ' ' + name + ': ' + describeRefusal(code)
+            + (code == null ? '' : ' (' + code + ')') + '.';
+    }
+
+    /** Our description of a refusal's status code, in place of the platform's message. */
+    @TestVisible
+    private static String describeRefusal(String code) {
+        if (code == 'DELETE_FAILED') {
+            return 'another record still refers to it';
+        }
+        if (code == 'INSUFFICIENT_ACCESS_OR_READONLY' || code == 'INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY') {
+            return 'the user running the reset does not have the access it needs';
+        }
+        if (code == 'ENTITY_IS_LOCKED') {
+            return 'it is locked, for example by an approval';
+        }
+        return 'the platform refused the delete';
     }
 
     /** Deletes what is left of a planned group, best effort (the teardown's rounds), and drops what went from the plan. */
@@ -643,7 +685,8 @@ public without sharing class RLM_AccountResetPlan {
     private static Map<String, Boolean> userPermissions;
     private static Id userPermissionsOf;
     private static final Set<String> CORE_PERMISSIONS = new Set<String>{
-        'PermissionsModifyAllData', 'PermissionsViewAllData', 'PermissionsEditActivatedOrders'
+        'PermissionsModifyAllData', 'PermissionsViewAllData', 'PermissionsEditActivatedOrders',
+        'PermissionsDeleteActivatedContract'
     };
     // Every permission the plan uses, read at its start, under its query guard.
     private static final List<String> PLAN_PERMISSIONS = new List<String>{
@@ -670,12 +713,14 @@ public without sharing class RLM_AccountResetPlan {
         if (!userPermissions.containsKey(field)) {
             if (CORE_PERMISSIONS.contains(field)) {
                 UserPermissionAccess core = [
-                    SELECT PermissionsModifyAllData, PermissionsViewAllData, PermissionsEditActivatedOrders
+                    SELECT PermissionsModifyAllData, PermissionsViewAllData, PermissionsEditActivatedOrders,
+                        PermissionsDeleteActivatedContract
                     FROM UserPermissionAccess LIMIT 1
                 ];
                 userPermissions.put('PermissionsModifyAllData', core.PermissionsModifyAllData == true);
                 userPermissions.put('PermissionsViewAllData', core.PermissionsViewAllData == true);
                 userPermissions.put('PermissionsEditActivatedOrders', core.PermissionsEditActivatedOrders == true);
+                userPermissions.put('PermissionsDeleteActivatedContract', core.PermissionsDeleteActivatedContract == true);
             } else {
                 // One field per query: a release or org without this field (a Revenue Cloud
                 // org without Billing has no BillingInvoiceSuperUser) reads it as false and
@@ -723,6 +768,21 @@ public without sharing class RLM_AccountResetPlan {
     @TestVisible
     private static String orderBlocker(String status) {
         return status != 'Draft' && !hasUserPermission('PermissionsEditActivatedOrders') ? NEEDS_EDIT_ACTIVATED : null;
+    }
+
+    /**
+     * What blocks deleting a contract of this status, or null. Measured live 264 as the
+     * salesrep persona (runAs, rolled back), on an activated contract it owned: without
+     * Delete Activated Contracts, UserRecordAccess.HasDeleteAccess was false and the delete
+     * was refused ("insufficient access rights on object id"); with it (it depends on
+     * Activate Contracts and Delete Contract), both read true and the delete succeeded. A
+     * Draft contract it owned was deletable either way. The order flow activates the
+     * contracts it creates (RLM_Order_Contract_Creation_and_Association).
+     */
+    @TestVisible
+    private static String contractBlocker(String status) {
+        return status == 'Activated' && !hasUserPermission('PermissionsDeleteActivatedContract')
+            ? NEEDS_DELETE_ACTIVATED_CONTRACT : null;
     }
 
     /**
@@ -802,6 +862,7 @@ public without sharing class RLM_AccountResetPlan {
                 removed++;
             } else if (results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
                 report.refused.put(rowId, results[i].getErrors()[0].getMessage());
+                report.refusedCode.put(rowId, String.valueOf(results[i].getErrors()[0].getStatusCode()));
                 if (firstRefused == null) {
                     firstRefused = rowId;
                 }
@@ -809,6 +870,7 @@ public without sharing class RLM_AccountResetPlan {
             }
             gone.add(rowId);
             report.refused.remove(rowId);
+            report.refusedCode.remove(rowId);
         }
         recordRemoved(records[0].getSObjectType(), removed);
         if (strict && firstRefused != null) {
@@ -833,7 +895,11 @@ public without sharing class RLM_AccountResetPlan {
         if (records.size() > dmlRowsLeft()) {
             throw new ResetStoppedException(DML_LIMIT);
         }
-        Database.update(records, true);
+        try {
+            Database.update(records, true);
+        } catch (DmlException e) {
+            throw new RefusedException(dmlFailure(e));
+        }
     }
 
     /**
@@ -968,6 +1034,8 @@ public without sharing class RLM_AccountResetPlan {
         // kept bucket holds: neither can be deleted while the bucket is there.
         public Integer keptEntitlementAccounts = 0;
         public Integer keptEntitlements = 0;
+        // The account's assets a kept entitlement is bound to.
+        public Set<Id> assetsOfKeptEntitlements = new Set<Id>();
         public Integer payments = 0;
         public Integer lockedDebitMemos = 0;
         public Map<String, Integer> creditMemosByOtherStatus = new Map<String, Integer>();
@@ -1000,7 +1068,7 @@ public without sharing class RLM_AccountResetPlan {
                 'AccountId = :accountId');
             Set<Id> assetIds = ids(assets);
             binds.put('assetIds', assetIds);
-            List<SObject> contracts = read('Contract', '', 'AccountId = :accountId');
+            List<SObject> contracts = read('Contract', ', Status', 'AccountId = :accountId');
             Set<Id> contractIds = ids(contracts);
             binds.put('contractIds', contractIds);
             if (preserveContractsWithPrices && typeOf('ContractItemPrice') != null && !contracts.isEmpty()) {
@@ -1017,6 +1085,12 @@ public without sharing class RLM_AccountResetPlan {
                 contracts = deleted;
             }
             put(G_CONTRACTS, 'Contract', contracts);
+            for (SObject contract : contracts) {
+                String reason = contractBlocker((String) contract.get('Status'));
+                if (reason != null) {
+                    special('Contract', reason, contract);
+                }
+            }
             binds.put('deletedContractIds', ids(contracts));
 
             // ---------------------------------------------------- usage (deleted first)
@@ -1049,14 +1123,15 @@ public without sharing class RLM_AccountResetPlan {
             put(G_SUMMARIES, 'UsageSummary', read('UsageSummary', '', byAccountOrAsset));
             put(G_RATABLE_SUMMARIES, 'UsageRatableSummary', read('UsageRatableSummary', '', byAccountOrAsset));
             put(G_JOURNALS, 'TransactionJournal', read('TransactionJournal', '', 'AccountId = :accountId'));
-            List<SObject> ownEntitlements = read('TransactionUsageEntitlement', '', 'AccountId = :accountId');
+            List<SObject> ownEntitlements = read('TransactionUsageEntitlement', ', AssetId, GrantBindingTargetId',
+                'AccountId = :accountId');
             put(G_ENTITLEMENTS, 'TransactionUsageEntitlement', ownEntitlements);
             // Another account's entitlement bound to an asset this reset deletes goes with
             // the asset.
             List<SObject> assetEntitlements = new List<SObject>();
             if (deleteAssets && !assetIds.isEmpty()) {
-                assetEntitlements = read('TransactionUsageEntitlement', '', '(AssetId IN :assetIds '
-                    + 'OR GrantBindingTargetId IN :assetIds) AND AccountId != :accountId');
+                assetEntitlements = read('TransactionUsageEntitlement', ', AssetId, GrantBindingTargetId',
+                    '(AssetId IN :assetIds OR GrantBindingTargetId IN :assetIds) AND AccountId != :accountId');
             }
             put(G_ASSET_ENTITLEMENTS, 'TransactionUsageEntitlement', assetEntitlements);
             Set<Id> ownTueIds = ids(ownEntitlements);
@@ -1077,6 +1152,11 @@ public without sharing class RLM_AccountResetPlan {
             // ---------------------------------------------------- assets
             if (deleteAssets) {
                 put(G_ASSETS, 'Asset', assets);
+                for (SObject asset : assets) {
+                    if (assetsOfKeptEntitlements.contains(asset.Id)) {
+                        special('Asset', ASSET_ENTITLEMENT_KEPT, asset);
+                    }
+                }
                 if (lifecycleField) {
                     for (SObject asset : assets) {
                         String reason = assetBlocker(asset.get('HasLifecycleManagement'));
@@ -1088,6 +1168,15 @@ public without sharing class RLM_AccountResetPlan {
                 if (!assetIds.isEmpty()) {
                     put(G_ASSET_RATE_CARD_ENTRIES, 'AssetRateCardEntry',
                         read('AssetRateCardEntry', '', 'AssetId IN :assetIds'));
+                    // Binding rate card entries sourced from an asset block its delete
+                    // (measured live 264: "associated with the following binding object rate
+                    // card entries"), whatever they are bound to, so they go with it; those
+                    // of the account and of deleted contracts are planned already.
+                    Set<Id> plannedEntries = ids(rowsOf(G_ACCOUNT_RATE_CARD_ENTRIES));
+                    plannedEntries.addAll(ids(rowsOf(G_CONTRACT_RATE_CARD_ENTRIES)));
+                    binds.put('plannedEntries', plannedEntries);
+                    put(G_ASSET_SOURCED_RATE_CARD_ENTRIES, 'BindingObjectRateCardEntry', read('BindingObjectRateCardEntry',
+                        '', 'SourceAssetId IN :assetIds AND Id NOT IN :plannedEntries'));
                     put(G_ASSET_RELATIONSHIPS, 'AssetRelationship',
                         read('AssetRelationship', '', 'AssetId IN :assetIds OR RelatedAssetId IN :assetIds'));
                     put(G_WORK_ORDERS, 'WorkOrder', readByAsset('WorkOrder'));
@@ -1330,6 +1419,20 @@ public without sharing class RLM_AccountResetPlan {
                 Id parent = (Id) bucket.get('ParentId');
                 if (parent != null && parent.getSObjectType() == UsageEntitlementAccount.SObjectType) {
                     holders.add(parent);
+                }
+            }
+            // An asset that a kept entitlement is bound to cannot be deleted while the
+            // entitlement is there: with Delete Assets, the check refuses the run for it.
+            List<SObject> entitlements = new List<SObject>(rowsOf(G_ENTITLEMENTS));
+            entitlements.addAll(rowsOf(G_ASSET_ENTITLEMENTS));
+            for (SObject entitlement : entitlements) {
+                if (holders.contains(entitlement.Id)) {
+                    for (String field : new List<String>{ 'AssetId', 'GrantBindingTargetId' }) {
+                        Id bound = (Id) entitlement.get(field);
+                        if (bound != null && assetIds.contains(bound)) {
+                            assetsOfKeptEntitlements.add(bound);
+                        }
+                    }
                 }
             }
             Integer accountsBefore = rowsOf(G_ENTITLEMENT_ACCOUNTS).size();

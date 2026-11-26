@@ -84,30 +84,30 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 44 (counted from the code, with every option on and
+    // fixed queries total at most 45 (counted from the code, with every option on and
     // data in every branch): 28 before the asset step (order data 10, collections 5,
     // schedule groups 1, billing 8, fulfillment 2, contracts 2), the asset step's lookup
-    // of entitlements bound to the assets 1 and its other lookups 9 (the asset rate card
-    // entries among them), quotes and opportunities 5 = 43 on the drained path, plus the
-    // journal query, which only the undrained path runs = 44. 29 is what an account with
-    // no such data measures.
-    // QUERY_RESERVE covers the 44 and the usage retries. A round starts only while both
+    // of entitlements bound to the assets 1 and its other lookups 10 (the asset rate card
+    // entries and the rate card entries sourced from the assets among them), quotes and
+    // opportunities 5 = 44 on the drained path, plus the journal query, which only the
+    // undrained path runs = 45. 29 is what an account with no such data measures.
+    // QUERY_RESERVE covers the 45 and the usage retries. A round starts only while both
     // are left; otherwise a large usage graph would spend phase 2's queries and end in a
-    // LimitException. A test holds the measured 29 and the reserve against the 44.
+    // LimitException. A test holds the measured 29 and the reserve against the 45.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 44;
+    private static final Integer PHASE_TWO_FIXED_MAX = 45;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
     //  - RETRY_TAIL, for the usage retries: at most 27 follow the journal guard (journal 1,
     //    collections 5, schedule groups 1, billing 8, fulfillment 2, contracts 2, the asset
     //    step with no assets 3, quotes and opportunities 5). 30 keeps three spare.
-    //  - ASSET_TAIL, for the asset step: at most 14 follow its last guard (other asset
-    //    references 2, resource policies 3, rate card entries 2, assets 2, quotes and
-    //    opportunities 5). 16 keeps two spare.
+    //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
+    //    references 2, resource policies 3, rate card entries 3, assets 2, quotes and
+    //    opportunities 5). 16 keeps one spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
@@ -126,8 +126,10 @@ public without sharing class RLM_AccountUtilities {
         + 'deleted stay deleted, which leaves the next run more room for the rest.';
     @TestVisible
     private static final String PHASE_TWO_STOPPED_NO_PROGRESS = 'Running the reset again stops at the same point, '
-        + 'because nothing this run deleted was kept. Delete some of the account\'s records first, such as its '
-        + 'opportunities or quotes, then run it again.';
+        + 'because nothing this run deleted was kept. Delete some of the records in the largest groups first, then '
+        + 'run it again.';
+    // How many of the largest groups a phase 2 stop names.
+    private static final Integer GROUPS_NAMED = 3;
     // Reached only when the round cap binds before the query budget does: a caller with
     // more than the synchronous 100 queries (asynchronous gets 200). Tests lower the cap
     // through maxTeardownRoundsForTest.
@@ -286,6 +288,11 @@ public without sharing class RLM_AccountUtilities {
     // Lets a test shrink the DML row budget, to prove a run that runs out stops cleanly.
     @TestVisible
     private static Integer dmlRowLimitForTest;
+
+    // Rows phase 2 tried to delete, by object, so a stop can name the largest groups; null
+    // outside phase 2.
+    @TestVisible
+    private static Map<String, Integer> phaseTwoRows;
 
     // Lets a test send a user with Modify All Data and View All Data down the plan path,
     // whose rules a test cannot otherwise reach with the usage and billing access it needs.
@@ -464,6 +471,7 @@ public without sharing class RLM_AccountUtilities {
         // Phase 2: inside the savepoint. All of it is kept, or none of it.
         Savepoint sp = Database.setSavepoint();
         phaseTwoQueriesAtStart = Limits.getQueries();
+        phaseTwoRows = new Map<String, Integer>();
         ResetReport afterPhaseOne = report.copy();
         try {
             OrderData orderData = new OrderData(accountId, deleteFulfillment);
@@ -530,6 +538,10 @@ public without sharing class RLM_AccountUtilities {
                 // asset, so a rollback must restore them with their assets, or the kept
                 // asset could never rate again.
                 deleteAssetRateCardEntries();
+                // A binding rate card entry sourced from an asset blocks the asset's delete,
+                // whatever it is bound to (measured live 264: "associated with the following
+                // binding object rate card entries"), a contract the run keeps included.
+                deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
 
                 deleteAssets();
             }
@@ -555,15 +567,43 @@ public without sharing class RLM_AccountUtilities {
             // Phase 2 kept nothing; only phase 1's deletes make a rerun get further.
             String cause = e.getMessage();
             if (e instanceof ResetStoppedException) {
-                cause += ' ' + (report.removedLabels.isEmpty() ? PHASE_TWO_STOPPED_NO_PROGRESS : PHASE_TWO_STOPPED_AFTER_USAGE);
+                cause += ' ' + (report.removedLabels.isEmpty() ? PHASE_TWO_STOPPED_NO_PROGRESS : PHASE_TWO_STOPPED_AFTER_USAGE)
+                    + largestGroups();
             }
+            phaseTwoRows = null;
             String kept = report.removedLabels.isEmpty()
                 ? 'Nothing was deleted; the run was rolled back. '
                 : 'Only what the usage cleanup deleted stays deleted (see Removed); everything else was rolled back. ';
             return finish(false, kept + cause);
         }
         phaseTwoQueriesForTest = Limits.getQueries() - phaseTwoQueriesAtStart;
+        phaseTwoRows = null;
         return finish(true, null);
+    }
+
+    /**
+     * " The largest groups it reached: Asset Rate Card Entries: 9500; Opportunities: 300."
+     * The groups phase 2 tried to delete before it stopped, largest first, so the advice to
+     * delete some records first says which.
+     */
+    @TestVisible
+    private static String largestGroups() {
+        if (phaseTwoRows == null || phaseTwoRows.isEmpty()) {
+            return '';
+        }
+        List<String> labels = new List<String>(phaseTwoRows.keySet());
+        List<String> named = new List<String>();
+        while (named.size() < GROUPS_NAMED && !labels.isEmpty()) {
+            Integer largest = 0;
+            for (Integer i = 1; i < labels.size(); i++) {
+                if (phaseTwoRows.get(labels[i]) > phaseTwoRows.get(labels[largest])) {
+                    largest = i;
+                }
+            }
+            named.add(labels[largest] + ': ' + phaseTwoRows.get(labels[largest]));
+            labels.remove(largest);
+        }
+        return ' The largest groups it reached: ' + String.join(named, '; ') + '.';
     }
 
     private static void startRun() {
@@ -574,6 +614,7 @@ public without sharing class RLM_AccountUtilities {
         unseenListQueriesSpentForTest = null;
         pathTakenForTest = null;
         ordersSetToDraftForTest = null;
+        phaseTwoRows = null;
     }
 
     /**
@@ -707,6 +748,10 @@ public without sharing class RLM_AccountUtilities {
         Set<Id> gone = new Set<Id>();
         if (records == null || records.isEmpty()) {
             return gone;
+        }
+        if (phaseTwoRows != null) {
+            String label = labelOf(records[0].getSObjectType());
+            phaseTwoRows.put(label, (phaseTwoRows.containsKey(label) ? phaseTwoRows.get(label) : 0) + records.size());
         }
         Integer room = dmlRowsLeft();
         Boolean trimmed = records.size() > room;

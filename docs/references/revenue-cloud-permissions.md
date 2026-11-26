@@ -307,7 +307,11 @@ persona user instead. See the persona rows in the flow inventory below.
 > two order permissions also let the persona activate and change activated orders in the UI.
 > For billing, posted invoices need **Delete Invoice and Invoice Lines** (`BillingInvoiceSuperUser`,
 > from `RLM_DeleteInvoices`) and credit memos **Allow Revenue Records Deletion** (managed Billing
-> Admin set); without them the persona's reset is refused.
+> Admin set); without them the persona's reset is refused. The set does not grant **Delete
+> Activated Contracts** (`DeleteActivatedContract`, which depends on Activate Contracts and Delete
+> Contract). Live 264, without it the persona could not delete an activated contract it owned, so its
+> reset of an account with one (the order flow activates the contracts it creates) is refused, naming
+> the contract and the permission.
 >
 > This is the widest non-admin privilege the build grants. It is intentional for a demo
 > org — resetting between demos is the persona's job and the quick action sits on the
