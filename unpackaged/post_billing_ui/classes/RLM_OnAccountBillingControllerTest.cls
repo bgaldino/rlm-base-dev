@@ -329,20 +329,25 @@ private class RLM_OnAccountBillingControllerTest {
             setName + ' is in no permission set group.');
     }
 
-    // With advanced currency management the dated rates need not cover every currency (the corporate
-    // one, for instance): such a currency falls back to its standard rate rather than becoming
-    // unavailable. Only a currency in neither map is unavailable.
+    // With advanced currency management the dated rates need not cover every currency: such a
+    // currency falls back to its standard rate rather than becoming unavailable or converting at 1.
+    // GBP (non-corporate, standard 0.8, no dated rate) tells the two apart: its standard-rate undo
+    // and its fallback dated rate cancel (100 * 0.8 / 0.8), where a dated rate of 1 would not
+    // (100 * 0.8 / 1). Only a currency in neither map (JPY) is unavailable.
     @isTest
     static void correctConversion_aCurrencyWithoutADatedRate_usesItsStandardRate() {
-        Map<String, Decimal> standard = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 };
+        Map<String, Decimal> standard = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5, 'GBP' => 0.8 };
         Map<String, Decimal> dated = new Map<String, Decimal>{ 'EUR' => 0.6 };
-        Assert.areEqual(60, RLM_OnAccountBillingController.correctConversion(100, 'USD', 'EUR', standard, dated),
-            'USD has no dated rate: 100 * 1 (standard USD) / 1 (standard USD) * 0.6 (dated EUR) = 60.');
-        Decimal back = RLM_OnAccountBillingController.correctConversion(100, 'EUR', 'USD', standard, dated);
-        Assert.isTrue(back != null && Math.abs(back - 83.3333333333) < 0.0001,
-            '100 * 0.5 (standard EUR) / 0.6 (dated EUR) * 1 (standard USD) = 83.33, got ' + back);
-        Assert.isNull(RLM_OnAccountBillingController.correctConversion(100, 'GBP', 'USD', standard, dated),
-            'GBP is in neither map: unavailable, not converted at 1.');
+        Assert.areEqual(100, RLM_OnAccountBillingController.correctConversion(100, 'GBP', 'USD', standard, dated),
+            'GBP has no dated rate: 100 * 0.8 (standard GBP) / 0.8 (standard GBP, the fallback) * 1 (USD) = 100; '
+            + 'a dated rate of 1 would give 80.');
+        Assert.areEqual(60, RLM_OnAccountBillingController.correctConversion(100, 'GBP', 'EUR', standard, dated),
+            '100 * 0.8 / 0.8 (fallback) * 0.6 (dated EUR) = 60; a dated rate of 1 would give 48.');
+        Decimal back = RLM_OnAccountBillingController.correctConversion(100, 'EUR', 'GBP', standard, dated);
+        Assert.isTrue(back != null && Math.abs(back - 66.6666666667) < 0.0001,
+            '100 * 0.5 (standard EUR) / 0.6 (dated EUR) * 0.8 (fallback GBP) = 66.67 (rate 1 would give 83.33), got ' + back);
+        Assert.isNull(RLM_OnAccountBillingController.correctConversion(100, 'JPY', 'USD', standard, dated),
+            'JPY is in neither map: unavailable, not converted at 1.');
     }
 
     // queryAggregate: a balance in a currency with no rate is unavailable (null), not converted at 1.
@@ -399,7 +404,7 @@ private class RLM_OnAccountBillingControllerTest {
             userRates = RLM_OnAccountBillingController.loadDatedRates();
         }
         Test.stopTest();
-        System.debug(LoggingLevel.INFO, 'loadDatedRates as a no-access user: '
+        System.debug(LoggingLevel.INFO, 'DatedConversionRate probe as a no-access user: '
             + (userReadError == null ? 'read ran and returned no rows' : 'read refused (' + userReadError + ')'));
         Assert.isTrue(adminRates.isEmpty(), 'No dated rates for the admin.');
         Assert.isTrue(userRates.isEmpty(), 'No dated rates, and no error, for a user with no access.');

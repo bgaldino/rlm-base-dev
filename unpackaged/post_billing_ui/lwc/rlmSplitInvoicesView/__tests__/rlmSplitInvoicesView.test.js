@@ -65,4 +65,13 @@ describe('rlmSplitInvoicesView invoice link label', () => {
         expect(rows(el).map((r) => r.Name)).toEqual(['—']);
         expect(rows(el)[0].invoiceUrl).toContain(SPLIT_ID);
     });
+
+    // The dash only shows if the url column's label is bound to Name.
+    it('binds the invoice link label to the Name field', async () => {
+        const el = await load('INV-0002');
+        const columns = el.shadowRoot.querySelector('lightning-datatable').columns;
+        const invoiceColumn = columns.find((c) => c.fieldName === 'invoiceUrl');
+        expect(invoiceColumn.type).toBe('url');
+        expect(invoiceColumn.typeAttributes?.label?.fieldName).toBe('Name');
+    });
 });
