@@ -111,6 +111,8 @@ def run_case(results, state="off", interrupt=None, polls=None, username=USER, op
     task._path_option = path_option
     if early_dt_error:
         task.options["validate_decision_table_lookups"] = "true"
+        # Absolute, so the up-front directory check does not depend on the working directory.
+        task.options["expression_sets_metadata_path"] = str(REPO / "force-app/main/default/expressionSetDefinition")
         task._discover_lookup_decision_tables = lambda *a: ["T"]
 
         def missing_tables(names):

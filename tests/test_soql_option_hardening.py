@@ -1504,6 +1504,29 @@ for value, want in ((None, 1), ("", 1), ("  ", 1), (" 3 ", 3), (2, 2), ("1", 1))
     err, queries, logged = res_run({"rank": value})
     check(f"reconfigure_expression_set: rank {value!r} is {want} and the first query is sent",
           err == "reached" and queries and logged and logged[0][2] == want, repr((err, queries, logged[:1])))
+def res_patches(options):
+    """ReconfigureExpressionSet._run_task through its PATCHes (an inactive version, so no reactivation);
+    return (error, the PATCH bodies sent)."""
+    patches = []
+    t = _res.ReconfigureExpressionSet.__new__(_res.ReconfigureExpressionSet)
+    t.options = {"expression_set_name": "ES", "context_definition_name": "CD", **options}
+    t.logger = MagicMock()
+    t._get_expression_set_version = lambda *a, **k: {"Id": "ESV1", "IsActive": False}
+    t._update_context_definition = lambda es_name, cd_name: None
+    t._patch_record = lambda sobject, record_id, body, label=None: patches.append(body) or True
+    try:
+        t._run_task()
+        return None, patches
+    except Exception as exc:
+        return str(exc), patches
+
+
+# The parsed rank is what the Rank PATCH carries, not only what is logged.
+for value, want in ((" 3 ", 3), (2, 2), (None, 1), ("  ", 1)):
+    err, patches = res_patches({"rank": value})
+    check(f"reconfigure_expression_set: rank {value!r} PATCHes Rank={want}",
+          err is None and [p.get("Rank") for p in patches if "Rank" in p] == [want], repr((err, patches)))
+
 for value, needle in ((0, "rank must be a positive integer"), ("0", "rank must be a positive integer"),
                       ("-2", "rank must be a positive integer"), ("abc", "rank must be a positive integer"),
                       (["1"], "rank must be a single value")):
