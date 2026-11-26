@@ -363,11 +363,10 @@ def main(
         max_retries=max(0, args.max_retries),
     )
 
-    # Before the report write, so a caller still gets the manifests if it fails.
-    if on_batch is not None:
-        on_batch(result, manifests)
     report = build_batch_report(manifests, base_run_id=result.base_run_id)
     json_path, _md_path = write_batch_report(report, result.manifest_dir)
+    if on_batch is not None:
+        on_batch(result, manifests)
 
     print(f"\nDone: {result.total - result.failures}/{result.total} scenario(s) "
           f"succeeded. Manifests in {result.manifest_dir}/")

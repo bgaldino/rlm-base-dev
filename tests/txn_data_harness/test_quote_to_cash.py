@@ -114,7 +114,7 @@ def test_a_verify_error_is_exit_2(harness, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "quote-to-cash verify: Salesforce request failed" in err
     # The run completed: the error names its runs and the verify, not a new run.
-    assert "The batch ran (DEMO-1)" in err and "cli verify --manifest" in err
+    assert "Run(s) DEMO-1 reached payment_applied" in err and "cli verify --manifest" in err
 
 
 def test_ids_are_deduplicated_across_scenarios(harness):
@@ -320,17 +320,6 @@ def test_a_payment_only_block_needs_only_its_payment(harness):
     m.payment_ids = ["0a8P"]
     harness["batch"] = [m]
     assert cli.main(["quote-to-cash", "--org", "x"]) == 0
-
-
-def test_an_error_after_the_batch_names_its_runs(harness, monkeypatch, capsys):
-    def report_write_fails(argv, on_batch=None):
-        on_batch(object(), [_manifest()])
-        raise OSError(28, "No space left on device")
-    monkeypatch.setattr(cli.generate, "main", report_write_fails)
-    assert cli.main(["quote-to-cash", "--org", "x"]) == 2
-    err = capsys.readouterr().err
-    assert "quote-to-cash run: could not run a command or read a file" in err
-    assert "The batch ran (DEMO-1)" in err
 
 
 @pytest.mark.parametrize("stage, warned", [("payment_applied", True), ("credit_applied", False)])

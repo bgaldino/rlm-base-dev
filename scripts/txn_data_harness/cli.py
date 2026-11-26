@@ -598,15 +598,6 @@ QUOTE_TO_CASH_CONFIG = (
 QUOTE_TO_CASH_STAGE = "payment_applied"
 
 
-def _rerun_hint(batch: list) -> str:
-    """After a batch ran, name its runs so a retry checks them, not a new run."""
-    if not batch:
-        return ""
-    runs = ", ".join(m.run_id for m in batch)
-    return (f". The batch ran ({runs}): check it with `cli verify --manifest <run>` "
-            "rather than a new run")
-
-
 def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     """Run a quote through to an applied payment, then verify the balances.
 
@@ -642,8 +633,7 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     try:
         code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
     except Exception as exc:  # noqa: BLE001 - exit 1 means short or failed, never an error
-        print(f"ERROR: quote-to-cash run: {_error_message(exc)}{_rerun_hint(batch)}",
-              file=sys.stderr)
+        print(f"ERROR: quote-to-cash run: {_error_message(exc)}", file=sys.stderr)
         return 2
     if not batch:
         print(f"ERROR: quote-to-cash: the run did not start (exit {code})", file=sys.stderr)
@@ -689,8 +679,10 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
-        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}{_rerun_hint(batch)}",
-              file=sys.stderr)
+        runs = ", ".join(m.run_id for m in batch)
+        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}. Run(s) {runs} reached "
+              f"{QUOTE_TO_CASH_STAGE} with their own credit and payment: check them with "
+              "`cli verify --manifest <run>` rather than a new run", file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:
