@@ -88,16 +88,7 @@ def test_resolve_account_id_refuses_none_or_several(rows, found):
         lifecycle.resolve_account_id(QueryOrg({"FROM Account": rows}), "Acme")
 
 
-def test_open_sources_reads_payments_and_memos_with_a_balance():
-    org = QueryOrg({"FROM Payment": [{"Id": PAYMENT}], "FROM CreditMemo": [{"Id": MEMO}]})
-    assert lifecycle.open_sources(org, ACCOUNT) == ([PAYMENT], [MEMO])
-    assert org.queries == [
-        f"SELECT Id FROM Payment WHERE AccountId = '{ACCOUNT}' AND Balance != 0",
-        f"SELECT Id FROM CreditMemo WHERE BillingAccountId = '{ACCOUNT}' AND Balance != 0",
-    ]
-
-
-def test_read_source_applications_reads_all_four_objects_and_flattens_relationships():
+def test_read_account_applications_reads_all_four_objects_by_account():
     org = QueryOrg({
         "FROM PaymentLineInvoiceLine": [{"Id": "1Al1", "Amount": 445.5, "Type": "Applied",
                                          "PaymentId": PAYMENT,
@@ -108,7 +99,7 @@ def test_read_source_applications_reads_all_four_objects_and_flattens_relationsh
         "FROM PaymentLineInvoice": [{"Id": "hdr1", "Amount": 1, "Type": "Applied",
                                      "PaymentId": PAYMENT, "InvoiceId": INVOICE_B}],
     })
-    rows = lifecycle.read_source_applications(org, [PAYMENT], [MEMO])
+    rows = lifecycle.read_account_applications(org, ACCOUNT)
     assert rows == [
         {"id": "1Al1", "object": "PaymentLineInvoiceLine", "kind": "payment",
          "source_id": PAYMENT, "invoice_id": INVOICE_A, "amount": 445.5, "type": "Applied"},
@@ -117,18 +108,17 @@ def test_read_source_applications_reads_all_four_objects_and_flattens_relationsh
         {"id": "hdr1", "object": "PaymentLineInvoice", "kind": "payment",
          "source_id": PAYMENT, "invoice_id": INVOICE_B, "amount": 1, "type": "Applied"},
     ]
-    assert len(org.queries) == 4
-    assert ("FROM CreditMemoLineInvoiceLine WHERE CreditMemoLine.CreditMemoId IN "
-            f"('{MEMO}')") in org.queries[1]
-
-
-def test_read_source_applications_skips_a_kind_with_no_sources_and_chunks():
-    org = QueryOrg()
-    payments = [f"0aQ{i:015d}" for i in range(201)]
-    lifecycle.read_source_applications(org, payments, [])
-    assert [q.split(" FROM ")[1].split(" WHERE ")[0] for q in org.queries] == [
-        "PaymentLineInvoiceLine", "PaymentLineInvoiceLine",
-        "PaymentLineInvoice", "PaymentLineInvoice"]
+    assert org.queries == [
+        "SELECT Id, Amount, Type, PaymentId, InvoiceLine.InvoiceId FROM "
+        f"PaymentLineInvoiceLine WHERE Payment.AccountId = '{ACCOUNT}'",
+        "SELECT Id, Amount, Type, CreditMemoLine.CreditMemoId, InvoiceLine.InvoiceId FROM "
+        "CreditMemoLineInvoiceLine WHERE CreditMemoLine.CreditMemo.BillingAccountId = "
+        f"'{ACCOUNT}'",
+        "SELECT Id, Amount, Type, PaymentId, InvoiceId FROM PaymentLineInvoice WHERE "
+        f"Payment.AccountId = '{ACCOUNT}'",
+        "SELECT Id, Amount, Type, CreditMemoId, InvoiceId FROM CreditMemoInvApplication "
+        f"WHERE CreditMemo.BillingAccountId = '{ACCOUNT}'",
+    ]
 
 
 def test_apply_rules_posts_once_with_the_optional_target_date():
@@ -145,24 +135,9 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, appliedRules=[{"name": "Match Balance"}]),
     dict(OK, appliedRules="Match Balance"),
     dict(OK, rulesApplicationSummary=[1]),
-    dict(OK, rulesApplicationSummary={"totalPaymentApplications": "1"}),
-    dict(OK, rulesApplicationSummary={"totalCreditMemoApplications": True}),
+    dict(OK, rulesApplicationSummary="summary"),
     {}, {k: v for k, v in OK.items() if k != "isSuccess"}, dict(OK, isSuccess="true"),
-    {"isSuccess": True},
-    {k: v for k, v in OK.items() if k != "rulesApplicationSummary"},
-    dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1}),
-    dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
-                                      "totalCreditMemoApplications": None}),
-    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                          totalPaymentApplications="1")),
-    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                          totalCreditMemoApplications=True)),
-    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                          fetchedPaymentsCount=True)),
     {"isSuccess": False, "rulesApplicationSummary": [1]},
-    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                          totalPaymentApplications=1.0)),
-    {"isSuccess": False, "rulesApplicationSummary": {"totalPaymentApplications": "1"}},
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
@@ -181,11 +156,11 @@ def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
                             "credits and payments. "}], "isSuccess": False},
     {"isSuccess": False, "appliedRules": None, "rulesApplicationSummary": None,
      "errors": [{"message": "m", "errorCode": None}]},
-    dict(OK, isSuccess=False),
+    OK, dict(OK, isSuccess=False), {"isSuccess": True},
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
 ])
-def test_apply_rules_returns_a_failure_or_a_success_with_both_counts(result):
+def test_apply_rules_returns_the_measured_shapes(result):
     assert lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT) == result
 
 
@@ -217,8 +192,7 @@ class Org:
         m = monkeypatch
         m.setattr(cli.SfRestClient, "from_alias", classmethod(lambda c, *a, **k: self))
         m.setattr(cli.lifecycle, "resolve_account_id", self._step("resolve", ACCOUNT))
-        m.setattr(cli.lifecycle, "open_sources", self._step("sources", ([PAYMENT], [MEMO])))
-        m.setattr(cli.lifecycle, "read_source_applications", self._read)
+        m.setattr(cli.lifecycle, "read_account_applications", self._read)
         m.setattr(cli.lifecycle, "apply_rules", self._step("apply", None))
         m.setattr(cli.billing_verify, "fetch_records", self._step("fetch", {}))
         m.setattr(cli.billing_verify, "run_checks", lambda records: self.report)
@@ -231,8 +205,8 @@ class Org:
             return self.result if name == "apply" else value
         return call
 
-    def _read(self, client, payments, memos):
-        self.calls.append(("read", payments, memos))
+    def _read(self, client, account_id):
+        self.calls.append(("read", account_id))
         first = len([c for c in self.calls if c[0] == "read"]) == 1
         failing = self.fail.get("first read" if first else "read")
         if failing:
@@ -250,7 +224,7 @@ def _apply_rules(*extra: str) -> int:
 def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     org = Org(monkeypatch)
     assert _apply_rules() == 0
-    assert org.names() == ["resolve", "sources", "read", "apply", "read", "fetch"]
+    assert org.names() == ["resolve", "read", "apply", "read", "fetch"]
     assert ("apply", ACCOUNT, None) in org.calls
     assert ("fetch", [INVOICE_A], [PAYMENT]) in org.calls
     out = capsys.readouterr().out
@@ -267,15 +241,6 @@ def test_verifies_the_invoices_of_credit_rows_too(monkeypatch):
     org = Org(monkeypatch, after=[OLD, NEW_PAY, credit_b])
     assert _apply_rules() == 0
     assert ("fetch", [INVOICE_A, INVOICE_B], [PAYMENT]) in org.calls
-
-
-def test_more_sources_fetched_than_were_open_fails(monkeypatch, capsys):
-    result = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                                   fetchedPaymentsCount=2))
-    org = Org(monkeypatch, result=result)
-    assert _apply_rules() == 1
-    assert "fetch" not in org.names()
-    assert "2 payment(s) fetched but 1 open before the call" in capsys.readouterr().out
 
 
 def test_passes_the_target_date(monkeypatch):
@@ -302,41 +267,6 @@ def test_nothing_applied_passes_without_verify(monkeypatch, capsys):
     assert "fetch" not in org.names()
     assert "APPLY-RULES: pass (account 001ACCT000000001AA: nothing applied)" in \
         capsys.readouterr().out
-
-
-def test_counted_applications_with_no_new_row_fail(monkeypatch, capsys):
-    org = Org(monkeypatch, after=[OLD])
-    assert _apply_rules() == 1
-    assert "fetch" not in org.names()
-    out = capsys.readouterr().out
-    assert ("the response counts 1 payment application(s) but 0 new payment row(s) and "
-            "1 credit application(s) but 0 new credit row(s)") in out
-    assert "APPLY-RULES: fail" in out
-
-
-def test_a_counted_kind_with_no_new_row_fails_even_when_another_kind_has_one(
-        monkeypatch, capsys):
-    org = Org(monkeypatch, after=[OLD, NEW_CREDIT])
-    assert _apply_rules() == 1
-    assert "fetch" not in org.names()
-    out = capsys.readouterr().out
-    assert f"APPLIED: credit {MEMO} 49.5" in out
-    assert "the response counts 1 payment application(s) but 0 new payment row(s) on" in out
-
-
-def test_fewer_new_rows_than_the_count_of_their_kind_fail(monkeypatch, capsys):
-    result = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
-                                                   totalPaymentApplications=2))
-    org = Org(monkeypatch, result=result)
-    assert _apply_rules() == 1
-    assert "fetch" not in org.names()
-    assert "2 payment application(s) but 1 new payment row(s)" in capsys.readouterr().out
-
-
-def test_more_new_rows_than_the_count_pass(monkeypatch):
-    extra = _row("1AlNEW2", "payment", PAYMENT, INVOICE_B, 5)
-    Org(monkeypatch, after=[OLD, NEW_PAY, extra, NEW_CREDIT])
-    assert _apply_rules() == 0
 
 
 @pytest.mark.parametrize("result", [
@@ -374,7 +304,7 @@ def test_warns_when_not_every_invoice_was_considered(monkeypatch, capsys):
     assert "WARNING: the platform did not consider every invoice" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("step", ["resolve", "sources", "first read"])
+@pytest.mark.parametrize("step", ["resolve", "first read"])
 @pytest.mark.parametrize("exc, text", [
     (lifecycle.SettlementError("apply-rules", "no account found for 'X'"),
      "ERROR: apply-rules: [apply-rules] no account found"),

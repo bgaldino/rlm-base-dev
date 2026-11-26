@@ -1884,21 +1884,17 @@ def unapply_credit_line(client: SfRestClient, row_id: str) -> str:
 # -> Rule-based application.
 
 _ACCOUNT_ID_RE = re.compile(r"001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?")
-# The application counts in rulesApplicationSummary, per kind.
-RULES_COUNT_BY_KIND = {"payment": "totalPaymentApplications",
-                       "credit": "totalCreditMemoApplications"}
-_RULES_COUNTS = tuple(RULES_COUNT_BY_KIND.values()) + (
-    "fetchedPaymentsCount", "fetchedCreditMemosCount")
-_IN_CHUNK = 200
 
-# (kind, object, source filter, invoice field) for each application object; a
-# dotted field is read through its relationship.
-_SOURCE_APPLICATIONS = (
-    ("payment", "PaymentLineInvoiceLine", "PaymentId", "InvoiceLine.InvoiceId"),
-    ("credit", "CreditMemoLineInvoiceLine", "CreditMemoLine.CreditMemoId",
+# (kind, object, account filter, source field, invoice field) for each
+# application object; a dotted field is read through its relationship.
+_ACCOUNT_APPLICATIONS = (
+    ("payment", "PaymentLineInvoiceLine", "Payment.AccountId", "PaymentId",
      "InvoiceLine.InvoiceId"),
-    ("payment", "PaymentLineInvoice", "PaymentId", "InvoiceId"),
-    ("credit", "CreditMemoInvApplication", "CreditMemoId", "InvoiceId"),
+    ("credit", "CreditMemoLineInvoiceLine", "CreditMemoLine.CreditMemo.BillingAccountId",
+     "CreditMemoLine.CreditMemoId", "InvoiceLine.InvoiceId"),
+    ("payment", "PaymentLineInvoice", "Payment.AccountId", "PaymentId", "InvoiceId"),
+    ("credit", "CreditMemoInvApplication", "CreditMemo.BillingAccountId", "CreditMemoId",
+     "InvoiceId"),
 )
 
 
@@ -1906,14 +1902,6 @@ def _dotted(row: dict, path: str) -> Any:
     for part in path.split("."):
         row = row.get(part) if isinstance(row, dict) else None
     return row
-
-
-def _query_ids_in(client: SfRestClient, select: str, field: str, ids: list[str]) -> list[dict]:
-    rows: list[dict] = []
-    for start in range(0, len(ids), _IN_CHUNK):
-        quoted = ", ".join(f"'{i}'" for i in ids[start:start + _IN_CHUNK])
-        rows += client.query(f"{select} WHERE {field} IN ({quoted})")
-    return rows
 
 
 def resolve_account_id(client: SfRestClient, account: str) -> str:
@@ -1934,30 +1922,18 @@ def resolve_account_id(client: SfRestClient, account: str) -> str:
     return rows[0]["Id"]
 
 
-def open_sources(client: SfRestClient, account_id: str) -> tuple[list[str], list[str]]:
-    """Ids of the account's payments and credit memos with a non-zero Balance."""
-    payments = client.query(
-        f"SELECT Id FROM Payment WHERE AccountId = '{account_id}' AND Balance != 0")
-    memos = client.query(
-        f"SELECT Id FROM CreditMemo WHERE BillingAccountId = '{account_id}' AND Balance != 0")
-    return [r["Id"] for r in payments], [r["Id"] for r in memos]
+def read_account_applications(client: SfRestClient, account_id: str) -> list[dict]:
+    """Every application row of the account's payments and credit memos, line and header.
 
-
-def read_source_applications(
-    client: SfRestClient, payment_ids: list[str], memo_ids: list[str]
-) -> list[dict]:
-    """Every application row of these payments and credit memos, line and header.
-
-    Each row comes back as ``{"id", "object", "kind", "source_id", "invoice_id",
-    "amount", "type"}``.
+    Read whatever the payment's or memo's balance, so a row written on any of
+    them shows. Each row comes back as ``{"id", "object", "kind", "source_id",
+    "invoice_id", "amount", "type"}``.
     """
     out: list[dict] = []
-    for kind, obj, source, invoice in _SOURCE_APPLICATIONS:
-        ids = payment_ids if kind == "payment" else memo_ids
-        if not ids:
-            continue
-        select = f"SELECT Id, Amount, Type, {source}, {invoice} FROM {obj}"
-        for row in _query_ids_in(client, select, source, ids):
+    for kind, obj, account_field, source, invoice in _ACCOUNT_APPLICATIONS:
+        rows = client.query(f"SELECT Id, Amount, Type, {source}, {invoice} FROM {obj} "
+                            f"WHERE {account_field} = '{account_id}'")
+        for row in rows:
             out.append({"id": row["Id"], "object": obj, "kind": kind,
                         "source_id": _dotted(row, source),
                         "invoice_id": _dotted(row, invoice),
@@ -1967,7 +1943,12 @@ def read_source_applications(
 
 def apply_rules(client: SfRestClient, account_id: str,
                 target_date: Optional[str] = None) -> dict:
-    """Call the rule-based application once (no transport retry); return its response."""
+    """Call the rule-based application once (no transport retry); return its response.
+
+    Refuses (``SettlementError``) a response that is not the measured shape:
+    ``isSuccess`` a boolean, ``appliedRules`` absent, null or a list of
+    strings, ``rulesApplicationSummary`` absent, null or an object.
+    """
     body = {"accountId": account_id}
     if target_date:
         body["targetDate"] = target_date
@@ -1978,22 +1959,15 @@ def apply_rules(client: SfRestClient, account_id: str,
     if not isinstance(result, dict) or "_raw" in result:
         raise SettlementError("apply-rules",
                               f"rules application answered {describe_response(result)}")
-    # The measured shape: isSuccess a boolean; on success, a summary carrying
-    # both application counts (the command checks its rows against them).
-    rules = result.get("appliedRules") or []
+    rules = result.get("appliedRules")
     summary = result.get("rulesApplicationSummary")
-    success = result.get("isSuccess")
-    counts = [summary.get(k) for k in _RULES_COUNTS] if isinstance(summary, dict) else []
-    required = [summary.get(k) for k in RULES_COUNT_BY_KIND.values()] if counts else []
-    if (not isinstance(success, bool)
-            or not isinstance(rules, list) or not all(isinstance(r, str) for r in rules)
-            or (summary is not None and not isinstance(summary, dict))
-            or not all(c is None or (isinstance(c, int) and not isinstance(c, bool))
-                       for c in counts)
-            or (success and (not required or None in required))):
+    if (not isinstance(result.get("isSuccess"), bool)
+            or not (rules is None or (isinstance(rules, list)
+                                      and all(isinstance(r, str) for r in rules)))
+            or not (summary is None or isinstance(summary, dict))):
         raise SettlementError(
             "apply-rules", "rules application answered an unexpected shape "
-            f"(isSuccess {success!r}, appliedRules {type(rules).__name__}, "
+            f"(isSuccess {result.get('isSuccess')!r}, appliedRules {type(rules).__name__}, "
             f"rulesApplicationSummary {type(summary).__name__}; "
             f"errors {result.get('errors')})")
     return result

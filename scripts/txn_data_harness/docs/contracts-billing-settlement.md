@@ -542,8 +542,10 @@ Each then called:
   No `errors` key came back on success.
 - **Rows.** Ordinary line-level rows: `PaymentLineInvoiceLine` /
   `CreditMemoLineInvoiceLine`, `Type` Applied, `UnappliedStatus` No; the
-  invoice's `SettlementLevel` became InvoiceLine. `cli verify` checks them like
-  any other application.
+  invoice's `SettlementLevel` became InvoiceLine. Probe 5 ran through `cli
+  apply-rules` (run DEMO-20261126T061653Z unapplied first): it listed both new
+  rows, `cli verify` passed on them (4 balances checked, 0 skipped) and it
+  exited 0.
 - **Rule names.** `appliedRules` gives Help names, not the settings codes.
   Calls that reported Match Balance alone (probes 1 and 4) put the payment on
   the invoice with that balance, so **EA is Match Balance**. The other name
@@ -599,25 +601,22 @@ The probes, in the order they ran (invoice numbers are that org's
   follows them was not measured.
 
 `cli apply-rules --org <sf-alias> --account <name or Account Id> [--target-date
-YYYY-MM-DD]` (todo 498) reads the account's payments and credit memos with a
-non-zero `Balance` and their application rows (line and header), sends the
-call once (no transport retry), then reads the rows of those same payments and
-memos again: each new row is printed (`APPLIED:`), with the rules and summary
-the response gave (`RULES:`). It then runs the `cli verify` checks on every
-invoice and payment those rows touch. It works on the account, not on a run:
-the platform considers everything open there, a run's freed balances or
-anyone else's. Exit
-0 when the platform reports `isSuccess` true and either nothing was applied or
-the checks passed with at least one balance checked (the pass line gives the
-checked and skipped counts); 1 when the platform reports failure (no eligible invoice included), a check
-fails, no balance could be checked, or the response counts more payment (or
-credit) applications than new payment (or credit) rows were found (each
-applied payment or memo writes at least one row), or more payments (or credit
-memos) fetched than were open before the call (one opened in between; the
-platform did not count a Canceled payment the command reads); 2 when the account
-cannot be resolved (none or several by that name), the org cannot be read, or
-the call, its response (not the measured shape) or a later read fails. A failed call may or may not have applied anything:
-read the account's payments and credit memos before calling again.
+YYYY-MM-DD]` (todo 498) reads every application row (line and header) on the
+account's payments and credit memos, whatever their balance, sends the call
+once (no transport retry), and reads them again: each new row is printed
+(`APPLIED:`), with the rules and summary the response gave (`RULES:`). It then
+runs the `cli verify` checks on every invoice and payment the new rows touch.
+It works on the account, not on a run: the platform considers everything open
+there, a run's freed balances or anyone else's, and a row another process
+writes on the account meanwhile is listed and checked too. Exit 0 when the
+platform reports `isSuccess` true and either nothing was applied or the checks
+passed with at least one balance checked (the pass line gives the checked and
+skipped counts); 1 when the platform reports failure (no eligible invoice
+included), a check fails or no balance could be checked; 2 when the account
+cannot be resolved (none or several by that name, or an Id not found), the org
+cannot be read, or the call, its response (not the measured shape) or a later
+read fails. A failed call may or may not have applied anything: read the
+account's payments and credit memos before calling again.
 
 ## Cleanup
 

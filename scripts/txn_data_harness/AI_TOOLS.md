@@ -166,19 +166,19 @@ python -m scripts.txn_data_harness.cli apply-rules --org <sf-alias> --account <a
 
 Calls the rule-based application (`/revenue/billing/transactions/actions/apply`)
 once for the whole account: the platform considers every open payment and
-credit memo there by the Billing Settings rules, not only a run's. Prints each
-application row it created (`APPLIED:`) and the rules the response names
-(`RULES:`, as Help names; EA is Match Balance), then runs the
-`verify` checks on the invoices and payments those rows touch; the pass line
-gives the checked and skipped counts. Without `--target-date`, one measured
-evening's calls considered only invoices posted that UTC day. Exit 0 when the
-platform reports success and nothing was applied or the checks passed with a
-balance checked, 1 when it reports failure, a check fails, nothing could be
-checked, or it counts more payment (or credit) applications than new payment
-(or credit) rows were found or more sources fetched than were open, 2 when the account (none or several by that name) or
-the org cannot be read, or the call, its response or a later read fails; read
-the account's payments and credit memos before calling again after a 2. To free a
-run's balances first, `unapply` it. Measurements:
+credit memo there by the Billing Settings rules, not only a run's. Reads every
+application row on the account's payments and credit memos before and after,
+prints each new row (`APPLIED:`) and the rules the response names (`RULES:`, as
+Help names; EA is Match Balance), then runs the `verify` checks on the invoices
+and payments the new rows touch; the pass line gives the checked and skipped
+counts. Without `--target-date`, one measured evening's calls considered only
+invoices posted that UTC day. Exit 0 when the platform reports success and
+nothing was applied or the checks passed with a balance checked, 1 when it
+reports failure (no eligible invoice included), a check fails or nothing could
+be checked, 2 when the account (none or several by that name) or the org cannot
+be read, or the call, its response or a later read fails; read the account's
+payments and credit memos before calling again after a 2. To free a run's
+balances first, `unapply` it. Measurements:
 `docs/contracts-billing-settlement.md` → *Rule-based application*.
 
 ### Verify billing (read-only)

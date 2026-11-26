@@ -820,25 +820,21 @@ def _application_ids(manifest, kind: str) -> list[str]:
 def _cmd_apply_rules(args: argparse.Namespace) -> int:
     """Apply an account's open payments and credits by the Billing Settings rules.
 
-    Sends the rule-based application once for the whole account, lists every
-    application row it created on the payments and credit memos that had a
-    balance before the call, then runs the ``cli verify`` checks on the invoices
-    and payments those rows touch. Exit 0 when the platform reports success and
-    either nothing was applied or the checks passed with at least one balance
-    checked; 1 when the platform reports failure, a check fails, nothing could
-    be checked, or the response counts more payment (or credit) applications
-    than new payment (or credit) rows were found, or more payments (or credit
-    memos) fetched than were open before the call; 2 when the account or the org cannot
-    be read, or the call, its response or a later read fails.
+    Reads every application row on the account's payments and credit memos,
+    sends the rule-based application once for the whole account, reads them
+    again, lists each new row, then runs the ``cli verify`` checks on the
+    invoices and payments the new rows touch. Exit 0 when the platform reports
+    success and either nothing was applied or the checks passed with at least
+    one balance checked; 1 when the platform reports failure, a check fails or
+    nothing could be checked; 2 when the account or the org cannot be read, or
+    the call, its response or a later read fails.
     """
     try:
         client = SfRestClient.from_alias(
             args.org, api_version=args.api_version, transport=args.transport
         )
         account_id = lifecycle.resolve_account_id(client, args.account)
-        payment_ids, memo_ids = lifecycle.open_sources(client, account_id)
-        before = {r["id"] for r in lifecycle.read_source_applications(
-            client, payment_ids, memo_ids)}
+        before = {r["id"] for r in lifecycle.read_account_applications(client, account_id)}
     except Exception as exc:  # noqa: BLE001 - nothing was written yet
         print(f"ERROR: apply-rules: {_error_message(exc)}", file=sys.stderr)
         return 2
@@ -849,7 +845,7 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               "and credit memos before calling again", file=sys.stderr)
         return 2
     try:
-        new = [r for r in lifecycle.read_source_applications(client, payment_ids, memo_ids)
+        new = [r for r in lifecycle.read_account_applications(client, account_id)
                if r["id"] not in before]
     except Exception as exc:  # noqa: BLE001 - the call already ran
         print(f"ERROR: apply-rules: the call returned, but its applications could not "
@@ -872,28 +868,13 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               f"{'; '.join(messages) or 'no error message'}")
         print(f"APPLY-RULES: fail ({label})")
         return 1
-    # Each applied payment or credit memo writes at least one row, so fewer new
-    # rows than the response counts means an application went unseen.
-    unseen = [f"{summary[key]} {kind}(s) fetched but {len(ids)} open before the call"
-              for kind, key, ids in (("payment", "fetchedPaymentsCount", payment_ids),
-                                     ("credit memo", "fetchedCreditMemosCount", memo_ids))
-              if (summary.get(key) or 0) > len(ids)]
-    for kind, key in lifecycle.RULES_COUNT_BY_KIND.items():
-        found = sum(1 for r in new if r["kind"] == kind)
-        if found < (summary.get(key) or 0):
-            unseen.append(f"{summary[key]} {kind} application(s) but {found} new {kind} row(s)")
-    if unseen:
-        print(f"FAIL: the response counts {' and '.join(unseen)} on the account's open "
-              "payments and credit memos; an application may have gone unseen")
-        print(f"APPLY-RULES: fail ({label})")
-        return 1
     if not new:
         print(f"APPLY-RULES: pass ({label}: nothing applied)")
         return 0
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
-    payment_ids_hit = list(dict.fromkeys(r["source_id"] for r in new if r["kind"] == "payment"))
+    payment_ids = list(dict.fromkeys(r["source_id"] for r in new if r["kind"] == "payment"))
     try:
-        records = billing_verify.fetch_records(client, invoice_ids, payment_ids_hit)
+        records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report
         print(f"ERROR: apply-rules verify: {_error_message(exc)} (the call applied "
