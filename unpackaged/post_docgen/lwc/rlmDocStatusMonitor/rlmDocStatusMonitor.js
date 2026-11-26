@@ -184,8 +184,6 @@ export default class RlmDocStatusMonitor extends LightningElement {
     // A status from the platform event or the record read. Only Success and Failure end the wait.
     handleStatusChange(newStatus) {
         if (!FINAL_STATUSES.has(newStatus)) return;
-        this._finalStatus = newStatus;
-        this._finalStatusFor = this._processId;
         this.finish(newStatus);
     }
 
@@ -193,6 +191,12 @@ export default class RlmDocStatusMonitor extends LightningElement {
     finish(outcome) {
         // An outcome that arrives after the screen is gone or after the flow moved on is ignored.
         if (!this._connected || this.hasNavigated) return;
+        // Remember the final status the flow is told (not TimedOut, which the process never had), so a
+        // put-back replays exactly that; a later, contradicting status was ignored above.
+        if (FINAL_STATUSES.has(outcome)) {
+            this._finalStatus = outcome;
+            this._finalStatusFor = this._processId;
+        }
         this._status = outcome;
         this.dispatchEvent(new FlowAttributeChangeEvent('status', this._status));
         this.hasNavigated = true;

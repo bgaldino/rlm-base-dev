@@ -140,6 +140,35 @@ describe('rlmDocStatusMonitor', () => {
         jest.advanceTimersByTime(1000);
         expect(el.status).toBe('Success');
         expect(next).toHaveBeenCalledTimes(1);
+
+        // What it remembers is what the flow was told: put back, it replays Success.
+        document.body.removeChild(el);
+        document.body.appendChild(el);
+        jest.advanceTimersByTime(300);
+        expect(el.status).toBe('Success');
+        expect(next).toHaveBeenCalledTimes(2);
+    });
+
+    it('replays the status the flow was told, not a later contradicting one, when it is put back', async () => {
+        let deliver;
+        subscribe.mockImplementation((channel, replayId, callback) => {
+            deliver = callback;
+            return Promise.resolve({ channel });
+        });
+        const { el, next } = mount();
+        await flushPromises();
+        deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Success' } } });
+        // A late, contradicting event for the same process, before the navigation delay ends.
+        deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Failure' } } });
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(1);
+
+        document.body.removeChild(el);
+        document.body.appendChild(el);
+        jest.advanceTimersByTime(300);
+
+        expect(el.status).toBe('Success');
+        expect(next).toHaveBeenCalledTimes(2);
     });
 
     it('does not read the status when the subscription goes live after the flow moved on', async () => {
