@@ -5,10 +5,10 @@ description: >-
   order activation, invoice generation (scheduled batch runs, on-demand, preview, catch-up, billing forecast,
   draft vs posted), invoice documents, tax (tax policies and treatments, tax engines,
   estimated vs actual tax), payments and payment application, refunds, credit and debit
-  memos, write-offs, collections and dunning, legal entities, accounting periods and the
+  memos, write-offs, legal entities, accounting periods and the
   general ledger. Use when planning or reviewing the operate side of a billing build,
   choosing between billing options with a customer, or reading back invoices, tax,
-  payments, credits or journals from an org. Billing frequency, policies, treatments,
+  payments, credits or journals from an org. Collections and dunning: collections. Billing frequency, policies, treatments,
   milestones and payment terms: billing-setup. Billing schema: revenue-cloud-data-model.
 ---
 
@@ -19,7 +19,7 @@ you must decide, run or check what happens next: schedules, invoices, tax, cash,
 the ledger. Every product claim comes from the 264 Help snapshot or the dev guide and is
 tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
 `[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
-live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application and
+live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application, unapply, rule-based application and
 automatic payment schedules in [payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe and the
 Billing Forecast run in [invoicing.md](invoicing.md)); an unsettled point carries `[Open: <the check that would settle it>]`. A measured fact is an observation on the build(s) its tags name: re-measure it on
 the release patch in hand before relying on it or repeating it. Where billing-setup holds a
@@ -116,8 +116,10 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
 - Schedules, invoices, preview, documents, posting, batch runs, Billing Forecast:
   [invoicing.md](invoicing.md).
 - Tax engine choice, policies, treatments, estimated vs actual, header tax: [tax.md](tax.md).
-- Payments, retries, refunds, credit and debit memos, write-offs, collections:
-  [payments-and-credits.md](payments-and-credits.md).
+- Payments, retries, refunds, credit and debit memos, unapply, rule-based application, write-off
+  effects: [payments-and-credits.md](payments-and-credits.md).
+- Collection plans, promises to pay, dunning, late fees, disputes, collections permissions and
+  dashboards: `collections` (Billing collections; Collections and Recovery is a different product).
 - Legal entities, accounting periods, ledger accounts, journals: [accounting.md](accounting.md).
 - Billing frequency, policies, treatments, milestones, payment terms: `billing-setup`.
 - Billing objects, fields, relationships: `revenue-cloud-data-model` → `domains/billing.md`.
@@ -137,8 +139,10 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
-  memos, writing off, or running collections, applying a payment or credit through the
-  API at Line Level, or checking the automatic payment schedule after posting.
+  memos, writing off, applying a payment or credit through the API at Line Level, unapplying
+  one, running rule-based application, or checking the automatic payment schedule after posting.
+- [open-questions.md](open-questions.md): read before promising a behavior raised in field work
+  that has no measurement here (on-demand limits, suspend and resume, tax-only credits, GL rules).
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 - [verification.md](verification.md): read when checking, read-only, that invoice, line
@@ -166,11 +170,12 @@ A snapshot; the files are the source [Repo]:
 
 Whether any of these has been run end to end for a given stage here: not measured, except the
 quote-to-cash chain (quote through an applied credit and payment, Line Level, 2026-11-26), the
-Line Level application, the automatic payment schedule on posting, the Billing Forecast run and the
+Line Level application, line-level unapply, rule-based application (how an unmatched payment is
+placed is still open), the automatic payment schedule on posting, the Billing Forecast run and the
 invoice PDF fetch
 (the quote-to-cash run in `docs/guides/quote-to-cash-runbook.md`; *Measured: Line Level
-application* and *Billing Settings that change behavior* in
-[payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
+application*, *Measured: unapply*, *Measured: rule-based application* and *Billing Settings that
+change behavior* in [payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* and
 *Billing Forecast: generate and read back* in [invoicing.md](invoicing.md)).
 
 ## Discovery
