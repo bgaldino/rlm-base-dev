@@ -2,6 +2,8 @@
 
 Read when managing a DocumentTemplate (list, replace, create, download), executing an Extract or Transform on its own, linting or diffing ODTs, or running a full generation to verify output. Parent: [document-generation](SKILL.md).
 
+> Provenance: moved unchanged from this skill's entry point as of 661e50bbb, which stated "Verified on Release 262, API v67.0" [Repo: statement added in 7e1860b35, 2026-07-02]. [Open: not re-verified on the active release; run the check or generation it describes on a current org before relying on it.]
+
 ## ODT Context for Template Authors
 
 | Path | Use When | Supportability |

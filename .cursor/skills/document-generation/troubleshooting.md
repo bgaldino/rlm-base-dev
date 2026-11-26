@@ -2,6 +2,8 @@
 
 Read when output is blank, wrong, or generation errors. Run the Before generation checks in SKILL.md first. Parent: [document-generation](SKILL.md).
 
+> Provenance: moved unchanged from this skill's entry point as of 661e50bbb, which stated "Verified on Release 262, API v67.0" [Repo: statement added in 7e1860b35, 2026-07-02]. [Open: not re-verified on the active release; run the check or generation it describes on a current org before relying on it.]
+
 ## Common Extract Architecture Pitfalls
 
 | Pitfall | Symptom | Root Cause | Fix |

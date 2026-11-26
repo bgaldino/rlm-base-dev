@@ -30,8 +30,8 @@ criteria match, while the account stays visible. A user the rule does not match 
 | Part | What was accepted or refused |
 |---|---|
 | User criteria | A `$User` field expression, for example `$User.Department = '<value>'`. `Username = ...` was refused |
-| Record criteria | A plain text field on Contract (for example `ContractType`) was accepted. A picklist field compared with `=` (`Status`) was refused, with or without `TEXT()`; `ISPICKVAL(Status,'Draft')` was accepted inactive (see below). A compound field (`BillingCity`) was refused |
-| Active cap | Enterprise allowed 2 active rules per object. A third active Contract rule failed with `LIMIT_EXCEEDED` ("Maximum limit for active ABAC rules reached") |
+| Record criteria | A plain text field on Contract (for example `ContractType`) was accepted. A picklist field compared with `=` (`Status`) was refused, with or without `TEXT()`; `ISPICKVAL(Status,'Draft')` was accepted and enforced when active (see below). A compound field (`BillingCity`) was refused |
+| Active cap | Enterprise: 2 active rules per object. A third active Contract rule failed with `LIMIT_EXCEEDED` ("Maximum limit for active ABAC rules reached") [Open: reported by an earlier run whose activation method was not recorded; the Tooling API PATCH to `active` true fails (below), so repeat it by creating three rules and activating each in the UI. Whether a POST with `active` true is also refused was not tested] |
 
 Working rule, created through the Tooling API (`POST /services/data/v68.0/tooling/sobjects/RestrictionRule`) and read back unchanged:
 
@@ -43,20 +43,21 @@ Working rule, created through the Tooling API (`POST /services/data/v68.0/toolin
               "description": "Contracts-East users see only East contracts"}}
 ```
 
-Create it inactive, then activate it in the UI (the API activation failed, below). Refusals reproduced on this build: a picklist filter (`Status = 'Draft'`) failed with
+This JSON (`active` false, record filter on the text field `ContractType`) is the create-then-activate-in-the-UI starting point; the API activation failed (below). Refusals reproduced on this build: a picklist filter (`Status = 'Draft'`) failed with
 "Field Status is a picklist field. Picklist fields are only supported in certain functions." and `Username = '...'` as user criteria
 failed with "You can't create restriction rules with this user criterion" [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
 A matching user saw the one contract of two whose type matched; a user outside the department saw both.
 [Help: `ind.sf_contracts_known_limitation_for_salesforce_contracts` says picklist values can be selected in Restriction and
-Scoping Rule record criteria, a single value only.] That conflicts with the refused `Status = 'Draft'` filter above. The error
-text points to picklist functions, and a rule with `recordFilter` `ISPICKVAL(Status,'Draft')` was accepted when created inactive
-[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build].
-Activated in the UI and tried as two users on two contracts, one Draft and one Activated
-[Measured: 2026-11-27, 264, QuantumBit scratch org]: the rule used user criteria `$User.Department = 'Contracts-East'`.
-A Sales Representative with that department saw only the Draft contract in All Contracts. A System Administrator with no
-department saw both. The PATCH that sets `active` to true on the Tooling API returned `UNKNOWN_EXCEPTION` with an error id and
-left the rule inactive; activating from the UI worked, so activate there. Find it under Setup, Object Manager, Contract,
-Restriction Rules (it is not a top-level Setup page).
+Scoping Rule record criteria, a single value only.] Resolved: `Status = 'Draft'` is refused, but `ISPICKVAL(Status,'Draft')`,
+the picklist function the error text points to, is accepted [Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build, created
+inactive] and enforced when active.
+
+A second rule, a different one from the `ContractType` rule above, had `recordFilter` `ISPICKVAL(Status,'Draft')` and user
+criteria `$User.Department = 'Contracts-East'`. It was activated in the UI and tried as two users on two contracts, one Draft and
+one Activated [Measured: 2026-11-27, 264, QuantumBit scratch build]. A Sales Representative with that department saw only the
+Draft contract in All Contracts; a System Administrator with no department saw both. The PATCH that sets `active` to true on the
+Tooling API returned `UNKNOWN_EXCEPTION` with an error id and left the rule inactive; activating from the UI worked, so activate
+there. Find it under Setup, Object Manager, Contract, Restriction Rules (it is not a top-level Setup page).
 [Open: the active-rule cap on Performance and Unlimited editions (not testable on an Enterprise org); behavior with
 two rules matching one user.]
 
