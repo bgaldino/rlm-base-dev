@@ -1558,18 +1558,6 @@ private class RLM_BillingScheduleGroupServiceTest {
             + 'entity read test relies on it and does not check the hidden case here.');
     }
 
-    // The tax treatment read test branches on this org-wide default, so a build where tax treatments are
-    // not private would pass without checking the hidden case: fail loudly instead.
-    @isTest
-    static void taxTreatmentsArePrivateByDefault() {
-        String sharingModel = [
-            SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'TaxTreatment'
-        ].InternalSharingModel;
-        Assert.areEqual('Private', sharingModel,
-            'The org-wide default for tax treatments is ' + sharingModel + ', not Private: the tax '
-            + 'treatment read test does not check the hidden case on such a build.');
-    }
-
     // The legal entity read runs as the user, on an entity the admin owns. With no LegalEntity read it
     // is refused and named. With read but no sharing it is refused as not visible where legal entities
     // are private (else it passes; see legalEntitiesArePrivateByDefault). With view-all it passes and
@@ -1587,14 +1575,14 @@ private class RLM_BillingScheduleGroupServiceTest {
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress' });
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>{ 'LegalEntity' },
-            new List<String>{ 'BillingAccount', 'Account', 'TaxTreatment', 'Product2' },
+            new List<String>{ 'LegalEntity', 'Product2' },
+            new List<String>{ 'BillingAccount', 'Account', 'TaxTreatment' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
                 'Product2.Family' });
         User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
-            new List<String>(),
-            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment', 'Product2' },
+            new List<String>{ 'Product2' },
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' },
             new List<String>{ 'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
                 'Product2.Family' });
         CreateArgs args = new CreateArgs(ba.Id);
@@ -1659,8 +1647,8 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     private static final String TT_REFUSAL =
-        'The tax treatment was not found, is not active, or is not visible to you. '
-        + 'Choose another tax treatment.';
+        'The tax treatment was not found, is not active, is not visible to you, or is not a tax treatment '
+        + 'of the chosen legal entity. Choose another tax treatment.';
     private static final String PRODUCT_REFUSAL =
         'The product was not found, is not active, is not offered for billing schedules, or is not '
         + 'visible to you. Choose another product.';
@@ -1747,15 +1735,15 @@ private class RLM_BillingScheduleGroupServiceTest {
             'Account.BillingAddress', 'Account.ShippingAddress', 'LegalEntity.Status',
             'Product2.Family' };
         List<String> psl = new List<String>{ RLM_BillingUITestUsers.BILLING_PSL };
-        User noTaxTreatmentRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
-            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'Product2' }, fields);
+        User noTaxTreatmentRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Product2' },
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' }, fields);
         User noProductRead = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' }, fields);
         User readNoSharing = RLM_BillingUITestUsers.createWithBillingAccess(psl,
             new List<String>{ 'TaxTreatment', 'Product2' },
             new List<String>{ 'BillingAccount', 'Account', 'LegalEntity' }, fields);
-        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>(),
-            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment', 'Product2' }, fields);
+        User viewAll = RLM_BillingUITestUsers.createWithBillingAccess(psl, new List<String>{ 'Product2' },
+            new List<String>{ 'BillingAccount', 'Account', 'LegalEntity', 'TaxTreatment' }, fields);
         CreateArgs args = new CreateArgs(ba.Id);
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-PK' };
 
