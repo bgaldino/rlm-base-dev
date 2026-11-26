@@ -413,7 +413,7 @@ must use `self._sf`.
   in `tasks/soql_utils.py`. Blank or whitespace is not set (a blank `isIncremental` is a full
   refresh); `0` and `False` are values; a list for a scalar option such as `isIncremental` is
   refused. `refresh_dt_*` needs at least one name, so `developerNames` that is unset, blank or an
-  empty list is refused with `TaskOptionsError: developerNames is required`, before any request.
+  empty list is refused with `TaskOptionsError: developerNames is required`, before any data or action request.
   An unparseable `isIncremental` (e.g. `maybe`) is a `TaskOptionsError` naming the option.
   `refresh_dt_*` has no snake_case aliases: only `developerNames` and `isIncremental`.
 

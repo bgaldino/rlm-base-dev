@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 200
+EXPECTED_CHECKS = 201
 
 
 def check(label, condition, detail=""):
@@ -1809,6 +1809,9 @@ opt_refused("whitespace developer_names on activate is 'required'", {"developer_
 _err, _fake = opt_run({"strict": "maybe"}, "validate_lists")
 check("unparseable strict is a TaskOptionsError naming the option, before any query",
       _err is not None and "strict must be true or false" in _err and not _fake.queries, repr((_err, _fake.queries)))
+_err, _fake = opt_run({"is_incremental": "maybe"}, "refresh")
+check("unparseable is_incremental on refresh is refused before the query for all active tables",
+      _err is not None and "is_incremental must be true or false" in _err and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": ["x"]}, "validate_lists")
 check("list-typed strict is refused with the helper's error, before any query",
       _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
@@ -1881,9 +1884,9 @@ ref_refused("None developerNames is refused", {"developerNames": None}, "develop
 ref_refused("empty string developerNames is refused", {"developerNames": ""}, "developerNames is required")
 ref_refused("whitespace developerNames is refused", {"developerNames": "  "}, "developerNames is required")
 ref_refused("empty list developerNames is refused with the same message", {"developerNames": []}, "developerNames is required")
-ref_refused("all-blank list developerNames is refused", {"developerNames": [" ", ""]}, "developerNames")
-ref_refused("int 0 developerNames is refused, naming the option", {"developerNames": 0}, "developerNames")
-ref_refused("dict developerNames is refused", {"developerNames": {"a": 1}}, "developerNames")
+ref_refused("all-blank list developerNames is refused", {"developerNames": [" ", ""]}, "contains no names")
+ref_refused("int 0 developerNames is refused, naming the option", {"developerNames": 0}, "must be a comma-separated string")
+ref_refused("dict developerNames is refused", {"developerNames": {"a": 1}}, "must be a comma-separated string")
 _err, _calls, _http = ref_run({"developerNames": "A"})
 check("a valid call does reach the request path (the refusals above are not vacuous)",
       _err is None and _calls == [("A", False)] and ("query", ["A"]) in _http, repr((_err, _calls, _http)))

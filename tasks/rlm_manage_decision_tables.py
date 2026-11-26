@@ -413,6 +413,9 @@ class ManageDecisionTables(BaseTask):
         
         Supports both full and incremental refresh.
         """
+        # Read first so a malformed option is refused before the query for all active tables.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
+        is_incremental = self._option_flag("is_incremental")
         # Get decision tables to refresh
         developer_names = self._option_names("developer_names")
         
@@ -426,8 +429,6 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
 
-        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
-        is_incremental = self._option_flag("is_incremental")
         # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
         refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         

@@ -71,7 +71,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             "required": True,
         },
         "isIncremental": {
-            "description": "Specifies whether to trigger an incremental refresh (true) or not (false); blank or unset means false, and a list is refused. If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
+            "description": "Specifies whether to trigger an incremental refresh (true) or not (false); blank or unset means false, a list is refused, and an unparseable value such as maybe is refused. If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
             "required": False,
         },
     }
@@ -93,8 +93,8 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Prepare runtime by loading keychain and setting up access token and instance URL from options or defaults
     def _prep_runtime(self):
         self._load_keychain()
-        self.access_token = self.options.get("access_token", self.org_config.access_token)
-        self.instance_url = self.options.get("instance_url", self.org_config.instance_url)
+        self.access_token = self._option_text("access_token") or self.org_config.access_token
+        self.instance_url = self._option_text("instance_url") or self.org_config.instance_url
 
     def _option_text(self, name):
         return option_text(self.options.get(name), name, TaskOptionsError)
@@ -121,14 +121,6 @@ class RefreshDecisionTable(SFDXBaseTask):
             raise TaskOptionsError("developerNames is required: name at least one decision table to refresh")
         self._prep_runtime()
         
-        # Debug: Print the type and content of self.options
-        self.logger.info(f"Type of self.options: {type(self.options)}")
-        self.logger.info(f"Content of self.options: {self.options}")
-
-        # Check if self.options is a list (which it shouldn't be)
-        if isinstance(self.options, list):
-            raise TypeError("self.options is a list, but it should be a dictionary. This is likely a configuration issue.")
-
         # Debug: Print the values of developer_names and is_incremental
         self.logger.info(f"developer_names: {developer_names}")
         self.logger.info(f"is_incremental: {is_incremental}")
