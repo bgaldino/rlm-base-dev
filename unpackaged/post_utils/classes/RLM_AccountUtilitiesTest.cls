@@ -594,95 +594,6 @@ private without sharing class RLM_AccountUtilitiesTest {
         System.assertEquals(null, result.retainedSummary, 'Nothing the reset was asked to delete was kept');
     }
 
-    // ----------------------------------------------------------- object access
-
-    // The objects the reset touches that the sales rep persona cannot read (live 264,
-    // where a query on any of them failed with "sObject type ... is not supported").
-    // A test user cannot be given the usage and core object access the reset also
-    // needs, so these tests mark the objects unreadable through the class's seam.
-    private static final Set<String> SALES_REP_UNREADABLE = new Set<String>{
-        'Invoice', 'BillingScheduleGroup', 'PaymentSchedule', 'Payment', 'CreditMemo',
-        'CreditMemoInvApplication', 'DebitMemo', 'CollectionPlan', 'CollectionPlanItem', 'Dispute',
-        'FulfillmentOrder', 'FulfillmentOrderLineItem', 'FulfillmentPlan', 'FulfillmentStep',
-        'FulfillmentStepSource', 'FulfillmentAsset', 'FulfillmentLineSourceRel',
-        'AssetFulfillmentDecomp', 'OrderSummary', 'WorkOrder', 'Case'
-    };
-
-    // How the Result lists objects the run skipped because the user cannot read them.
-    private static String notChecked(List<String> objectNames) {
-        List<String> labels = new List<String>();
-        for (String objectName : objectNames) {
-            labels.add(Schema.getGlobalDescribe().get(objectName).getDescribe().getLabelPlural());
-        }
-        return String.join(labels, ', ') + ': not checked: the user running the reset has no access to them';
-    }
-
-    @IsTest
-    static void aUserWhoCannotReadBillingRecordsCanResetWithEveryOptionOn() {
-        Account a = newAccount();
-        seedAssetAndOpportunity(a);
-        Payment payment = newProcessedPayment(a.Id);
-        RLM_AccountUtilities.unreadableForTest = SALES_REP_UNREADABLE;
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(allOn(a.Id));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(false, result.cleared, 'Records the reset could not check may remain');
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must be deleted');
-        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id], 'The asset must be deleted');
-        Assert.areEqual(1, [SELECT COUNT() FROM Payment WHERE Id = :payment.Id], 'An unchecked payment is untouched');
-        // In the order the steps meet them: fulfillment, collections, schedule groups,
-        // billing, the fulfillment deletes, then the asset references.
-        Assert.areEqual(
-            notChecked(new List<String>{
-                'FulfillmentOrder', 'FulfillmentPlan', 'FulfillmentAsset', 'FulfillmentOrderLineItem',
-                'FulfillmentLineSourceRel', 'CollectionPlan', 'CollectionPlanItem', 'PaymentSchedule', 'Case',
-                'Dispute', 'BillingScheduleGroup', 'DebitMemo', 'Invoice', 'CreditMemo',
-                'CreditMemoInvApplication', 'Payment', 'FulfillmentStepSource', 'AssetFulfillmentDecomp',
-                'WorkOrder'
-            }),
-            result.retainedSummary,
-            'Each object skipped for want of access must be listed once, and nothing counted for it'
-        );
-    }
-
-    @IsTest
-    static void aRunThatDeletesNoBillingDoesNotReportBillingItCouldNotRead() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Test Opp');
-        RLM_AccountUtilities.unreadableForTest = SALES_REP_UNREADABLE;
-
-        Test.startTest();
-        // Billing, collections and fulfillment off: no invoice is needed, so none is read.
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must be deleted');
-        // Billing schedule groups are deleted on every run, so they alone are reported.
-        Assert.areEqual(notChecked(new List<String>{ 'BillingScheduleGroup' }), result.retainedSummary,
-            'Only what the run would have deleted may be reported as not checked');
-    }
-
-    @IsTest
-    static void canReadFollowsTheRunningUsersObjectAccess() {
-        User u = newMinimalAccessUser();
-        Boolean minimalReadsInvoices;
-        System.runAs(u) {
-            minimalReadsInvoices = RLM_AccountUtilities.canRead('Invoice');
-        }
-        Assert.areEqual(false, minimalReadsInvoices,
-            'A user without billing access cannot read invoices, so the reset must not query them');
-        Assert.areEqual(Account.SObjectType.getDescribe().isAccessible(), RLM_AccountUtilities.canRead('Account'),
-            'canRead must agree with the running user\'s access');
-        Assert.areEqual(false, RLM_AccountUtilities.canRead('RLM_No_Such_Object__c'),
-            'An object the org does not have cannot be read');
-        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Account' };
-        Assert.areEqual(false, RLM_AccountUtilities.canRead('Account'), 'The test seam must mark an object unreadable');
-    }
-
     @IsTest
     static void postedInvoicePermissionIsReadForTheRunningUser() {
         User u = newMinimalAccessUser();
@@ -693,14 +604,14 @@ private without sharing class RLM_AccountUtilitiesTest {
             minimalUser = RLM_AccountUtilities.canDeletePostedInvoices();
             minimalDeletesRevenueRecords = RLM_AccountUtilities.canDeleteRevenueRecords();
         }
+        Assert.areEqual(false, minimalDeletesRevenueRecords,
+            'A user without Allow Revenue Records Deletion must not be treated as having it');
         System.assertEquals(
             false,
             minimalUser,
             'A user without Delete Invoice and Invoice Lines must not be treated as able to '
                 + 'delete posted invoices'
         );
-        Assert.areEqual(false, minimalDeletesRevenueRecords,
-            'A user without Allow Revenue Records Deletion must not be treated as able to delete credit memos');
 
         // The positive case is the running user. A fresh user cannot be given the
         // permission: its user license does not allow BillingInvoiceSuperUser. So the
@@ -720,17 +631,6 @@ private without sharing class RLM_AccountUtilitiesTest {
             RLM_AccountUtilities.canDeletePostedInvoices(),
             'The check must agree with the running user\'s permission set assignments'
         );
-        // Allow Revenue Records Deletion comes from the managed Billing Admin set (in a
-        // billing org, through RLM_RCB). Compared the same way.
-        Boolean deletesRevenueRecords;
-        try {
-            deletesRevenueRecords = Database.countQuery('SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me '
-                + 'AND PermissionSet.PermissionsDeleteRevenueRecords = true') > 0;
-        } catch (QueryException e) {
-            deletesRevenueRecords = false;
-        }
-        Assert.areEqual(deletesRevenueRecords, RLM_AccountUtilities.canDeleteRevenueRecords(),
-            'The credit memo check must agree with the running user\'s permission set assignments');
     }
 
     // A Draft debit memo with one line. Draft is the only status one can be created in.
@@ -1018,15 +918,14 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     @IsTest
-    static void noQueryBudgetForATeardownRoundStopsBeforePhaseTwo() {
+    static void tooFewQueriesForThePreflightChangesNothing() {
         Account a = newAccount();
         newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
 
         Test.startTest();
-        // A teardown round starts only while its own 9 queries plus the 50 phase 2
-        // keeps back are left. Leaving 55 here, less the 4 phase 1 spends before the
-        // loop, means the first round cannot start: the state a usage graph too
-        // large for one run reaches after several rounds.
+        // The preflight requires, before each of its queries, the queries the run needs
+        // after it (one teardown round's 9 and the 50 phase 2 keeps back). With 55 left it
+        // stops before changing anything; a teardown round can therefore always start.
         Integer spend = Limits.getLimitQueries() - 55;
         for (Integer i = 0; i < spend; i++) {
             countOf('Account', a.Id);
@@ -1034,19 +933,15 @@ private without sharing class RLM_AccountUtilitiesTest {
         RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
 
-        Assert.areEqual(false, result.completed, 'A run stopped for its query budget did not complete');
+        Assert.areEqual(false, result.completed, 'A run stopped by the preflight did not complete');
         Assert.isTrue(
-            result.reason.contains('limit on queries')
-                && !result.reason.contains('more usage records than one run can remove')
-                && result.reason.contains('nothing else was touched')
-                && result.reason.contains('Run the reset again'),
-            'The reason must be phase 1\'s stop message. Got: ' + result.reason
+            result.reason.startsWith('The reset was not run, and nothing was changed')
+                && result.reason.contains('Running it again as the same user stops at the same point'),
+            'The reason must be the preflight\'s stop and say what a rerun does. Got: ' + result.reason
         );
-        Assert.areEqual(
-            1,
-            [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'The opportunity must survive a run that stopped in phase 1'
-        );
+        Assert.isNull(result.removedSummary, 'Nothing was removed');
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'The opportunity must survive a run the preflight stopped');
     }
 
     @IsTest
@@ -1784,9 +1679,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 46 is counted from the code with data in every branch (see the constants in
+    // The 43 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path (29). It holds
-    // the reserve against the 46 and the measurement against both, but it cannot catch
+    // the reserve against the 43 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     @IsTest
@@ -1810,7 +1705,7 @@ private without sharing class RLM_AccountUtilitiesTest {
             'The reserve kept for phase 2 must cover its counted worst case'
         );
         Assert.isTrue(
-            RLM_AccountUtilities.RETRY_TAIL >= 32 && RLM_AccountUtilities.ASSET_TAIL >= 12,
+            RLM_AccountUtilities.RETRY_TAIL >= 27 && RLM_AccountUtilities.ASSET_TAIL >= 13,
             'The walk guards must cover the queries counted after them'
         );
     }
@@ -1823,10 +1718,14 @@ private without sharing class RLM_AccountUtilitiesTest {
         List<UsageEntitlementBucket> tree = seedDeepUndrainedTree(a, f);
 
         Test.startTest();
-        // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 9 queries plus the 50 kept back (7 are spent before it with an asset: the asset, contract,
-        // asset relationship, Modify All Data and policy lookups and the rate card entries).
-        spendQueriesDownTo(66, a.Id);
+        // The least a run can have and still reach phase 2: the preflight's queries, then
+        // the first teardown round's 9 plus the 50 kept back. The preflight's count depends
+        // on the org and the running user, so it is measured with the same options.
+        Integer beforePreflight = Limits.getQueries();
+        RLM_AccountUtilities.startRun();
+        new RLM_AccountUtilities.Preflight(a.Id, true, true, true, true, true);
+        Integer preflightQueries = Limits.getQueries() - beforePreflight;
+        spendQueriesDownTo(59 + preflightQueries, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();
@@ -1878,156 +1777,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
-    // ------------------------------------------------------- record delete access
-
-    private static final String NO_DELETE_ACCESS = 'the user running the reset cannot delete them: they belong '
-        + 'to another user and sharing does not let this user delete them; they were left unchanged';
-
-    private static Order newActivatedOrder(Id accountId) {
-        Order o = new Order(
-            AccountId = accountId, EffectiveDate = Date.today(), Status = 'Draft',
-            Pricebook2Id = Test.getStandardPricebookId()
-        );
-        insert o;
-        insert new OrderItem(OrderId = o.Id, PricebookEntryId = loadUsageFixture().pricebookEntryId, Quantity = 1, UnitPrice = 1);
-        o.Status = 'Activated';
-        update o;
-        return o;
-    }
-
-    @IsTest
-    static void anOrderTheUserCannotDeleteStaysActivatedAndIsReportedKept() {
-        Account a = newAccount();
-        Order o = newActivatedOrder(a.Id);
-        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status,
-            'PRECONDITION: the order must be activated');
-        // Live 264 the salesrep persona could edit this order through sharing but not
-        // delete it, and the reset set it back to Draft before the delete was refused.
-        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>();
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'A kept order does not stop the reset. Reason: ' + result.reason);
-        Assert.areEqual('Activated', [SELECT Status FROM Order WHERE Id = :o.Id].Status,
-            'An order the user cannot delete must be left exactly as it was, not set back to Draft');
-        Assert.areEqual(entry(Order.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')', result.retainedSummary,
-            'The kept order must be reported with the reason');
-    }
-
-    @IsTest
-    static void aContractTheUserCannotDeleteIsKeptAndTheOthersGo() {
-        Account a = newAccount();
-        Contract mine = new Contract(AccountId = a.Id, StartDate = Date.today(), ContractTerm = 12, Status = 'Draft');
-        Contract theirs = new Contract(AccountId = a.Id, StartDate = Date.today(), ContractTerm = 12, Status = 'Draft');
-        insert new List<Contract>{ mine, theirs };
-        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ mine.Id };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed,
-            'A contract the user cannot delete must be kept, not fail the run. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Contract WHERE Id = :mine.Id], 'The contract the user may delete must go');
-        Assert.areEqual(1, [SELECT COUNT() FROM Contract WHERE Id = :theirs.Id], 'The other contract must stay');
-        Assert.areEqual(entry(Contract.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')', result.retainedSummary,
-            'The kept contract must be reported with the reason');
-    }
-
-    @IsTest
-    static void deleteAccessFollowsTheRunningUsersRecordAccess() {
-        Account a = newAccount();
-        User u = newMinimalAccessUser();
-        Set<Id> minimalMayDelete;
-        System.runAs(u) {
-            minimalMayDelete = RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }, 0);
-        }
-        Assert.isTrue(minimalMayDelete.isEmpty(),
-            'A user who does not own the record and has no access to it may not delete it');
-        Assert.areEqual(
-            [SELECT RecordId, HasDeleteAccess FROM UserRecordAccess WHERE UserId = :UserInfo.getUserId() AND RecordId = :a.Id].HasDeleteAccess,
-            RLM_AccountUtilities.deletableByUser(new Set<Id>{ a.Id }, 0).contains(a.Id),
-            'The running user may delete what UserRecordAccess says they may'
-        );
-        Assert.isTrue(RLM_AccountUtilities.deletableByUser(new Set<Id>(), 0).isEmpty(), 'No ids, no access');
-    }
-
-    // ------------------------------------------------------- records not visible
-
-    private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
-
-    @IsTest
-    static void aRecordTheUserCannotSeeIsCountedAndReportedAsKept() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Visible Opp');
-        // Live 264 the salesrep persona's reset did not find an admin-owned opportunity
-        // under Private sharing, and said nothing. A test cannot rely on the org's
-        // sharing settings, so the hidden count is set through the seam.
-        RLM_AccountUtilities.hiddenForTest = new Map<String, Integer>{ 'Opportunity' => 1 };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'Hidden records do not stop the reset. Reason: ' + result.reason);
-        Assert.areEqual(false, result.cleared, 'An account with records the user could not see is not cleared');
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
-            'The visible opportunity is still deleted');
-        Assert.areEqual(entry(Opportunity.SObjectType, 1), result.removedSummary, 'The visible opportunity is reported removed');
-        Assert.areEqual(entry(Opportunity.SObjectType, 1) + ' (' + NOT_VISIBLE + ')', result.retainedSummary,
-            'The hidden opportunity must be reported as kept, with the reason');
-    }
-
-    @IsTest
-    static void hiddenRecordsAreCountedOnlyForObjectsTheOptionsDelete() {
-        Account a = newAccount();
-        // Assets are counted only when Delete Assets is on.
-        RLM_AccountUtilities.hiddenForTest = new Map<String, Integer>{ 'Asset' => 2 };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.cleared, 'Assets were not to be deleted, so hidden ones are not news. Retained: '
-            + result.retainedSummary);
-    }
-
-    @IsTest
-    static void hiddenCountIsWhatSystemModeSeesBeyondTheUser() {
-        Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Owned By The Test User');
-        Assert.areEqual(0, RLM_AccountUtilities.hiddenCount('Opportunity', 'AccountId = :accountId', a.Id),
-            'The owner sees their own opportunity, so nothing is hidden from them');
-
-        Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
-        User other = new User(
-            ProfileId = standard.Id, LastName = 'Reset Other', Email = 'rlm.reset.other@example.com',
-            Username = 'rlm.reset.other.' + Datetime.now().getTime() + '@example.com', Alias = 'rlmoth',
-            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US', EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
-        );
-        insert other;
-        Integer hidden;
-        System.runAs(other) {
-            hidden = RLM_AccountUtilities.hiddenCount('Opportunity', 'AccountId = :accountId', a.Id);
-        }
-        // Whether another user sees the opportunity depends on the org's sharing. Under Private
-        // (tkdef and the repo's scratch builds, which leave the default) this asserts a hidden
-        // count of 1, which the default dynamic count gives only because it respects sharing
-        // (see hiddenCount). It does not fail elsewhere: the repo does not set Opportunity
-        // sharing, and these tests run at deploy time in orgs that may share opportunities.
-        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
-            .InternalSharingModel;
-        Assert.areEqual(model == 'Private' ? 1 : 0, hidden,
-            'A user who cannot see the opportunity must have it counted as hidden (sharing model ' + model + ')');
-    }
-
-    // --------------------------------------------- review round 1 (todo 397)
-
-    private static final String NO_DELETE_PERMISSION = 'the user running the reset does not have permission to '
-        + 'delete this kind of record; they were left unchanged';
+    // --------------------------------------------- preflight (todo 397)
 
     private static User newStandardUser() {
         Profile standard = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
@@ -2041,238 +1791,235 @@ private without sharing class RLM_AccountUtilitiesTest {
         return u;
     }
 
-    @IsTest
-    static void anOpportunityTheUserCannotDeleteIsKeptAndTheRunCompletes() {
-        Account a = newAccount();
-        Opportunity theirs = newOpportunity(a.Id, 'RLM Utilities Not Deletable');
-        Opportunity mine = newOpportunity(a.Id, 'RLM Utilities Deletable');
-        Asset keptAsset = new Asset(Name = 'RLM Utilities Kept Asset', AccountId = a.Id);
-        insert keptAsset;
-        // Before this check one opportunity or asset the user could not delete failed the
-        // all-or-nothing delete and rolled back the whole of phase 2.
-        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ mine.Id };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'Kept records must not fail the run. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE Id = :mine.Id], 'The deletable opportunity must go');
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE Id = :theirs.Id], 'The other must stay');
-        Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE Id = :keptAsset.Id], 'The asset must stay');
-        Assert.isTrue(result.retainedSummary.contains(entry(Schema.Asset.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')')
-            && result.retainedSummary.contains(entry(Opportunity.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + ')'),
-            'Both kept records must be reported with the reason. Got: ' + result.retainedSummary);
-    }
-
-    @IsTest
-    static void aRecordWhoseObjectTheUserMayNotDeleteIsKeptForThatReason() {
-        Account a = newAccount();
-        User u = newMinimalAccessUser();
-        List<SObject> left;
-        RLM_AccountUtilities.Result result;
-        System.runAs(u) {
-            RLM_AccountUtilities.startRun();
-            // A Minimum Access user has no delete permission on Account at all.
-            left = RLM_AccountUtilities.keepWhatUserCannotDelete(new List<Account>{ a });
-            result = RLM_AccountUtilities.finish(true, null);
+    // What a refused run must leave: every record of the account, usage included.
+    private class Snapshot {
+        Integer opportunities;
+        Integer assets;
+        Integer entitlementAccounts;
+        Integer buckets;
+        Integer entitlements;
+        Snapshot(Id accountId) {
+            opportunities = [SELECT COUNT() FROM Opportunity WHERE AccountId = :accountId];
+            assets = [SELECT COUNT() FROM Asset WHERE AccountId = :accountId];
+            entitlementAccounts = [SELECT COUNT() FROM UsageEntitlementAccount WHERE AccountId = :accountId];
+            buckets = [SELECT COUNT() FROM UsageEntitlementBucket WHERE TransactionUsageEntitlement.AccountId = :accountId];
+            entitlements = [SELECT COUNT() FROM TransactionUsageEntitlement WHERE AccountId = :accountId];
         }
-        Assert.isTrue(left.isEmpty(), 'Nothing may be deleted without delete permission on the object');
-        Assert.areEqual(entry(Account.SObjectType, 1) + ' (' + NO_DELETE_PERMISSION + ')', result.retainedSummary,
-            'The reason must name the missing permission, not sharing');
+        String describe() {
+            return opportunities + '/' + assets + '/' + entitlementAccounts + '/' + buckets + '/' + entitlements;
+        }
+    }
+
+    // An account with an opportunity, an asset and a usage tree, so a refusal can be shown
+    // to leave usage records alone as well.
+    private static Account seedRefusable() {
+        Account a = newAccount();
+        seedAssetAndOpportunity(a);
+        UsageFixture f = loadUsageFixture();
+        UsageEntitlementAccount uea = newEntitlementAccount(a.Id, f);
+        newBucket(uea.Id, newEntitlement(a.Id, a.Id, null, f).Id, f);
+        return a;
+    }
+
+    private static void assertRefusedAndUnchanged(RLM_AccountUtilities.Result result, Snapshot before, Id accountId,
+        String expectedEntry) {
+        Assert.areEqual(false, result.completed, 'A refused reset did not complete');
+        Assert.isTrue(result.reason.startsWith('The reset was not run, and nothing was changed'),
+            'The reason must say the reset was not run. Got: ' + result.reason);
+        Assert.isTrue(result.reason.contains(expectedEntry),
+            'The reason must list ' + expectedEntry + '. Got: ' + result.reason);
+        Assert.isNull(result.removedSummary, 'Nothing was removed');
+        Assert.areEqual(before.describe(), new Snapshot(accountId).describe(),
+            'A refused reset must change nothing, usage records included');
     }
 
     @IsTest
-    static void aSkippedGroupNamesTheReadableObjectsSkippedWithIt() {
-        if (!available(COLLECTION_OBJECTS)) return;
-        Account a = newAccount();
-        // Cases unreadable: plans and disputes need them, so both groups are skipped.
-        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Case' };
-        RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
-        iv.DeleteCollectionPlans = true;
+    static void aRecordWhoseObjectTheUserMayNotDeleteRefusesTheReset() {
+        Account a = seedRefusable();
+        Snapshot before = new Snapshot(a.Id);
+        // (a) The running admin may delete everything; the seam takes away delete on Opportunity.
+        RLM_AccountUtilities.undeletableForTest = new Set<String>{ 'Opportunity' };
 
         Test.startTest();
-        RLM_AccountUtilities.Result result = run(iv);
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Test.stopTest();
 
-        Assert.areEqual(
-            notChecked(new List<String>{ 'Case' }) + '; '
-                + Schema.getGlobalDescribe().get('CollectionPlan').getDescribe().getLabelPlural() + ', '
-                + Schema.getGlobalDescribe().get('CollectionPlanItem').getDescribe().getLabelPlural() + ', '
-                + PaymentSchedule.SObjectType.getDescribe().getLabelPlural() + ', '
-                + Schema.getGlobalDescribe().get('Dispute').getDescribe().getLabelPlural()
-                + ': not checked: the step that deletes them also needs records the user running the reset has no access to',
-            result.retainedSummary,
-            'Every object of a skipped group must be named'
-        );
+        assertRefusedAndUnchanged(result, before, a.Id,
+            entry(Opportunity.SObjectType, 1) + ' (no permission to delete this kind of record: RLM Utilities Budget Opp)');
     }
 
     @IsTest
-    static void hiddenRecordsAreCountedForAUserWithoutViewAllData() {
+    static void anObjectTheUserCannotReadThatHasRecordsRefusesTheReset() {
+        Account a = seedRefusable();
+        Snapshot before = new Snapshot(a.Id);
+        // (d) Counted, not named: the user cannot read them.
+        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'UsageEntitlementAccount' };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        assertRefusedAndUnchanged(result, before, a.Id,
+            entry(UsageEntitlementAccount.SObjectType, 1) + ' (the user running the reset cannot read this kind of record)');
+    }
+
+    @IsTest
+    static void anObjectTheUserCannotReadWithoutRecordsDoesNotRefuse() {
         Account a = newAccount();
-        newOpportunity(a.Id, 'RLM Utilities Owned By The Test User');
+        newOpportunity(a.Id, 'RLM Utilities Test Opp');
+        RLM_AccountUtilities.unreadableForTest = new Set<String>{ 'Invoice', 'BillingScheduleGroup', 'FulfillmentOrder' };
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(allOn(a.Id));
+        Test.stopTest();
+
+        // Live 264 the salesrep persona's reset failed on every run: "sObject type
+        // 'Invoice' is not supported". Nothing of those objects here, so it resets.
+        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must go');
+    }
+
+    @IsTest
+    static void aRecordTheUserCannotDeleteOrSeeRefusesTheReset() {
+        Account a = seedRefusable();
+        Snapshot before = new Snapshot(a.Id);
+        User other = newStandardUser();
+        // (b) and (c): the records belong to the admin. A Standard User can see a record
+        // under public sharing but not delete it, and cannot see it under private sharing.
+        // Which one the opportunity is depends on the org, so the expected entry is read
+        // from UserRecordAccess for that user, as the preflight reads it.
+        Id opportunityId = [SELECT Id FROM Opportunity WHERE AccountId = :a.Id].Id;
+        UserRecordAccess access = [
+            SELECT RecordId, HasReadAccess FROM UserRecordAccess WHERE UserId = :other.Id AND RecordId = :opportunityId
+        ];
+        String expected = access.HasReadAccess
+            ? entry(Opportunity.SObjectType, 1) + ' (no delete access to these records: RLM Utilities Budget Opp)'
+            : entry(Opportunity.SObjectType, 1) + ' (not visible to the user running the reset)';
+        RLM_AccountUtilities.Result result;
+        System.runAs(other) {
+            Test.startTest();
+            result = run(allOn(a.Id));
+            Test.stopTest();
+        }
+        assertRefusedAndUnchanged(result, before, a.Id, expected);
+    }
+
+    @IsTest
+    static void aRecordTheUserCanSeeButNotDeleteIsNamed() {
+        Account a = newAccount();
+        Order o = new Order(
+            AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft', Pricebook2Id = Test.getStandardPricebookId()
+        );
+        insert o;
+        String orderNumber = [SELECT OrderNumber FROM Order WHERE Id = :o.Id].OrderNumber;
+        User other = newStandardUser();
+        UserRecordAccess access = [
+            SELECT RecordId, HasReadAccess, HasDeleteAccess FROM UserRecordAccess WHERE UserId = :other.Id AND RecordId = :o.Id
+        ];
+        Boolean orderReadable;
+        System.runAs(other) {
+            orderReadable = Order.SObjectType.getDescribe().isAccessible() && Order.SObjectType.getDescribe().isDeletable();
+        }
+        if (!orderReadable || !access.HasReadAccess || access.HasDeleteAccess) {
+            // (b) needs a record the user can see but not delete: an admin's order under
+            // public order sharing, for a user who may delete orders. Not this org.
+            return;
+        }
+        RLM_AccountUtilities.Result result;
+        System.runAs(other) {
+            Test.startTest();
+            result = run(request(a.Id, false, false, false));
+            Test.stopTest();
+        }
+        Assert.areEqual(false, result.completed, 'A record the user cannot delete must refuse the reset');
+        Assert.isTrue(result.reason.contains(entry(Order.SObjectType, 1) + ' (no delete access to these records: ' + orderNumber + ')'),
+            'The record must be named with the reason. Got: ' + result.reason);
+        Assert.areEqual('Draft', [SELECT Status FROM Order WHERE Id = :o.Id].Status, 'Nothing may change');
+    }
+
+    @IsTest
+    static void aHiddenRecordIsCountedNotNamed() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Hidden Opp');
+        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
+            .InternalSharingModel;
+        if (model != 'Private') {
+            // (c) needs a record the user cannot see; under public opportunity sharing
+            // there is none, and aRecordTheUserCannotDeleteOrSeeRefusesTheReset covers it.
+            return;
+        }
         User other = newStandardUser();
         RLM_AccountUtilities.Result result;
         System.runAs(other) {
-            // The real path: no seam, and this user has no View All Data.
-            RLM_AccountUtilities.startRun();
-            RLM_AccountUtilities.reportHiddenRecords(a.Id, new Set<String>{ 'Opportunity' }, false);
-            result = RLM_AccountUtilities.finish(true, null);
-        }
-        String model = [SELECT InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName = 'Opportunity']
-            .InternalSharingModel;
-        Assert.areEqual(
-            model == 'Private' ? entry(Opportunity.SObjectType, 1) + ' (' + NOT_VISIBLE + ')' : null,
-            result.retainedSummary,
-            'An opportunity the user cannot see must be reported as kept (sharing model ' + model + ')'
-        );
-    }
-
-    @IsTest
-    static void deleteAccessIsReadInChunksOf200() {
-        List<Account> theirs = new List<Account>();
-        for (Integer i = 0; i < 201; i++) {
-            theirs.add(new Account(Name = 'RLM Utilities Chunk ' + i));
-        }
-        insert theirs;
-        User u = newStandardUser();
-        Set<Id> ids = new Map<Id, Account>(theirs).keySet();
-        Set<Id> allowed;
-        Account own;
-        System.runAs(u) {
-            own = new Account(Name = 'RLM Utilities Owned By The Standard User');
-            insert own;
-            Set<Id> all = new Set<Id>(ids);
-            all.add(own.Id);
-            allowed = RLM_AccountUtilities.deletableByUser(all, RLM_AccountUtilities.RETRY_TAIL);
-        }
-        // 202 ids take two reads. The user owns one account, so only that one may go.
-        Assert.areEqual(new Set<Id>{ own.Id }, allowed,
-            'Only the record the user may delete, found across both reads of 200');
-    }
-
-    @IsTest
-    static void tooFewQueriesForTheNextAccessReadStopsWithoutPromisingAnotherRun() {
-        List<Account> theirs = new List<Account>();
-        for (Integer i = 0; i < 201; i++) {
-            theirs.add(new Account(Name = 'RLM Utilities Chunk ' + i));
-        }
-        insert theirs;
-        User u = newStandardUser();
-        String message;
-        System.runAs(u) {
             Test.startTest();
-            spendQueriesDownTo(RLM_AccountUtilities.RETRY_TAIL, theirs[0].Id);
-            try {
-                RLM_AccountUtilities.deletableByUser(new Map<Id, Account>(theirs).keySet(), RLM_AccountUtilities.RETRY_TAIL);
-            } catch (Exception e) {
-                message = e.getMessage();
-            }
+            result = run(request(a.Id, false, false, false));
             Test.stopTest();
         }
-        Assert.isNotNull(message, 'A second read without the queries after it must stop the run');
-        Assert.isTrue(message.contains('ran out of queries while checking') && !message.contains('Run the reset again'),
-            'The reason must say what is known, and not promise that another run continues. Got: ' + message);
+        Assert.areEqual(false, result.completed, 'A hidden record must refuse the reset');
+        Assert.isTrue(result.reason.contains(entry(Opportunity.SObjectType, 1) + ' (not visible to the user running the reset)')
+            && !result.reason.contains('RLM Utilities Hidden Opp'),
+            'A hidden record must be counted, never named. Got: ' + result.reason);
+        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
     }
 
-    // --------------------------------------------- review round 2 (todo 397)
-
-    private static final String KEPT_WITH_LINK = 'kept because a record linked to them is kept';
-
     @IsTest
-    static void aKeptAssetKeepsWhatReferencesItAndTheAssetsLinkedToIt() {
-        Account a = newAccount();
-        Asset linked = new Asset(Name = 'RLM Utilities Linked Asset', AccountId = a.Id);
-        Asset kept = new Asset(Name = 'RLM Utilities Kept Asset', AccountId = a.Id);
-        Asset free = new Asset(Name = 'RLM Utilities Free Asset', AccountId = a.Id);
-        insert new List<Asset>{ linked, kept, free };
-        AssetRelationship relationship = new AssetRelationship(AssetId = linked.Id, RelatedAssetId = kept.Id);
-        insert relationship;
-        SObject workOrder;
-        if (available(new List<String>{ 'WorkOrder' })) {
-            workOrder = newRecord('WorkOrder', new Map<String, Object>{ 'AccountId' => a.Id, 'AssetId' => kept.Id });
+    static void anAccountTheSalesRepPersonaFullyOwnsResetsCompletely() {
+        List<User> reps = [SELECT Id FROM User WHERE Username LIKE 'salesrep@%' AND IsActive = true LIMIT 1];
+        if (reps.isEmpty()) {
+            // Built without the personas: there is no salesrep user to run as.
+            return;
         }
-        // The user may delete everything but `kept`. Before, phase 1 and the asset step
-        // stripped an asset (rate card entries, entitlements, work orders) the reset then kept.
-        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ linked.Id, free.Id, relationship.Id };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, true, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(0, [SELECT COUNT() FROM Asset WHERE Id = :free.Id], 'An unlinked deletable asset must go');
-        Assert.areEqual(2, [SELECT COUNT() FROM Asset WHERE Id IN (:kept.Id, :linked.Id)],
-            'The kept asset and the asset linked to it must stay');
-        Assert.areEqual(1, [SELECT COUNT() FROM AssetRelationship WHERE Id = :relationship.Id],
-            'The relationship to a kept asset must stay');
-        if (workOrder != null) {
-            Assert.areEqual(1, countOf('WorkOrder', workOrder.Id), 'A work order on a kept asset must stay');
-        }
-        Assert.areEqual(
-            entry(Schema.Asset.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + '); '
-                + entry(Schema.Asset.SObjectType, 1) + ' (' + KEPT_WITH_LINK + '); '
-                + entry(AssetRelationship.SObjectType, 1) + ' (' + KEPT_WITH_LINK + ')',
-            result.retainedSummary,
-            'Each kept asset and relationship must be reported with its reason'
-        );
-    }
-
-    @IsTest
-    static void aKeptQuoteKeepsItsOpportunity() {
-        Account a = newAccount();
-        Opportunity holder = newOpportunity(a.Id, 'RLM Utilities Quote Holder');
-        Quote keptQuote = new Quote(Name = 'RLM Utilities Kept Quote', OpportunityId = holder.Id);
-        insert keptQuote;
-        // The user may delete the opportunity but not its quote. Deleting the opportunity
-        // would take the quote with it, while the Result said the quote was kept.
-        RLM_AccountUtilities.deleteAccessForTest = new Set<Id>{ holder.Id };
-
-        Test.startTest();
-        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
-        Test.stopTest();
-
-        Assert.areEqual(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
-        Assert.areEqual(1, [SELECT COUNT() FROM Quote WHERE Id = :keptQuote.Id], 'The quote must stay');
-        Assert.areEqual(1, [SELECT COUNT() FROM Opportunity WHERE Id = :holder.Id],
-            'The opportunity of a kept quote must stay');
-        Assert.areEqual(
-            entry(Quote.SObjectType, 1) + ' (' + NO_DELETE_ACCESS + '); '
-                + entry(Opportunity.SObjectType, 1) + ' (' + KEPT_WITH_LINK + ')',
-            result.retainedSummary,
-            'Both must be reported with their reasons'
-        );
-    }
-
-    @IsTest
-    static void aRecordThePlatformRefusesIsRolledBackKeptWithItsReasonAndTheRestGo() {
-        Account a = newAccount();
-        // Deleting an activated order is refused by the platform, whoever asks. Its change
-        // (a description here, standing in for the move back to Draft) must not survive.
-        Order refused = newActivatedOrder(a.Id);
-        Order free = new Order(
-            AccountId = a.Id, EffectiveDate = Date.today(), Status = 'Draft', Pricebook2Id = Test.getStandardPricebookId()
-        );
-        insert free;
-        refused.Description = 'RLM Utilities changed on the way to the delete';
-
-        Set<Id> deleted;
         RLM_AccountUtilities.Result result;
-        Test.startTest();
-        RLM_AccountUtilities.startRun();
-        deleted = RLM_AccountUtilities.deleteInTwoPasses(
-            new List<Order>{ refused, free }, new List<Order>{ refused }, null);
-        result = RLM_AccountUtilities.finish(true, null);
-        Test.stopTest();
+        Account a;
+        System.runAs(reps[0]) {
+            a = new Account(Name = 'RLM Utilities Rep Owned');
+            insert a;
+            insert new Opportunity(Name = 'RLM Utilities Rep Opp', AccountId = a.Id, StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30));
+            Test.startTest();
+            result = run(allOn(a.Id));
+            Test.stopTest();
+        }
+        Assert.areEqual(true, result.completed, 'The persona owns everything, so the reset must run. Reason: ' + result.reason);
+        Assert.areEqual(0, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'The opportunity must go');
+    }
 
-        Assert.areEqual(new Set<Id>{ free.Id }, deleted, 'Only the order the platform accepts may go');
-        Order after = [SELECT Status, Description FROM Order WHERE Id = :refused.Id];
-        Assert.areEqual('Activated', after.Status, 'The refused order must stay as it was');
-        Assert.isNull(after.Description, 'The change made on the way to the refused delete must be rolled back');
-        Assert.areEqual(0, [SELECT COUNT() FROM Order WHERE Id = :free.Id], 'The other order must go');
-        Assert.isTrue(result.retainedSummary.startsWith(entry(Order.SObjectType, 1) + ' (could not be deleted: '),
-            'The refused order must be reported with the platform\'s message. Got: ' + result.retainedSummary);
-        Assert.areEqual(entry(Order.SObjectType, 1), result.removedSummary, 'The deleted order must be reported');
+    @IsTest
+    static void recordAccessIsReadInChunksOf200() {
+        List<Opportunity> opportunities = new List<Opportunity>();
+        Account a = newAccount();
+        for (Integer i = 0; i < 201; i++) {
+            opportunities.add(new Opportunity(Name = 'RLM Utilities Chunk ' + i, AccountId = a.Id,
+                StageName = 'Prospecting', CloseDate = Date.today().addDays(30)));
+        }
+        insert opportunities;
+        User other = newStandardUser();
+        RLM_AccountUtilities.Result result;
+        System.runAs(other) {
+            Test.startTest();
+            result = run(request(a.Id, false, false, false));
+            Test.stopTest();
+        }
+        // 201 records the user cannot delete (or see), read in two chunks: all are counted.
+        Assert.isTrue(result.reason.contains(entry(Opportunity.SObjectType, 201) + ' ('),
+            'Every record across both reads must be counted. Got: ' + result.reason);
+        Assert.isTrue(!result.reason.contains('RLM Utilities Chunk 6,') || result.reason.contains('and 196 more'),
+            'At most five names are listed. Got: ' + result.reason);
+        Assert.areEqual(201, [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id], 'Nothing may change');
+    }
+
+    @IsTest
+    static void canReadFollowsTheRunningUsersObjectAccess() {
+        User u = newMinimalAccessUser();
+        Boolean minimalReadsInvoices;
+        System.runAs(u) {
+            minimalReadsInvoices = RLM_AccountUtilities.canRead('Invoice');
+        }
+        Assert.areEqual(false, minimalReadsInvoices, 'A user without billing access cannot read invoices');
+        Assert.areEqual(Account.SObjectType.getDescribe().isAccessible(), RLM_AccountUtilities.canRead('Account'),
+            'canRead must agree with the running user\'s access');
+        Assert.areEqual(false, RLM_AccountUtilities.canRead('RLM_No_Such_Object__c'),
+            'An object the org does not have cannot be read');
     }
 
     // ------------------------------------------------------------ scope guard

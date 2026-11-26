@@ -22,17 +22,25 @@
  * queries phase 2 needs are still available (QUERY_RESERVE). Running short ends
  * the run with a Result that asks for another run, which continues from there.
  *
- * Object access: running without sharing does not reach an object the running
- * user cannot read. A query on Invoice by the sales rep persona, who has no billing
- * access, fails with "sObject type 'Invoice' is not supported" even here (live
- * 264), and so did one on every other object that user cannot read. So the
- * billing, collections, fulfillment and asset-reference steps read an object only
- * when the user can (canRead), and the Result lists each object a step skipped for
- * that reason as not checked. A user without billing access can therefore reset an
- * account; its billing records stay, and the Result says they were not checked.
- * The usage teardown and the order, contract, asset, quote and opportunity deletes
- * are not gated: the reset needs them, and a user who cannot read them gets the
- * platform's error as the reason.
+ * Preflight (todo 397; owner decision: refuse the whole reset). Before phase 1, a
+ * read-only check (Preflight) finds, in system mode, every record the run would delete
+ * or change for the selected options, and refuses the whole reset, changing nothing, if
+ * the running user could not delete all of them. A record blocks when the user has no
+ * delete permission on its object, no delete access to the record
+ * (UserRecordAccess.HasDeleteAccess), cannot see it (HasReadAccess false), or cannot read
+ * its object at all, and when a permission the run needs on it is missing (Edit
+ * Activated Orders for an activated order, Access Lifecycle-Managed Assets for a
+ * lifecycle-managed asset, Delete Invoice and Invoice Lines for a posted invoice). The
+ * Result then says the reset was not run and lists the blockers: visible records by
+ * object with their names and the reason, hidden or unreadable ones as counts. Live 264
+ * (as the salesrep persona, under System.runAs and in a Login As session) a query in this
+ * class saw only the records sharing showed that user, although the class is declared
+ * without sharing, and a delete of a record the user could edit but not delete was
+ * refused; that is why the check is needed and why it reads in system mode.
+ *
+ * Because the preflight refused any account holding records of an object the user cannot
+ * read, the steps below skip such objects (canRead) without a report: for this account
+ * they are empty.
  *
  * ⚠ Sharing: `without sharing`, declared deliberately rather than left implicit.
  * The invocable's job is to clear an account's ENTIRE related graph so a demo
@@ -45,26 +53,6 @@
  * what this note is. Access is instead controlled at the grant: the class is
  * reachable only through RLM_UtilitiesPermset, which is assigned deliberately
  * and kept separate from the component permission sets for this reason.
- *
- * Live 264 (todo 397), as the salesrep persona, that is not the whole story: the
- * platform still refused to delete an admin-owned order the persona could edit but
- * not delete ("insufficient access rights on object id"), and an admin-owned renewal
- * opportunity under Private sharing was not found at all. So orders, contracts, credit
- * memos, assets, quotes and opportunities are checked against the user's delete access
- * before anything changes or deletes them (keepWhatUserCannotDelete), and a record the
- * user cannot delete is kept and reported, the record itself unchanged. Assets are
- * decided before phase 1 (decideKeptAssets): a kept asset keeps its rate card entries,
- * relationships, the assets those link it to, and what the asset step deletes through
- * assets (entitlements bound to it with their buckets, work orders, cases). A kept quote
- * keeps its opportunity, files and generated documents; a kept contract its rate card
- * entries. What the reset finds through the account still goes whatever is kept, as it
- * does with Delete Assets unchecked: the account's usage records, entitlements and
- * commitment junctions, the binding policies bound to its assets and contracts, and a
- * kept order's fulfillment records and billing schedule groups. A delete the platform
- * refuses for another reason keeps that record with the platform's message, in two
- * passes (deleteInTwoPasses), except assets, which stay all or nothing. A record the
- * user cannot see is counted in system mode after a completed run and reported as kept
- * (reportHiddenRecords); only the count is read.
  *
  * Previously this class declared NO sharing keyword, so it inherited whichever
  * context called it. An omitted keyword is NOT equivalent to `without sharing` in
@@ -86,10 +74,9 @@ public without sharing class RLM_AccountUtilities {
     // teardown alternates objects and converges. Six rounds has been ample on an
     // org with 831 summaries; the cap only exists so a pathological graph cannot
     // spin. In practice QUERY_RESERVE ends a run first, after four or five rounds
-    // (phase 1's lookups before the loop take 4 to 9 of the 100 queries: assets and
-    // contracts 2, with Delete Assets and assets their relationships 1, the permission
-    // read 1 and the access read 1, then policies 1 to 3 and rate card entries 1; a round
-    // needs 59 left to start), and the next run carries on.
+    // (the preflight's reads come first, their number depending on the user and the
+    // account, and a round needs 59 left to start; the preflight stops, changing nothing,
+    // rather than leave fewer), and the next run carries on.
     //
     // TEARDOWN_BATCH is a per-QUERY ceiling only -- it does NOT bound the
     // transaction. The 10,000-row DML limit is per transaction and this loop
@@ -100,42 +87,38 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 46 (counted from the code, with every option on and
-    // data in every branch): 32 before the asset step (order data 10, collections 5,
-    // schedule groups 1, billing 9, the Modify All Data read 1 when no earlier step made
-    // it, fulfillment 2, contracts 3, orders 1; the delete access reads are one per 200
-    // records, and a read after the first is guarded), the asset step's lookup of
-    // entitlements bound to the assets 1 and its other lookups 6 (the assets themselves
-    // are decided before phase 1), quotes and opportunities 6 = 45 on the drained path,
-    // plus the journal query, which only the undrained path runs = 46. 29 is what an
-    // account with no such data measures. QUERY_RESERVE covers the 46 and the usage
-    // retries. A round starts only while both are left; otherwise a large usage graph would
-    // spend phase 2's queries and end in a LimitException. A test holds the measured 29 and
-    // the reserve against the 46.
+    // fixed queries total at most 43 (counted from the code, with every option on and
+    // data in every branch): 27 before the asset step (order data 10, collections 5,
+    // schedule groups 1, billing 7, fulfillment 2, contracts 2), the asset step's rate
+    // card entries 1, its lookup of entitlements bound to the assets 1 and its other
+    // lookups 8, quotes and opportunities 5 = 42 on the drained path, plus the journal
+    // query, which only the undrained path runs = 43. The permission checks moved to the
+    // preflight, and the rate card entries moved here from phase 1. 29 is what an account with no such data measures.
+    // QUERY_RESERVE covers the 43 and the usage retries. A round starts only while both
+    // are left; otherwise a large usage graph would spend phase 2's queries and end in a
+    // LimitException. A test holds the measured 29 and the reserve against the 43.
     private static final Integer QUERIES_PER_ROUND = 9;
     @TestVisible
     private static final Integer QUERY_RESERVE = 50;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 46;
+    private static final Integer PHASE_TWO_FIXED_MAX = 43;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
-    //  - RETRY_TAIL, for the usage retries: at most 32 follow the journal guard (journal 1,
-    //    collections 5, schedule groups 1, billing 9, the Modify All Data read 1,
-    //    fulfillment 2, contracts 3, orders 1, the asset step with no assets 3, quotes and
-    //    opportunities 6). 35 keeps three spare. Access reads in the middle of phase 2 use
-    //    it too, as an upper bound on what follows them.
-    //  - ASSET_TAIL, for the asset step: at most 12 follow its last guard (other asset
-    //    references 2, resource policies 3, rate card entries 1, quotes and opportunities
-    //    6). 15 keeps three spare.
+    //  - RETRY_TAIL, for the usage retries: at most 26 follow the journal guard (journal 1,
+    //    collections 5, schedule groups 1, billing 7, fulfillment 2, contracts 2, the asset
+    //    step with no assets 3, quotes and opportunities 5). 30 keeps four spare.
+    //  - ASSET_TAIL, for the asset step: at most 13 follow its last guard (other asset
+    //    references 2, resource policies 3, rate card entries 1, assets 2, quotes and
+    //    opportunities 5). 16 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
     // query added after a guard; the tests cannot catch growth in the data-dependent branches.
     @TestVisible
-    private static final Integer RETRY_TAIL = 35;
+    private static final Integer RETRY_TAIL = 30;
     @TestVisible
-    private static final Integer ASSET_TAIL = 15;
+    private static final Integer ASSET_TAIL = 16;
     private static final Integer UNSEEN_QUERIES = 4;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
@@ -150,27 +133,31 @@ public without sharing class RLM_AccountUtilities {
         + 'incomplete, because the query limit was reached while listing them';
     private static final String DML_LIMIT = 'The reset reached the Salesforce limit on record changes in one run.';
     private static final String QUERY_LIMIT = 'The reset reached the Salesforce limit on queries in one run.';
-    private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled, and deleting them needs the '
+    // Preflight refusal. Plain wording: the reset was not run.
+    private static final String REFUSED = 'The reset was not run, and nothing was changed: the user running it '
+        + 'cannot delete everything it would delete.';
+    private static final String REFUSED_ADVICE = 'Ask a user with that access, or with Modify All Data, to run it, '
+        + 'or have the records reassigned to the user running the reset.';
+    private static final String PREFLIGHT_TOO_LARGE = 'The reset was not run, and nothing was changed: checking '
+        + 'what it would delete left too few queries for the reset itself in one run. Running it again as the same '
+        + 'user stops at the same point; a user with Modify All Data and View All Data needs far fewer queries for '
+        + 'that check.';
+    private static final String NO_PERMISSION = 'no permission to delete this kind of record';
+    private static final String NO_ACCESS = 'no delete access to these records';
+    private static final String NOT_VISIBLE = 'not visible to the user running the reset';
+    private static final String CANNOT_READ = 'the user running the reset cannot read this kind of record';
+    private static final String NEEDS_EDIT_ACTIVATED = 'activated; setting them back to Draft needs the Edit '
+        + 'Activated Orders permission';
+    private static final String NEEDS_LIFECYCLE = 'lifecycle-managed; deleting them needs the Access '
+        + 'Lifecycle-Managed Assets permission';
+    private static final String INVOICE_NEEDS_PERMISSION = 'not Draft or Canceled; deleting them needs the '
         + 'Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices)';
-    private static final String MEMO_NEEDS_PERMISSION = 'deleting them needs the Allow Revenue Records Deletion '
-        + 'permission (Billing Admin permission set)';
-    private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset again once they finish';
+    private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset once they finish';
+    // Names listed per object in a refusal; the rest are counted.
+    private static final Integer NAMES_LISTED = 5;
     private static final String PAYMENTS_KEPT = 'payments are not deleted: Salesforce does not allow deleting processed payments';
-    private static final String MEMO_ON_KEPT_INVOICE = 'applied to an invoice that was kept';
+    private static final String MEMO_ON_KEPT_INVOICE = 'applied to an invoice that was not deleted';
     private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
-    private static final String NO_DELETE_ACCESS = 'the user running the reset cannot delete them: they belong '
-        + 'to another user and sharing does not let this user delete them; they were left unchanged';
-    private static final String NO_DELETE_PERMISSION = 'the user running the reset does not have permission to '
-        + 'delete this kind of record; they were left unchanged';
-    private static final String ACCESS_CHECK_TOO_LARGE = 'This run ran out of queries while checking which of the '
-        + 'account\'s records the user running the reset may delete. A user with Modify All Data skips that check.';
-    private static final String KEPT_WITH_LINK = 'kept because a record linked to them is kept';
-    private static final String NOT_VISIBLE = 'not visible to the user running the reset; they were left unchanged';
-    private static final String INCOMPLETE_HIDDEN = 'Records not visible to the user running the reset may remain: '
-        + 'the query limit was reached while counting them';
-    private static final String SKIPPED_WITH = 'not checked: the step that deletes them also needs records the user '
-        + 'running the reset has no access to';
-    private static final String NOT_CHECKED = 'not checked: the user running the reset has no access to them';
 
     /**
      * Input variables for the account cleanup process.
@@ -218,26 +205,12 @@ public without sharing class RLM_AccountUtilities {
         @InvocableVariable(label='Removed' description='Records the reset deleted, by object.')
         public String removedSummary;
 
-        @InvocableVariable(label='Retained' description='Records the reset kept, by object, with the reason.')
+        @InvocableVariable(label='Retained' description='Records the reset did not delete, by object, with the reason.')
         public String retainedSummary;
     }
 
     /** Ends a run early when a limit is close, before the platform throws a LimitException. */
     private class ResetStoppedException extends Exception {}
-
-    /**
-     * Ends a run that has more records than one run can check the user's delete access
-     * on. Not a ResetStoppedException: another run would stop at the same point.
-     */
-    private class AccessCheckTooLargeException extends Exception {}
-
-    // The most queries that can follow an access read before the next guard, at the call
-    // sites outside the middle of phase 2 (see deletableByUser). Quotes and opportunities:
-    // their files 2 and generated documents 1. Before phase 1: the binding policies 3 and
-    // rate card entries 1, then one teardown round with phase 2's reserve, so a run that
-    // passes the check can still make progress.
-    private static final Integer QUOTE_TAIL = 3;
-    private static final Integer PRE_PHASE_ONE_TAIL = 4 + QUERIES_PER_ROUND + QUERY_RESERVE;
 
     /**
      * What the current run removed and kept. Copied before phase 2, so that a
@@ -256,13 +229,6 @@ public without sharing class RLM_AccountUtilities {
         public Set<Id> foreignBuckets = new Set<Id>();
         // True when the bucket list after a rollback ran out of queries part way.
         public Boolean incompleteBuckets = false;
-        // Labels of the objects a step skipped because the running user cannot read
-        // them, in the order the steps met them.
-        public List<String> unchecked = new List<String>();
-        // Labels of readable objects a step skipped with ones the user cannot read.
-        public List<String> skippedWith = new List<String>();
-        // True when the count of records hidden from the user stopped before it finished.
-        public Boolean incompleteHidden = false;
 
         public ResetReport copy() {
             ResetReport c = new ResetReport();
@@ -272,9 +238,6 @@ public without sharing class RLM_AccountUtilities {
             c.refused = refused.clone();
             c.foreignBuckets = foreignBuckets.clone();
             c.incompleteBuckets = incompleteBuckets;
-            c.unchecked = unchecked.clone();
-            c.incompleteHidden = incompleteHidden;
-            c.skippedWith = skippedWith.clone();
             return c;
         }
     }
@@ -294,14 +257,12 @@ public without sharing class RLM_AccountUtilities {
 
     private static ResetReport report = new ResetReport();
 
+    // The preflight of the current run, whose rows phase 1 reuses instead of querying again.
+    private static Preflight preflight;
+
     // The account's assets and contracts, read at the start of the run by several
     // steps in both phases. The reset never creates either.
     private static Set<Id> accountAssetIds = new Set<Id>();
-    // With Delete Assets: the account's assets the reset may delete, and the asset
-    // relationships it may delete, decided before phase 1 (decideKeptAssets) so that no
-    // step strips an asset the reset then keeps.
-    private static Set<Id> deletableAssetIds = new Set<Id>();
-    private static List<AssetRelationship> deletableRelationships = new List<AssetRelationship>();
     private static Set<Id> accountContractIds = new Set<Id>();
 
     // True when the last teardown round found no usage rows at all. Phase 2 then
@@ -316,8 +277,8 @@ public without sharing class RLM_AccountUtilities {
     private static Exception phaseTwoFailureForTest;
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
-    // always ends the loop first (a round needs 59 queries left, and 100 allow four or five, depending on the
-    // 4 to 9 queries phase 1 spends on assets and contracts before the loop), so
+    // always ends the loop first (a round needs 59 queries left, and 100 allow at most four or five, depending on the
+    // queries the preflight spends before the loop), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
     @TestVisible
@@ -342,34 +303,27 @@ public without sharing class RLM_AccountUtilities {
     @TestVisible
     private static Integer dmlRowLimitForTest;
 
-    // Lets a test run as a user who cannot read these objects (canRead), since a test
-    // user cannot be given the usage and core object access the reset also needs.
+    // Let a test run as a user who cannot read, or has no delete permission on, these
+    // objects (canRead, objectDeletable), since a test user cannot be given the usage and
+    // core object access the reset also needs.
     @TestVisible
     private static Set<String> unreadableForTest = new Set<String>();
-
-    // Lets a test set how many records of an object the running user cannot see
-    // (hiddenCount), since a test cannot rely on the org's sharing settings.
     @TestVisible
-    private static Map<String, Integer> hiddenForTest;
-
-    // Lets a test decide which records the running user may delete (deletableByUser),
-    // since a test cannot share a record to a user with edit but not delete access.
-    @TestVisible
-    private static Set<Id> deleteAccessForTest;
+    private static Set<String> undeletableForTest = new Set<String>();
 
     /**
      * The account's orders, invoices and fulfillment records, queried once at the
-     * start of phase 2 and shared by the steps that delete them. Invoices are
-     * queried only for a step that uses them, and the fulfillment graph only when it
-     * is going to be deleted; each only as far as the running user can read it.
+     * start of phase 2 and shared by the steps that delete them. Invoices are queried
+     * only for a step that uses them, and the fulfillment graph only when it is going to
+     * be deleted; an object the user cannot read is skipped (the preflight refused the
+     * run if it had records here).
      */
     private class OrderData {
         public List<Order> orders;
         public Set<Id> orderIds;
         public Set<Id> orderItemIds;
         // Status and PaymentScheduleId are for Delete Billing; the Ids also find the
-        // fulfillment orders and disputes raised against an invoice. Empty when no
-        // step asked for them or the running user cannot read invoices.
+        // fulfillment orders and disputes raised against an invoice.
         public List<Invoice> invoices = new List<Invoice>();
 
         public List<FulfillmentOrder> fulfillmentOrders = new List<FulfillmentOrder>();
@@ -385,10 +339,9 @@ public without sharing class RLM_AccountUtilities {
             this.orderIds = new Map<Id, Order>(this.orders).keySet();
             this.orderItemIds = new Map<Id, OrderItem>(
                 [SELECT Id FROM OrderItem WHERE Order.AccountId = :accountId]).keySet();
-            // Not for a run that deletes neither billing, collections nor fulfillment, and
-            // not for a user who cannot read invoices: that query fails, and with it the
-            // whole reset. Delete Billing reports invoices it could not read; the other
-            // two only look up by invoice, so they look up without them.
+            // Not for a run that deletes neither billing, collections nor fulfillment: live
+            // 264, this query failed for the salesrep persona, who cannot read invoices
+            // ("sObject type 'Invoice' is not supported"), on every reset.
             if (withInvoices && canRead('Invoice')) {
                 this.invoices = [
                     SELECT Id, Status, PaymentScheduleId FROM Invoice WHERE BillingAccountId = :accountId
@@ -403,8 +356,7 @@ public without sharing class RLM_AccountUtilities {
          * Queried in dependency order: fulfillment orders reference orders,
          * invoices and order summaries; plans reference orders and order items;
          * steps reference plans; line items reference fulfillment orders; source
-         * relations reference order items and line items. An object the running
-         * user cannot read is skipped, and reported when the reset deletes it.
+         * relations reference order items and line items.
          */
         private void loadFulfillment(Id accountId) {
             Set<String> sourceIdentifiers = new Set<String>();
@@ -416,8 +368,7 @@ public without sharing class RLM_AccountUtilities {
             }
             Set<Id> invoiceIds = new Map<Id, Invoice>(this.invoices).keySet();
             Set<Id> fulfillmentOrderIds = new Set<Id>();
-            if (readOrNote('FulfillmentOrder')) {
-                // Order summaries only find fulfillment orders; they are not deleted.
+            if (canRead('FulfillmentOrder')) {
                 Set<Id> summaryIds = new Set<Id>();
                 if (canRead('OrderSummary')) {
                     summaryIds = new Map<Id, OrderSummary>(
@@ -433,32 +384,31 @@ public without sharing class RLM_AccountUtilities {
                 ];
                 fulfillmentOrderIds = new Map<Id, FulfillmentOrder>(this.fulfillmentOrders).keySet();
             }
-            if (readOrNote('FulfillmentPlan')) {
+            if (canRead('FulfillmentPlan')) {
                 this.fulfillmentPlans = [
                     SELECT Id
                     FROM FulfillmentPlan
                     WHERE SourceIdentifier IN :sourceIdentifiers
                     AND (SourceType = 'StandardOrder' OR SourceType = 'OrderItem')
                 ];
-                // Steps only find step sources; they go with their plan.
                 if (canRead('FulfillmentStep')) {
                     Set<Id> planIds = new Map<Id, FulfillmentPlan>(this.fulfillmentPlans).keySet();
                     this.fulfillmentStepIds = new Map<Id, FulfillmentStep>(
                         [SELECT Id FROM FulfillmentStep WHERE FulfillmentPlanId IN :planIds]).keySet();
                 }
             }
-            if (readOrNote('FulfillmentAsset')) {
+            if (canRead('FulfillmentAsset')) {
                 this.fulfillmentAssets = [SELECT Id FROM FulfillmentAsset WHERE AccountId = :accountId];
                 this.fulfillmentAssetIds = new Map<Id, FulfillmentAsset>(this.fulfillmentAssets).keySet();
             }
             Set<Id> lineItemIds = new Set<Id>();
-            if (readOrNote('FulfillmentOrderLineItem')) {
+            if (canRead('FulfillmentOrderLineItem')) {
                 this.fulfillmentOrderLineItems = [
                     SELECT Id FROM FulfillmentOrderLineItem WHERE FulfillmentOrderId IN :fulfillmentOrderIds
                 ];
                 lineItemIds = new Map<Id, FulfillmentOrderLineItem>(this.fulfillmentOrderLineItems).keySet();
             }
-            if (readOrNote('FulfillmentLineSourceRel')) {
+            if (canRead('FulfillmentLineSourceRel')) {
                 this.fulfillmentLineSourceRels = [
                     SELECT Id
                     FROM FulfillmentLineSourceRel
@@ -502,6 +452,19 @@ public without sharing class RLM_AccountUtilities {
         Boolean preserveContractsWithPrices = input.PreserveContractsWithContractedPrices == true;
 
         // ------------------------------------------------------------------
+        // Preflight: read only. If the user could not delete everything the run would
+        // delete, nothing is changed and the Result lists why (see the class header).
+        try {
+            preflight = new Preflight(
+                accountId, deleteAssets, deleteFulfillment, deleteBilling, deleteCollections, preserveContractsWithPrices);
+        } catch (PreflightTooLargeException e) {
+            return refuse(PREFLIGHT_TOO_LARGE);
+        }
+        if (!preflight.blockers.isEmpty()) {
+            return refuse(REFUSED + ' ' + preflight.describeBlockers() + '. ' + REFUSED_ADVICE);
+        }
+
+        // ------------------------------------------------------------------
         // Phase 1: the usage graph, BEFORE the savepoint, deliberately.
         //
         // It is idempotent and convergent -- a rerun simply finds fewer rows --
@@ -520,37 +483,27 @@ public without sharing class RLM_AccountUtilities {
         // thrown exception fails the flow, which rolls back the whole
         // transaction, this progress included.
         try {
-            accountAssetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE AccountId = :accountId]).keySet();
-            accountContractIds = new Map<Id, Contract>(
-                [SELECT Id FROM Contract WHERE AccountId = :accountId]).keySet();
-            // Before anything is deleted: which assets the reset keeps.
-            if (deleteAssets) {
-                decideKeptAssets();
-            }
+            // The preflight already read the assets, contracts, binding policies and rate
+            // card entries, in system mode, and they are all the user's to delete.
+            accountAssetIds = new Map<Id, SObject>(preflight.rowsOf('Asset')).keySet();
+            accountContractIds = new Map<Id, SObject>(preflight.rowsOf('Contract')).keySet();
 
-            deleteUsageResourcePolicies(accountId);
-            deleteBindingObjRateCardEntries(accountId);
+            deleteQuietly(preflight.rowsOf('BindingObjUsageRsrcPlcy'));
+            deleteQuietly(preflight.rowsOf('BindingObjectRateCardEntry'));
 
             // The summary graph must go FIRST. A UsageEntitlementEntry holds its
             // UsageSummary, and a bucket cannot be deleted while entitlement entries
             // still reference it -- so tearing down buckets before the summaries
             // (the previous order) fails on any account whose usage was ever rated.
-            deleteUsageSummaryGraph(accountId);
-
-            // Gated on deleteAssets, like the asset deletion itself further down, and
-            // only for the assets the reset deletes (decideKeptAssets).
-            // AssetRateCardEntry rows are generated when the asset is created and are
-            // NOT recreated for an existing asset, so removing them while KEEPING the
-            // asset leaves a usage asset that can never rate again.
-            if (deleteAssets) {
-                deleteAssetRateCardEntries();
+            // Not when the preflight found no usage records: nothing to tear down.
+            if (preflight.hasUsage) {
+                deleteUsageSummaryGraph(accountId);
+            } else {
+                usageDrained = true;
             }
         } catch (ResetStoppedException e) {
             return finish(false, e.getMessage()
                 + ' The usage records removed so far stay deleted; nothing else was touched. ' + RUN_AGAIN);
-        } catch (AccessCheckTooLargeException e) {
-            // Thrown by decideKeptAssets, before phase 1 deletes anything.
-            return finish(false, e.getMessage() + ' Nothing was deleted.');
         } catch (Exception e) {
             return finish(false, 'The usage cleanup failed: ' + e.getMessage()
                 + ' The usage records it removed stay deleted; nothing else was touched.');
@@ -609,6 +562,12 @@ public without sharing class RLM_AccountUtilities {
 
             // Handle assets if needed
             if (deleteAssets) {
+                // In phase 2, so a rollback restores them with the assets. Gated on
+                // deleteAssets, like the asset deletion itself: AssetRateCardEntry rows are
+                // generated when the asset is created and are NOT recreated for an existing
+                // asset, so removing them while KEEPING the asset leaves a usage asset that
+                // can never rate again.
+                deleteAssetRateCardEntries();
                 // Before deleting assets, clean up ALL records that might reference them
                 deleteAllRecordsReferencingAssets(accountId);
 
@@ -628,7 +587,13 @@ public without sharing class RLM_AccountUtilities {
 
             // Finally handle remaining objects. QuoteAccountId is the quote's own
             // account and AccountId its opportunity's; a quote can have either alone.
-            deleteQuotesAndOpportunities(accountId);
+            List<Quote> accountQuotes = [
+                SELECT Id FROM Quote WHERE QuoteAccountId = :accountId OR AccountId = :accountId
+            ];
+            // Delete quote-linked ContentDocuments before quotes are removed
+            deleteQuoteDocuments(accountQuotes);
+            deleteAll(accountQuotes);
+            deleteAll([SELECT Id FROM Opportunity WHERE AccountId = :accountId]);
 
             if (phaseTwoFailureForTest != null) {
                 throw phaseTwoFailureForTest;
@@ -645,9 +610,19 @@ public without sharing class RLM_AccountUtilities {
             return finish(false, kept + cause);
         }
         phaseTwoQueriesForTest = Limits.getQueries() - phaseTwoQueriesAtStart;
-        reportHiddenRecords(accountId, new Set<String>(hiddenCheckScope(
-            deleteAssets, deleteFulfillment, deleteBilling, deleteCollections)), preserveContractsWithPrices);
         return finish(true, null);
+    }
+
+    /**
+     * The Result of a run the preflight refused: not completed, nothing removed, and the
+     * reason that lists why. Nothing was changed, so there is nothing else to report.
+     */
+    private static Result refuse(String reason) {
+        Result result = new Result();
+        result.completed = false;
+        result.cleared = false;
+        result.reason = reason;
+        return result;
     }
 
     @TestVisible
@@ -655,9 +630,8 @@ public without sharing class RLM_AccountUtilities {
         report = new ResetReport();
         describedTypes = null;
         userPermissions = null;
+        preflight = null;
         accountAssetIds = new Set<Id>();
-        deletableAssetIds = new Set<Id>();
-        deletableRelationships = new List<AssetRelationship>();
         accountContractIds = new Set<Id>();
         usageDrained = false;
         unseenListQueriesSpentForTest = null;
@@ -676,7 +650,6 @@ public without sharing class RLM_AccountUtilities {
         }
     }
 
-    @TestVisible
     private static Result finish(Boolean completed, String reason) {
         // Refusals become retained rows. A refused row that a later attempt deleted
         // was taken back out; one that went with its parent came back as
@@ -706,17 +679,8 @@ public without sharing class RLM_AccountUtilities {
             kept.add(k.label + ': ' + k.count + ' (' + k.why + ')');
         }
 
-        if (report.incompleteHidden) {
-            kept.add(INCOMPLETE_HIDDEN);
-        }
         if (report.incompleteBuckets) {
             kept.add(INCOMPLETE_BUCKETS);
-        }
-        if (!report.unchecked.isEmpty()) {
-            kept.add(String.join(report.unchecked, ', ') + ': ' + NOT_CHECKED);
-        }
-        if (!report.skippedWith.isEmpty()) {
-            kept.add(String.join(report.skippedWith, ', ') + ': ' + SKIPPED_WITH);
         }
 
         Result result = new Result();
@@ -770,10 +734,10 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * True when the org has the object and the running user can read it. A query on
-     * an object the user cannot read fails even without sharing (see the class
-     * header). Live 264, as the sales rep persona, isAccessible() was false for
-     * exactly the objects whose queries failed and true for every one that worked.
+     * True when the org has the object and the running user can read it. Live 264, a
+     * query on an object the user cannot read failed in this class although it runs
+     * without sharing ("sObject type 'Invoice' is not supported", the salesrep persona),
+     * and isAccessible() was false for exactly the objects whose queries failed.
      */
     @TestVisible
     private static Boolean canRead(String objectName) {
@@ -785,307 +749,84 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * canRead, and when the org has the object but the user cannot read it, records
-     * it as not checked, so the Result says it was skipped. An object the org does
-     * not have is skipped silently: there is nothing of it to delete.
+     * True when the user has delete permission on the object. Live 264 that is also what
+     * reflects Allow Revenue Records Deletion for credit memos: isDeletable() was false
+     * without it and true with it, for a System Administrator.
      */
-    private static Boolean readOrNote(String objectName) {
-        if (canRead(objectName)) {
-            return true;
+    private static Boolean objectDeletable(String objectName) {
+        if (undeletableForTest.contains(objectName)) {
+            return false;
         }
         Schema.SObjectType type = typeOf(objectName);
-        if (type != null && !report.unchecked.contains(labelOf(type))) {
-            report.unchecked.add(labelOf(type));
-        }
-        return false;
+        return type != null && type.getDescribe().isDeletable();
     }
 
-    /**
-     * The account-scoped objects whose records the reset deletes with these options. A
-     * record reached only through one of these (lines, steps, buckets, entries, files,
-     * generated documents, cases, work orders) is not counted on its own: a child of a
-     * hidden parent stays with it, and the parent's count covers it.
-     */
-    private static List<String> hiddenCheckScope(
-        Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling, Boolean deleteCollections
-    ) {
-        List<String> scope = new List<String>{
-            'TransactionUsageEntitlement', 'UsageEntitlementAccount', 'UsageSummary', 'UsageRatableSummary',
-            'UsageBillingPeriodItem', 'TransactionJournal', 'BindingObjUsageRsrcPlcy', 'BindingObjectRateCardEntry',
-            'BillingScheduleGroup', 'Contract', 'Order', 'Quote', 'Opportunity'
-        };
-        if (deleteAssets) {
-            scope.add('Asset');
-        }
-        if (deleteFulfillment) {
-            scope.addAll(new List<String>{ 'FulfillmentOrder', 'FulfillmentAsset' });
-        }
-        if (deleteBilling) {
-            scope.addAll(new List<String>{ 'Invoice', 'CreditMemo', 'DebitMemo', 'Payment' });
-        }
-        if (deleteCollections) {
-            scope.addAll(new List<String>{ 'CollectionPlan', 'Dispute' });
-        }
-        return scope;
-    }
-
-    // How each object in hiddenCheckScope finds the account's records, as the reset's
-    // own queries do. Ordered as the reset meets them, so the Result lists them in order.
-    private static final List<List<String>> ACCOUNT_FILTERS = new List<List<String>>{
-        new List<String>{ 'TransactionUsageEntitlement', 'AccountId = :accountId' },
-        new List<String>{ 'UsageEntitlementAccount', 'AccountId = :accountId' },
-        new List<String>{ 'UsageSummary', 'AccountId = :accountId' },
-        new List<String>{ 'UsageRatableSummary', 'AccountId = :accountId' },
-        new List<String>{ 'UsageBillingPeriodItem', 'AccountId = :accountId' },
-        new List<String>{ 'TransactionJournal', 'AccountId = :accountId' },
-        new List<String>{ 'BindingObjUsageRsrcPlcy', 'BindingObjectId = :accountId' },
-        new List<String>{ 'BindingObjectRateCardEntry', 'BindingObjectId = :accountId' },
-        new List<String>{ 'CollectionPlan', 'AccountId = :accountId' },
-        new List<String>{ 'Dispute', 'AccountId = :accountId' },
-        new List<String>{ 'BillingScheduleGroup', 'BillingAccountId = :accountId' },
-        new List<String>{ 'DebitMemo', 'AccountId = :accountId' },
-        new List<String>{ 'Invoice', 'BillingAccountId = :accountId' },
-        new List<String>{ 'CreditMemo', 'BillingAccountId = :accountId' },
-        new List<String>{ 'Payment', 'AccountId = :accountId' },
-        new List<String>{ 'FulfillmentOrder', 'AccountId = :accountId' },
-        new List<String>{ 'FulfillmentAsset', 'AccountId = :accountId' },
-        new List<String>{ 'Contract', 'AccountId = :accountId' },
-        new List<String>{ 'Order', 'AccountId = :accountId' },
-        new List<String>{ 'Asset', 'AccountId = :accountId' },
-        new List<String>{ 'Quote', '(QuoteAccountId = :accountId OR AccountId = :accountId)' },
-        new List<String>{ 'Opportunity', 'AccountId = :accountId' }
+    // The running user's permissions, read once per user: the core ones statically, in one
+    // query, and the billing and lifecycle ones dynamically in another, so a release
+    // without one of those fields reads it as false and nothing else.
+    private static Map<String, Boolean> userPermissions;
+    private static Id userPermissionsOf;
+    private static final Set<String> CORE_PERMISSIONS = new Set<String>{
+        'PermissionsModifyAllData', 'PermissionsViewAllData', 'PermissionsEditActivatedOrders'
+    };
+    private static final List<String> OTHER_PERMISSIONS = new List<String>{
+        'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords', 'PermissionsCalmSobjectAccessUser'
     };
 
     /**
-     * After a completed run: counts, per object, the account's records still there that
-     * the running user cannot see, and reports them as kept. Live 264 the salesrep
-     * persona's reset did not find an admin-owned renewal opportunity under Private
-     * sharing, even though this class runs without sharing, and said nothing about it;
-     * a count WITH SYSTEM_MODE did find it. Only counts are read; no id reaches the user.
-     *
-     * Skipped for a user with View All Data, who sees every record. Otherwise it reads
-     * the objects' sharing models once and counts only the objects whose records sharing
-     * can hide (Private, or Controlled by Parent): two queries each, the system-mode count
-     * and the count this class sees. An object the user cannot read is already reported
-     * as not checked. This runs after phase 2, outside the counted phase-2 budget
-     * (PHASE_TWO_FIXED_MAX), and spends only what is left: when too few queries remain it
-     * stops, and the Result says the count is incomplete.
+     * Whether the running user has the permission, from their profile, a permission set or
+     * a group. UserPermissionAccess holds the user's effective permissions, and any user may
+     * read their own; a non-admin is refused PermissionSetAssignment.
      */
-    @TestVisible
-    private static void reportHiddenRecords(Id accountId, Set<String> scope, Boolean preserveContractsWithPrices) {
-        if (hiddenForTest == null && hasUserPermission('PermissionsViewAllData')) {
-            return;
+    private static Boolean hasUserPermission(String field) {
+        if (userPermissions == null || userPermissionsOf != UserInfo.getUserId()) {
+            userPermissionsOf = UserInfo.getUserId();
+            userPermissions = new Map<String, Boolean>();
         }
-        List<List<String>> readable = new List<List<String>>();
-        List<String> readableNames = new List<String>();
-        for (List<String> objectAndFilter : ACCOUNT_FILTERS) {
-            if (scope.contains(objectAndFilter[0]) && canRead(objectAndFilter[0])) {
-                readable.add(objectAndFilter);
-                readableNames.add(objectAndFilter[0]);
-            }
-        }
-        try {
-            Set<String> hideable = hideableObjects(readableNames);
-            for (List<String> objectAndFilter : readable) {
-                String objectName = objectAndFilter[0];
-                if (!hideable.contains(objectName)) {
-                    continue;
-                }
-                String filter = objectAndFilter[1];
-                if (objectName == 'Contract' && preserveContractsWithPrices && typeOf('ContractItemPrice') != null) {
-                    // Contracts that option keeps are not the reset's to report.
-                    filter += ' AND Id NOT IN (SELECT ContractId FROM ContractItemPrice)';
-                }
-                recordRetained(typeOf(objectName), hiddenCount(objectName, filter, accountId), NOT_VISIBLE);
-            }
-        } catch (Exception e) {
-            // After a completed phase 2, so nothing here may fail the run: a throw from
-            // the invocable would roll the whole reset back.
-            report.incompleteHidden = true;
-        }
-    }
-
-    /**
-     * The objects among `objectNames` whose sharing model can hide a record from a user
-     * who can read the object: Private and Controlled by Parent. One query.
-     */
-    private static Set<String> hideableObjects(List<String> objectNames) {
-        Set<String> hideable = new Set<String>();
-        if (objectNames.isEmpty()) {
-            return hideable;
-        }
-        if (hiddenForTest != null) {
-            hideable.addAll(hiddenForTest.keySet());
-            return hideable;
-        }
-        requireQueries(1);
-        for (EntityDefinition entity : [
-            SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition WHERE QualifiedApiName IN :objectNames
-        ]) {
-            if (entity.InternalSharingModel == 'Private' || entity.InternalSharingModel == 'ControlledByParent') {
-                hideable.add(entity.QualifiedApiName);
-            }
-        }
-        return hideable;
-    }
-
-    /**
-     * How many of the account's `objectName` records the running user cannot see: the
-     * system-mode count less the count this class sees, which is what its deletes saw.
-     * Stops the count, not the run, when its two queries are not left.
-     *
-     * Why the second count respects sharing although this class is `without sharing` and
-     * the query names no access level: that is what was measured, not what the docs
-     * suggest. Live 264, as the salesrep persona (System.runAs, and in a real Login As
-     * session through the flow), the reset's own queries and a default dynamic count did
-     * not see an admin-owned opportunity under Private sharing, while the same count
-     * WITH SYSTEM_MODE did; the Chrome run reported "Opportunities: 1 (not visible ...)".
-     * Not USER_MODE: that also enforces field-level security on the filter fields, which
-     * the reset's own queries do not. Should the default count ever see everything, it
-     * equals the system-mode one, the count is 0, and the reset's queries see and delete
-     * those records too, so the two stay consistent.
-     */
-    @TestVisible
-    private static Integer hiddenCount(String objectName, String filter, Id accountId) {
-        if (hiddenForTest != null) {
-            return hiddenForTest.containsKey(objectName) ? hiddenForTest.get(objectName) : 0;
-        }
-        requireQueries(2);
-        String soql = 'SELECT COUNT() FROM ' + objectName + ' WHERE ' + filter;
-        Integer total = Database.countQuery(soql, AccessLevel.SYSTEM_MODE);
-        Integer seen = Database.countQuery(soql);
-        return Math.max(0, total - seen);
-    }
-
-    /**
-     * The records the running user may delete; the rest are reported as kept and the
-     * records themselves are left unchanged. Call it before changing a record on the way
-     * to deleting it (an order set back to Draft, a credit memo canceled), and before an
-     * all-or-nothing delete. Live 264, the salesrep persona's reset set an activated order
-     * it did not own back to Draft, and the delete was then refused ("insufficient access
-     * rights on object id"): running without sharing does not lift that, and sharing gave
-     * the user edit on the order, not delete.
-     *
-     * @return A list of the same type as `records`
-     */
-    @TestVisible
-    private static List<SObject> keepWhatUserCannotDelete(List<SObject> records) {
-        return keepUndeletable(records, deletableByUser(idsToCheck(new List<List<SObject>>{ records }), RETRY_TAIL));
-    }
-
-    /**
-     * The ids to look up in deletableByUser: those of records whose object the user may
-     * delete at all. Records of an object the user may not delete are kept anyway
-     * (keepUndeletable), so reading their access would spend a query for nothing.
-     */
-    private static Set<Id> idsToCheck(List<List<SObject>> lists) {
-        Set<Id> ids = new Set<Id>();
-        for (List<SObject> records : lists) {
-            if (!records.isEmpty() && objectIsDeletable(records[0].getSObjectType())) {
-                ids.addAll(new Map<Id, SObject>(records).keySet());
-            }
-        }
-        return ids;
-    }
-
-    /**
-     * Two checks, as the platform makes them. The object first: a user without delete
-     * permission on it keeps every record, whoever owns them. Live 264 that is also what
-     * reflects Allow Revenue Records Deletion for credit memos: describe's isDeletable()
-     * was false without it and true with it, while UserRecordAccess.HasDeleteAccess did
-     * not change. Then each record, against `allowed` (deletableByUser).
-     */
-    private static List<SObject> keepUndeletable(List<SObject> records, Set<Id> allowed) {
-        if (records.isEmpty()) {
-            return records;
-        }
-        Schema.SObjectType type = records[0].getSObjectType();
-        List<SObject> deletable = records.clone();
-        deletable.clear();
-        if (!objectIsDeletable(type)) {
-            recordRetained(type, records.size(), NO_DELETE_PERMISSION);
-            return deletable;
-        }
-        for (SObject record : records) {
-            if (allowed.contains(record.Id)) {
-                deletable.add(record);
-            }
-        }
-        recordRetained(type, records.size() - deletable.size(), NO_DELETE_ACCESS);
-        return deletable;
-    }
-
-    private static Boolean objectIsDeletable(Schema.SObjectType type) {
-        return deleteAccessForTest != null || type.getDescribe().isDeletable();
-    }
-
-    /**
-     * The ids the running user may delete, from UserRecordAccess.HasDeleteAccess, which
-     * holds what the platform enforces on the delete. A user with Modify All Data may
-     * delete them all, so that costs no query beyond the permission read. UserRecordAccess
-     * takes 200 ids a query. Each call site counts its first read in the budget; a later
-     * one needs `tail` more queries left, the most that can follow that call site before
-     * the next guard (RETRY_TAIL for those in the middle of phase 2, QUOTE_TAIL for the
-     * last, PRE_PHASE_ONE_TAIL before phase 1). Without them the run stops with
-     * AccessCheckTooLargeException, whose reason says only what is known: this run ran
-     * out of queries for the check.
-     */
-    @TestVisible
-    private static Set<Id> deletableByUser(Set<Id> recordIds, Integer tail) {
-        if (deleteAccessForTest != null) {
-            Set<Id> allowed = new Set<Id>(recordIds);
-            allowed.retainAll(deleteAccessForTest);
-            return allowed;
-        }
-        if (recordIds.isEmpty() || hasUserPermission('PermissionsModifyAllData')) {
-            return recordIds;
-        }
-        Id userId = UserInfo.getUserId();
-        List<Id> ids = new List<Id>(recordIds);
-        Set<Id> allowed = new Set<Id>();
-        for (Integer start = 0; start < ids.size(); start += 200) {
-            if (start > 0 && Limits.getLimitQueries() - Limits.getQueries() < 1 + tail) {
-                throw new AccessCheckTooLargeException(ACCESS_CHECK_TOO_LARGE);
-            }
-            List<Id> chunk = new List<Id>();
-            for (Integer i = start; i < Math.min(start + 200, ids.size()); i++) {
-                chunk.add(ids[i]);
-            }
-            for (UserRecordAccess access : [
-                SELECT RecordId, HasDeleteAccess FROM UserRecordAccess WHERE UserId = :userId AND RecordId IN :chunk
-            ]) {
-                if (access.HasDeleteAccess) {
-                    allowed.add(access.RecordId);
-                }
-            }
-        }
-        return allowed;
-    }
-
-    /**
-     * readOrNote for each object, so every one the user cannot read is reported. When
-     * any of them cannot be read the group is skipped, and the readable ones skipped with
-     * it are reported too (report.skippedWith).
-     */
-    private static Boolean readAllOrNote(List<String> objectNames) {
-        Boolean all = true;
-        List<String> readable = new List<String>();
-        for (String objectName : objectNames) {
-            if (readOrNote(objectName)) {
-                readable.add(objectName);
+        if (!userPermissions.containsKey(field)) {
+            if (CORE_PERMISSIONS.contains(field)) {
+                UserPermissionAccess core = [
+                    SELECT PermissionsModifyAllData, PermissionsViewAllData, PermissionsEditActivatedOrders
+                    FROM UserPermissionAccess LIMIT 1
+                ];
+                userPermissions.put('PermissionsModifyAllData', core.PermissionsModifyAllData == true);
+                userPermissions.put('PermissionsViewAllData', core.PermissionsViewAllData == true);
+                userPermissions.put('PermissionsEditActivatedOrders', core.PermissionsEditActivatedOrders == true);
             } else {
-                all = false;
-            }
-        }
-        if (!all) {
-            for (String objectName : readable) {
-                String label = labelOf(typeOf(objectName));
-                if (!report.skippedWith.contains(label)) {
-                    report.skippedWith.add(label);
+                List<SObject> access = new List<SObject>();
+                try {
+                    access = Database.query('SELECT ' + String.join(OTHER_PERMISSIONS, ', ') + ' FROM UserPermissionAccess');
+                } catch (QueryException e) {
+                    access = new List<SObject>();
+                }
+                for (String name : OTHER_PERMISSIONS) {
+                    userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
                 }
             }
         }
-        return all;
+        return userPermissions.get(field) == true;
+    }
+
+    /**
+     * True when the running user has BillingInvoiceSuperUser ("Delete Invoice and Invoice
+     * Lines"). Live 264 it is the only permission that lets a Posted invoice be deleted,
+     * settled or not; Allow Revenue Records Deletion alone is refused with "You can only
+     * delete the invoice if it is in Draft or Canceled status."
+     */
+    @TestVisible
+    private static Boolean canDeletePostedInvoices() {
+        return hasUserPermission('PermissionsBillingInvoiceSuperUser');
+    }
+
+    /**
+     * True when the running user has DeleteRevenueRecords ("Allow Revenue Records
+     * Deletion", managed Billing Admin set). Live 264 it is what lets a Draft or Canceled
+     * credit memo be deleted; Delete Invoice and Invoice Lines does not. It also lets
+     * Draft and Canceled invoices go, but not Posted ones.
+     */
+    @TestVisible
+    private static Boolean canDeleteRevenueRecords() {
+        return hasUserPermission('PermissionsDeleteRevenueRecords');
     }
 
     // Rows the next DML statement may touch: what is left of the transaction's row
@@ -1166,120 +907,8 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes `records` in at most two passes (todo 397, review round 2), after saving
-     * `toUpdate`, the ones among them carrying a change made only on the way to the delete
-     * (an order back to Draft, a credit memo canceled), and deleting their `dependentsOf`,
-     * rows that must go first:
-     *  1. In a savepoint, with allOrNone=false. If no record refused, that is the result.
-     *  2. Otherwise roll back to the savepoint, report each refused record as kept with
-     *     the platform's message, and do it again for the rest only, all or nothing: a
-     *     refusal there fails the run and rolls phase 2 back. No further pass.
-     * So no record is left changed but kept, and a refusal caused by a record the reset
-     * leaves in place keeps that one record instead of failing every run.
-     *
-     * @return The ids of the records deleted
-     */
-    @TestVisible
-    private static Set<Id> deleteInTwoPasses(
-        List<SObject> records, List<SObject> toUpdate, Map<Id, List<SObject>> dependentsOf
-    ) {
-        Set<Id> deleted = new Set<Id>();
-        if (records.isEmpty()) {
-            return deleted;
-        }
-        List<SObject> dependents = dependentsFor(records, dependentsOf);
-        // Both passes must fit in the DML budget, or the run stops before either.
-        if (2 * (dependents.size() + toUpdate.size() + records.size()) > dmlRowsLeft()) {
-            throw new ResetStoppedException(DML_LIMIT);
-        }
-        Savepoint sp = Database.setSavepoint();
-        Map<Id, String> refused = new Map<Id, String>();
-        Database.DeleteResult[] dependentResults = dependents.isEmpty()
-            ? new Database.DeleteResult[0] : Database.delete(dependents, false);
-        if (!toUpdate.isEmpty()) {
-            Database.SaveResult[] saved = Database.update(toUpdate, false);
-            for (Integer i = 0; i < saved.size(); i++) {
-                if (!saved[i].isSuccess()) {
-                    refused.put(toUpdate[i].Id, saved[i].getErrors()[0].getMessage());
-                }
-            }
-        }
-        List<SObject> toDelete = records.clone();
-        toDelete.clear();
-        for (SObject record : records) {
-            if (!refused.containsKey(record.Id)) {
-                toDelete.add(record);
-            }
-        }
-        Database.DeleteResult[] results = toDelete.isEmpty()
-            ? new Database.DeleteResult[0] : Database.delete(toDelete, false);
-        for (Integer i = 0; i < results.size(); i++) {
-            if (!results[i].isSuccess() && results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
-                refused.put(toDelete[i].Id, results[i].getErrors()[0].getMessage());
-            }
-        }
-
-        if (refused.isEmpty()) {
-            // Pass 1 stands: report it as deleteRows would have.
-            recordPassOne(dependents, dependentResults);
-            recordPassOne(toDelete, results);
-            return new Map<Id, SObject>(toDelete).keySet();
-        }
-
-        Database.rollback(sp);
-        report.refused.putAll(refused);
-        List<SObject> rest = records.clone();
-        rest.clear();
-        for (SObject record : records) {
-            if (!refused.containsKey(record.Id)) {
-                rest.add(record);
-            }
-        }
-        List<SObject> restToUpdate = toUpdate.clone();
-        restToUpdate.clear();
-        for (SObject record : toUpdate) {
-            if (!refused.containsKey(record.Id)) {
-                restToUpdate.add(record);
-            }
-        }
-        deleteQuietly(dependentsFor(rest, dependentsOf));
-        updateAll(restToUpdate);
-        return deleteRows(rest, true);
-    }
-
-    private static List<SObject> dependentsFor(List<SObject> records, Map<Id, List<SObject>> dependentsOf) {
-        List<SObject> dependents = new List<SObject>();
-        if (dependentsOf == null) {
-            return dependents;
-        }
-        for (SObject record : records) {
-            if (dependentsOf.containsKey(record.Id)) {
-                dependents.addAll(dependentsOf.get(record.Id));
-            }
-        }
-        return dependents;
-    }
-
-    /** Records pass 1's deletes in the report: removed, or refused with the platform's message. */
-    private static void recordPassOne(List<SObject> rows, Database.DeleteResult[] results) {
-        Map<Schema.SObjectType, Integer> removed = new Map<Schema.SObjectType, Integer>();
-        for (Integer i = 0; i < results.size(); i++) {
-            Schema.SObjectType type = rows[i].getSObjectType();
-            if (results[i].isSuccess()) {
-                removed.put(type, (removed.containsKey(type) ? removed.get(type) : 0) + 1);
-            } else if (results[i].getErrors()[0].getStatusCode() != StatusCode.ENTITY_IS_DELETED) {
-                report.refused.put(rows[i].Id, results[i].getErrors()[0].getMessage());
-            }
-        }
-        for (Schema.SObjectType type : removed.keySet()) {
-            recordRemoved(type, removed.get(type));
-        }
-    }
-
-    /**
      * All-or-nothing update, for a change made only on the way to a delete (an order set
-     * back to Draft, a credit memo canceled): any refusal throws and rolls back phase 2,
-     * so a record is never left changed but kept.
+     * back to Draft, a credit memo canceled): a refusal throws and rolls back phase 2.
      */
     private static void updateAll(List<SObject> records) {
         if (records.isEmpty()) {
@@ -1354,24 +983,26 @@ public without sharing class RLM_AccountUtilities {
      * dispute and payment schedule items go with their parents (live 264).
      *
      * Queried dynamically, so the class still deploys to an org without Collections
-     * or Billing Dispute Management. Plans and disputes are skipped, and reported,
-     * for a user who cannot read them or their cases; disputes raised against the
-     * account's invoices are found only when the user can read invoices.
+     * or Billing Dispute Management.
      */
     private static void deleteCollectionRecords(Id accountId, List<Invoice> invoices) {
+        // An object the user cannot read is skipped: the preflight refused the run if it
+        // had records here. Without Case read, there are no cases of plans or disputes.
+        Boolean casesReadable = canRead('Case');
         Set<Id> caseIds = new Set<Id>();
-        if (typeOf('CollectionPlan') != null
-            && readAllOrNote(new List<String>{ 'CollectionPlan', 'CollectionPlanItem', 'PaymentSchedule', 'Case' })) {
+        if (canRead('CollectionPlan')) {
             List<SObject> plans = Database.query('SELECT Id FROM CollectionPlan WHERE AccountId = :accountId');
             Set<Id> planIds = new Map<Id, SObject>(plans).keySet();
             if (!planIds.isEmpty()) {
                 // Bound, not a semi-join: SOQL does not allow a semi-join inside OR.
                 Set<Id> itemIds = new Map<Id, SObject>(Database.query(
                     'SELECT Id FROM CollectionPlanItem WHERE CollectionPlanId IN :planIds')).keySet();
-                deleteQuietly(Database.query('SELECT Id FROM PaymentSchedule WHERE ReferenceEntityId IN :planIds '
-                    + 'OR CollectionPlanItemId IN :itemIds'));
+                if (canRead('PaymentSchedule')) {
+                    deleteQuietly(Database.query('SELECT Id FROM PaymentSchedule WHERE ReferenceEntityId IN :planIds '
+                        + 'OR CollectionPlanItemId IN :itemIds'));
+                }
                 Map<Id, Set<Id>> casesByPlan = new Map<Id, Set<Id>>();
-                for (SObject planCase : Database.query(
+                for (SObject planCase : !casesReadable ? new List<SObject>() : Database.query(
                     'SELECT Id, SourceId FROM Case WHERE SourceId IN :planIds AND AccountId = :accountId'
                 )) {
                     Id planId = (Id) planCase.get('SourceId');
@@ -1387,13 +1018,13 @@ public without sharing class RLM_AccountUtilities {
                 }
             }
         }
-        if (typeOf('Dispute') != null && readAllOrNote(new List<String>{ 'Dispute', 'Case' })) {
+        if (canRead('Dispute')) {
             Set<Id> invoiceIds = new Map<Id, Invoice>(invoices).keySet();
-            List<SObject> disputes = Database.query('SELECT Id, CaseId, Case.AccountId FROM Dispute '
-                + 'WHERE AccountId = :accountId OR InvoiceId IN :invoiceIds');
+            List<SObject> disputes = Database.query('SELECT Id, CaseId' + (casesReadable ? ', Case.AccountId' : '')
+                + ' FROM Dispute WHERE AccountId = :accountId OR InvoiceId IN :invoiceIds');
             Set<Id> gone = deleteRows(disputes, false);
             for (SObject dispute : disputes) {
-                SObject disputeCase = dispute.getSObject('Case');
+                SObject disputeCase = casesReadable ? dispute.getSObject('Case') : null;
                 if (gone.contains(dispute.Id) && disputeCase != null && disputeCase.get('AccountId') == accountId) {
                     caseIds.add((Id) dispute.get('CaseId'));
                 }
@@ -1409,186 +1040,80 @@ public without sharing class RLM_AccountUtilities {
     /**
      * Delete Billing: the account's debit memos, then its invoices with their
      * documents and payment schedules, then its credit memos. Payments, and posted
-     * or void debit memos, are left in place.
+     * or void debit memos, are left in place: Salesforce never allows deleting them.
      *
-     * Permissions, measured live on 264 (todo 397):
-     *  - Posted invoices need "Delete Invoice and Invoice Lines" (BillingInvoiceSuperUser,
-     *    from RLM_DeleteInvoices). Without it only Draft and Canceled invoices go, and
-     *    the rest are reported as retained. Invoices still processing stay either way.
-     *  - Draft and Canceled invoices need that permission or "Allow Revenue Records
-     *    Deletion" (DeleteRevenueRecords, in the managed Billing Admin set); without
-     *    either the platform refuses them, and the refusal is reported.
-     *  - Credit memos need Allow Revenue Records Deletion (deleteCreditMemos).
-     * Allow Revenue Records Deletion does NOT let a Posted invoice be deleted, so it
-     * does not replace Delete Invoice and Invoice Lines.
-     *
-     * Posted invoices are attempted only for a user who has the permission, and the
-     * invoices go in ONE delete call that is never retried. Do not add a retry or a
-     * fallback attempt: an invoice the platform refuses must stay refused. Live 264, a
-     * second delete of a Posted invoice the platform had just refused, in the same
-     * transaction, by a user with only Allow Revenue Records Deletion, succeeded.
+     * The preflight refused the run if any invoice is still processing, if a posted one
+     * needs Delete Invoice and Invoice Lines the user lacks (live 264, the only permission
+     * that deletes a Posted invoice), or if the user cannot delete the credit memos (Allow
+     * Revenue Records Deletion, measured as the object's delete permission). So every
+     * invoice queried here is one the user may delete, in ONE delete call that is never
+     * retried. Do not add a retry: live 264, a second delete of a Posted invoice the
+     * platform had just refused, in the same transaction, succeeded.
      *
      * Deleting an invoice takes its lines, taxes, billing period items, credit
      * memo and payment applications, and billing journals with it. It does not
      * take its payment schedule, files or DocumentGenerationProcess rows, which
-     * are deleted here.
-     *
-     * Each kind of record is handled only when the running user can read it; the
-     * rest are reported as not checked. A user who cannot read invoices cannot read
-     * credit memo applications either (that read depends on invoice read), so the
-     * credit memos, which need the kept invoices, are skipped with them.
+     * are deleted here. An object the user cannot read is skipped: the preflight
+     * refused the run if it had records here.
      */
     private static void deleteBillingRecords(Id accountId, OrderData orderData) {
         // First, so that a debit memo line adjusting an invoice line, or a debit
         // memo raised from a credit memo, is gone before either is deleted.
         deleteDebitMemos(accountId);
 
-        Set<Id> keptInvoiceIds = readOrNote('Invoice') ? deleteInvoices(orderData.invoices) : null;
-        if (readAllOrNote(new List<String>{ 'CreditMemo', 'CreditMemoInvApplication' }) && keptInvoiceIds != null) {
+        Set<Id> keptInvoiceIds = new Set<Id>();
+        if (canRead('Invoice')) {
+            List<Invoice> invoices = orderData.invoices;
+            // Collected first: the delete takes the files' links with it.
+            Map<Id, Set<Id>> files = exclusiveFiles(new Map<Id, Invoice>(invoices).keySet());
+            Set<Id> deleted = deleteRows(invoices, false);
+
+            Set<Id> schedules = new Set<Id>();
+            Set<Id> keptSchedules = new Set<Id>();
+            for (Invoice inv : invoices) {
+                Boolean gone = deleted.contains(inv.Id);
+                if (!gone) {
+                    keptInvoiceIds.add(inv.Id);
+                }
+                if (inv.PaymentScheduleId != null) {
+                    if (gone) {
+                        schedules.add(inv.PaymentScheduleId);
+                    } else {
+                        keptSchedules.add(inv.PaymentScheduleId);
+                    }
+                }
+            }
+            // A schedule that a kept invoice still uses stays. Deleting one takes its
+            // PaymentScheduleItems with it.
+            schedules.removeAll(keptSchedules);
+            if (canRead('PaymentSchedule')) {
+                List<PaymentSchedule> paymentSchedules = new List<PaymentSchedule>();
+                for (Id scheduleId : schedules) {
+                    paymentSchedules.add(new PaymentSchedule(Id = scheduleId));
+                }
+                deleteQuietly(paymentSchedules);
+            }
+
+            deleteGeneratedDocuments(deleted);
+            Set<Id> orphanedFiles = new Set<Id>();
+            for (Id fileId : files.keySet()) {
+                if (deleted.containsAll(files.get(fileId))) {
+                    orphanedFiles.add(fileId);
+                }
+            }
+            deleteFiles(orphanedFiles);
+        }
+
+        // A user who cannot read invoices cannot read credit memo applications either
+        // (that read depends on invoice read); the preflight refused the run if such a
+        // user's account had credit memos to delete.
+        if (canRead('CreditMemo') && canRead('CreditMemoInvApplication')) {
             deleteCreditMemos(accountId, keptInvoiceIds);
         }
-        if (readOrNote('Payment')) {
-            recordRetained(Payment.SObjectType, [SELECT COUNT() FROM Payment WHERE AccountId = :accountId], PAYMENTS_KEPT);
-        }
-    }
-
-    /**
-     * Deletes the invoices Delete Billing may delete, with their payment schedules,
-     * generated documents and the files nothing else shares.
-     *
-     * @return The ids of the invoices that were kept
-     */
-    private static Set<Id> deleteInvoices(List<Invoice> invoices) {
-        List<Invoice> deletable = new List<Invoice>();
-        List<Invoice> needPermission = new List<Invoice>();
-        Integer processing = 0;
-        for (Invoice inv : invoices) {
-            String status = inv.Status == null ? '' : inv.Status;
-            if (status == 'Draft' || status == 'Canceled') {
-                deletable.add(inv);
-            } else if (status.endsWith('In Progress') || status == 'Processing') {
-                processing++;
-            } else {
-                needPermission.add(inv);
-            }
-        }
-        recordRetained(Invoice.SObjectType, processing, INVOICE_IN_PROGRESS);
-        if (!needPermission.isEmpty()) {
-            if (canDeletePostedInvoices()) {
-                deletable.addAll(needPermission);
-            } else {
-                recordRetained(Invoice.SObjectType, needPermission.size(), INVOICE_NEEDS_PERMISSION);
-            }
-        }
-
-        // Collected first: the delete takes the files' links with it.
-        Map<Id, Set<Id>> files = exclusiveFiles(new Map<Id, Invoice>(deletable).keySet());
-        Set<Id> deleted = deleteRows(deletable, false);
-
-        Set<Id> keptInvoiceIds = new Set<Id>();
-        Set<Id> schedules = new Set<Id>();
-        Set<Id> keptSchedules = new Set<Id>();
-        for (Invoice inv : invoices) {
-            Boolean gone = deleted.contains(inv.Id);
-            if (!gone) {
-                keptInvoiceIds.add(inv.Id);
-            }
-            if (inv.PaymentScheduleId != null) {
-                if (gone) {
-                    schedules.add(inv.PaymentScheduleId);
-                } else {
-                    keptSchedules.add(inv.PaymentScheduleId);
-                }
-            }
-        }
-        // A schedule that a kept invoice still uses stays. Deleting one takes its
-        // PaymentScheduleItems with it.
-        schedules.removeAll(keptSchedules);
-        if (!schedules.isEmpty() && readOrNote('PaymentSchedule')) {
-            List<PaymentSchedule> paymentSchedules = new List<PaymentSchedule>();
-            for (Id scheduleId : schedules) {
-                paymentSchedules.add(new PaymentSchedule(Id = scheduleId));
-            }
-            deleteQuietly(paymentSchedules);
-        }
-
-        deleteGeneratedDocuments(deleted);
-        Set<Id> orphanedFiles = new Set<Id>();
-        for (Id fileId : files.keySet()) {
-            if (deleted.containsAll(files.get(fileId))) {
-                orphanedFiles.add(fileId);
-            }
-        }
-        deleteFiles(orphanedFiles);
-        return keptInvoiceIds;
-    }
-
-    /**
-     * True when the running user has BillingInvoiceSuperUser ("Delete Invoice and
-     * Invoice Lines"), from their profile, a permission set or a group. Live 264 it
-     * is the only permission that lets a Posted invoice be deleted, settled or not;
-     * Allow Revenue Records Deletion alone is refused with "You can only delete the
-     * invoice if it is in Draft or Canceled status."
-     */
-    @TestVisible
-    private static Boolean canDeletePostedInvoices() {
-        return hasUserPermission('PermissionsBillingInvoiceSuperUser');
-    }
-
-    /**
-     * True when the running user has DeleteRevenueRecords ("Allow Revenue Records
-     * Deletion", in the managed Billing Admin permission set). Live 264 it is what
-     * lets a Draft or Canceled credit memo be deleted; Delete Invoice and Invoice
-     * Lines does not ("DML operation DELETE not allowed on CreditMemo"). It also
-     * lets Draft and Canceled invoices be deleted, as Delete Invoice and Invoice
-     * Lines does, but not Posted ones.
-     */
-    @TestVisible
-    private static Boolean canDeleteRevenueRecords() {
-        return hasUserPermission('PermissionsDeleteRevenueRecords');
-    }
-
-    // The running user's permissions, read once per user: the two core ones and the two
-    // billing ones separately, so a release without a billing field does not lose the others.
-    private static Map<String, Boolean> userPermissions;
-    private static Id userPermissionsOf;
-    private static final Set<String> CORE_PERMISSIONS = new Set<String>{
-        'PermissionsModifyAllData', 'PermissionsViewAllData'
-    };
-
-    /**
-     * Whether the running user has the permission, from their profile, a permission
-     * set or a group. UserPermissionAccess holds the user's effective permissions,
-     * and any user may read their own; a non-admin is refused PermissionSetAssignment.
-     * Modify All Data and View All Data are read statically, in one query; the two billing
-     * permissions dynamically, in another, so a release without a billing field reads
-     * those two as false and nothing else. Each query runs the first time one of its
-     * permissions is asked for.
-     */
-    private static Boolean hasUserPermission(String field) {
-        if (userPermissions == null || userPermissionsOf != UserInfo.getUserId()) {
-            userPermissionsOf = UserInfo.getUserId();
-            userPermissions = new Map<String, Boolean>();
-        }
-        if (!userPermissions.containsKey(field)) {
-            if (CORE_PERMISSIONS.contains(field)) {
-                UserPermissionAccess core = [SELECT PermissionsModifyAllData, PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
-                userPermissions.put('PermissionsModifyAllData', core.PermissionsModifyAllData == true);
-                userPermissions.put('PermissionsViewAllData', core.PermissionsViewAllData == true);
-            } else {
-                List<String> fields = new List<String>{ 'PermissionsBillingInvoiceSuperUser', 'PermissionsDeleteRevenueRecords' };
-                List<SObject> access = new List<SObject>();
-                try {
-                    access = Database.query('SELECT ' + String.join(fields, ', ') + ' FROM UserPermissionAccess');
-                } catch (QueryException e) {
-                    access = new List<SObject>();
-                }
-                for (String name : fields) {
-                    userPermissions.put(name, !access.isEmpty() && access[0].get(name) == true);
-                }
-            }
-        }
-        return userPermissions.get(field) == true;
+        // Counted in system mode: payments are reported whether or not the user can read
+        // them, since they are never deleted.
+        recordRetained(Payment.SObjectType,
+            [SELECT COUNT() FROM Payment WHERE AccountId = :accountId WITH SYSTEM_MODE], PAYMENTS_KEPT);
     }
 
     /**
@@ -1596,11 +1121,6 @@ public without sharing class RLM_AccountUtilities {
      * one deleted, which takes its lines and journals with it (live 264). Memos
      * applied to an invoice that was kept are left alone: canceling one would
      * change that invoice's balance.
-     *
-     * Deleting a credit memo, Draft and Canceled included, needs Allow Revenue
-     * Records Deletion (canDeleteRevenueRecords). Without it none is canceled or
-     * deleted: canceling a memo that then cannot be deleted would change it and
-     * still keep it.
      */
     private static void deleteCreditMemos(Id accountId, Set<Id> keptInvoiceIds) {
         Set<Id> onKeptInvoices = new Set<Id>();
@@ -1633,30 +1153,13 @@ public without sharing class RLM_AccountUtilities {
             recordRetained(CreditMemo.SObjectType, keptByStatus.get(status),
                 'status ' + status + ' can be neither canceled nor deleted');
         }
-        if ((!deletable.isEmpty() || !posted.isEmpty()) && !canDeleteRevenueRecords()) {
-            recordRetained(CreditMemo.SObjectType, deletable.size() + posted.size(), MEMO_NEEDS_PERMISSION);
-            return;
+        // All or nothing: a refusal fails the run with the platform's message and rolls
+        // phase 2 back, so no memo is left canceled but not deleted.
+        updateAll(posted);
+        for (CreditMemo canceled : posted) {
+            deletable.add(new CreditMemo(Id = canceled.Id));
         }
-        // A posted memo the user cannot delete must not be canceled. One access read for both.
-        List<CreditMemo> candidates = new List<CreditMemo>(deletable);
-        candidates.addAll(posted);
-        Set<Id> allowed = new Map<Id, CreditMemo>((List<CreditMemo>) keepWhatUserCannotDelete(candidates)).keySet();
-        deletable = onlyIds(deletable, allowed);
-        posted = onlyIds(posted, allowed);
-        // In two passes, as for orders: no memo is left canceled but not deleted.
-        List<CreditMemo> memos = new List<CreditMemo>(deletable);
-        memos.addAll(posted);
-        deleteInTwoPasses(memos, posted, null);
-    }
-
-    private static List<CreditMemo> onlyIds(List<CreditMemo> memos, Set<Id> ids) {
-        List<CreditMemo> kept = new List<CreditMemo>();
-        for (CreditMemo memo : memos) {
-            if (ids.contains(memo.Id)) {
-                kept.add(memo);
-            }
-        }
-        return kept;
+        deleteAll(deletable);
     }
 
     /**
@@ -1668,7 +1171,7 @@ public without sharing class RLM_AccountUtilities {
      */
     private static void deleteDebitMemos(Id accountId) {
         Schema.SObjectType memoType = typeOf('DebitMemo');
-        if (!readOrNote('DebitMemo')) {
+        if (!canRead('DebitMemo')) {
             return;
         }
         List<SObject> deletable = new List<SObject>();
@@ -1747,60 +1250,29 @@ public without sharing class RLM_AccountUtilities {
      * record is deleted.
      */
     private static void deleteGeneratedDocuments(Set<Id> recordIds) {
-        if (recordIds.isEmpty()) {
+        // Skipped for a user who cannot read them: the preflight refused the run if any
+        // were linked to the records this run deletes.
+        if (recordIds.isEmpty() || !canRead('DocumentGenerationProcess')) {
             return;
         }
         deleteQuietly([SELECT Id FROM DocumentGenerationProcess WHERE ReferenceObject IN :recordIds]);
     }
 
     /**
-     * Deletes the account's quotes, with their files and DocumentGenerationProcess rows,
-     * then its opportunities. QuoteAccountId is the quote's own account and AccountId its
-     * opportunity's; a quote can have either alone.
+     * Deletes the files and DocumentGenerationProcess rows of the account's quotes:
+     * DocGen outputs and any manually attached quote files. Must be called BEFORE
+     * the quotes are deleted, because the platform cascades their
+     * ContentDocumentLink rows, making the files impossible to find afterwards.
      *
-     * A quote or opportunity the user cannot delete is kept (keepUndeletable), and so is
-     * one the platform refuses (deleteInTwoPasses). A kept quote keeps its opportunity:
-     * deleting the opportunity would take the quote with it. Files are found BEFORE the
-     * quotes go, because the platform cascades their ContentDocumentLink rows, and deleted
-     * after, only for quotes that went, as are the generated documents.
+     * @param quotes Pre-fetched list of Quote records for the account
      */
-    private static void deleteQuotesAndOpportunities(Id accountId) {
-        List<Quote> quotes = [
-            SELECT Id, OpportunityId FROM Quote WHERE QuoteAccountId = :accountId OR AccountId = :accountId
-        ];
-        List<Opportunity> opportunities = [SELECT Id FROM Opportunity WHERE AccountId = :accountId];
-        // One access read for both.
-        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ quotes, opportunities }), QUOTE_TAIL);
-        List<Quote> deletableQuotes = (List<Quote>) keepUndeletable(quotes, allowed);
-
-        Map<Id, Set<Id>> files = exclusiveFiles(new Map<Id, Quote>(deletableQuotes).keySet());
-        Set<Id> deletedQuotes = deleteInTwoPasses(deletableQuotes, new List<SObject>(), null);
-        deleteGeneratedDocuments(deletedQuotes);
-        Set<Id> orphanedFiles = new Set<Id>();
-        for (Id fileId : files.keySet()) {
-            if (deletedQuotes.containsAll(files.get(fileId))) {
-                orphanedFiles.add(fileId);
-            }
+    private static void deleteQuoteDocuments(List<Quote> quotes) {
+        Set<Id> quoteIds = new Map<Id, Quote>(quotes).keySet();
+        if (quoteIds.isEmpty()) {
+            return;
         }
-        deleteFiles(orphanedFiles);
-
-        Set<Id> heldByKeptQuotes = new Set<Id>();
-        for (Quote accountQuote : quotes) {
-            if (!deletedQuotes.contains(accountQuote.Id) && accountQuote.OpportunityId != null) {
-                heldByKeptQuotes.add(accountQuote.OpportunityId);
-            }
-        }
-        List<Opportunity> deletableOpportunities = new List<Opportunity>();
-        Integer keptForQuote = 0;
-        for (Opportunity accountOpportunity : (List<Opportunity>) keepUndeletable(opportunities, allowed)) {
-            if (heldByKeptQuotes.contains(accountOpportunity.Id)) {
-                keptForQuote++;
-            } else {
-                deletableOpportunities.add(accountOpportunity);
-            }
-        }
-        recordRetained(Opportunity.SObjectType, keptForQuote, KEPT_WITH_LINK);
-        deleteInTwoPasses(deletableOpportunities, new List<SObject>(), null);
+        deleteGeneratedDocuments(quoteIds);
+        deleteFiles(exclusiveFiles(quoteIds).keySet());
     }
 
     /**
@@ -1810,16 +1282,16 @@ public without sharing class RLM_AccountUtilities {
      * @param orderData The OrderData object containing pre-queried information
      */
     private static void deleteOrders(OrderData orderData) {
-        // First: an order the user cannot delete must not be set back to Draft.
-        List<Order> orders = (List<Order>) keepWhatUserCannotDelete(orderData.orders);
-        if (orders.isEmpty()) {
+        if (orderData.orders.isEmpty()) {
             return;
         }
-        // In two passes: an order is never left set back to Draft but not deleted.
-        for (Order o : orders) {
+        // All or nothing: a refusal fails the run with the platform's message and rolls
+        // phase 2 back, so no order is left set back to Draft but not deleted.
+        for (Order o : orderData.orders) {
             o.Status = 'Draft';
         }
-        deleteInTwoPasses(orders, orders, null);
+        updateAll(orderData.orders);
+        deleteAll(orderData.orders);
     }
 
     /**
@@ -2118,10 +1590,10 @@ public without sharing class RLM_AccountUtilities {
      * entry instead of replacing the Active ones.
      */
     private static void deleteAssetRateCardEntries() {
-        if (deletableAssetIds.isEmpty()) {
+        if (accountAssetIds.isEmpty()) {
             return;
         }
-        deleteQuietly([SELECT Id FROM AssetRateCardEntry WHERE AssetId IN :deletableAssetIds]);
+        deleteQuietly([SELECT Id FROM AssetRateCardEntry WHERE AssetId IN :accountAssetIds]);
     }
 
     /**
@@ -2136,7 +1608,8 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose records should be deleted
      */
     private static void deleteBillingScheduleGroups(Id accountId) {
-        if (!readOrNote('BillingScheduleGroup')) {
+        // Skipped for a user who cannot read them: the preflight refused the run if any existed.
+        if (!canRead('BillingScheduleGroup')) {
             return;
         }
         deleteQuietly([SELECT Id FROM BillingScheduleGroup WHERE BillingAccountId = :accountId]);
@@ -2174,27 +1647,14 @@ public without sharing class RLM_AccountUtilities {
             // have a ContractItemPrice child, so none is priced): every contract.
             contracts = [SELECT Id FROM Contract WHERE AccountId = :accountId];
         }
-        // A contract the user cannot delete is kept, with its rate card entries,
-        // rather than failing the all-or-nothing delete below.
-        contracts = (List<Contract>) keepWhatUserCannotDelete(contracts);
         if (contracts.isEmpty()) {
             return;
         }
         // BindingObjectId is polymorphic, and a semi-join against it silently
-        // matches nothing (see deleteUsageResourcePolicies), so bind the ids. The entries
-        // go first, with their contract, in the same two passes: a contract that refuses
-        // keeps its entries.
+        // matches nothing (see deleteUsageResourcePolicies), so bind the ids.
         Set<Id> contractIds = new Map<Id, Contract>(contracts).keySet();
-        Map<Id, List<SObject>> entriesOf = new Map<Id, List<SObject>>();
-        for (BindingObjectRateCardEntry entry : [
-            SELECT Id, BindingObjectId FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds
-        ]) {
-            if (!entriesOf.containsKey(entry.BindingObjectId)) {
-                entriesOf.put(entry.BindingObjectId, new List<SObject>());
-            }
-            entriesOf.get(entry.BindingObjectId).add(entry);
-        }
-        deleteInTwoPasses(contracts, new List<SObject>(), entriesOf);
+        deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds]);
+        deleteAll(contracts);
     }
 
     /**
@@ -2205,8 +1665,7 @@ public without sharing class RLM_AccountUtilities {
      * @param accountId The ID of the account whose asset-referencing records should be deleted
      */
     private static void deleteAllRecordsReferencingAssets(Id accountId) {
-        // Only the assets the reset deletes: a kept asset keeps what references it.
-        Set<Id> assetIds = deletableAssetIds;
+        Set<Id> assetIds = accountAssetIds;
         if (assetIds.isEmpty()) {
             return;
         }
@@ -2297,11 +1756,12 @@ public without sharing class RLM_AccountUtilities {
      * without AssetId is skipped. Only the query can tell: live 264, Case.AssetId was
      * missing from the org, yet this class's describe still listed it. ServiceContract
      * has no AssetId -- asset coverage lives on ContractLineItem -- so it is not queried.
-     * One the running user cannot read is skipped and reported.
      */
     private static void deleteOtherAssetReferences(Set<Id> assetIds) {
         for (String objectName : new List<String>{ 'WorkOrder', 'Case' }) {
-            if (!readOrNote(objectName)) {
+            // Skipped for a user who cannot read it: the preflight refused the run if any
+            // referenced the assets.
+            if (!canRead(objectName)) {
                 continue;
             }
             requireQueries(1);
@@ -2319,100 +1779,16 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Deletes the assets and relationships decideKeptAssets cleared, all or nothing. Not
-     * in two passes like orders: by now the asset step has deleted what referenced these
-     * assets, so keeping a refused asset would keep it stripped. A refusal fails the run
-     * with the platform's message, which names what blocked it, and rolls phase 2 back.
+     * Deletes the account's assets and their relationships.
      */
     private static void deleteAssets() {
-        if (deletableAssetIds.isEmpty()) {
-            return;
-        }
-        deleteAll(deletableRelationships);
-        List<Asset> assets = new List<Asset>();
-        for (Id assetId : deletableAssetIds) {
-            assets.add(new Asset(Id = assetId));
-        }
-        deleteAll(assets);
-    }
-
-    /**
-     * Decides, before phase 1 deletes anything, which of the account's assets the reset
-     * keeps (todo 397): those the user cannot delete (keepUndeletable), and those linked
-     * by an asset relationship the reset keeps. A relationship is kept when the user
-     * cannot delete it, when it starts at another account's asset (that account's
-     * record), or when either end is a kept asset; a kept relationship keeps the
-     * account's assets at both ends. That repeats until nothing changes. A kept asset
-     * then keeps its rate card entries and everything the asset step deletes through
-     * assets (entitlements bound to it with their buckets, work orders, cases).
-     */
-    private static void decideKeptAssets() {
-        deletableAssetIds = new Set<Id>(accountAssetIds);
-        deletableRelationships = new List<AssetRelationship>();
         if (accountAssetIds.isEmpty()) {
             return;
         }
-        List<AssetRelationship> relationships = [
-            SELECT Id, AssetId, RelatedAssetId FROM AssetRelationship
-            WHERE AssetId IN :accountAssetIds OR RelatedAssetId IN :accountAssetIds
-        ];
-        List<AssetRelationship> ours = new List<AssetRelationship>();
-        for (AssetRelationship relationship : relationships) {
-            if (accountAssetIds.contains(relationship.AssetId)) {
-                ours.add(relationship);
-            }
-        }
-        List<Asset> assets = new List<Asset>();
-        for (Id assetId : accountAssetIds) {
-            assets.add(new Asset(Id = assetId));
-        }
-        Set<Id> allowed = deletableByUser(idsToCheck(new List<List<SObject>>{ ours, assets }), PRE_PHASE_ONE_TAIL);
-        deletableAssetIds = new Set<Id>(new Map<Id, Asset>((List<Asset>) keepUndeletable(assets, allowed)).keySet());
-        Set<Id> deletableIds = new Map<Id, AssetRelationship>(
-            (List<AssetRelationship>) keepUndeletable(ours, allowed)).keySet();
-
-        Set<Id> keptRelationships = new Set<Id>();
-        for (AssetRelationship relationship : relationships) {
-            if (!deletableIds.contains(relationship.Id)) {
-                keptRelationships.add(relationship.Id);
-            }
-        }
-        Integer assetsKeptForLink = 0;
-        Integer relationshipsKeptForLink = 0;
-        Boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (AssetRelationship relationship : relationships) {
-                Boolean kept = keptRelationships.contains(relationship.Id);
-                if (!kept && (isKeptAsset(relationship.AssetId) || isKeptAsset(relationship.RelatedAssetId))) {
-                    keptRelationships.add(relationship.Id);
-                    relationshipsKeptForLink++;
-                    kept = true;
-                    changed = true;
-                }
-                if (!kept) {
-                    continue;
-                }
-                for (Id assetEnd : new List<Id>{ relationship.AssetId, relationship.RelatedAssetId }) {
-                    if (assetEnd != null && deletableAssetIds.remove(assetEnd)) {
-                        assetsKeptForLink++;
-                        changed = true;
-                    }
-                }
-            }
-        }
-        recordRetained(Asset.SObjectType, assetsKeptForLink, KEPT_WITH_LINK);
-        recordRetained(AssetRelationship.SObjectType, relationshipsKeptForLink, KEPT_WITH_LINK);
-        for (AssetRelationship relationship : relationships) {
-            if (!keptRelationships.contains(relationship.Id)) {
-                deletableRelationships.add(relationship);
-            }
-        }
-    }
-
-    /** An asset of this account that the reset keeps. */
-    private static Boolean isKeptAsset(Id assetId) {
-        return accountAssetIds.contains(assetId) && !deletableAssetIds.contains(assetId);
+        deleteAll([
+            SELECT Id FROM AssetRelationship WHERE AssetId IN :accountAssetIds OR RelatedAssetId IN :accountAssetIds
+        ]);
+        deleteAll([SELECT Id FROM Asset WHERE Id IN :accountAssetIds]);
     }
 
     /**
@@ -2442,7 +1818,9 @@ public without sharing class RLM_AccountUtilities {
      * @param orderData The OrderData object containing pre-queried information
      */
     private static void deleteFulfillmentStepSource(OrderData orderData) {
-        if (!readOrNote('FulfillmentStepSource')) {
+        // Skipped for a user who cannot read them: their plans, which the preflight checks,
+        // would have refused the run.
+        if (!canRead('FulfillmentStepSource')) {
             return;
         }
         deleteQuietly([
@@ -2524,7 +1902,8 @@ public without sharing class RLM_AccountUtilities {
      * @param orderData The OrderData object containing pre-queried information
      */
     private static void deleteAssetFulfillmentDecomp(OrderData orderData) {
-        if (!readOrNote('AssetFulfillmentDecomp')) {
+        // Skipped for a user who cannot read them: the preflight refused the run if any existed.
+        if (!canRead('AssetFulfillmentDecomp')) {
             return;
         }
         deleteQuietly([
@@ -2568,5 +1947,446 @@ public without sharing class RLM_AccountUtilities {
      */
     private static void deleteBindingObjRateCardEntries(Id accountId) {
         deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId = :accountId]);
+    }
+
+    /** Ends a preflight that would leave too few queries for the run it checks. */
+    private class PreflightTooLargeException extends Exception {}
+
+    /** The records of one object that block the reset for one reason. */
+    private class Blocker {
+        public String label;
+        public String reason;
+        public Integer count = 0;
+        // Names of the visible records; none for hidden or unreadable ones.
+        public List<String> names = new List<String>();
+    }
+
+    /**
+     * The read-only check that runs before phase 1 (see the class header). It reads, in
+     * system mode, the records each step would delete or change for the selected options,
+     * with the steps' own filters, and records a Blocker for each that the running user
+     * could not delete:
+     *  - an object the user cannot read (CANNOT_READ, a count);
+     *  - an object the user has no delete permission on (NO_PERMISSION, names);
+     *  - a record the user cannot see (NOT_VISIBLE, a count) or cannot delete (NO_ACCESS,
+     *    names), from UserRecordAccess, 200 ids a query;
+     *  - an activated order without Edit Activated Orders, a lifecycle-managed asset
+     *    without Access Lifecycle-Managed Assets, a posted invoice without Delete Invoice
+     *    and Invoice Lines, and an invoice still processing.
+     * Records reached only through one of these and deleted with it (order lines, plan and
+     * fulfillment order items, step sources, files) are covered by their parent. A user
+     * with Modify All Data and View All Data may read and delete every record, so for them
+     * only the objects they cannot read or delete, and the permission checks, are read.
+     *
+     * Each query first requires the queries the run itself needs after it (one teardown
+     * round and phase 2's reserve); without them the preflight stops with
+     * PreflightTooLargeException and nothing is changed. Phase 1 reuses the rows read here
+     * for assets, contracts, binding policies and rate card entries.
+     */
+    // `without sharing`, declared on the inner class itself: an inner class does not take
+    // the outer class's keyword, and AccessLevel.SYSTEM_MODE leaves record sharing to the
+    // class's keyword. Live 264 (runAs a Standard User), a SYSTEM_MODE query in a class
+    // without a keyword returned none of the records the user could not see.
+    @TestVisible
+    private without sharing class Preflight {
+        public List<Blocker> blockers = new List<Blocker>();
+        // False only when the usage objects were read and held no record for the account.
+        public Boolean hasUsage = true;
+        private Map<String, List<SObject>> rows = new Map<String, List<SObject>>();
+        private Map<String, Blocker> blockerByKey = new Map<String, Blocker>();
+        private Map<Id, String> objectOf = new Map<Id, String>();
+        private Map<Id, String> nameOf = new Map<Id, String>();
+        private Map<String, String> nameFields = new Map<String, String>();
+        private Boolean privileged;
+        private Map<String, Object> binds = new Map<String, Object>();
+
+        public Preflight(
+            Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling,
+            Boolean deleteCollections, Boolean preserveContractsWithPrices
+        ) {
+            privileged = hasUserPermission('PermissionsModifyAllData') && hasUserPermission('PermissionsViewAllData');
+            binds.put('accountId', accountId);
+
+            // Assets and contracts: read for everyone, since phase 1 reuses them.
+            Boolean lifecycleField = deleteAssets && typeOf('Asset').getDescribe().fields.getMap()
+                .containsKey('haslifecyclemanagement');
+            List<SObject> assets = load('Asset', lifecycleField ? ', HasLifecycleManagement' : '',
+                'AccountId = :accountId', true, deleteAssets);
+            Set<Id> assetIds = ids(assets);
+            binds.put('assetIds', assetIds);
+            if (lifecycleField && !hasUserPermission('PermissionsCalmSobjectAccessUser')) {
+                for (SObject asset : assets) {
+                    if (asset.get('HasLifecycleManagement') == true) {
+                        block('Asset', NEEDS_LIFECYCLE, asset);
+                    }
+                }
+            }
+            List<SObject> contracts = load('Contract', '', 'AccountId = :accountId', true, false);
+            Set<Id> contractIds = ids(contracts);
+            binds.put('contractIds', contractIds);
+            List<SObject> deletedContracts = contracts;
+            if (preserveContractsWithPrices && typeOf('ContractItemPrice') != null && !contracts.isEmpty()) {
+                requireQuery();
+                Set<Id> priced = new Set<Id>();
+                for (SObject price : Database.queryWithBinds(
+                    'SELECT ContractId FROM ContractItemPrice WHERE ContractId IN :contractIds', binds, AccessLevel.SYSTEM_MODE
+                )) {
+                    priced.add((Id) price.get('ContractId'));
+                }
+                deletedContracts = new List<SObject>();
+                for (SObject contract : contracts) {
+                    if (!priced.contains(contract.Id)) {
+                        deletedContracts.add(contract);
+                    }
+                }
+            }
+            check('Contract', deletedContracts);
+            binds.put('deletedContractIds', ids(deletedContracts));
+
+            // Phase 1: binding policies and rate card entries (reused), then the usage graph.
+            Set<Id> bindingIds = new Set<Id>(assetIds);
+            bindingIds.addAll(contractIds);
+            bindingIds.add(accountId);
+            binds.put('bindingIds', bindingIds);
+            load('BindingObjUsageRsrcPlcy', '', 'BindingObjectId IN :bindingIds', true, true);
+            load('BindingObjectRateCardEntry', '',
+                'BindingObjectId = :accountId OR BindingObjectId IN :deletedContractIds', true, true);
+            Boolean usage = false;
+            String byAccountOrAsset = 'AccountId = :accountId OR AssetId IN :assetIds';
+            usage |= !load('UsageBillingPeriodItem', '', byAccountOrAsset, false, true).isEmpty();
+            usage |= !load('UsageSummary', '', byAccountOrAsset, false, true).isEmpty();
+            usage |= !load('UsageRatableSummary', '', byAccountOrAsset, false, true).isEmpty();
+            usage |= !load('TransactionJournal', '', 'AccountId = :accountId', false, true).isEmpty();
+            Set<Id> tueIds = ids(load('TransactionUsageEntitlement', '', 'AccountId = :accountId'
+                + (deleteAssets ? ' OR AssetId IN :assetIds OR GrantBindingTargetId IN :assetIds' : ''), false, true));
+            binds.put('tueIds', tueIds);
+            Set<Id> ueaIds = ids(load('UsageEntitlementAccount', '', 'AccountId = :accountId', false, true));
+            binds.put('ueaIds', ueaIds);
+            usage |= !tueIds.isEmpty() || !ueaIds.isEmpty();
+            if (!tueIds.isEmpty()) {
+                usage |= !load('UsageEntitlementEntry', '', 'TransactionUsageEntitlementId IN :tueIds', false, true).isEmpty();
+            }
+            if (!tueIds.isEmpty() || !ueaIds.isEmpty()) {
+                // The account's buckets: those holding its entitlements, and three levels
+                // under its entitlement accounts. A bucket holding another account's
+                // entitlement is never deleted, so it is left out.
+                List<SObject> buckets = new List<SObject>();
+                Set<Id> parents = new Set<Id>(ueaIds);
+                String own = ' AND (TransactionUsageEntitlementId = null OR TransactionUsageEntitlementId IN :tueIds)';
+                binds.put('bucketParents', parents);
+                buckets.addAll(query('UsageEntitlementBucket',
+                    '(TransactionUsageEntitlementId IN :tueIds OR ParentId IN :bucketParents)' + own));
+                for (Integer level = 2; level <= 3 && !buckets.isEmpty(); level++) {
+                    Set<Id> known = ids(buckets);
+                    binds.put('bucketParents', known);
+                    binds.put('knownBuckets', known);
+                    List<SObject> children = query('UsageEntitlementBucket',
+                        'ParentId IN :bucketParents AND Id NOT IN :knownBuckets' + own);
+                    if (children.isEmpty()) {
+                        break;
+                    }
+                    buckets.addAll(children);
+                }
+                rows.put('UsageEntitlementBucket', buckets);
+                check('UsageEntitlementBucket', buckets);
+                usage |= !buckets.isEmpty();
+            }
+            if (!assetIds.isEmpty()) {
+                usage |= !load('UsageCmtAssetRelatedObj', '', 'AssetId IN :assetIds OR RelatedObjectId IN :assetIds',
+                    false, true).isEmpty();
+            }
+            // A privileged user's usage objects are not read; the teardown then runs as before.
+            hasUsage = privileged || usage;
+
+            if (deleteAssets && !assetIds.isEmpty()) {
+                load('AssetRateCardEntry', '', 'AssetId IN :assetIds', false, true);
+                load('AssetRelationship', '', 'AssetId IN :assetIds OR RelatedAssetId IN :assetIds', false, true);
+                load('WorkOrder', '', 'AssetId IN :assetIds', false, true);
+            }
+            load('BillingScheduleGroup', '', 'BillingAccountId = :accountId', false, true);
+
+            List<SObject> orders = load('Order', ', Status', 'AccountId = :accountId',
+                !hasUserPermission('PermissionsEditActivatedOrders'), true);
+            if (!hasUserPermission('PermissionsEditActivatedOrders')) {
+                for (SObject o : orders) {
+                    if (o.get('Status') != 'Draft') {
+                        block('Order', NEEDS_EDIT_ACTIVATED, o);
+                    }
+                }
+            }
+            binds.put('orderIds', ids(orders));
+
+            List<SObject> invoices = new List<SObject>();
+            if (deleteBilling || deleteCollections || deleteFulfillment) {
+                // Read for everyone when billing is deleted: the status checks need them.
+                invoices = load('Invoice', ', Status, PaymentScheduleId', 'BillingAccountId = :accountId',
+                    deleteBilling, deleteBilling);
+            }
+            binds.put('invoiceIds', ids(invoices));
+            Set<Id> scheduleIds = new Set<Id>();
+            if (deleteBilling) {
+                for (SObject inv : invoices) {
+                    String status = inv.get('Status') == null ? '' : (String) inv.get('Status');
+                    if (status.endsWith('In Progress') || status == 'Processing') {
+                        block('Invoice', INVOICE_IN_PROGRESS, inv);
+                    } else if (status != 'Draft' && status != 'Canceled' && !canDeletePostedInvoices()) {
+                        block('Invoice', INVOICE_NEEDS_PERMISSION, inv);
+                    }
+                    if (inv.get('PaymentScheduleId') != null) {
+                        scheduleIds.add((Id) inv.get('PaymentScheduleId'));
+                    }
+                }
+                load('DebitMemo', '', 'AccountId = :accountId AND Status NOT IN (\'Posted\', \'Void\')', false, true);
+                load('CreditMemo', '', 'BillingAccountId = :accountId AND Status IN (\'Draft\', \'Canceled\', \'Posted\')',
+                    false, true);
+            }
+            binds.put('scheduleIds', scheduleIds);
+
+            Set<Id> planIds = new Set<Id>();
+            Set<Id> disputeCaseIds = new Set<Id>();
+            Set<Id> planItemIds = new Set<Id>();
+            if (deleteCollections) {
+                planIds = ids(load('CollectionPlan', '', 'AccountId = :accountId', false, true));
+                binds.put('planIds', planIds);
+                if (!planIds.isEmpty()) {
+                    planItemIds = ids(load('CollectionPlanItem', '', 'CollectionPlanId IN :planIds', false, false));
+                }
+                for (SObject dispute : load('Dispute', ', CaseId', 'AccountId = :accountId OR InvoiceId IN :invoiceIds',
+                    false, true)) {
+                    if (dispute.get('CaseId') != null) {
+                        disputeCaseIds.add((Id) dispute.get('CaseId'));
+                    }
+                }
+            }
+            binds.put('planIds', planIds);
+            binds.put('planItemIds', planItemIds);
+            binds.put('disputeCaseIds', disputeCaseIds);
+            if (!scheduleIds.isEmpty() || !planIds.isEmpty()) {
+                load('PaymentSchedule', '', 'Id IN :scheduleIds OR ReferenceEntityId IN :planIds '
+                    + 'OR CollectionPlanItemId IN :planItemIds', false, true);
+            }
+            List<String> caseFilters = new List<String>();
+            if (deleteAssets && !assetIds.isEmpty()) {
+                caseFilters.add('AssetId IN :assetIds');
+            }
+            if (!planIds.isEmpty() || !disputeCaseIds.isEmpty()) {
+                caseFilters.add('(AccountId = :accountId AND (SourceId IN :planIds OR Id IN :disputeCaseIds))');
+            }
+            if (!caseFilters.isEmpty()) {
+                load('Case', '', String.join(caseFilters, ' OR '), false, true);
+            }
+
+            if (deleteFulfillment) {
+                Set<Id> orderItemIds = ids(load('OrderItem', '', 'OrderId IN :orderIds', false, false));
+                binds.put('orderItemIds', orderItemIds);
+                Set<String> sourceIds = new Set<String>();
+                for (Id sourceId : orderItemIds) {
+                    sourceIds.add(sourceId);
+                }
+                for (Id sourceId : ids(orders)) {
+                    sourceIds.add(sourceId);
+                }
+                binds.put('sourceIds', sourceIds);
+                binds.put('summaryIds', ids(load('OrderSummary', '', 'AccountId = :accountId', false, false)));
+                load('FulfillmentOrder', '', 'AccountId = :accountId OR OrderId IN :orderIds OR InvoiceId IN :invoiceIds '
+                    + 'OR OrderSummaryId IN :summaryIds', false, true);
+                if (!sourceIds.isEmpty()) {
+                    load('FulfillmentPlan', '', 'SourceIdentifier IN :sourceIds '
+                        + 'AND (SourceType = \'StandardOrder\' OR SourceType = \'OrderItem\')', false, true);
+                }
+                Set<Id> fulfillmentAssetIds = ids(load('FulfillmentAsset', '', 'AccountId = :accountId', false, true));
+                binds.put('fulfillmentAssetIds', fulfillmentAssetIds);
+                if (!fulfillmentAssetIds.isEmpty()) {
+                    load('AssetFulfillmentDecomp', '', 'FulfillmentSourceAssetId IN :fulfillmentAssetIds '
+                        + 'OR FulfillmentTargetAssetId IN :fulfillmentAssetIds', false, true);
+                }
+                if (!orderItemIds.isEmpty()) {
+                    load('FulfillmentLineSourceRel', '', 'SourceLineItemId IN :orderItemIds', false, true);
+                }
+            }
+
+            Set<Id> quoteIds = ids(load('Quote', '', 'QuoteAccountId = :accountId OR AccountId = :accountId', false, true));
+            load('Opportunity', '', 'AccountId = :accountId', false, true);
+            Set<String> documentRefs = new Set<String>();
+            for (Id recordId : quoteIds) {
+                documentRefs.add(recordId);
+            }
+            if (deleteBilling) {
+                for (SObject inv : invoices) {
+                    documentRefs.add(inv.Id);
+                }
+            }
+            binds.put('documentRefs', documentRefs);
+            if (!documentRefs.isEmpty()) {
+                load('DocumentGenerationProcess', '', 'ReferenceObject IN :documentRefs', false, true);
+            }
+
+            readRecordAccess();
+        }
+
+        /**
+         * Reads `objectName`'s records matching `filter`, in system mode, and, when
+         * `checked`, records what blocks them. A privileged user's rows are read only when
+         * `reused`, or when the object is one they cannot read or delete; otherwise an empty
+         * list stands for them.
+         */
+        private List<SObject> load(String objectName, String extraFields, String filter, Boolean reused, Boolean checked) {
+            List<SObject> found = new List<SObject>();
+            rows.put(objectName, found);
+            if (typeOf(objectName) == null) {
+                return found;
+            }
+            if (privileged && !reused && canRead(objectName) && objectDeletable(objectName)) {
+                return found;
+            }
+            requireQuery();
+            String nameField = nameFieldOf(objectName);
+            String fields = 'Id' + (nameField == null ? '' : ', ' + nameField) + extraFields;
+            found = Database.queryWithBinds(
+                'SELECT ' + fields + ' FROM ' + objectName + ' WHERE ' + filter, binds, AccessLevel.SYSTEM_MODE);
+            rows.put(objectName, found);
+            if (checked) {
+                check(objectName, found);
+            }
+            return found;
+        }
+
+        /** One system-mode read of `objectName`, with its name field; nothing recorded. */
+        private List<SObject> query(String objectName, String filter) {
+            requireQuery();
+            String nameField = nameFieldOf(objectName);
+            return Database.queryWithBinds('SELECT Id' + (nameField == null ? '' : ', ' + nameField) + ' FROM '
+                + objectName + ' WHERE ' + filter, binds, AccessLevel.SYSTEM_MODE);
+        }
+
+        /** Records what blocks `found`, the records of `objectName` the run would delete. */
+        private void check(String objectName, List<SObject> found) {
+            if (found.isEmpty()) {
+                return;
+            }
+            if (!canRead(objectName)) {
+                Blocker b = blocker(objectName, CANNOT_READ);
+                b.count += found.size();
+                return;
+            }
+            if (!objectDeletable(objectName)) {
+                for (SObject record : found) {
+                    block(objectName, NO_PERMISSION, record);
+                }
+                return;
+            }
+            if (privileged) {
+                return;
+            }
+            for (SObject record : found) {
+                objectOf.put(record.Id, objectName);
+                nameOf.put(record.Id, nameOf(objectName, record));
+            }
+        }
+
+        /** UserRecordAccess for every record check() kept, 200 ids a query. */
+        private void readRecordAccess() {
+            List<Id> recordIds = new List<Id>(objectOf.keySet());
+            Id userId = UserInfo.getUserId();
+            for (Integer start = 0; start < recordIds.size(); start += 200) {
+                requireQuery();
+                List<Id> chunk = new List<Id>();
+                for (Integer i = start; i < Math.min(start + 200, recordIds.size()); i++) {
+                    chunk.add(recordIds[i]);
+                }
+                for (UserRecordAccess access : [
+                    SELECT RecordId, HasReadAccess, HasDeleteAccess FROM UserRecordAccess
+                    WHERE UserId = :userId AND RecordId IN :chunk
+                ]) {
+                    String objectName = objectOf.get(access.RecordId);
+                    if (!access.HasReadAccess) {
+                        blocker(objectName, NOT_VISIBLE).count++;
+                    } else if (!access.HasDeleteAccess) {
+                        Blocker b = blocker(objectName, NO_ACCESS);
+                        b.count++;
+                        b.names.add(nameOf.get(access.RecordId));
+                    }
+                }
+            }
+        }
+
+        private void requireQuery() {
+            if (Limits.getLimitQueries() - Limits.getQueries() < 1 + QUERIES_PER_ROUND + QUERY_RESERVE) {
+                throw new PreflightTooLargeException(PREFLIGHT_TOO_LARGE);
+            }
+        }
+
+        private void block(String objectName, String reason, SObject record) {
+            // A record of an object the user cannot read is counted under CANNOT_READ only:
+            // it is never named.
+            if (!canRead(objectName)) {
+                return;
+            }
+            Blocker b = blocker(objectName, reason);
+            b.count++;
+            b.names.add(nameOf(objectName, record));
+        }
+
+        private Blocker blocker(String objectName, String reason) {
+            String key = objectName + '|' + reason;
+            if (!blockerByKey.containsKey(key)) {
+                Blocker b = new Blocker();
+                b.label = labelOf(typeOf(objectName));
+                b.reason = reason;
+                blockerByKey.put(key, b);
+                blockers.add(b);
+            }
+            return blockerByKey.get(key);
+        }
+
+        /** The rows read for `objectName`, or an empty list. */
+        public List<SObject> rowsOf(String objectName) {
+            return rows.containsKey(objectName) ? rows.get(objectName) : new List<SObject>();
+        }
+
+        /** "Orders: 1 (no delete access to these records: 00000123); Opportunities: 1 (not visible ...)" */
+        public String describeBlockers() {
+            List<String> parts = new List<String>();
+            for (Blocker b : blockers) {
+                String detail = b.reason;
+                if (!b.names.isEmpty()) {
+                    List<String> listed = new List<String>();
+                    for (Integer i = 0; i < Math.min(NAMES_LISTED, b.names.size()); i++) {
+                        listed.add(b.names[i]);
+                    }
+                    detail += ': ' + String.join(listed, ', ');
+                    if (b.names.size() > NAMES_LISTED) {
+                        detail += ' and ' + (b.names.size() - NAMES_LISTED) + ' more';
+                    }
+                }
+                parts.add(b.label + ': ' + b.count + ' (' + detail + ')');
+            }
+            return String.join(parts, '; ');
+        }
+
+        private String nameFieldOf(String objectName) {
+            if (!nameFields.containsKey(objectName)) {
+                String found;
+                for (Schema.SObjectField field : typeOf(objectName).getDescribe().fields.getMap().values()) {
+                    Schema.DescribeFieldResult describe = field.getDescribe();
+                    if (describe.isNameField()) {
+                        found = describe.getName();
+                        break;
+                    }
+                }
+                nameFields.put(objectName, found == 'Id' ? null : found);
+            }
+            return nameFields.get(objectName);
+        }
+
+        private String nameOf(String objectName, SObject record) {
+            String nameField = nameFieldOf(objectName);
+            Object value = nameField == null ? null : record.get(nameField);
+            return value == null ? String.valueOf(record.Id) : String.valueOf(value);
+        }
+
+        private Set<Id> ids(List<SObject> records) {
+            return new Map<Id, SObject>(records).keySet();
+        }
     }
 }

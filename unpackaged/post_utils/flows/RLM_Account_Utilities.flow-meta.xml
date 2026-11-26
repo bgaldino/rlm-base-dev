@@ -188,7 +188,7 @@
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices), and credit memos the Allow Revenue Records Deletion permission (Billing Admin permission set); without them they are kept. Billing records you cannot read are left and listed as not checked. Payments, and posted or void debit memos, are always kept: Salesforce does not allow deleting them.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Posted invoices need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices), and credit memos the Allow Revenue Records Deletion permission (Billing Admin permission set). Payments, and posted or void debit memos, are never deleted: Salesforce does not allow it.&lt;/p&gt;&lt;p&gt;Before it changes anything, the reset checks that you can delete every record it would delete. If you cannot, it does not run, and it lists those records and why.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -269,7 +269,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Result_Cleared</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Nothing was kept.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Everything was deleted.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -284,7 +284,7 @@
         </fields>
         <fields>
             <name>Result_Partial</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The reset finished, but some records were kept.&lt;/strong&gt; They are listed below with the reason.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset finished, but some records could not be deleted.&lt;/strong&gt; They are listed below with the reason.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -306,7 +306,7 @@
         </fields>
         <fields>
             <name>Result_Stopped</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The reset stopped before it finished.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ResetReason}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset did not complete.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ResetReason}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -336,7 +336,7 @@
         </fields>
         <fields>
             <name>Result_Retained</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;Kept:&lt;/strong&gt; {!ResetRetained}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Not deleted:&lt;/strong&gt; {!ResetRetained}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
