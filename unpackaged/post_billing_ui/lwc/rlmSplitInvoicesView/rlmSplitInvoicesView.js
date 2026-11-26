@@ -20,26 +20,9 @@ import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRel
  *  Id, Name (display), CorrelationIdentifier, BillingAccountId, DocumentNumber,
  *  InvoiceDate, Balance, Status, BillingArrangementId, BillingProfileId
  */
-// Shown when the split-invoice reads fail or are refused, in place of the raw GraphQL error.
-const SPLIT_INVOICES_UNREADABLE = 'Unable to read the split invoices. Contact your administrator.';
-
 export default class RlmSplitInvoicesView extends NavigationMixin(LightningElement) {
-    _recordId;
-
-    // A new record starts a new load: the previous record's rows and error are cleared.
-    @api
-    get recordId() { return this._recordId; }
-    set recordId(value) {
-        if (value !== this._recordId) {
-            this.allRows = [];
-            this.rows = [];
-            this.correlationIdentifier = undefined;
-            this.error = undefined;
-            this.errorMessage = '';
-            this.isLoading = true;
-        }
-        this._recordId = value;
-    }
+    // recordId injected by the flexipage when placed on Invoice record page
+    @api recordId;
 
     // UI state
     @track isLoading = true;
@@ -99,11 +82,11 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
             return;
         }
         if (errors && errors.length) {
-            this.fail('split invoice read failed', errors);
+            this.error = errors;
+            this.errorMessage = this.readableError(errors[0]);
+            this.rows = [];
+            this.isLoading = false;
             return;
-        }
-        if (data) {
-            this.clearError();
         }
         const current = data?.uiapi?.query?.Invoice?.edges?.[0]?.node;
         this.correlationIdentifier = current?.CorrelationIdentifier?.value ?? null;
@@ -128,13 +111,17 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         if (this.correlationIdentifier === undefined) return;
         if (!this.correlationIdentifier) return;
         if (errors && errors.length) {
-            this.fail('split invoice read failed', errors);
+            this.error = errors;
+            this.errorMessage = this.readableError(errors[0]);
+            this.rows = [];
+            this.isLoading = false;
             return;
         }
         const listEdges = data?.uiapi?.query?.InvoiceByCorrelation?.edges || [];
         const allShaped = listEdges.map((e) => this.shapeRow(e.node)).filter((r) => !!r);
         const rows = allShaped.filter((r) => r.Id !== this.recordId);
-        this.clearError();
+        this.error = undefined;
+        this.errorMessage = '';
 
         const accountIds = [...new Set(rows.map((r) => r.billingAccountId).filter(Boolean))];
         const arrangementIds = [...new Set(rows.map((r) => r.billingArrangementId).filter(Boolean))];
@@ -312,31 +299,27 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         });
     }
 
-    // Every error path: the fixed sentence only (never the platform text, which goes to the console),
-    // no rows, and loading done. The template shows nothing else while error is set.
-    fail(what, detail) {
-        console.error('rlmSplitInvoicesView: ' + what, JSON.stringify(detail));
-        this.error = detail || true;
-        this.errorMessage = SPLIT_INVOICES_UNREADABLE;
-        this.allRows = [];
-        this.rows = [];
-        this.isLoading = false;
-    }
-
-    // Every success path clears the error.
-    clearError() {
-        this.error = undefined;
-        this.errorMessage = '';
+    readableError(e) {
+        if (!e) return 'Unknown error';
+        if (Array.isArray(e.body)) return e.body.map((x) => x.message).join(', ');
+        if (e.body && e.body.message) return e.body.message;
+        if (e.message) return e.message;
+        try {
+            return JSON.stringify(e);
+        } catch {
+            return 'Unknown error';
+        }
     }
 
     @api async refresh() {
         this.isLoading = true;
-        this.clearError();
+        this.error = undefined;
         try {
             await this._refreshCurrent?.();
             await this._refreshList?.();
         } catch (err) {
-            this.fail('refresh failed', err);
+            this.error = err;
+            this.errorMessage = this.readableError(err);
         } finally {
             this.isLoading = false;
         }
