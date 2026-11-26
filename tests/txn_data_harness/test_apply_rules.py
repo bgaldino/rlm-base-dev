@@ -106,6 +106,8 @@ def test_read_account_applications_reads_all_four_objects_by_account():
                                             "InvoiceLine": {"InvoiceId": INVOICE_A}}],
         "FROM PaymentLineInvoice": [{"Id": "hdr1", "Amount": 1, "Type": "Applied",
                                      "PaymentId": PAYMENT, "InvoiceId": INVOICE_B}],
+        "FROM CreditMemoInvApplication": [{"Id": "hdr2", "Amount": 2, "Type": "Applied",
+                                           "CreditMemoId": MEMO, "InvoiceId": INVOICE_B}],
     })
     rows = lifecycle.read_account_applications(org, ACCOUNT)
     assert rows == [
@@ -115,6 +117,8 @@ def test_read_account_applications_reads_all_four_objects_by_account():
          "source_id": MEMO, "invoice_id": INVOICE_A, "amount": 49.5, "type": "Applied"},
         {"id": "hdr1", "object": "PaymentLineInvoice", "kind": "payment",
          "source_id": PAYMENT, "invoice_id": INVOICE_B, "amount": 1, "type": "Applied"},
+        {"id": "hdr2", "object": "CreditMemoInvApplication", "kind": "credit",
+         "source_id": MEMO, "invoice_id": INVOICE_B, "amount": 2, "type": "Applied"},
     ]
     assert org.queries == [
         "SELECT Id, Amount, Type, PaymentId, InvoiceLine.InvoiceId FROM "
@@ -488,12 +492,29 @@ def test_a_response_it_cannot_read_is_an_error(monkeypatch, capsys):
     assert "unexpected shape; read the account's payments and credit memos" in err
 
 
-def test_a_failed_read_after_the_call_is_an_error(monkeypatch, capsys):
+def test_a_failed_read_after_the_call_is_an_error_that_still_shows_the_answer(
+        monkeypatch, capsys):
     org = Org(monkeypatch)
     org.fail["read"] = SfApiError(401, "[]", "GET", "/query")
     assert _apply_rules() == 2
-    assert "the call returned, but its applications could not be read" in \
-        capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert "RULES: Match Balance, Prioritize Oldest Invoices; isSuccess True;" in captured.out
+    assert "its applications could not be read" in captured.err
+    assert "before calling again" in captured.err
+
+
+def test_a_missing_account_is_a_usage_error(monkeypatch, capsys):
+    org = Org(monkeypatch)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["apply-rules", "--org", "x"])
+    assert exc.value.code == 2
+    assert "--account" in capsys.readouterr().err
+    assert org.calls == []
+
+
+def test_a_raw_body_names_its_shape():
+    with pytest.raises(lifecycle.SettlementError, match="non-JSON response"):
+        lifecycle.apply_rules(QueryOrg(post_result={"_raw": "<html>"}), ACCOUNT)
 
 
 def test_a_verify_that_cannot_report_is_an_error(monkeypatch, capsys):

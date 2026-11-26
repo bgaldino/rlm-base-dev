@@ -845,22 +845,25 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         print(f"ERROR: apply-rules: {_error_message(exc)}; read the account's payments "
               "and credit memos before calling again", file=sys.stderr)
         return 2
+    # The platform's answer first, so it shows even if the read below fails.
+    summary = result.get("rulesApplicationSummary") or {}
+    rules = ", ".join(result.get("appliedRules") or []) or "none"
+    print(f"RULES: {rules}; isSuccess {result.get('isSuccess')}; "
+          f"{json.dumps(summary, sort_keys=True)}")
+    if summary.get("areAllInvoicesConsidered") is False:
+        print("WARNING: the platform did not consider every invoice "
+              "(areAllInvoicesConsidered false)")
     try:
         new = [r for r in lifecycle.read_account_applications(client, account_id)
                if r["id"] not in before]
     except Exception as exc:  # noqa: BLE001 - the call already ran
-        print(f"ERROR: apply-rules: the call returned, but its applications could not "
-              f"be read: {_error_message(exc)}", file=sys.stderr)
+        print(f"ERROR: apply-rules: the call returned (RULES line above), but its "
+              f"applications could not be read: {_error_message(exc)}; read the "
+              "account's payments and credit memos before calling again", file=sys.stderr)
         return 2
     for r in new:
         print(f"APPLIED: {r['kind']} {r['source_id']} {r['amount']} -> invoice "
               f"{r['invoice_id']} ({r['object']} {r['id']}, {r['type']})")
-    summary = result.get("rulesApplicationSummary") or {}
-    rules = ", ".join(result.get("appliedRules") or []) or "none"
-    print(f"RULES: {rules}; {json.dumps(summary, sort_keys=True)}")
-    if summary.get("areAllInvoicesConsidered") is False:
-        print("WARNING: the platform did not consider every invoice "
-              "(areAllInvoicesConsidered false)")
     label = f"account {account_id}"
     if result.get("isSuccess") is not True or result.get("errors"):
         messages = [html.unescape(str(e.get("message") or e.get("errorCode") or json.dumps(e)))

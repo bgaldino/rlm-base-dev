@@ -500,7 +500,9 @@ unapply` (todo 490) is built on it.
   new Applied row on the next invoice is 445.50, and `NetApplied` 445.50,
   `Balance` 0.
 - Not measured: header-level unapply (`credit-memo-inv-applications/.../unapply`,
-  payment header rows), reapplying by hand after an unapply, voiding a credit
+  payment header rows), reapplying with the explicit apply action after an
+  unapply (reapplying by the rules is measured: [Rule-based
+  application](#rule-based-application)), voiding a credit
   memo.
 - **Either order.** Unapplying the credit while the payment stays applied
   (`--only credit`, run DEMO-20261126T041707Z) left invoice and line `Balance`
@@ -549,7 +551,8 @@ Each then called:
   listed both new rows (the 445.50 payment and 49.50 credit, both on DOC-35,
   posted that day with 495.00 open before the call, as its verify line shows:
   0.0 = 495.0 - 49.5 - 445.5; not on the run's own DOC-37, also posted that day
-  and still open at 495.00 after),
+  and still open at 495.00 after); its `RULES:` line was Match Balance,
+  Prioritize Oldest Invoices with every count 1 and every invoice considered;
   `cli verify` passed on them (3 balances checked, 0 skipped) and it exited 0.
 - **Rule names.** `appliedRules` gives Help names, not the settings codes.
   Calls that reported Match Balance alone (probes 1 and 4) put the payment on
