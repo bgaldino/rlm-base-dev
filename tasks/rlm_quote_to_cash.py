@@ -57,6 +57,6 @@ class VerifyQuoteToCash(BaseTask):
             raise CommandException(
                 f"quote-to-cash check failed (exit {returncode}): 1 means a "
                 "scenario fell short of payment_applied or a balance check "
-                "failed; 2 or more means the run or the verify could not start. "
-                "The output above says which."
+                "failed or none was checked; 2 or more means an error or a "
+                "refused config, named in the output above."
             )

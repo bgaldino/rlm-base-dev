@@ -26,8 +26,9 @@ skill: [`verification.md`](../../.cursor/skills/billing-operations/verification.
   standard build loads.
 - **Line Level application.** The org's Credit, Payment and Refund Application
   Level is read from Billing Settings at run time. Line Level, the Foundations
-  default, is live-verified; Header Level is not measured, and the verifier
-  skips its balance checks.
+  default, is live-verified. Header Level is not measured: the verifier skips
+  its balance checks, so `cli quote-to-cash` fails there with "no balance was
+  checked" even when every stage ran.
 - **A scratch or demo org.** Every run adds a new transaction. Posted
   invoices, billing schedules and the settlement records cannot be deleted
   (see [Cleanup limits](#cleanup-limits)).
@@ -44,15 +45,17 @@ python -m scripts.txn_data_harness.cli quote-to-cash --org <sf-alias>
 It runs [`20-quote-to-cash.yaml`](../../scripts/txn_data_harness/scenarios/sales_txn_quote/20-quote-to-cash.yaml)
 at `--concurrency 1` (one quote, a 10% credit, a payment for exactly what is
 left), fails unless every scenario reaches `payment_applied`, then runs the
-`cli verify` checks on the invoices and payments the run recorded. The last line
-is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail (...)`.
+`cli verify` checks on the invoices and payments the run recorded. On exit 0
+or 1 the last line is `QUOTE-TO-CASH: pass (...)` or `QUOTE-TO-CASH: fail
+(...)`; otherwise an `ERROR:` line on stderr says why.
 
 | Exit | Meaning |
 |------|---------|
 | 0 | Every scenario reached `payment_applied`, at least one balance was checked, none failed. |
 | 1 | A scenario stopped short (its `FAIL:` line names the run and the stage it reached), or a balance check failed, or nothing was checked. |
-| 2 | The verify could not report (a bad manifest or a refused Salesforce request). |
-| 2, 3, 4 | The run never started: authentication (2), discovery, such as an unknown account (3), or a bad config (4). |
+| 2 | An error, not a verdict: authentication failed, `sf` is not on `PATH`, a Salesforce request was refused, or a manifest could not be read. |
+| 3 | Discovery failed before any write, for example an unknown account or product. |
+| 4 | The config could not be read, or a scenario in it does not target `payment_applied`; refused before any write. |
 
 `--config <file>` runs another config; its scenarios must target
 `payment_applied`. Measured on a 264 scratch org (2026-11-26, Line Level): a
@@ -110,8 +113,9 @@ All seven steps and every check above passed on a 264 scratch org on
 
 A `--config` on a later step must match the recorded block exactly; changing
 settlement options means a new run. A manifest recorded before 2026-11-26 that
-stopped at `credit_applied` holds only the credit and cannot be given a
-payment: start a new run.
+stopped at `credit_applied` holds only the credit: rerun its credit step
+without `--config` (the file's payment part no longer matches the recorded
+block), and start a new run for the payment.
 
 The same steps apply to other scenarios. For `invoice_ingestion` (an invoice
 minted directly, no quote or order), start at `invoice_draft` or
@@ -145,8 +149,9 @@ Drive any cleanup from the manifest ids
 - **Credit memos, payments and their applications**: no unapply, void or
   cancel path was measured.
 
-Assets, the activated order (revert to Draft first), the quote and the
-opportunity can be deleted, child first.
+Assets, the activated order (revert to Draft first) and the quote can be
+deleted, child first (and the opportunity, for a config that sets
+`with_opportunity: true`; the shipped one does not).
 
 ## Related procedures
 

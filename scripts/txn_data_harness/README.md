@@ -408,7 +408,7 @@ a fresh batch with a new run id (by design).
 
 ```text
 scripts/txn_data_harness/
-  cli.py               # subcommands: plan/run/step/inspect/report/prune
+  cli.py               # subcommands: plan/run/inspect/rate/step/report/verify/quote-to-cash/prune
   generate.py          # CLI entry: argparse, spec resolution, concurrency loop
   auth.py              # SfRestClient: transport-agnostic REST (requests | cli)
   discovery.py         # org introspection: accounts, products, pricebook, legal entity

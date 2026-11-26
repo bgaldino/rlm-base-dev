@@ -505,7 +505,9 @@ value (null) means no payment, like leaving the key out.
   only a step that runs and succeeds clears it). A recorded block without
   `payment` (a credit-only block, or a manifest recorded before 2026-11-26,
   when a run stopped at `credit_applied` recorded only the credit) refuses
-  `--to-stage payment_applied` before any step runs.
+  `--to-stage payment_applied` before any step runs; such an old manifest
+  also refuses a `--config` that has a payment part, so resume its credit
+  step without `--config`.
   `--application-level line|header` (`--to-stage payment_applied` only, not on a
   manifest that already reached the target; a value equal to the recorded
   level is ignored) sets the level when it could not be read or was read

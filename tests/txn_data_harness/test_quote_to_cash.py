@@ -148,3 +148,61 @@ def test_task_command_parses_as_the_cli_subcommand():
     args = cli.parse_args(cmd[3:])
     assert args.func is cli._cmd_quote_to_cash
     assert args.org == "u@example.com" and str(args.config) == "a.yaml"
+
+
+def test_an_error_in_the_run_is_exit_2_not_a_verdict(harness, monkeypatch, capsys):
+    def no_sf(argv, on_batch=None):
+        raise FileNotFoundError(2, "No such file or directory", "sf")
+    monkeypatch.setattr(cli.generate, "main", no_sf)
+    assert cli.main(["quote-to-cash", "--org", "x"]) == 2
+    captured = capsys.readouterr()
+    assert "quote-to-cash run: the sf CLI was not found on PATH" in captured.err
+    assert "QUOTE-TO-CASH" not in captured.out
+
+
+def test_a_config_not_targeting_payment_applied_is_refused_before_any_write(
+        harness, tmp_path, capsys):
+    cfg = tmp_path / "c.yaml"
+    cfg.write_text("defaults: {kind: sales_txn_quote}\n"
+                   "scenarios:\n  - {account: Infinitech, target_stage: invoice_posted}\n")
+    assert cli.main(["quote-to-cash", "--org", "x", "--config", str(cfg)]) == 4
+    assert harness["argv"] is None  # the generator never ran
+    assert "must target payment_applied, not invoice_posted" in capsys.readouterr().err
+
+
+def test_an_unreadable_config_is_exit_4(harness, tmp_path, capsys):
+    assert cli.main(["quote-to-cash", "--org", "x", "--config", str(tmp_path / "none.yaml")]) == 4
+    assert harness["argv"] is None
+    assert "bad config" in capsys.readouterr().err
+
+
+def test_generate_hands_the_batch_manifests_to_on_batch(monkeypatch, tmp_path) -> None:
+    """The real generate.main calls on_batch with every scenario's manifest."""
+    from types import SimpleNamespace
+
+    from scripts.txn_data_harness import generate
+    from scripts.txn_data_harness.runner import BatchResult
+
+    spec = SimpleNamespace(count=1, kind="sales_txn_quote", target_stage="payment_applied")
+    resolved = SimpleNamespace(account=SimpleNamespace(id="001A", name="Infinitech"),
+                               spec=spec, effective_stage="payment_applied")
+    manifest = _manifest()
+    result = BatchResult(base_run_id="DEMO-1", total=1, failures=0, manifest_dir=tmp_path)
+
+    def fake_run_batch(client, ctx, specs, *, on_start, on_complete, **_kw):
+        on_start("DEMO-1", 1, 1)
+        on_complete(1, 1, manifest, tmp_path / "DEMO-1.json")
+        return result
+
+    monkeypatch.setattr(generate.SfRestClient, "from_alias", lambda *a, **kw: object())
+    monkeypatch.setattr(generate, "discover", lambda *a, **kw: object())
+    monkeypatch.setattr(generate, "load_scenarios", lambda args: [spec])
+    monkeypatch.setattr(generate, "SCENARIO_HANDLERS",
+                        {"sales_txn_quote": SimpleNamespace(resolve=lambda c, x, s: resolved)})
+    monkeypatch.setattr(generate, "run_batch", fake_run_batch)
+    monkeypatch.setattr(generate, "write_batch_report",
+                        lambda report, d: (d / "r.json", d / "r.md"))
+    seen = []
+    assert generate.main(["--org", "o", "--concurrency", "1"],
+                         on_batch=lambda r, ms: seen.append((r, ms))) == 0
+    assert seen == [(result, [manifest])]

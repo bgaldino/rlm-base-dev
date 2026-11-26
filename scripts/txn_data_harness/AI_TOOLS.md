@@ -122,9 +122,11 @@ Runs `scenarios/sales_txn_quote/20-quote-to-cash.yaml` (or `--config`, whose
 scenarios must target `payment_applied`) at `--concurrency 1`, then the
 `verify` checks on the run's invoices and payments. Exit 0 only when every
 scenario reached `payment_applied` and at least one balance was checked with
-none failing; 1 for a short stage or a failed or empty check; 2 when the verify
-could not report; the generator's code (2 auth, 3 discovery, 4 config) when the
-run never started. CCI wrapper: `cci task run verify_quote_to_cash --org
+none failing; 1 for a short stage or a failed or empty check (always on a
+Header Level org, where the balance checks skip); 2 for an error (auth, no
+`sf`, a refused request, an unreadable manifest); 3 when discovery fails; 4 for
+an unreadable config or one with a scenario not targeting `payment_applied`
+(refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
 <cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
 
 ### Verify billing (read-only)

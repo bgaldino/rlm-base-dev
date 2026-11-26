@@ -569,7 +569,7 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001 - read-only command: any error is exit 2
         # Exit 1 means a check failed, so no error may reach main() (which maps
         # ValueError to 1) or escape as a traceback.
-        message = _verify_error_message(exc)
+        message = _error_message(exc)
         print(f"ERROR: {message}", file=sys.stderr)
         if args.json:
             _emit(json.dumps({"ok": False, "error": message}, indent=2))
@@ -578,8 +578,8 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
-def _verify_error_message(exc: Exception) -> str:
-    """The one-line reason a read-only verify could not report."""
+def _error_message(exc: Exception) -> str:
+    """The one-line reason a command could not run or report."""
     if isinstance(exc, billing_verify.VerifyError):
         return str(exc)
     if isinstance(exc, (SfApiError, SfCliError, requests.RequestException)):
@@ -602,10 +602,13 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     """Run a quote through to an applied payment, then verify the balances.
 
     Exit 0 when every scenario reached ``payment_applied`` and the verifier
-    checked at least one balance and failed none; 1 when a scenario fell short
-    or a check failed; 2 (or the generator's own code) when the run or the
-    verify could not start or report. It writes records: Posted invoices are
-    not deletable.
+    checked at least one balance and failed none; 1 when a scenario fell short,
+    a check failed or nothing was checked; 4 for a config that cannot be read
+    or has a scenario not targeting ``payment_applied`` (refused before any
+    write); 2 when the run or the verify raised an error (no ``sf``, a refused
+    request); otherwise the generator's own code (2 auth, 3 discovery, 4
+    config) when the run never started. It writes records: Posted invoices
+    are not deletable.
     """
     argv = [
         "--org", args.org, "--config", str(args.config), "--concurrency", "1",
@@ -614,8 +617,23 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     ]
     if args.verbose:
         argv.append("-" + "v" * args.verbose)
+    try:
+        specs = load_scenarios(generate.parse_args(argv))
+    except (ConfigError, OSError, ValueError) as exc:
+        print(f"ERROR: bad config:\n  {exc}", file=sys.stderr)
+        return 4
+    off_target = sorted({s.target_stage for s in specs} - {QUOTE_TO_CASH_STAGE})
+    if off_target:
+        print(f"ERROR: quote-to-cash: every scenario in {args.config} must target "
+              f"{QUOTE_TO_CASH_STAGE}, not {', '.join(off_target)}; nothing was written",
+              file=sys.stderr)
+        return 4
     batch: list = []
-    code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
+    try:
+        code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
+    except Exception as exc:  # noqa: BLE001 - exit 1 means short or failed, never an error
+        print(f"ERROR: quote-to-cash run: {_error_message(exc)}", file=sys.stderr)
+        return 2
     if not batch:
         print(f"ERROR: quote-to-cash: the run did not start (exit {code})", file=sys.stderr)
         return code or 2
@@ -640,7 +658,7 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
-        print(f"ERROR: quote-to-cash verify: {_verify_error_message(exc)}", file=sys.stderr)
+        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}", file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:

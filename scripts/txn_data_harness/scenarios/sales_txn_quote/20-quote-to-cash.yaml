@@ -7,7 +7,7 @@
 # verify` checks on the invoices and payments the run recorded. The CCI task
 # `verify_quote_to_cash` wraps that command for a built org.
 #
-# The chain: Opportunity -> Quote (Place Sales Transaction) -> Order ->
+# The chain: Quote (Place Sales Transaction) -> Order ->
 # activation (billing schedules, assets) -> Draft invoice -> Posted invoice ->
 # a 10% credit memo applied (credit_applied) -> one external payment for
 # exactly what is left, applied (payment_applied). The invoice ends at a zero
