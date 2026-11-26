@@ -247,7 +247,7 @@ def test_a_failed_manifest_write_fails_the_row_and_goes_on(run, monkeypatch, cap
     out = capsys.readouterr().out
     assert f"FAIL: payment {PAY_ROW}:" in out
     assert "unapplied in the org (Unapplied row 1AlNEW000000000001), but the manifest " \
-        "write failed" in out and "rerun to record it" in out
+        "write failed (OSError:" in out and "rerun to record it" in out
     assert "UNAPPLIED: credit" in out
     # The failed row is not recorded by the next row's write either.
     assert _recorded(path) == ["4sGNEW000000000002"]
@@ -296,3 +296,11 @@ def test_inspect_shows_the_unapplied_rows_of_a_reversed_run(run, capsys):
     summary = SCENARIO_HANDLERS[manifest.kind].summarize(manifest)
     assert summary["settlement"]["unapplied_row_ids"] == manifest.unapplied_row_ids
     assert "Unapplied rows recorded by cli unapply: 2" in cli._format_inspect_text(summary)
+
+
+def test_a_recorded_row_that_reads_back_as_unapplied_is_not_sent(run, capsys):
+    org, _path = run
+    org.rows[CREDIT_ROW]["Type"] = "Unapplied"
+    assert _unapply("--only", "credit") == 1
+    assert org.posts == []
+    assert "is not a line-level Applied row" in capsys.readouterr().out

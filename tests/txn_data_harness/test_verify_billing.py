@@ -1511,6 +1511,10 @@ def _move_reversal(data):
         "5TV000000000021GAA")
 
 
+def _flag_reversal(data):
+    _row(data, "PaymentLineInvoiceLine", "1Al000000000090CAA")["UnappliedStatus"] = "Yes"
+
+
 def _other_payment(data):
     _row(data, "PaymentLineInvoiceLine", "1Al000000000090CAA")["PaymentId"] = (
         "0aQ000000000002EAA")
@@ -1523,6 +1527,7 @@ def _other_payment(data):
     ({}, _unflag, "the reversed Applied row not flagged Yes"),
     ({}, _move_reversal, "the Unapplied row on another invoice line"),
     ({}, _other_payment, "the Unapplied row on another payment"),
+    ({}, _flag_reversal, "the Unapplied row itself flagged Yes"),
 ])
 def test_a_pair_that_is_not_the_measured_shape_is_skipped(kwargs, after, why):
     def mutate(data):

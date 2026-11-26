@@ -148,7 +148,7 @@ python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN
 `--only payment` or `--only credit` reverses one. Each application gets a
 `Type` Unapplied row pointing at the original, which stays Applied and is
 flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
-balances return to what they were before it was applied, and `verify` checks
+balances go back up by the amount reversed, and `verify` checks
 the pair (measured at Line Level on 264, in either order). Rerunning sends nothing for a row already unapplied. Limits:
 
 - Only a finished settlement is reversed: no error on the run, and

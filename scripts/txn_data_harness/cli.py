@@ -781,8 +781,8 @@ def _cmd_unapply(args: argparse.Namespace) -> int:
                         manifest.unapplied_row_ids.remove(new_id)
                         raise SettlementError(
                             "unapply", f"{note} in the org (Unapplied row {new_id}), but "
-                            f"the manifest write failed ({_error_message(exc)}); rerun to "
-                            "record it", record_id=row_id) from None
+                            f"the manifest write failed ({type(exc).__name__}: {exc}); "
+                            "rerun to record it", record_id=row_id) from None
             except Exception as exc:  # noqa: BLE001 - report and go on to the next row
                 failures += 1
                 print(f"FAIL: {kind} {row_id}: {_error_message(exc)}")

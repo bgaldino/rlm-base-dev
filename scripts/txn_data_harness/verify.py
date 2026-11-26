@@ -34,7 +34,7 @@ an allow-list in ``_unmeasured_causes``:
 - application row: ``Type`` Applied and no unapplied flag (``UnappliedStatus`` /
   ``HasBeenUnapplied``) of Yes; or, at Line Level, a reversed pair (todo 490): an
   Applied row flagged ``UnappliedStatus`` Yes and the one ``Type`` Unapplied row
-  whose ``Related...InvcLineId`` names it, on the same invoice line and payment or
+  (its own flag NA) whose ``Related...InvcLineId`` names it, on the same invoice line and payment or
   credit memo line, with the same ``Amount`` (both read).
   Rows net as Applied minus Unapplied, so a pair nets to zero;
 - invoice line: ``Type`` Charge, and no converted-negative or adjustment amount;
@@ -539,12 +539,13 @@ _PAIR_SAME_FIELDS = ("InvoiceLineId", "PaymentId", "CreditMemoLineId")
 
 def _reversed_pair(idx: _Index, applied: dict) -> bool:
     """``applied`` is a line Applied row flagged unapplied with exactly one Unapplied
-    row reversing it, on the same invoice line and payment or credit memo line, of
-    the same amount (the measured shape)."""
+    row (its own flag NA) reversing it, on the same invoice line and payment or
+    credit memo line, of the same amount (the measured shape)."""
     rev = idx.reversals.get(applied.get("Id"), [])
     return (applied.get("Type") == _CHECKED_ROW_TYPE
             and applied.get("UnappliedStatus") == "Yes"
             and len(rev) == 1
+            and rev[0].get("UnappliedStatus") == "NA"
             and _dec(rev[0].get("Amount")) == _dec(applied.get("Amount"))
             and all(rev[0].get(f) == applied.get(f) for f in _PAIR_SAME_FIELDS))
 
