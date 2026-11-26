@@ -88,8 +88,9 @@ private class RLM_OnAccountBillingControllerTest {
         }
         User u = billingOperationsUser();
         // Dated rates exist only with advanced currency management. If the admin reads dated
-        // rates for these codes but the billing user cannot read the table (its rates fall back
-        // to standard), skip visibly rather than fail the deploy over that optional feature.
+        // rates for these codes but the billing user cannot read the table (the controller then
+        // refuses with its fixed rates sentence), skip visibly rather than fail the deploy over
+        // that optional feature.
         Map<String, Decimal> adminDated = datedRates(AccessLevel.SYSTEM_MODE);
         if ((adminDated.containsKey(foreign) || adminDated.containsKey(corporate)) && datedRatesAs(u).isEmpty()) {
             System.debug(LoggingLevel.WARN, SKIP_DATED_RATES_UNREADABLE);
@@ -191,8 +192,9 @@ private class RLM_OnAccountBillingControllerTest {
     // ran. For a billing operations user holding RLM_BillingUI this also runs, in USER_MODE, a
     // probe of each read the summary makes (account currency, standard rates, and each object
     // it sums or counts, with the fields it uses); those probes are the evidence that this role
-    // can run the summary's reads. Dated rates are left out: that table exists only with
-    // advanced currency management, and the controller treats an unreadable one as empty.
+    // can run the summary's reads. Dated rates are left out: that table has rows only with
+    // advanced currency management; without them an unreadable table reads as empty, and with them
+    // the controller refuses with its fixed rates sentence (see loadDatedRates).
     // Collection plans are the exception: this role on its own (without the standalone
     // RLM_BillingCollectionsRead set, next test) cannot read them, so the summary reports
     // collections as unavailable (null), not "not in collections", and does not fail. Measured on a
@@ -360,15 +362,25 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.isNull(noRate, 'No rate for the payment\'s currency or the target: unavailable, not 100 at rate 1.');
     }
 
-    // Without advanced currency management (no dated rows, as on this org) a user whose dated-rate
-    // read is refused or empty gets an empty map, not an error: every currency then converts at its
-    // standard rate. The ACM-on refusal (dated rows the user cannot read -> fixed sentence) cannot be
-    // set up in a test: dated rates exist only with ACM enabled, an org setting, and Apex cannot
-    // insert DatedConversionRate rows.
+    // Without advanced currency management (no dated rows: SELECT COUNT() FROM DatedConversionRate
+    // returned 0 as admin on rlm-base__apexcov-ac1125-r1 and rlm-base__hdr-hdr-r1, both multi-currency,
+    // measured 2026-11-26) a user whose dated-rate read is refused or empty gets an empty map, not an
+    // error: every currency then converts at its standard rate. The ACM-on refusal (dated rows the
+    // user cannot read -> fixed sentence) cannot be set up in a test: dated rates exist only with
+    // ACM enabled, an org setting, and Apex cannot insert DatedConversionRate rows.
     @isTest
     static void loadDatedRates_withoutAdvancedCurrencyManagement_isEmptyForAnyUser() {
-        if (RLM_OnAccountBillingController.datedRatesExist()) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has dated rates (advanced currency management on).');
+        // The count is read here, not through datedRatesExist(), which this test also checks.
+        Integer datedRows;
+        try {
+            datedRows = Database.countQuery('SELECT COUNT() FROM DatedConversionRate', AccessLevel.SYSTEM_MODE);
+        } catch (Exception e) {
+            datedRows = 0;
+        }
+        Assert.areEqual(datedRows > 0, RLM_OnAccountBillingController.datedRatesExist(),
+            'datedRatesExist() agrees with a system-mode count of ' + datedRows + ' dated rows.');
+        if (datedRows > 0) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has ' + datedRows + ' dated rates (advanced currency management on).');
             return;
         }
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());

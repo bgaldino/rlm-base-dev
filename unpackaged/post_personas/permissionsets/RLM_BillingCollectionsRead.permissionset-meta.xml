@@ -9,8 +9,9 @@
          CollectionPlan is readable only with the Collections and Recovery Specialist user permission,
          which the user license allows only with the Billing Advanced permission set license (measured
          on a 264 org): the assignee must also hold BillingAdvancedPsl. Read only; collections writes
-         stay with BillingCollectionsAndRecoverySpecialist. The object grants are here, not left to
-         RLM_BillingUI, so the set works for a persona user who does not hold RLM_BillingUI. -->
+         stay with BillingCollectionsAndRecoverySpecialist. The object and field grants are copied here
+         (RLM_BillingUI has them too) so the set reads collection plans on its own, for example on a
+         Collection Plan page; the account balance cards still need RLM_BillingUI for their Apex classes. -->
     <description>Read-only collection plans and their items for the billing personas (Billing Operations, Billing Admin, Credit Memo Operations), assigned next to their group. The assignee needs the Billing Advanced permission set license.</description>
     <fieldPermissions>
         <editable>false</editable>

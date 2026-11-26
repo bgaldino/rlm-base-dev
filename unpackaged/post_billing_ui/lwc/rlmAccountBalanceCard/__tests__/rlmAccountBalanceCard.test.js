@@ -223,6 +223,19 @@ describe('rlmAccountBalanceCard loading', () => {
         expect(netText(el)).toBe('$1.00');
     });
 
+    it('keeps the spinner when only the billing wire answers after a recordId change', async () => {
+        const el = await loaded(ALL_READ);
+        el.recordId = '001000000000002AAA';
+        await flush();
+        getBillingSummary.emit({ ...ALL_READ, invoiceBalance: 15 });
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        getInvoiceSummary.emit(INVOICE);
+        await flush();
+        expect(spinner(el)).toBeNull();
+        expect(netText(el)).toBe('$1.00');
+    });
+
     it('clears the previous record\'s error when the recordId changes', async () => {
         const el = mount();
         getInvoiceSummary.emit(INVOICE);

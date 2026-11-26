@@ -443,7 +443,9 @@ public with sharing class RLM_OnAccountBillingController {
     }
 
     // Whether the org has any dated rates, read in system mode. False when the object itself is
-    // not available (advanced currency management off).
+    // not available (advanced currency management off). The build orgs have none: COUNT() returned
+    // 0 as admin on rlm-base__apexcov-ac1125-r1 and rlm-base__hdr-hdr-r1, both multi-currency with
+    // advanced currency management off (measured 2026-11-26).
     @TestVisible
     private static Boolean datedRatesExist() {
         try {
