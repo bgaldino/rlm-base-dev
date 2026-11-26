@@ -107,7 +107,7 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         "api_version": {
             "description": (
                 f"Salesforce API version override (minimum {MIN_API_VERSION}). "
-                "Default: project/org version."
+                "Default: the project API version."
             ),
             "required": False,
         },

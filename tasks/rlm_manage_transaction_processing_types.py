@@ -35,7 +35,7 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             "required": False,
         },
         "api_version": {
-            "description": "Salesforce API version override (default from org/project).",
+            "description": "Salesforce API version override (default: the project API version).",
             "required": False,
         },
         "dry_run": {

@@ -129,6 +129,7 @@ def test_helper_default_and_error():
     assert project_api_version(types.SimpleNamespace(project__package__api_version="v68.0")) == "68.0"
     assert project_api_version(cfg, default="68.0", option=" v70.0 ") == "70.0"
     assert project_api_version(types.SimpleNamespace(project__package__api_version="69.0"), option="") == "69.0"
+    assert project_api_version(types.SimpleNamespace(project__package__api_version="69.0"), option="  ") == "69.0"
 
 
 def main():
