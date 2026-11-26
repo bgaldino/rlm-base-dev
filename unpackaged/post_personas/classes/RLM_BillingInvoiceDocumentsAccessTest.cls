@@ -1,0 +1,418 @@
+/**
+ * What a user of RLM_Billing_Admin or RLM_Billing_Operations needs to generate invoice documents,
+ * batch (Generate Invoice Documents on an Invoice Batch Run) and on demand (Generate Invoice Document
+ * on an Invoice), checked as the group or its content (todo 292). The measurements behind it are
+ * recorded in docs/references/revenue-cloud-permissions.md, "Billing personas and invoice documents".
+ * This class does not read the template file: that read depends on org data and configuration.
+ *
+ * Which tests check what:
+ * - the group itself: the *GroupReadsInvoiceBatchRuns methods. In a deploy that changes the group or its
+ *   sets the group may not read Updated; the method recalculates it with
+ *   Test.calculatePermissionSetGroup and fails unless it then reads Updated, then checks it. A Failed
+ *   group or a recalculation that throws also fails the test.
+ * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
+ *   field-access set): the Invoice Batch Run reads, the DocGen access, and the *ReadsInvoiceDocumentData
+ *   methods' USER_MODE reads of what the invoice data mappers read as the generating user (Product2,
+ *   UnitOfMeasure, and Account billing address, shipping address and phone).
+ * - the set's metadata: exactly Read and View All on the run chain, exactly Read on Product2 and
+ *   UnitOfMeasure, exactly read on the three Account fields, Access Libraries, and membership of
+ *   RLM_Billing_Admin and RLM_Billing_Operations.
+ * The Billing Operations run-read, group and DocGen methods pass without the set's grants (the managed
+ * Operations set and the DocGen sets supply that access); the set itself is checked by the metadata
+ * tests, the Billing Admin methods and both invoice-document-data reads.
+ * In both *WithBothDocGenSets* methods the DocGen assertions check the managed
+ * DocGen sets assigned next to the group. The Operations one passes with the set emptied, apart from the
+ * set-exists check; the Admin one depends on the set only through its run reads, which
+ * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
+ * Nothing here fails because Salesforce grants MORE than today.
+ * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
+ * The batch check covers the create only. A Minimum Access user passes it, while its live batch process
+ * stays New (todo 292, open).
+ * Batch generation needs two org settings (DocumentGenerationSetting.IsBatchDocGnrnEnabled and
+ * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first:
+ * - no setting row (e.g. an org where DocGen was never set up): the insert is not attempted, and the
+ *   test logs "SKIPPED, NOT CHECKED";
+ * - a row with both flags on: any refusal of the insert fails;
+ * - a row with either flag off: only INVALID_INPUT is a "SKIPPED, NOT CHECKED" WARN line, and any
+ *   other code fails.
+ * The refusal codes behind these rules are in the reference section named above.
+ * One setting row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
+ * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWhenGenerationDisabled are
+ * self-tests of that classifier (by setting state and status code, never by message text); they pass
+ * regardless of RLM_BillingInvoiceDocuments.
+ *
+ * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
+ * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
+ * DocGen Designer for the DocGen checks); no method creates more than one user. An org with no
+ * free seat fails on the license, not on access. A deploy that runs local tests (production) runs
+ * this class, and it fails on an access regression by design.
+ */
+@IsTest
+private class RLM_BillingInvoiceDocumentsAccessTest {
+
+    private static final String BILLING_PSL = 'RevLifecycleMgmtBillingPsl';
+    private static final String DOCGEN_PSL = 'DocGenDesignerPsl';
+    private static final String INVOICE_DOCS_SET = 'RLM_BillingInvoiceDocuments';
+    private static final String DOCGEN_USER = 'DocGenUser';
+    private static final String DOCGEN_DESIGNER = 'DocGenDesigner';
+
+    private static final String ADMIN_GROUP = 'RLM_Billing_Admin';
+    private static final String OPERATIONS_GROUP = 'RLM_Billing_Operations';
+    private static final String ADMIN_ROLE = 'RevenueLifecycleManagementBillingAdmin';
+    private static final String OPERATIONS_ROLE = 'RevenueLifecycleManagementBillingOperations';
+    // Read on Invoice Batch Run needs read on the scheduler, and that needs read on a run-criteria
+    // object (deploy-enforced), so all three are checked.
+    private static final List<String> BATCH_RUN_OBJECTS = new List<String>{
+        'InvoiceBatchRun', 'BillingBatchScheduler', 'InvoiceBatchRunCriteria'
+    };
+    // What the invoice document's data mappers read as the generating user, beyond what the managed
+    // role sets give: without Product2 and UnitOfMeasure the PDF has no invoice data or lines, and
+    // without the Account fields no addresses (live persona run, todo 292). Read only.
+    private static final List<String> DOCUMENT_DATA_OBJECTS = new List<String>{ 'Product2', 'UnitOfMeasure' };
+    private static final List<String> DOCUMENT_ACCOUNT_FIELDS = new List<String>{
+        'Account.BillingAddress', 'Account.Phone', 'Account.ShippingAddress'
+    };
+
+    // ---- The set and the groups (metadata) ---------------------------------------------------
+
+    @IsTest
+    static void invoiceDocumentsSetGrantsExactlyItsObjectReads() {
+        Map<String, ObjectPermissions> grants = new Map<String, ObjectPermissions>();
+        for (ObjectPermissions op : [
+            SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete,
+                PermissionsViewAllRecords, PermissionsModifyAllRecords
+            FROM ObjectPermissions WHERE Parent.Name = :INVOICE_DOCS_SET
+        ]) {
+            grants.put(op.SobjectType, op);
+        }
+        Set<String> expected = new Set<String>(BATCH_RUN_OBJECTS);
+        expected.addAll(DOCUMENT_DATA_OBJECTS);
+        Assert.areEqual(expected, grants.keySet(),
+            INVOICE_DOCS_SET + ' grants exactly the Invoice Batch Run chain, Product2 and UnitOfMeasure');
+        for (ObjectPermissions op : grants.values()) {
+            Boolean runChain = BATCH_RUN_OBJECTS.contains(op.SobjectType);
+            Assert.isTrue(op.PermissionsRead, op.SobjectType + ': read');
+            Assert.areEqual(runChain, op.PermissionsViewAllRecords,
+                op.SobjectType + ': View All on the run chain only (Invoice Batch Run is Private)');
+            Assert.isFalse(op.PermissionsCreate || op.PermissionsEdit || op.PermissionsDelete
+                || op.PermissionsModifyAllRecords, op.SobjectType + ': read only');
+        }
+    }
+
+    @IsTest
+    static void invoiceDocumentsSetGrantsExactlyTheAccountFieldReads() {
+        Map<String, FieldPermissions> grants = new Map<String, FieldPermissions>();
+        for (FieldPermissions fp : [
+            SELECT Field, PermissionsRead, PermissionsEdit FROM FieldPermissions WHERE Parent.Name = :INVOICE_DOCS_SET
+        ]) {
+            grants.put(fp.Field, fp);
+        }
+        Assert.areEqual(new Set<String>(DOCUMENT_ACCOUNT_FIELDS), grants.keySet(),
+            INVOICE_DOCS_SET + ' grants exactly the Account billing address, shipping address and phone');
+        for (FieldPermissions fp : grants.values()) {
+            Assert.isTrue(fp.PermissionsRead && !fp.PermissionsEdit, fp.Field + ': read, not edit');
+        }
+    }
+
+    @IsTest
+    static void invoiceDocumentsSetGrantsAccessLibraries() {
+        PermissionSet ps = [SELECT PermissionsContentWorkspaces FROM PermissionSet WHERE Name = :INVOICE_DOCS_SET];
+        Assert.isTrue(ps.PermissionsContentWorkspaces,
+            INVOICE_DOCS_SET + ' grants Access Libraries, without which a library member did not read the default invoice template file (measured)');
+    }
+
+    @IsTest
+    static void adminAndOperationsGroupsContainTheInvoiceDocumentsSet() {
+        Set<String> groupsWithSet = new Set<String>();
+        for (PermissionSetGroupComponent c : [
+            SELECT PermissionSetGroup.DeveloperName FROM PermissionSetGroupComponent
+            WHERE PermissionSet.Name = :INVOICE_DOCS_SET
+        ]) {
+            groupsWithSet.add(c.PermissionSetGroup.DeveloperName);
+        }
+        Assert.isTrue(groupsWithSet.containsAll(new Set<String>{ ADMIN_GROUP, OPERATIONS_GROUP }),
+            'RLM_Billing_Admin and RLM_Billing_Operations each contain ' + INVOICE_DOCS_SET + '; found in: ' + groupsWithSet);
+    }
+
+    // ---- Invoice document data -------------------------------------------------------------
+    // Measured on a 264 org: the managed Billing Admin set reads Account but not Product2,
+    // UnitOfMeasure or the three Account fields; the managed Billing Operations set reads Product2
+    // and UnitOfMeasure but not the fields. So the Admin method fails if the set loses any of them,
+    // and the Operations one if it loses a field.
+
+    @IsTest
+    static void billingAdminReadsInvoiceDocumentData() {
+        assertReadsDocumentData(ADMIN_ROLE);
+    }
+
+    @IsTest
+    static void billingOperationsReadsInvoiceDocumentData() {
+        assertReadsDocumentData(OPERATIONS_ROLE);
+    }
+
+    // ---- Invoice Batch Run read --------------------------------------------------------------
+
+    @IsTest
+    static void billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns() {
+        assertReadsRuns(ADMIN_ROLE);
+    }
+
+    @IsTest
+    static void billingOperationsRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns() {
+        assertReadsRuns(OPERATIONS_ROLE);
+    }
+
+    @IsTest
+    static void billingAdminGroupReadsInvoiceBatchRuns() {
+        assertGroupReadsRuns(ADMIN_GROUP);
+    }
+
+    @IsTest
+    static void billingOperationsGroupReadsInvoiceBatchRuns() {
+        assertGroupReadsRuns(OPERATIONS_GROUP);
+    }
+
+    // ---- Document generation -----------------------------------------------------------------
+
+    @IsTest
+    static void billingAdminWithBothDocGenSetsHasBatchAndOnDemandAccess() {
+        assertDocGenAccess(ADMIN_ROLE);
+    }
+
+    @IsTest
+    static void billingOperationsWithBothDocGenSetsHasBatchAndOnDemandAccess() {
+        assertDocGenAccess(OPERATIONS_ROLE);
+    }
+
+    // ---- helpers -----------------------------------------------------------------------------
+
+    private static void assertReadsDocumentData(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(DOCUMENT_DATA_OBJECTS);
+            List<String> fields = new List<String>();
+            for (String field : DOCUMENT_ACCOUNT_FIELDS) {
+                fields.add(field.substringAfter('.'));
+            }
+            try {
+                Database.query('SELECT ' + String.join(fields, ', ') + ' FROM Account WITH USER_MODE LIMIT 1');
+            } catch (Exception e) {
+                failures.add('Account ' + fields + ': ' + e.getMessage());
+            }
+            Assert.isTrue(failures.isEmpty(), roleSet + ' + ' + INVOICE_DOCS_SET
+                + ': invoice document data reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
+
+    private static void assertReadsRuns(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET }, null, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(BATCH_RUN_OBJECTS);
+            Assert.isTrue(failures.isEmpty(), roleSet + ' + ' + INVOICE_DOCS_SET
+                + ': Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
+
+    private static void assertGroupReadsRuns(String groupName) {
+        List<PermissionSetGroup> groups = [SELECT Id, Status FROM PermissionSetGroup WHERE DeveloperName = :groupName];
+        Assert.areEqual(1, groups.size(), groupName + ' is deployed with this class (unpackaged/post_personas)');
+        Assert.areNotEqual('Failed', groups[0].Status,
+            groupName + ' failed to recalculate, so its holders do not get its permissions');
+        String status = groups[0].Status;
+        if (status != 'Updated') {
+            // In a deploy that changes the group or its sets the group may not read Updated: recalculate
+            // it, and fail unless it then reads Updated (a throw also fails the test).
+            Test.calculatePermissionSetGroup(groups[0].Id);
+            Assert.areEqual('Updated', [SELECT Status FROM PermissionSetGroup WHERE Id = :groups[0].Id].Status,
+                groupName + ' failed to recalculate, so its holders do not get its permissions');
+        }
+        System.debug(LoggingLevel.WARN, 'CHECKED: ' + groupName + ' (was ' + status
+            + '); asserting its Invoice Batch Run reads.');
+        User u = user(new List<String>(), groups[0].Id, new List<String>{ BILLING_PSL });
+        System.runAs(u) {
+            List<String> failures = unreadable(BATCH_RUN_OBJECTS);
+            Assert.isTrue(failures.isEmpty(), groupName + ': Invoice Batch Run reads refused:\n' + String.join(failures, '\n'));
+        }
+    }
+
+    private static void assertDocGenAccess(String roleSet) {
+        User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER, DOCGEN_DESIGNER }, null,
+            new List<String>{ BILLING_PSL, DOCGEN_PSL });
+        BatchGeneration state = batchGeneration(
+            [SELECT IsBatchDocGnrnEnabled, IsServerSideDocGenEnabled FROM DocumentGenerationSetting
+             ORDER BY CreatedDate LIMIT 1]);
+        List<String> failures = new List<String>();
+        System.runAs(u) {
+            if (attemptsBatchCreate(state)) {
+                failures.addAll(batchCreateFailures(roleSet, state));
+            } else {
+                System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                    + ' no DocumentGenerationSetting row (batch document generation not configured, state '
+                    + state + ').');
+            }
+            if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
+                failures.add('Document Generation Process create (on-demand generation)');
+            }
+            if (!Schema.SObjectType.DocumentTemplate.isAccessible()) {
+                failures.add('Document Template read');
+            }
+            failures.addAll(unreadable(BATCH_RUN_OBJECTS));
+        }
+        Assert.isTrue(failures.isEmpty(), roleSet + ': invoice document generation access missing:\n'
+            + String.join(failures, '\n'));
+    }
+
+    // A real insert, because only it meets the DocGen Designer user-permission gate (describe does not
+    // show it). With either flag off (DISABLED) it is refused for configuration (see skipsBatchRefusal);
+    // those settings deploy with docgen, this class with personas.
+    private static List<String> batchCreateFailures(String roleSet, BatchGeneration state) {
+        Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
+        if (!batch.isSuccess()) {
+            Database.Error error = batch.getErrors()[0];
+            String statusCode = String.valueOf(error.getStatusCode());
+            if (skipsBatchRefusal(state, statusCode)) {
+                System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
+                    + ' either flag off, DISABLED (' + statusCode + ': ' + error.getMessage() + ').'
+                    + ' The access checks run before that one, so the DocGen Designer gate already passed;'
+                    + ' the create itself was not checked.');
+                return new List<String>();
+            }
+            System.debug(LoggingLevel.WARN, 'CHECKED: ' + roleSet + ' batch process create asserted (setting ' + state + ')');
+            return new List<String>{ 'batch process create (setting ' + state + '): ' + statusCode + ': '
+                + error.getMessage() };
+        }
+        System.debug(LoggingLevel.WARN, 'CHECKED: ' + roleSet + ' batch process create asserted (setting ' + state + ')');
+        return new List<String>();
+    }
+
+    private enum BatchGeneration { NOT_CONFIGURED, ENABLED, DISABLED }
+
+    // No setting row (e.g. an org where DocGen was never set up; inferred, no measured org lacked a
+    // row): not configured, so the insert is not attempted. A row: enabled only with both batch and
+    // server-side generation on. Measured on a 264 org: either one off makes the persona's insert
+    // INVALID_INPUT. (Batch on with server-side off
+    // and the server-side mechanism is refused at deploy: "To select Server-Side for the Generation
+    // Mechanism, you must select the ServerSide Docgen Enabled option.")
+    @TestVisible
+    private static BatchGeneration batchGeneration(List<DocumentGenerationSetting> settings) {
+        if (settings.isEmpty()) {
+            return BatchGeneration.NOT_CONFIGURED;
+        }
+        return settings[0].IsBatchDocGnrnEnabled && settings[0].IsServerSideDocGenEnabled
+            ? BatchGeneration.ENABLED : BatchGeneration.DISABLED;
+    }
+
+    // Whether the batch process insert is attempted: always, except with no setting row.
+    @TestVisible
+    private static Boolean attemptsBatchCreate(BatchGeneration state) {
+        return state != BatchGeneration.NOT_CONFIGURED;
+    }
+
+    @IsTest
+    static void batchGenerationNeedsBothSettings() {
+        Assert.isFalse(attemptsBatchCreate(BatchGeneration.NOT_CONFIGURED), 'no setting row: insert not attempted');
+        Assert.isTrue(attemptsBatchCreate(BatchGeneration.DISABLED), 'DISABLED: insert attempted');
+        Assert.isTrue(attemptsBatchCreate(BatchGeneration.ENABLED), 'ENABLED: insert attempted');
+        Assert.areEqual(BatchGeneration.NOT_CONFIGURED, batchGeneration(new List<DocumentGenerationSetting>()),
+            'no setting row: the insert is skipped, not attempted');
+        Assert.areEqual(BatchGeneration.ENABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, true) }), 'state ENABLED: both flags on');
+        Assert.areEqual(BatchGeneration.DISABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(false, true) }), 'state DISABLED: batch flag off (measured)');
+        Assert.areEqual(BatchGeneration.DISABLED,
+            batchGeneration(new List<DocumentGenerationSetting>{ setting(true, false) }), 'state DISABLED: server-side flag off (measured)');
+    }
+
+    // An in-memory row, as the query would return it (never inserted).
+    private static DocumentGenerationSetting setting(Boolean batch, Boolean serverSide) {
+        return new DocumentGenerationSetting(IsBatchDocGnrnEnabled = batch, IsServerSideDocGenEnabled = serverSide);
+    }
+
+    // Whether a refused batch process insert is a visible skip rather than a failure: only INVALID_INPUT
+    // in state DISABLED (a setting row with either flag off; see batchGeneration). Measured on a 264 org
+    // in that state: a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY (the
+    // access check answers first), and the persona with DocGen Designer gets INVALID_INPUT ("Enable the
+    // batch document generation setting." or "Enable the server-side document generation setting.").
+    // In state ENABLED the persona's insert succeeds, so any refusal then is a regression. Decided by
+    // state and status code only, never by message text.
+    @TestVisible
+    private static Boolean skipsBatchRefusal(BatchGeneration state, String statusCode) {
+        return state == BatchGeneration.DISABLED && statusCode == 'INVALID_INPUT';
+    }
+
+    @IsTest
+    static void batchRefusalSkipsOnlyForInvalidInputWhenGenerationDisabled() {
+        // Measured on a 264 org: state DISABLED (batch off, or server-side off), persona with DocGen Designer.
+        Assert.isTrue(skipsBatchRefusal(BatchGeneration.DISABLED, 'INVALID_INPUT'), 'state DISABLED: configuration');
+        // Measured on a 264 org: access refusals, state DISABLED or ENABLED.
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'),
+            'access refusal in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.ENABLED, 'CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY'),
+            'access refusal in state ENABLED');
+        // Not measured (synthetic): in state ENABLED nothing skips, and other codes never skip.
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.ENABLED, 'INVALID_INPUT'), 'state ENABLED: any refusal fails');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'INSUFFICIENT_ACCESS_OR_READONLY'),
+            'synthetic access code in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.DISABLED, 'UNKNOWN_EXCEPTION'),
+            'synthetic unknown error in state DISABLED');
+        Assert.isFalse(skipsBatchRefusal(BatchGeneration.NOT_CONFIGURED, 'INVALID_INPUT'),
+            'state NOT_CONFIGURED never reaches the insert, and never skips a refusal');
+    }
+
+    private static List<String> unreadable(List<String> objectNames) {
+        List<String> failures = new List<String>();
+        for (String objectName : objectNames) {
+            try {
+                Database.countQuery('SELECT COUNT() FROM ' + objectName + ' WITH USER_MODE');
+            } catch (Exception e) {
+                failures.add(objectName + ': ' + e.getMessage());
+            }
+        }
+        return failures;
+    }
+
+    // A Minimum Access user holding the given licenses, permission sets and (optionally) group.
+    private static User user(List<String> permissionSets, Id groupId, List<String> licenses) {
+        Map<String, Id> setIds = new Map<String, Id>();
+        for (PermissionSet ps : [SELECT Id, Name FROM PermissionSet WHERE Name IN :permissionSets]) {
+            setIds.put(ps.Name, ps.Id);
+        }
+        for (String name : permissionSets) {
+            Assert.isTrue(setIds.containsKey(name), 'Permission set not in this org: ' + name);
+        }
+        List<PermissionSetLicense> psls = [SELECT Id FROM PermissionSetLicense WHERE DeveloperName IN :licenses];
+        Assert.areEqual(licenses.size(), psls.size(), 'Permission set license missing from this org: ' + licenses);
+        List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        Assert.areEqual(1, profiles.size(), 'This test needs the English standard profile "Minimum Access - Salesforce"');
+
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        User u = new User(
+            ProfileId = profiles[0].Id,
+            LastName = 'BillingDocs',
+            Email = 'rlm.billingdocs@example.com',
+            Username = 'rlm.billingdocs.' + stamp + '@example.com',
+            Alias = 'rlmbdoc',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+            List<PermissionSetLicenseAssign> pslas = new List<PermissionSetLicenseAssign>();
+            for (PermissionSetLicense psl : psls) {
+                pslas.add(new PermissionSetLicenseAssign(AssigneeId = u.Id, PermissionSetLicenseId = psl.Id));
+            }
+            insert pslas;
+            List<PermissionSetAssignment> psas = new List<PermissionSetAssignment>();
+            for (Id setId : setIds.values()) {
+                psas.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = setId));
+            }
+            if (groupId != null) {
+                psas.add(new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetGroupId = groupId));
+            }
+            insert psas;
+        }
+        return u;
+    }
+}

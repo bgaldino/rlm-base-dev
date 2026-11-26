@@ -1408,7 +1408,7 @@ tasks:
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
-    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+    description: Deploy persona metadata (profiles, permission set groups, permission sets) and an Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas. Before todo 292 the bundle had no Apex; a deploy that runs local tests (production) runs every local test in the org, this class included.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_personas
@@ -2485,7 +2485,10 @@ tasks:
       public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no
       members) added as a library member. Without the membership only the build admin can read
       the templates, and every other user's document generation fails (todo 435). Idempotent;
-      rerun it on an org built before this fix.
+      rerun it on an org built before todo 435. Members also need the Access Libraries user
+      permission (ContentWorkspaces) to read the files (measured for DefaultInvoiceTemplate;
+      other files inferred), which this task does not grant: Standard User and the RLM persona
+      profiles have it, Minimum Access does not (todo 292).
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/createDocgenTemplateLibrary.apex
@@ -4846,8 +4849,10 @@ flows:
   prepare_personas:
     group: Revenue Lifecycle Management
     description: >
-      Deploy persona metadata (profiles, permission set groups, permission sets) from
-      unpackaged/post_personas and create the Sales Rep persona user (scratch and
+      Deploy persona metadata (profiles, permission set groups, permission sets) and an
+      Apex test class (RLM_BillingInvoiceDocumentsAccessTest; a deploy that runs local tests
+      runs every local test in the org, this class included) from unpackaged/post_personas
+      and create the Sales Rep persona user (scratch and
       non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
       prepare_rlm_org, before prepare_ux
       (step 30), so that persona profile templates are assembled and deployed by

@@ -1388,7 +1388,7 @@
 
 ### `create_docgen_library`
 
-**Description:** Create the Docgen Document Template Library and give runtime users read-only access to its template files: a read-only library permission (RLM DocGen Template Viewer) and a public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no members) added as a library member. Without the membership only the build admin can read the templates, and every other user's document generation fails (todo 435). Idempotent; rerun it on an org built before this fix.
+**Description:** Create the Docgen Document Template Library and give runtime users read-only access to its template files: a read-only library permission (RLM DocGen Template Viewer) and a public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no members) added as a library member. Without the membership only the build admin can read the templates, and every other user's document generation fails (todo 435). Idempotent; rerun it on an org built before todo 435. Members also need the Access Libraries user permission (ContentWorkspaces) to read the files (measured for DefaultInvoiceTemplate; other files inferred), which this task does not grant: Standard User and the RLM persona profiles have it, Minimum Access does not (todo 292).
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -1863,7 +1863,7 @@
 
 ### `deploy_post_personas`
 
-**Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
+**Description:** Deploy persona metadata (profiles, permission set groups, permission sets) and an Apex test class (RLM_BillingInvoiceDocumentsAccessTest) from unpackaged/post_personas. Before todo 292 the bundle had no Apex; a deploy that runs local tests (production) runs every local test in the org, this class included.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

@@ -13,13 +13,16 @@
  * BillingScheduleGroup, Dispute, CollectionPlan and most other billing objects read as
  * "not supported". The managed sets are used rather than the RLM persona groups because
  * they ship with the Billing license, so the check runs whether or not `personas` is on;
- * each persona group is one of these sets plus RLM_BillingAccountFieldAccess.
+ * each persona group is one of these sets plus RLM_BillingAccountFieldAccess, and the Admin and
+ * Operations groups also include RLM_BillingInvoiceDocuments (todo 292).
  *
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
  * Left out on purpose: Task (access follows the related record; no object permission
  * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
- * batch monitor's page, which the role grants), and DisputeItem (the write check covers it).
+ * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
+ * set does not, and the RLM_Billing_Admin and RLM_Billing_Operations groups grant it through
+ * RLM_BillingInvoiceDocuments, todo 292), and DisputeItem (the write check covers it).
  */
 @IsTest
 private class RLM_BillingUIAccessTest {
@@ -131,8 +134,9 @@ private class RLM_BillingUIAccessTest {
         }
     };
     // Invoice Batch Run Monitor: it sits on the InvoiceBatchRun page, which Billing Operations
-    // reads. RLM_BillingUI doesn't grant InvoiceBatchRun: its read pulls in the batch
-    // scheduler and run-criteria objects.
+    // reads (Billing Admin does not; its persona group gets the read from RLM_BillingInvoiceDocuments).
+    // RLM_BillingUI doesn't grant InvoiceBatchRun: its read pulls in the batch scheduler and
+    // run-criteria objects.
     private static final Map<String, List<String>> BATCH_RUN_READS = new Map<String, List<String>>{
         'Invoice' => new List<String>{ 'InvoiceBatchRunId' }
     };
