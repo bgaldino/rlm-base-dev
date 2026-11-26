@@ -1,31 +1,14 @@
 /**
- * What a billing persona (RLM Billing Admin, RLM Billing Operations) needs to generate invoice
- * documents, batch (Generate Invoice Documents on an Invoice Batch Run) and on demand (Generate
- * Invoice Document on an Invoice), checked as the persona's group or its content (see "Which tests
- * check what" below; todo 292). Measured on a 264 org in check-only probes as Minimum Access users
- * holding the Billing license and a persona group:
- * - Neither group reaches Document Template, Document Generation Process or Document Generation
- *   Batch Process ("Access to entity ... denied"). The DocGen sets need the DocGen Designer
- *   permission set license, so they are assigned next to the group, not put in it: existing holders
- *   of the billing groups may lack that license, and the build creates no billing persona user with it.
- * - With DocGen User the persona reads templates and may create a Document Generation Process (on
- *   demand) but not a Document Generation Batch Process ("DML operation INSERT not allowed on
- *   DocGenerationBatchProcess"), the create behind batch generation. DocGen Designer opens it.
- * - The managed Billing Admin set has no access to Invoice Batch Run, the record the batch action
- *   runs from; the managed Billing Operations set reads it. RLM_BillingInvoiceDocuments, in both
- *   groups, grants it with View All (the object is Private).
- * - The invoice template's file is in the Docgen Document Template Library and is read as the
- *   generating user. A library member needs Access Libraries (ContentWorkspaces), which the
- *   Minimum Access profile lacks; RLM_BillingInvoiceDocuments grants it. This class checks only that
- *   the set carries the permission: the file read itself depends on org data and configuration (the
- *   template, its library, an admin's choice of library members), so it was proved by check-only
- *   probes and is not a deploy gate here.
+ * What a user of RLM_Billing_Admin or RLM_Billing_Operations needs to generate invoice documents,
+ * batch (Generate Invoice Documents on an Invoice Batch Run) and on demand (Generate Invoice Document
+ * on an Invoice), checked as the group or its content (todo 292). The measurements behind it are
+ * recorded in docs/references/revenue-cloud-permissions.md, "Billing personas and invoice documents".
+ * This class does not read the template file: that read depends on org data and configuration.
  *
  * Which tests check what:
- * - the group itself: the *Group* methods. A group that is not Updated cannot be assigned. Inside a
- *   deploy that changes the group it reads Outdated (measured on a 264 org), and an API edit of its
- *   components leaves it Updating for a while (seen in todo 292's earlier work), so these skip (with
- *   a "SKIPPED, NOT CHECKED" WARN debug line) and then prove nothing. A Failed group fails the test.
+ * - the group itself: the *Group* methods. A group that is not Updated cannot be assigned (inside a
+ *   deploy that changes it, it reads Outdated), so these skip with a "SKIPPED, NOT CHECKED" WARN debug
+ *   line and then prove nothing. A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads and the DocGen access.
  * - the set's metadata: View All on the run chain, Access Libraries, and membership of
@@ -36,24 +19,17 @@
  * assigned next to the group. The Operations one passes with the set emptied, apart from the
  * set-exists check; the Admin one depends on the set only through its run reads, which
  * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
- * Nothing here fails because Salesforce grants MORE than today: the only such note (DocGen User
- * gaining the DocGen Designer permission) reads metadata and creates no user.
+ * Nothing here fails because Salesforce grants MORE than today.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
  * Batch generation needs two org settings (DocumentGenerationSetting.IsBatchDocGnrnEnabled and
  * IsServerSideDocGenEnabled), which deploy with docgen, not personas. The test reads them first:
- * - no setting row (e.g. an org where DocGen was never set up; inferred, no measured org lacked a row): the
- *   insert is not attempted, and the test logs "SKIPPED, NOT CHECKED";
+ * - no setting row (e.g. an org where DocGen was never set up): the insert is not attempted, and the
+ *   test logs "SKIPPED, NOT CHECKED";
  * - a row with both flags on: any refusal of the insert fails;
  * - a row with either flag off: only INVALID_INPUT is a "SKIPPED, NOT CHECKED" WARN line, and any
  *   other code fails.
- * Measured on a 264 org: with batch off the persona gets INVALID_INPUT "Enable the batch document
- * generation setting.", and with batch on and server-side off (client-side mechanism) INVALID_INPUT
- * "Enable the server-side document generation setting."; in both, a user without DocGen Designer still
- * gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, because the access checks answer first. The other settings
- * do not matter here (measured): with both flags on, the insert succeeds with the client-side
- * generation mechanism and with an hourly batch percentage limit (batchDocGnrnPctLimitPerHour) of 0.
- * The measured org has one setting row and Help speaks of "a Document Generation Setting record"; one
- * row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
+ * The refusal codes behind these rules are in the reference section named above.
+ * One setting row is not guaranteed, so the query orders by CreatedDate and reads the oldest.
  * batchGenerationNeedsBothSettings and batchRefusalSkipsOnlyForInvalidInputWhenGenerationDisabled are
  * self-tests of that classifier (by setting state and status code, never by message text); they pass
  * regardless of RLM_BillingInvoiceDocuments.
@@ -61,7 +37,8 @@
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
  * a Salesforce user license and takes a seat of every permission set license it is given (Billing;
  * DocGen Designer for the DocGen checks); no method creates more than one user. An org with no
- * free seat fails on the license, not on access.
+ * free seat fails on the license, not on access. A deploy that runs local tests (production) runs
+ * this class, and it fails on an access regression by design.
  */
 @IsTest
 private class RLM_BillingInvoiceDocumentsAccessTest {
@@ -310,16 +287,6 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
             'synthetic unknown error in state DISABLED');
         Assert.isFalse(skipsBatchRefusal(BatchGeneration.NOT_CONFIGURED, 'INVALID_INPUT'),
             'state NOT_CONFIGURED never reaches the insert, and never skips a refusal');
-    }
-
-    // Metadata only, no user: a note if DocGen User starts carrying the DocGen Designer permission.
-    @IsTest
-    static void docGenUserDesignerPermissionNote() {
-        List<PermissionSet> sets = [SELECT PermissionsDocGenDesigner FROM PermissionSet WHERE Name = :DOCGEN_USER];
-        if (!sets.isEmpty() && sets[0].PermissionsDocGenDesigner) {
-            System.debug(LoggingLevel.WARN, 'NOTE: DocGenUser now carries the DocGen Designer permission;'
-                + ' DocGenDesigner may no longer be needed for the batch create.');
-        }
     }
 
     private static List<String> unreadable(List<String> objectNames) {

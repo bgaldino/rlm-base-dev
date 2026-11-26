@@ -485,7 +485,7 @@ than its org-wide default. Record access the build adds, and the one it delibera
   **Access Libraries** user permission (`ContentWorkspaces`) to read the files: the Standard User and RLM
   Sales Representative profiles have it, Minimum Access does not. Users of the `RLM_Billing_Admin` and
   `RLM_Billing_Operations` groups get it from `RLM_BillingInvoiceDocuments` (todo 292, see *Billing personas
-  and invoice documents*); the other billing persona groups (`RLM_Credit_Memo_Operations`, `RLM_Tax_Admin`, `RLM_Accounting_Admin`) do not get it from this set. Details:
+  and invoice documents*); the other billing persona groups do not get it from this set. Details:
   `docs/guides/docgen-setup.md` → Template Library Access.
 - **Not added: `TransactionJournal` (usage records).** Without View All on `TransactionJournal` the
   sales rep persona sees none of its rows, not even the ones it created; Read isn't enough. The object
@@ -511,8 +511,8 @@ open until a live persona run passes.**
 |---|---|---|
 | Billing license (`RevLifecycleMgmtBillingPsl`) | The managed role set in the group requires it | Assigned with the group |
 | DocGen Designer license (`DocGenDesignerPsl`), **`DocGenUser`** and **`DocGenDesigner`** | The groups reach no document generation object at all ("Access to entity 'DocumentTemplate' denied", the same for `DocumentGenerationProcess` and `DocGenerationBatchProcess`). `DocGenUser` opens templates (read) and the on-demand `DocumentGenerationProcess` create, but not the batch create: a user-mode insert of `DocGenerationBatchProcess` is refused ("DML operation INSERT not allowed on DocGenerationBatchProcess"), the likely cause of the `INSUFFICIENT_ACCESS` the batch action returned for a billing persona with `DocGenUser` `[inferred: the action itself was not run here]`. `DocGenDesigner` opens it. Help names DocGen User for generating, so both sets are assigned; they share the one license | **Assigned next to the group** by an admin; the build creates no billing persona users. Not in the group, for the todo 452 reason: existing holders of the billing groups may lack `DocGenDesignerPsl`, and a group gaining a set whose license a holder lacks fails to deploy (measured for `BillingAdvancedPsl` in todo 452). `RLM_Sales_Representative` and `RLM_Sales_Operations` do carry `DocGenUser`; the build's sales rep user holds that license (checked on the measured org) |
-| Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private, so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` |
-| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations`; the other billing persona groups (`RLM_Credit_Memo_Operations`, `RLM_Tax_Admin`, `RLM_Accounting_Admin`) do not get it from this set |
+| Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private, so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next. None of the three objects has a permissionable field, so the set has no field grants | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` |
+| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission did not read the `DefaultInvoiceTemplate` file (the only file measured; the other library files `[inferred]`); measured as the managed role set plus `RLM_BillingInvoiceDocuments`, and as Minimum Access users without it, through a recreated library group shape or as direct members, not as a persona group (see below). Minimum Access lacks it; Standard User has it. The managed Billing Admin and Billing Operations sets do not carry it (`PermissionsContentWorkspaces` false on both, measured), so the grant is not redundant for these two personas. The other billing persona groups do not get it from this set: the repo's `RLM Tax Admin` profile enables it, and the managed Tax Admin and Accounting Admin sets were not checked for it | `RLM_BillingInvoiceDocuments`, in `RLM_Billing_Admin` and `RLM_Billing_Operations` only |
 | Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). It runs in `prepare_docgen`, under the `docgen` flag, while the groups deploy in `prepare_personas`, under `personas`: a personas build with docgen off has no membership. An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
 
 What `DocGenDesigner` opens beyond `DocGenUser` [Measured: same org; user permissions read from `PermissionSet`,
@@ -552,7 +552,8 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
   (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`). With no setting row (batch document generation
   not configured, e.g. an org where DocGen was never set up `[inferred: no measured org lacked a row]`) the insert is not attempted and the test logs
-  "SKIPPED, NOT CHECKED". With a row and both flags on, any refusal fails; with a row and either flag off, only
+  "SKIPPED, NOT CHECKED". The measured org had one setting row and Help speaks of "a Document Generation Setting
+  record"; one row is not guaranteed, so the test reads the oldest. With a row and both flags on, any refusal fails; with a row and either flag off, only
   `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code fails. An attempted and
   asserted insert logs "CHECKED: <role> batch process create asserted (setting <state>)". With both flags on, the other settings do not stop the insert: it succeeds with the client-side
   generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 (0AfWt00000hUW89KAG). It decides by status code and setting, never by message text. The Billing
@@ -560,12 +561,14 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   and the View All the set adds is checked only by the metadata test. In both DocGen methods (Admin and
   Operations) the DocGen assertions check the managed DocGen sets assigned next to the group; the Admin one
   depends on the set only through its run reads, which the Admin run-read method already checks;
-- **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
-  groups.
+- **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of
+  `RLM_Billing_Admin` and `RLM_Billing_Operations`.
 
 It does **not** read the template file. That read depends on org data and configuration (the template, its
 library, which members an admin left in `RLM_DocGen_Template_Users`), so it cannot gate a deploy. It was
-proved by check-only probes that recreated the build's group shape inside the test (a read-only library
+measured as the managed Billing Admin role set plus `RLM_BillingInvoiceDocuments` (and as Minimum Access users
+without that set, and a Standard User), not as a persona group, by check-only probes that recreated the build's
+group shape inside the test (a read-only library
 permission and a public group holding All Internal Users, as library member): a Minimum Access user with the
 Billing Admin role set and `RLM_BillingInvoiceDocuments` read the `DefaultInvoiceTemplate` file through it,
 and so did a Standard User (0AfWt00000hUTAHKA4; the same check in a copy of the test class,
@@ -575,8 +578,7 @@ direct member read it (0AfWt00000hUSHRKA4). None of this ran on a build's own gr
 class; the live persona run checks it for real.
 
 Nothing in the class fails because Salesforce grants more than today, and it creates no user just to watch
-for that: the one remaining note (a WARN line if `DocGenUser` starts carrying the DocGen Designer permission)
-reads metadata only. It does fail on an access regression, by design. Each method creates at most one user,
+for that. It does fail on an access regression, by design. Each method creates at most one user,
 which needs a Salesforce user license, and needs one free seat of each permission set license it assigns: the
 Billing license, and `DocGenDesignerPsl` for the DocGen methods. Both seat needs are new to this bundle:
 before todo 292 the personas bundle had no Apex, and a deploy that runs local
@@ -601,6 +603,9 @@ Not measured, and to check in the first live run as the persona:
 - **Omnistudio User** (`OmniStudioExecution`, OmniStudio license): Help lists it for generating PDFs; it is not
   granted. The sales rep persona generates quote documents without that license (todo 435).
 - **Credit Memo Operations** (`RLM_Credit_Memo_Operations`) is not covered.
+- **DocGen User gaining DocGen Designer:** on 264 `DocGenUser` does not carry the DocGen Designer user
+  permission (`PermissionsDocGenDesigner` false, measured). If a later release adds it, `DocGenDesigner`, and the
+  template authoring that comes with it, may no longer be needed for the batch create; nothing watches for this.
 
 ---
 

@@ -1,21 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <!-- todo 292: what the billing personas (RLM Billing Admin, RLM Billing Operations) need, besides the
-         licensed DocGen sets assigned next to their group, to generate invoice documents. Measured on a
-         264 org as Minimum Access users holding the Billing license and a persona group:
-         - Invoice Batch Run, the record batch generation runs from: the managed Billing Admin set grants
-           no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations
-           set reads it. The object is Private, so read alone shows a user only the runs it owns: View
-           All lets either persona open any run. The platform enforces the rest on deploy: Read and View
-           All on Invoice Batch Run need the same on Billing Batch Scheduler, which needs the same on a
-           run-criteria object (Invoice Batch Run Criteria here). None of the three has a permissionable
-           field, so there are no field grants.
-         - Access Libraries (ContentWorkspaces): the template file is in the Docgen Document Template
-           Library and is read as the generating user. A library member without this permission did not
-           read the DefaultInvoiceTemplate file (the only file measured; others inferred). The Minimum
-           Access profile lacks it; Standard User has it.
-         No license: the set is in both persona groups, whose holders already have the Billing license,
-         so redeploying a group with it cannot fail for a holder. -->
+    <!-- todo 292: for RLM_Billing_Admin and RLM_Billing_Operations users, next to the licensed DocGen sets.
+         Read and View All on Invoice Batch Run (Private; the batch action runs from it), with the
+         scheduler and run-criteria reads the deploy requires, and Access Libraries, so a template
+         library member can read the template file. No license, so it can sit in both groups.
+         Evidence: docs/references/revenue-cloud-permissions.md, "Billing personas and invoice documents". -->
     <description>Invoice documents for the RLM Billing Admin and RLM Billing Operations groups: Read and View All on Invoice Batch Runs (with scheduler and run criteria) and Access Libraries for the template file. DocGen sets go next to the group.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Billing Invoice Documents</label>
