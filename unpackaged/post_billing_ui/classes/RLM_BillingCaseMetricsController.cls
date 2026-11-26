@@ -18,6 +18,11 @@ public with sharing class RLM_BillingCaseMetricsController {
     @TestVisible
     private static String lastDisputeQueryError;
 
+    // The Dispute amount field, which is license-gated. Not final, so a test can name a field the
+    // org lacks: without it the amount is a real zero even when the count read is refused.
+    @TestVisible
+    private static String disputedAmountField = 'DisputedAmount';
+
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getMetrics() {
         Map<String, Object> result = new Map<String, Object>();
@@ -66,14 +71,14 @@ public with sharing class RLM_BillingCaseMetricsController {
         // Dispute has no IsClosed field. Open means Status is not 'Closed', the rule
         // RLM_OnAccountBillingController uses.
         Boolean hasStatus = disputeFields.containsKey('Status');
-        Boolean hasDisputedAmount = disputeFields.containsKey('DisputedAmount');
+        Boolean hasDisputedAmount = disputeFields.containsKey(disputedAmountField);
         Boolean hasInvoiceId = disputeFields.containsKey('InvoiceId');
 
         if (hasStatus) {
             try {
                 String selectClause = 'SELECT COUNT(Id) cnt';
                 if (hasDisputedAmount) {
-                    selectClause += ', SUM(DisputedAmount) totalAmt';
+                    selectClause += ', SUM(' + disputedAmountField + ') totalAmt';
                 }
                 List<AggregateResult> disputeAgg = Database.query(
                     selectClause + ' FROM Dispute WHERE Status != \'Closed\'', AccessLevel.USER_MODE
@@ -88,7 +93,9 @@ public with sharing class RLM_BillingCaseMetricsController {
                 // the counts are unavailable (null), not zero.
                 lastDisputeQueryError = e.getMessage();
                 metrics.put('openDisputes', null);
-                metrics.put('totalDisputedAmount', null);
+                if (hasDisputedAmount) {
+                    metrics.put('totalDisputedAmount', null);
+                }
                 System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage());
             }
 

@@ -387,10 +387,15 @@ private class RLM_OnAccountBillingControllerTest {
         Map<String, Decimal> adminRates = RLM_OnAccountBillingController.loadDatedRates();
         Map<String, Decimal> userRates;
         Test.startTest();
+        String userReadError;
         System.runAs(noAccess) {
+            // Which branch this run takes: a refused read (the catch) or an empty one.
+            userReadError = userModeError('SELECT IsoCode, ConversionRate FROM DatedConversionRate LIMIT 1');
             userRates = RLM_OnAccountBillingController.loadDatedRates();
         }
         Test.stopTest();
+        System.debug(LoggingLevel.INFO, 'loadDatedRates as a no-access user: '
+            + (userReadError == null ? 'read ran and returned no rows' : 'read refused (' + userReadError + ')'));
         Assert.isTrue(adminRates.isEmpty(), 'No dated rates for the admin.');
         Assert.isTrue(userRates.isEmpty(), 'No dated rates, and no error, for a user with no access.');
     }

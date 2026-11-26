@@ -199,6 +199,15 @@ describe('rlmInvoiceSummaryBar loading', () => {
         expect(spinner(el)).not.toBeNull();
     });
 
+    it('stops the spinner when the invoice wire fails and the billing wire answers', async () => {
+        const el = mount();
+        getInvoiceSummary.error({ message: 'Invoice summary is unavailable.' });
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(spinner(el)).toBeNull();
+        expect(errorText(el)).toBe('Invoice summary is unavailable.');
+    });
+
     it('stops the spinner on an error too', async () => {
         const el = mount();
         getInvoiceSummary.emit(INVOICE);

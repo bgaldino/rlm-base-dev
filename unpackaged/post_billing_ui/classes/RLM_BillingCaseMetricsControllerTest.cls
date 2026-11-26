@@ -258,4 +258,22 @@ private class RLM_BillingCaseMetricsControllerTest {
         Assert.isNull(result.get('totalDisputedAmount'), 'The disputed amount is unavailable (null), not zero.');
         Assert.isNull(result.get('disputedInvoices'), 'The disputed invoice count is unavailable (null), not zero.');
     }
+
+    // An org without the Dispute amount field has no disputed amount: a real zero, even when the
+    // dispute count read is refused (that count is unavailable). Simulated by naming a field this
+    // org's Dispute lacks.
+    @isTest
+    static void getMetrics_withoutTheDisputedAmountField_keepsTheAmountAtZeroWhenTheCountIsRefused() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        RLM_BillingCaseMetricsController.disputedAmountField = 'RLM_NoSuchField__c';
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(noAccess) {
+            result = RLM_BillingCaseMetricsController.getMetrics();
+        }
+        Test.stopTest();
+        Assert.isNotNull(RLM_BillingCaseMetricsController.lastDisputeQueryError, 'PRECONDITION: the dispute count read was refused.');
+        Assert.isNull(result.get('openDisputes'), 'The refused count is unavailable.');
+        assertAmount(0, (Decimal) result.get('totalDisputedAmount'), 'Without the amount field the amount is a real zero, not unavailable.');
+    }
 }
