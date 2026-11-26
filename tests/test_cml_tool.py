@@ -55,6 +55,16 @@ def main():
     else:
         raise AssertionError("escaped read-back accepted")
 
+    # The backup is written for an active version and never overwritten for an inactive one
+    # (the rerun after a failed activation, when the stored blob is the bad new model).
+    import tempfile
+    prev = Path(tempfile.mkdtemp()) / "m.cml.previous"
+    stored["text"] = "old model"
+    assert cml_tool.save_previous(FakeTransport(), {"IsActive": True}, prev) == prev
+    stored["text"] = "bad new model"
+    assert cml_tool.save_previous(FakeTransport(), {"IsActive": False}, prev) is None
+    assert prev.read_text() == "old model"
+
     for bad in ({}, {"prefix": "p", "attrs": [{"dev": "A"}], "products": [{"name": "n", "tag": "t"}]}):
         try:
             cml_tool.validate_spec(bad)

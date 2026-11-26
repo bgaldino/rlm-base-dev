@@ -7,7 +7,7 @@ sf CLI transport of `scripts/expression_sets/_client.py`, and holds no org ids.
 | Command | Does | Writes? |
 |---|---|---|
 | `size` | Byte length of each constraint model version and its share of a limit; exit 1 if any is over | No |
-| `push --api-name <Name> --file <model-file>` | Cycles the active version (else the latest): saves the current model to `<file>.previous`, deactivates if active, writes `ConstraintModel`, activates, reads the blob back and fails on a mismatch or an inactive version | Yes, with `--confirm` |
+| `push --api-name <Name> --file <model-file>` | Cycles the active version (else the latest): saves the model in service to `<file>.previous` (active version only), deactivates if active, writes `ConstraintModel`, activates, reads the blob back and fails on a mismatch or an inactive version | Yes, with `--confirm` |
 | `scaffold --spec <spec.json> [--out <ids.json>]` | Creates a classification, picklist attributes, products, selling model option, price book entries, an Expression Set with its version and the constraint rows, from a spec | Yes, with `--confirm` |
 
 Mutating commands print a preview unless `--confirm` is given.
@@ -48,9 +48,11 @@ the version is not active. `QuantumBitBundle` reads 8,774 bytes and `Server2` 21
 ## When a push fails
 
 A failed activation leaves the new blob stored and the version inactive; the old model is
-no longer the stored one. `push` writes the model it replaced to `<file>.previous` before
-writing anything, so pushing that file restores it
-`[Open: restore from .previous not run against a live org]`. A connection reset during the
+no longer the stored one. Before writing, `push` saves the model in service to `<file>.previous`, but only when
+the version is active. A rerun after a failed activation finds the version inactive, so
+it leaves `.previous` alone; pushing that file restores the old model
+`[Open: restore from .previous not run against a live org]`. The backup is
+gitignored (`*.previous`). A connection reset during the
 cycle left a model inactive once `[Measured: 2026-11-26, 264 (USA796), ent-sb0 harness build]`;
 rerunning the same command works, because `push` skips the deactivate step for an
 inactive version. A model must declare `type LineItem;` before its subtypes, as every shipped

@@ -123,6 +123,19 @@ def push_model(t, version, model_bytes):
         raise ExpressionSetClientError("version is not active after push")
 
 
+def save_previous(t, version, path):
+    """Save the model in service next to the file; return the path, or None if not saved.
+
+    Only an active version's stored blob is the model in service. After a failed
+    activation the version is inactive and holds the new blob, so a rerun must not
+    overwrite the earlier backup with it.
+    """
+    if not version["IsActive"]:
+        return None
+    path.write_text(read_model(t, version))
+    return path
+
+
 def cmd_push(t, args):
     versions = constraint_versions(t, args.api_name)
     if not versions:
@@ -136,11 +149,9 @@ def cmd_push(t, args):
     if not args.confirm:
         eprint("preview only; add --confirm to deactivate, upload and activate")
         return 0
-    # A failed activation leaves the new blob stored and the version inactive, so keep the
-    # current model next to the file first; pushing it back restores the model.
-    previous = Path(args.file + ".previous")
-    previous.write_text(read_model(t, version))
-    eprint(f"saved the current model to {previous}")
+    previous = save_previous(t, version, Path(args.file + ".previous"))
+    if previous:
+        eprint(f"saved the current model to {previous}")
     push_model(t, version, data)
     print("pushed, read back identical, version active")
     return 0
