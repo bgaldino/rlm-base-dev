@@ -21,8 +21,8 @@
  * Left out on purpose: Task (access follows the related record; no object permission
  * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
  * batch monitor's page: the managed Billing Operations set reads it, the managed Billing Admin
- * set does not, and the billing persona groups grant it through RLM_BillingInvoiceDocuments,
- * todo 292), and DisputeItem (the write check covers it).
+ * set does not, and the RLM_Billing_Admin and RLM_Billing_Operations groups grant it through
+ * RLM_BillingInvoiceDocuments, todo 292), and DisputeItem (the write check covers it).
  */
 @IsTest
 private class RLM_BillingUIAccessTest {
