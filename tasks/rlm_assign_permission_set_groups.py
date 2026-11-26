@@ -17,8 +17,7 @@ class AssignPermissionSetGroupsTolerant(AssignPermissionSetGroups):
 
     task_options = {
         **getattr(AssignPermissionSetGroups, "task_options", {}),
-        # Override the inherited `user_alias` option to add explicit type and required keys,
-        # suppressing the CCI "Unknown option type <class 'dict'>" deprecation warning.
+        # Override the inherited `user_alias` option to add explicit type and required keys.
         # getattr guards against the ImportError fallback where AssignPermissionSetGroups = object.
         "user_alias": {
             "description": "Alias of target user (if not the current running user, the default).",
@@ -26,6 +25,18 @@ class AssignPermissionSetGroupsTolerant(AssignPermissionSetGroups):
             "type": str,
         },
     }
+
+    def _init_options(self, kwargs):
+        # The parent reads options["api_names"] before CumulusCI checks required options,
+        # so a run without it would fail with a bare KeyError.
+        try:
+            super()._init_options(kwargs)
+        except KeyError as e:
+            if e.args != ("api_names",):
+                raise
+            raise TaskOptionsError(
+                "api_names is required: the Permission Set Group DeveloperNames to assign"
+            ) from None
 
     def _run_task(self):
         """Override to handle warnings gracefully."""

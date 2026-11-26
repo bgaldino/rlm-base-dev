@@ -5,6 +5,8 @@
 
 **270 tasks** across **9 groups**.
 
+**Options** lists the defaults `cumulusci.yml` sets. Every option a task takes, and which are required: `cci task info <task>`.
+
 ---
 
 ## Data Maintenance
@@ -1203,11 +1205,6 @@
 **Description:** Assign Permission Set Groups with tolerance for permission warnings
 
 **Class:** `tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant`
-
-**Options:**
-
-- `api_names`: API Developer Names of desired Permission Set Groups *(required)*
-- `user_alias`: Alias of target user (if not the current running user) 
 
 ---
 
@@ -2868,7 +2865,6 @@
 
 **Options:**
 
-- `api_names`: API Developer Names of Permission Set Groups to recalculate *(required)*
 - `timeout_seconds`: `300`
 - `poll_seconds`: `10`
 - `trigger_recalc`: `True`
