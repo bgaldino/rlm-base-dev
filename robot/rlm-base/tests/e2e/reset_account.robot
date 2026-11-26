@@ -20,7 +20,10 @@ ${ACCOUNT_ID}           ${EMPTY}
 Reset Account
     [Documentation]    Runs the Reset Account QuickAction on the test Account.
     [Tags]    e2e    maintenance
-    Pause For Recording If Enabled    Paused on Account page before Reset.
+    # The Reset Account action is on the Revenue Cloud app's Account page only; a record URL
+    # opened without it uses another app's page, which has no such action (pack 431).
+    Navigate To App    Revenue Cloud
+    Pause For Recording If Enabled    Paused before opening the Account to reset it.
     Reset Test Account    ${ACCOUNT_ID}
     # Verify account page reloaded
     Navigate To Account    ${ACCOUNT_ID}

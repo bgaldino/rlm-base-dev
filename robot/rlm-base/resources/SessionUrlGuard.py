@@ -171,6 +171,25 @@ class SessionUrlGuard:
                 return found.group(1)
         return ""
 
+    @keyword("Current Page Is On Setup Domain")
+    def current_page_is_on_setup_domain(self):
+        """Returns True when the current page is served from the Setup domain (``*.salesforce-setup.com``).
+
+        A Setup page opened through a frontdoor login in a new browser can pass through
+        my.salesforce.com and a complete, Aura-ready lightning.force.com page before
+        Salesforce reloads it on the Setup domain (measured 2026-11-26: the intermediate
+        page lasted about 3.5 s). ``Open Setup Page`` waits on this so a suite never
+        acts on the page the reload is about to replace. The URL is read with logging
+        off; only the boolean is returned, and a read failure names the error type only.
+        """
+        try:
+            host = urlsplit(self._current_url()).hostname or ""
+        except RobotError:
+            raise
+        except Exception as exc:  # the page may be mid-navigation; the caller retries
+            raise AssertionError(f"Could not read the current page ({type(exc).__name__})") from None
+        return host.lower().endswith(".salesforce-setup.com")
+
     @keyword("Current Url Should Be Record Page")
     def current_url_should_be_record_page(self, sobject):
         """Fails unless the current page is ``/lightning/r/<sobject>/<id>``. Reports the path only."""

@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 import zlib
 from pathlib import Path
 
@@ -118,6 +119,9 @@ class SeleniumLibrary:
     def wait_until_page_contains_element(self, locator, timeout=None):
         pass
 
+    def execute_javascript(self, *code):
+        return True  # Open Setup Page's settle check: document complete and Aura ready
+
     def capture_page_screenshot(self, filename=None):
         pass
 '''
@@ -162,6 +166,19 @@ Current Url Is Read Without Logging
     Should Be Equal    ${id}    001000000000001AAA
     Current Url Should Be Record Page    Account
     Run Keyword And Expect Error    *not a Contact record page*    Current Url Should Be Record Page    Contact
+    ${on_setup}=    Current Page Is On Setup Domain
+    Should Be Equal    ${on_setup}    ${False}
+
+Settle Wait Warns Once Off The Setup Domain
+    [Tags]    settlewarn
+    Open Setup Page    /lightning/setup/Timeline/home
+    Open Setup Page    /lightning/setup/Timeline/home
+
+Setup Domain Is Read Without Logging
+    [Tags]    setupdomain
+    ${on_setup}=    Current Page Is On Setup Domain
+    Should Be Equal    ${on_setup}    ${True}
+    Open Setup Page    /lightning/setup/Timeline/home
 
 Log Level Is Restored After A Failed Navigation
     [Tags]    level
@@ -177,7 +194,7 @@ def render_suite(resources):
 
 
 CURRENT_URL = f"https://example.my.salesforce.com/lightning/r/Account/001000000000001AAA/view?sid={SID}&otp={OTP}"
-NAV_TAGS = ["expect-fail", "changepw", "currenturl", "level"]
+NAV_TAGS = ["expect-fail", "changepw", "currenturl", "setupdomain", "settlewarn", "level"]
 
 
 def _pack(text):
@@ -226,10 +243,11 @@ class RobotRunMixin:
             STUB_NAV_LOG=str(nav),
             STUB_EMIT_LOG=str(emit),
             STUB_CURRENT_URL=CURRENT_URL,
-            **(extra_env or {}),
         )
+        env.update(extra_env or {})
         cmd = [sys.executable, "-m", "robot", "--pythonpath", str(self.stubs), "--outputdir", str(out),
                "--loglevel", loglevel, "--variable", "ORG_ALIAS:my-alias", "--variable", "LIGHTNING_RENDER_WAIT:0s",
+               "--variable", "SETUP_PAGE_SETTLE_TIMEOUT:2s",
                "--variable", f"EXECDIR:{tree}"]
         for tag in include or []:
             cmd += ["--include", tag]
@@ -310,6 +328,28 @@ class SessionUrlLoggingTest(RobotRunMixin, unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])
         self.assertIn("response", emitted)
         self.assert_clean(proc, out, emitted)
+
+    def test_setup_domain_is_read_without_logging(self):
+        setup_url = "https://example.my.salesforce-setup.com/lightning/setup/Timeline/home?sid=" + SID
+        proc, out, emitted = self.run_robot("setupdomain", include=["setupdomain"],
+                                            extra_env={"STUB_CURRENT_URL": setup_url})
+        self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])
+        self.assertIn("response", emitted)
+        self.assert_clean(proc, out, emitted)
+        # On the Setup domain the settle wait passes at once: no "did not settle" warning.
+        self.assertNotIn('level="WARN"', (out / "output.xml").read_text(encoding="utf-8"))
+
+    def test_settle_wait_warns_once_off_the_setup_domain(self):
+        # The stub page stays on my.salesforce.com: the first Setup page waits out the settle
+        # timeout and warns; the second is not asked for the Setup domain again.
+        proc, out, emitted = self.run_robot("settlewarn", include=["settlewarn"])
+        self.assertEqual(proc.returncode, 0, proc.stdout[-2000:])
+        self.assert_clean(proc, out, emitted)
+        root = ET.parse(out / "output.xml").getroot()
+        # Messages inside the test only (the <errors> section repeats each warning).
+        warns = [m for m in root.find("suite").iter("msg") if m.get("level") == "WARN"]
+        self.assertEqual(len(warns), 1, [m.text for m in warns])
+        self.assertIn("did not settle", warns[0].text)
 
     def test_log_level_restored_after_failed_navigation(self):
         proc, out, emitted = self.run_robot("level", include=["level"], extra_env={"STUB_NAV_FAIL": "1"})

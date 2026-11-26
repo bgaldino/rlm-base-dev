@@ -11,6 +11,7 @@ Library           ${EXECDIR}/robot/rlm-base/resources/SessionUrlGuard.py
 *** Variables ***
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
+${SETUP_PAGE_SETTLE_TIMEOUT}  60s
 ${TOGGLE_CLICK_TIMEOUT}       30s
 # Password used to complete a forced "Change Your Password" reset if frontdoor
 # login lands there (safety net; the set_scratch_org_password CCI task normally
@@ -30,7 +31,7 @@ _Open Target Page
     ...    \${ORG_ALIAS} through an authenticated session (see SessionUrlGuard.py). The
     ...    authenticated URL never enters a Robot variable, so it cannot reach output.xml or log.html.
     [Arguments]    ${setup_path}    ${url}=${EMPTY}
-    IF    """${url}""" != ""
+    IF    $url != ''
         Go To    ${url}
     ELSE IF    """${ORG_ALIAS}""" != ""
         Go To Authenticated Page    ${ORG_ALIAS}    ${setup_path}
@@ -44,13 +45,59 @@ Open Setup Page
     _Open Target Page    ${setup_path}    ${url}
     Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
     Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${setup_path}    ${url}
+    _Wait For Setup Page To Settle    ${setup_path}    ${url}
     Sleep    2s    reason=Allow Lightning to finish rendering
+
+_Wait For Setup Page To Settle
+    [Documentation]    Waits until the opened page is the document the suite will act on: loaded,
+    ...    with the Aura framework ready and, for a \`/lightning/setup/\` path, served from the
+    ...    Setup domain. In a new browser a frontdoor login reaches a Setup page through
+    ...    my.salesforce.com and a complete, Aura-ready lightning.force.com page, then reloads it
+    ...    on the Setup domain about 3.5 s later; anything found or clicked before that reload
+    ...    is discarded, and callers' retry windows ran out on a slow first visit (pack 443).
+    ...    Logs a warning and continues after \${SETUP_PAGE_SETTLE_TIMEOUT} if the page never
+    ...    reaches that state; if it was not on the Setup domain then (an org that does not serve
+    ...    Setup from it), later calls in the suite stop requiring the domain.
+    [Arguments]    ${setup_path}    ${url}=${EMPTY}
+    # The page actually opened: an explicit url wins over setup_path (see _Open Target Page).
+    ${needs_setup_domain}=    Evaluate    '/lightning/setup/' in str($url) if str($url) else str($setup_path).startswith('/lightning/setup/')
+    # An org that never reached the Setup domain earlier in this suite is not asked again.
+    ${unreached}=    Get Variable Value    ${_SETUP_DOMAIN_UNREACHED}    ${False}
+    ${needs_setup_domain}=    Evaluate    $needs_setup_domain and not $unreached
+    ${settled}=    Run Keyword And Return Status    Wait Until Keyword Succeeds
+    ...    ${SETUP_PAGE_SETTLE_TIMEOUT}    1s    _Setup Page Should Be Settled    ${needs_setup_domain}
+    IF    not ${settled}
+        ${page}=    Set Variable If    $url == ''    ${setup_path}    the requested page
+        Log    ${page} did not settle within ${SETUP_PAGE_SETTLE_TIMEOUT} (loaded, Aura ready, Setup domain when needed: ${needs_setup_domain}); continuing.    WARN
+        # Only a loaded, Aura-ready page that is still off the Setup domain says the org does
+        # not use it; a stalled visit or a redirect page (password, verification) must not.
+        IF    ${needs_setup_domain}
+            ${loaded}=    Run Keyword And Return Status    _Setup Page Should Be Settled    ${False}
+            ${read}    ${on_setup}=    Run Keyword And Ignore Error    Current Page Is On Setup Domain
+            IF    $loaded and $read == 'PASS' and not $on_setup
+                Set Suite Variable    ${_SETUP_DOMAIN_UNREACHED}    ${True}
+            END
+        END
+    END
+
+_Setup Page Should Be Settled
+    [Documentation]    Fails until the page is loaded with Aura ready and, when
+    ...    \${needs_setup_domain} is true, on the Setup domain (drives Wait Until Keyword Succeeds).
+    [Arguments]    ${needs_setup_domain}
+    # Domain first, then readiness: the readiness read is then of the final document.
+    IF    ${needs_setup_domain}
+        ${on_setup}=    Current Page Is On Setup Domain
+        Should Be True    ${on_setup}    msg=Setup page not yet reloaded on the Setup domain
+    END
+    ${ready}=    Execute JavaScript
+    ...    return document.readyState === 'complete' && typeof window.$A !== 'undefined' && window.$A !== null && typeof window.$A.getContext === 'function';
+    Should Be True    ${ready}    msg=Page not loaded or Aura not ready yet
 
 Open Revenue Settings Page
     [Documentation]    Opens the Revenue Settings setup page. If \${ORG_ALIAS} is set, logs in with a one-time \`sf org open --url-only\` session (recommended; never logged). Otherwise uses the url argument or \${REVENUE_SETTINGS_URL}; if the page shows login, waits \${MANUAL_LOGIN_WAIT} for you to log in then reloads.
     [Arguments]    ${url}=${EMPTY}    ${wait_for_login}=${True}
-    IF    """${url}""" == "" and """${ORG_ALIAS}""" == ""
-        Run Keyword If    """${REVENUE_SETTINGS_URL}""" == ""    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
+    IF    $url == '' and $ORG_ALIAS == ''
+        Run Keyword If    $REVENUE_SETTINGS_URL == ''    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
         ${url}=    Set Variable    ${REVENUE_SETTINGS_URL}
     END
     Open Setup Page    /lightning/setup/RevenueSettings/home    ${url}    ${wait_for_login}
@@ -292,8 +339,12 @@ _LabelToggleJS
 Open Browser For Setup
     [Documentation]    Opens a browser (Chrome by default). If webdriver-manager is installed it manages ChromeDriver automatically; otherwise falls back to the system ChromeDriver on PATH. Set BROWSER or \${BROWSER} to override (e.g. firefox).
     [Arguments]    ${browser}=chrome
-    Run Keyword If    """${browser}""" == "chrome"    _Open Chrome With Managed Driver
-    ...    ELSE    Open Browser    about:blank    ${browser}
+    IF    """${browser}""" == "chrome"
+        _Open Chrome With Managed Driver
+    ELSE
+        Open Browser    about:blank    ${browser}
+        Allow Synthetic Shadow Element References
+    END
     Maximize Browser Window
 
 _Open Chrome With Managed Driver
@@ -307,12 +358,14 @@ _Open Chrome With Explicit Path
     ${options}=    Get Headless Chrome Options
     ${service}=    Evaluate    selenium.webdriver.chrome.service.Service(executable_path=$path)    selenium.webdriver.chrome.service
     Create Webdriver    Chrome    service=${service}    options=${options}
+    Allow Synthetic Shadow Element References
     Go To    about:blank
 
 _Open Chrome With Options Fallback
     [Documentation]    Opens Chrome with headless options when no explicit ChromeDriver path is provided.
     ${options}=    Get Headless Chrome Options
     Create Webdriver    Chrome    options=${options}
+    Allow Synthetic Shadow Element References
     Go To    about:blank
 
 Close Browser After Setup

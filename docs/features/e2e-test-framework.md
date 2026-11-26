@@ -62,10 +62,11 @@ robot/rlm-base/
   resources/
     E2ECommon.robot           # Shared keywords (navigation, shadow DOM, workflows)
     SalesforceAPI.py          # REST API keyword library (query, create, poll)
-    ChromeOptionsHelper.py    # Headless Chrome options
+    ChromeOptionsHelper.py    # Headless Chrome options; ChromeDriver 158+ synthetic shadow fix
     ChromeDebugHelper.py      # Headed Chrome with CDP (port 9222)
     WebDriverManager.py       # ChromeDriver path resolution
     AnalyticsSetupHelper.py   # CRM Analytics enablement keyword library (Getting Started page)
+    RecordActionHelper.py     # Record page actions ribbon click (Click Highlights Panel Action)
     SetupToggles.robot        # Keywords for Setup page toggles (e.g. Revenue Settings)
     SessionUrlGuard.py        # Authenticated navigation that keeps the session URL out of Robot logs
   variables/
@@ -209,11 +210,13 @@ For slotted content (e.g., `lightning-modal-footer`), the `deepQueryAll` variant
 
 Most keywords follow a three-tier strategy:
 
-1. **XPath** — fast, works for light DOM and synthetic shadow
+1. **XPath** — fast, works for light DOM and synthetic shadow (under ChromeDriver 158+ only because every browser the resources open calls `Allow Synthetic Shadow Element References`, `ChromeOptionsHelper.py`)
 2. **Scoped JS** — searches within a specific component's shadow root
 3. **Broad JS** — `findAllButtons(document)` as a last resort
 
 This makes tests resilient across LWC rendering modes (synthetic vs. native shadow).
+
+`Click Highlights Panel Action` is the exception: it is JavaScript only (`RecordActionHelper.py`). It waits until the highlights-panel actions ribbon keeps the same button nodes for 1.5 s, then clicks in the same call that re-checks them, in the ribbon or its "Show more actions" menu; there is no page-wide fallback. Record page actions depend on the app: open the Revenue Cloud app (`Navigate To App    Revenue Cloud`) before navigating to an Account, Quote or Order whose action you click.
 
 ### Composite Workflow Keywords
 
@@ -221,7 +224,7 @@ Test steps are composed from high-level keywords in E2ECommon.robot:
 
 | Keyword | Description |
 |---------|-------------|
-| `Reset Test Account` | Navigate to Account, run Reset Account flow |
+| `Reset Test Account` | Navigate to Account, run Reset Account flow (open the Revenue Cloud app first: the action is on its Account page only) |
 | `Create Opportunity From Account` | QuickAction + API lookup, returns Id |
 | `Create Quote From Opportunity` | QuickAction flow + API lookup, returns Id |
 | `Add Products Via Browse Catalogs` | Full catalog workflow (Price Book modal, catalog select, search, add, save). Retried once from a fresh page if no line is saved |

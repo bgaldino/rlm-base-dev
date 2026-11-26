@@ -768,10 +768,15 @@ CHECKS = [
                   # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
                   # so the import-coverage rule cannot see it; named here so an edit to the
                   # library runs its auth suite. tests/test_validate_setup_chrome.py loads the
-                  # three Chrome helpers the same way, and tests/test_analytics_setup_helper.py
-                  # loads AnalyticsSetupHelper.py.
+                  # three Chrome helpers the same way and reads the two browser-open resources
+                  # (every Chrome session must get the synthetic shadow fix);
+                  # tests/test_analytics_setup_helper.py loads AnalyticsSetupHelper.py and
+                  # tests/test_record_action_helper.py loads RecordActionHelper.py.
                   "robot/rlm-base/resources/SalesforceAPI.py",
                   "robot/rlm-base/resources/AnalyticsSetupHelper.py",
+                  "robot/rlm-base/resources/RecordActionHelper.py",
+                  "robot/rlm-base/resources/E2ECommon.robot",
+                  "robot/rlm-base/resources/SetupToggles.robot",
                   "robot/rlm-base/resources/WebDriverManager.py",
                   "robot/rlm-base/resources/ChromeOptionsHelper.py",
                   "robot/rlm-base/resources/ChromeDebugHelper.py"],
@@ -1086,6 +1091,7 @@ STDLIB_SUITES = [
     "tests/test_procedure_plan_overlay_activation.py",
     "tests/test_project_memory_schema.py",
     "tests/test_qb_multicurrency_data.py",
+    "tests/test_record_action_helper.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
     "tests/test_rlm_configure_search_index.py",

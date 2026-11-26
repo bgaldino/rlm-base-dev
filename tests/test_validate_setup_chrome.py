@@ -26,6 +26,7 @@ exits nonzero, or hangs) is a FAIL too; output with no readable version is a WAR
 import importlib.util
 import logging
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -400,6 +401,111 @@ def check_webdriver_manager_ignores_non_executable_override(tmp):
     check("webdriver_manager_ignores_non_executable_override", got == fallback, f"got {got!r}, want {fallback!r}")
 
 
+# ── Synthetic shadow reference fix (ChromeDriver 158+, pack 443) ──────────────
+
+_E2E_COMMON_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "E2ECommon.robot"
+_SETUP_TOGGLES_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "SetupToggles.robot"
+
+
+class _RecordingLogger:
+    def __init__(self):
+        self.infos, self.warns = [], []
+
+    def info(self, msg, *args, **kwargs):
+        self.infos.append(str(msg))
+
+    def warn(self, msg, *args, **kwargs):
+        self.warns.append(str(msg))
+
+
+def _call_shim(driver):
+    """Run allow_synthetic_shadow_element_references with robot.api and BuiltIn stubbed;
+    return (result, logger)."""
+    log = _RecordingLogger()
+    api = types.ModuleType("robot.api")
+    api.logger = log
+    builtin_mod = types.ModuleType("robot.libraries.BuiltIn")
+
+    class _BuiltIn:
+        def get_library_instance(self, name):
+            assert name == "SeleniumLibrary", name
+            return types.SimpleNamespace(driver=driver)
+
+    builtin_mod.BuiltIn = _BuiltIn
+    stubs = {"robot": types.ModuleType("robot"), "robot.api": api,
+             "robot.libraries": types.ModuleType("robot.libraries"), "robot.libraries.BuiltIn": builtin_mod}
+    saved = {mod: sys.modules.get(mod) for mod in stubs}
+    sys.modules.update(stubs)
+    try:
+        return ChromeOptionsHelper.allow_synthetic_shadow_element_references(), log
+    finally:
+        for mod, original in saved.items():
+            if original is None:
+                sys.modules.pop(mod, None)
+            else:
+                sys.modules[mod] = original
+
+
+def check_shadow_shim_registers_for_new_documents(tmp):
+    calls = []
+    driver = types.SimpleNamespace(execute_cdp_cmd=lambda cmd, params: calls.append((cmd, params)))
+    result, log = _call_shim(driver)
+    want = [("Page.addScriptToEvaluateOnNewDocument", {"source": ChromeOptionsHelper._SYNTHETIC_SHADOW_SHIM})]
+    check("shadow_shim_registers_for_new_documents", result == "installed" and calls == want and not log.warns,
+          f"result={result!r} calls={calls!r} warns={log.warns!r}")
+
+
+def check_shadow_shim_skips_without_cdp(tmp):
+    result, log = _call_shim(types.SimpleNamespace())
+    check("shadow_shim_skips_without_cdp", result == "skipped" and not log.warns,
+          f"result={result!r} warns={log.warns!r}")
+
+
+def check_shadow_shim_warns_with_type_only_on_cdp_failure(tmp):
+    secret = "https://example.my.salesforce.com/secur/frontdoor.jsp?sid=00Dxx"
+
+    def boom(cmd, params):
+        raise RuntimeError(secret)
+
+    result, log = _call_shim(types.SimpleNamespace(execute_cdp_cmd=boom))
+    warned = " ".join(log.warns)
+    check("shadow_shim_warns_with_type_only_on_cdp_failure",
+          result == "skipped" and "RuntimeError" in warned and secret not in warned and "sid=" not in warned,
+          f"result={result!r} warns={log.warns!r}")
+
+
+def check_shadow_shim_targets_chromedriver_saved_shadow_root(tmp):
+    """The key ChromeDriver 158/159 saves window.ShadowRoot under, read live again."""
+    src = ChromeOptionsHelper._SYNTHETIC_SHADOW_SHIM
+    want = ("'cdc_adoQpoasnfa76pfcZLmcfl_ShadowRoot'", "/^cdc_[A-Za-z0-9]+_ShadowRoot$/",
+            "get: function () { return window.ShadowRoot; }")
+    missing = [w for w in want if w not in src]
+    check("shadow_shim_targets_chromedriver_saved_shadow_root", not missing, f"missing: {missing}")
+
+
+def check_every_chrome_session_gets_the_shadow_shim(tmp):
+    """Each Robot `Create Webdriver` or `Open Browser` call must be followed by the fix before
+    the session's first `Go To`, or a new browser-open path regresses to stale XPath lookups on
+    158+. (`Open Browser For ...` are the resources' own keywords, not SeleniumLibrary's.)"""
+    opener = re.compile(r"^\s+(?:\.\.\.\s+)?(?:ELSE\s+)?(?:Create Webdriver|Open Browser)\s{2,}")
+    missing, seen = [], 0
+    for path in (_E2E_COMMON_SRC, _SETUP_TOGGLES_SRC):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if not opener.search(line):
+                continue
+            seen += 1
+            following = []
+            for later in lines[i + 1:]:
+                if "Go To" in later or not later.startswith(" "):
+                    break
+                following.append(later.strip())
+            if "Allow Synthetic Shadow Element References" not in following:
+                missing.append(f"{path.name}:{i + 1}")
+    check("every_chrome_session_gets_the_shadow_shim", seen >= 7 and not missing,
+          f"browser-open calls seen: {seen}; missing after: {missing}")
+
+
 def main():
     saved = {var: os.environ.get(var) for var in ENV_VARS}
     checks = (
@@ -430,6 +536,11 @@ def main():
         check_option_builders_honour_chrome_binary,
         check_option_builders_fall_back_to_chrome_bin,
         check_option_builders_leave_binary_unset,
+        check_shadow_shim_registers_for_new_documents,
+        check_shadow_shim_skips_without_cdp,
+        check_shadow_shim_warns_with_type_only_on_cdp_failure,
+        check_shadow_shim_targets_chromedriver_saved_shadow_root,
+        check_every_chrome_session_gets_the_shadow_shim,
     )
     try:
         for fn in checks:

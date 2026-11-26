@@ -502,10 +502,10 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    #### Chrome for Testing (managed workstations)
 
-   Needed (1) on every machine while Chrome 158.0.8127.x is current (see the pin below), and (2) on some managed workstations. Case (2) is the older one: on some managed workstations, stock headless Chrome crashes on Salesforce Setup pages (the root cause is not confirmed; it has only been seen on managed machines): the Robot step (e.g. `enable_document_builder_toggle` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
+   Needed only on some managed workstations, where stock headless Chrome crashes on Salesforce Setup pages (the root cause is not confirmed; it has only been seen on managed machines): the Robot step (e.g. `enable_document_builder_toggle` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
 
    ```bash
-   # keep browser and driver identical; pin 157.0.8103.78 (see below), not 158.0.8127.x
+   # keep browser and driver identical (157.0.8103.78 is the version measured on managed workstations)
    CFT_VERSION=157.0.8103.78
    npx -y @puppeteer/browsers install "chrome@$CFT_VERSION" --path ~/.cache/cft
    npx -y @puppeteer/browsers install "chromedriver@$CFT_VERSION" --path ~/.cache/cft
@@ -518,9 +518,9 @@ For the full architecture — shell config responsibilities, the per-project `.e
    export CHROMEDRIVER_PATH="$HOME/.cache/cft/chromedriver/mac_arm-157.0.8103.78/chromedriver-mac-arm64/chromedriver"
    ```
 
-   **Chrome 158.0.8127.x (all machines, 2026-11).** Stock Chrome 158.0.8127.x with its chromedriver 158.0.8127.x breaks every WebDriver XPath element lookup on Salesforce Setup pages (`StaleElementReferenceException`; `//button` and text-node XPaths included), so Setup Robot steps fail on any machine whose Chrome auto-updated to 158 (for example `enable_analytics_replication` and `enable_constraints_settings`). Chrome for Testing 157 passes the same suites on the same org. Until a newer driver is shown to work, use the 157.0.8103.78 pair above on every machine that runs a build, and put it in `.env.local` (below).
+   **ChromeDriver 158+ and Lightning pages (2026-11).** ChromeDriver 158 (verified through 159) treats every element inside an LWC synthetic shadow tree as detached: it checks reachability against its own copy of `window.ShadowRoot`, saved before Lightning replaces it, so a WebDriver XPath lookup that matches such an element (text XPaths, `//button` on Setup pages) raises `StaleElementReferenceException`. The browser version does not matter (Chrome 158 with chromedriver 157 passes), and no 158 or 159 driver fixes it (158.0.8127.88, the exact CfT pair, and 159.0.8154.33 were measured). The Robot resources handle it: right after `Create Webdriver` they call `Allow Synthetic Shadow Element References` (`robot/rlm-base/resources/ChromeOptionsHelper.py`), which makes ChromeDriver read the page's own `window.ShadowRoot` again. Stock Chrome with its own driver needs no pin. If you added the Chrome for Testing 157 lines to `.env.local` only for this, you can delete them.
 
-   Build-harness runs started from a direnv-loaded shell or `./tui-cci` pick them up; a bare `python scripts/build_harness/harness.py run` inherits only what the shell exports, so export them first. `validate_setup` shows `(from CHROME_BINARY)` when the pin is active. Open question: whether a chromedriver matching the exact 158 browser build, or a newer build, fixes it (untested).
+   Build-harness runs started from a direnv-loaded shell or `./tui-cci` pick up `.env.local`; `harness.py` also loads it. `validate_setup` shows `(from CHROME_BINARY)` when an override is active.
 
    Both variables are unset by default, and nothing changes when they are unset. On machines that need them, put them in `.env.local` at the repo root as `KEY="value"` lines without `export` (`$HOME` expands; quote the value, since the Chrome path has spaces and one unparsable line stops the file from loading). On other platforms use the paths `npx` prints. It's gitignored. The tracked `.envrc` loads it as dotenv, and `./tui-cci` loads the same file for any variable the shell has not already set. Don't add them to `.envrc` itself: it's tracked, so git overwrites local edits to it.
 
