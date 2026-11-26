@@ -1751,6 +1751,7 @@ def opt_run(options, operation="query", custom=None):
     task.logger = _CapturingLogger()
     task.org_config = object()
     task._sf_client = fake
+    fake.logger = task.logger  # so a check can read what the task reported
     if custom is not None:
         task.project_config = type("_P", (), {"config": {"project": {"custom": custom}}})()
     try:
@@ -1822,7 +1823,8 @@ check("blank list_anchors falls back to the config anchors (strict names the mis
 _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists",
                       custom={"dt_x_decision_tables": ["T1", "NOT_IN_ORG"]})
 check("blank strict is False: the same missing table only reports",
-      bool(_fake.queries) and _err is None, repr((_err, _fake.queries)))
+      bool(_fake.queries) and _err is None and any("NOT_IN_ORG" in line for line in _fake.logger.infos),
+      repr((_err, _fake.queries, _fake.logger.infos[-6:])))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.
