@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 175
+EXPECTED_CHECKS = 176
 
 
 def check(label, condition, detail=""):
@@ -409,6 +409,8 @@ for bad, why in ((" , ", "all-blank string"), ([" ", ""], "all-blank list"), (5,
         check(f"{why} raises", False, "no exception")
     except ValueError:
         check(f"{why} raises", True)
+    except Exception as exc:
+        check(f"{why} raises", False, f"raised {type(exc).__name__}, not ValueError: {exc}")
 
 # ---------------------------------------------------------------------------
 # 3. Boolean coercion. CCI hands CLI options through as strings, so "false" is
@@ -1808,7 +1810,8 @@ check("list-typed strict is refused with the helper's error, before any query",
       _err is not None and "must be a single value" in _err and not _fake.queries, repr((_err, _fake.queries)))
 for _label, _opts in (("int list_anchors", {"list_anchors": 5}), ("all-blank list list_anchors", {"list_anchors": [" ", ""]})):
     _err, _fake = opt_run(_opts, "validate_lists")
-    check(f"{_label} is refused before any query", _err is not None and not _fake.queries, repr((_err, _fake.queries)))
+    check(f"{_label} is refused before any query, naming the option",
+          _err is not None and "list_anchors" in _err and not _fake.queries, repr((_err, _fake.queries)))
 _err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists")
 check("blank strict and list_anchors run to the end with no error; a query was sent",
       bool(_fake.queries) and _err is None, repr((_err, _fake.queries)))
@@ -1816,6 +1819,10 @@ _err, _fake = opt_run({"strict": "true", "list_anchors": "  "}, "validate_lists"
                       custom={"dt_x_decision_tables": ["T1", "NOT_IN_ORG"]})
 check("blank list_anchors falls back to the config anchors (strict names the missing table)",
       bool(_fake.queries) and _err is not None and "NOT_IN_ORG" in _err, repr((_err, _fake.queries)))
+_err, _fake = opt_run({"strict": " ", "list_anchors": "  "}, "validate_lists",
+                      custom={"dt_x_decision_tables": ["T1", "NOT_IN_ORG"]})
+check("blank strict is False: the same missing table only reports",
+      bool(_fake.queries) and _err is None, repr((_err, _fake.queries)))
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.
