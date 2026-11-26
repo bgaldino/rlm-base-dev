@@ -22,8 +22,8 @@ const UNAVAILABLE = 'Unavailable';
 export default class RlmAccountBalanceCard extends LightningElement {
     _recordId;
 
-    // A new record starts a new load: both wires count as pending again, so the spinner shows and
-    // the previous record's figures are hidden until the new results land.
+    // A new record starts a new load: both wires count as pending again, so the spinner shows, and
+    // the previous record's figures and errors are cleared until the new results land.
     @api
     get recordId() { return this._recordId; }
     set recordId(value) {
@@ -31,6 +31,10 @@ export default class RlmAccountBalanceCard extends LightningElement {
             this._invoiceReady = false;
             this._billingReady = false;
             this.isLoading = true;
+            this.invoiceData = undefined;
+            this.billingData = undefined;
+            this.invoiceError = undefined;
+            this.billingError = undefined;
         }
         this._recordId = value;
     }
@@ -128,8 +132,9 @@ export default class RlmAccountBalanceCard extends LightningElement {
         const statusUnavailable = { label: 'Status Unavailable', cssClass: 'abc-pill abc-pill-gray', description: 'Some billing records on this account could not be read, so its standing is not shown.' };
         const net = b.netAccountBalance == null ? null : Number(b.netAccountBalance);
 
-        // "No Billing Activity" claims no payments or memos either, so not when one could not be read.
-        if (totalInvoices === 0 && net != null && inCollections != null) return { label: 'No Billing Activity', cssClass: 'abc-pill abc-pill-gray', description: 'No invoices, payments, or billing records exist for this account.' };
+        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either,
+        // so not when one of them could not be read.
+        if (totalInvoices === 0 && net != null && inCollections != null && writtenOff != null && disputeCount != null) return { label: 'No Billing Activity', cssClass: 'abc-pill abc-pill-gray', description: 'No invoices, payments, or billing records exist for this account.' };
         if (inCollections == null) return statusUnavailable;
         if (inCollections) return { label: 'In Collections', cssClass: 'abc-pill abc-pill-darkred', description: 'This account has been escalated to collections.' };
         if (writtenOff == null) return statusUnavailable;

@@ -102,51 +102,79 @@ const ALL_READ = {
     totalInvoices: 2, invoiceBalance: 100, debitMemoBalance: 20,
     overdueCount: 0, delinquentCount: 0, partiallyPaidOverdueCount: 0, openWithBalance: 1,
     writtenOffCount: 0, disputeCount: 0, inCollections: false,
-    creditMemoBalance: 5, paymentBalance: 30, refundBalance: 0, netAccountBalance: 85
+    creditMemoBalance: 5, paymentBalance: 30, refundBalance: 1, netAccountBalance: 86
 };
-const PAYMENTS_REFUSED = { ...ALL_READ, paymentBalance: null, netAccountBalance: null };
 const spinner = (el) => el.shadowRoot.querySelector('lightning-spinner');
 const metricTexts = (el) => [...el.shadowRoot.querySelectorAll('.abc-metric-value')].map((n) => n.textContent);
+const netText = (el) => el.shadowRoot.querySelector('.abc-net-amount')?.textContent;
 
-describe('rlmAccountBalanceCard unavailable balances and loading', () => {
+// The tooltip lines shown on hovering the metric of the given type.
+async function tooltipLines(el, type) {
+    el.shadowRoot.querySelector(`.abc-metric[data-type="${type}"]`).dispatchEvent(new CustomEvent('mouseenter'));
+    await flush();
+    return [...el.shadowRoot.querySelectorAll('.abc-tooltip-line')].map((n) => n.textContent);
+}
+
+async function loaded(billing) {
+    const el = mount();
+    getInvoiceSummary.emit(INVOICE);
+    getBillingSummary.emit(billing);
+    await flush();
+    return el;
+}
+
+describe('rlmAccountBalanceCard unavailable balances', () => {
     afterEach(() => {
         while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
     });
 
     it('shows the figures when every balance is read', async () => {
-        const el = mount();
-        getInvoiceSummary.emit(INVOICE);
-        getBillingSummary.emit(ALL_READ);
-        await flush();
-        expect(el.shadowRoot.querySelector('.abc-net-amount').textContent).toBe('$85.00');
-        expect(metricTexts(el)).toEqual(['$120.00', '$35.00']);
+        const el = await loaded(ALL_READ);
+        expect(netText(el)).toBe('$86.00');
+        expect(metricTexts(el)).toEqual(['$120.00', '$34.00']);
+        expect(await tooltipLines(el, 'payables')).toEqual(['Payments: $30.00', 'Credits: $5.00', 'Refunds: -$1.00']);
     });
 
-    it('shows a refused balance, and every total that includes it, as unavailable, not $0.00', async () => {
-        const el = mount();
-        getInvoiceSummary.emit(INVOICE);
-        getBillingSummary.emit(PAYMENTS_REFUSED);
-        await flush();
-        expect(el.shadowRoot.querySelector('.abc-net-amount').textContent).toBe('Unavailable');
-        expect(metricTexts(el)).toEqual(['$120.00', 'Unavailable']);
+    // Each part in turn: the totals that include it, the net, its tooltip line and the pill show
+    // Unavailable; the other total still shows its figure; nothing shows a number or "-Unavailable".
+    it.each([
+        ['debitMemoBalance', 'receivables', 'Debit Memo Balance: Unavailable'],
+        ['creditMemoBalance', 'payables', 'Credits: Unavailable'],
+        ['paymentBalance', 'payables', 'Payments: Unavailable'],
+        ['refundBalance', 'payables', 'Refunds: Unavailable']
+    ])('shows %s, its total and the net as Unavailable when it is refused', async (part, group, line) => {
+        const el = await loaded({ ...ALL_READ, [part]: null, netAccountBalance: null });
+        expect(netText(el)).toBe('Unavailable');
+        expect(metricTexts(el)).toEqual(group === 'receivables' ? ['Unavailable', '$34.00'] : ['$120.00', 'Unavailable']);
+        const lines = await tooltipLines(el, group);
+        expect(lines).toContain(line);
+        lines.forEach((l) => expect(l).not.toContain('-Unavailable'));
+        lines.forEach((l) => expect(l).not.toContain('$0.00'));
         expect(el.shadowRoot.querySelector('.abc-pill').textContent).toBe('Balance Unavailable');
     });
 
     it('does not claim no billing activity when a balance could not be read', async () => {
-        const el = mount();
-        getInvoiceSummary.emit(INVOICE);
-        getBillingSummary.emit({ ...PAYMENTS_REFUSED, totalInvoices: 0 });
-        await flush();
+        const el = await loaded({ ...ALL_READ, paymentBalance: null, netAccountBalance: null, totalInvoices: 0 });
         expect(el.shadowRoot.querySelector('.abc-pill').textContent).toBe('Balance Unavailable');
     });
+});
 
-    it('keeps the spinner through the empty first delivery and until both wires answer', async () => {
+describe('rlmAccountBalanceCard loading', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+    });
+
+    // The empty {data, error} delivery a wire can make before the first server result, sent here
+    // after the component is connected with a recordId: it must not stop the spinner.
+    it('keeps the spinner through empty deliveries after connecting', async () => {
         const el = mount();
         await flush();
-        expect(spinner(el)).not.toBeNull();
-        getInvoiceSummary.emit(INVOICE);
+        getInvoiceSummary.emit(undefined);
+        getBillingSummary.emit(undefined);
         await flush();
         expect(spinner(el)).not.toBeNull();
+        expect(el.shadowRoot.querySelector('.abc-card')).toBeNull();
+        getInvoiceSummary.emit(INVOICE);
         getBillingSummary.emit(ALL_READ);
         await flush();
         expect(spinner(el)).toBeNull();
@@ -160,21 +188,43 @@ describe('rlmAccountBalanceCard unavailable balances and loading', () => {
         expect(spinner(el)).toBeNull();
     });
 
-    it('hides the previous record and shows the spinner when the recordId changes', async () => {
-        const el = mount();
-        getInvoiceSummary.emit(INVOICE);
-        getBillingSummary.emit(ALL_READ);
-        await flush();
-        expect(el.shadowRoot.querySelector('.abc-net-amount')).not.toBeNull();
+    it('keeps the spinner between the two wires after a recordId change', async () => {
+        const el = await loaded(ALL_READ);
         el.recordId = '001000000000002AAA';
         await flush();
         expect(spinner(el)).not.toBeNull();
-        expect(el.shadowRoot.querySelector('.abc-net-amount')).toBeNull();
+        expect(el.shadowRoot.querySelector('.abc-card')).toBeNull();
         getInvoiceSummary.emit(INVOICE);
-        getBillingSummary.emit({ ...ALL_READ, netAccountBalance: 10, invoiceBalance: 25, debitMemoBalance: 20 });
+        await flush();
+        expect(spinner(el)).not.toBeNull();
+        expect(el.shadowRoot.querySelector('.abc-card')).toBeNull();
+        getBillingSummary.emit({ ...ALL_READ, invoiceBalance: 15 });
         await flush();
         expect(spinner(el)).toBeNull();
-        expect(el.shadowRoot.querySelector('.abc-net-amount').textContent).toBe('$10.00');
+        expect(netText(el)).toBe('$1.00');
+    });
+
+    it('clears the previous record\'s error when the recordId changes', async () => {
+        const el = mount();
+        getInvoiceSummary.emit(INVOICE);
+        getBillingSummary.error(REFUSED);
+        await flush();
+        expect(errorText(el)).toBe(REFUSED.message);
+        el.recordId = '001000000000002AAA';
+        await flush();
+        expect(errorText(el)).toBeUndefined();
+        expect(spinner(el)).not.toBeNull();
+    });
+
+    it('clears the previous record\'s invoice error when the recordId changes', async () => {
+        const el = mount();
+        getInvoiceSummary.error({ message: 'Invoice summary is unavailable.' });
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        expect(errorText(el)).toBe('Invoice summary is unavailable.');
+        el.recordId = '001000000000002AAA';
+        await flush();
+        expect(errorText(el)).toBeUndefined();
     });
 });
 
@@ -208,8 +258,14 @@ describe('status pill with an unavailable count', () => {
         expect(await pillFor({ ...ALL_READ, delinquentCount: 1, disputeCount: null })).toBe('Delinquent');
     });
 
-    it('does not claim no billing activity when collections are unavailable', async () => {
-        expect(await pillFor({ ...ALL_READ, totalInvoices: 0, inCollections: null })).toBe('Status Unavailable');
+    it.each(['inCollections', 'writtenOffCount', 'disputeCount'])(
+        'does not claim no billing activity when %s is unavailable', async (key) => {
+            expect(await pillFor({ ...ALL_READ, totalInvoices: 0, [key]: null })).toBe('Status Unavailable');
+        }
+    );
+
+    it('claims no billing activity only when everything it covers is known', async () => {
+        expect(await pillFor({ ...ALL_READ, totalInvoices: 0 })).toBe('No Billing Activity');
     });
 });
 

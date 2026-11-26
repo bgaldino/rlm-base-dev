@@ -10,13 +10,15 @@ const UNAVAILABLE = 'Unavailable';
 export default class RlmOnAccountBilling extends LightningElement {
     _recordId;
 
-    // A new record starts a new load: the spinner shows, and the previous record's figures are
-    // hidden, until the new result lands.
+    // A new record starts a new load: the spinner shows, and the previous record's figures, status
+    // pill and error are cleared, until the new result lands.
     @api
     get recordId() { return this._recordId; }
     set recordId(value) {
         if (value !== this._recordId) {
             this.isLoading = true;
+            this.data = null;
+            this.errorMessage = '';
         }
         this._recordId = value;
     }
@@ -137,8 +139,9 @@ export default class RlmOnAccountBilling extends LightningElement {
         };
         const net = d.netAccountBalance == null ? null : Number(d.netAccountBalance);
 
-        // "No Billing Activity" claims no payments or memos either, so not when one could not be read.
-        if (totalInvoices === 0 && net != null && inCollections != null) {
+        // "No Billing Activity" claims no payments, memos, disputes, write-offs or collections either,
+        // so not when one of them could not be read.
+        if (totalInvoices === 0 && net != null && inCollections != null && writtenOff != null && disputeCount != null) {
             return {
                 label: 'No Billing Activity',
                 cssClass: 'status-pill status-no-activity',

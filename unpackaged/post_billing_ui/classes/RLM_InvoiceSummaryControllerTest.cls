@@ -388,10 +388,61 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.areEqual(40, data.disputeAmount, 'The disputed amount is summed.');
     }
 
+    // A user who can read collection plans (so the gate opens) but not the payment schedule items
+    // the query reads: the promise to pay is unavailable (null), not zero, and the summary step
+    // does not throw.
+    @isTest
+    static void addPromisesToPay_whenTheScheduleItemReadIsRefused_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Promises');
+        insert acc;
+        User u = collectionPlanReaderWithoutScheduleItems();
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
+                'PRECONDITION: the user can read collection plans, so the promise-to-pay query runs.');
+            Assert.isNotNull(userModeError('SELECT Id, RequestedAmount, Status FROM PaymentScheduleItem LIMIT 1'),
+                'PRECONDITION: the user cannot read PaymentScheduleItem.');
+            RLM_InvoiceSummaryController.addPromisesToPay(data, acc.Id, UserInfo.isMultiCurrencyOrganization(),
+                UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.promiseToPayAmount, 'The promise-to-pay amount is unavailable (null), not zero.');
+        Assert.isNull(data.promiseToPayCount, 'The promise-to-pay count is unavailable (null), not zero.');
+    }
+
+    // A user who reads collection plans and their items but not payment schedule items. Measured
+    // on a 264 org (2026-11-26): CollectionPlan is readable only with the Collections and Recovery
+    // Specialist user permission, which the user license allows only with the Billing Advanced
+    // permission set license; object read grants alone leave it "not supported".
+    private static User collectionPlanReaderWithoutScheduleItems() {
+        User u = RLM_BillingUITestUsers.create(new List<String>(),
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet ps = new PermissionSet(Name = 'RLM_TestCollectionPlans_' + stamp, Label = 'RLM Test Collection Plans ' + stamp,
+                PermissionsRlmBillingAccess = true);
+            ps.put('PermissionsCollectionsAndRecoverySpecialist', true);
+            insert ps;
+            List<ObjectPermissions> grants = new List<ObjectPermissions>();
+            for (String objectName : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
+                grants.add(new ObjectPermissions(ParentId = ps.Id, SobjectType = objectName,
+                    PermissionsRead = true, PermissionsViewAllRecords = true));
+            }
+            insert grants;
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
+        return u;
+    }
+
     private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {
         RLM_InvoiceSummaryController.InvoiceSummaryData data = new RLM_InvoiceSummaryController.InvoiceSummaryData();
         data.disputeAmount = 0;
         data.disputeCount = 0;
+        data.promiseToPayAmount = 0;
+        data.promiseToPayCount = 0;
         return data;
     }
 }

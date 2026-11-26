@@ -116,7 +116,11 @@ public with sharing class RLM_OnAccountBillingController {
         } catch (QueryException e) {
             throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
         } catch (SecurityException e) {
-            // WITH USER_MODE raises this, not a QueryException, when the object itself is refused.
+            // Measured on a 264 scratch org (deploy 0AfWt00000hUL33KAG, 2026-11-26, a test user
+            // with no Invoice read): the first inline WITH USER_MODE COUNT() below raised
+            // System.SecurityException "Access to entity 'Invoice' denied". The tests' dynamic
+            // Database.query(..., AccessLevel.USER_MODE) probes of a refused object raised
+            // QueryException. Both are caught; which inline queries raise which is not measured.
             throw RLM_AuraErrors.failed(INVOICES_UNREADABLE, 'RLM_OnAccountBillingController.queryBillingStatus', e);
         }
     }
@@ -158,7 +162,8 @@ public with sharing class RLM_OnAccountBillingController {
 
         // The four reads below are optional to the summary: a refused or failed one gives null
         // (shown as unavailable), never a zero or false that reads as "none" (owner rule, pack 445).
-        // An org without the Dispute object has no disputes, so that count is a real zero.
+        // An org without the Dispute object, or without the license-gated Dispute fields the count
+        // reads, has no disputes, so that count is a real zero.
 
         // Overdue invoices that have partial payments applied (Balance < TotalAmountWithTax)
         Integer partiallyPaidOverdueCount = 0;
@@ -208,7 +213,7 @@ public with sharing class RLM_OnAccountBillingController {
 
         // Open disputes
         Integer disputeCount = 0;
-        if (Schema.getGlobalDescribe().containsKey('Dispute')) {
+        if (disputeFieldsPresent()) {
             try {
                 List<AggregateResult> dRes = Database.query(
                     'SELECT COUNT(Id) cnt FROM Dispute '
@@ -244,6 +249,28 @@ public with sharing class RLM_OnAccountBillingController {
         info.put('inCollections', inCollections);
 
         return info;
+    }
+
+    // The Dispute fields the dispute count reads. InvoiceId and the other billing dispute fields
+    // are license-gated extensions absent from a baseline build (see
+    // RLM_InvoiceSummaryController.disputeHasFields). Not final, so a test can name a field the
+    // org lacks.
+    @TestVisible
+    private static Set<String> disputeFields = new Set<String>{ 'InvoiceId', 'Status' };
+
+    // True only when the Dispute object exists and has every field in disputeFields.
+    private static Boolean disputeFieldsPresent() {
+        Schema.SObjectType dispute = Schema.getGlobalDescribe().get('Dispute');
+        if (dispute == null) {
+            return false;
+        }
+        Map<String, Schema.SObjectField> fields = dispute.getDescribe().fields.getMap();
+        for (String name : disputeFields) {
+            if (!fields.containsKey(name)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Logs a refused or failed optional status read; returns null for the caller to report.

@@ -194,7 +194,10 @@ private class RLM_OnAccountBillingControllerTest {
     // can run the summary's reads. Dated rates are left out: that table exists only with
     // advanced currency management, and the controller treats an unreadable one as empty.
     // Collection plans are the exception: this role cannot read them, so the summary reports
-    // collections as unavailable (null), not "not in collections", and does not fail.
+    // collections as unavailable (null), not "not in collections", and does not fail. Measured on a
+    // 264 org (2026-11-26): RLM_BillingUI's CollectionPlan read grant does not make it readable;
+    // CollectionPlan also needs the Collections and Recovery Specialist user permission, which the
+    // user license refuses ("doesn't allow the permission") without the Billing Advanced license.
     @isTest
     static void getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans() {
         User u = billingOperationsUser();
@@ -586,5 +589,26 @@ private class RLM_OnAccountBillingControllerTest {
         for (String soql : refused) {
             Assert.isNotNull(userModeError(soql), 'PRECONDITION: the user cannot run ' + soql);
         }
+    }
+
+    // An org without the license-gated Dispute fields the count reads has no disputes: a real
+    // zero, not unavailable. Simulated by naming a field this org's Dispute lacks; the same
+    // account as a user who cannot read Dispute shows the gate runs before the read.
+    @isTest
+    static void getBillingSummary_withoutTheDisputeFields_countsZeroDisputes() {
+        User u = billingUserReading(new List<String>{ 'Account', 'Invoice' });
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account No Dispute Fields', null);
+        RLM_OnAccountBillingController.disputeFields = new Set<String>{ 'InvoiceId', 'Status', 'RLM_NoSuchField__c' };
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(u) {
+            assertReads(new List<String>{ ACCOUNT_READ, INVOICE_READ }, new List<String>{ DISPUTE_READ });
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
+        Test.stopTest();
+
+        Assert.isTrue(Schema.getGlobalDescribe().containsKey('Dispute'), 'PRECONDITION: the Dispute object exists in this org.');
+        Assert.areEqual(0, (Integer) result.get('disputeCount'),
+            'Without the dispute fields there are no disputes: a real zero, even for a user who cannot read Dispute.');
     }
 }
