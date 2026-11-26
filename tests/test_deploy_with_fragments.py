@@ -213,7 +213,7 @@ finally:
         else:
             _BASE._run_task = _saved
 
-print("offline process_bool_arg fallback matches CumulusCI's (todo 488)")
+print("flag values go through soql_utils.option_flag, with or without CumulusCI (todo 488)")
 import unittest.mock  # noqa: E402
 
 _blocked = {k: None for k in list(sys.modules) if k == "cumulusci" or k.startswith("cumulusci.")}
@@ -222,39 +222,23 @@ _fspec = importlib.util.spec_from_file_location("_rlm_test_dwf_no_cci", REPO / "
 offline = importlib.util.module_from_spec(_fspec)
 with unittest.mock.patch.dict(sys.modules, _blocked):
     _fspec.loader.exec_module(offline)
-check("the module imports without CumulusCI and uses its fallback", offline.Deploy is object)
-
-
-def _outcome(fn, value):
-    try:
-        return fn(value)
-    except TypeError:
-        return "TypeError"
-
-
-_values = ["true", "True", "y", "Y", "yes", "on", "1", "false", "n", "no", "off", "0",
-           "maybe", " true", "", True, False, 0, 1, 2, None]
-check('the fallback reads "on" and "y" as True', offline.process_bool_arg("on") is True and offline.process_bool_arg("y") is True)
-check('the fallback refuses "maybe" and " true" with a TypeError',
-      _outcome(offline.process_bool_arg, "maybe") == "TypeError" and _outcome(offline.process_bool_arg, " true") == "TypeError")
-try:
-    import warnings
-
-    from cumulusci.core.utils import process_bool_arg as _cci_bool
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)  # CumulusCI deprecates None
-        _drift = [(v, _outcome(_cci_bool, v), _outcome(offline.process_bool_arg, v)) for v in _values
-                  if _outcome(_cci_bool, v) != _outcome(offline.process_bool_arg, v)]
-    check("the fallback agrees with the installed CumulusCI on every value", not _drift, _drift)
-except ImportError:
-    print("  (CumulusCI not installed: the comparison with the real process_bool_arg is skipped)")
-_flags = SimpleNamespace(lookup=lambda key: {"project__custom__odd": "maybe", "project__custom__on": "on"}.get(key))
-_err = raises(lambda: offline.flag_states(_flags, "odd"))
-check("an unparseable flag value is a TaskOptionsError naming the flag, not a raw TypeError",
-      _err is not None and "flag 'odd' must be true or false" in _err, _err)
-check("a flag set to 'on' reads as on (it read as off offline)", offline.flag_states(_flags, "on") == {"on": True})
-_err = raises(lambda: mod.flag_states(_flags, "odd"))
-check("with CumulusCI too, an unparseable flag value names the flag", _err is not None and "flag 'odd'" in _err, _err)
+check("the module imports without CumulusCI", offline.Deploy is object)
+check("no process_bool_arg is left, online or offline, to drift from CumulusCI's",
+      not hasattr(offline, "process_bool_arg") and not hasattr(mod, "process_bool_arg"))
+_values = {"project__custom__on": "on", "project__custom__y": "Y", "project__custom__padded": " true ",
+           "project__custom__off": "off", "project__custom__blank": "", "project__custom__two": 2,
+           "project__custom__zero": 0, "project__custom__odd": "maybe", "project__custom__list": ["true"]}
+_flags = SimpleNamespace(lookup=lambda key: _values.get(key))
+for module, where in ((offline, "offline"), (mod, "with CumulusCI")):
+    check(f"{where}: on, Y, padded true and int 2 are on; off, blank and 0 are off",
+          module.flag_states(_flags, "on,y,padded,two") == {"on": True, "y": True, "padded": True, "two": True}
+          and module.flag_states(_flags, "off,blank,zero") == {"off": False, "blank": False, "zero": False})
+    for name, needle in (("odd", "flag 'odd' must be true or false"), ("list", "flag 'list' must be a single value")):
+        _err = raises(lambda n=name: module.flag_states(_flags, n))
+        check(f"{where}: a {name} flag value is a TaskOptionsError naming the flag", _err is not None and needle in _err, _err)
+    _err = raises(lambda: module.flag_states(_flags, "nope"))
+    check(f"{where}: an undefined flag is still reported as undefined, first",
+          _err is not None and "isn't a project custom flag" in _err, _err)
 
 print("quote_est_tax wiring")
 cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())

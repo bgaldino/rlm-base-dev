@@ -43,32 +43,18 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 # Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text
+from tasks.soql_utils import option_flag, option_text
 
 try:
     from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
     from cumulusci.core.source_transforms.transforms import SourceTransform
-    from cumulusci.core.utils import process_bool_arg, process_list_arg
+    from cumulusci.core.utils import process_list_arg
     from cumulusci.tasks.salesforce import Deploy
 except ImportError:
     Deploy = object
     SourceTransform = object
     CumulusCIException = RuntimeError
     TaskOptionsError = ValueError
-
-    def process_bool_arg(arg):
-        # CumulusCI's semantics (cumulusci/core/utils.py): "on"/"y" are True, and anything outside
-        # the vocabulary ("maybe", " true") raises TypeError rather than reading as False.
-        if isinstance(arg, (int, bool)):
-            return bool(arg)
-        if arg is None:
-            return False
-        if isinstance(arg, str):
-            if arg.lower() in ("yes", "y", "true", "on", "1"):
-                return True
-            if arg.lower() in ("no", "n", "false", "off", "0"):
-                return False
-        raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
     def process_list_arg(value):
         # Like CumulusCI's: keeps empty items ("a," -> ["a", ""]), which flag_states rejects.
@@ -155,10 +141,10 @@ def flag_states(project_config, flag):
         value = project_config.lookup(f"project__custom__{name}")
         if value is None:
             raise TaskOptionsError(f"flag {name!r} isn't a project custom flag in cumulusci.yml")
-        try:
-            states[name] = process_bool_arg(value)
-        except TypeError:
-            raise TaskOptionsError(f"flag {name!r} must be true or false in cumulusci.yml, got {value!r}") from None
+        # soql_utils.option_flag, with or without CumulusCI (no offline fallback to drift): CumulusCI's
+        # vocabulary, any int its truth value, padded text read, a blank value false, and anything
+        # else ("maybe", a list) a TaskOptionsError naming the flag.
+        states[name] = option_flag(value, f"flag {name!r}", TaskOptionsError)
     return states
 
 
