@@ -1197,7 +1197,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         newOpportunity(a.Id, 'RLM Utilities Query Budget Opp');
 
         Test.startTest();
-        // A teardown round starts only while its own 8 queries plus the 54 phase 2
+        // A teardown round starts only while its own 8 queries plus the 55 phase 2
         // keeps back are left. Leaving 55 here, less the 4 spent before the loop (the
         // admins-only permission check and phase 1's 3 lookups), means the first round
         // cannot start: the state a usage graph too large for one run reaches after
@@ -1977,9 +1977,9 @@ private without sharing class RLM_AccountUtilitiesTest {
         }
     }
 
-    // The 47 is counted from the code with data in every branch (see the constants in
+    // The 48 is counted from the code with data in every branch (see the constants in
     // RLM_AccountUtilities); this test measures only the empty-data path with one asset, held exactly. It holds
-    // the reserve against the 47 and the measurement against both, but it cannot catch
+    // the reserve against the 48 and the measurement against both, but it cannot catch
     // growth in the data-dependent branches (collections, posted invoices, files,
     // generated documents, contracts, quotes): recount those when a query is added.
     // Phase 2's queries with every option on, an opportunity and no other data, counted from
@@ -1992,11 +1992,33 @@ private without sharing class RLM_AccountUtilitiesTest {
     }
 
     // What the asset step adds for one asset with no usage: entitlements bound to it 1, work
-    // orders and cases 1 each where the org has them, its policies 1, asset rate card entries
-    // 1, entries sourced from it 1, commitment junctions 1, relationships 1, assets 1.
+    // orders and cases 1 each where the class queries them, its policies 1, asset rate card
+    // entries 1, entries sourced from it 1, commitment links 1, relationships 1, assets 1.
     // Measured 9 on tkdef.
     private static Integer assetStepQueriesForOneAsset() {
-        return 7 + present(new List<String>{ 'WorkOrder', 'Case' });
+        return 7 + assetReferenceQueries();
+    }
+
+    // The work order and case queries the asset step spends, on the class's own condition
+    // (deleteOtherAssetReferences): the object is in the org AND a query on its AssetId
+    // works. The describe can list a field the query refuses (live 264, Case.AssetId), and
+    // a refused query spends nothing (measured live 264), so only the query can tell.
+    private static Integer assetReferenceQueries() {
+        Integer n = 0;
+        for (String objectName : new List<String>{ 'WorkOrder', 'Case' }) {
+            if (!Schema.getGlobalDescribe().containsKey(objectName)) {
+                continue;
+            }
+            try {
+                Database.query('SELECT Id FROM ' + objectName + ' WHERE AssetId = null LIMIT 1');
+                n++;
+            } catch (QueryException e) {
+                if (!e.getMessage().contains('No such column')) {
+                    throw e;
+                }
+            }
+        }
+        return n;
     }
 
     private static Integer present(List<String> objectNames) {
@@ -2046,12 +2068,12 @@ private without sharing class RLM_AccountUtilitiesTest {
                 + ' queries on empty data with every option on; the counted worst case is '
                 + RLM_AccountUtilities.PHASE_TWO_FIXED_MAX
         );
-        Assert.areEqual(47 + 7, RLM_AccountUtilities.QUERY_RESERVE,
-            'The reserve covers phase 2\'s counted worst case, 47, with seven spare');
-        Assert.areEqual(47, RLM_AccountUtilities.PHASE_TWO_FIXED_MAX, 'Phase 2\'s counted worst case');
-        // The counts after each guard (see the constants): 28 after the journal guard, 15
+        Assert.areEqual(48 + 7, RLM_AccountUtilities.QUERY_RESERVE,
+            'The reserve covers phase 2\'s counted fixed queries, 48, with seven spare');
+        Assert.areEqual(48, RLM_AccountUtilities.PHASE_TWO_FIXED_MAX, 'Phase 2\'s counted fixed queries');
+        // The counts after each guard (see the constants): 29 after the journal guard, 15
         // after the asset step's last one, each with three spare.
-        Assert.areEqual(28 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 28 counted plus three spare');
+        Assert.areEqual(29 + 3, RLM_AccountUtilities.RETRY_TAIL, 'RETRY_TAIL is the 29 counted plus three spare');
         Assert.areEqual(15 + 3, RLM_AccountUtilities.ASSET_TAIL, 'ASSET_TAIL is the 15 counted plus three spare');
     }
 
@@ -2065,10 +2087,10 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // The least a run can have and still reach phase 2: the first teardown round
-        // needs its 8 queries plus the 54 kept back, and 4 are spent before it (the
+        // needs its 8 queries plus the 55 kept back, and 4 are spent before it (the
         // admins-only permission check; the asset lookup; the account's policies and rate
         // card entries).
-        spendQueriesDownTo(66, a.Id);
+        spendQueriesDownTo(67, a.Id);
         RLM_AccountUtilities.Result result = run(allOn(a.Id));
         Integer queriesLeft = Limits.getLimitQueries() - Limits.getQueries();
         Test.stopTest();

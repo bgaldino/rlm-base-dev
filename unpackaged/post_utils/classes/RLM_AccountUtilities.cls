@@ -19,10 +19,10 @@
  *     usage summaries, entitlements and their buckets, and rated journals. Runs
  *     BEFORE the savepoint, so its progress survives a later failure.
  *  2. Everything else, inside a savepoint: collections, billing, fulfillment,
- *     contracts (with their binding policies and rate card entries), orders, assets
- *     (with theirs), quotes and opportunities. If any of it fails, all of it rolls
- *     back, so a contract or asset that stays keeps its binding policies and rate card
- *     entries, and the Result says why.
+ *     contracts (with their binding policies, commitment links and rate card entries),
+ *     orders, assets (with theirs), quotes and opportunities. If any of it fails, all of
+ *     it rolls back, so a contract or asset that stays keeps its binding policies,
+ *     commitment links and rate card entries, and the Result says why.
  *
  * Neither phase may exceed a governor limit: that throws a LimitException, which
  * cannot be caught and rolls back BOTH phases. So every delete is clamped to the
@@ -68,7 +68,7 @@ public without sharing class RLM_AccountUtilities {
     // org with 831 summaries; the cap only exists so a pathological graph cannot
     // spin. In practice QUERY_RESERVE ends a run first, after five rounds (before the loop,
     // the admins-only permission check takes 1 of the 100 queries and phase 1's lookups 3,
-    // and a round needs 62 left to start), and the next run carries on. The
+    // and a round needs 63 left to start), and the next run carries on. The
     // permission check needs that query: no other read tells whether the user has Modify
     // All Data and View All Data (measured live 264: FeatureManagement.checkPermission
     // reads only custom permissions).
@@ -81,40 +81,51 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer MAX_TEARDOWN_ROUNDS = 6;
     private static final Integer TEARDOWN_BATCH = 2000;
 
-    // The queries one teardown round issues, and what is kept back for phase 2. Phase 2's
-    // fixed queries total at most 47 (counted from the code, with every option on and
-    // data in every branch): 29 before the asset step (order data 10, collections 5,
-    // schedule groups 1, billing 8, fulfillment 2, contracts 3), the asset step's lookup
-    // of entitlements bound to the assets 1 and its other lookups 10 (the asset rate card
-    // entries, the rate card entries sourced from the assets and the commitment junctions
-    // among them), quotes and opportunities 5 = 45 on the drained path, plus the journal
-    // query and the journals' record alerts, which only the undrained path runs = 47. 32 is
-    // what an account with one asset and no other such data measures.
-    // QUERY_RESERVE covers the 47 and the usage retries, with seven spare. A round starts
-    // only while both are left; otherwise a large usage graph
-    // would spend phase 2's queries and end in a LimitException. A test holds the measured 32
-    // exactly and the reserve against the 47.
+    // The queries one teardown round issues, and what is kept back for phase 2. Counted from
+    // the code with every option on and data in every branch, phase 2's fixed queries
+    // total 46 on the drained path: 30 before the asset step (order data 10,
+    // collections 5, schedule groups 1, billing 8, fulfillment 2, contracts 4), the asset
+    // step 11 (entitlements bound to the assets 1, other asset references 2, resource
+    // policies 2, rate card entries 3, commitment links 1, assets 2), quotes and
+    // opportunities 5. Not counted: the bucket walks and the entitlement deletes after
+    // them, which grow with the tree and are each guarded (below). PHASE_TWO_FIXED_MAX
+    // adds the journal and its record alerts, the
+    // last of the usage retries, for 48; QUERY_RESERVE keeps seven spare, 55. A teardown
+    // round starts only while its 8 and the 55 are left; otherwise a large usage graph
+    // would spend phase 2's queries and end in a LimitException. 32 is what an account with
+    // one asset and no other such data measures, and a test holds that exactly and the
+    // reserve against the 48.
+    //
+    // The undrained path runs more, every one behind a guard (requireWalkQueries or
+    // requireQueries) that stops the run with QUERY_LIMIT and its advice instead of a
+    // LimitException: the usage retries' 9 fixed queries (entitlement, entitlement
+    // account and journal lookups and deletes, the record alerts) and the asset step's
+    // 5 lookups of what the teardown left, besides the bucket walks, which grow with the
+    // tree. That is 60 before any walk, more than the reserve, so on that path the guards
+    // decide: a Delete Assets run that reaches phase 2 after five teardown rounds, the
+    // fifth removing nothing (56 queries left), typically stops at the asset step's first
+    // guard, and the next run, with less usage left, gets further.
     private static final Integer QUERIES_PER_ROUND = 8;
     @TestVisible
-    private static final Integer QUERY_RESERVE = 54;
+    private static final Integer QUERY_RESERVE = 55;
     @TestVisible
-    private static final Integer PHASE_TWO_FIXED_MAX = 47;
+    private static final Integer PHASE_TWO_FIXED_MAX = 48;
     // The bucket walks (usage retries, the asset step's usage block) issue a number of
     // queries that grows with the tree. Each walk query first requires the queries that
     // can follow it before the next guard or the end of phase 2, counted from the code:
-    //  - RETRY_TAIL, for the usage retries: at most 28 follow the journal guard (journal 1,
+    //  - RETRY_TAIL, for the usage retries: at most 29 follow the journal guard (journal 1,
     //    its record alerts 1, collections 5, schedule groups 1, billing 8, fulfillment 2,
-    //    contracts 3, the asset step with no assets 2, quotes and opportunities 5). 31 keeps
+    //    contracts 4, the asset step with no assets 2, quotes and opportunities 5). 32 keeps
     //    three spare.
     //  - ASSET_TAIL, for the asset step: at most 15 follow its last guard (other asset
-    //    references 2, resource policies 2, rate card entries 3, commitment junctions 1,
+    //    references 2, resource policies 2, rate card entries 3, commitment links 1,
     //    assets 2, quotes and opportunities 5). 18 keeps three spare.
     // No walk can end in a LimitException. Sizing the guards by position stops a run with a
     // "run again" reason a little less often than one flat figure would; either way a stopped
     // run converges, because phase 1's progress persists. These figures must grow with any
     // query added after a guard; the tests cannot catch growth in the data-dependent branches.
     @TestVisible
-    private static final Integer RETRY_TAIL = 31;
+    private static final Integer RETRY_TAIL = 32;
     @TestVisible
     private static final Integer ASSET_TAIL = 18;
     private static final Integer UNSEEN_QUERIES = 4;
@@ -271,8 +282,8 @@ public without sharing class RLM_AccountUtilities {
 
     private static ResetReport report = new ResetReport();
 
-    // The account's assets, and the contracts the run deletes, read at the start of the
-    // run by several steps in both phases. The reset never creates either.
+    // The account's assets, read at the start of the run by several steps in both phases.
+    // The reset never creates one.
     private static Set<Id> accountAssetIds = new Set<Id>();
 
     // True when the last teardown round found no usage rows at all. Phase 2 then
@@ -287,7 +298,7 @@ public without sharing class RLM_AccountUtilities {
     private static Exception phaseTwoFailureForTest;
 
     // Lets a test shrink the teardown round cap. In a synchronous run the query budget
-    // always ends the loop first (a round needs 62 queries left, and 100 allow five, after the
+    // always ends the loop first (a round needs 63 queries left, and 100 allow five, after the
     // 4 queries spent before the loop: the admins-only check's 1, and phase 1's 3), so
     // USAGE_TOO_LARGE is the cap for callers with more queries (asynchronous, 200); a
     // test reaches it by lowering the cap.
@@ -558,13 +569,17 @@ public without sharing class RLM_AccountUtilities {
                 // binding object rate card entries"), a contract the run keeps included.
                 if (!accountAssetIds.isEmpty()) {
                     deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE SourceAssetId IN :accountAssetIds]);
-                    // The commitment junction (UsageCmtAssetRelatedObj), which links a
-                    // commitment asset to its anchor. Here, with the assets, not in phase 1:
-                    // an anchor cannot be deleted while it survives ("associated with the
-                    // following usage commitment asset related objects"), and nothing in
-                    // phase 1 needs it gone (measured live 264: every usage row deletes with
-                    // it in place). So without Delete Assets, or after a rollback, a kept
-                    // asset keeps its commitment link.
+                    // The commitment links (UsageCmtAssetRelatedObj) anchored on the assets.
+                    // Here, with the assets, not in phase 1: an anchor cannot be deleted while
+                    // one survives ("associated with the following usage commitment asset
+                    // related objects"), and nothing in phase 1 needs them gone (measured live
+                    // 264: every usage row deletes with them in place). So without Delete
+                    // Assets, or after a rollback, a kept asset keeps its commitment link. A
+                    // link whose commitment asset (AssetId) is deleted goes with it (measured
+                    // live 264), wherever it is anchored; one anchored on a contract the run
+                    // deletes goes with the contract; one anchored on the account or a custom
+                    // object blocks nothing the reset deletes, so it stays until its
+                    // commitment asset goes.
                     deleteQuietly([
                         SELECT Id FROM UsageCmtAssetRelatedObj
                         WHERE AssetId IN :accountAssetIds OR RelatedObjectId IN :accountAssetIds
@@ -1650,10 +1665,10 @@ public without sharing class RLM_AccountUtilities {
      * ContractItemPrice (contracted price) child are kept. Because
      * ContractItemPrice.ContractId is a master-detail relationship, a surviving
      * Contract retains its contracted prices automatically — no explicit child
-     * handling is required. The binding policies and rate card entries bound to a
-     * contract go with it, so a kept contract keeps them, except an entry sourced from
-     * an asset the run deletes (Delete Assets): it blocks the asset's delete, so the
-     * asset step deletes it.
+     * handling is required. The binding policies, rate card entries and commitment links
+     * bound to a contract go with it, so a kept contract keeps them, except an entry
+     * sourced from an asset the run deletes (Delete Assets): it blocks the asset's
+     * delete, so the asset step deletes it.
      *
      * @param accountId The ID of the account whose records should be deleted
      * @param preserveContractsWithPrices When true, skip contracts that have
@@ -1668,6 +1683,9 @@ public without sharing class RLM_AccountUtilities {
         // matches nothing (see deleteUsageResourcePolicies), so bind the ids.
         Set<Id> contractIds = new Map<Id, Contract>(contracts).keySet();
         deleteUsageResourcePolicies(null, contractIds);
+        // A commitment link anchored on a contract blocks its delete (measured live 264:
+        // "associated with the following usage commitment asset related objects").
+        deleteQuietly([SELECT Id FROM UsageCmtAssetRelatedObj WHERE RelatedObjectId IN :contractIds]);
         deleteQuietly([SELECT Id FROM BindingObjectRateCardEntry WHERE BindingObjectId IN :contractIds]);
         deleteAll(contracts);
     }
