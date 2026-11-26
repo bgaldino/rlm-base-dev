@@ -177,16 +177,16 @@ python -m scripts.txn_data_harness.cli apply-rules --org $ORG --account "Infinit
 every open payment and credit memo there, not only this run's, and applies them
 to whichever invoices the rules pick. It prints each application it made and the rules the platform
 reports, then runs the `verify` checks on the invoices and payments it touched.
-What was measured (264, Line Level, the build's rules Match Balance, Prioritize
-Oldest Invoices, then HI; only the first two were reached):
+What was measured (264, Line Level, the build's rules EA, OI, HI; the
+responses reported Match Balance and Prioritize Oldest Invoices):
 
 - Without `--target-date`, only invoices posted that UTC day were candidates;
   pass `--target-date YYYY-MM-DD` to include older ones.
 - A payment matching one candidate's balance went to it. Payments with no
-  match went to other candidates, with Prioritize Oldest Invoices reported;
-  which candidate it picks among invoices posted the same day was not
-  established. A freed 445.50 payment and 49.50 credit both went to one
-  495.00 invoice, not to the run's own.
+  match went to the candidate with the highest balance, with Prioritize
+  Oldest Invoices reported; all candidates were posted the same day, so which
+  rule decided is not established. A freed 445.50 payment and 49.50 credit
+  both went to one 495.00 invoice, not to the run's own.
 
 So the run's invoice ends settled only when the rules pick it. Details and
 exit codes:

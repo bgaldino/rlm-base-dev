@@ -331,8 +331,8 @@ Line Level is live-verified on 264; everything below is not.
   the invoice being posted; ingesting as Posted did not; a payment created
   after posting stayed unapplied for 60 s. Open: with several open invoices,
   does the rule set (`{"first":"Payments","rules":["EA","OI","HI"]}` on the
-  verification org; EA is Match Balance and OI Prioritize Oldest Invoices,
-  measured through the rule-based apply call) pick the newly posted one or an
+  verification org; EA is Match Balance, measured through the rule-based
+  apply call) pick the newly posted one or an
   older one? Does a
   scheduled invoice or payment run apply a standalone payment later (Help:
   standalone processed payments apply "during an invoice run")? Does
@@ -368,9 +368,15 @@ Line Level is live-verified on 264; everything below is not.
   measured: Credits First, Match ID, Prioritize Highest Balance Invoices
   reached, ties on Match Balance, a credit memo alone, header level, and
   `areAllInvoicesConsidered` false. The default target date is inferred
-  ("today, UTC") from one evening's calls.
+  ("today, UTC") from one evening's calls. Which rule places an unmatched
+  payment is open: every candidate in the probes was posted the same UTC day,
+  and each went to the highest-balance one, while the response reported
+  Prioritize Oldest Invoices.
   - `[probe]` Call it twice around 00:00 UTC, and once more near midnight
     in the org's time zone, to pin the default.
+  - `[probe]` With `--target-date` before two open invoices posted on
+    different days, the older one with the lower balance, apply a payment
+    that matches neither: oldest or highest decides it.
 - `[gap]` **Changing settlement options means a new run.** The block is
   fixed once recorded (whole, so a run that stopped at `credit_applied`
   continues to `payment_applied` with the payment it was configured with),

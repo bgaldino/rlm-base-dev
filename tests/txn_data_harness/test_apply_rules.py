@@ -57,10 +57,16 @@ def test_resolve_account_id_by_id_and_by_escaped_name():
     assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = 'O\\'Hare \\\\ Co'"
 
 
-def test_resolve_account_id_takes_a_15_character_id():
+def test_resolve_account_id_takes_a_15_character_id_and_returns_the_org_id():
     org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
-    lifecycle.resolve_account_id(org, ACCOUNT[:15])
+    assert lifecycle.resolve_account_id(org, ACCOUNT[:15]) == ACCOUNT
     assert org.queries[-1] == f"SELECT Id FROM Account WHERE Id = '{ACCOUNT[:15]}'"
+
+
+def test_resolve_account_id_reads_a_16_character_name_as_a_name():
+    org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
+    lifecycle.resolve_account_id(org, "001AAAAAAAAAAAAB")
+    assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = '001AAAAAAAAAAAAB'"
 
 
 def test_resolve_account_id_reads_an_id_with_a_trailing_newline_as_a_name():
@@ -135,15 +141,26 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, rulesApplicationSummary=[1]),
     dict(OK, rulesApplicationSummary={"totalPaymentApplications": "1"}),
     dict(OK, rulesApplicationSummary={"totalCreditMemoApplications": True}),
+    {}, {k: v for k, v in OK.items() if k != "isSuccess"}, dict(OK, isSuccess="true"),
+    {"isSuccess": True},
+    {k: v for k, v in OK.items() if k != "rulesApplicationSummary"},
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1}),
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": 1,
+                                      "totalCreditMemoApplications": None}),
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
         lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT)
 
 
-def test_apply_rules_accepts_a_success_without_rules_or_summary():
-    assert lifecycle.apply_rules(QueryOrg(post_result={"isSuccess": True}),
-                                 ACCOUNT) == {"isSuccess": True}
+@pytest.mark.parametrize("result", [
+    {"isSuccess": False, "errors": [{"errorCode": "X", "message": "m"}]},
+    dict(OK, isSuccess=False),
+    dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
+                                                       "totalCreditMemoApplications": 0}),
+])
+def test_apply_rules_returns_a_failure_or_a_success_with_both_counts(result):
+    assert lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT) == result
 
 
 # --------------------------------------------------------------------------- command
@@ -217,6 +234,13 @@ def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     assert "RULES: Match Balance, Prioritize Oldest Invoices;" in out
     assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made; "
             "2 balance(s) checked, 1 skipped)") in out
+
+
+def test_verifies_the_invoices_of_credit_rows_too(monkeypatch):
+    credit_b = _row("4sGNEW", "credit", MEMO, INVOICE_B, 49.5)
+    org = Org(monkeypatch, after=[OLD, NEW_PAY, credit_b])
+    assert _apply_rules() == 0
+    assert ("fetch", [INVOICE_A, INVOICE_B], [PAYMENT]) in org.calls
 
 
 def test_passes_the_target_date(monkeypatch):

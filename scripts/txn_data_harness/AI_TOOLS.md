@@ -168,7 +168,7 @@ Calls the rule-based application (`/revenue/billing/transactions/actions/apply`)
 once for the whole account: the platform considers every open payment and
 credit memo there by the Billing Settings rules, not only a run's. Prints each
 application row it created (`APPLIED:`) and the rules the response names
-(`RULES:`; EA is Match Balance, OI Prioritize Oldest Invoices), then runs the
+(`RULES:`, as Help names; EA is Match Balance), then runs the
 `verify` checks on the invoices and payments those rows touch; the pass line
 gives the checked and skipped counts. Without `--target-date`, one measured
 evening's calls considered only invoices posted that UTC day. Exit 0 when the

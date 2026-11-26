@@ -1974,17 +1974,23 @@ def apply_rules(client: SfRestClient, account_id: str,
     if not isinstance(result, dict) or "_raw" in result:
         raise SettlementError("apply-rules",
                               f"rules application answered {describe_response(result)}")
+    # The measured shape: isSuccess a boolean; on success, a summary carrying
+    # both application counts (the command checks its rows against them).
     rules = result.get("appliedRules") or []
-    summary = result.get("rulesApplicationSummary") or {}
-    counts = [summary.get(k) for k in _RULES_COUNTS] if isinstance(summary, dict) else None
-    if (not isinstance(rules, list) or not all(isinstance(r, str) for r in rules)
-            or counts is None
+    summary = result.get("rulesApplicationSummary")
+    success = result.get("isSuccess")
+    counts = [summary.get(k) for k in _RULES_COUNTS] if isinstance(summary, dict) else []
+    required = [summary.get(k) for k in RULES_COUNT_BY_KIND.values()] if counts else []
+    if (not isinstance(success, bool)
+            or not isinstance(rules, list) or not all(isinstance(r, str) for r in rules)
+            or (summary is not None and not isinstance(summary, dict))
             or not all(c is None or (isinstance(c, int) and not isinstance(c, bool))
-                       for c in counts)):
+                       for c in counts)
+            or (success and (not required or None in required))):
         raise SettlementError(
             "apply-rules", "rules application answered an unexpected shape "
-            f"(appliedRules {type(rules).__name__}, rulesApplicationSummary "
-            f"{type(summary).__name__})")
+            f"(isSuccess {success!r}, appliedRules {type(rules).__name__}, "
+            f"rulesApplicationSummary {type(summary).__name__})")
     return result
 
 

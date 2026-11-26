@@ -544,10 +544,13 @@ Each then called:
   `CreditMemoLineInvoiceLine`, `Type` Applied, `UnappliedStatus` No; the
   invoice's `SettlementLevel` became InvoiceLine. `cli verify` checks them like
   any other application.
-- **Rule codes.** The response names the rules it used: **EA is Match Balance**
-  and **OI is Prioritize Oldest Invoices**. HI was never reached (Prioritize
-  Oldest always found an invoice); that it is Prioritize Highest Balance
-  Invoices is inferred from the Help names.
+- **Rule names.** `appliedRules` gives Help names, not the settings codes.
+  Calls that reported Match Balance alone (probes 1 and 4) put the payment on
+  the invoice with that balance, so **EA is Match Balance**. The other name
+  reported was Prioritize Oldest Invoices, always second after Match Balance,
+  as OI follows EA in the setting; that OI is that rule, and HI Prioritize
+  Highest Balance Invoices, is inferred from the codes and that order. No call
+  reported a third rule.
 
 The probes, in the order they ran (invoice numbers are that org's
 `DocumentNumber`s; "candidates" are the open invoices posted that UTC day):
@@ -568,11 +571,15 @@ The probes, in the order they ran (invoice numbers are that org's
   default is inferred to be "posted on or after today, UTC" from one evening's
   calls; the dev guide only says `targetDate` selects invoices posted on or
   after it.
-- **Which candidate Prioritize Oldest picks among invoices posted the same
-  day is not established.** Probe 2 took the earliest-created candidate,
-  but probes 3 and 5 passed over earlier candidates that were still partly
-  open. The response does not say which rule placed each row; probe 5's credit
-  may have been placed by Match Balance (49.50 was what the payment left).
+- **What placed the unmatched payments is not established.** Every candidate
+  in probes 2, 3 and 5 was posted the same UTC day, so "oldest" by posted
+  date could not separate them. Each unmatched payment went to the candidate
+  with the highest balance, the earliest created among equals: probe 2 to
+  DOC-23 (all at 495.00), probe 3 to DOC-25 (495.00, over DOC-23 at 395.00),
+  probe 5 to DOC-28 (495.00, over DOC-23 and DOC-25). That fits highest-balance
+  placement as well as any oldest ordering. The response does not say which
+  rule placed each row; probe 5's credit may have been placed by Match Balance
+  (49.50 was what the payment left).
 - Not measured: ties among eligible invoices on Match Balance, Credits First,
   Match ID (a payment that names an invoice), a credit memo alone, header
   level, more than 2,000 invoices (`areAllInvoicesConsidered` false). Help's
