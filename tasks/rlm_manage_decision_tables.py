@@ -143,9 +143,11 @@ def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
     # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
-    requested = "an incremental" if is_incremental else "a full"
+    # False requests no incremental; it is not a request for a full refresh.
+    requested = ("an incremental request does not fix the type that runs" if is_incremental
+                 else "with no incremental requested, the platform chooses the type")
     return (
-        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        f"Completion is asynchronous, and {requested}: "
         "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
         "AFTER the job completes, judge it by the later of the two."
     )
@@ -213,7 +215,7 @@ class ManageDecisionTables(BaseTask):
             "required": False
         },
         "is_incremental": {
-            "description": "For refresh operation: True for incremental refresh, False for full refresh. Blank or unset means False; a list or an unparseable value (e.g. maybe) is refused. Default: False",
+            "description": "For refresh operation: True requests an incremental refresh. False (the default, also when blank or unset) requests no incremental, which is not a full refresh: in Release 264 the platform chooses the type. A list or an unparseable value (e.g. maybe) is refused.",
             "required": False
         },
         "sort_by": {
@@ -429,8 +431,8 @@ class ManageDecisionTables(BaseTask):
                 self.logger.warning("No active decision tables found to refresh.")
                 return
 
-        # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
-        refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
+        # Why false is not "full": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
+        refresh_type = "incremental requested" if is_incremental else "no incremental requested; the platform chooses the type"
         
         self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
         

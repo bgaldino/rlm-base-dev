@@ -41,9 +41,11 @@ def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_manage_decision_tables.py; tests/test_decision_table_tasks.py holds them together."""
     # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
-    requested = "an incremental" if is_incremental else "a full"
+    # False requests no incremental; it is not a request for a full refresh.
+    requested = ("an incremental request does not fix the type that runs" if is_incremental
+                 else "with no incremental requested, the platform chooses the type")
     return (
-        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        f"Completion is asynchronous, and {requested}: "
         "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
         "AFTER the job completes, judge it by the later of the two."
     )
