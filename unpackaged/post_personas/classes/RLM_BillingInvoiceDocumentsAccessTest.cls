@@ -29,10 +29,11 @@
  *   field-access set): the Invoice Batch Run reads and the DocGen access.
  * - the set's metadata: View All on the run chain, Access Libraries, and membership of both groups.
  * The Billing Operations methods are regression checks for RLM_BillingInvoiceDocuments: the managed
- * Operations set already reads the runs, the View All the set adds is checked only by the metadata
- * test, and billingOperationsWithBothDocGenSetsHasBatchAndOnDemandAccess's DocGen assertions check the
- * managed DocGen sets assigned next to the group (it passes with the set emptied, apart from the
- * set-exists check).
+ * Operations set already reads the runs, and the View All the set adds is checked only by the metadata
+ * test. In both *WithBothDocGenSets* methods the DocGen assertions check the managed DocGen sets
+ * assigned next to the group. The Operations one passes with the set emptied, apart from the
+ * set-exists check; the Admin one depends on the set only through its run reads, which
+ * billingAdminRoleWithInvoiceDocumentsSetReadsInvoiceBatchRuns already checks.
  * Nothing here fails because Salesforce grants MORE than today: the only such note (DocGen User
  * gaining the DocGen Designer permission) reads metadata and creates no user.
  * The batch process insert is real, because only it meets the DocGen Designer user-permission gate.
@@ -197,7 +198,8 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
                 failures.addAll(batchCreateFailures(roleSet, state));
             } else {
                 System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + roleSet + ' batch process create:'
-                    + ' no DocumentGenerationSetting row (batch document generation not configured).');
+                    + ' no DocumentGenerationSetting row (batch document generation not configured, state '
+                    + state + ').');
             }
             if (!Schema.SObjectType.DocumentGenerationProcess.isCreateable()) {
                 failures.add('Document Generation Process create (on-demand generation)');
@@ -237,8 +239,9 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
     private enum BatchGeneration { NOT_CONFIGURED, ENABLED, DISABLED }
 
     // No setting row (e.g. an org where DocGen was never set up; inferred, no measured org lacked a
-    // row): not configured, so the insert is not attempted. A row: enabled only with both batch and server-side generation on. Measured on a
-    // 264 org: either one off makes the persona's insert INVALID_INPUT. (Batch on with server-side off
+    // row): not configured, so the insert is not attempted. A row: enabled only with both batch and
+    // server-side generation on. Measured on a 264 org: either one off makes the persona's insert
+    // INVALID_INPUT. (Batch on with server-side off
     // and the server-side mechanism is refused at deploy: "To select Server-Side for the Generation
     // Mechanism, you must select the ServerSide Docgen Enabled option.")
     @TestVisible

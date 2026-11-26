@@ -22,7 +22,10 @@
 //      Internal Users. A library takes only users and public groups as members (adding All
 //      Internal Users directly is refused), so the group carries it. Generating any document
 //      means reading its template, and templates hold no record data, so every internal
-//      user reads them. The per-user Salesforce CRM Content User permission is not needed for
+//      user may read them. Members also need the Access Libraries user permission
+//      (ContentWorkspaces) to read the files: Standard User and the RLM persona profiles have it,
+//      Minimum Access does not (measured on 264, todo 292: a Minimum Access member without it
+//      could not read the DefaultInvoiceTemplate file). The per-user Salesforce CRM Content User permission is not needed for
 //      that: measured on 264, the sales rep (without it) generated, and a Standard User without it
 //      read the template's versions through the group. A rerun leaves a group that has members
 //      alone.

@@ -503,7 +503,7 @@ What a user of `RLM_Billing_Admin` or `RLM_Billing_Operations` needs to generate
 Invoice) (todo 292). The access below was measured headlessly, in check-only test runs as Minimum Access
 users holding the Billing license and each group or its content [Measured: 2026-11-26, 264, ent-sb0
 scratch builds: rlm-base__hdr-hdr-r1, and rlm-base__apexcov-ac1125-r1 for the group-status check below].
-The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in both groups: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". **Generating a document as the persona has not been run yet, so pack 292 stays
+The Invoice Batch Run reads were checked as the group itself on rlm-base__hdr-hdr-r1, with the set in both groups: check-only run 0AfWt00000hUTdJKAW (the group methods took about 1.2 s each, creating a user), and a synchronous test run after deploy 0AfWt00000hUTevKAG whose debug log (07LWt00000AEwKvMAL) shows "CHECKED: RLM_Billing_Admin is Updated" and "CHECKED: RLM_Billing_Operations is Updated". The batch process create was checked the same way: a synchronous test run after deploy 0AfWt00000hUX2bKAG (debug log 07LWt00000AEx5hMAD) shows "CHECKED: RevenueLifecycleManagementBillingAdmin batch process create asserted (setting ENABLED)" and the same for RevenueLifecycleManagementBillingOperations, so the test reads the setting row and asserts the insert. **Generating a document as the persona has not been run yet, so pack 292 stays
 open until a live persona run passes.**
 
 | Need | Why | How the persona gets it |
@@ -556,8 +556,9 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   asserted insert logs "CHECKED: <role> batch process create asserted (setting <state>)". With both flags on, the other settings do not stop the insert: it succeeds with the client-side
   generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch percentage limit (`batchDocGnrnPctLimitPerHour`) of 0 (0AfWt00000hUW89KAG). It decides by status code and setting, never by message text. The Billing
   Operations methods are regression checks for the set: the managed Operations set already reads the runs,
-  the View All the set adds is checked only by the metadata test, and the Operations DocGen method's DocGen
-  assertions check the managed DocGen sets assigned next to the group;
+  and the View All the set adds is checked only by the metadata test. In both DocGen methods (Admin and
+  Operations) the DocGen assertions check the managed DocGen sets assigned next to the group; the Admin one
+  depends on the set only through its run reads, which the Admin run-read method already checks;
 - **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both
   groups.
 

@@ -1388,7 +1388,7 @@
 
 ### `create_docgen_library`
 
-**Description:** Create the Docgen Document Template Library and give runtime users read-only access to its template files: a read-only library permission (RLM DocGen Template Viewer) and a public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no members) added as a library member. Without the membership only the build admin can read the templates, and every other user's document generation fails (todo 435). Idempotent; rerun it on an org built before this fix.
+**Description:** Create the Docgen Document Template Library and give runtime users read-only access to its template files: a read-only library permission (RLM DocGen Template Viewer) and a public group (RLM_DocGen_Template_Users, seeded with All Internal Users while it has no members) added as a library member. Without the membership only the build admin can read the templates, and every other user's document generation fails (todo 435). Members also need the Access Libraries user permission (ContentWorkspaces): Standard User and the RLM persona profiles have it, Minimum Access does not (todo 292). Idempotent; rerun it on an org built before this fix.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
