@@ -10,7 +10,7 @@ import os
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import soql_quote
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -35,7 +35,7 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             "required": False,
         },
         "api_version": {
-            "description": "Salesforce API version override (default from org/project).",
+            "description": "Salesforce API version override (default: the project API version).",
             "required": False,
         },
         "dry_run": {
@@ -58,12 +58,7 @@ class ManageTransactionProcessingTypes(BaseSalesforceTask):
             raise TaskOptionsError("No org_config available")
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
-        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
-        # raises AssertionError under STRICT_GETATTR).
-        api_version = self.options.get("api_version") or self.project_config.project__package__api_version
-        if not api_version:
-            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
-        api_version = str(api_version).lstrip("v")
+        api_version = project_api_version(self.project_config, TaskOptionsError, option=self.options.get("api_version"))
         return access_token, instance_url, api_version
 
     def _tooling_headers(self, access_token: str) -> Dict[str, str]:

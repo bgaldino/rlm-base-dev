@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import soql_quote
+from tasks.soql_utils import project_api_version, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -107,7 +107,7 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         "api_version": {
             "description": (
                 f"Salesforce API version override (minimum {MIN_API_VERSION}). "
-                "Default: project/org version."
+                "Default: the project API version."
             ),
             "required": False,
         },
@@ -168,12 +168,7 @@ class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
 
-        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
-        # raises AssertionError under STRICT_GETATTR).
-        api_version = self.options.get("api_version") or self.project_config.project__package__api_version
-        if not api_version:
-            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
-        api_version = str(api_version).lstrip("v")
+        api_version = project_api_version(self.project_config, TaskOptionsError, option=self.options.get("api_version"))
         # Enforce minimum version
         try:
             if float(api_version) < float(MIN_API_VERSION):

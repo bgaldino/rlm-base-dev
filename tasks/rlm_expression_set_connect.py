@@ -60,6 +60,10 @@ from urllib.parse import quote
 
 import requests
 
+# Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
+# sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.tasks import BaseTask
@@ -200,13 +204,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     @property
     def _api_version(self) -> str:
         return (
-            self.options.get("api_version")
-            or getattr(self.org_config, "api_version", None)
-            or getattr(
-                self.project_config,
-                "project__package__api_version",
-                "68.0",
-            )
+            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
         )
 
     @property

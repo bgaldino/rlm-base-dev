@@ -19,7 +19,7 @@ import time
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, positive_int, requested_names, soql_quote
+from tasks.soql_utils import option_text, positive_int, project_api_version, requested_names, soql_quote
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -123,12 +123,7 @@ class ManageExpressionSets(BaseSalesforceTask):
 
     def _get_api_version(self) -> str:
         """Return the project API version (OrgConfig has no api_version attribute)."""
-        # Not org_config.api_version: OrgConfig has no such attribute (BaseConfig.__getattr__ warns, and
-        # raises AssertionError under STRICT_GETATTR).
-        version = self.project_config.project__package__api_version
-        if not version:
-            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
-        return str(version).lstrip("v")
+        return project_api_version(self.project_config, TaskOptionsError)
     
     def _list_expression_sets(self):
         """List expression sets with their metadata."""
