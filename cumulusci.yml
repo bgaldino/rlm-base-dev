@@ -2390,22 +2390,12 @@ tasks:
     group: Revenue Lifecycle Management
     description: "Assign Permission Set Groups with tolerance for permission warnings"
     class_path: tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant
-    options:
-      api_names:
-        description: "API Developer Names of desired Permission Set Groups"
-        required: True
-      user_alias:
-        description: "Alias of target user (if not the current running user)"
-        required: False
 
   recalculate_permission_set_groups:
     group: Revenue Lifecycle Management
     description: Recalculate permission set groups and wait for Updated status
     class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
     options:
-      api_names:
-        description: "API Developer Names of Permission Set Groups to recalculate"
-        required: True
       timeout_seconds: 300
       poll_seconds: 10
       trigger_recalc: true

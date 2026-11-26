@@ -95,6 +95,9 @@ def generate_tasks_reference(data: dict) -> str:
         "",
         f"**{len(tasks)} tasks** across **{len(by_group)} groups**.",
         "",
+        "**Options** lists the defaults `cumulusci.yml` sets. Every option a task takes, "
+        "and which are required: `cci task info <task>`.",
+        "",
         "---",
         "",
     ]
@@ -125,18 +128,13 @@ def generate_tasks_reference(data: dict) -> str:
             if options:
                 lines.append("**Options:**")
                 lines.append("")
+                # Every entry is a default value; option specs live in the class's task_options
+                # (tests/test_cci_task_option_values.py keeps specs out of cumulusci.yml).
                 for opt_name, opt_val in options.items():
-                    # An option DEFINITION has description/required keys; a dict-valued option
-                    # VALUE (e.g. ignore_row_errors_for: {Object: "substring"}) renders like a list.
-                    if isinstance(opt_val, dict) and ({"description", "required"} & set(opt_val)):
-                        desc_text = opt_val.get("description", "")
-                        req = opt_val.get("required", False)
-                        lines.append(f"- `{opt_name}`: {desc_text} {'*(required)*' if req else ''}")
-                    else:
-                        val_str = str(opt_val)
-                        if len(val_str) > 120:
-                            val_str = val_str[:117] + "..."
-                        lines.append(f"- `{opt_name}`: `{val_str}`")
+                    val_str = str(opt_val)
+                    if len(val_str) > 120:
+                        val_str = val_str[:117] + "..."
+                    lines.append(f"- `{opt_name}`: `{val_str}`")
                 lines.append("")
 
             lines.append("---")

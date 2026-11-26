@@ -701,6 +701,14 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="cci_task_option_values",
+        cmd=["python", "tests/test_cci_task_option_values.py"],
+        # Task options in cumulusci.yml are values, not {description, required} specs (todo 492).
+        triggers=["cumulusci.yml", "tasks/rlm_assign_permission_set_groups.py",
+                  "tests/test_cci_task_option_values.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
         name="sfdmu_id_lookup_wiring",
         cmd=["python", "tests/test_sfdmu_id_lookup_wiring.py"],
         # LoadSFDMUData's parent-Id lookup step (todo 298): the sf CLI org is never the access
