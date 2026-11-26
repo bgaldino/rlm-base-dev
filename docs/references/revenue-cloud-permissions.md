@@ -530,7 +530,8 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 `RLM_BillingInvoiceDocumentsAccessTest` (`unpackaged/post_personas/classes/`) checks, as Minimum Access users:
 
 - **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
-  `Updating` or `Outdated` (a deploy that changes it leaves it `Updating`) is skipped with a "SKIPPED, NOT
+  not `Updated` (inside a deploy that changes it, it reads `Outdated`, measured below; an API edit of its
+  components leaves it `Updating` for a while) is skipped with a "SKIPPED, NOT
   CHECKED" WARN debug line, and then proves nothing. Measured on an org whose two groups did not yet contain
   `RLM_BillingInvoiceDocuments`: in a check-only deploy of the whole bundle with this class's tests, both groups
   read `Outdated` inside the deploy transaction, with the set already among their components, so the group
@@ -547,7 +548,8 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   server-side off and the server-side mechanism is refused at deploy. So the test reads both settings first
   (`IsBatchDocGnrnEnabled` and `IsServerSideDocGenEnabled`): with both on, any refusal fails; otherwise, or
   with no setting row, only `INVALID_INPUT` is a "SKIPPED, NOT CHECKED" WARN line and any other status code
-  fails. It decides by status code and setting, never by message text. The Billing
+  fails. With both flags on, the other settings do not stop the insert: it succeeds with the client-side
+  generation mechanism (0AfWt00000hUW6XKAW) and with an hourly batch limit of 0 (0AfWt00000hUW89KAG). It decides by status code and setting, never by message text. The Billing
   Operations run-read checks are regression checks: the managed Operations set
   already reads the runs, and the View All the set adds is checked only by the metadata test;
 - **the set's metadata:** exactly Read and View All on the run chain, Access Libraries, and membership of both

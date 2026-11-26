@@ -21,9 +21,10 @@
  *   probes and is not a deploy gate here.
  *
  * Which tests check what:
- * - the group itself: the *Group* methods. A group that is Updating or Outdated cannot be assigned,
- *   and a deploy that changes a group leaves it Updating, so these skip (with a "SKIPPED, NOT
- *   CHECKED" WARN debug line) and then prove nothing. A Failed group fails the test.
+ * - the group itself: the *Group* methods. A group that is not Updated cannot be assigned. Inside a
+ *   deploy that changes the group it reads Outdated (measured on a 264 org), and an API edit of its
+ *   components leaves it Updating for a while (seen in todo 292's earlier work), so these skip (with
+ *   a "SKIPPED, NOT CHECKED" WARN debug line) and then prove nothing. A Failed group fails the test.
  * - the managed role set plus RLM_BillingInvoiceDocuments (the group's content, minus its
  *   field-access set): the Invoice Batch Run reads and the DocGen access.
  * - the set's metadata: View All on the run chain, Access Libraries, and membership of both groups.
@@ -39,7 +40,10 @@
  * persona gets INVALID_INPUT "Enable the batch document generation setting.", and with batch on and
  * server-side off (client-side mechanism) INVALID_INPUT "Enable the server-side document generation
  * setting."; in both, a user without DocGen Designer still gets CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY,
- * because the access checks answer first. batchRefusalSkipsOnlyForInvalidInputWithBatchOff and
+ * because the access checks answer first. The other settings do not matter here (measured): with both
+ * flags on, the insert succeeds with the client-side generation mechanism and with an hourly batch
+ * limit of 0. The measured org has one setting row and Help speaks of "a Document Generation Setting
+ * record"; one row is not guaranteed, so the query orders by CreatedDate and reads the oldest. batchRefusalSkipsOnlyForInvalidInputWithBatchOff and
  * batchGenerationNeedsBothSettings pin the split by status code and settings, not by message text.
  *
  * Admin tests prove nothing here: System Administrator bypasses object access. Each test user needs
@@ -159,7 +163,7 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         Assert.areNotEqual('Failed', groups[0].Status,
             groupName + ' failed to recalculate, so its holders do not get its permissions');
         if (groups[0].Status != 'Updated') {
-            // Updating or Outdated: a deploy that changes the group leaves it Updating.
+            // Outdated inside a deploy that changes the group (measured); Updating after an API edit of its components.
             System.debug(LoggingLevel.WARN, 'SKIPPED, NOT CHECKED: ' + groupName + ' is ' + groups[0].Status
                 + ', not Updated, so it cannot be assigned; rerun this test once the group is Updated.');
             return;
@@ -176,12 +180,13 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         User u = user(new List<String>{ roleSet, INVOICE_DOCS_SET, DOCGEN_USER, DOCGEN_DESIGNER }, null,
             new List<String>{ BILLING_PSL, DOCGEN_PSL });
         Boolean batchEnabled = batchGenerationEnabled(
-            [SELECT IsBatchDocGnrnEnabled, IsServerSideDocGenEnabled FROM DocumentGenerationSetting LIMIT 1]);
+            [SELECT IsBatchDocGnrnEnabled, IsServerSideDocGenEnabled FROM DocumentGenerationSetting
+             ORDER BY CreatedDate LIMIT 1]);
         List<String> failures = new List<String>();
         System.runAs(u) {
             // A real insert, because only it meets the DocGen Designer user-permission gate (describe
-            // does not show it). With batch document generation off it is refused for configuration
-            // (see skipsBatchRefusal); that setting deploys with docgen, this class with personas.
+            // does not show it). With batch or server-side generation off it is refused for configuration
+            // (see skipsBatchRefusal); those settings deploy with docgen, this class with personas.
             Database.SaveResult batch = Database.insert(new DocGenerationBatchProcess(), false, AccessLevel.USER_MODE);
             if (!batch.isSuccess()) {
                 Database.Error error = batch.getErrors()[0];
@@ -225,15 +230,9 @@ private class RLM_BillingInvoiceDocumentsAccessTest {
         Assert.isFalse(batchGenerationEnabled(new List<DocumentGenerationSetting>{ setting(true, false) }), 'server-side off (measured)');
     }
 
-    // The two fields are read-only, so the row is built from JSON.
+    // An in-memory row, as the query would return it (never inserted).
     private static DocumentGenerationSetting setting(Boolean batch, Boolean serverSide) {
-        return (DocumentGenerationSetting) JSON.deserialize(
-            JSON.serialize(new Map<String, Object>{
-                'attributes' => new Map<String, Object>{ 'type' => 'DocumentGenerationSetting' },
-                'IsBatchDocGnrnEnabled' => batch,
-                'IsServerSideDocGenEnabled' => serverSide
-            }),
-            DocumentGenerationSetting.class);
+        return new DocumentGenerationSetting(IsBatchDocGnrnEnabled = batch, IsServerSideDocGenEnabled = serverSide);
     }
 
     // Whether a refused batch process insert is a visible skip rather than a failure: only INVALID_INPUT
