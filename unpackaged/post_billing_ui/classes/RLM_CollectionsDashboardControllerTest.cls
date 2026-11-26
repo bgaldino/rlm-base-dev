@@ -93,7 +93,7 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
         readsByCall.put('promises', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
         RLM_CollectionsDashboardController.boundedReads.clear();
-        RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.getCollectionsProgress(null);
         readsByCall.put('progress', new Set<String>(RLM_CollectionsDashboardController.boundedReads));
         RLM_CollectionsDashboardController.boundedReads.clear();
         RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
@@ -121,7 +121,7 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
         RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
         RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
-        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
         Test.stopTest();
 
@@ -151,7 +151,7 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.CollectionsDashboardData cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
         RLM_CollectionsDashboardController.WorklistData wl = RLM_CollectionsDashboardController.getWorklist(null, null);
         RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
-        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
         Test.stopTest();
 
@@ -195,7 +195,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.startTest();
         Integer queriesBefore = Limits.getQueries();
         Integer rowsBefore = Limits.getQueryRows();
-        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         Integer queriesRun = Limits.getQueries() - queriesBefore;
         Integer rowsRead = Limits.getQueryRows() - rowsBefore;
         Test.stopTest();
@@ -388,9 +388,9 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         RLM_CollectionsDashboardController.MY_PLAN_ROWS = 1;
-        RLM_CollectionsDashboardController.MyCollectionPlanList over = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.MyCollectionPlanList over = RLM_CollectionsDashboardController.getMyCollectionPlans(null);
         RLM_CollectionsDashboardController.MY_PLAN_ROWS = 2;
-        RLM_CollectionsDashboardController.MyCollectionPlanList exact = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.MyCollectionPlanList exact = RLM_CollectionsDashboardController.getMyCollectionPlans(null);
         Test.stopTest();
 
         Assert.areEqual(1, over.items.size(), 'One plan listed');
@@ -510,8 +510,8 @@ private class RLM_CollectionsDashboardControllerTest {
         insert new Case(AccountId = disputed.Id, Subject = 'RLM CD filters dispute');
         RLM_CollectionsDashboardController.WorklistData withCase = RLM_CollectionsDashboardController.getWorklist(null, null);
         RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
-        RLM_CollectionsDashboardController.MyCollectionPlanList plans = RLM_CollectionsDashboardController.getMyCollectionPlans();
-        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+        RLM_CollectionsDashboardController.MyCollectionPlanList plans = RLM_CollectionsDashboardController.getMyCollectionPlans(null);
+        RLM_CollectionsDashboardController.CollectionsProgressData progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
         Test.stopTest();
 
@@ -729,7 +729,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         RLM_AccountNames.Result readable = RLM_AccountNames.read(new Set<Id>{ a.Id });
-        Boolean planNameUnavailable = RLM_CollectionsDashboardController.getMyCollectionPlans().items[0].accountNameUnavailable;
+        Boolean planNameUnavailable = RLM_CollectionsDashboardController.getMyCollectionPlans(null).items[0].accountNameUnavailable;
         System.runAs(noAccess) {
             refused = RLM_AccountNames.read(new Set<Id>{ a.Id });
         }
@@ -740,6 +740,104 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isFalse(planNameUnavailable, 'A read name is available on the plan row');
         Assert.isTrue(refused.unreadable, 'A refused read says so');
         Assert.isTrue(refused.names.isEmpty(), 'With no names');
+    }
+
+    // ---- one currency for every amount (todo 435) ----
+
+    // The test's own conversion: through the corporate currency at the standard rate, rounded per record, as the
+    // controller does (this org has no dated rates: advanced currency management is off on the build orgs).
+    private static Decimal converted(Decimal amount, String fromIso, String toIso) {
+        if (fromIso == toIso) return amount;
+        Map<String, Decimal> rates = new Map<String, Decimal>();
+        for (CurrencyType ct : [SELECT IsoCode, ConversionRate FROM CurrencyType]) rates.put(ct.IsoCode, ct.ConversionRate);
+        return (amount.divide(rates.get(fromIso), 10, RoundingMode.HALF_UP) * rates.get(toIso)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    // Two payments in two currencies: with no currency chosen they are added in the user's currency, each
+    // converted; with one chosen, that currency's payment counts as it is. A SUM() gave the chosen currency's
+    // payment in the corporate currency (measured: 100 EUR summed to 114.11 USD), so the second assertion fails
+    // on an aggregate.
+    @isTest
+    static void cardAmountsInSeveralCurrencies_areShownInOneCurrency() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        Account acc = newAccount('RLM CD Currencies');
+        String corporate = corporateCurrency();
+        String other = anotherCurrency(corporate);
+        insert new List<Payment>{ payment(acc.Id, 100, 'Processed', corporate), payment(acc.Id, 100, 'Processed', other) };
+        String userCurrency = UserInfo.getDefaultCurrency();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.CollectionsDashboardData all = RLM_CollectionsDashboardController.getDashboardCards(acc.Id, null);
+        RLM_CollectionsDashboardController.CollectionsDashboardData chosen = RLM_CollectionsDashboardController.getDashboardCards(acc.Id, other);
+        Test.stopTest();
+
+        Assert.areEqual(userCurrency, all.currencyCode, 'No currency chosen: the user\'s');
+        Assert.isTrue(all.multiCurrency, 'A multi-currency org says so');
+        assertAmount(converted(100, corporate, userCurrency) + converted(100, other, userCurrency), all.unappliedPaymentBalance,
+            'Each payment converted to the user\'s currency, then added');
+        Assert.areEqual(other, chosen.currencyCode, 'The chosen currency');
+        assertAmount(100, chosen.unappliedPaymentBalance, 'The chosen currency\'s payment as it is, not converted to the corporate currency');
+    }
+
+    @isTest
+    static void promiseBucketsInSeveralCurrencies_areShownInOneCurrency() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        Account acc = newAccount('RLM CD Promise Currencies');
+        String corporate = corporateCurrency();
+        String other = anotherCurrency(corporate);
+        // A schedule item takes its schedule's currency (the platform refuses another): one schedule per currency.
+        PaymentSchedule inCorporate = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = corporate);
+        PaymentSchedule inOther = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = other);
+        insert new List<PaymentSchedule>{ inCorporate, inOther };
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = inCorporate.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = inOther.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = other,
+                RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+        };
+        String userCurrency = UserInfo.getDefaultCurrency();
+
+        Test.startTest();
+        RLM_CollectionsDashboardController.PaymentPromiseBucket all =
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, null)).get('Draft');
+        RLM_CollectionsDashboardController.PaymentPromiseBucket chosen =
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, other)).get('Draft');
+        Test.stopTest();
+
+        Assert.areEqual(2, all.itemCount, 'Both items');
+        assertAmount(converted(100, corporate, userCurrency) + converted(100, other, userCurrency), all.totalRequestedAmount,
+            'Each item converted to the user\'s currency, then added');
+        Assert.areEqual(1, chosen.itemCount, 'The chosen currency\'s item');
+        assertAmount(100, chosen.totalRequestedAmount, 'As it is, not converted to the corporate currency');
+    }
+
+    // The Critical threshold is 2000 in the page currency: one condition per currency, each the threshold in it.
+    @isTest
+    static void balanceAtLeast_isTheThresholdInEachCurrency() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        String corporate = corporateCurrency();
+        String other = anotherCurrency(corporate);
+        RLM_CollectionsDashboardController.usePageCurrency(corporate);
+
+        String clause = RLM_CollectionsDashboardController.balanceAtLeast(2000);
+
+        Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + corporate + '\' AND Balance >= 2000.00)'), clause);
+        Assert.isTrue(clause.contains('(CurrencyIsoCode = \'' + other + '\' AND Balance >= ' + converted(2000, corporate, other) + ')'),
+            'The threshold converted into ' + other + ': ' + clause);
+    }
+
+    // A currency with no rate makes the figure unavailable (a failure), never converted at 1.
+    @isTest
+    static void anAmountInACurrencyWithNoRate_isNotConvertedAtOne() {
+        if (!UserInfo.isMultiCurrencyOrganization()) return;
+        RLM_CollectionsDashboardController.usePageCurrency(corporateCurrency());
+        try {
+            RLM_CollectionsDashboardController.toPageCurrency(100, 'XXX');
+            Assert.fail('No rate for XXX: not converted');
+        } catch (RLM_CollectionsDashboardController.CurrencyConversionException e) {
+            Assert.areEqual(RLM_CollectionsDashboardController.REASON_FAILED, RLM_CollectionsDashboardController.reasonFor(e),
+                'The figure could not be loaded');
+        }
     }
 
     // ---- the collections user (todo 435) ----
@@ -890,11 +988,11 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.WorklistData worklist =
             RLM_CollectionsDashboardController.getWorklist(null, null);
         RLM_CollectionsDashboardController.CpTaskList tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(accountId);
-        RLM_CollectionsDashboardController.MyCollectionPlanList myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans();
+        RLM_CollectionsDashboardController.MyCollectionPlanList myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans(null);
         RLM_CollectionsDashboardController.PaymentPromiseSummary promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
         RLM_CollectionsDashboardController.WorklistItem disputedRow = byAccount(worklist.disputedInvoices).get(accountId);
         RLM_CollectionsDashboardController.CollectionsProgressData progress =
-            RLM_CollectionsDashboardController.getCollectionsProgress();
+            RLM_CollectionsDashboardController.getCollectionsProgress(null);
         return new Map<String, Object>{
             'accounts' => RLM_CollectionsDashboardController.getAccountOptions().options,
             'currencies' => RLM_CollectionsDashboardController.getCurrencyOptions(),
@@ -1029,10 +1127,10 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getCollectionPlanTasks(acc.Id),
             'Collection plan tasks return a non-null list.');
         System.assertNotEquals(null,
-            RLM_CollectionsDashboardController.getMyCollectionPlans(),
+            RLM_CollectionsDashboardController.getMyCollectionPlans(null),
             'My collection plans return a non-null list.');
         System.assertNotEquals(null,
-            RLM_CollectionsDashboardController.getCollectionsProgress(),
+            RLM_CollectionsDashboardController.getCollectionsProgress(null),
             'Collections progress returns a non-null wrapper.');
         Test.stopTest();
     }
@@ -1393,7 +1491,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         List<RLM_CollectionsDashboardController.MyCollectionPlanItem> items =
-            RLM_CollectionsDashboardController.getMyCollectionPlans().items;
+            RLM_CollectionsDashboardController.getMyCollectionPlans(null).items;
         Test.stopTest();
 
         Assert.areEqual(2, items.size(), 'Both plans are owned by the running user.');
@@ -1424,7 +1522,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsProgressData progress =
-            RLM_CollectionsDashboardController.getCollectionsProgress();
+            RLM_CollectionsDashboardController.getCollectionsProgress(null);
         Test.stopTest();
 
         Assert.areEqual(2, progress.totalPlans, 'Two plans.');
@@ -1495,9 +1593,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(adminWorklist.unavailable.isEmpty(), 'PRECONDITION: the admin reads every worklist tab.');
         Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionPlanTasks(null).items.size(),
             'PRECONDITION: the admin sees the plan\'s task.');
-        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress(null).totalPlans,
             'PRECONDITION: the admin measures the plan.');
-        Assert.areEqual(1, RLM_CollectionsDashboardController.getMyCollectionPlans().items.size(),
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getMyCollectionPlans(null).items.size(),
             'PRECONDITION: the admin lists the plan they own.');
         Assert.areEqual(1, bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null))
             .get('Draft').itemCount, 'PRECONDITION: the admin sees the schedule item.');
@@ -1520,8 +1618,8 @@ private class RLM_CollectionsDashboardControllerTest {
             worklist = RLM_CollectionsDashboardController.getWorklist(null, null);
             promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
             tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
-            progress = RLM_CollectionsDashboardController.getCollectionsProgress();
-            myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans();
+            progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
+            myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans(null);
         }
         Test.stopTest();
 
@@ -1621,8 +1719,8 @@ private class RLM_CollectionsDashboardControllerTest {
         RLM_CollectionsDashboardController.CollectionsProgressData progress;
         Test.startTest();
         System.runAs(specialist) {
-            mine = RLM_CollectionsDashboardController.getMyCollectionPlans().items;
-            progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+            mine = RLM_CollectionsDashboardController.getMyCollectionPlans(null).items;
+            progress = RLM_CollectionsDashboardController.getCollectionsProgress(null);
         }
         Test.stopTest();
 

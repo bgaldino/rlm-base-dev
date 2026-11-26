@@ -14,6 +14,9 @@
                 <p class="filter-notice">{accountFilterNotice}</p>
             </template>
             <div class="filter-context"><span class="context-label">Viewing:</span> {selectedAccountLabel} · {selectedCurrencyLabel}</div>
+            <template if:true={currencyNote}>
+                <p class="currency-note filter-notice">{currencyNote}</p>
+            </template>
         </header>
 
         <main class="dashboard-body">

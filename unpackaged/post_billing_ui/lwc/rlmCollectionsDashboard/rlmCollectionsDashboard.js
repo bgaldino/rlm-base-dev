@@ -351,13 +351,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         else if (data) this.paymentPromiseState = data;
     }
 
-    @wire(getMyCollectionPlans)
+    @wire(getMyCollectionPlans, { currencyCode: '$effectiveCurrencyCode' })
     wiredMyCollectionPlans({ error, data }) {
         if (error) this.myCollectionPlansState = failedSection({ items: [] });
         else if (data) this.myCollectionPlansState = data;
     }
 
-    @wire(getCollectionsProgress)
+    @wire(getCollectionsProgress, { currencyCode: '$effectiveCurrencyCode' })
     wiredCollectionsProgress({ error, data }) {
         if (data) this.collectionsProgressData = data;
         // A failed call: not available (could not be loaded), not zero averages.
@@ -380,6 +380,14 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             accountId: this.selectedAccountId || null,
             currencyCode: this.selectedCurrency || this.orgDefaultCurrency || 'USD'
         };
+    }
+
+    // Every amount on the page is in one currency (the chosen one, or else the user's); on a multi-currency org,
+    // amounts recorded in another currency are converted, and the page says so.
+    get currencyNote() {
+        const data = this.dashboardData;
+        if (!data || !data.multiCurrency || !data.currencyCode) return '';
+        return `Amounts in ${data.currencyCode}. Amounts recorded in another currency are converted at the org's conversion rates.`;
     }
 
     get displayCurrency() {
@@ -415,6 +423,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         if (value === this.selectedCurrency) return;
         this.selectedCurrency = value;
         this.resetFilteredSections();
+        // Progress and the user's plans are not filtered by currency, but their amounts are shown in it.
+        this.collectionsProgressData = undefined;
+        this.myCollectionPlansState = undefined;
         this.dispatchFilterChange();
     }
 
@@ -919,7 +930,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 uniqueKey: `critical-inv-${item.invoiceId || idx}`,
                 balanceFormatted: this.formatCurrency(item.balance),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
-                accountUrl: item.billingAccountId ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
+                // A name the user may not read (refused, or hidden by sharing) is plain text: its record would
+                // open on an insufficient-privileges page.
+                accountUrl: item.billingAccountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
                 billingAccountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.billingAccountName,
                 contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
                 collectionPlanUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : null,
@@ -936,7 +949,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
                 accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
                 balanceFormatted: this.formatCurrency(item.balance),
-                accountUrl: `/lightning/r/Account/${item.accountId}/view`,
+                accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
                 invoiceNumber: null,
                 invoiceUrl: null,
                 ptpDateFormatted,
@@ -1088,7 +1101,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             ...item,
             uniqueKey: `mycp-${item.collectionPlanId || idx}`,
             cpUrl: item.collectionPlanId ? `/lightning/r/CollectionPlan/${item.collectionPlanId}/view` : '#',
-            accountUrl: item.accountId ? `/lightning/r/Account/${item.accountId}/view` : null,
+            accountUrl: item.accountId && !item.accountNameUnavailable ? `/lightning/r/Account/${item.accountId}/view` : null,
             accountName: item.accountNameUnavailable ? NOT_AVAILABLE_CELL : item.accountName,
             dueDateFormatted: item.dueDate ? this.formatDateShort(item.dueDate) : '—',
             toRecoverFormatted: this.formatCurrency(item.totalInvoiceBalance)

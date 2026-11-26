@@ -160,7 +160,7 @@ private class RLM_BillingUIAccessTest {
     // 264); collectionsUserCannotReadDebitMemos pins that.
     private static final Map<String, List<String>> DASHBOARD_READS = new Map<String, List<String>>{
         'Account' => new List<String>{ 'Name' },
-        'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive' },
+        'CurrencyType' => new List<String>{ 'IsoCode', 'IsCorporate', 'IsActive', 'ConversionRate' },
         'Invoice' => new List<String>{
             'InvoiceNumber', 'Balance', 'TotalAmount', 'DueDate', 'BillingAccountId',
             'BillToContactId', 'Status', 'CurrencyIsoCode'
@@ -171,7 +171,8 @@ private class RLM_BillingUIAccessTest {
             'TargetPaymentProcessingDate'
         },
         'CollectionPlan' => new List<String>{
-            'Name', 'Duedate', 'TotalInvoiceBalance', 'AccountId', 'OwnerId', 'ClosedDate', 'CreatedDate', 'DaysPastDue'
+            'Name', 'Duedate', 'TotalInvoiceBalance', 'AccountId', 'OwnerId', 'ClosedDate', 'CreatedDate', 'DaysPastDue',
+            'CurrencyIsoCode'
         },
         'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' },
         'Task' => new List<String>{ 'Subject', 'Status', 'ActivityDate', 'WhatId' },

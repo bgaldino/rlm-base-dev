@@ -180,8 +180,8 @@ measured on 264), shown as "You don't have access to ...", or `failed` for any o
 transient failure is not sent to an administrator. A failed call (a wire or imperative error) is
 always `failed`.
 
-Every read a figure or list is built from is bounded (`boundedRows` and `boundedAggregate` in the
-controller), so a large org gets a section that says it has too many records instead of a figure
+Every read a figure or list is built from is bounded (`boundedRows` in the controller; sums are read
+as rows through `boundedSum`), so a large org gets a section that says it has too many records instead of a figure
 from a cut-off read, or the per-transaction limit of 50,000 query rows, whose `LimitException` no
 catch block can handle and which would fail the whole call (every card, or every worklist tab, at
 once). Each read may take the lesser of `ROW_CAP` (10,000 rows) and what the call has left less
@@ -241,14 +241,33 @@ checked (2026-11-26) Invoice is not createable through DML and the only invoices
 `everyInvoiceRead_countsOnlyPostedInvoicesWithABalance` therefore checks the SOQL each invoice read
 executed, recorded where it runs (only while a test runs).
 
+Every amount on the page is in one currency: the chosen currency, or else the user's (the currency
+the page formats in). Measured on 264 (2026-11-26), on a multi-currency org (USD corporate; AUD, CAD,
+CHF, EUR, GBP and JPY active), with test payments rolled back: a `SUM()` over a currency field
+returns the corporate currency, even grouped by `CurrencyIsoCode` (100 USD and 100 EUR summed to
+214.11 USD, and the EUR group alone to 114.11, not 100); `convertCurrency()` converts a row to the
+user's currency and works inside `SUM()` (214.11 again) but not around it; and the user's default
+currency (`getOrgDefaultCurrency`) was the corporate one there. So no aggregate gives one currency's
+own amounts, and before this the cards, promises and the High-Value and Disputed rollups added amounts
+of several currencies as if they were one, or showed a chosen currency's amounts converted to the
+corporate one. Now every amount is read as a row with its `CurrencyIsoCode` and converted in Apex to
+the page currency, at today's dated rate where advanced currency management has one, else the standard
+rate, as the on-account cards do (pack 452); a currency with no rate makes the figure unavailable,
+never converted at 1. The Critical list's 2000 threshold is 2000 in the page currency (one condition
+per currency, `balanceAtLeast`), progress and the user's plans are shown in the page currency too
+(choosing a currency re-reads them), and on a multi-currency org the page says "Amounts in USD.
+Amounts recorded in another currency are converted at the org's conversion rates." A single-currency
+org reads and shows its amounts as they are, with no note.
+
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
 unread plan or promise date does: when the Account read is refused or fails, and when the account is
 missing from it because sharing hides it from the user (Account.Name is required, so a missing account
-is a hidden one). A row with no account at all shows "—".
+is a hidden one), as plain text with no link to the account, whose page the user could not open. A row
+with no account at all shows "—".
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
-adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
-counts its rows first and adds them up only within the bound. A SOQL for loop over a list (`for
+adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one. Sums are read as rows
+and added in Apex (see the currency paragraph below), which costs the same rows. A SOQL for loop over a list (`for
 (List<Case> chunk : ...)`) fetches 200-row chunks and is charged for what it fetched: one that stopped
 after its first chunk of a 500-row result was charged 400 rows, not 500 (measured 2026-11-26); a loop
 over single rows of `Database.query` or `Database.queryWithBinds` was charged all 500. The Disputed

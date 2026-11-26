@@ -1009,4 +1009,65 @@ describe("c-rlm-collections-dashboard figures and lists it cannot read", () => {
     const account = Array.from(element.shadowRoot.querySelectorAll("lightning-combobox")).find((box) => box.name === "account");
     expect(account.options.map((option) => option.label)).toEqual(["All Accounts", "Beta"]);
   });
+
+  // An account name the user may not read is plain text, not a link to a page they cannot open.
+  it("shows an unavailable account name without a link on every list", async () => {
+    const element = await mount();
+    getWorklist.emit({
+      ...EMPTY_WORKLIST,
+      criticalFollowUpInvoices: [{ invoiceId: "3tt000000000001AAA", invoiceNumber: "INV-1", balance: 2500,
+        billingAccountId: "001000000000009AAA", billingAccountName: "—", accountNameUnavailable: true, collectionPlanUnavailable: false }],
+      highValueDelinquents: [{ accountId: "001000000000009AAA", accountName: "—", accountNameUnavailable: true, balance: 5000 }],
+      disputedInvoices: [{ accountId: "001000000000009AAA", accountName: "—", accountNameUnavailable: true, balance: 10 }]
+    });
+    getMyCollectionPlans.emit({
+      items: [{ collectionPlanId: "0Wn000000000001AAA", name: "CP-1", dueDate: "2026-12-01", accountId: "001000000000009AAA",
+        accountName: "—", accountNameUnavailable: true, totalInvoiceBalance: 10 }],
+      unavailable: false,
+      hasMore: false
+    });
+    await flushPromises();
+
+    const accountLinks = () => Array.from(element.shadowRoot.querySelectorAll("a")).filter((a) => (a.getAttribute("href") || "").includes("/Account/"));
+    expect(accountLinks()).toEqual([]);
+    expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
+    await openTab(element, "highValue");
+    expect(accountLinks()).toEqual([]);
+    await openTab(element, "disputed");
+    expect(accountLinks()).toEqual([]);
+    expect(element.shadowRoot.querySelector(".worklist-table tbody tr").textContent).toContain("Not available");
+  });
+
+  // On a multi-currency org the page says which currency its amounts are in, and that others are converted.
+  it("states the currency of every amount on a multi-currency org", async () => {
+    const element = await mount();
+    getDashboardCards.emit({ ...cards(), currencyCode: "USD", multiCurrency: true });
+    await flushPromises();
+
+    expect(text(element, ".currency-note")).toEqual([
+      "Amounts in USD. Amounts recorded in another currency are converted at the org's conversion rates."
+    ]);
+  });
+
+  it("says nothing about currencies on a single-currency org", async () => {
+    const element = await mount();
+    getDashboardCards.emit({ ...cards(), currencyCode: "USD", multiCurrency: false });
+    await flushPromises();
+
+    expect(text(element, ".currency-note")).toEqual([]);
+  });
+
+  // Progress and the user's plans are shown in the chosen currency, so choosing one re-reads them.
+  it("puts progress and the user's plans back to loading when the currency changes", async () => {
+    const element = await mount();
+    getCollectionsProgress.emit({ totalPlans: 0, avgDaysToClose: 0, avgDaysPastDue: 0, unavailable: false });
+    getMyCollectionPlans.emit({ items: [], unavailable: false, hasMore: false });
+    await flushPromises();
+    expect(text(element, ".progress-empty")).toEqual(["No collection plan data available."]);
+
+    await selectFilter(element, "currency", "EUR");
+
+    expect(text(element, ".progress-empty")).toEqual([]);
+    expect(text(element, ".my-cp-empty")).toEqual([]);
+  });
 });
