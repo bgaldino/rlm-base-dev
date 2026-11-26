@@ -1,6 +1,6 @@
 """Tasks resolve the API version from project config; OrgConfig has no api_version (pack 479)."""
+import ast
 import importlib
-import re
 import sys
 import types
 from pathlib import Path
@@ -40,33 +40,79 @@ PROPERTIES = [
     ("tasks.rlm_create_procedure_plan_def", "ActivateProcedurePlanVersion"),
     ("tasks.rlm_create_procedure_plan_def", "DeactivateProcedurePlanVersion"),
     ("tasks.rlm_bre", "ExportBRE"),
+    ("tasks.rlm_cml", "CMLBaseTask"),
+]
+# Sites with an api_version task option, which wins over the project's version.
+TAKES_OPTION = {"ExpressionSetConnectBase", "ApplyProcedurePlanOverlay", "DeleteSFDMUData", "ExportBRE", "CMLBaseTask"}
+# Sites that had no fallback: an unset version still raises.
+NO_DEFAULT = {"CMLBaseTask"}
+
+# (module, class, call returning the version) for versions read inside a method.
+METHODS = [
+    ("tasks.rlm_recalculate_permission_set_groups", "RecalculatePermissionSetGroups", lambda t: t._api_version(), False, True),
+    ("tasks.rlm_configure_pricing_recipe_table_mappings", "ConfigurePricingRecipeTableMappings",
+     lambda t: t._get_api_context()[2], True, True),
+    ("tasks.rlm_manage_flows", "ManageFlows", lambda t: t._api_version(), False, False),
+    ("tasks.rlm_manage_expression_sets", "ManageExpressionSets", lambda t: t._get_api_version(), False, False),
+    ("tasks.rlm_manage_transaction_processing_types", "ManageTransactionProcessingTypes",
+     lambda t: t._get_api_context()[2], True, False),
+    ("tasks.rlm_manage_fulfillment_scope_cnfg", "ManageFulfillmentScopeCnfg", lambda t: t._get_api_context()[2], True, False),
 ]
 
 
+def _raises(fn):
+    try:
+        fn()
+    except Exception as exc:  # noqa: BLE001 (TaskOptionsError is cumulusci's)
+        return "No API version" in str(exc)
+    return False
+
+
 def test_property_reads_project_version():
-  for module, cls in PROPERTIES:
-    assert _task(module, cls)._api_version == "69.0"
-    assert _task(module, cls, version="v69.0")._api_version == "69.0"
-    assert _task(module, cls, version=None)._api_version == "68.0"  # prior hardcoded fallback kept
+    for module, cls in PROPERTIES:
+        assert _task(module, cls)._api_version == "69.0", cls
+        assert _task(module, cls, version="v69.0")._api_version == "69.0", cls
+        if cls in NO_DEFAULT:
+            assert _raises(lambda: _task(module, cls, version=None)._api_version), cls
+        else:
+            assert _task(module, cls, version=None)._api_version == "68.0", cls  # prior hardcoded fallback kept
+        if cls in TAKES_OPTION:
+            assert _task(module, cls, options={"api_version": "v70.0"})._api_version == "70.0", cls
 
 
 def test_method_sites_read_project_version():
-    t = _task("tasks.rlm_recalculate_permission_set_groups", "RecalculatePermissionSetGroups")
-    assert t._api_version() == "69.0"
-    t = _task("tasks.rlm_configure_pricing_recipe_table_mappings", "ConfigurePricingRecipeTableMappings")
-    assert t._get_api_context()[2] == "69.0"
-    t = _task("tasks.rlm_configure_pricing_recipe_table_mappings", "ConfigurePricingRecipeTableMappings",
-              options={"api_version": "70.0"})
-    assert t._get_api_context()[2] == "70.0"
+    for module, cls, read, takes_option, has_default in METHODS:
+        assert read(_task(module, cls)) == "69.0", cls
+        if has_default:
+            assert read(_task(module, cls, version=None)) == "68.0", cls
+        else:
+            assert _raises(lambda: read(_task(module, cls, version=None))), cls
+        if takes_option:
+            assert read(_task(module, cls, options={"api_version": "v70.0"})) == "70.0", cls
+
+
+def _org_config_api_version_reads(source):
+    """Lines that read api_version off an org_config, as `x.org_config.api_version` or getattr(x.org_config, "api_version")."""
+    hits = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Attribute) and node.attr == "api_version":
+            target = node.value
+        elif (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "getattr" and len(node.args) >= 2
+              and isinstance(node.args[1], ast.Constant) and node.args[1].value == "api_version"):
+            target = node.args[0]
+        else:
+            continue
+        name = getattr(target, "attr", None) or getattr(target, "id", None)
+        if name == "org_config":
+            hits.append(node.lineno)
+    return hits
 
 
 def test_no_task_reads_org_config_api_version():
-    pat = re.compile(r'org_config\.api_version|org_config,\s*"api_version"')
-    hits = []
-    for path in (REPO / "tasks").glob("*.py"):
-        for n, line in enumerate(path.read_text().splitlines(), 1):
-            if path.name != "soql_utils.py" and pat.search(line) and not line.lstrip().startswith("#"):
-                hits.append(f"{path.name}:{n}")
+    assert _org_config_api_version_reads('v = getattr(\n    self.org_config,\n    "api_version",\n    None,\n)\n') == [1]
+    assert _org_config_api_version_reads("v = self.org_config.api_version") == [1]
+    hits = [f"{path.name}:{n}" for path in sorted((REPO / "tasks").glob("*.py"))
+            for n in _org_config_api_version_reads(path.read_text())]
     assert not hits, hits
 
 
@@ -81,6 +127,8 @@ def test_helper_default_and_error():
     else:
         raise AssertionError("expected the error class")
     assert project_api_version(types.SimpleNamespace(project__package__api_version="v68.0")) == "68.0"
+    assert project_api_version(cfg, default="68.0", option=" v70.0 ") == "70.0"
+    assert project_api_version(types.SimpleNamespace(project__package__api_version="69.0"), option="") == "69.0"
 
 
 def main():

@@ -176,8 +176,7 @@ class ConfigureMcpServers(BaseTask):
         self.access_token = self.org_config.access_token
         self.instance_url = self.org_config.instance_url
         self.api_version = (
-            self.options.get("api_version")
-            or project_api_version(self.project_config, TaskOptionsError, "68.0")
+            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
         )
 
         self.created: List[str] = []

@@ -796,10 +796,8 @@ class DeleteSFDMUData(BaseSalesforceTask):
 
     @property
     def _api_version(self) -> str:
-        if self.options.get("api_version"):
-            return str(self.options["api_version"])
         return (
-            project_api_version(self.project_config, TaskOptionsError, "68.0")
+            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
         )
 
     @property

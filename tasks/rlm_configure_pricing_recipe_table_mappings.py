@@ -133,8 +133,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
         api_version = (
-            self.options.get("api_version")
-            or project_api_version(self.project_config, TaskOptionsError, "68.0")
+            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
         )
         return access_token, instance_url, api_version
 

@@ -808,6 +808,7 @@ CHECKS = [
                   "tasks/rlm_create_procedure_plan_def.py",
                   "tasks/rlm_bre.py",
                   "tasks/rlm_activate_rates.py",
+                  "tasks/rlm_manage_flows.py", "tasks/rlm_manage_expression_sets.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],

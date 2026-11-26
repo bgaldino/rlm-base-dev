@@ -71,8 +71,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
     @property
     def _api_version(self) -> str:
         return (
-            self.options.get("api_version")
-            or project_api_version(self.project_config, TaskOptionsError, "68.0")
+            project_api_version(self.project_config, TaskOptionsError, "68.0", self.options.get("api_version"))
         )
 
     @property
