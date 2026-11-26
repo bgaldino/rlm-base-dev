@@ -601,14 +601,15 @@ QUOTE_TO_CASH_STAGE = "payment_applied"
 def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     """Run a quote through to an applied payment, then verify the balances.
 
-    Exit 0 when every scenario reached ``payment_applied`` and the verifier
-    checked at least one balance and failed none; 1 when a scenario fell short,
-    a check failed or nothing was checked; 4 for a config that cannot be read
-    or has a scenario not targeting ``payment_applied`` (refused before any
-    write); 2 when the run or the verify raised an error (no ``sf``, a refused
-    request); otherwise the generator's own code (2 auth, 3 discovery, 4
-    config) when the run never started. It writes records: Posted invoices
-    are not deletable.
+    Exit 0 when every scenario reached ``payment_applied`` with its own credit
+    memo and payment (as its settlement block asks) and the verifier checked at
+    least one balance and failed none; 1 when a scenario fell short (a request
+    refused mid-run included), created no credit memo or payment, a check
+    failed or nothing was checked; 4 for a config that cannot be read or has a
+    scenario not targeting ``payment_applied`` (refused before any write); 2
+    when the run raised an error (no ``sf``) or the verify could not report;
+    otherwise the generator's own code (2 auth, 3 discovery, 4 config) when the
+    run never started. It writes records: Posted invoices are not deletable.
     """
     argv = [
         "--org", args.org, "--config", str(args.config), "--concurrency", "1",
@@ -632,8 +633,7 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     try:
         code = generate.main(argv, on_batch=lambda result, manifests: batch.extend(manifests))
     except Exception as exc:  # noqa: BLE001 - exit 1 means short or failed, never an error
-        print(f"ERROR: quote-to-cash run: {_error_message(exc)}. Records may already "
-              "exist: check `cli inspect --latest` before running it again.", file=sys.stderr)
+        print(f"ERROR: quote-to-cash run: {_error_message(exc)}", file=sys.stderr)
         return 2
     if not batch:
         print(f"ERROR: quote-to-cash: the run did not start (exit {code})", file=sys.stderr)
@@ -649,6 +649,23 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     if short or code:
         print(f"QUOTE-TO-CASH: fail ({len(short)} of {len(batch)} scenario(s) short)")
         return 1
+    # A stage can advance without writing (no open balance left, e.g. when an
+    # earlier payment settled the invoice at post): that proves nothing here.
+    unsettled = []
+    for m in batch:
+        spec = settlement_from_dict(m.settlement) if m.settlement else None
+        missing = [what for what, part, ids in (
+            ("credit memo", spec and spec.credit, m.credit_memo_ids),
+            ("payment", spec and spec.payment, m.payment_ids),
+        ) if part and not ids]
+        if missing:
+            unsettled.append(m)
+            print(f"FAIL: {m.run_id} created no {' or '.join(missing)} "
+                  "(see its warnings)")
+    if unsettled:
+        print(f"QUOTE-TO-CASH: fail ({len(unsettled)} of {len(batch)} scenario(s) "
+              "settled without this run's own records)")
+        return 1
     invoice_ids: list[str] = []
     payment_ids: list[str] = []
     try:
@@ -662,10 +679,10 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
         records = billing_verify.fetch_records(client, invoice_ids, payment_ids)
         report = billing_verify.run_checks(records)
     except Exception as exc:  # noqa: BLE001 - verify could not report: exit 2
-        runs = " ".join(f"--manifest {m.run_id}" for m in batch)
-        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}. The run reached "
-              f"{QUOTE_TO_CASH_STAGE}; check it again without a new run: "
-              f"`cli verify --org {args.org} {runs}`.", file=sys.stderr)
+        runs = ", ".join(m.run_id for m in batch)
+        print(f"ERROR: quote-to-cash verify: {_error_message(exc)}. Run(s) {runs} "
+              f"reached {QUOTE_TO_CASH_STAGE}: check them with `cli verify --manifest "
+              "<run>` rather than a new run.", file=sys.stderr)
         return 2
     print(billing_verify.render_text(report))
     if not report["ok"]:

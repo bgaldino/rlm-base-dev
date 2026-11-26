@@ -201,12 +201,11 @@ def settlement_concurrency_conflicts(resolved: list) -> list[str]:
 def _print_settlement(settlement, stage: str) -> None:
     """Render a scenario's ``settlement:`` block (credit/payment options).
 
-    A part the run's ``stage`` does not reach is marked: it is written only by
-    a later ``cli step`` to that stage.
+    A part the run's ``stage`` does not reach is marked as such.
     """
     if settlement is None:
         return
-    later = "; not this run (a later `cli step --to-stage {}`)"
+    later = "; not reached by this run's target"
     print(f"  Settlement   : application_level={settlement.application_level}"
           + (" (read from Billing Settings at run time)"
              if settlement.application_level == "auto" else " (pinned)"))
@@ -217,7 +216,7 @@ def _print_settlement(settlement, stage: str) -> None:
                else f"{c.percent:g}% of the creditable pre-tax amount")
         print(f"    • credit   : {how} on {lines_of(c.lines)} "
               f"(tax_strategy={c.tax_strategy})"
-              + ("" if stage in STAGES_SETTLEMENT else later.format("credit_applied")))
+              + ("" if stage in STAGES_SETTLEMENT else later))
     if settlement.payment is not None:
         pm = settlement.payment
         if pm.is_exact:
@@ -228,7 +227,7 @@ def _print_settlement(settlement, stage: str) -> None:
             how = f"{pm.percent:g}% of open balance"
         print(f"    • payment  : {how} on {lines_of(pm.lines)}; created after the "
               f"invoice posts, then applied explicitly"
-              + ("" if stage == "payment_applied" else later.format("payment_applied")))
+              + ("" if stage == "payment_applied" else later))
         if pm.percent is not None and pm.percent > 100:
             print("      ⚠  over-payment: the unapplied rest may settle the "
                   "account's next posted invoice")

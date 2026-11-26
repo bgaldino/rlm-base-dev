@@ -113,8 +113,8 @@ def test_a_verify_error_is_exit_2(harness, monkeypatch, capsys):
     assert cli.main(["quote-to-cash", "--org", "x"]) == 2
     err = capsys.readouterr().err
     assert "quote-to-cash verify: Salesforce request failed" in err
-    # The run completed: the error names the verify to rerun, not a new run.
-    assert "`cli verify --org x --manifest DEMO-1`" in err
+    # The run completed: the error names its runs and the verify, not a new run.
+    assert "Run(s) DEMO-1 reached payment_applied" in err and "cli verify --manifest" in err
 
 
 def test_ids_are_deduplicated_across_scenarios(harness):
@@ -280,5 +280,35 @@ def test_plan_marks_settlement_parts_the_run_does_not_reach(
     out = capsys.readouterr().out.splitlines()
     credit = next(line for line in out if "credit   :" in line)
     payment = next(line for line in out if "payment  :" in line)
-    assert ("not this run" in credit) is credit_later
-    assert ("not this run" in payment) is payment_later
+    assert ("not reached" in credit) is credit_later
+    assert ("not reached" in payment) is payment_later
+
+
+@pytest.mark.parametrize("ids, missing", [
+    ({}, "credit memo or payment"),
+    ({"credit_memo_ids": ["50g1"]}, "payment"),
+    ({"payment_ids": ["0a8P"]}, "credit memo"),
+])
+def test_a_run_that_wrote_no_credit_or_payment_fails(harness, capsys, ids, missing):
+    """Posting can settle the invoice with an earlier payment; the stages then
+    advance without writing, which proves nothing about this run."""
+    m = _manifest()
+    m.settlement = {"application_level": "auto", "credit": {"percent": 10.0},
+                    "payment": {"amount": "exact"}}
+    m.credit_memo_ids = ids.get("credit_memo_ids", [])
+    m.payment_ids = ids.get("payment_ids", [])
+    m.settlement_warnings = ["payment skipped: no open balance"]
+    harness["batch"] = [m]
+    assert cli.main(["quote-to-cash", "--org", "x"]) == 1
+    out = capsys.readouterr().out
+    assert f"FAIL: DEMO-1 created no {missing}" in out
+    assert harness["fetched"] is None
+
+
+def test_a_run_with_its_own_credit_and_payment_passes(harness):
+    m = _manifest()
+    m.settlement = {"application_level": "auto", "credit": {"percent": 10.0},
+                    "payment": {"amount": "exact"}}
+    m.credit_memo_ids, m.payment_ids = ["50g1"], ["0a8P"]
+    harness["batch"] = [m]
+    assert cli.main(["quote-to-cash", "--org", "x"]) == 0

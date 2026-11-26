@@ -2685,8 +2685,9 @@ tasks:
       Runs the Transaction Data Harness `cli quote-to-cash` command: one quote on a
       billing-ready account through order, activation, a Posted invoice, a credit
       memo and a payment, both applied, then the read-only balance checks of
-      `cli verify`. Fails when a scenario stops short of payment_applied, a check
-      fails, or no balance was checked (always on a Header Level org). Writes records, and Posted invoices cannot be deleted, so it is in no
+      `cli verify`. Fails when a scenario stops short of payment_applied, creates no
+      credit memo or payment of its own, a check fails, or no balance was checked
+      (always on a Header Level org). Writes records, and Posted invoices cannot be deleted, so it is in no
       flow. Runbook: docs/guides/quote-to-cash-runbook.md.
     class_path: tasks.rlm_quote_to_cash.VerifyQuoteToCash
 

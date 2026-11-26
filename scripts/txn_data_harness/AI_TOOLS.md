@@ -122,11 +122,13 @@ Runs `scenarios/sales_txn_quote/20-quote-to-cash.yaml` (or `--config`, whose
 scenarios must target `payment_applied`) at `--concurrency 1`, then the
 `verify` checks on the run's invoices and payments. Exit 0 only when every
 scenario reached `payment_applied` and at least one balance was checked with
-none failing; 1 for a short stage or a failed or empty check (always on a
-Header Level org, where the balance checks skip; a request refused mid-run is a
-short stage); 2 when the command could not finish (no `sf` or no token, the
-verify read refused, an unreadable manifest; records may exist, and the
-`ERROR:` line names the `cli verify --manifest` to rerun); 3 when discovery
+none failing; 1 for a short stage, a scenario that created no credit memo or
+payment of its own (its invoice was already settled), or a failed or empty
+check (always on a Header Level org, where the balance checks skip; a request
+refused mid-run is a short stage); 2 when the command could not finish (no
+`sf` or no token, the verify read refused, an unreadable manifest; after a run
+that reached `payment_applied` the `ERROR:` line names its run ids, to check
+with `cli verify --manifest`); 3 when discovery
 fails (including an expired session); 4 for
 an unreadable config or one with a scenario not targeting `payment_applied`
 (refused before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
