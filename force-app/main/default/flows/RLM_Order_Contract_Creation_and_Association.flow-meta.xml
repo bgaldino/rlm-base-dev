@@ -474,14 +474,7 @@
         <connector>
             <targetReference>Calculate_Contract_Info</targetReference>
         </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>ContractId</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue></stringValue>
-            </value>
-        </filters>
+        <filterFormula>AND(ISBLANK({!$Record.ContractId}), NOT(ISPICKVAL({!$Record__Prior.StatusCode}, &quot;Activated&quot;)))</filterFormula>
         <object>Order</object>
         <recordTriggerType>Update</recordTriggerType>
         <triggerType>RecordAfterSave</triggerType>
