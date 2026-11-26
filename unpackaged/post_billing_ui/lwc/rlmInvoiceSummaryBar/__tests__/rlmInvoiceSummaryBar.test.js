@@ -212,3 +212,40 @@ describe('status pill with an unavailable count', () => {
         expect(await pillFor({ ...ALL_READ, totalInvoices: 0, inCollections: null })).toBe('Status Unavailable');
     });
 });
+
+// Pack 452: a segment whose read was refused comes back null and is not drawn; the card says
+// which could not be read instead of letting the gap read as "none".
+describe('unavailable invoice segments', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+    });
+
+    const READ = { totalInvoices: 2, totalDue: 100, currentAmount: 100, currentCount: 2, disputeAmount: 0, disputeCount: 0,
+        promiseToPayAmount: 0, promiseToPayCount: 0 };
+    const noteFor = async (invoice) => {
+        const el = mount();
+        getInvoiceSummary.emit(invoice);
+        getBillingSummary.emit(ALL_READ);
+        await flush();
+        return el.shadowRoot.querySelector('.unavailable-note')?.textContent;
+    };
+
+    it('shows no note when every segment is read', async () => {
+        expect(await noteFor(READ)).toBeUndefined();
+    });
+
+    it('names refused disputes', async () => {
+        expect(await noteFor({ ...READ, disputeAmount: null, disputeCount: null }))
+            .toBe('Disputes could not be read and are not shown.');
+    });
+
+    it('names refused promises to pay', async () => {
+        expect(await noteFor({ ...READ, promiseToPayAmount: null, promiseToPayCount: null }))
+            .toBe('Promises to pay could not be read and are not shown.');
+    });
+
+    it('names both when both are refused', async () => {
+        expect(await noteFor({ ...READ, disputeAmount: null, promiseToPayAmount: null }))
+            .toBe('Disputes and promises to pay could not be read and are not shown.');
+    });
+});

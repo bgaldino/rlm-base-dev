@@ -29,6 +29,10 @@
             </div>
 
             <!-- Arrow status bar -->
+            <template if:true={unavailableSegmentsNote}>
+                <div class="unavailable-note">{unavailableSegmentsNote}</div>
+            </template>
+
             <template if:true={hasSegments}>
                 <div class="arrow-bar">
                     <template for:each={segments} for:item="seg">

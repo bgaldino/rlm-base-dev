@@ -25,6 +25,10 @@
                 </div>
             </div>
 
+            <template if:true={unavailableSegmentsNote}>
+                <div class="abc-unavailable-note">{unavailableSegmentsNote}</div>
+            </template>
+
             <template if:true={hasSegments}>
                 <div class="abc-bar">
                     <template for:each={segments} for:item="seg">

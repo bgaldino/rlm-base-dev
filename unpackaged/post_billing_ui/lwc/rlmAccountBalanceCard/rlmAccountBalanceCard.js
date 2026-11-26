@@ -204,6 +204,19 @@ export default class RlmAccountBalanceCard extends LightningElement {
 
     get hasSegments() { return this.segments.length > 0; }
 
+    // Segments whose read was refused come back null: they are not drawn (as a zero segment is
+    // not), so the card says which could not be read rather than letting the gap read as "none".
+    get unavailableSegmentsNote() {
+        const d = this.invoiceData;
+        if (!d) return '';
+        const names = [];
+        if (d.disputeAmount == null) names.push('disputes');
+        if (d.promiseToPayAmount == null) names.push('promises to pay');
+        if (!names.length) return '';
+        const text = `${names.join(' and ')} could not be read and are not shown.`;
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
     showStatusTooltip = false;
     statusTooltipStyle = '';
 

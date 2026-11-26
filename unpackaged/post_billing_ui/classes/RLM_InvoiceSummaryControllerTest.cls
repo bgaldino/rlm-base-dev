@@ -295,8 +295,9 @@ private class RLM_InvoiceSummaryControllerTest {
     }
 
     // A billing role without collections can't read the collection plan link that the
-    // promise-to-pay step filters on. The summary must still load for that user, showing
-    // no promise to pay, rather than failing on that one query.
+    // promise-to-pay step filters on. The summary must still load for that user, with the
+    // promise to pay unavailable (null), not zero: the account may have promises the user cannot
+    // see (pack 452), and not failing on that one query.
     @isTest
     static void getInvoiceSummary_billingRoleWithoutCollections_loads() {
         Account acc = new Account(Name = 'RLM Invoice Summary Role Test');
@@ -312,7 +313,9 @@ private class RLM_InvoiceSummaryControllerTest {
             data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
         }
         Assert.isFalse(seesCollections, 'Premise: Billing Operations alone cannot read collection plans.');
-        Assert.areEqual(0, data.promiseToPayCount, 'No collections access -> no promise to pay.');
+        Assert.isNull(data.promiseToPayCount, 'No collections access -> the promise-to-pay count is unavailable, not zero.');
+        Assert.isNull(data.promiseToPayAmount, 'No collections access -> the promise-to-pay amount is unavailable, not zero.');
+        Assert.areEqual(0, data.totalDue, 'The rest of the summary still loads.');
     }
 
     // The other side of the gate: a collections user still gets the promise-to-pay query.
@@ -335,5 +338,60 @@ private class RLM_InvoiceSummaryControllerTest {
         }
         Assert.isTrue(seesCollections, 'A collections user can read collection plans.');
         Assert.areEqual(0, data.promiseToPayCount, 'No payment schedules -> no promise to pay.');
+    }
+
+    // Pack 452: a user who cannot read Dispute gets the dispute amount and count as unavailable
+    // (null), not zero, for an open case that has a dispute. Run on the dispute step directly: a
+    // user built to read only some billing objects cannot read DebitMemo (measured), which the
+    // full summary also needs.
+    @isTest
+    static void addDisputes_forAUserWhoCannotReadDisputes_leavesThemUnavailable() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Unreadable Disputes');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute the user cannot read');
+        insert openCase;
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), UserInfo.getDefaultCurrency());
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL }, new List<String>(), new List<String>{ 'Case' });
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        System.runAs(u) {
+            Assert.isNotNull(userModeError('SELECT Id, DisputedAmount, CurrencyIsoCode FROM Dispute WHERE CaseId != null LIMIT 1'),
+                'PRECONDITION: the user cannot read Dispute.');
+            RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+                UserInfo.getDefaultCurrency(), new Map<String, Decimal>());
+        }
+        Test.stopTest();
+
+        Assert.isNull(data.disputeAmount, 'The dispute amount is unavailable (null), not zero.');
+        Assert.isNull(data.disputeCount, 'The dispute count is unavailable (null), not zero.');
+    }
+
+    // The readable path of the same step, as the admin: the dispute on the open case is summed.
+    @isTest
+    static void addDisputes_forAUserWhoCanReadDisputes_sumsThem() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Readable Disputes');
+        insert acc;
+        Case openCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute the admin can read');
+        insert openCase;
+        String userCurrency = UserInfo.getDefaultCurrency();
+        newDispute(acc.Id, openCase.Id, 40, UserInfo.getUserId(), userCurrency);
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = zeroedSummary();
+        Test.startTest();
+        RLM_InvoiceSummaryController.addDisputes(data, new Set<Id>{ openCase.Id }, UserInfo.isMultiCurrencyOrganization(),
+            userCurrency, new Map<String, Decimal>());
+        Test.stopTest();
+
+        Assert.areEqual(1, data.disputeCount, 'The dispute is counted.');
+        Assert.areEqual(40, data.disputeAmount, 'The disputed amount is summed.');
+    }
+
+    private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {
+        RLM_InvoiceSummaryController.InvoiceSummaryData data = new RLM_InvoiceSummaryController.InvoiceSummaryData();
+        data.disputeAmount = 0;
+        data.disputeCount = 0;
+        return data;
     }
 }
