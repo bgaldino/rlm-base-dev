@@ -11,7 +11,8 @@ let empErrorHandlerRegistered = false;
 // The status a process has while the platform is still generating.
 const PENDING_STATUS = 'InProgress';
 // Reported to the flow when the process is still pending after MAX_WAIT_MS. Any status other
-// than Success takes the flow to its error screen, which names the status.
+// than Success takes the flow to its error screen; for TimedOut that screen says the process was
+// still running and may finish, and for any other status it names the status.
 const TIMED_OUT_STATUS = 'TimedOut';
 // Re-read the process status this often until it leaves InProgress (todo 435): the platform
 // event alone can be missed, because the process can finish before the EMP subscription is live
@@ -163,11 +164,9 @@ export default class RlmDocStatusMonitor extends LightningElement {
         }
     }
 
+    // Runs only while the interval is live: handleStatusChange() clears it before it sets
+    // hasNavigated, and startPolling() starts none after navigation.
     poll() {
-        if (this.hasNavigated) {
-            this.stopPolling();
-            return;
-        }
         if (Date.now() - this.pollStartedAt >= MAX_WAIT_MS) {
             this.stopPolling();
             this.handleStatusChange(TIMED_OUT_STATUS);
@@ -176,8 +175,11 @@ export default class RlmDocStatusMonitor extends LightningElement {
         this.refreshStatus();
     }
 
+    // Called by poll() (its interval is cleared on removal and on navigation) and once the EMP
+    // subscription is live (that callback returns early after removal). A subscription can still
+    // resolve after the flow moved on, hence the hasNavigated check.
     refreshStatus() {
-        if (!this.processId || this.hasNavigated || this._disconnected) {
+        if (!this.processId || this.hasNavigated) {
             return;
         }
         notifyRecordUpdateAvailable([{ recordId: this.processId }]).catch(error => {

@@ -121,6 +121,32 @@ describe('rlmDocStatusMonitor', () => {
         jest.advanceTimersByTime(300);
         expect(el.status).toBe('Success');
         expect(next).toHaveBeenCalledTimes(1);
+
+        // The same status can arrive again, by event and by read: the flow moves on only once.
+        deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Failure' } } });
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(1000);
+        expect(el.status).toBe('Success');
+        expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not read the status when the subscription goes live after the flow moved on', async () => {
+        let resolveSubscribe;
+        subscribe.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveSubscribe = resolve;
+                })
+        );
+        const { next } = mount();
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(1);
+
+        resolveSubscribe({ channel: '/event/DocGenProcStsChgEvent' });
+        await flushPromises();
+
+        expect(notifyRecordUpdateAvailable).not.toHaveBeenCalled();
     });
 
     it('stops polling when it is removed from the page', async () => {
@@ -212,5 +238,64 @@ describe('rlmDocStatusMonitor', () => {
         expect(consoleError).toHaveBeenCalledWith('rlmDocStatusMonitor: status read failed', expect.anything());
         expect(el.status).toBe('InProgress');
         expect(next).not.toHaveBeenCalled();
+    });
+
+    it('ignores a platform event or a status read that arrives after it was removed', async () => {
+        let deliver;
+        subscribe.mockImplementation((channel, replayId, callback) => {
+            deliver = callback;
+            return Promise.resolve({ channel });
+        });
+        const { el, next } = mount();
+        const attributeChange = jest.fn();
+        el.addEventListener(FlowAttributeChangeEventName, attributeChange);
+        await flushPromises();
+        document.body.removeChild(el);
+
+        // unsubscribe() is asynchronous, so an event can still arrive after removal.
+        deliver({ data: { payload: { DocGenProcessIdentifier: PROCESS_ID, Status: 'Success' } } });
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(1000);
+
+        expect(attributeChange).not.toHaveBeenCalled();
+        expect(next).not.toHaveBeenCalled();
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('starts no new polling when processId is set again after the flow moved on', async () => {
+        const { el, next } = mount();
+        await flushPromises();
+        getRecord.emit(statusRecord('Success'));
+        jest.advanceTimersByTime(300);
+        expect(next).toHaveBeenCalledTimes(1);
+
+        el.processId = PROCESS_ID;
+
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('unsubscribes from the platform event when it is removed', async () => {
+        const live = { channel: '/event/DocGenProcStsChgEvent' };
+        subscribe.mockResolvedValue(live);
+        const { el } = mount();
+        await flushPromises();
+
+        document.body.removeChild(el);
+
+        expect(unsubscribe).toHaveBeenCalledWith(live, expect.any(Function));
+    });
+
+    it('subscribes again when it is put back on the page after a failed subscription', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        subscribe.mockRejectedValueOnce(new Error('handshake refused'));
+        const { el } = mount();
+        await flushPromises();
+        expect(subscribe).toHaveBeenCalledTimes(1);
+
+        document.body.removeChild(el);
+        document.body.appendChild(el);
+        await flushPromises();
+
+        expect(subscribe).toHaveBeenCalledTimes(2);
     });
 });
