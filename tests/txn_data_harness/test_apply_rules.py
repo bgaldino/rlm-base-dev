@@ -57,6 +57,12 @@ def test_resolve_account_id_by_id_and_by_escaped_name():
     assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = 'O\\'Hare \\\\ Co'"
 
 
+def test_resolve_account_id_reads_an_id_with_a_trailing_newline_as_a_name():
+    org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
+    lifecycle.resolve_account_id(org, "001AAAAAAAAAAAA\n")
+    assert org.queries[-1] == "SELECT Id FROM Account WHERE Name = '001AAAAAAAAAAAA\n'"
+
+
 @pytest.mark.parametrize("rows, found", [([], "no account"),
                                          ([{"Id": "a"}, {"Id": "b"}], "2 accounts")])
 def test_resolve_account_id_refuses_none_or_several(rows, found):
@@ -116,10 +122,22 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
                          (path, {"accountId": ACCOUNT, "targetDate": "2026-11-25"})]
 
 
-@pytest.mark.parametrize("result", [None, [], {"_raw": "<html>"}])
-def test_apply_rules_refuses_a_response_that_is_not_json_object(result):
+@pytest.mark.parametrize("result", [
+    None, [], {"_raw": "<html>"},
+    dict(OK, appliedRules=[{"name": "Match Balance"}]),
+    dict(OK, appliedRules="Match Balance"),
+    dict(OK, rulesApplicationSummary=[1]),
+    dict(OK, rulesApplicationSummary={"totalPaymentApplications": "1"}),
+    dict(OK, rulesApplicationSummary={"totalCreditMemoApplications": True}),
+])
+def test_apply_rules_refuses_a_response_it_cannot_read(result):
     with pytest.raises(lifecycle.SettlementError, match="rules application answered"):
         lifecycle.apply_rules(QueryOrg(post_result=result), ACCOUNT)
+
+
+def test_apply_rules_accepts_a_success_without_rules_or_summary():
+    assert lifecycle.apply_rules(QueryOrg(post_result={"isSuccess": True}),
+                                 ACCOUNT) == {"isSuccess": True}
 
 
 # --------------------------------------------------------------------------- command
@@ -166,8 +184,10 @@ class Org:
 
     def _read(self, client, payments, memos):
         self.calls.append(("read", payments, memos))
-        if "read" in self.fail and len([c for c in self.calls if c[0] == "read"]) == 2:
-            raise self.fail["read"]
+        first = len([c for c in self.calls if c[0] == "read"]) == 1
+        failing = self.fail.get("first read" if first else "read")
+        if failing:
+            raise failing
         return self.reads.pop(0)
 
     def names(self) -> list[str]:
@@ -189,7 +209,8 @@ def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     assert f"APPLIED: credit {MEMO} 49.5 -> invoice {INVOICE_A}" in out
     assert "1AlOLD" not in out
     assert "RULES: Match Balance, Prioritize Oldest Invoices;" in out
-    assert f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made and checked)" in out
+    assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made; "
+            "2 balance(s) checked, 0 skipped)") in out
 
 
 def test_passes_the_target_date(monkeypatch):
@@ -223,8 +244,19 @@ def test_counted_applications_with_no_new_row_fail(monkeypatch, capsys):
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
     out = capsys.readouterr().out
-    assert "the response counts 2 application(s), but no new application row" in out
+    assert ("the response counts 1 payment and 1 credit application(s), but no new row "
+            "of that kind") in out
     assert "APPLY-RULES: fail" in out
+
+
+def test_a_counted_kind_with_no_new_row_fails_even_when_another_kind_has_one(
+        monkeypatch, capsys):
+    org = Org(monkeypatch, after=[OLD, NEW_CREDIT])
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    out = capsys.readouterr().out
+    assert f"APPLIED: credit {MEMO} 49.5" in out
+    assert "the response counts 1 payment application(s), but no new row" in out
 
 
 @pytest.mark.parametrize("result", [
@@ -260,13 +292,18 @@ def test_warns_when_not_every_invoice_was_considered(monkeypatch, capsys):
     assert "WARNING: the platform did not consider every invoice" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("step", ["resolve", "sources"])
-def test_a_read_before_the_call_errors_without_calling(monkeypatch, capsys, step):
+@pytest.mark.parametrize("step", ["resolve", "sources", "first read"])
+@pytest.mark.parametrize("exc, text", [
+    (lifecycle.SettlementError("apply-rules", "no account found for 'X'"),
+     "ERROR: apply-rules: [apply-rules] no account found"),
+    (SfApiError(401, "[]", "GET", "/query"), "ERROR: apply-rules: Salesforce request failed"),
+])
+def test_a_read_before_the_call_errors_without_calling(monkeypatch, capsys, step, exc, text):
     org = Org(monkeypatch)
-    org.fail[step] = lifecycle.LifecycleError("apply-rules", "no account found for 'X'")
+    org.fail[step] = exc
     assert _apply_rules() == 2
     assert "apply" not in org.names()
-    assert "ERROR: apply-rules: [apply-rules] no account found" in capsys.readouterr().err
+    assert text in capsys.readouterr().err
 
 
 def test_a_failed_call_is_an_error(monkeypatch, capsys):

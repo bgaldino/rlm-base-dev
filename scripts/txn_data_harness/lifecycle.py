@@ -1883,7 +1883,12 @@ def unapply_credit_line(client: SfRestClient, row_id: str) -> str:
 # Measured 2026-11-26 (264, Line Level): see contracts-billing-settlement.md
 # -> Rule-based application.
 
-_ACCOUNT_ID_RE = re.compile(r"^001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?$")
+_ACCOUNT_ID_RE = re.compile(r"001[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?")
+# The application counts in rulesApplicationSummary, per kind.
+RULES_COUNT_BY_KIND = {"payment": "totalPaymentApplications",
+                       "credit": "totalCreditMemoApplications"}
+_RULES_COUNTS = tuple(RULES_COUNT_BY_KIND.values()) + (
+    "fetchedPaymentsCount", "fetchedCreditMemosCount")
 _IN_CHUNK = 200
 
 # (kind, object, source filter, invoice field) for each application object; a
@@ -1913,7 +1918,7 @@ def _query_ids_in(client: SfRestClient, select: str, field: str, ids: list[str])
 
 def resolve_account_id(client: SfRestClient, account: str) -> str:
     """The Id of the Account named ``account``, or of the Account Id ``account``."""
-    if _ACCOUNT_ID_RE.match(account):
+    if _ACCOUNT_ID_RE.fullmatch(account):
         rows = client.query(f"SELECT Id FROM Account WHERE Id = '{account}'")
     else:
         escaped = account.replace("\\", "\\\\").replace("'", "\\'")
@@ -1969,6 +1974,17 @@ def apply_rules(client: SfRestClient, account_id: str,
     if not isinstance(result, dict) or "_raw" in result:
         raise SettlementError("apply-rules",
                               f"rules application answered {describe_response(result)}")
+    rules = result.get("appliedRules") or []
+    summary = result.get("rulesApplicationSummary") or {}
+    counts = [summary.get(k) for k in _RULES_COUNTS] if isinstance(summary, dict) else None
+    if (not isinstance(rules, list) or not all(isinstance(r, str) for r in rules)
+            or counts is None
+            or not all(c is None or (isinstance(c, int) and not isinstance(c, bool))
+                       for c in counts)):
+        raise SettlementError(
+            "apply-rules", "rules application answered an unexpected shape "
+            f"(appliedRules {type(rules).__name__}, rulesApplicationSummary "
+            f"{type(summary).__name__})")
     return result
 
 

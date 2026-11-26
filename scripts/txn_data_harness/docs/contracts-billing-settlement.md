@@ -548,23 +548,30 @@ called:
   Oldest always found an invoice); that it is Prioritize Highest Balance
   Invoices is inferred from the Help names.
 
-| Open on the account before the call | `targetDate` | Went to | `appliedRules` |
-|---|---|---|---|
-| payment 990.00 | none | the one invoice with Balance 990.00, posted that day | Match Balance |
-| payment 100.00 (no invoice at 100.00) | none | 100.00 of a 495.00 invoice | Match Balance, Prioritize Oldest Invoices |
-| payment 135.00 (two invoices at 135.00, posted the day before) | none | 135.00 of a 495.00 invoice posted that day; neither 135.00 invoice | Match Balance, Prioritize Oldest Invoices |
-| payment 234.00 (one invoice at 234.00, posted the day before) | `2026-11-25` | that 234.00 invoice | Match Balance |
-| payment 445.50 and credit memo 49.50, freed by `cli unapply` (no invoice at either balance; four at their sum, 495.00) | none | both to the oldest of the 495.00 invoices posted that day, not to the oldest invoice posted that day (395.00) | Match Balance, Prioritize Oldest Invoices |
+The probes, in the order they ran (invoice numbers are that org's
+`DocumentNumber`s; "candidates" are the open invoices posted that UTC day):
 
-- **Without `targetDate` only invoices posted that day were considered.** The
-  calls ran at about 06:10Z (22:10 the previous day in the org's time zone);
-  invoices with `PostedDate` the previous day were skipped, those with the UTC
-  date were candidates. `PostedDate` is the UTC date (an invoice created at
-  00:03Z carries the next day's date). So the default behaves as "posted on or
-  after today, UTC"; the dev guide only says `targetDate` selects invoices
-  posted on or after it.
-- **The last row** is one observation: it fits Match Balance on the payment
-  and credit together, but which rule placed each row is not reported per row.
+| # | Open on the account before the call | `targetDate` | Went to | `appliedRules` |
+|---|---|---|---|---|
+| 1 | payment 990.00 | none | DOC-34, the one candidate with Balance 990.00 | Match Balance |
+| 2 | payment 100.00 (no invoice at 100.00) | none | DOC-23 (495.00, left 395.00), the earliest-created candidate | Match Balance, Prioritize Oldest Invoices |
+| 3 | payment 135.00 (DOC-9 and DOC-11 at 135.00, posted the day before) | none | DOC-25 (495.00, left 360.00); not DOC-23, still open at 395.00 | Match Balance, Prioritize Oldest Invoices |
+| 4 | payment 234.00 (DOC-7 at 234.00, posted the day before) | `2026-11-25` | DOC-7 | Match Balance |
+| 5 | payment 445.50 and credit memo 49.50, freed by `cli unapply` (no candidate at either balance) | none | both to DOC-28 (495.00): the payment 445.50, the credit the 49.50 it left; not DOC-23 (395.00) or DOC-25 (360.00) | Match Balance, Prioritize Oldest Invoices |
+
+- **Without `targetDate` only invoices posted that UTC day were candidates.**
+  The calls ran at about 06:10Z (22:10 the previous day in the org's time
+  zone); invoices with `PostedDate` the previous day were skipped (probes 2
+  and 3), and passing that date included them (probe 4). `PostedDate` is the
+  UTC date (an invoice created at 00:03Z carries the next day's date). So the
+  default is inferred to be "posted on or after today, UTC" from one evening's
+  calls; the dev guide only says `targetDate` selects invoices posted on or
+  after it.
+- **Which candidate Prioritize Oldest picks among invoices posted the same
+  day is not established.** Probe 2 took the earliest-created candidate,
+  but probes 3 and 5 passed over earlier candidates that were still partly
+  open. The response does not say which rule placed each row; probe 5's credit
+  may have been placed by Match Balance (49.50 was what the payment left).
 - Not measured: ties among eligible invoices on Match Balance, Credits First,
   Match ID (a payment that names an invoice), a credit memo alone, header
   level, more than 2,000 invoices (`areAllInvoicesConsidered` false). Help's
@@ -579,13 +586,15 @@ call once (no transport retry), then reads the rows of those same payments and
 memos again: each new row is printed (`APPLIED:`), with the rules and summary
 the response gave (`RULES:`). It then runs the `cli verify` checks on every
 invoice and payment those rows touch. It works on the account, not on a run:
-it applies anything open there, a run's freed balances or anyone else's. Exit
+the platform considers everything open there, a run's freed balances or
+anyone else's. Exit
 0 when the platform reports `isSuccess` true and either nothing was applied or
-the checks passed with at least one balance checked; 1 when the platform
-reports failure, a check fails, no balance could be checked, or the response
-counts applications that no new row shows; 2 when the account cannot be
-resolved (none or several by that name), the org cannot be read, or the call
-or a later read fails. A failed call may or may not have applied anything:
+the checks passed with at least one balance checked (the pass line gives the
+checked and skipped counts); 1 when the platform reports failure, a check
+fails, no balance could be checked, or the response counts payment (or credit)
+applications and no new payment (or credit) row was found; 2 when the account
+cannot be resolved (none or several by that name), the org cannot be read, or
+the call, its response (not the measured shape) or a later read fails. A failed call may or may not have applied anything:
 read the account's payments and credit memos before calling again.
 
 ## Cleanup

@@ -825,9 +825,9 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     and payments those rows touch. Exit 0 when the platform reports success and
     either nothing was applied or the checks passed with at least one balance
     checked; 1 when the platform reports failure, a check fails, nothing could
-    be checked, or the response counts applications that no new row shows; 2
-    when the account or the org cannot be read, or the call or a later read
-    fails.
+    be checked, or the response counts payment (or credit) applications and no
+    new payment (or credit) row was found; 2 when the account or the org cannot
+    be read, or the call, its response or a later read fails.
     """
     try:
         client = SfRestClient.from_alias(
@@ -868,15 +868,15 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               f"errors {json.dumps(result.get('errors') or [])}")
         print(f"APPLY-RULES: fail ({label})")
         return 1
+    unseen = [f"{summary[key]} {kind}" for kind, key in lifecycle.RULES_COUNT_BY_KIND.items()
+              if summary.get(key) and not any(r["kind"] == kind for r in new)]
+    if unseen:
+        print(f"FAIL: the response counts {' and '.join(unseen)} application(s), but no "
+              "new row of that kind was found on the account's open payments and credit "
+              "memos")
+        print(f"APPLY-RULES: fail ({label})")
+        return 1
     if not new:
-        counted = sum(summary.get(k) or 0 for k in
-                      ("totalPaymentApplications", "totalCreditMemoApplications"))
-        if counted:
-            print(f"FAIL: the response counts {counted} application(s), but no new "
-                  "application row was found on the account's open payments and credit "
-                  "memos")
-            print(f"APPLY-RULES: fail ({label})")
-            return 1
         print(f"APPLY-RULES: pass ({label}: nothing applied)")
         return 0
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
@@ -893,7 +893,8 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         reason = "a check failed" if not report["ok"] else "no balance was checked"
         print(f"APPLY-RULES: fail ({label}: {reason})")
         return 1
-    print(f"APPLY-RULES: pass ({label}: {len(new)} application(s) made and checked)")
+    print(f"APPLY-RULES: pass ({label}: {len(new)} application(s) made; "
+          f"{report['checked']} balance(s) checked, {report['skipped']} skipped)")
     return 0
 
 
@@ -1079,8 +1080,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                                   "unique.")
     apply_rules.add_argument("--target-date", type=_target_date,
                              help="Consider only invoices posted on or after this date "
-                                  "(YYYY-MM-DD). Without it, only invoices posted "
-                                  "today (UTC) were considered (measured).")
+                                  "(YYYY-MM-DD). Without it, one measured evening's "
+                                  "calls considered only invoices posted that UTC "
+                                  "day.")
     apply_rules.set_defaults(func=_cmd_apply_rules)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
