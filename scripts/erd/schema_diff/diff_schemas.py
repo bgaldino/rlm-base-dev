@@ -404,8 +404,8 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"|--------|-------|")
     lines.append(f"| Objects added | {summary['objects_added']}{obj_note} |")
     lines.append(f"| Objects removed | {summary['objects_removed']}{obj_note} |")
-    lines.append(f"| Objects discovered added (lower bound) | {summary['objects_discovered_added']} |")
-    lines.append(f"| Objects discovered removed (lower bound) | {summary['objects_discovered_removed']} |")
+    lines.append(f"| Objects discovered added (lower bound) | {summary.get('objects_discovered_added', 0)} |")
+    lines.append(f"| Objects discovered removed (lower bound) | {summary.get('objects_discovered_removed', 0)} |")
     lines.append(f"| Objects with field changes | {summary['objects_changed']} |")
     lines.append(f"| Objects unchanged | {summary['objects_unchanged']} |")
     lines.append(f"| Total fields added | {summary['total_fields_added']} |")
@@ -434,7 +434,7 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
 
     for key, title in (("objects_discovered_added", "Objects Discovered Added (referenced in target only)"),
                        ("objects_discovered_removed", "Objects Discovered Removed (referenced in baseline only)")):
-        if diff[key]:
+        if diff.get(key):
             lines.append(f"## {title}")
             lines.append("")
             lines.append("Derived from `referenceTo` targets of the two snapshots; a lower bound, "
