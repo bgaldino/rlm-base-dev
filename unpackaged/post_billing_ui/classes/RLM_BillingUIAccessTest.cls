@@ -103,7 +103,7 @@ private class RLM_BillingUIAccessTest {
         'UsageResource' => new List<String>{ 'Name' },
         'Product2' => new List<String>{ 'Name', 'IsActive', 'Family' },
         'LegalEntity' => new List<String>{ 'Name', 'Status' },
-        'TaxTreatment' => new List<String>{ 'Name', 'Status' },
+        'TaxTreatment' => new List<String>{ 'Name', 'Status', 'LegalEntityId' },
         'UnitOfMeasure' => new List<String>{ 'Name' },
         'AssetStatePeriod' => new List<String>{ 'AssetId', 'StartDate' },
         'AssetStatePeriodAttribute' => new List<String>{ 'AssetStatePeriodId', 'AttributeName', 'AttributeValue' },
