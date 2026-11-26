@@ -9,6 +9,9 @@ import saveApprovedAmounts from '@salesforce/apex/RLM_DisputeDetailsController.s
  * Dispute Details – shows the Dispute record linked to the current Case,
  * with editable approved amounts on dispute items.
  */
+// Shown when the dispute read fails or is refused, in place of the raw GraphQL error.
+const DISPUTE_UNREADABLE = 'Unable to read this case\'s dispute. Contact your administrator.';
+
 export default class RlmDisputeDetails extends NavigationMixin(LightningElement) {
     _recordId;
 
@@ -68,8 +71,11 @@ export default class RlmDisputeDetails extends NavigationMixin(LightningElement)
             return;
         }
         if (errors && errors.length) {
+            // A fixed sentence, never the UI API's validation text (which names objects and fields
+            // the user cannot read); the detail goes to the console.
+            console.error('rlmDisputeDetails: dispute read failed', JSON.stringify(errors));
             this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            this.errorMessage = DISPUTE_UNREADABLE;
             this.disputeData = null;
             this.disputeItems = [];
             this._disputeId = null;

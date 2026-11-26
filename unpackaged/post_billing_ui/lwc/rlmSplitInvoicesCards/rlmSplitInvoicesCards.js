@@ -7,6 +7,9 @@ import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRel
 /**
  * Split Invoices Cards – card-based view of split invoices sharing the same CorrelationIdentifier.
  */
+// Shown when the split-invoice reads fail or are refused, in place of the raw GraphQL error.
+const SPLIT_INVOICES_UNREADABLE = 'Unable to read the split invoices. Contact your administrator.';
+
 export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElement) {
     @api recordId;
 
@@ -40,8 +43,10 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             return;
         }
         if (errors && errors.length) {
+            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
+            console.error('rlmSplitInvoicesCards: split invoice read failed', JSON.stringify(errors));
             this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
             this.rows = [];
             this.isLoading = false;
             return;
@@ -68,8 +73,10 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         if (this.correlationIdentifier === undefined) return;
         if (!this.correlationIdentifier) return;
         if (errors && errors.length) {
+            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
+            console.error('rlmSplitInvoicesCards: split invoice read failed', JSON.stringify(errors));
             this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
             this.rows = [];
             this.isLoading = false;
             return;
@@ -248,18 +255,6 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
         });
     }
 
-    readableError(e) {
-        if (!e) return 'Unknown error';
-        if (Array.isArray(e.body)) return e.body.map((x) => x.message).join(', ');
-        if (e.body?.message) return e.body.message;
-        if (e.message) return e.message;
-        try {
-            return JSON.stringify(e);
-        } catch {
-            return 'Unknown error';
-        }
-    }
-
     @api async refresh() {
         this.isLoading = true;
         this.error = undefined;
@@ -267,8 +262,9 @@ export default class RlmSplitInvoicesCards extends NavigationMixin(LightningElem
             await this._refreshCurrent?.();
             await this._refreshList?.();
         } catch (err) {
+            console.error('rlmSplitInvoicesCards: refresh failed', err);
             this.error = err;
-            this.errorMessage = this.readableError(err);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
         } finally {
             this.isLoading = false;
         }

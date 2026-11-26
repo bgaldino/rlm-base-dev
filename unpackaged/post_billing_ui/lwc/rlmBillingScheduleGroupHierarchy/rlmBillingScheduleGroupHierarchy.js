@@ -3,6 +3,10 @@ import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import getBillingScheduleGroups from '@salesforce/apex/RLM_BillingScheduleGroupController.getBillingScheduleGroups';
 import { NavigationMixin } from 'lightning/navigation';
 
+// Fixed sentences in place of UI API or script error text.
+const ORDER_UNREADABLE = 'Unable to read this order\'s account, so its billing schedule groups are not shown. Contact your administrator.';
+const GROUPS_NOT_SHOWN = 'Unable to show the billing schedule groups. Contact your administrator.';
+
 export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(LightningElement) {
     @api recordId;
     @api objectApiName;
@@ -53,7 +57,9 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
             this.accountId = getFieldValue(data, 'Order.AccountId');
             this.loadBillingGroups();
         } else if (error) {
-            this.error = 'Error loading record: ' + (error.body ? error.body.message : error);
+            // A fixed sentence, never the UI API's error text; the detail goes to the console.
+            console.error('rlmBillingScheduleGroupHierarchy: order read failed', JSON.stringify(error));
+            this.error = ORDER_UNREADABLE;
             this.isLoading = false;
         }
     }
@@ -84,7 +90,8 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
                     this.applyChargeTypeFilter();
                     this.error = undefined;
                 } catch (e) {
-                    this.error = 'Error processing billing schedule groups: ' + e.message;
+                    console.error('rlmBillingScheduleGroupHierarchy: could not process the groups', e);
+                    this.error = GROUPS_NOT_SHOWN;
                     this.billingGroups = [];
                 }
                 this.isLoading = false;

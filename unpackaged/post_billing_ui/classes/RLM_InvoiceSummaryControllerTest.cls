@@ -622,7 +622,7 @@ private class RLM_InvoiceSummaryControllerTest {
         System.runAs(u) {
             Assert.isNotNull(userModeError('SELECT Id FROM Case LIMIT 1'), 'PRECONDITION: the user cannot read Case.');
             Assert.isNull(userModeError('SELECT Id, Balance FROM Invoice LIMIT 1'), 'PRECONDITION: the user can read Invoice.');
-            Assert.isNull(RLM_InvoiceSummaryController.openCaseIds(acc.Id), 'Case refused: null, not a system-mode read.');
+            Assert.isNull(RLM_InvoiceSummaryController.openCaseIds(acc.Id), 'Case refused: null (unavailable), not an empty set.');
             try {
                 data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
             } catch (Exception e) {
@@ -664,8 +664,9 @@ private class RLM_InvoiceSummaryControllerTest {
     }
 
     // openCaseIds reads in user mode: a user who can read Case and see the case (View All) but not
-    // Case.AccountId, the field it filters on, is refused (null). A system-mode read would ignore
-    // that field refusal and return the case, so this pins the access level.
+    // Case.AccountId, the field it filters on, gets null (unavailable), not an empty set. Measured:
+    // the same query without USER_MODE also fails for this user, so this does not tell the access
+    // levels apart; USER_MODE stays in the code explicitly.
     @isTest
     static void openCaseIds_forAUserWhoCannotReadCaseAccountId_isNull() {
         User u = RLM_BillingUITestUsers.createWithBillingAccess(
@@ -686,7 +687,7 @@ private class RLM_InvoiceSummaryControllerTest {
             caseIds = RLM_InvoiceSummaryController.openCaseIds(acc.Id);
         }
         Test.stopTest();
-        Assert.isNull(caseIds, 'Case.AccountId refused: null (unavailable), not the case found by a system-mode read.');
+        Assert.isNull(caseIds, 'Case.AccountId refused: null (unavailable), not an empty set.');
     }
 
     // A failed paid-invoice read leaves the paid amount and count unavailable (null), not zero, and
@@ -702,6 +703,11 @@ private class RLM_InvoiceSummaryControllerTest {
         Assert.isNull(data.paidAmount, 'The paid amount is unavailable (null), not zero.');
         Assert.isNull(data.paidCount, 'The paid count is unavailable (null), not zero.');
         Assert.areEqual(0, data.totalInvoices, 'The open invoices are still read.');
+        // The paid failure blanks only its own part: the admin reads everything else as real zeros.
+        Assert.areEqual(0, data.totalDue, 'The total due is a real zero, not unavailable.');
+        Assert.areEqual(0, data.debitAmount, 'The debit memo amount is a real zero, not unavailable.');
+        Assert.areEqual(0, data.disputeAmount, 'The dispute amount is a real zero, not unavailable.');
+        Assert.areEqual(0, data.promiseToPayAmount, 'The promise-to-pay amount is a real zero, not unavailable.');
     }
 
     private static RLM_InvoiceSummaryController.InvoiceSummaryData zeroedSummary() {

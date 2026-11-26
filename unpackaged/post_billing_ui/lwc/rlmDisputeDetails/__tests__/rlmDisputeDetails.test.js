@@ -156,10 +156,12 @@ describe('rlmDisputeDetails stale state', () => {
         el.recordId = '500000000000002AAA';
         await flush();
         expect(invoiceLink(el)).toBeUndefined();
-        graphql.emitErrors([{ message: 'Dispute read failed.' }]);
+        graphql.emitErrors([{ message: "Validation error of type FieldUndefined: Field 'Dispute' in type 'RecordQuery' is undefined" }]);
         await flush();
         expect(invoiceLink(el)).toBeUndefined();
-        expect(errorText(el)).toBe('Dispute read failed.');
+        // A fixed sentence, never the UI API's validation text.
+        expect(errorText(el)).toBe('Unable to read this case\'s dispute. Contact your administrator.');
+        expect(errorText(el)).not.toContain('Validation error');
     });
 
     it('shows no dispute when a read of the same record fails after a success', async () => {

@@ -20,6 +20,9 @@ import getRelatedNames from '@salesforce/apex/RLM_SplitInvoicesController.getRel
  *  Id, Name (display), CorrelationIdentifier, BillingAccountId, DocumentNumber,
  *  InvoiceDate, Balance, Status, BillingArrangementId, BillingProfileId
  */
+// Shown when the split-invoice reads fail or are refused, in place of the raw GraphQL error.
+const SPLIT_INVOICES_UNREADABLE = 'Unable to read the split invoices. Contact your administrator.';
+
 export default class RlmSplitInvoicesView extends NavigationMixin(LightningElement) {
     // recordId injected by the flexipage when placed on Invoice record page
     @api recordId;
@@ -82,8 +85,10 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
             return;
         }
         if (errors && errors.length) {
+            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
+            console.error('rlmSplitInvoicesView: split invoice read failed', JSON.stringify(errors));
             this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
             this.rows = [];
             this.isLoading = false;
             return;
@@ -111,8 +116,10 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         if (this.correlationIdentifier === undefined) return;
         if (!this.correlationIdentifier) return;
         if (errors && errors.length) {
+            // A fixed sentence, never the UI API's validation text; the detail goes to the console.
+            console.error('rlmSplitInvoicesView: split invoice read failed', JSON.stringify(errors));
             this.error = errors;
-            this.errorMessage = this.readableError(errors[0]);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
             this.rows = [];
             this.isLoading = false;
             return;
@@ -299,18 +306,6 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
         });
     }
 
-    readableError(e) {
-        if (!e) return 'Unknown error';
-        if (Array.isArray(e.body)) return e.body.map((x) => x.message).join(', ');
-        if (e.body && e.body.message) return e.body.message;
-        if (e.message) return e.message;
-        try {
-            return JSON.stringify(e);
-        } catch {
-            return 'Unknown error';
-        }
-    }
-
     @api async refresh() {
         this.isLoading = true;
         this.error = undefined;
@@ -318,8 +313,9 @@ export default class RlmSplitInvoicesView extends NavigationMixin(LightningEleme
             await this._refreshCurrent?.();
             await this._refreshList?.();
         } catch (err) {
+            console.error('rlmSplitInvoicesView: refresh failed', err);
             this.error = err;
-            this.errorMessage = this.readableError(err);
+            this.errorMessage = SPLIT_INVOICES_UNREADABLE;
         } finally {
             this.isLoading = false;
         }

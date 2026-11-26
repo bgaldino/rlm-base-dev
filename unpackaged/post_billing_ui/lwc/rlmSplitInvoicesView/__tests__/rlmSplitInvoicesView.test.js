@@ -75,3 +75,40 @@ describe('rlmSplitInvoicesView invoice link label', () => {
         expect(invoiceColumn.typeAttributes?.label?.fieldName).toBe('Name');
     });
 });
+
+// Pack 452: a refused or failed GraphQL read shows a fixed sentence, never the UI API's error text.
+describe('rlmSplitInvoicesView read errors', () => {
+    afterEach(() => {
+        while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+        jest.clearAllMocks();
+    });
+
+    const FIXED = 'Unable to read the split invoices. Contact your administrator.';
+    const errorText = (el) => el.shadowRoot.querySelector('.slds-text-color_error')?.textContent.trim();
+
+    function mountView() {
+        const el = createElement('c-rlm-split-invoices-view', { is: RlmSplitInvoicesView });
+        el.recordId = CURRENT_ID;
+        document.body.appendChild(el);
+        return el;
+    }
+
+    it('shows a fixed sentence, not the GraphQL error, when the read fails', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        const el = mountView();
+        graphql.emitErrors([{ message: "Validation error of type FieldUndefined: Field 'Invoice' in type 'RecordQuery' is undefined" }]);
+        await flush();
+        expect(errorText(el)).toBe(FIXED);
+    });
+
+    it('shows a fixed sentence, not the error text, when a refresh fails', async () => {
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+        const el = mountView();
+        const failing = () => Promise.reject(new Error("Validation error of type FieldUndefined: Field 'Invoice' in type 'RecordQuery' is undefined"));
+        graphql.emit({ uiapi: { query: { Invoice: { edges: [] } } } }, undefined, failing);
+        await flush();
+        await el.refresh();
+        await flush();
+        expect(errorText(el)).toBe(FIXED);
+    });
+});
