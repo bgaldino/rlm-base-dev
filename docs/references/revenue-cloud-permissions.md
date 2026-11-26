@@ -460,8 +460,9 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 ### Record sharing
 
-Object permissions above don't grant row access to Private objects, and one object needs more
-than its org-wide default. Record access the build adds, and the one it deliberately doesn't:
+Read, create and edit object permissions above don't grant row access to Private objects (View All and
+Modify All do), and one object needs more than its org-wide default. Record access the build adds, and the
+one it deliberately doesn't:
 
 - `set_personas_org_wide_defaults` (`prepare_personas` step 1) sets the org-wide defaults the sales
   rep persona relies on: Read for the product and configuration objects, Read/Write for Account,
@@ -487,6 +488,11 @@ than its org-wide default. Record access the build adds, and the one it delibera
   `RLM_Billing_Operations` groups get it from `RLM_BillingInvoiceDocuments` (todo 292, see *Billing personas
   and invoice documents*); the other billing persona groups do not get it from this set. Details:
   `docs/guides/docgen-setup.md` → Template Library Access.
+- **View All on the invoice batch run objects** (todo 292): holders of `RLM_Billing_Admin` and
+  `RLM_Billing_Operations` see every invoice batch run, billing batch scheduler and invoice batch run criteria
+  record through `RLM_BillingInvoiceDocuments`, which grants View All on `InvoiceBatchRun`,
+  `BillingBatchScheduler` and `InvoiceBatchRunCriteria` (all Private). See *Billing personas and invoice
+  documents*.
 - **Not added: `TransactionJournal` (usage records).** Without View All on `TransactionJournal` the
   sales rep persona sees none of its rows, not even the ones it created; Read isn't enough. The object
   has no owner field, `UserRecordAccess` still reports Read, and a direct retrieve by Id returns
@@ -533,7 +539,7 @@ the Billing license. Billing Advanced is not needed for invoice documents.
 
 - **as the group itself:** the Invoice Batch Run reads. A group in `Failed` status fails the test; one that is
   not `Updated` (inside a deploy that changes it, it reads `Outdated`, measured below; an API edit of its
-  components leaves it `Updating` for a while `[seen in earlier todo 292 work; no artifact kept]`) is skipped with a "SKIPPED, NOT
+  components leaves it `Updating` for a while `[seen in the todo 292 log, 2026-10-28, on RLM_RCB, not on the billing persona groups]`) is skipped with a "SKIPPED, NOT
   CHECKED" WARN debug line, and then proves nothing. Measured on rlm-base__apexcov-ac1125-r1, whose `RLM_Billing_Admin` and `RLM_Billing_Operations`
   groups did not yet contain `RLM_BillingInvoiceDocuments`, with check-only deploys of the whole bundle and this
   class's tests: 0AfWt00000hUVnBKAW added a probe test that fails by design to print the state, and it showed
@@ -548,7 +554,7 @@ the Billing license. Billing Advanced is not needed for invoice documents.
   [Measured: check-only runs with the setting off, 0AfWt00000hUUBBKA4]. With batch on and server-side generation off (client-side mechanism) the persona gets `INVALID_INPUT`
   "Enable the server-side document generation setting." [Measured: 0AfWt00000hUViMKAW]; batch on with
   server-side off and the server-side mechanism is refused at deploy. The access check answers before the
-  setting check in every state: a user with no DocGen set and a user with `DocGenUser` but not `DocGenDesigner`
+  setting check in each of the three measured states: a user with no DocGen set and a user with `DocGenUser` but not `DocGenDesigner`
   got `CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY` with batch off (0AfWt00000hUUBBKA4), with server-side off
   (0AfWt00000hUViMKAW) and with both on (0AfWt00000hUUCnKAO), while the `DocGenDesigner` persona got
   `INVALID_INPUT` naming the missing setting in each off state and succeeded with both on (all check-only
