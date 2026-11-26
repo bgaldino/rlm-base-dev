@@ -19,6 +19,9 @@ import subprocess
 import uuid
 from pathlib import Path
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     import requests
 except ImportError:
@@ -300,8 +303,7 @@ class CreatePersonaUser(BaseSalesforceTask):
         an unquoted one in prose -- so a bump would change the behavior and leave the
         docstring contradicting it.
         """
-        version = getattr(self.project_config, "project__package__api_version", None)
-        return str(version) if version else "68.0"
+        return project_api_version(self.project_config, default="68.0")
 
     def _resolve_profile_id(self, profile_name):
         """Resolve a Profile Id by Name via the sf CLI. Raises if not found."""

@@ -282,9 +282,14 @@ tso_mode = self.project_config.project__custom__tso
 # All custom settings as dict
 custom = dict(self.project_config.config.get("project", {}).get("custom", {}))
 
-# API version
-api_version = self.project_config.project__package__api_version  # "68.0" for Release 264
+# API version: "68.0" for Release 264. Strips a leading `v`; raises the given class when unset
+# (or pass default=...). Never org_config.api_version: OrgConfig has no such attribute.
+api_version = project_api_version(self.project_config, TaskOptionsError)
 ```
+
+Import it above the CumulusCI imports (`from tasks.soql_utils import project_api_version`):
+importing CumulusCI empties the repo's `tasks` package path. `tests/test_project_api_version.py`
+fails on any other read of `project__package__api_version` in `tasks/`.
 
 ---
 

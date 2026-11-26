@@ -3,6 +3,9 @@ import os
 from collections import defaultdict
 from typing import Any, Dict
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import TaskOptionsError
@@ -87,7 +90,7 @@ class CreateSequencePolicies(BaseSalesforceApiTask):
         # Pre-resolve Reference-type filterValues (e.g. LegalEntity names → IDs)
         ref_id_cache = self._build_ref_id_cache(policies)
 
-        api_version = self.project_config.project__package__api_version
+        api_version = project_api_version(self.project_config, TaskOptionsError)
         base_url = (
             f"{self.org_config.instance_url}/services/data/v{api_version}"
             f"/{CONNECT_SEQUENCE_POLICY_PATH}"

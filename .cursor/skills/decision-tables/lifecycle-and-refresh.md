@@ -375,7 +375,8 @@ incremental (*Release 264 chooses the refresh type*). It exists in both files, a
 
 `org_config.salesforce_client` uses `latest_api_version`, the last entry of `/services/data`,
 so it moves up as soon as an org is upgraded ahead of the project. `_pinned_salesforce_client`
-builds the client on `project__package__api_version` instead. Its instance normalisation is
+builds the client on the project's version (`project.package.api_version`, read through
+`soql_utils.project_api_version`) instead. Its instance normalisation is
 exactly what CCI's `OrgConfig.salesforce_client` does, so My Domain, sandbox and enhanced-domain
 hosts behave the same.
 

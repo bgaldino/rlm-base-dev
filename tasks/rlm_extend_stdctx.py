@@ -4,6 +4,9 @@ import time
 import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -608,10 +611,8 @@ class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
-        api_version = self.project_config.project__package__api_version
-        if not api_version:
-            raise TaskOptionsError("No API version: set project.package.api_version in cumulusci.yml")
-        url = f"{self.instance_url}/services/data/v{str(api_version).lstrip('v')}/{endpoint}"
+        api_version = project_api_version(self.project_config, TaskOptionsError)
+        url = f"{self.instance_url}/services/data/v{api_version}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",

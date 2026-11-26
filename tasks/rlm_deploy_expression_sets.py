@@ -54,6 +54,9 @@ import zipfile
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import Deploy
     from cumulusci.core.exceptions import CumulusCIFailure, TaskOptionsError
@@ -380,7 +383,7 @@ class DeployExpressionSets(Deploy):
         DeactivateChangedDecisionTables._sf).
         """
         if getattr(self, "_sf_client", None) is None:
-            api_version = self.project_config.project__package__api_version
+            api_version = project_api_version(self.project_config, default="")
             if not api_version or Salesforce is None:
                 self._sf_client = self.org_config.salesforce_client
             else:

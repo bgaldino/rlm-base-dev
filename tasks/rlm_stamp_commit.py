@@ -26,6 +26,9 @@ from xml.sax.saxutils import escape
 
 import yaml
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
@@ -96,7 +99,11 @@ class StampGitCommit(SFDXBaseTask):
 
         temp_dir = tempfile.mkdtemp(prefix="rlm_stamp_")
         try:
-            self._write_sfdx_project(temp_dir)
+            try:
+                self._write_sfdx_project(temp_dir)
+            except TaskOptionsError as e:
+                self.logger.warning(f"Failed to stamp org (non-fatal): {e}")
+                return
             self._write_cmdt_record(
                 temp_dir,
                 commit_hash_short=commit_hash_short,
@@ -288,7 +295,7 @@ class StampGitCommit(SFDXBaseTask):
         project = {
             "packageDirectories": [{"path": "force-app", "default": True}],
             "sfdcLoginUrl": "https://login.salesforce.com",
-            "sourceApiVersion": str(self.project_config.project__package__api_version),
+            "sourceApiVersion": project_api_version(self.project_config, TaskOptionsError),
         }
         path = os.path.join(temp_dir, "sfdx-project.json")
         with open(path, "w", encoding="utf-8") as f:

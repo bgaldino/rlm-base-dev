@@ -13,6 +13,9 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -95,7 +98,7 @@ class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
         self.instance_url = self.options.get(
             "instance_url", self.org_config.instance_url
         )
-        self.api_version = self.project_config.project__package__api_version
+        self.api_version = project_api_version(self.project_config, TaskOptionsError)
 
     def _run_task(self):
         self._prep_runtime()

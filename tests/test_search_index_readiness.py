@@ -8,10 +8,12 @@ The cases that matter are the two the index status field gets wrong or can't see
 Stdlib only. Run with: python tests/test_search_index_readiness.py
 """
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))  # the module imports tasks.soql_utils
 _spec = importlib.util.spec_from_file_location("_rebuild_search_index", REPO / "tasks" / "rlm_rebuild_search_index.py")
 mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mod)

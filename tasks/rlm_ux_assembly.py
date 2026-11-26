@@ -19,6 +19,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
@@ -114,9 +117,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         ctx = UxContext(
             repo_root=repo_root,
             features=features_from_custom(getattr(self.project_config, "project__custom", {})),
-            api_version=str(
-                getattr(self.project_config, "project__package__api_version", None) or DEFAULT_API_VERSION
-            ),
+            api_version=project_api_version(self.project_config, default=DEFAULT_API_VERSION),
             logger=self.logger or logging.getLogger("rlm_ux"),
         )
         metadata_type = self.options.get("metadata_type", "all")

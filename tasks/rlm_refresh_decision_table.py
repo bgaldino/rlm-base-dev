@@ -4,7 +4,7 @@ from typing import List
 
 # Import before CumulusCI: cumulusci's project_config does sys.modules.setdefault("tasks", <synthetic>) and then
 # sets tasks.__path__ = [], which empties the repo package's path, so a later `tasks.soql_utils` import fails.
-from tasks.soql_utils import option_text, requested_names
+from tasks.soql_utils import option_text, project_api_version, requested_names
 
 # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
 try:
@@ -253,7 +253,7 @@ class RefreshDecisionTable(SFDXBaseTask):
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
-        url = f"{self.instance_url}/services/data/v{self.project_config.project__package__api_version}/{endpoint}"
+        url = f"{self.instance_url}/services/data/v{project_api_version(self.project_config, TaskOptionsError)}/{endpoint}"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",

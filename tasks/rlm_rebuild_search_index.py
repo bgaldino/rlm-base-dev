@@ -18,6 +18,9 @@ index been built in this org, and did it complete? See its docstring for why the
 answer comes from the build logs and not the index status.
 """
 from datetime import datetime
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import CumulusCIException
@@ -165,7 +168,10 @@ class RebuildSearchIndex(BaseSalesforceApiTask):
             self.options.get("raise_on_failure", False)
         )
 
-        api_version = self.project_config.project__package__api_version
+        try:
+            api_version = project_api_version(self.project_config, CumulusCIException)
+        except CumulusCIException as e:
+            return self._handle_failure(str(e), raise_on_failure)
         url = (
             f"{self.org_config.instance_url}/services/data/v{api_version}"
             f"/{PCM_INDEX_DEPLOY_PATH}"
@@ -243,7 +249,7 @@ class CheckSearchIndexReadiness(BaseSalesforceApiTask):
         import requests
 
         strict = process_bool_arg(self.options.get("strict", False))
-        api_version = self.project_config.project__package__api_version
+        api_version = project_api_version(self.project_config, CumulusCIException)
         base = f"{self.org_config.instance_url}/services/data/v{api_version}"
         headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
 

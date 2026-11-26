@@ -38,6 +38,9 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, List, Set
 
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import Deploy
     from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -306,7 +309,7 @@ class DeactivateChangedDecisionTables(Deploy):
         drifts the moment an org is upgraded ahead of the project.
         """
         if getattr(self, "_sf_client", None) is None:
-            api_version = self.project_config.project__package__api_version
+            api_version = project_api_version(self.project_config, default="")
             if not api_version or Salesforce is None:
                 self.logger.warning(
                     "No project api_version pin available; decision-table calls use the org's latest API version."

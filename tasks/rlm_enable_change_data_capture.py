@@ -18,6 +18,9 @@ uses its allocation, so this task:
 
 Set ``raise_on_failure`` to make those failures fatal.
 """
+# Import repo `tasks.*` before cumulusci: its project_config empties tasks.__path__, so a later `tasks.soql_utils` import fails.
+from tasks.soql_utils import project_api_version
+
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import CumulusCIException
@@ -89,7 +92,7 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
         self.raise_on_failure = process_bool_arg(self.options.get("raise_on_failure", False))
 
     def _tooling_url(self, path):
-        api_version = self.project_config.project__package__api_version
+        api_version = project_api_version(self.project_config, CumulusCIException)
         return f"{self.org_config.instance_url}/services/data/v{api_version}/tooling/{path}"
 
     def _headers(self):
@@ -118,6 +121,11 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
         import requests
 
         request_error = getattr(requests, "RequestException", Exception)
+        try:
+            project_api_version(self.project_config, CumulusCIException)
+        except CumulusCIException as exc:
+            self._fail(f"Could not select Change Data Capture entities: {exc}")
+            return
         try:
             selected = self._selected_entities()
         except request_error as exc:
