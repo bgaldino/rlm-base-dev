@@ -824,10 +824,10 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     sends the rule-based application once for the whole account, reads them
     again, lists each new row, then runs the ``cli verify`` checks on the
     invoices and payments the new rows touch. Exit 0 when the platform reports
-    success and either nothing was applied or the checks passed with at least
-    one balance checked; 1 when the platform reports failure, a check fails,
-    nothing could be checked, or it counts applications of a kind and no new
-    row of that kind was found; 2 when the account or the org cannot be read, or
+    success with no errors and either nothing was applied or the checks passed
+    with at least one balance checked; 1 when the platform reports failure or errors, a check fails,
+    nothing could be checked, or it counts more applications of a kind than new
+    rows of that kind were found; 2 when the account or the org cannot be read, or
     the call, its response or a later read fails.
     """
     try:
@@ -848,10 +848,10 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     # The platform's answer first, so it shows even if the read below fails.
     summary = result.get("rulesApplicationSummary") or {}
     rules = ", ".join(result.get("appliedRules") or []) or "none"
-    print(f"RULES: {rules}; isSuccess {result.get('isSuccess')}; "
+    _emit(f"RULES: {rules}; isSuccess {result.get('isSuccess')}; "
           f"{json.dumps(summary, sort_keys=True)}")
     if summary.get("areAllInvoicesConsidered") is False:
-        print("WARNING: the platform did not consider every invoice "
+        _emit("WARNING: the platform did not consider every invoice "
               "(areAllInvoicesConsidered false)")
     try:
         new = [r for r in lifecycle.read_account_applications(client, account_id)
@@ -862,35 +862,40 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               "account's payments and credit memos before calling again", file=sys.stderr)
         return 2
     for r in new:
-        print(f"APPLIED: {r['kind']} {r['source_id']} {r['amount']} -> invoice "
+        _emit(f"APPLIED: {r['kind']} {r['source_id']} {r['amount']} -> invoice "
               f"{r['invoice_id']} ({r['object']} {r['id']}, {r['type']})")
     label = f"account {account_id}"
     if result.get("isSuccess") is not True or result.get("errors"):
         messages = [html.unescape(str(e.get("message") or e.get("errorCode") or json.dumps(e)))
                     if isinstance(e, dict) else str(e)
                     for e in result.get("errors") or []]
-        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}: "
+        _emit(f"FAIL: the platform reported "
+              f"{'failure' if result.get('isSuccess') is not True else 'errors'}: "
               f"{'; '.join(messages) or 'no error message'}")
-        print(f"APPLY-RULES: fail ({label})")
+        _emit(f"APPLY-RULES: fail ({label})")
         return 1
-    # Any application writes at least one row of its kind on the account.
-    unseen = [f"{count} {kind}" for kind, key in (("payment", "totalPaymentApplications"),
-                                                  ("credit", "totalCreditMemoApplications"))
-              if isinstance(count := summary.get(key), int) and count > 0
-              and not any(r["kind"] == kind for r in new)]
+    # Any applied payment or credit memo writes at least one row of its kind on
+    # the account, so fewer new rows than the count means one went unseen.
+    unseen = []
+    for kind, key in (("payment", "totalPaymentApplications"),
+                      ("credit", "totalCreditMemoApplications")):
+        count = summary.get(key)
+        found = sum(1 for r in new if r["kind"] == kind)
+        if isinstance(count, int) and found < count:
+            unseen.append(f"{count} {kind} application(s) but {found} new {kind} row(s)")
     if unseen:
-        print(f"FAIL: the response counts {' and '.join(unseen)} application(s), but no "
-              "new row of that kind was found on the account's payments and credit memos")
-        print(f"APPLY-RULES: fail ({label})")
+        _emit(f"FAIL: the response counts {' and '.join(unseen)} on the account's "
+              "payments and credit memos; an application went unseen")
+        _emit(f"APPLY-RULES: fail ({label})")
         return 1
     if not new:
-        print(f"APPLY-RULES: pass ({label}: nothing applied)")
+        _emit(f"APPLY-RULES: pass ({label}: nothing applied)")
         return 0
     invoice_ids = list(dict.fromkeys(r["invoice_id"] for r in new if r["invoice_id"]))
     payment_ids = list(dict.fromkeys(r["source_id"] for r in new
                                      if r["kind"] == "payment" and r["source_id"]))
     if not invoice_ids and not payment_ids:
-        print(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
+        _emit(f"APPLY-RULES: fail ({label}: no balance was checked; the new rows name no "
               "readable invoice or payment)")
         return 1
     try:
@@ -900,19 +905,20 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
         print(f"ERROR: apply-rules verify: {_error_message(exc)} (the call applied "
               f"{len(new)} row(s), listed above)", file=sys.stderr)
         return 2
-    print(billing_verify.render_text(report))
-    # A credit row's only check is on its invoice; one with no readable invoice
-    # is not checked at all.
-    unchecked = [r for r in new if r["kind"] == "credit" and not r["invoice_id"]]
+    _emit(billing_verify.render_text(report))
+    # A row that names neither a readable invoice nor (for a payment) its
+    # payment reaches no check at all.
+    unchecked = [r for r in new if not r["invoice_id"]
+                 and not (r["kind"] == "payment" and r["source_id"])]
     for r in unchecked:
-        print(f"SKIP: credit {r['source_id']} ({r['object']} {r['id']}) names no readable "
-              "invoice; not checked")
+        _emit(f"SKIP: {r['kind']} {r['source_id']} ({r['object']} {r['id']}) names no "
+              "readable invoice; not checked")
     skipped = report["skipped"] + len(unchecked)
     if not report["ok"] or not report["checked"]:
         reason = "a check failed" if not report["ok"] else "no balance was checked"
-        print(f"APPLY-RULES: fail ({label}: {reason})")
+        _emit(f"APPLY-RULES: fail ({label}: {reason})")
         return 1
-    print(f"APPLY-RULES: pass ({label}: {len(new)} application(s) made; "
+    _emit(f"APPLY-RULES: pass ({label}: {len(new)} application row(s) made; "
           f"{report['checked']} balance(s) checked, {skipped} skipped)")
     return 0
 

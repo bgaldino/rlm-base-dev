@@ -620,14 +620,17 @@ there, a run's freed balances or anyone else's, and a row another process
 writes on the account meanwhile is listed and checked too. Exit 0 when the
 platform reports `isSuccess` true with no errors and either nothing was applied or the checks
 passed with at least one balance checked (the pass line gives the checked and
-skipped counts; a credit row naming no readable invoice is printed as `SKIP:`
-and counted as skipped); 1 when the platform reports failure (no eligible invoice
-included), a check fails, no balance could be checked, or the response
-counts applications of a kind and no new row of that kind was found (any
-application writes at least one row of its kind); 2 when the account
+skipped counts; a row naming no readable invoice, and for a payment no
+readable payment, is printed as `SKIP:` and counted as skipped); 1 when the platform reports failure or errors (no eligible
+invoice included), a check fails, no balance could be checked, or the response
+counts more applications of a kind than new rows of that kind were found
+(every applied payment or memo writes at least one row of its kind, whether
+the count is per source or per row); 2 when the account
 cannot be resolved (none or several by that name, or an Id not found), the org
 cannot be read, or the call, its response (not the measured shape) or a later
-read fails. A failed call may or may not have applied anything: read the
+read fails. Header Level is not refused, unlike `cli unapply`: the call writes, and verify
+then skips the header rows, so the command exits 1 (nothing checked) after
+applying. A failed call may or may not have applied anything: read the
 account's payments and credit memos before calling again.
 
 ## Cleanup

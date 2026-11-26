@@ -260,7 +260,7 @@ def test_lists_new_rows_and_verifies_only_what_they_touch(monkeypatch, capsys):
     assert "RULES: Match Balance, Prioritize Oldest Invoices;" in out
     assert '"totalPaymentApplications": 1' in out
     assert re.search(rf"^PASS +invoice_balance +{INVOICE_A}: 0\.0 = 495\.0$", out, re.M)
-    assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application(s) made; "
+    assert (f"APPLY-RULES: pass (account {ACCOUNT}: 2 application row(s) made; "
             "2 balance(s) checked, 1 skipped)") in out
 
 
@@ -285,8 +285,29 @@ def test_a_counted_kind_with_no_new_row_of_it_fails(monkeypatch, capsys, after, 
     org = Org(monkeypatch, after=after, result=result)
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
-    assert (f"the response counts {count} {kind} application(s), but no new row of that "
-            "kind") in capsys.readouterr().out
+    assert f"the response counts {count} {kind} application(s) but 0 new {kind} row(s)" in \
+        capsys.readouterr().out
+
+
+def test_a_success_carrying_errors_fails_naming_them(monkeypatch, capsys):
+    Org(monkeypatch, result=dict(OK, errors=[{"message": "partial"}]))
+    assert _apply_rules() == 1
+    assert "FAIL: the platform reported errors: partial" in capsys.readouterr().out
+
+
+def test_fewer_new_rows_than_the_count_fail(monkeypatch, capsys):
+    result = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                                   totalPaymentApplications=3))
+    org = Org(monkeypatch, result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert "3 payment application(s) but 1 new payment row(s)" in capsys.readouterr().out
+
+
+def test_more_new_rows_than_the_count_pass(monkeypatch):
+    extra = _row("1AlNEW2", "payment", PAYMENT, INVOICE_B, 5)
+    Org(monkeypatch, after=[OLD, NEW_PAY, extra, NEW_CREDIT])
+    assert _apply_rules() == 0
 
 
 def test_a_reported_failure_with_counts_prints_the_platform_error(monkeypatch, capsys):
@@ -326,7 +347,7 @@ def test_credit_rows_without_an_invoice_fail_as_nothing_checked(monkeypatch, cap
 def test_an_error_without_a_message_prints_its_code(monkeypatch, capsys):
     Org(monkeypatch, result={"isSuccess": False, "errors": [{"errorCode": "INVALID_ID"}]})
     assert _apply_rules() == 1
-    assert "INVALID_ID" in capsys.readouterr().out
+    assert "FAIL: the platform reported failure: INVALID_ID" in capsys.readouterr().out
 
 
 def test_an_error_item_without_message_or_code_prints_its_json(monkeypatch, capsys):
@@ -338,7 +359,7 @@ def test_an_error_item_without_message_or_code_prints_its_json(monkeypatch, caps
 def test_a_failure_without_errors_says_so(monkeypatch, capsys):
     Org(monkeypatch, result=dict(OK, isSuccess=False))
     assert _apply_rules() == 1
-    assert "isSuccess False: no error message" in capsys.readouterr().out
+    assert "reported failure: no error message" in capsys.readouterr().out
 
 
 def test_no_warning_when_the_summary_does_not_say(monkeypatch, capsys):
@@ -359,6 +380,17 @@ def test_a_payment_row_without_an_invoice_still_verifies_the_payment(monkeypatch
     out = capsys.readouterr().out
     assert "SKIP:" not in out
     assert "2 balance(s) checked, 1 skipped)" in out
+
+
+def test_a_payment_row_naming_nothing_readable_next_to_a_checked_one_is_skipped(
+        monkeypatch, capsys):
+    blind = _row("1AlNOPAY", "payment", None, None, 5)
+    org = Org(monkeypatch, after=[OLD, NEW_PAY, NEW_CREDIT, blind])
+    assert _apply_rules() == 0
+    assert ("fetch", [INVOICE_A], [PAYMENT]) in org.calls
+    out = capsys.readouterr().out
+    assert "SKIP: payment None (PaymentLineInvoiceLine 1AlNOPAY)" in out
+    assert "2 balance(s) checked, 2 skipped)" in out
 
 
 def test_a_payment_row_naming_nothing_readable_fails_as_nothing_checked(monkeypatch, capsys):
@@ -434,7 +466,7 @@ def test_a_reported_failure_fails_before_verify(monkeypatch, capsys, result):
     assert _apply_rules() == 1
     assert "fetch" not in org.names()
     out = capsys.readouterr().out
-    assert "FAIL: the platform reported isSuccess" in out
+    assert "FAIL: the platform reported " in out
     for error in result.get("errors") or []:
         assert error["message"].replace("&#39;", "'") in out
     assert "APPLY-RULES: fail" in out
