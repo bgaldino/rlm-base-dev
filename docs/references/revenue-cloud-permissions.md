@@ -444,8 +444,8 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `RLM_Sales_Representative` | RLM Sales Representative | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Sales_Operations` | RLM Sales Operations | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Product_and_Pricing_Admin` | RLM Product and Pricing Admin | `AdvancedConfiguratorDesigner`, `BREDesigner`, `BRERuntime`, `CorePricingAdmin`, `CorePricingDesignTimeUser`, `CorePricingManager`, `CorePricingRunTimeUser`, `IndustriesConfiguratorPlatformApi`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `ProductDetailsApiCache`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi` |
-| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin`, `RLM_BillingAccountFieldAccess` |
-| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations`, `RLM_BillingAccountFieldAccess` |
+| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin`, `RLM_BillingAccountFieldAccess`, `RLM_BillingInvoiceDocuments` |
+| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations`, `RLM_BillingAccountFieldAccess`, `RLM_BillingInvoiceDocuments` |
 | `RLM_Accounting_Admin` | RLM Accounting Admin | `RevenueLifecycleManagementAccountingAdmin` |
 | `RLM_Tax_Admin` | RLM Tax Admin | `RevenueLifecycleManagementBillingTaxAdmin` |
 | `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations`, `RLM_BillingAccountFieldAccess` |
@@ -479,8 +479,11 @@ than its org-wide default. Record access the build adds, and the one it delibera
   `RLM DocGen Template Viewer`. Generation reads the template file as the generating user, and only
   library members can read it, so without this only the build admin can generate documents (todo 435).
   Every library permission is off: a member's new version of a library file is refused
-  (`INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`, measured 2026-11-26 on 264). Details: `docs/guides/docgen-setup.md` →
-  Template Library Access.
+  (`INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY`, measured 2026-11-26 on 264). A member also needs the
+  **Access Libraries** user permission (`ContentWorkspaces`) to read the files: the Standard User and RLM
+  Sales Representative profiles have it, Minimum Access does not, and the billing personas get it from
+  `RLM_BillingInvoiceDocuments` (todo 292, see *Billing personas and invoice documents*). Details:
+  `docs/guides/docgen-setup.md` → Template Library Access.
 - **Not added: `TransactionJournal` (usage records).** Without View All on `TransactionJournal` the
   sales rep persona sees none of its rows, not even the ones it created; Read isn't enough. The object
   has no owner field, `UserRecordAccess` still reports Read, and a direct retrieve by Id returns
@@ -490,6 +493,37 @@ than its org-wide default. Record access the build adds, and the one it delibera
   object includes View All; the Billing license alone doesn't help. View All would let the sales rep
   persona read every account's usage records, so the persona's View Usage **Usage** table stays empty by
   design. The persona can still upload usage and see the rated summaries.
+
+### Billing personas and invoice documents
+
+What a user of `RLM_Billing_Admin` or `RLM_Billing_Operations` needs to generate invoice PDFs, batch
+(**Generate Invoice Documents** on an Invoice Batch Run) and on demand (**Generate Invoice Document** on an
+Invoice) (todo 292). The access below was measured headlessly as Minimum Access users holding the Billing
+license and each group [Measured: 2026-11-26, 264, scratch, one org]; generating a document as the persona
+in the UI is not yet recorded.
+
+| Need | Why | How the persona gets it |
+|---|---|---|
+| Billing license (`RevLifecycleMgmtBillingPsl`) | The managed role set in the group requires it | Assigned with the group |
+| DocGen Designer license (`DocGenDesignerPsl`), **`DocGenUser`** and **`DocGenDesigner`** | The groups reach no document generation object at all ("Access to entity 'DocumentTemplate' denied", the same for `DocumentGenerationProcess` and `DocGenerationBatchProcess`). `DocGenUser` opens templates and the on-demand `DocumentGenerationProcess` create, but not the batch create: a user-mode insert of `DocGenerationBatchProcess` is refused ("DML operation INSERT not allowed on DocGenerationBatchProcess"), the likely cause of the `INSUFFICIENT_ACCESS` the batch action returned for a billing persona with `DocGenUser` `[inferred: the action itself was not run here]`. `DocGenDesigner` grants that create. Object create on `DocGenerationBatchProcess` in a custom permission set does not: the insert is still refused, with or without the DocGen license on the set. Help names DocGen User for generating, so both sets are assigned; they share the one license | **Assigned next to the group** (admin's step; the build creates no billing persona users). Not in the group: both sets need `DocGenDesignerPsl`, and a group containing a set whose license a holder lacks fails to deploy (measured for `BillingAdvancedPsl` in todo 452; for this license `[inferred: same platform rule, not measured]`) |
+| Invoice Batch Run read, with View All | Batch generation runs from the run record. The managed Billing Admin set grants no access to it ("Access to entity 'InvoiceBatchRun' denied"); the managed Billing Operations set reads it. The object is Private, so read alone shows a user only the runs it owns; View All opens every run. Read and View All on `InvoiceBatchRun` require the same on `BillingBatchScheduler`, which requires the same on a run-criteria object (`InvoiceBatchRunCriteria` here); the deploy refuses each step without the next | `RLM_BillingInvoiceDocuments`, in both groups |
+| Access Libraries (`ContentWorkspaces`) | The template file is in the Docgen Document Template Library and is read as the generating user. A library member without this user permission reads none of the library's files (Minimum Access lacks it; Standard User has it) | `RLM_BillingInvoiceDocuments`, in both groups |
+| Library membership | The default invoice template's file (`DefaultInvoiceTemplate`, and `RLM_InvoiceTemplate`) is in that library | `create_docgen_library` (all internal users, see *Record sharing*). An org built before that step was added (todo 435) needs `cci task run create_docgen_library --org <alias>` once |
+
+`RLM_BillingInvoiceDocuments` carries no license, so it can sit in both groups: their holders already have
+the Billing license. Billing Advanced is not needed for invoice documents. `RLM_BillingInvoiceDocumentsAccessTest`
+(`unpackaged/post_personas/classes/`) proves each row as the persona. It also fails when the managed Billing Admin set starts reading Invoice Batch Run, when `DocGenUser` alone starts allowing the batch create, or when a library member without Access Libraries starts reading the file, so a grant that is no longer needed shows up.
+
+Not measured, and to check in the first live run as the persona:
+
+- **Field access on the generation records.** A Minimum Access user with these grants cannot set
+  `DocumentGenerationProcess.RequestText` and `ReferenceObject` or `DocGenerationBatchProcess.Description` on
+  a direct insert ("Operation failed due to fields being inaccessible"); the Standard User profile grants
+  them. Whether the platform's two actions need the user to hold them is not known, so no set grants them.
+  The Help's own route of creating the record in a Flow or Apex as the user does need them.
+- **Omnistudio User** (`OmniStudioExecution`, OmniStudio license): Help lists it for generating PDFs; it is
+  not granted. The sales rep persona generates quote documents without that license (todo 435).
+- **Credit Memo Operations** (`RLM_Credit_Memo_Operations`) is not covered.
 
 ---
 

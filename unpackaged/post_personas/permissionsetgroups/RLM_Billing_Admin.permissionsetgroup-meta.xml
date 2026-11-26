@@ -4,4 +4,5 @@
     <label>RLM Billing Admin</label>
     <permissionSets>force__RevenueLifecycleManagementBillingAdmin</permissionSets>
     <permissionSets>RLM_BillingAccountFieldAccess</permissionSets>
+    <permissionSets>RLM_BillingInvoiceDocuments</permissionSets>
 </PermissionSetGroup>
