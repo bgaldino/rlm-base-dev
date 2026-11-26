@@ -208,6 +208,24 @@ finally:
             else:
                 setattr(_BASE, attr, value)
 
+print("logging")
+spec = mod.DeployWithAwsAccountId.task_options["aws_account_id"]
+check("the aws_account_id option is marked sensitive, so the flow runner masks it", spec.get("sensitive") is True, spec)
+try:
+    from cumulusci.core.flowrunner import TaskRunner
+except ImportError:
+    TaskRunner = None
+if TaskRunner is None:
+    print("  SKIP  TaskRunner._log_options masks the value (CumulusCI not installed; the spec check above still ran)")
+else:
+    logged = Log()
+    stub = SimpleNamespace(task_options=mod.DeployWithAwsAccountId.task_options, logger=logged,
+                           options={"path": "unpackaged/post_quantumbit", "aws_account_id": FAKE})
+    TaskRunner._log_options(object.__new__(TaskRunner), stub)
+    check("TaskRunner._log_options prints ******** for aws_account_id and never the value",
+          any(line.strip() == "aws_account_id: ********" for line in logged.lines)
+          and not any(FAKE in line for line in logged.lines), logged.lines)
+
 print("wiring")
 cfg = yaml.safe_load((REPO / "cumulusci.yml").read_text())
 task = cfg["tasks"]["deploy_quantumbit"]
@@ -215,9 +233,27 @@ check("deploy_quantumbit uses DeployWithAwsAccountId",
       task["class_path"] == "tasks.rlm_external_credentials.DeployWithAwsAccountId", task["class_path"])
 check("deploy_quantumbit deploys post_quantumbit", task["options"]["path"] == "unpackaged/post_quantumbit")
 check("no account id is committed in cumulusci.yml", "aws_account_id" not in task.get("options", {}))
-others = [n for n, t in cfg["tasks"].items() if n != "deploy_quantumbit"
-          and str((t.get("options") or {}).get("path", "")).rstrip("/") == "unpackaged/post_quantumbit"]
-check("no other task deploys post_quantumbit around the substitution", not others, others)
+BUNDLE = "unpackaged/post_quantumbit"
+
+
+def in_bundle(path):
+    """Whether a path option names the bundle or anything under it (a subfolder deploy skips the transform too)."""
+    path = str(path or "").strip()
+    while path.startswith("./"):
+        path = path[2:]
+    path = path.rstrip("/")
+    return path == BUNDLE or path.startswith(BUNDLE + "/")
+
+
+check("in_bundle matches the bundle and its subpaths only",
+      in_bundle(BUNDLE) and in_bundle("./" + BUNDLE + "/") and in_bundle(BUNDLE + "/externalCredentials")
+      and not in_bundle(BUNDLE + "_other") and not in_bundle("unpackaged/post_tso") and not in_bundle(None))
+others = [f"task {n}" for n, t in cfg["tasks"].items() if n != "deploy_quantumbit"
+          and in_bundle((t.get("options") or {}).get("path"))]
+others += [f"flow {f}.{k} ({s.get('task') or s.get('flow')})" for f, flow in cfg["flows"].items()
+           for k, s in ((flow or {}).get("steps") or {}).items()
+           if s.get("task") != "deploy_quantumbit" and in_bundle((s.get("options") or {}).get("path"))]
+check("no other task or flow step deploys post_quantumbit (or a subpath) around the substitution", not others, others)
 steps = [s.get("options", {}) for f in cfg["flows"].values() for s in (f.get("steps") or {}).values()
          if s.get("task") == "deploy_quantumbit"]
 check("no flow step commits an account id", not any("aws_account_id" in o for o in steps), steps)

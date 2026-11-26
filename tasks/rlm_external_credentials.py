@@ -146,9 +146,13 @@ class DeployWithAwsAccountId(Deploy):
         "aws_account_id": {
             "description": (
                 f"12-digit AWS account id for the credential's {PARAMETER}. Falls back to the "
-                f"{ENV_VAR} environment variable; with neither set the parameter is left out"
+                f"{ENV_VAR} environment variable (preferred: a -o value is written to cci.log "
+                "with the command line); with neither set the parameter is left out"
             ),
             "required": False,
+            # The flow runner logs every set option of a step (TaskRunner._log_options) and masks
+            # only the sensitive ones, so without this a flow-level override would print the id.
+            "sensitive": True,
         },
         "external_credential": {
             "description": f"External credential to set it on (default: {DEFAULT_CREDENTIAL})",

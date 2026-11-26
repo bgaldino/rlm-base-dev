@@ -29,6 +29,8 @@
 #                       1717 to log in — override only for non-login uses, e.g. a
 #                       second workspace or tests; 0 = random free port)
 #   ANTHROPIC_API_KEY forwarded to the AI assistant if set
+#   RLM_AWS_ACCOUNT_ID forwarded if set: deploy_quantumbit's AWS account id for
+#                       SalesforceContractsExtCredentials (todo 481)
 set -euo pipefail
 
 IMAGE="${RLM_IMAGE:-rlm-base:latest}"
@@ -96,6 +98,8 @@ common_flags() {
   # `./docker/rlm …` (not bare `rlm`, which isn't on the host PATH).
   RUN_FLAGS+=(-e "RLM_INVOKE=${RLM_INVOKE:-./docker/rlm}")
   [ -n "${ANTHROPIC_API_KEY:-}" ] && RUN_FLAGS+=(-e "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
+  # Name only: docker copies the value from this environment, so it stays off the command line.
+  [ -n "${RLM_AWS_ACCOUNT_ID:-}" ] && RUN_FLAGS+=(-e RLM_AWS_ACCOUNT_ID)
   if [ -n "${RLM_MOUNT_REPO:-}" ]; then
     [ -f "${RLM_MOUNT_REPO}/cumulusci.yml" ] || die "RLM_MOUNT_REPO=${RLM_MOUNT_REPO} is not an rlm-base checkout."
     RUN_FLAGS+=(-v "$(cd "$RLM_MOUNT_REPO" && pwd):/work")
@@ -126,6 +130,7 @@ case "${1:-}" in
               "${OAUTH_PUBLISH[@]}"
               -e "RLM_OAUTH_RELAY_PORT=${RELAY_PORT}")
     [ -n "${ANTHROPIC_API_KEY:-}" ] && up_flags+=(-e "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
+    [ -n "${RLM_AWS_ACCOUNT_ID:-}" ] && up_flags+=(-e RLM_AWS_ACCOUNT_ID)
     c_info "Starting persistent container '$CONTAINER'…"
     docker run "${up_flags[@]}" "$IMAGE" serve >/dev/null
     c_ok "Up. Attach a shell:  ./docker/rlm attach"
