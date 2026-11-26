@@ -175,7 +175,7 @@ evening's calls considered only invoices posted that UTC day. Exit 0 when the
 platform reports success and nothing was applied or the checks passed with a
 balance checked, 1 when it reports failure, a check fails, nothing could be
 checked, or it counts more payment (or credit) applications than new payment
-(or credit) rows were found, 2 when the account (none or several by that name) or
+(or credit) rows were found or more sources fetched than were open, 2 when the account (none or several by that name) or
 the org cannot be read, or the call, its response or a later read fails; read
 the account's payments and credit memos before calling again after a 2. To free a
 run's balances first, `unapply` it. Measurements:

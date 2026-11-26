@@ -63,6 +63,12 @@ def test_resolve_account_id_takes_a_15_character_id_and_returns_the_org_id():
     assert org.queries[-1] == f"SELECT Id FROM Account WHERE Id = '{ACCOUNT[:15]}'"
 
 
+def test_resolve_account_id_says_an_id_was_not_found():
+    with pytest.raises(lifecycle.SettlementError,
+                       match=f"Account {ACCOUNT} was not found or is not readable"):
+        lifecycle.resolve_account_id(QueryOrg({"FROM Account": []}), ACCOUNT)
+
+
 def test_resolve_account_id_reads_a_16_character_name_as_a_name():
     org = QueryOrg({"FROM Account": [{"Id": ACCOUNT}]})
     lifecycle.resolve_account_id(org, "001AAAAAAAAAAAAB")
@@ -154,6 +160,8 @@ def test_apply_rules_posts_once_with_the_optional_target_date():
     dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
                                           fetchedPaymentsCount=True)),
     {"isSuccess": False, "rulesApplicationSummary": [1]},
+    dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                          totalPaymentApplications=1.0)),
     {"isSuccess": False, "rulesApplicationSummary": {"totalPaymentApplications": "1"}},
 ])
 def test_apply_rules_refuses_a_response_it_cannot_read(result):
@@ -171,6 +179,8 @@ def test_apply_rules_names_the_platform_errors_in_an_unexpected_shape():
     {"isSuccess": False, "errors": [{"errorCode": "X", "message": "m"}]},
     {"errors": [{"message": "We couldn&#39;t find eligible invoices to apply rules-based "
                             "credits and payments. "}], "isSuccess": False},
+    {"isSuccess": False, "appliedRules": None, "rulesApplicationSummary": None,
+     "errors": [{"message": "m", "errorCode": None}]},
     dict(OK, isSuccess=False),
     dict(OK, appliedRules=[], rulesApplicationSummary={"totalPaymentApplications": 0,
                                                        "totalCreditMemoApplications": 0}),
@@ -259,6 +269,15 @@ def test_verifies_the_invoices_of_credit_rows_too(monkeypatch):
     assert ("fetch", [INVOICE_A, INVOICE_B], [PAYMENT]) in org.calls
 
 
+def test_more_sources_fetched_than_were_open_fails(monkeypatch, capsys):
+    result = dict(OK, rulesApplicationSummary=dict(OK["rulesApplicationSummary"],
+                                                   fetchedPaymentsCount=2))
+    org = Org(monkeypatch, result=result)
+    assert _apply_rules() == 1
+    assert "fetch" not in org.names()
+    assert "2 payment(s) fetched but 1 open before the call" in capsys.readouterr().out
+
+
 def test_passes_the_target_date(monkeypatch):
     org = Org(monkeypatch)
     assert _apply_rules("--target-date", "2026-11-25") == 0
@@ -331,6 +350,8 @@ def test_a_reported_failure_fails_before_verify(monkeypatch, capsys, result):
     assert "fetch" not in org.names()
     out = capsys.readouterr().out
     assert "FAIL: the platform reported isSuccess" in out
+    for error in result.get("errors") or []:
+        assert error["message"].replace("&#39;", "'") in out
     assert "APPLY-RULES: fail" in out
 
 

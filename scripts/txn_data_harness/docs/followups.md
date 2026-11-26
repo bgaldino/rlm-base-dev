@@ -362,8 +362,8 @@ Line Level is live-verified on 264; everything below is not.
   the account's rules). The stages' read-backs fail on an `Unapplied`
   row or an unapplied flag among the rows they read.
 - `[gap]` **Rule-based application beyond the measured cases.** `cli
-  apply-rules` (todo 498) is measured with payments and one payment and
-  credit memo pair, on responses that reported Match Balance and Prioritize
+  apply-rules` (todo 498) rests on raw calls with payments and one `cli
+  apply-rules` run on a payment and credit memo pair, on responses that reported Match Balance and Prioritize
   Oldest Invoices, at Line Level
   ([contract](contracts-billing-settlement.md#rule-based-application)). Not
   measured: Credits First, Match ID, Prioritize Highest Balance Invoices

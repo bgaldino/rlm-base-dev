@@ -587,8 +587,9 @@ The probes, in the order they ran (invoice numbers are that org's
   Canceled): `isSuccess` true, `appliedRules` [], every count 0. With an open
   50.00 payment and `targetDate` 2026-12-31, so no invoice eligible:
   `{"errors": [{"message": "We couldn&#39;t find eligible invoices to apply
-  rules-based credits and payments. "}], "isSuccess": false}`, no `errorCode`,
-  no summary, nothing applied; the same payment then applied without a
+  rules-based credits and payments. "}], "isSuccess": false}` with a 2xx
+  status (the client raised no HTTP error), no `errorCode`, no summary,
+  nothing applied; the same payment then applied without a
   `targetDate`.
 - Not measured: ties among eligible invoices on Match Balance, Credits First,
   Match ID (a payment that names an invoice), a credit memo alone, header
@@ -611,7 +612,9 @@ the checks passed with at least one balance checked (the pass line gives the
 checked and skipped counts); 1 when the platform reports failure (no eligible invoice included), a check
 fails, no balance could be checked, or the response counts more payment (or
 credit) applications than new payment (or credit) rows were found (each
-applied payment or memo writes at least one row); 2 when the account
+applied payment or memo writes at least one row), or more payments (or credit
+memos) fetched than were open before the call (one opened in between; the
+platform did not count a Canceled payment the command reads); 2 when the account
 cannot be resolved (none or several by that name), the org cannot be read, or
 the call, its response (not the measured shape) or a later read fails. A failed call may or may not have applied anything:
 read the account's payments and credit memos before calling again.

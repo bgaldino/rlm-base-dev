@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import re
@@ -826,7 +827,8 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
     either nothing was applied or the checks passed with at least one balance
     checked; 1 when the platform reports failure, a check fails, nothing could
     be checked, or the response counts more payment (or credit) applications
-    than new payment (or credit) rows were found; 2 when the account or the org cannot
+    than new payment (or credit) rows were found, or more payments (or credit
+    memos) fetched than were open before the call; 2 when the account or the org cannot
     be read, or the call, its response or a later read fails.
     """
     try:
@@ -864,20 +866,25 @@ def _cmd_apply_rules(args: argparse.Namespace) -> int:
               "(areAllInvoicesConsidered false)")
     label = f"account {account_id}"
     if result.get("isSuccess") is not True or result.get("errors"):
-        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}, "
-              f"errors {json.dumps(result.get('errors') or [])}")
+        messages = [html.unescape(str(e.get("message"))) if isinstance(e, dict) else str(e)
+                    for e in result.get("errors") or []]
+        print(f"FAIL: the platform reported isSuccess {result.get('isSuccess')}: "
+              f"{'; '.join(messages) or 'no error message'}")
         print(f"APPLY-RULES: fail ({label})")
         return 1
     # Each applied payment or credit memo writes at least one row, so fewer new
     # rows than the response counts means an application went unseen.
-    unseen = []
+    unseen = [f"{summary[key]} {kind}(s) fetched but {len(ids)} open before the call"
+              for kind, key, ids in (("payment", "fetchedPaymentsCount", payment_ids),
+                                     ("credit memo", "fetchedCreditMemosCount", memo_ids))
+              if (summary.get(key) or 0) > len(ids)]
     for kind, key in lifecycle.RULES_COUNT_BY_KIND.items():
         found = sum(1 for r in new if r["kind"] == kind)
         if found < (summary.get(key) or 0):
             unseen.append(f"{summary[key]} {kind} application(s) but {found} new {kind} row(s)")
     if unseen:
         print(f"FAIL: the response counts {' and '.join(unseen)} on the account's open "
-              "payments and credit memos")
+              "payments and credit memos; an application may have gone unseen")
         print(f"APPLY-RULES: fail ({label})")
         return 1
     if not new:

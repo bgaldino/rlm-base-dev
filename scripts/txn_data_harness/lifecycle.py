@@ -1918,11 +1918,15 @@ def _query_ids_in(client: SfRestClient, select: str, field: str, ids: list[str])
 
 def resolve_account_id(client: SfRestClient, account: str) -> str:
     """The Id of the Account named ``account``, or of the Account Id ``account``."""
-    if _ACCOUNT_ID_RE.fullmatch(account):
+    by_id = bool(_ACCOUNT_ID_RE.fullmatch(account))
+    if by_id:
         rows = client.query(f"SELECT Id FROM Account WHERE Id = '{account}'")
     else:
         escaped = account.replace("\\", "\\\\").replace("'", "\\'")
         rows = client.query(f"SELECT Id FROM Account WHERE Name = '{escaped}'")
+    if by_id and not rows:
+        raise SettlementError("apply-rules", f"Account {account} was not found or is "
+                              "not readable in this org")
     if len(rows) != 1:
         found = "no account" if not rows else f"{len(rows)} accounts"
         raise SettlementError("apply-rules", f"{found} found for {account!r}; "
