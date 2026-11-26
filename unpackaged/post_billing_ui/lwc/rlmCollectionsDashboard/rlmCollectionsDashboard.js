@@ -950,7 +950,8 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
     }
 
     // The plan column of a worklist row: a plan the lookup could not read is "Not available" and offers no
-    // Create (it may exist); a plan that was read and is absent is "—" with Create.
+    // Create (it may exist); a plan that was read and is absent is "—" with Create (a plan sharing hides from
+    // the user reads as absent too: a USER_MODE read cannot tell the two apart).
     planCell(item) {
         return {
             planCellText: item.collectionPlanUnavailable ? NOT_AVAILABLE_CELL : NOT_AVAILABLE,

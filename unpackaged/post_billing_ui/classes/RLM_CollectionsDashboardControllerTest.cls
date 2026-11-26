@@ -627,6 +627,48 @@ private class RLM_CollectionsDashboardControllerTest {
             'Posted, with a balance: a non-Posted invoice is excluded');
     }
 
+    // An account the name read could not see (sharing) is missing from it: its name is not available, as when
+    // the read is refused. Account.Name is required, so a missing account is a hidden one, not a nameless one.
+    // The ids here belong to no record, which the read returns nothing for, as for a record not shared.
+    @isTest
+    static void accountNames_missingFromTheRead_areNotAvailable() {
+        Account seen = newAccount('RLM CD Name Seen');
+        Id hidden = Id.valueOf(Account.SObjectType.getDescribe().getKeyPrefix() + '000000000777');
+        Date today = Date.newInstance(2026, 6, 30);
+        List<Invoice> invoices = new List<Invoice>{
+            invoice(new Map<String, Object>{ 'Balance' => 5000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => seen.Id }),
+            invoice(new Map<String, Object>{ 'Balance' => 4000, 'DueDate' => today.addDays(-40), 'BillingAccountId' => hidden }),
+            invoice(new Map<String, Object>{ 'Balance' => 3000, 'DueDate' => today.addDays(-40) })
+        };
+        RLM_CollectionsDashboardController.WorklistData critical = new RLM_CollectionsDashboardController.WorklistData();
+        RLM_CollectionsDashboardController.WorklistData highValue = new RLM_CollectionsDashboardController.WorklistData();
+
+        Test.startTest();
+        RLM_AccountNames.Result names = RLM_AccountNames.read(new Set<Id>{ seen.Id, hidden });
+        RLM_CollectionsDashboardController.addCriticalFollowUps(critical, invoices, false, today);
+        RLM_CollectionsDashboardController.addHighValueDelinquents(highValue, invoices, 'BillingAccountId', today);
+        Test.stopTest();
+
+        Assert.isFalse(names.unreadable, 'The read itself ran');
+        Assert.isFalse(names.unavailable(seen.Id), 'A name that was read is available');
+        Assert.isTrue(names.unavailable(hidden), 'An account missing from the read is not available, not nameless');
+        Assert.isFalse(names.unavailable(null), 'No account: nothing to show as not available');
+
+        Map<Id, Boolean> criticalByAccount = new Map<Id, Boolean>();
+        for (RLM_CollectionsDashboardController.CriticalFollowUpInvoiceItem row : critical.criticalFollowUpInvoices) {
+            criticalByAccount.put(row.billingAccountId, row.accountNameUnavailable);
+        }
+        Assert.isFalse(criticalByAccount.get(seen.Id), 'Critical: the seen account\'s name is shown');
+        Assert.isTrue(criticalByAccount.get(hidden), 'Critical: the hidden account\'s name is not available');
+        Assert.isFalse(criticalByAccount.get(null), 'Critical: an invoice with no account shows a dash, not "not available"');
+        Map<Id, Boolean> highValueByAccount = new Map<Id, Boolean>();
+        for (RLM_CollectionsDashboardController.WorklistItem item : highValue.highValueDelinquents) {
+            highValueByAccount.put(item.accountId, item.accountNameUnavailable);
+        }
+        Assert.isFalse(highValueByAccount.get(seen.Id), 'High-Value: the seen account\'s name is shown');
+        Assert.isTrue(highValueByAccount.get(hidden), 'High-Value: the hidden account\'s name is not available');
+    }
+
     // ---- High-Value ranking (todo 435) ----
 
     @isTest

@@ -622,7 +622,7 @@ public with sharing class RLM_CollectionsDashboardController {
             );
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             row.collectionPlanUnavailable = planLookupFailed;
-            row.accountNameUnavailable = accountNames.unreadable;
+            row.accountNameUnavailable = accountNames.unavailable(billingAcctId);
             wl.criticalFollowUpInvoices.add(row);
         }
     }
@@ -719,7 +719,7 @@ public with sharing class RLM_CollectionsDashboardController {
         for (WorklistItem item : listed) {
             String name = accountNames.names.get(item.accountId);
             item.accountName = name != null ? name : '—';
-            item.accountNameUnavailable = accountNames.unreadable;
+            item.accountNameUnavailable = accountNames.unavailable(item.accountId);
             item.collectionPlanId = accountToCollectionPlan.get(item.accountId);
             // A plan lookup that was refused, failed or found too many rows is not "no plan": no Create.
             item.collectionPlanUnavailable = planLookupFailed;
@@ -833,7 +833,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 Integer daysOverdue = accountMaxDaysOverdue.get(accId);
                 Date ptpDate = accountPtpDate.get(accId);
                 WorklistItem item = new WorklistItem(accId, accountNames.names.get(accId), bal, daysOverdue, 'disputed', 'amber', ptpDate, accountDisputeReason.get(accId));
-                item.accountNameUnavailable = accountNames.unreadable;
+                item.accountNameUnavailable = accountNames.unavailable(accId);
                 item.caseId = listedCaseByAccount.get(accId).Id;
                 item.caseNumber = listedCaseByAccount.get(accId).CaseNumber;
                 // A promise lookup that was refused, failed or found too many rows is not "no promise".
@@ -1074,7 +1074,8 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     // A refused Account read leaves the rows listed, not dropped by the caller's catch: each row's name is then
-    // marked not available (accountNameUnavailable), not "none". The read returns at most one row per id, so
+    // marked not available (accountNameUnavailable), not "none", as is the name of an account the user cannot
+    // see (RLM_AccountNames.Result.unavailable). The read returns at most one row per id, so
     // the ids are checked against the same allowance as a bounded read.
     private static RLM_AccountNames.Result getAccountNames(Set<Id> accountIds) {
         requireWithin(accountIds.size(), rowAllowance(), 'accounts');
@@ -1352,7 +1353,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 Id accountId = (Id) cp.get(acctField);
                 String accountName = accountId != null ? planAccountNames.names.get(accountId) : null;
                 MyCollectionPlanItem item = new MyCollectionPlanItem(cpId, cpName, dueDate, accountId, accountName, totalInvBal);
-                item.accountNameUnavailable = planAccountNames.unreadable;
+                item.accountNameUnavailable = planAccountNames.unavailable(accountId);
                 items.add(item);
             }
         } catch (Exception e) {

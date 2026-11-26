@@ -242,7 +242,9 @@ checked (2026-11-26) Invoice is not createable through DML and the only invoices
 executed, recorded where it runs (only while a test runs).
 
 An account name the user may not read shows "Not available" on the worklist and plan rows, as an
-unread plan or promise date does, rather than the "—" of an account with no name.
+unread plan or promise date does: when the Account read is refused or fails, and when the account is
+missing from it because sharing hides it from the user (Account.Name is required, so a missing account
+is a hidden one). A row with no account at all shows "—".
 
 Query-row costs measured on 264 (2026-11-26): a `SUM` aggregate costs a query row for every row it
 adds up, with or without `GROUP BY`, while `COUNT()` and `COUNT(Id)` cost one, so a summing aggregate
@@ -298,7 +300,8 @@ building a tab, not only in its first read, marks that tab unavailable and drops
 added; the other tabs are still built. Inside a tab that was
 read, a row whose collection plan (or, on the Disputed tab, promise-to-pay date) could not be looked
 up shows "Not available" rather than "—", and offers no Create Collection Plan, since a plan may
-exist.
+exist. A plan that was read and is absent shows "—" with Create; a USER_MODE read cannot tell a plan that
+does not exist from one sharing hides from the user, so a hidden plan also reads as absent there.
 
 The page gives every section (each card, the total, payment promises, progress, plan tasks, my plans
 and each worklist tab) one state, derived in one place (`sections` in `rlmCollectionsDashboard.js`):

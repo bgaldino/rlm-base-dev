@@ -11,6 +11,13 @@ public with sharing class RLM_AccountNames {
         public Map<Id, String> names = new Map<Id, String>();
         // True when the Account read was refused or failed: a missing name is then not available, not "none".
         public Boolean unreadable = false;
+
+        // Whether an account's name is not available to this user: the read was refused or failed, or the account
+        // is missing from it. Account.Name is required, so an account that was asked for and is missing is one the
+        // user cannot see (sharing), not one without a name. Null (no account) has no name to show.
+        public Boolean unavailable(Id accountId) {
+            return accountId != null && (unreadable || !names.containsKey(accountId));
+        }
     }
 
     public static Map<Id, String> forIds(Set<Id> accountIds) {
