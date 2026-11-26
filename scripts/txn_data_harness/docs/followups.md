@@ -353,9 +353,11 @@ Line Level is live-verified on 264; everything below is not.
   two records under a tag, fail the stage for good; a refused write is resent
   by a rerun and normally refused again. The unknown-outcome paths and the
   `NetCreditsApplied` check are covered offline only.
-- `[gap]` **Reversals are not modeled.** Unapply and void were not measured;
-  an `Unapplied` row or an unapplied flag on this run's applications fails
-  the stage (field names from describe on 264).
+- `[gap]` **Reversals in the settlement stages.** Line-level unapply is
+  measured and `cli unapply` does it (todo 490); void and header-level unapply
+  are not. The settlement stages still fail on an `Unapplied` row or an
+  unapplied flag on this run's applications, and nothing reapplies after an
+  unapply.
 - `[gap]` **Changing settlement options means a new run.** The block is
   fixed once recorded (whole, so a run that stopped at `credit_applied`
   continues to `payment_applied` with the payment it was configured with),

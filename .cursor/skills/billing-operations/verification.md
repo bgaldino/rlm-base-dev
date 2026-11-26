@@ -74,7 +74,7 @@ skipped with the first cause found; nothing is guessed.
 
 | Record | Measured when |
 | ------ | ------------- |
-| Application row | `Type` Applied, and no unapplied flag (`UnappliedStatus`, `HasBeenUnapplied`) is `Yes`. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]; no unapplied row has been measured. |
+| Application row | `Type` Applied, and no unapplied flag (`UnappliedStatus`, `HasBeenUnapplied`) is `Yes`. Both flags are picklists of No, Yes and NA [Measured: 2026-11-25, 264, scratch org, API 68.0]. Or, at Line Level, an unapplied pair: the Applied row flagged `UnappliedStatus` Yes and the one `Type` Unapplied row whose `RelatedPaymentLineInvcLineId` / `RelatedCrMemoLineInvcLineId` names it, with the same `Amount` [Measured: 2026-11-26, 264, scratch org, API 68.0]. Rows net as Applied minus Unapplied, so a pair nets to zero, as the rollups did. |
 | Invoice line | `Type` Charge (Tax, Adjustment, null or any other value is not), and `ConvertedNegAmount`, `ChargeConvertedNegAmount` and `AdjustmentAmount` null or zero. |
 | Invoice | `Status` Posted; no header evidence (no header application rows, `SettlementLevel` not `Invoice`); no `WriteOffStatus`; `TotalConvertedNegAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount`, `TotalAdjustmentAmount` and `TotalTaxesCapturedAtHeader` null or zero; every line and every application row measured. |
 | Payment | `Status` Processed with application rows, or Canceled with none; no header-level application rows; `NetRefundApplied` and `NetPaymentCreditApplied` null or zero; every application row measured. |
@@ -119,8 +119,10 @@ posting and two credit memos applied to one line:
   `LineAmount` less its `NetCreditsApplied` and `NetPaymentsApplied`.
 - A Canceled payment with no applications kept `Balance` equal to `Amount`.
 
-Not measured, so outside the allow-list: Header Level, unapplied rows (their sign,
-pairing, and whether an unapply can be partial), credit memos in any status other than
+Not measured, so outside the allow-list: Header Level, unapplied rows other than the
+measured line-level pair (an unapply is always whole; `cli unapply` and the
+measurements are in the harness's `docs/contracts-billing-settlement.md` → *Unapply*),
+credit memos in any status other than
 Posted, how
 `NetRefundApplied` and `NetPaymentCreditApplied` change a payment's `Balance` (both were
 0 on every payment read), how converted negative amounts, write-offs and adjustments

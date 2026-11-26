@@ -104,7 +104,8 @@
       "PaymentId": "0aQ000000000001EAA",
       "Amount": 1000,
       "Type": "Applied",
-      "UnappliedStatus": "No"
+      "UnappliedStatus": "No",
+      "RelatedPaymentLineInvcLineId": null
     }
   ],
   "CreditMemoLineInvoiceLine": [
@@ -114,7 +115,8 @@
       "CreditMemoLineId": "9yx000000000001AAA",
       "Amount": 40,
       "Type": "Applied",
-      "UnappliedStatus": "No"
+      "UnappliedStatus": "No",
+      "RelatedCrMemoLineInvcLineId": null
     },
     {
       "Id": "4sG000000000002EAA",
@@ -122,7 +124,8 @@
       "CreditMemoLineId": "9yx000000000002AAA",
       "Amount": 60,
       "Type": "Applied",
-      "UnappliedStatus": "No"
+      "UnappliedStatus": "No",
+      "RelatedCrMemoLineInvcLineId": null
     }
   ],
   "PaymentLineInvoice": [],

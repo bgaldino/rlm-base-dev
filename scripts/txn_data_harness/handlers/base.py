@@ -102,4 +102,5 @@ def settlement_summary(m: Manifest) -> Optional[dict[str, Any]]:
         },
         "invoice_balance": m.invoice_balance,
         "warnings": m.settlement_warnings,
+        "unapplied_row_ids": m.unapplied_row_ids,
     }

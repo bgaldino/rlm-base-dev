@@ -137,6 +137,22 @@ one the generator refuses while resolving accounts and products (all refused
 before any write). CCI wrapper: `cci task run verify_quote_to_cash --org
 <cci-alias>`. Stage-by-stage procedure: `docs/guides/quote-to-cash-runbook.md`.
 
+### Unapply a run's settlement (writes records)
+
+```bash
+python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_id>
+python -m scripts.txn_data_harness.cli unapply --org <sf-alias> --manifest <run_id> --only payment
+```
+
+Reverses the run's own recorded line-level applications (payment, then
+credit) with the unapply actions, and records the new `Type` Unapplied rows in
+the manifest's `unapplied_row_ids`. A row already unapplied is not sent again.
+Exit 0 when every selected application is unapplied, 1 when one could not be,
+2 when the manifest or org cannot be read or the run is not at Line Level.
+Afterwards the payment and credit memo carry open balances that the account's
+next posted invoice absorbs. Measurements: `docs/contracts-billing-settlement.md`
+→ *Unapply*.
+
 ### Verify billing (read-only)
 
 ```bash

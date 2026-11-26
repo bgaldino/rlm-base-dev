@@ -135,6 +135,29 @@ the `invoice_ingestion` settlement example
 an invoice minted directly with no quote or order, started at `invoice_draft`
 or `invoice_posted`), which has two scenarios on one account.
 
+## Undo the settlement
+
+To show an unapply, or to put a settled invoice back to its open balance:
+
+```bash
+python -m scripts.txn_data_harness.cli unapply --org $ORG --manifest $RUN   # payment, then credit
+python -m scripts.txn_data_harness.cli verify --org $ORG --manifest $RUN
+```
+
+`--only payment` or `--only credit` reverses one. Each application gets a
+`Type` Unapplied row pointing at the original, which stays Applied and is
+flagged `UnappliedStatus` Yes; the invoice, line, payment and credit memo
+balances return to what they were before it was applied, and `verify` checks
+the pair (measured at Line Level on 264). Rerunning sends nothing for a row
+already unapplied. Two limits:
+
+- The payment and credit memo now carry open balances, and posting the
+  account's next invoice applies them to it, so the next `quote-to-cash` on
+  that account fails with no credit memo or payment of its own. Run it again:
+  the leftover balances are used up by then.
+- Nothing reapplies after an unapply, and Header Level was not measured (the
+  command refuses it).
+
 ## When a stage fails
 
 1. `inspect --manifest $RUN --json` shows `reached_stage`, `error` and

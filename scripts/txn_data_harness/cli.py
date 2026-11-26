@@ -14,7 +14,7 @@ from typing import Optional
 
 import requests
 
-from . import generate
+from . import generate, lifecycle
 from .auth import SfApiError, SfCliError, SfRestClient
 from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import (
@@ -696,6 +696,80 @@ def _cmd_quote_to_cash(args: argparse.Namespace) -> int:
     return 0
 
 
+UNAPPLY_KINDS = ("payment", "credit")
+
+
+def _cmd_unapply(args: argparse.Namespace) -> int:
+    """Unapply this run's own line-level applications: the payment's, then the credit's.
+
+    Reads each recorded application row first. One already unapplied is not sent
+    again (the platform refuses a second unapply); its Unapplied row is looked up
+    and recorded instead. Exit 0 when every selected application is unapplied,
+    1 when one could not be, 2 when the manifest or the org cannot be read or the
+    run is not at Line Level (the only level unapply was measured at).
+    """
+    try:
+        manifest = load_manifest(args.manifest)
+    except Exception as exc:  # noqa: BLE001 - an unreadable manifest is an input error
+        print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    if manifest.application_level != "line":
+        print(f"ERROR: unapply: manifest {manifest.run_id} is at "
+              f"{manifest.application_level or 'no'} application level; unapply was "
+              "measured at Line Level only", file=sys.stderr)
+        return 2
+    kinds = UNAPPLY_KINDS if args.only is None else (args.only,)
+    try:
+        client = SfRestClient.from_alias(
+            args.org, api_version=args.api_version, transport=args.transport
+        )
+        rows = {kind: {r["Id"]: r for r in lifecycle.read_line_applications(
+            client, kind, _application_ids(manifest, kind))} for kind in kinds}
+    except Exception as exc:  # noqa: BLE001 - nothing was written yet
+        print(f"ERROR: unapply: {_error_message(exc)}", file=sys.stderr)
+        return 2
+    failures = 0
+    for kind in kinds:
+        ids = _application_ids(manifest, kind)
+        if not ids:
+            print(f"{kind}: no application recorded on {manifest.run_id}")
+        for row_id in ids:
+            row = rows[kind].get(row_id)
+            try:
+                if row is None or row.get("Type") != "Applied":
+                    raise SettlementError(
+                        "unapply", f"{kind} application {row_id} is not an Applied row "
+                        "the org returns", record_id=row_id)
+                if row.get("UnappliedStatus") == "Yes":
+                    new_id = lifecycle.find_unapplied_row(client, kind, row_id)
+                    note = "already unapplied"
+                elif kind == "payment":
+                    new_id = lifecycle.unapply_payment_line(client, row["PaymentId"], row_id)
+                    note = "unapplied"
+                else:
+                    new_id = lifecycle.unapply_credit_line(client, row_id)
+                    note = "unapplied"
+            except Exception as exc:  # noqa: BLE001 - report and go on to the next row
+                failures += 1
+                print(f"FAIL: {kind} {row_id}: {_error_message(exc)}")
+                continue
+            if new_id and new_id not in manifest.unapplied_row_ids:
+                manifest.unapplied_row_ids.append(new_id)
+                write_manifest(manifest)
+            print(f"{note.upper()}: {kind} {row_id} ({row.get('Amount')}) -> "
+                  f"Unapplied row {new_id or '(not found)'}")
+    print("NOTE: the payment and credit memo now carry open balances; posting the "
+          "account's next invoice applies them to it (measured), so a later settlement "
+          "run on this account may find nothing left to credit or pay")
+    print(f"UNAPPLY: {'fail' if failures else 'done'} ({manifest.run_id})")
+    return 1 if failures else 0
+
+
+def _application_ids(manifest, kind: str) -> list[str]:
+    return list(manifest.payment_application_ids if kind == "payment"
+                else manifest.credit_application_ids)
+
+
 def _emit(text: str) -> None:
     """Print to stdout; a reader that closed the pipe (``| head -1``) is not an error.
 
@@ -844,6 +918,18 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     q2c.add_argument("-v", "--verbose", action="count", default=0,
                      help="-v for INFO, -vv for DEBUG.")
     q2c.set_defaults(func=_cmd_quote_to_cash)
+
+    unapply = sub.add_parser(
+        "unapply",
+        help="Unapply a run's own line-level payment and credit applications "
+             "(exit 1 when one could not be unapplied).",
+    )
+    add_connection_args(unapply)
+    unapply.add_argument("--manifest", required=True, help="Run id or manifest path.")
+    unapply.add_argument("--only", choices=UNAPPLY_KINDS,
+                         help="Unapply only the payment's or only the credit's "
+                              "applications (default: both, payment first).")
+    unapply.set_defaults(func=_cmd_unapply)
 
     prune = sub.add_parser("prune", help="Delete old manifests by retention age.")
     prune.add_argument("--older-than", required=True,

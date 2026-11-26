@@ -32,7 +32,10 @@ The balance checks run only on what was measured (Line Level, 264), defined once
 an allow-list in ``_unmeasured_causes``:
 
 - application row: ``Type`` Applied and no unapplied flag (``UnappliedStatus`` /
-  ``HasBeenUnapplied``) of Yes;
+  ``HasBeenUnapplied``) of Yes; or, at Line Level, a reversed pair (todo 490): an
+  Applied row flagged ``UnappliedStatus`` Yes and the one ``Type`` Unapplied row
+  whose ``Related...InvcLineId`` names it, with the same ``Amount`` (both read).
+  Rows net as Applied minus Unapplied, so a pair nets to zero;
 - invoice line: ``Type`` Charge, and no converted-negative or adjustment amount;
 - invoice: ``Status`` Posted; no header evidence (header rows or ``SettlementLevel``
   Invoice); no ``WriteOffStatus`` and every write-off, converted-negative, adjustment
@@ -130,18 +133,19 @@ class _AppObject:
     target_field: str   # InvoiceLineId (line) or InvoiceId (header)
     source_field: str   # PaymentId / CreditMemoLineId / CreditMemoId
     unapplied_flag: str  # UnappliedStatus / HasBeenUnapplied
+    related_field: Optional[str] = None  # the reversed row, on a Type Unapplied row
 
     @property
     def fields(self) -> tuple[str, ...]:
         return ("Id", self.target_field, self.source_field, "Amount", "Type",
-                self.unapplied_flag)
+                self.unapplied_flag) + ((self.related_field,) if self.related_field else ())
 
 
 APP_OBJECTS = (
     _AppObject("PaymentLineInvoiceLine", "line", "payment", "InvoiceLineId", "PaymentId",
-               "UnappliedStatus"),
+               "UnappliedStatus", "RelatedPaymentLineInvcLineId"),
     _AppObject("CreditMemoLineInvoiceLine", "line", "credit", "InvoiceLineId",
-               "CreditMemoLineId", "UnappliedStatus"),
+               "CreditMemoLineId", "UnappliedStatus", "RelatedCrMemoLineInvcLineId"),
     _AppObject("PaymentLineInvoice", "header", "payment", "InvoiceId", "PaymentId",
                "HasBeenUnapplied"),
     _AppObject("CreditMemoInvApplication", "header", "credit", "InvoiceId", "CreditMemoId",
@@ -154,6 +158,8 @@ _SETTLEMENT_LEVEL = {"InvoiceLine": "line", "Invoice": "header"}
 _CHECKED_INVOICE_STATUS = "Posted"
 _CHECKED_LINE_TYPE = "Charge"
 _CHECKED_ROW_TYPE = "Applied"
+_REVERSAL_ROW_TYPE = "Unapplied"   # line level, paired with the row it reverses
+_RELATED_FIELDS = tuple(o.related_field for o in APP_OBJECTS if o.related_field)
 _CHECKED_PAYMENT_STATUS = "Processed"   # with application rows
 _CANCELED_PAYMENT_STATUS = "Canceled"   # with none
 _CHECKED_MEMO_STATUS = "Posted"
@@ -378,8 +384,16 @@ def _fmt(value: Optional[Decimal]) -> str:
 
 
 def _net(rows: Iterable[dict]) -> Decimal:
-    """Sum of the amounts; a check runs only when every row is measured (Applied)."""
-    return sum((_zero(r.get("Amount")) for r in rows), Decimal("0"))
+    """Applied minus Unapplied amounts; a check runs only when every row is measured.
+
+    A measured Unapplied row reverses an Applied row of the same amount (both
+    positive), so the pair nets to zero, as the rollups do (measured, todo 490).
+    """
+    total = Decimal("0")
+    for r in rows:
+        amount = _zero(r.get("Amount"))
+        total += -amount if r.get("Type") == _REVERSAL_ROW_TYPE else amount
+    return total
 
 
 def _nonzero(row: dict, fields: Iterable[str]) -> Optional[str]:
@@ -397,6 +411,8 @@ class _Index:
     line_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> line id -> rows
     header_rows: dict[str, dict[str, list[dict]]] = field(default_factory=dict)  # kind -> invoice id -> rows
     rows_by_payment: dict[str, list[dict]] = field(default_factory=dict)
+    rows_by_id: dict[str, dict] = field(default_factory=dict)
+    reversals: dict[str, list[dict]] = field(default_factory=dict)  # reversed row id -> Unapplied rows
     header_rows_by_payment: dict[str, int] = field(default_factory=dict)  # payment id -> count
 
 
@@ -413,6 +429,9 @@ def _index(records: dict[str, list[dict]]) -> _Index:
             # by this set's invoice and line ids, so they count for the payment only.
             bucket = idx.line_rows if obj.level == "line" else idx.header_rows
             bucket[obj.kind].setdefault(row.get(obj.target_field), []).append(row)
+            idx.rows_by_id[row.get("Id")] = row
+            if obj.related_field and row.get("Type") == _REVERSAL_ROW_TYPE:
+                idx.reversals.setdefault(row.get(obj.related_field), []).append(row)
             if obj.kind == "payment":
                 idx.rows_by_payment.setdefault(row.get(obj.source_field), []).append(row)
                 if obj.level == "header":
@@ -514,14 +533,35 @@ def _check_level(idx: _Index, expected: Optional[str], source: str) -> list[dict
     return out
 
 
-def _row_cause(row: dict) -> Optional[str]:
-    """Why an application row is unmeasured, or None (Type Applied, no flag Yes)."""
+def _reversed_pair(idx: _Index, applied: dict) -> bool:
+    """``applied`` is a line Applied row flagged unapplied with exactly one Unapplied
+    row reversing it, of the same amount (the measured shape)."""
+    rev = idx.reversals.get(applied.get("Id"), [])
+    return (applied.get("Type") == _CHECKED_ROW_TYPE
+            and applied.get("UnappliedStatus") == "Yes"
+            and len(rev) == 1
+            and _dec(rev[0].get("Amount")) == _dec(applied.get("Amount")))
+
+
+def _row_cause(idx: _Index, row: dict) -> Optional[str]:
+    """Why an application row is unmeasured, or None.
+
+    Measured: Type Applied with no flag Yes; or one side of a reversed line pair
+    (:func:`_reversed_pair`).
+    """
     flags = [f for f in _UNAPPLIED_FLAGS if row.get(f) == "Yes"]
     if row.get("Type") == _CHECKED_ROW_TYPE and not flags:
         return None
+    if row.get("Type") == _CHECKED_ROW_TYPE and _reversed_pair(idx, row):
+        return None
+    related = next((row.get(f) for f in _RELATED_FIELDS if row.get(f)), None)
+    if (row.get("Type") == _REVERSAL_ROW_TYPE and related in idx.rows_by_id
+            and _reversed_pair(idx, idx.rows_by_id[related])):
+        return None
     what = f"{flags[0]} Yes" if flags else f"Type {row.get('Type') or 'null'}"
     return (f"application row {row.get('Id')} has {what}; only Applied rows not flagged "
-            "unapplied are measured on 264")
+            "unapplied, and line-level Applied/Unapplied pairs that reverse each other, "
+            "are measured on 264")
 
 
 def _line_cause(line: dict) -> Optional[str]:
@@ -556,7 +596,7 @@ def _invoice_cause(idx: _Index, invoice: dict) -> Optional[str]:
         if cause:
             return cause
     for row in _all_invoice_rows(idx, iid):
-        cause = _row_cause(row)
+        cause = _row_cause(idx, row)
         if cause:
             return cause
     return None
@@ -580,7 +620,7 @@ def _payment_cause(idx: _Index, payment: dict) -> Optional[str]:
     if field_value:
         return f"Status {status}; {field_value}: the effect on Balance is not measured"
     for row in rows:
-        cause = _row_cause(row)
+        cause = _row_cause(idx, row)
         if cause:
             return cause
     return None

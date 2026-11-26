@@ -1812,6 +1812,69 @@ def read_credit_applications(
     }
 
 
+
+# ---------------------------------------------------------------------------
+# Unapply (todo 490). Measured live on 264 at Line Level
+# (docs/contracts-billing-settlement.md, "Unapply"): each call is synchronous,
+# takes no amount (an unapply is always whole), keeps the original row (Type
+# Applied, Amount unchanged, UnappliedStatus Yes) and adds a positive Type
+# Unapplied row pointing at it. A second unapply of the same row is refused
+# with HTTP 400 INVALID_FIELD_FOR_INSERT_UPDATE and writes nothing.
+# ---------------------------------------------------------------------------
+def read_line_applications(client: SfRestClient, kind: str, row_ids: list[str]) -> list[dict]:
+    """The line-level application rows ``row_ids`` of ``kind`` (payment|credit)."""
+    if not row_ids:
+        return []
+    obj, source = (("PaymentLineInvoiceLine", "PaymentId") if kind == "payment"
+                   else ("CreditMemoLineInvoiceLine", "CreditMemoLineId"))
+    in_list = ", ".join(f"'{i}'" for i in row_ids)
+    return client.query(
+        f"SELECT Id, Amount, Type, UnappliedStatus, {source} FROM {obj} WHERE Id IN ({in_list})"
+    )
+
+
+def find_unapplied_row(client: SfRestClient, kind: str, row_id: str) -> Optional[str]:
+    """The Type Unapplied row that reverses ``row_id``, if any (its Related field)."""
+    obj, related = (("PaymentLineInvoiceLine", "RelatedPaymentLineInvcLineId") if kind == "payment"
+                    else ("CreditMemoLineInvoiceLine", "RelatedCrMemoLineInvcLineId"))
+    rows = client.query(
+        f"SELECT Id FROM {obj} WHERE {related} = '{row_id}' AND Type = 'Unapplied'"
+    )
+    return rows[0]["Id"] if rows else None
+
+
+def unapply_payment_line(client: SfRestClient, payment_id: str, row_id: str) -> str:
+    """Unapply one PaymentLineInvoiceLine; return the new Unapplied row's Id."""
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/billing/payments/{payment_id}"
+        f"/paymentlines/{row_id}/actions/unapply",
+        {"comments": "unapplied by the transaction data harness"},
+        retry=False,
+    )
+    new_id = result.get("id") if isinstance(result, dict) else None
+    if not new_id:
+        raise SettlementError(
+            "unapply", f"payment line unapply returned no row id: {result}", record_id=row_id
+        )
+    return new_id
+
+
+def unapply_credit_line(client: SfRestClient, row_id: str) -> str:
+    """Unapply one CreditMemoLineInvoiceLine; return the new Unapplied row's Id."""
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/"
+        f"credit-memo-line-invoice-line/{row_id}/actions/unapply",
+        {},
+        retry=False,
+    )
+    ok = isinstance(result, dict) and result.get("success")
+    new_id = result.get("creditMemoLineInvoiceLineId") if ok else None
+    if not new_id:
+        raise SettlementError(
+            "unapply", f"credit memo line unapply failed: {result}", record_id=row_id
+        )
+    return new_id
+
 def build_payment_record(
     account_id: str,
     amount: float,
